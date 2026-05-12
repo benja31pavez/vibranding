@@ -40,6 +40,9 @@ function PhoneCard({
     view === "proposed"
       ? profile.proposed_username || profile.current_username || "usuario"
       : profile.current_username || "usuario";
+  const displayName = view === "proposed"
+    ? (profile.proposed_display_name ?? profile.current_display_name)
+    : profile.current_display_name;
   const avatar = view === "proposed"
     ? profile.proposed_avatar_url || profile.current_avatar_url
     : profile.current_avatar_url;
@@ -111,6 +114,7 @@ function PhoneCard({
               </div>
             </div>
             <div style={{ marginTop: 10, color: "#000", fontSize: 12, lineHeight: 1.4 }}>
+              {displayName && <div style={{ fontWeight: 700 }}>{displayName}</div>}
               {accountType === "business" && category && (
                 <div style={{ color: "#52525b", fontSize: 11 }}>{category}</div>
               )}
@@ -131,8 +135,8 @@ function PhoneCard({
           {(() => {
             const myH = highlights.filter((h) => h.type === view).sort((a, b) => a.position - b.position);
             return (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 4, padding: "10px 14px 4px" }}>
-                {Array.from({ length: 6 }).map((_, i) => {
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6, padding: "10px 14px 4px" }}>
+                {Array.from({ length: 5 }).map((_, i) => {
                   const h = myH[i];
                   return (
                     <div key={h?.id ?? i} style={{ textAlign: "center", minWidth: 0 }}>
