@@ -60,6 +60,9 @@ export function IphonePreview({
   const [contactOpen, setContactOpen] = useState(false);
   const [storyHighlight, setStoryHighlight] = useState<IGHighlight | null>(null);
   const [storyIndex, setStoryIndex] = useState(0);
+  const [openPost, setOpenPost] = useState<IGPost | null>(null);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const openPostViewer = (p: IGPost) => { setOpenPost(p); setCarouselIdx(0); };
 
   return (
     <div className="mx-auto" style={{ width: 320 }}>
