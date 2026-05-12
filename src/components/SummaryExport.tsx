@@ -47,6 +47,13 @@ function PhoneCard({
   const followers = view === "proposed" ? (profile.proposed_followers ?? profile.current_followers) : profile.current_followers;
   const following = view === "proposed" ? (profile.proposed_following ?? profile.current_following) : profile.current_following;
   const postsCount = view === "proposed" ? (profile.proposed_posts_count ?? profile.current_posts_count) : profile.current_posts_count;
+  const accountType = view === "proposed" ? profile.proposed_account_type : profile.current_account_type;
+  const category = view === "proposed" ? profile.proposed_category : profile.current_category;
+  const verified = view === "proposed" ? profile.proposed_verified : profile.current_verified;
+  const threadsEnabled = view === "proposed" ? profile.proposed_threads_enabled : profile.current_threads_enabled;
+  const threadsHandle = view === "proposed" ? (profile.proposed_threads_handle ?? profile.current_threads_handle) : profile.current_threads_handle;
+  const songEnabled = view === "proposed" ? profile.proposed_song_enabled : profile.current_song_enabled;
+  const song = view === "proposed" ? (profile.proposed_song ?? profile.current_song) : profile.current_song;
 
   const grid = posts
     .filter((p) => p.type === view)
