@@ -1,4 +1,4 @@
-import { Signal, Wifi, BatteryFull, Grid3x3, User, Bookmark, Tag, Layers, Film, Plus, BadgeCheck, Music2, AtSign, Lock, FlaskConical } from "lucide-react";
+import { Signal, Wifi, BatteryFull, Grid3x3, User, Bookmark, Tag, Layers, Film, Plus, BadgeCheck, Play, AtSign, Lock, FlaskConical, Link as LinkIcon } from "lucide-react";
 import type { IGProfile, IGPost, IGHighlight } from "./InstagramEditor";
 
 const fmt = (n: number | null) => {
@@ -114,8 +114,9 @@ export function IphonePreview({
               )}
               {bio && <p className="whitespace-pre-line">{bio}</p>}
               {link && (
-                <a className="text-[#00376b] font-medium block" href="#">
-                  {link.replace(/^https?:\/\//, "")}
+                <a className="text-[#00376b] font-medium inline-flex items-center gap-1" href="#">
+                  <LinkIcon className="w-3 h-3" />
+                  <span>{link.replace(/^https?:\/\//, "")}</span>
                 </a>
               )}
               {((threadsEnabled && threadsHandle) || (songEnabled && song)) && (
@@ -123,12 +124,12 @@ export function IphonePreview({
                   {threadsEnabled && threadsHandle && (
                     <span className="inline-flex items-center gap-1">
                       <AtSign className="w-3 h-3" />
-                      <span>{threadsHandle.replace(/^@/, "")} · Threads</span>
+                      <span>{threadsHandle.replace(/^@/, "")}</span>
                     </span>
                   )}
                   {songEnabled && song && (
                     <span className="inline-flex items-center gap-1 min-w-0">
-                      <Music2 className="w-3 h-3 shrink-0" />
+                      <Play className="w-3 h-3 shrink-0" fill="currentColor" />
                       <span className="truncate">{song}</span>
                     </span>
                   )}
