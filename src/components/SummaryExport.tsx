@@ -281,6 +281,7 @@ export function SummaryExport({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <DataCol title="Actual" data={{
             Usuario: profile.current_username,
+            "Nombre real": profile.current_display_name,
             Verificado: profile.current_verified ? "Sí" : "No",
             "Tipo de cuenta": profile.current_account_type === "business" ? "Empresa" : "Personal",
             ...(profile.current_account_type === "business" ? { Categoría: profile.current_category } : {}),
@@ -294,6 +295,7 @@ export function SummaryExport({
           }} accent={false} />
           <DataCol title="Propuesta" data={{
             Usuario: profile.proposed_username,
+            "Nombre real": profile.proposed_display_name,
             Verificado: profile.proposed_verified ? "Sí" : "No",
             "Tipo de cuenta": profile.proposed_account_type === "business" ? "Empresa" : "Personal",
             ...(profile.proposed_account_type === "business" ? { Categoría: profile.proposed_category } : {}),
