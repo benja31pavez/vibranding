@@ -136,25 +136,6 @@ function ClientShell() {
         </div>
       </header>
 
-      {/* Sub-tab nav as Links */}
-      <div className="rounded-full bg-secondary p-1 inline-flex flex-wrap gap-1 mb-8">
-        {SUB_TABS.map((t) => {
-          const active = currentSub === t.value;
-          const to = t.value === "" ? base : `${base}/${t.value}`;
-          return (
-            <Link
-              key={t.value}
-              to={to}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                active ? "bg-surface shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t.label}
-            </Link>
-          );
-        })}
-      </div>
-
       <Outlet />
 
       {/* Off-screen export node — needs IG data */}
