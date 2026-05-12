@@ -31,7 +31,6 @@ function ClientLayout() {
 function ClientShell() {
   const { clientId } = Route.useParams();
   const navigate = Route.useNavigate();
-  const path = useRouterState({ select: (s) => s.location.pathname });
   const { client, ig, reloadClient } = useActiveClient();
   const { user } = useAuth();
   const [pricing, setPricing] = useState<PricingSettings | null>(null);
