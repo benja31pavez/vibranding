@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Signal, Wifi, BatteryFull, Grid3x3, Layers, Film, BadgeCheck, Play, AtSign, Star, FlaskConical, Repeat, SquareUser, Link as LinkIcon, PlaySquare, Phone, Mail, X, Heart, MessageCircle, Send, Bookmark, ChevronLeft, ChevronRight } from "lucide-react";
-import type { IGProfile, IGPost, IGHighlight } from "./InstagramEditor";
+import type { IGProfile, IGPost, IGHighlight, IGComment } from "./InstagramEditor";
 
 const fmt = (n: number | null) => {
   if (n == null) return "0";
