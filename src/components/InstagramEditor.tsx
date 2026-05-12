@@ -779,96 +779,130 @@ export function HighlightsEditor({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-3">
-        {items.map((h) => (
-          <div
-            key={h.id}
-            draggable
-            onDragStart={() => setDragId(h.id)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              if (dragId) reorder(dragId, h.id);
-              setDragId(null);
-            }}
-            onDragEnd={() => setDragId(null)}
-            className={`rounded-2xl border bg-surface p-3 w-44 space-y-2 cursor-move transition-opacity ${
-              dragId === h.id ? "opacity-40" : ""
-            }`}
-          >
-            <div className="flex items-center justify-between text-muted-foreground">
-              <GripVertical className="w-4 h-4" />
-              <span className="text-[10px] uppercase tracking-wider">#{h.position + 1}</span>
-            </div>
-            <MediaUpload
-              clientId={clientId}
-              shape="circle"
-              value={h.cover_url}
-              onChange={(url) => update(h.id, { cover_url: url })}
-              showUrl={false}
-            />
-            <Input
-              placeholder="Título"
-              value={h.title ?? ""}
-              onChange={(e) => setHighlights((prev) =>
-                prev.map((x) => (x.id === h.id ? { ...x, title: e.target.value } : x))
-              )}
-              onBlur={(e) => update(h.id, { title: e.target.value || null })}
-              className="text-xs h-8"
-            />
-            <div className="space-y-1">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Contenido ({(h.media_urls ?? []).length})
-              </div>
-              <div className="grid grid-cols-3 gap-1">
-                {(h.media_urls ?? []).map((url, i) => (
-                  <div key={i} className="relative group aspect-[9/16] rounded overflow-hidden bg-muted">
-                    <img src={url} alt="" className="w-full h-full object-cover" />
-                    <button
+      <div className="rounded-xl border bg-surface overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/40">
+                <th className="text-left px-2 py-2 w-10">#</th>
+                <th className="text-left px-2 py-2 w-20">Portada</th>
+                <th className="text-left px-2 py-2">Título</th>
+                <th className="text-left px-2 py-2 w-64">Contenido</th>
+                <th className="text-left px-2 py-2 w-10"></th>
+                <th className="text-left px-2 py-2 w-10"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((h, idx) => (
+                <tr
+                  key={h.id}
+                  draggable
+                  onDragStart={() => setDragId(h.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragId) reorder(dragId, h.id);
+                    setDragId(null);
+                  }}
+                  onDragEnd={() => setDragId(null)}
+                  className={`border-t align-middle transition-opacity ${
+                    dragId === h.id ? "opacity-40" : ""
+                  }`}
+                >
+                  <td className="px-2 py-2 text-muted-foreground text-[10px] tabular-nums">
+                    {idx + 1}
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="w-14 h-14">
+                      <MediaUpload
+                        clientId={clientId}
+                        shape="circle"
+                        value={h.cover_url}
+                        onChange={(url) => update(h.id, { cover_url: url })}
+                        showUrl={false}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-2 py-2">
+                    <Input
+                      placeholder="Título"
+                      value={h.title ?? ""}
+                      onChange={(e) => setHighlights((prev) =>
+                        prev.map((x) => (x.id === h.id ? { ...x, title: e.target.value } : x))
+                      )}
+                      onBlur={(e) => update(h.id, { title: e.target.value || null })}
+                      className="text-xs h-8"
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-2 text-xs px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50"
+                        >
+                          <Upload className="w-3 h-3" />
+                          {(h.media_urls ?? []).length} archivo{(h.media_urls ?? []).length === 1 ? "" : "s"}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 space-y-2" align="start">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          Contenido de la historia
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                          {(h.media_urls ?? []).map((url, i) => (
+                            <div key={i} className="relative group aspect-[9/16] rounded overflow-hidden bg-muted">
+                              <img src={url} alt="" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = (h.media_urls ?? []).filter((_, idx2) => idx2 !== i);
+                                  update(h.id, { media_urls: next });
+                                }}
+                                className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5"
+                              >
+                                <Trash2 className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <MediaUpload
+                          clientId={clientId}
+                          shape="square"
+                          value={null}
+                          onChange={(url) => {
+                            if (!url) return;
+                            const next = [...(h.media_urls ?? []), url];
+                            update(h.id, { media_urls: next });
+                          }}
+                          showUrl={false}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </td>
+                  <td className="px-2 py-2">
+                    <Button
                       type="button"
-                      onClick={() => {
-                        const next = (h.media_urls ?? []).filter((_, idx) => idx !== i);
-                        update(h.id, { media_urls: next });
-                      }}
-                      className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive h-8 w-8"
+                      onClick={() => remove(h.id)}
                     >
-                      <Trash2 className="w-2.5 h-2.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <MediaUpload
-                clientId={clientId}
-                shape="square"
-                value={null}
-                onChange={(url) => {
-                  if (!url) return;
-                  const next = [...(h.media_urls ?? []), url];
-                  update(h.id, { media_urls: next });
-                }}
-                showUrl={false}
-              />
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full text-muted-foreground hover:text-destructive"
-              onClick={() => remove(h.id)}
-            >
-              <Trash2 className="w-3 h-3 mr-1" /> Quitar
-            </Button>
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={add}
-          className="w-44 h-[180px] rounded-2xl border border-dashed flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors"
-        >
-          <Plus className="w-5 h-5 mb-1" />
-          <span className="text-xs">Añadir destacada</span>
-        </button>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </td>
+                  <td className="px-2 py-2 text-muted-foreground cursor-move">
+                    <GripVertical className="w-4 h-4" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
+      <Button type="button" variant="outline" size="sm" onClick={add}>
+        <Plus className="w-4 h-4 mr-1" /> Añadir destacada
+      </Button>
     </div>
   );
 }
