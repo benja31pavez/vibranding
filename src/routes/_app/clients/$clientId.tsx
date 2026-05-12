@@ -1,93 +1,79 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, Trash2, Eye, FileDown } from "lucide-react";
+import { ChevronLeft, Trash2, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { TaskList } from "@/components/TaskList";
-import { IdentityEditor, ConfigEditor, PostsEditor, HighlightsEditor, type IGProfile, type IGPost, type IGHighlight, type IGComment } from "@/components/InstagramEditor";
-import { IphonePreview } from "@/components/IphonePreview";
-import { PaymentsPanel } from "@/components/PaymentsPanel";
-import { MetaAdsPanel } from "@/components/MetaAdsPanel";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { SummaryExport } from "@/components/SummaryExport";
 import { exportElementToPdf } from "@/lib/exportPdf";
-import { PricingSummary, ProposedCostsBreakdown, loadPricing, type PricingSettings } from "@/components/PricingPanel";
+import { loadPricing, type PricingSettings } from "@/components/PricingPanel";
 import { useAuth } from "@/hooks/use-auth";
+import { ClientProvider, useActiveClient } from "@/contexts/ActiveClientContext";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_app/clients/$clientId")({
-  component: ClientDetail,
+  component: ClientLayout,
 });
 
-function ClientDetail() {
+function ClientLayout() {
+  const { clientId } = Route.useParams();
+  return (
+    <ClientProvider clientId={clientId}>
+      <ClientShell />
+    </ClientProvider>
+  );
+}
+
+const SUB_TABS = [
+  { value: "", label: "Resumen" },
+  { value: "instagram", label: "Instagram" },
+  { value: "meta-ads", label: "Meta Ads" },
+  { value: "objectives", label: "Objetivos" },
+  { value: "deliverables", label: "Entregables" },
+  { value: "payments", label: "Pagos" },
+] as const;
+
+function ClientShell() {
   const { clientId } = Route.useParams();
   const navigate = Route.useNavigate();
-  const [client, setClient] = useState<{ id: string; name: string; instagram_handle: string | null } | null>(null);
-  const [profile, setProfile] = useState<IGProfile | null>(null);
-  const [posts, setPosts] = useState<IGPost[]>([]);
-  const [highlights, setHighlights] = useState<IGHighlight[]>([]);
-  const [comments, setComments] = useState<IGComment[]>([]);
-  const [view, setView] = useState<"current" | "proposed">("proposed");
-  const [exporting, setExporting] = useState(false);
-  const exportRef = useRef<HTMLDivElement>(null);
+  const path = useRouterState({ select: (s) => s.location.pathname });
+  const { client, ig, reloadClient } = useActiveClient();
   const { user } = useAuth();
   const [pricing, setPricing] = useState<PricingSettings | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user) loadPricing(user.id).then(setPricing);
   }, [user]);
 
-  const loadClient = async () => {
-    const { data } = await supabase.from("clients").select("id,name,instagram_handle").eq("id", clientId).maybeSingle();
-    setClient(data);
-  };
-  const loadIG = async () => {
-    const [{ data: pr }, { data: ps }, { data: hi }, { data: cm }] = await Promise.all([
-      supabase.from("instagram_profiles").select("*").eq("client_id", clientId).maybeSingle(),
-      supabase.from("instagram_posts").select("*").eq("client_id", clientId),
-      supabase.from("instagram_highlights").select("*").eq("client_id", clientId),
-      supabase.from("instagram_post_comments").select("*").eq("client_id", clientId),
-    ]);
-    setProfile(pr as IGProfile | null);
-    setPosts((ps ?? []) as IGPost[]);
-    setHighlights((hi ?? []) as IGHighlight[]);
-    setComments((cm ?? []) as IGComment[]);
-  };
-
-  useEffect(() => {
-    loadClient();
-    loadIG();
-  }, [clientId]);
-
   const renameClient = async (name: string) => {
     if (!name.trim() || name === client?.name) return;
     await supabase.from("clients").update({ name: name.trim() }).eq("id", clientId);
-    loadClient();
+    reloadClient();
   };
 
   const updateHandle = async (h: string) => {
     await supabase.from("clients").update({ instagram_handle: h.trim() || null }).eq("id", clientId);
-    loadClient();
+    reloadClient();
   };
 
   const deleteClient = async () => {
     const { error } = await supabase.from("clients").delete().eq("id", clientId);
     if (error) return toast.error(error.message);
     toast.success("Cliente eliminado");
+    localStorage.removeItem("activeClientId");
     navigate({ to: "/clients" });
   };
 
   const handleExportPdf = async () => {
-    if (!profile || !client) return;
+    if (!ig.profile || !client) return;
     setExporting(true);
     try {
-      // Wait a frame so the off-screen export is mounted
       await new Promise((r) => requestAnimationFrame(() => r(null)));
       await new Promise((r) => setTimeout(r, 80));
       if (!exportRef.current) throw new Error("export node missing");
@@ -100,9 +86,10 @@ function ClientDetail() {
     }
   };
 
-  if (!client) {
-    return <div className="p-10 text-muted-foreground">Cargando…</div>;
-  }
+  if (!client) return <div className="p-10 text-muted-foreground">Cargando…</div>;
+
+  const base = `/clients/${clientId}`;
+  const currentSub = path.startsWith(base + "/") ? path.slice(base.length + 1).split("/")[0] : "";
 
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
@@ -110,7 +97,7 @@ function ClientDetail() {
         <ChevronLeft className="w-4 h-4" /> Clientes
       </Link>
 
-      <header className="flex flex-wrap items-end justify-between gap-4 mb-8">
+      <header className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div className="space-y-2 min-w-0">
           <Input
             defaultValue={client.name}
@@ -128,12 +115,12 @@ function ClientDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={exporting || !profile}>
+          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={exporting || !ig.profile}>
             <FileDown className="w-4 h-4 mr-1" /> {exporting ? "Generando…" : "Exportar PDF"}
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="text-muted-foreground"><Trash2 className="w-4 h-4 mr-1" /> Eliminar cliente</Button>
+              <Button variant="ghost" size="sm" className="text-muted-foreground"><Trash2 className="w-4 h-4 mr-1" /> Eliminar</Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -149,103 +136,29 @@ function ClientDetail() {
         </div>
       </header>
 
-      <div className="grid lg:grid-cols-[1fr_360px] gap-10">
-        <div>
-          <Tabs defaultValue="summary" className="w-full">
-            <TabsList className="rounded-full bg-secondary p-1 h-auto flex-wrap">
-              <TabsTrigger value="summary" className="rounded-full px-4 py-1.5">Resumen</TabsTrigger>
-              <TabsTrigger value="objectives" className="rounded-full px-4 py-1.5">Objetivos</TabsTrigger>
-              <TabsTrigger value="deliverables" className="rounded-full px-4 py-1.5">Entregables</TabsTrigger>
-              <TabsTrigger value="instagram" className="rounded-full px-4 py-1.5">Instagram</TabsTrigger>
-              <TabsTrigger value="meta-ads" className="rounded-full px-4 py-1.5">Meta Ads</TabsTrigger>
-              <TabsTrigger value="payments" className="rounded-full px-4 py-1.5">Pagos</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="summary" className="mt-6 space-y-8">
-              <SummarySection clientId={clientId} pricing={pricing} posts={posts} />
-            </TabsContent>
-
-            <TabsContent value="objectives" className="mt-6">
-              <TaskList clientId={clientId} table="objectives" title="Objetivos" emptyHint="Aún no hay objetivos." />
-            </TabsContent>
-
-            <TabsContent value="deliverables" className="mt-6">
-              <TaskList clientId={clientId} table="deliverables" title="Entregables" emptyHint="Aún no hay entregables." />
-            </TabsContent>
-
-            <TabsContent value="instagram" className="mt-6 space-y-4">
-              <p className="text-xs text-muted-foreground">
-                Editando vista <strong className={view === "proposed" ? "text-accent" : ""}>{view === "proposed" ? "Propuesta" : "Actual"}</strong>. Cambia con el selector del iPhone.
-              </p>
-              {profile && (
-                <Accordion type="single" collapsible defaultValue="identity" className="w-full space-y-2">
-                  <AccordionItem value="identity" className="border rounded-xl bg-surface px-4">
-                    <AccordionTrigger className="text-base font-semibold hover:no-underline">Identidad</AccordionTrigger>
-                    <AccordionContent className="pt-2">
-                      <IdentityEditor profile={profile} setProfile={setProfile} clientId={clientId} side={view} />
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="config" className="border rounded-xl bg-surface px-4">
-                    <AccordionTrigger className="text-base font-semibold hover:no-underline">Configuración</AccordionTrigger>
-                    <AccordionContent className="pt-2">
-                      <ConfigEditor profile={profile} setProfile={setProfile} side={view} />
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="highlights" className="border rounded-xl bg-surface px-4">
-                    <AccordionTrigger className="text-base font-semibold hover:no-underline">
-                      Historias destacadas
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-2">
-                      <HighlightsEditor clientId={clientId} highlights={highlights} setHighlights={setHighlights} type={view} />
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="posts" className="border rounded-xl bg-surface px-4">
-                    <AccordionTrigger className="text-base font-semibold hover:no-underline">
-                      Publicaciones
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-2">
-                      <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type={view} profile={profile} setProfile={setProfile} comments={comments} setComments={setComments} />
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              )}
-            </TabsContent>
-
-            <TabsContent value="meta-ads" className="mt-6">
-              <MetaAdsPanel clientId={clientId} />
-            </TabsContent>
-
-            <TabsContent value="payments" className="mt-6">
-              <PaymentsPanel clientId={clientId} />
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* iPhone preview sidebar */}
-        <div className="lg:sticky lg:top-8 lg:self-start space-y-3">
-          <div className="flex justify-center gap-1 bg-secondary rounded-full p-1 max-w-[260px] mx-auto">
-            <button
-              onClick={() => setView("current")}
-              className={`flex-1 text-xs py-1.5 px-3 rounded-full font-medium transition-colors ${view === "current" ? "bg-surface shadow-sm" : "text-muted-foreground"}`}
+      {/* Sub-tab nav as Links */}
+      <div className="rounded-full bg-secondary p-1 inline-flex flex-wrap gap-1 mb-8">
+        {SUB_TABS.map((t) => {
+          const active = currentSub === t.value;
+          const to = t.value === "" ? base : `${base}/${t.value}`;
+          return (
+            <Link
+              key={t.value}
+              to={to}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                active ? "bg-surface shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              Actual
-            </button>
-            <button
-              onClick={() => setView("proposed")}
-              className={`flex-1 text-xs py-1.5 px-3 rounded-full font-medium transition-colors ${view === "proposed" ? "bg-surface shadow-sm" : "text-muted-foreground"}`}
-            >
-              Propuesta
-            </button>
-          </div>
-          {profile && <IphonePreview profile={profile} posts={posts} highlights={highlights} comments={comments} view={view} />}
-        </div>
+              {t.label}
+            </Link>
+          );
+        })}
       </div>
 
-      {/* Off-screen export node */}
-      {profile && (
+      <Outlet />
+
+      {/* Off-screen export node — needs IG data */}
+      {ig.profile && (
         <div
           aria-hidden
           style={{
@@ -258,7 +171,7 @@ function ClientDetail() {
           }}
         >
           <div ref={exportRef}>
-            <SummaryExport client={client} profile={profile} posts={posts} highlights={highlights} pricing={pricing} />
+            <SummaryExport client={client} profile={ig.profile} posts={ig.posts} highlights={ig.highlights} pricing={pricing} />
           </div>
         </div>
       )}
@@ -266,54 +179,5 @@ function ClientDetail() {
   );
 }
 
-function SummarySection({ clientId, pricing, posts }: { clientId: string; pricing: PricingSettings | null; posts: import("@/components/InstagramEditor").IGPost[] }) {
-  const [counts, setCounts] = useState({ obj: 0, objDone: 0, del: 0, delDone: 0, paid: 0, pending: 0 });
-
-  useEffect(() => {
-    (async () => {
-      const [{ data: o }, { data: d }, { data: p }] = await Promise.all([
-        supabase.from("objectives").select("status").eq("client_id", clientId),
-        supabase.from("deliverables").select("status").eq("client_id", clientId),
-        supabase.from("payments").select("amount,status").eq("client_id", clientId),
-      ]);
-      const paid = (p ?? []).filter((x) => x.status === "paid").reduce((s, x) => s + Number(x.amount), 0);
-      const pending = (p ?? []).filter((x) => x.status !== "paid" && x.status !== "cancelled").reduce((s, x) => s + Number(x.amount), 0);
-      setCounts({
-        obj: o?.length ?? 0,
-        objDone: (o ?? []).filter((x) => x.status === "done").length,
-        del: d?.length ?? 0,
-        delDone: (d ?? []).filter((x) => x.status === "done").length,
-        paid, pending,
-      });
-    })();
-  }, [clientId]);
-
-  const Stat = ({ label, value, hint }: any) => (
-    <div className="rounded-2xl border bg-surface p-5">
-      <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="text-3xl font-semibold mt-1">{value}</div>
-      {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
-    </div>
-  );
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-          <Eye className="w-4 h-4" /> Vista rápida
-        </div>
-        <p className="text-muted-foreground text-sm max-w-prose">
-          Todo en un vistazo. La maqueta de iPhone a la derecha muestra cómo se vería el perfil de Instagram con tu propuesta.
-          Usa <strong>Exportar PDF</strong> para enviar este resumen a tu cliente.
-        </p>
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        <Stat label="Objetivos" value={`${counts.objDone}/${counts.obj}`} hint="completados" />
-        <Stat label="Entregables" value={`${counts.delDone}/${counts.del}`} hint="completados" />
-        <Stat label="Cobrado" value={`$${counts.paid.toFixed(0)}`} hint={`Pendiente $${counts.pending.toFixed(0)}`} />
-      </div>
-      <ProposedCostsBreakdown pricing={pricing} posts={posts} />
-      <PricingSummary pricing={pricing} />
-    </div>
-  );
-}
+// Re-export pricing for child summary route
+export { ClientLayout };
