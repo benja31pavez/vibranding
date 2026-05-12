@@ -1,8 +1,9 @@
 import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Users, LogOut, Sparkles, DollarSign } from "lucide-react";
+import { Users, LogOut, Sparkles, DollarSign, UserCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
