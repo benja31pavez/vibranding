@@ -187,6 +187,118 @@ export function ProfileEditor({
         <NumPair label="Seguidores" currentKey="current_followers" proposedKey="proposed_followers" />
         <NumPair label="Seguidos" currentKey="current_following" proposedKey="proposed_following" />
       </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {(["current", "proposed"] as const).map((side) => {
+          const accent = side === "proposed";
+          const atKey = `${side}_account_type` as keyof IGProfile;
+          const catKey = `${side}_category` as keyof IGProfile;
+          const verKey = `${side}_verified` as keyof IGProfile;
+          const thrEnKey = `${side}_threads_enabled` as keyof IGProfile;
+          const thrHandleKey = `${side}_threads_handle` as keyof IGProfile;
+          const songEnKey = `${side}_song_enabled` as keyof IGProfile;
+          const songKey = `${side}_song` as keyof IGProfile;
+          return (
+            <div key={side} className="space-y-3 rounded-xl border p-3 bg-surface">
+              <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>
+                {accent ? "Propuesta" : "Actual"} · Configuración
+              </Label>
+
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tipo de cuenta</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={profile[atKey] as AccountType}
+                  onChange={(e) => {
+                    const v = e.target.value as AccountType;
+                    set({ [atKey]: v } as any);
+                    save({ [atKey]: v } as any);
+                  }}
+                >
+                  <option value="personal">Personal</option>
+                  <option value="business">Empresa</option>
+                </select>
+              </div>
+
+              {profile[atKey] === "business" && (
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Categoría</Label>
+                  <select
+                    className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                    value={(profile[catKey] as string) ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value || null;
+                      set({ [catKey]: v } as any);
+                      save({ [catKey]: v } as any);
+                    }}
+                  >
+                    <option value="">— Sin categoría —</option>
+                    {IG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              )}
+
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={!!profile[verKey]}
+                  onChange={(e) => {
+                    set({ [verKey]: e.target.checked } as any);
+                    save({ [verKey]: e.target.checked } as any);
+                  }}
+                />
+                Verificado azul
+              </label>
+
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={!!profile[thrEnKey]}
+                    onChange={(e) => {
+                      set({ [thrEnKey]: e.target.checked } as any);
+                      save({ [thrEnKey]: e.target.checked } as any);
+                    }}
+                  />
+                  Mostrar Threads
+                </label>
+                {profile[thrEnKey] && (
+                  <Input
+                    placeholder="@usuario de Threads"
+                    value={(profile[thrHandleKey] as string) ?? ""}
+                    onChange={(e) => set({ [thrHandleKey]: e.target.value } as any)}
+                    onBlur={(e) => save({ [thrHandleKey]: e.target.value || null } as any)}
+                    className="h-8 text-xs"
+                  />
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={!!profile[songEnKey]}
+                    onChange={(e) => {
+                      set({ [songEnKey]: e.target.checked } as any);
+                      save({ [songEnKey]: e.target.checked } as any);
+                    }}
+                  />
+                  Mostrar canción
+                </label>
+                {profile[songEnKey] && (
+                  <Input
+                    placeholder="Artista — Canción"
+                    value={(profile[songKey] as string) ?? ""}
+                    onChange={(e) => set({ [songKey]: e.target.value } as any)}
+                    onBlur={(e) => save({ [songKey]: e.target.value || null } as any)}
+                    className="h-8 text-xs"
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
