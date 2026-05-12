@@ -84,7 +84,7 @@ export function IphonePreview({
                 <BatteryFull className="w-4 h-4" />
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto overscroll-contain pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex-1 overflow-y-auto overscroll-contain pb-14 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
           <div className="grid grid-cols-3 items-center px-4 pt-6 pb-2">
             <div className="flex justify-start">
