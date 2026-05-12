@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { TaskList } from "@/components/TaskList";
-import { ProfileEditor, PostsEditor, type IGProfile, type IGPost } from "@/components/InstagramEditor";
+import { ProfileEditor, PostsEditor, HighlightsEditor, type IGProfile, type IGPost, type IGHighlight } from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
 import { PaymentsPanel } from "@/components/PaymentsPanel";
 import { SummaryExport } from "@/components/SummaryExport";
@@ -27,6 +27,7 @@ function ClientDetail() {
   const [client, setClient] = useState<{ id: string; name: string; instagram_handle: string | null } | null>(null);
   const [profile, setProfile] = useState<IGProfile | null>(null);
   const [posts, setPosts] = useState<IGPost[]>([]);
+  const [highlights, setHighlights] = useState<IGHighlight[]>([]);
   const [view, setView] = useState<"current" | "proposed">("proposed");
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -36,12 +37,14 @@ function ClientDetail() {
     setClient(data);
   };
   const loadIG = async () => {
-    const [{ data: pr }, { data: ps }] = await Promise.all([
+    const [{ data: pr }, { data: ps }, { data: hi }] = await Promise.all([
       supabase.from("instagram_profiles").select("*").eq("client_id", clientId).maybeSingle(),
       supabase.from("instagram_posts").select("*").eq("client_id", clientId),
+      supabase.from("instagram_highlights").select("*").eq("client_id", clientId),
     ]);
     setProfile(pr as IGProfile | null);
     setPosts((ps ?? []) as IGPost[]);
+    setHighlights((hi ?? []) as IGHighlight[]);
   };
 
   useEffect(() => {
