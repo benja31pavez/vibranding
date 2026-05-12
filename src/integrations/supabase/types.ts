@@ -124,6 +124,44 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_post_comments: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          position: number
+          post_id: string
+          text: string
+          username: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          position?: number
+          post_id: string
+          text?: string
+          username?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          position?: number
+          post_id?: string
+          text?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_posts: {
         Row: {
           caption: string | null
@@ -136,6 +174,9 @@ export type Database = {
           id: string
           image_url: string | null
           is_trial_reel: boolean
+          likes_count: number
+          location: string | null
+          music: string | null
           objective: string | null
           position: number
           scheduled_at: string | null
@@ -153,6 +194,9 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_trial_reel?: boolean
+          likes_count?: number
+          location?: string | null
+          music?: string | null
           objective?: string | null
           position?: number
           scheduled_at?: string | null
@@ -170,6 +214,9 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_trial_reel?: boolean
+          likes_count?: number
+          location?: string | null
+          music?: string | null
           objective?: string | null
           position?: number
           scheduled_at?: string | null
