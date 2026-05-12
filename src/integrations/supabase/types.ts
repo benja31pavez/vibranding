@@ -126,11 +126,13 @@ export type Database = {
           caption: string | null
           carousel_urls: string[]
           client_id: string
+          close_friends_only: boolean
           cover_url: string | null
           created_at: string
           format: Database["public"]["Enums"]["post_format"]
           id: string
           image_url: string | null
+          is_trial_reel: boolean
           position: number
           scheduled_at: string | null
           type: Database["public"]["Enums"]["ig_post_type"]
@@ -140,11 +142,13 @@ export type Database = {
           caption?: string | null
           carousel_urls?: string[]
           client_id: string
+          close_friends_only?: boolean
           cover_url?: string | null
           created_at?: string
           format?: Database["public"]["Enums"]["post_format"]
           id?: string
           image_url?: string | null
+          is_trial_reel?: boolean
           position?: number
           scheduled_at?: string | null
           type: Database["public"]["Enums"]["ig_post_type"]
@@ -154,11 +158,13 @@ export type Database = {
           caption?: string | null
           carousel_urls?: string[]
           client_id?: string
+          close_friends_only?: boolean
           cover_url?: string | null
           created_at?: string
           format?: Database["public"]["Enums"]["post_format"]
           id?: string
           image_url?: string | null
+          is_trial_reel?: boolean
           position?: number
           scheduled_at?: string | null
           type?: Database["public"]["Enums"]["ig_post_type"]
@@ -178,61 +184,103 @@ export type Database = {
         Row: {
           client_id: string
           created_at: string
+          current_account_type: Database["public"]["Enums"]["account_type"]
           current_avatar_url: string | null
           current_bio: string | null
+          current_category: string | null
           current_followers: number | null
           current_following: number | null
           current_link: string | null
           current_posts_count: number | null
+          current_song: string | null
+          current_song_enabled: boolean
+          current_threads_enabled: boolean
+          current_threads_handle: string | null
           current_username: string | null
+          current_verified: boolean
           id: string
+          proposed_account_type: Database["public"]["Enums"]["account_type"]
           proposed_avatar_url: string | null
           proposed_bio: string | null
+          proposed_category: string | null
           proposed_followers: number | null
           proposed_following: number | null
           proposed_link: string | null
           proposed_posts_count: number | null
+          proposed_song: string | null
+          proposed_song_enabled: boolean
+          proposed_threads_enabled: boolean
+          proposed_threads_handle: string | null
           proposed_username: string | null
+          proposed_verified: boolean
           updated_at: string
         }
         Insert: {
           client_id: string
           created_at?: string
+          current_account_type?: Database["public"]["Enums"]["account_type"]
           current_avatar_url?: string | null
           current_bio?: string | null
+          current_category?: string | null
           current_followers?: number | null
           current_following?: number | null
           current_link?: string | null
           current_posts_count?: number | null
+          current_song?: string | null
+          current_song_enabled?: boolean
+          current_threads_enabled?: boolean
+          current_threads_handle?: string | null
           current_username?: string | null
+          current_verified?: boolean
           id?: string
+          proposed_account_type?: Database["public"]["Enums"]["account_type"]
           proposed_avatar_url?: string | null
           proposed_bio?: string | null
+          proposed_category?: string | null
           proposed_followers?: number | null
           proposed_following?: number | null
           proposed_link?: string | null
           proposed_posts_count?: number | null
+          proposed_song?: string | null
+          proposed_song_enabled?: boolean
+          proposed_threads_enabled?: boolean
+          proposed_threads_handle?: string | null
           proposed_username?: string | null
+          proposed_verified?: boolean
           updated_at?: string
         }
         Update: {
           client_id?: string
           created_at?: string
+          current_account_type?: Database["public"]["Enums"]["account_type"]
           current_avatar_url?: string | null
           current_bio?: string | null
+          current_category?: string | null
           current_followers?: number | null
           current_following?: number | null
           current_link?: string | null
           current_posts_count?: number | null
+          current_song?: string | null
+          current_song_enabled?: boolean
+          current_threads_enabled?: boolean
+          current_threads_handle?: string | null
           current_username?: string | null
+          current_verified?: boolean
           id?: string
+          proposed_account_type?: Database["public"]["Enums"]["account_type"]
           proposed_avatar_url?: string | null
           proposed_bio?: string | null
+          proposed_category?: string | null
           proposed_followers?: number | null
           proposed_following?: number | null
           proposed_link?: string | null
           proposed_posts_count?: number | null
+          proposed_song?: string | null
+          proposed_song_enabled?: boolean
+          proposed_threads_enabled?: boolean
+          proposed_threads_handle?: string | null
           proposed_username?: string | null
+          proposed_verified?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -344,6 +392,7 @@ export type Database = {
       owns_client: { Args: { _client_id: string }; Returns: boolean }
     }
     Enums: {
+      account_type: "personal" | "business"
       ig_post_type: "current" | "proposed"
       payment_status: "pending" | "paid" | "overdue" | "cancelled"
       post_format: "photo" | "carousel" | "reel"
@@ -475,6 +524,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_type: ["personal", "business"],
       ig_post_type: ["current", "proposed"],
       payment_status: ["pending", "paid", "overdue", "cancelled"],
       post_format: ["photo", "carousel", "reel"],
