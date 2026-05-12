@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, Trash2, FileDown } from "lucide-react";
@@ -27,15 +27,6 @@ function ClientLayout() {
     </ClientProvider>
   );
 }
-
-const SUB_TABS = [
-  { value: "", label: "Resumen" },
-  { value: "instagram", label: "Instagram" },
-  { value: "meta-ads", label: "Meta Ads" },
-  { value: "objectives", label: "Objetivos" },
-  { value: "deliverables", label: "Entregables" },
-  { value: "payments", label: "Pagos" },
-] as const;
 
 function ClientShell() {
   const { clientId } = Route.useParams();
