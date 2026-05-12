@@ -239,12 +239,13 @@ function PostsTable({ title, posts, type }: { title: string; posts: IGPost[]; ty
 }
 
 export function SummaryExport({
-  client, profile, posts, highlights,
+  client, profile, posts, highlights, pricing,
 }: {
   client: { name: string; instagram_handle: string | null };
   profile: IGProfile;
   posts: IGPost[];
   highlights: IGHighlight[];
+  pricing: PricingSettings | null;
 }) {
   return (
     <div style={{
