@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
+import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
 
@@ -35,6 +36,11 @@ const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
   path: '/clients/',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiMetaAdsSyncRoute = ApiMetaAdsSyncRouteImport.update({
+  id: '/api/meta-ads/sync',
+  path: '/api/meta-ads/sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppSettingsPricingRoute = AppSettingsPricingRouteImport.update({
   id: '/settings/pricing',
   path: '/settings/pricing',
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/clients/$clientId': typeof AppClientsClientIdRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
+  '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients/': typeof AppClientsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -58,6 +65,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/clients/$clientId': typeof AppClientsClientIdRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
+  '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients': typeof AppClientsIndexRoute
 }
 export interface FileRoutesById {
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRoute
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
+  '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/_app/clients/': typeof AppClientsIndexRoute
 }
 export interface FileRouteTypes {
@@ -76,9 +85,16 @@ export interface FileRouteTypes {
     | '/login'
     | '/clients/$clientId'
     | '/settings/pricing'
+    | '/api/meta-ads/sync'
     | '/clients/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/clients/$clientId' | '/settings/pricing' | '/clients'
+  to:
+    | '/'
+    | '/login'
+    | '/clients/$clientId'
+    | '/settings/pricing'
+    | '/api/meta-ads/sync'
+    | '/clients'
   id:
     | '__root__'
     | '/'
@@ -86,6 +102,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/clients/$clientId'
     | '/_app/settings/pricing'
+    | '/api/meta-ads/sync'
     | '/_app/clients/'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +110,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ApiMetaAdsSyncRoute: typeof ApiMetaAdsSyncRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -124,6 +142,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/clients/'
       preLoaderRoute: typeof AppClientsIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/meta-ads/sync': {
+      id: '/api/meta-ads/sync'
+      path: '/api/meta-ads/sync'
+      fullPath: '/api/meta-ads/sync'
+      preLoaderRoute: typeof ApiMetaAdsSyncRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/settings/pricing': {
       id: '/_app/settings/pricing'
@@ -160,7 +185,18 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  ApiMetaAdsSyncRoute: ApiMetaAdsSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
