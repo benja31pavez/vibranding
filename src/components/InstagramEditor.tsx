@@ -839,7 +839,7 @@ export function HighlightsEditor({
               </div>
               <MediaUpload
                 clientId={clientId}
-                shape="rect"
+                shape="square"
                 value={null}
                 onChange={(url) => {
                   if (!url) return;
