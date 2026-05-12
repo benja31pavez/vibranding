@@ -146,7 +146,10 @@ export type Database = {
           id: string
           proposed_avatar_url: string | null
           proposed_bio: string | null
+          proposed_followers: number | null
+          proposed_following: number | null
           proposed_link: string | null
+          proposed_posts_count: number | null
           proposed_username: string | null
           updated_at: string
         }
@@ -163,7 +166,10 @@ export type Database = {
           id?: string
           proposed_avatar_url?: string | null
           proposed_bio?: string | null
+          proposed_followers?: number | null
+          proposed_following?: number | null
           proposed_link?: string | null
+          proposed_posts_count?: number | null
           proposed_username?: string | null
           updated_at?: string
         }
@@ -180,7 +186,10 @@ export type Database = {
           id?: string
           proposed_avatar_url?: string | null
           proposed_bio?: string | null
+          proposed_followers?: number | null
+          proposed_following?: number | null
           proposed_link?: string | null
+          proposed_posts_count?: number | null
           proposed_username?: string | null
           updated_at?: string
         }

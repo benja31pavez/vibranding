@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, Trash2, Eye } from "lucide-react";
+import { ChevronLeft, Trash2, Eye, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -10,6 +10,8 @@ import { TaskList } from "@/components/TaskList";
 import { ProfileEditor, PostsEditor, type IGProfile, type IGPost } from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
 import { PaymentsPanel } from "@/components/PaymentsPanel";
+import { SummaryExport } from "@/components/SummaryExport";
+import { exportElementToPdf } from "@/lib/exportPdf";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -26,6 +28,8 @@ function ClientDetail() {
   const [profile, setProfile] = useState<IGProfile | null>(null);
   const [posts, setPosts] = useState<IGPost[]>([]);
   const [view, setView] = useState<"current" | "proposed">("proposed");
+  const [exporting, setExporting] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   const loadClient = async () => {
     const { data } = await supabase.from("clients").select("id,name,instagram_handle").eq("id", clientId).maybeSingle();
@@ -63,6 +67,23 @@ function ClientDetail() {
     navigate({ to: "/clients" });
   };
 
+  const handleExportPdf = async () => {
+    if (!profile || !client) return;
+    setExporting(true);
+    try {
+      // Wait a frame so the off-screen export is mounted
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      await new Promise((r) => setTimeout(r, 80));
+      if (!exportRef.current) throw new Error("export node missing");
+      await exportElementToPdf(exportRef.current, `resumen-${client.name.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+      toast.success("PDF generado");
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al generar PDF");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (!client) {
     return <div className="p-10 text-muted-foreground">Cargando…</div>;
   }
@@ -90,21 +111,26 @@ function ClientDetail() {
             />
           </div>
         </div>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="sm" className="text-muted-foreground"><Trash2 className="w-4 h-4 mr-1" /> Eliminar cliente</Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>¿Eliminar este cliente?</AlertDialogTitle>
-              <AlertDialogDescription>Se borrarán objetivos, entregables, propuestas y pagos asociados.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={deleteClient}>Eliminar</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={exporting || !profile}>
+            <FileDown className="w-4 h-4 mr-1" /> {exporting ? "Generando…" : "Exportar PDF"}
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-muted-foreground"><Trash2 className="w-4 h-4 mr-1" /> Eliminar cliente</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar este cliente?</AlertDialogTitle>
+                <AlertDialogDescription>Se borrarán objetivos, entregables, propuestas y pagos asociados.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={deleteClient}>Eliminar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </header>
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-10">
@@ -131,14 +157,14 @@ function ClientDetail() {
             </TabsContent>
 
             <TabsContent value="instagram" className="mt-6 space-y-8">
-              {profile && <ProfileEditor profile={profile} onUpdate={loadIG} />}
+              {profile && <ProfileEditor profile={profile} setProfile={setProfile} />}
               <div>
                 <h3 className="text-lg font-semibold mb-3">Posts actuales</h3>
-                <PostsEditor clientId={clientId} posts={posts} onUpdate={loadIG} type="current" />
+                <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type="current" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold mb-3 text-accent">Posts propuestos</h3>
-                <PostsEditor clientId={clientId} posts={posts} onUpdate={loadIG} type="proposed" />
+                <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type="proposed" />
               </div>
             </TabsContent>
 
@@ -167,6 +193,25 @@ function ClientDetail() {
           {profile && <IphonePreview profile={profile} posts={posts} view={view} />}
         </div>
       </div>
+
+      {/* Off-screen export node */}
+      {profile && (
+        <div
+          aria-hidden
+          style={{
+            position: "fixed",
+            top: 0,
+            left: "-10000px",
+            width: 900,
+            pointerEvents: "none",
+            opacity: exporting ? 1 : 0,
+          }}
+        >
+          <div ref={exportRef}>
+            <SummaryExport client={client} profile={profile} posts={posts} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -209,6 +254,7 @@ function SummarySection({ clientId }: { clientId: string }) {
         </div>
         <p className="text-muted-foreground text-sm max-w-prose">
           Todo en un vistazo. La maqueta de iPhone a la derecha muestra cómo se vería el perfil de Instagram con tu propuesta.
+          Usa <strong>Exportar PDF</strong> para enviar este resumen a tu cliente.
         </p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">

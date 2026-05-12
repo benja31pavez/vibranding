@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -16,6 +15,9 @@ export interface IGProfile {
   current_bio: string | null;
   current_link: string | null;
   proposed_username: string | null;
+  proposed_followers: number | null;
+  proposed_following: number | null;
+  proposed_posts_count: number | null;
   proposed_avatar_url: string | null;
   proposed_bio: string | null;
   proposed_link: string | null;
@@ -33,40 +35,73 @@ export interface IGPost {
 
 export function ProfileEditor({
   profile,
-  onUpdate,
+  setProfile,
 }: {
   profile: IGProfile;
-  onUpdate: () => void;
+  setProfile: (p: IGProfile) => void;
 }) {
-  const [local, setLocal] = useState(profile);
-  useEffect(() => setLocal(profile), [profile.id]);
-
+  const set = (patch: Partial<IGProfile>) => setProfile({ ...profile, ...patch });
   const save = async (patch: Partial<IGProfile>) => {
-    const { error } = await supabase.from("instagram_profiles").update(patch).eq("id", profile.id);
-    if (error) return;
-    onUpdate();
+    await supabase.from("instagram_profiles").update(patch).eq("id", profile.id);
   };
 
-  const Field = ({
-    label, current, proposed, currentKey, proposedKey, type = "text",
-  }: any) => (
-    <div className="grid grid-cols-2 gap-3">
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Actual · {label}</Label>
-        <Input
-          type={type}
-          value={current ?? ""}
-          onChange={(e) => setLocal({ ...local, [currentKey]: type === "number" ? Number(e.target.value) : e.target.value })}
-          onBlur={(e) => save({ [currentKey]: type === "number" ? Number(e.target.value) : (e.target.value || null) } as any)}
-        />
+  const TextPair = ({
+    label, currentKey, proposedKey, multiline = false,
+  }: {
+    label: string;
+    currentKey: keyof IGProfile;
+    proposedKey: keyof IGProfile;
+    multiline?: boolean;
+  }) => {
+    const Comp: any = multiline ? Textarea : Input;
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Actual · {label}</Label>
+          <Comp
+            value={(profile[currentKey] as string) ?? ""}
+            rows={multiline ? 3 : undefined}
+            onChange={(e: any) => set({ [currentKey]: e.target.value } as any)}
+            onBlur={(e: any) => save({ [currentKey]: e.target.value || null } as any)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-accent">Propuesta · {label}</Label>
+          <Comp
+            value={(profile[proposedKey] as string) ?? ""}
+            rows={multiline ? 3 : undefined}
+            onChange={(e: any) => set({ [proposedKey]: e.target.value } as any)}
+            onBlur={(e: any) => save({ [proposedKey]: e.target.value || null } as any)}
+          />
+        </div>
       </div>
-      <div className="space-y-1.5">
-        <Label className="text-xs text-accent">Propuesta · {label}</Label>
+    );
+  };
+
+  const NumPair = ({
+    label, currentKey, proposedKey,
+  }: {
+    label: string;
+    currentKey: keyof IGProfile;
+    proposedKey: keyof IGProfile;
+  }) => (
+    <div className="space-y-1.5">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <div className="grid grid-cols-2 gap-2">
         <Input
-          type={type}
-          value={proposed ?? ""}
-          onChange={(e) => setLocal({ ...local, [proposedKey]: e.target.value })}
-          onBlur={(e) => save({ [proposedKey]: e.target.value || null } as any)}
+          type="number"
+          placeholder="Actual"
+          value={(profile[currentKey] as number) ?? 0}
+          onChange={(e) => set({ [currentKey]: Number(e.target.value) } as any)}
+          onBlur={(e) => save({ [currentKey]: Number(e.target.value) } as any)}
+        />
+        <Input
+          type="number"
+          placeholder="Propuesta"
+          className="border-accent/40 focus-visible:ring-accent"
+          value={(profile[proposedKey] as number) ?? 0}
+          onChange={(e) => set({ [proposedKey]: Number(e.target.value) } as any)}
+          onBlur={(e) => save({ [proposedKey]: Number(e.target.value) } as any)}
         />
       </div>
     </div>
@@ -74,84 +109,54 @@ export function ProfileEditor({
 
   return (
     <div className="space-y-5">
-      <Field label="Usuario" current={local.current_username} proposed={local.proposed_username} currentKey="current_username" proposedKey="proposed_username" />
-      <Field label="Foto perfil (URL)" current={local.current_avatar_url} proposed={local.proposed_avatar_url} currentKey="current_avatar_url" proposedKey="proposed_avatar_url" />
-      <Field label="Enlace" current={local.current_link} proposed={local.proposed_link} currentKey="current_link" proposedKey="proposed_link" />
+      <TextPair label="Usuario" currentKey="current_username" proposedKey="proposed_username" />
+      <TextPair label="Foto perfil (URL)" currentKey="current_avatar_url" proposedKey="proposed_avatar_url" />
+      <TextPair label="Enlace" currentKey="current_link" proposedKey="proposed_link" />
+      <TextPair label="Descripción" currentKey="current_bio" proposedKey="proposed_bio" multiline />
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Actual · Descripción</Label>
-          <Textarea
-            value={local.current_bio ?? ""}
-            onChange={(e) => setLocal({ ...local, current_bio: e.target.value })}
-            onBlur={(e) => save({ current_bio: e.target.value || null })}
-            rows={3}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-accent">Propuesta · Descripción</Label>
-          <Textarea
-            value={local.proposed_bio ?? ""}
-            onChange={(e) => setLocal({ ...local, proposed_bio: e.target.value })}
-            onBlur={(e) => save({ proposed_bio: e.target.value || null })}
-            rows={3}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Posts</Label>
-          <Input type="number" value={local.current_posts_count ?? 0}
-            onChange={(e) => setLocal({ ...local, current_posts_count: Number(e.target.value) })}
-            onBlur={(e) => save({ current_posts_count: Number(e.target.value) })} />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Seguidores</Label>
-          <Input type="number" value={local.current_followers ?? 0}
-            onChange={(e) => setLocal({ ...local, current_followers: Number(e.target.value) })}
-            onBlur={(e) => save({ current_followers: Number(e.target.value) })} />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Seguidos</Label>
-          <Input type="number" value={local.current_following ?? 0}
-            onChange={(e) => setLocal({ ...local, current_following: Number(e.target.value) })}
-            onBlur={(e) => save({ current_following: Number(e.target.value) })} />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <NumPair label="Posts" currentKey="current_posts_count" proposedKey="proposed_posts_count" />
+        <NumPair label="Seguidores" currentKey="current_followers" proposedKey="proposed_followers" />
+        <NumPair label="Seguidos" currentKey="current_following" proposedKey="proposed_following" />
       </div>
     </div>
   );
 }
 
 export function PostsEditor({
-  clientId, posts, onUpdate, type,
+  clientId, posts, setPosts, type,
 }: {
   clientId: string;
   posts: IGPost[];
-  onUpdate: () => void;
+  setPosts: (updater: (prev: IGPost[]) => IGPost[]) => void;
   type: "current" | "proposed";
 }) {
-  const ensureSix = async () => {
-    const existing = posts.filter((p) => p.type === type);
-    const missing = [];
-    for (let i = 0; i < 6; i++) {
-      if (!existing.find((p) => p.position === i)) {
-        missing.push({ client_id: clientId, type, position: i });
+  useEffect(() => {
+    (async () => {
+      const existing = posts.filter((p) => p.type === type);
+      const missing: { client_id: string; type: "current" | "proposed"; position: number }[] = [];
+      for (let i = 0; i < 6; i++) {
+        if (!existing.find((p) => p.position === i)) {
+          missing.push({ client_id: clientId, type, position: i });
+        }
       }
-    }
-    if (missing.length) {
-      await supabase.from("instagram_posts").insert(missing);
-      onUpdate();
-    }
+      if (missing.length) {
+        const { data } = await supabase.from("instagram_posts").insert(missing).select("*");
+        if (data) setPosts((prev) => [...prev, ...(data as IGPost[])]);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId, type]);
+
+  const slots = Array.from({ length: 6 }, (_, i) =>
+    posts.find((p) => p.type === type && p.position === i),
+  );
+
+  const setLocal = (id: string, patch: Partial<IGPost>) => {
+    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   };
-
-  useEffect(() => { ensureSix(); }, [clientId, type, posts.length]);
-
-  const slots = Array.from({ length: 6 }, (_, i) => posts.find((p) => p.type === type && p.position === i));
-
-  const update = async (id: string, patch: Partial<IGPost>) => {
+  const saveRemote = async (id: string, patch: Partial<IGPost>) => {
     await supabase.from("instagram_posts").update(patch).eq("id", id);
-    onUpdate();
   };
 
   return (
@@ -163,8 +168,9 @@ export function PostsEditor({
             <>
               <Input
                 placeholder="URL de imagen"
-                defaultValue={p.image_url ?? ""}
-                onBlur={(e) => e.target.value !== (p.image_url ?? "") && update(p.id, { image_url: e.target.value || null })}
+                value={p.image_url ?? ""}
+                onChange={(e) => setLocal(p.id, { image_url: e.target.value })}
+                onBlur={(e) => saveRemote(p.id, { image_url: e.target.value || null })}
               />
               {p.image_url && (
                 <div className="aspect-square rounded-lg bg-muted overflow-hidden">
@@ -173,22 +179,38 @@ export function PostsEditor({
               )}
               <Textarea
                 placeholder="Caption…"
-                defaultValue={p.caption ?? ""}
+                value={p.caption ?? ""}
                 rows={2}
-                onBlur={(e) => e.target.value !== (p.caption ?? "") && update(p.id, { caption: e.target.value || null })}
+                onChange={(e) => setLocal(p.id, { caption: e.target.value })}
+                onBlur={(e) => saveRemote(p.id, { caption: e.target.value || null })}
               />
-              <Input
-                type="datetime-local"
-                defaultValue={p.scheduled_at ? new Date(p.scheduled_at).toISOString().slice(0, 16) : ""}
-                onBlur={(e) => {
-                  const v = e.target.value ? new Date(e.target.value).toISOString() : null;
-                  if (v !== p.scheduled_at) update(p.id, { scheduled_at: v });
-                }}
-              />
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Fecha y hora
+                </Label>
+                <Input
+                  type="datetime-local"
+                  value={p.scheduled_at ? toLocalInput(p.scheduled_at) : ""}
+                  onChange={(e) => {
+                    const v = e.target.value ? new Date(e.target.value).toISOString() : null;
+                    setLocal(p.id, { scheduled_at: v });
+                  }}
+                  onBlur={(e) => {
+                    const v = e.target.value ? new Date(e.target.value).toISOString() : null;
+                    saveRemote(p.id, { scheduled_at: v });
+                  }}
+                />
+              </div>
             </>
           )}
         </div>
       ))}
     </div>
   );
+}
+
+function toLocalInput(iso: string) {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
