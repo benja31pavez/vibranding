@@ -52,12 +52,8 @@ export function PricingPanel() {
 
   const Field = ({
     label, value, onChange, onBlur, type = "text", placeholder,
-  }: any) => (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Input type={type} value={value ?? ""} onChange={onChange} onBlur={onBlur} placeholder={placeholder} />
-    </div>
-  );
+  }: any) => null;
+  // (Field component removed; using inline fields below to avoid focus loss)
 
   return (
     <div className="space-y-6 max-w-2xl">
