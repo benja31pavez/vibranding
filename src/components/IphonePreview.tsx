@@ -306,6 +306,59 @@ export function IphonePreview({
             </div>
           </div>
 
+          {storyHighlight && (
+            <div className="absolute inset-0 z-40 bg-black flex flex-col">
+              <div className="flex gap-1 px-2 pt-3">
+                {(storyHighlight.media_urls?.length ? storyHighlight.media_urls : [storyHighlight.cover_url]).map((_, i) => (
+                  <div key={i} className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden">
+                    <div className={`h-full bg-white ${i <= storyIndex ? "w-full" : "w-0"}`} />
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between px-3 pt-2 text-white">
+                <div className="flex items-center gap-2 min-w-0">
+                  {avatar && <img src={avatar} className="w-6 h-6 rounded-full object-cover" alt="" />}
+                  <span className="text-[11px] font-semibold truncate">{username}</span>
+                  <span className="text-[11px] text-white/70 truncate">{storyHighlight.title || ""}</span>
+                </div>
+                <button onClick={() => setStoryHighlight(null)} className="text-white p-1">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 relative">
+                {(() => {
+                  const items = storyHighlight.media_urls?.length
+                    ? storyHighlight.media_urls
+                    : (storyHighlight.cover_url ? [storyHighlight.cover_url] : []);
+                  const src = items[storyIndex];
+                  return src ? (
+                    <img src={src} className="absolute inset-0 w-full h-full object-cover" alt="" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-white/60 text-xs">
+                      Sin contenido
+                    </div>
+                  );
+                })()}
+                <button
+                  onClick={() => setStoryIndex((i) => Math.max(0, i - 1))}
+                  className="absolute left-0 top-0 bottom-0 w-1/3"
+                  aria-label="Anterior"
+                />
+                <button
+                  onClick={() => {
+                    const items = storyHighlight.media_urls?.length
+                      ? storyHighlight.media_urls
+                      : (storyHighlight.cover_url ? [storyHighlight.cover_url] : []);
+                    if (storyIndex >= items.length - 1) setStoryHighlight(null);
+                    else setStoryIndex((i) => i + 1);
+                  }}
+                  className="absolute right-0 top-0 bottom-0 w-2/3"
+                  aria-label="Siguiente"
+                />
+              </div>
+            </div>
+          )}
+
           <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-black rounded-full z-30" />
         </div>
       </div>
