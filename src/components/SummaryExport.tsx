@@ -135,10 +135,11 @@ function PhoneCard({
             {Array.from({ length: 6 }).map((_, i) => {
               const p = grid.find((x) => x.position === i);
               const badge = p?.format === "reel" ? "▶" : p?.format === "carousel" ? "▦" : null;
+              const thumb = p?.format === "reel" ? (p.cover_url || p.image_url) : p?.image_url;
               return (
                 <div key={i} style={{ aspectRatio: "1 / 1", background: "#f4f4f5", position: "relative" }}>
-                  {p?.image_url && (
-                    <img src={p.image_url} crossOrigin="anonymous"
+                  {thumb && (
+                    <img src={thumb} crossOrigin="anonymous"
                       style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                   )}
                   {badge && (
