@@ -92,6 +92,7 @@ function ClientsList() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </header>
 
       {loading ? (
