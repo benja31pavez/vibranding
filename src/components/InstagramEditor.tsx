@@ -70,6 +70,7 @@ export interface IGPost {
   cover_url: string | null;
   is_trial_reel: boolean;
   close_friends_only: boolean;
+  objective: string | null;
 }
 
 export interface IGHighlight {
@@ -426,6 +427,7 @@ export function PostsEditor({
               <th className="text-left px-2 py-2 w-36">Fecha</th>
               <th className="text-left px-2 py-2 w-24">Hora</th>
               <th className="text-left px-2 py-2">Caption</th>
+              <th className="text-left px-2 py-2 w-44">Objetivo</th>
               <th className="text-left px-2 py-2 w-10"></th>
             </tr>
           </thead>
@@ -594,14 +596,65 @@ export function PostsEditor({
                     />
                   </td>
                   <td className="px-2 py-2">
-                    <Textarea
-                      placeholder="Caption…"
-                      value={p.caption ?? ""}
-                      rows={1}
-                      onChange={(e) => setLocal(p.id, { caption: e.target.value })}
-                      onBlur={(e) => saveRemote(p.id, { caption: e.target.value || null })}
-                      className="min-h-[32px] text-xs resize-y"
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-full text-left text-xs px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] line-clamp-2 whitespace-pre-wrap break-words"
+                          title={p.caption ?? "Editar caption"}
+                        >
+                          {p.caption?.trim() ? p.caption : (
+                            <span className="text-muted-foreground">Caption…</span>
+                          )}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-96" align="start">
+                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          Caption
+                        </Label>
+                        <Textarea
+                          autoFocus
+                          placeholder="Escribe el caption…"
+                          value={p.caption ?? ""}
+                          rows={8}
+                          onChange={(e) => setLocal(p.id, { caption: e.target.value })}
+                          onBlur={(e) => saveRemote(p.id, { caption: e.target.value || null })}
+                          className="text-sm mt-1"
+                        />
+                        <div className="text-[10px] text-muted-foreground text-right mt-1">
+                          {(p.caption ?? "").length} caracteres
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </td>
+                  <td className="px-2 py-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-full text-left text-xs px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] line-clamp-2 whitespace-pre-wrap break-words"
+                          title={p.objective ?? "Definir objetivo"}
+                        >
+                          {p.objective?.trim() ? p.objective : (
+                            <span className="text-muted-foreground">Objetivo…</span>
+                          )}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80" align="start">
+                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          Objetivo de la publicación
+                        </Label>
+                        <Textarea
+                          autoFocus
+                          placeholder="Ej: Generar interacción, captar leads, mostrar producto…"
+                          value={p.objective ?? ""}
+                          rows={4}
+                          onChange={(e) => setLocal(p.id, { objective: e.target.value })}
+                          onBlur={(e) => saveRemote(p.id, { objective: e.target.value || null })}
+                          className="text-sm mt-1"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </td>
                   <td className="px-2 py-2 text-muted-foreground cursor-move">
                     <GripVertical className="w-4 h-4" />

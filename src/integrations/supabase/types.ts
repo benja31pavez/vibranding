@@ -133,6 +133,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_trial_reel: boolean
+          objective: string | null
           position: number
           scheduled_at: string | null
           type: Database["public"]["Enums"]["ig_post_type"]
@@ -149,6 +150,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_trial_reel?: boolean
+          objective?: string | null
           position?: number
           scheduled_at?: string | null
           type: Database["public"]["Enums"]["ig_post_type"]
@@ -165,6 +167,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_trial_reel?: boolean
+          objective?: string | null
           position?: number
           scheduled_at?: string | null
           type?: Database["public"]["Enums"]["ig_post_type"]
