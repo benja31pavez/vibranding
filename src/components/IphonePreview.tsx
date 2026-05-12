@@ -38,6 +38,7 @@ export function IphonePreview({
   const threadsHandle = pick(profile.proposed_threads_handle, profile.current_threads_handle);
   const songEnabled = pickBool(profile.proposed_song_enabled, profile.current_song_enabled);
   const song = pick(profile.proposed_song, profile.current_song);
+  const showContact = pickBool(profile.proposed_show_contact_button, profile.current_show_contact_button);
 
   const myPosts = posts
     .filter((p) => p.type === view)
