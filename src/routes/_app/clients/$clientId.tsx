@@ -281,6 +281,7 @@ function SummarySection({ clientId, pricing }: { clientId: string; pricing: Pric
         <Stat label="Entregables" value={`${counts.delDone}/${counts.del}`} hint="completados" />
         <Stat label="Cobrado" value={`$${counts.paid.toFixed(0)}`} hint={`Pendiente $${counts.pending.toFixed(0)}`} />
       </div>
+      <PricingSummary pricing={pricing} />
     </div>
   );
 }
