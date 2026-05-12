@@ -1,4 +1,4 @@
-import { Signal, Wifi, BatteryFull, Grid3x3, User, Bookmark, Tag, Layers, Film, Plus } from "lucide-react";
+import { Signal, Wifi, BatteryFull, Grid3x3, User, Bookmark, Tag, Layers, Film, Plus, BadgeCheck, Music2, AtSign, Lock, FlaskConical } from "lucide-react";
 import type { IGProfile, IGPost, IGHighlight } from "./InstagramEditor";
 
 const fmt = (n: number | null) => {
@@ -21,6 +21,7 @@ export function IphonePreview({
 }) {
   const pick = <T,>(p: T | null | undefined, c: T | null | undefined): T | null =>
     view === "proposed" ? ((p ?? c) as T | null) : ((c ?? null) as T | null);
+  const pickBool = (p: boolean, c: boolean) => (view === "proposed" ? p : c);
 
   const username = pick(profile.proposed_username, profile.current_username) || "usuario";
   const avatar = pick(profile.proposed_avatar_url, profile.current_avatar_url);
@@ -29,6 +30,13 @@ export function IphonePreview({
   const followers = pick(profile.proposed_followers, profile.current_followers);
   const following = pick(profile.proposed_following, profile.current_following);
   const postsCount = pick(profile.proposed_posts_count, profile.current_posts_count);
+  const accountType = view === "proposed" ? profile.proposed_account_type : profile.current_account_type;
+  const category = view === "proposed" ? profile.proposed_category : profile.current_category;
+  const verified = pickBool(profile.proposed_verified, profile.current_verified);
+  const threadsEnabled = pickBool(profile.proposed_threads_enabled, profile.current_threads_enabled);
+  const threadsHandle = pick(profile.proposed_threads_handle, profile.current_threads_handle);
+  const songEnabled = pickBool(profile.proposed_song_enabled, profile.current_song_enabled);
+  const song = pick(profile.proposed_song, profile.current_song);
 
   const myPosts = posts
     .filter((p) => p.type === view)
