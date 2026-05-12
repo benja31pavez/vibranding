@@ -287,7 +287,13 @@ export function IphonePreview({
               {reels.map((p) => {
                 const thumb = p.cover_url || p.image_url;
                 return (
-                  <div key={p.id} className="bg-zinc-100 relative" style={{ aspectRatio: "9/16" }}>
+                  <button
+                    type="button"
+                    key={p.id}
+                    onClick={() => openPostViewer(p)}
+                    className="bg-zinc-100 relative block w-full"
+                    style={{ aspectRatio: "9/16" }}
+                  >
                     {thumb && <img src={thumb} className="w-full h-full object-cover" alt="" />}
                     <div className="absolute top-1 right-1 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
                       <Play className="w-3.5 h-3.5" fill="white" />
@@ -302,7 +308,7 @@ export function IphonePreview({
                         <Star className="w-2.5 h-2.5" fill="currentColor" />
                       </div>
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
