@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode, type Dispatch, type SetStateAction } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { IGProfile, IGPost, IGHighlight, IGComment } from "@/components/InstagramEditor";
 
@@ -18,10 +18,10 @@ interface IGData {
 interface ClientCtx {
   client: ActiveClient | null;
   ig: IGData;
-  setProfile: (p: IGProfile | null) => void;
-  setPosts: (p: IGPost[]) => void;
-  setHighlights: (h: IGHighlight[]) => void;
-  setComments: (c: IGComment[]) => void;
+  setProfile: Dispatch<SetStateAction<IGProfile | null>>;
+  setPosts: Dispatch<SetStateAction<IGPost[]>>;
+  setHighlights: Dispatch<SetStateAction<IGHighlight[]>>;
+  setComments: Dispatch<SetStateAction<IGComment[]>>;
   reloadClient: () => Promise<void>;
   reloadIG: () => Promise<void>;
 }
