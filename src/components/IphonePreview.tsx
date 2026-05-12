@@ -89,7 +89,7 @@ export function IphonePreview({
           <div className="grid grid-cols-3 items-center px-4 pt-6 pb-2">
             <div className="flex justify-start">
               <button type="button" className="text-black" aria-label="Crear">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
             </div>
             <div className="flex justify-center text-black font-semibold text-sm items-center gap-1">
@@ -508,10 +508,10 @@ export function IphonePreview({
           })()}
 
           <div className="absolute bottom-0 left-0 right-0 z-20 bg-white border-t border-zinc-200 pt-2 pb-4 px-4 flex items-center justify-between text-black">
-            <House className="w-5 h-5" fill="currentColor" strokeWidth={1.5} />
-            <Search className="w-5 h-5" strokeWidth={1.5} />
-            <Film className="w-5 h-5" strokeWidth={1.5} />
-            <Send className="w-5 h-5" strokeWidth={1.5} />
+            <House className="w-5 h-5" strokeWidth={1.75} />
+            <Search className="w-5 h-5" strokeWidth={1.75} />
+            <PlaySquare className="w-5 h-5" strokeWidth={1.75} />
+            <Send className="w-5 h-5" strokeWidth={1.75} />
             {avatar ? (
               <img src={avatar} alt="" className="w-6 h-6 rounded-full object-cover ring-1 ring-black" />
             ) : (
