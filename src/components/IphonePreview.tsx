@@ -118,16 +118,20 @@ export function IphonePreview({
                   {link.replace(/^https?:\/\//, "")}
                 </a>
               )}
-              {threadsEnabled && threadsHandle && (
-                <div className="flex items-center gap-1 text-[11px] text-zinc-700">
-                  <AtSign className="w-3 h-3" />
-                  <span>{threadsHandle.replace(/^@/, "")} · Threads</span>
-                </div>
-              )}
-              {songEnabled && song && (
-                <div className="flex items-center gap-1 text-[11px] text-zinc-700">
-                  <Music2 className="w-3 h-3" />
-                  <span className="truncate">{song}</span>
+              {((threadsEnabled && threadsHandle) || (songEnabled && song)) && (
+                <div className="flex items-center gap-3 text-[11px] text-zinc-700 flex-wrap">
+                  {threadsEnabled && threadsHandle && (
+                    <span className="inline-flex items-center gap-1">
+                      <AtSign className="w-3 h-3" />
+                      <span>{threadsHandle.replace(/^@/, "")} · Threads</span>
+                    </span>
+                  )}
+                  {songEnabled && song && (
+                    <span className="inline-flex items-center gap-1 min-w-0">
+                      <Music2 className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{song}</span>
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -170,7 +174,7 @@ export function IphonePreview({
           </div>
 
           <div className="grid grid-cols-3 gap-[2px] bg-white">
-            {Array.from({ length: 6 }).map((_, i) => {
+            {Array.from({ length: Math.max(0, Math.min(30, postsCount ?? 6)) }).map((_, i) => {
               const p = myPosts.find((x) => x.position === i);
               const Icon = p?.format === "reel" ? Film : p?.format === "carousel" ? Layers : null;
               const thumb = p?.format === "reel" ? (p.cover_url || p.image_url) : p?.image_url;

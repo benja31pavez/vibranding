@@ -335,18 +335,29 @@ const FORMATS: { value: PostFormat; label: string; Icon: typeof ImageIcon }[] = 
 ];
 
 export function PostsEditor({
-  clientId, posts, setPosts, type,
+  clientId, posts, setPosts, type, profile,
 }: {
   clientId: string;
   posts: IGPost[];
   setPosts: (updater: (prev: IGPost[]) => IGPost[]) => void;
   type: "current" | "proposed";
+  profile?: IGProfile | null;
 }) {
+  const desiredCount = Math.max(
+    0,
+    Math.min(
+      30,
+      (type === "proposed"
+        ? profile?.proposed_posts_count
+        : profile?.current_posts_count) ?? 6,
+    ),
+  );
+
   useEffect(() => {
     (async () => {
       const existing = posts.filter((p) => p.type === type);
       const missing: { client_id: string; type: "current" | "proposed"; position: number }[] = [];
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < desiredCount; i++) {
         if (!existing.find((p) => p.position === i)) {
           missing.push({ client_id: clientId, type, position: i });
         }
@@ -357,11 +368,8 @@ export function PostsEditor({
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, type]);
+  }, [clientId, type, desiredCount]);
 
-  const slots = Array.from({ length: 6 }, (_, i) =>
-    posts.find((p) => p.type === type && p.position === i),
-  );
 
   const setLocal = (id: string, patch: Partial<IGPost>) => {
     setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
@@ -372,7 +380,8 @@ export function PostsEditor({
 
   const sorted = [...posts]
     .filter((p) => p.type === type)
-    .sort((a, b) => a.position - b.position);
+    .sort((a, b) => a.position - b.position)
+    .slice(0, desiredCount);
 
   const [dragId, setDragId] = useState<string | null>(null);
 

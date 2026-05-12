@@ -190,7 +190,7 @@ function ClientDetail() {
 
                   <AccordionItem value="highlights" className="border rounded-xl bg-surface px-4">
                     <AccordionTrigger className="text-base font-semibold hover:no-underline">
-                      Historias destacadas {view === "proposed" ? "propuestas" : "actuales"}
+                      Historias destacadas
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">
                       <HighlightsEditor clientId={clientId} highlights={highlights} setHighlights={setHighlights} type={view} />
@@ -199,10 +199,10 @@ function ClientDetail() {
 
                   <AccordionItem value="posts" className="border rounded-xl bg-surface px-4">
                     <AccordionTrigger className="text-base font-semibold hover:no-underline">
-                      Posts {view === "proposed" ? "propuestos" : "actuales"}
+                      Publicaciones
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">
-                      <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type={view} />
+                      <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type={view} profile={profile} />
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
