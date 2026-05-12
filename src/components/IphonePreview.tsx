@@ -13,11 +13,13 @@ export function IphonePreview({
   profile,
   posts,
   highlights,
+  comments,
   view,
 }: {
   profile: IGProfile;
   posts: IGPost[];
   highlights: IGHighlight[];
+  comments: IGComment[];
   view: "current" | "proposed";
 }) {
   const pick = <T,>(p: T | null | undefined, c: T | null | undefined): T | null =>
