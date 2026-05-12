@@ -180,7 +180,9 @@ function PostsTable({ title, posts, type }: { title: string; posts: IGPost[]; ty
               )}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>POST #{i + 1}</div>
+              <div style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>
+                POST #{i + 1} · {fmtLabel(p.format)}
+              </div>
               <div style={{ fontSize: 11, color: C.ink, marginTop: 2, lineHeight: 1.3, wordBreak: "break-word" }}>
                 {p.caption || <span style={{ color: C.muted }}>Sin caption</span>}
               </div>
@@ -194,11 +196,12 @@ function PostsTable({ title, posts, type }: { title: string; posts: IGPost[]; ty
 }
 
 export function SummaryExport({
-  client, profile, posts,
+  client, profile, posts, highlights,
 }: {
   client: { name: string; instagram_handle: string | null };
   profile: IGProfile;
   posts: IGPost[];
+  highlights: IGHighlight[];
 }) {
   return (
     <div style={{
@@ -219,8 +222,8 @@ export function SummaryExport({
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", gap: 24, alignItems: "flex-start" }}>
-        <PhoneCard title="Actual" profile={profile} posts={posts} view="current" />
-        <PhoneCard title="Propuesta" profile={profile} posts={posts} view="proposed" />
+        <PhoneCard title="Actual" profile={profile} posts={posts} highlights={highlights} view="current" />
+        <PhoneCard title="Propuesta" profile={profile} posts={posts} highlights={highlights} view="proposed" />
       </div>
 
       <div style={{ marginTop: 28 }}>
