@@ -12,7 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppClientsRouteImport } from './routes/_app/clients'
+import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -28,35 +28,35 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppClientsRoute = AppClientsRouteImport.update({
-  id: '/clients',
-  path: '/clients',
+const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
+  id: '/clients/',
+  path: '/clients/',
   getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/clients': typeof AppClientsRoute
+  '/clients/': typeof AppClientsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/clients': typeof AppClientsRoute
+  '/clients': typeof AppClientsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/clients': typeof AppClientsRoute
+  '/_app/clients/': typeof AppClientsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/clients'
+  fullPaths: '/' | '/login' | '/clients/'
   fileRoutesByTo: FileRoutesByTo
   to: '/' | '/login' | '/clients'
-  id: '__root__' | '/' | '/_app' | '/login' | '/_app/clients'
+  id: '__root__' | '/' | '/_app' | '/login' | '/_app/clients/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -88,22 +88,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/clients': {
-      id: '/_app/clients'
+    '/_app/clients/': {
+      id: '/_app/clients/'
       path: '/clients'
-      fullPath: '/clients'
-      preLoaderRoute: typeof AppClientsRouteImport
+      fullPath: '/clients/'
+      preLoaderRoute: typeof AppClientsIndexRouteImport
       parentRoute: typeof AppRoute
     }
   }
 }
 
 interface AppRouteChildren {
-  AppClientsRoute: typeof AppClientsRoute
+  AppClientsIndexRoute: typeof AppClientsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppClientsRoute: AppClientsRoute,
+  AppClientsIndexRoute: AppClientsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

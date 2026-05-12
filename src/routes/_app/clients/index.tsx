@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
-export const Route = createFileRoute("/_app/clients")({
+export const Route = createFileRoute("/_app/clients/")({
   component: ClientsList,
 });
 
