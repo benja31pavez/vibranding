@@ -169,28 +169,42 @@ function PostsTable({ title, posts, type }: { title: string; posts: IGPost[]; ty
         {title}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        {items.map((p, i) => (
-          <div key={p.id} style={{
-            border: `1px solid ${C.line}`, borderRadius: 12, padding: 10,
-            background: C.surface, display: "flex", gap: 10,
-          }}>
-            <div style={{ width: 56, height: 56, borderRadius: 8, background: "#e5e7eb", overflow: "hidden", flexShrink: 0 }}>
-              {p.image_url && (
-                <img src={p.image_url} crossOrigin="anonymous"
-                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-              )}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>
-                POST #{i + 1} · {fmtLabel(p.format)}
+        {items.map((p, i) => {
+          const mainThumb = p.format === "reel" ? (p.cover_url || p.image_url) : p.image_url;
+          return (
+            <div key={p.id} style={{
+              border: `1px solid ${C.line}`, borderRadius: 12, padding: 10,
+              background: C.surface, display: "flex", gap: 10,
+            }}>
+              <div style={{ width: 56, height: 56, borderRadius: 8, background: "#e5e7eb", overflow: "hidden", flexShrink: 0 }}>
+                {mainThumb && (
+                  <img src={mainThumb} crossOrigin="anonymous"
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                )}
               </div>
-              <div style={{ fontSize: 11, color: C.ink, marginTop: 2, lineHeight: 1.3, wordBreak: "break-word" }}>
-                {p.caption || <span style={{ color: C.muted }}>Sin caption</span>}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>
+                  POST #{i + 1} · {fmtLabel(p.format)}
+                  {p.format === "carousel" && p.carousel_urls?.length ? ` · ${p.carousel_urls.length} img` : ""}
+                </div>
+                <div style={{ fontSize: 11, color: C.ink, marginTop: 2, lineHeight: 1.3, wordBreak: "break-word" }}>
+                  {p.caption || <span style={{ color: C.muted }}>Sin caption</span>}
+                </div>
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>📅 {fmtDate(p.scheduled_at)}</div>
+                {p.format === "carousel" && p.carousel_urls?.length > 0 && (
+                  <div style={{ display: "flex", gap: 3, marginTop: 6, flexWrap: "wrap" }}>
+                    {p.carousel_urls.slice(0, 8).map((u, k) => (
+                      <div key={k} style={{ width: 28, height: 28, borderRadius: 4, overflow: "hidden", background: "#e5e7eb" }}>
+                        <img src={u} crossOrigin="anonymous"
+                          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>📅 {fmtDate(p.scheduled_at)}</div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
