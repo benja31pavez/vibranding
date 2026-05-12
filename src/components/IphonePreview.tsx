@@ -505,13 +505,3 @@ export function IphonePreview({
     </div>
   );
 }
-              </div>
-            );
-          })()}
-
-          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-black rounded-full z-30" />
-        </div>
-      </div>
-    </div>
-  );
-}
