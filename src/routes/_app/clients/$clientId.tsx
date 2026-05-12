@@ -219,7 +219,7 @@ function ClientDetail() {
           }}
         >
           <div ref={exportRef}>
-            <SummaryExport client={client} profile={profile} posts={posts} />
+            <SummaryExport client={client} profile={profile} posts={posts} highlights={highlights} />
           </div>
         </div>
       )}
