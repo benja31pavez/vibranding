@@ -507,6 +507,17 @@ export function IphonePreview({
             );
           })()}
 
+          <div className="absolute bottom-0 left-0 right-0 z-20 bg-white border-t border-zinc-200 pt-2 pb-4 px-4 flex items-center justify-between text-black">
+            <House className="w-5 h-5" fill="currentColor" strokeWidth={1.5} />
+            <Search className="w-5 h-5" strokeWidth={1.5} />
+            <Film className="w-5 h-5" strokeWidth={1.5} />
+            <Send className="w-5 h-5" strokeWidth={1.5} />
+            {avatar ? (
+              <img src={avatar} alt="" className="w-6 h-6 rounded-full object-cover ring-1 ring-black" />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-zinc-300 ring-1 ring-black" />
+            )}
+          </div>
           <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-black rounded-full z-30" />
         </div>
       </div>
