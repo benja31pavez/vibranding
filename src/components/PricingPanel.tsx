@@ -33,6 +33,30 @@ export async function loadPricing(userId: string): Promise<PricingSettings | nul
   return (created as PricingSettings) ?? null;
 }
 
+function TextLine({
+  label, value, onChange, onBlur, type = "text", placeholder,
+}: {
+  label: string;
+  value: string | number;
+  onChange: (v: string) => void;
+  onBlur: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Input
+        type={type}
+        value={value ?? ""}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={(e) => onBlur(e.target.value)}
+      />
+    </div>
+  );
+}
+
 export function PricingPanel() {
   const { user } = useAuth();
   const [p, setP] = useState<PricingSettings | null>(null);
@@ -50,15 +74,6 @@ export function PricingPanel() {
     if (error) toast.error(error.message);
   };
 
-  const Field = ({
-    label, value, onChange, onBlur, type = "text", placeholder,
-  }: any) => (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Input type={type} value={value ?? ""} onChange={onChange} onBlur={onBlur} placeholder={placeholder} />
-    </div>
-  );
-
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
@@ -69,11 +84,11 @@ export function PricingPanel() {
       </div>
 
       <div className="rounded-2xl border bg-surface p-5 space-y-4">
-        <Field
+        <TextLine
           label="Moneda (ej. USD, EUR, CLP)"
           value={p.currency}
-          onChange={(e: any) => set({ currency: e.target.value.toUpperCase() })}
-          onBlur={(e: any) => save({ currency: e.target.value.toUpperCase() || "USD" })}
+          onChange={(v) => set({ currency: v.toUpperCase() })}
+          onBlur={(v) => save({ currency: v.toUpperCase() || "USD" })}
         />
       </div>
 
@@ -82,12 +97,12 @@ export function PricingPanel() {
           <h3 className="font-semibold">Pack inicial</h3>
           <p className="text-xs text-muted-foreground">Primer contacto + edición de perfil completa.</p>
         </div>
-        <Field
+        <TextLine
           label={`Precio del pack (${p.currency})`}
           type="number"
           value={p.pack_price}
-          onChange={(e: any) => set({ pack_price: Number(e.target.value) })}
-          onBlur={(e: any) => save({ pack_price: Number(e.target.value) })}
+          onChange={(v) => set({ pack_price: Number(v) })}
+          onBlur={(v) => save({ pack_price: Number(v) })}
         />
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Qué incluye (opcional)</Label>
@@ -107,26 +122,26 @@ export function PricingPanel() {
           <p className="text-xs text-muted-foreground">Costo unitario por pieza extra fuera del pack.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Field
+          <TextLine
             label={`Foto (${p.currency})`}
             type="number"
             value={p.photo_price}
-            onChange={(e: any) => set({ photo_price: Number(e.target.value) })}
-            onBlur={(e: any) => save({ photo_price: Number(e.target.value) })}
+            onChange={(v) => set({ photo_price: Number(v) })}
+            onBlur={(v) => save({ photo_price: Number(v) })}
           />
-          <Field
+          <TextLine
             label={`Carrusel (${p.currency})`}
             type="number"
             value={p.carousel_price}
-            onChange={(e: any) => set({ carousel_price: Number(e.target.value) })}
-            onBlur={(e: any) => save({ carousel_price: Number(e.target.value) })}
+            onChange={(v) => set({ carousel_price: Number(v) })}
+            onBlur={(v) => save({ carousel_price: Number(v) })}
           />
-          <Field
+          <TextLine
             label={`Reel (${p.currency})`}
             type="number"
             value={p.reel_price}
-            onChange={(e: any) => set({ reel_price: Number(e.target.value) })}
-            onBlur={(e: any) => save({ reel_price: Number(e.target.value) })}
+            onChange={(v) => set({ reel_price: Number(v) })}
+            onBlur={(v) => save({ reel_price: Number(v) })}
           />
         </div>
       </div>
@@ -145,9 +160,13 @@ export function PricingPanel() {
   );
 }
 
+function fmtMoney(pricing: PricingSettings, n: number) {
+  return `${pricing.currency} ${Number(n).toLocaleString("es", { maximumFractionDigits: 2 })}`;
+}
+
 export function PricingSummary({ pricing }: { pricing: PricingSettings | null }) {
   if (!pricing) return null;
-  const fmt = (n: number) => `${pricing.currency} ${Number(n).toLocaleString("es", { maximumFractionDigits: 2 })}`;
+  const fmt = (n: number) => fmtMoney(pricing, n);
   return (
     <div className="rounded-2xl border bg-surface p-5">
       <div className="flex items-baseline justify-between mb-3">
@@ -170,6 +189,61 @@ export function PricingSummary({ pricing }: { pricing: PricingSettings | null })
         {pricing.notes && (
           <div className="text-xs text-muted-foreground pt-2 border-t mt-2 whitespace-pre-line">{pricing.notes}</div>
         )}
+      </div>
+    </div>
+  );
+}
+
+import type { IGPost, PostFormat } from "./InstagramEditor";
+
+export function priceForFormat(pricing: PricingSettings, f: PostFormat): number {
+  return f === "reel" ? pricing.reel_price : f === "carousel" ? pricing.carousel_price : pricing.photo_price;
+}
+
+export function ProposedCostsBreakdown({
+  pricing, posts,
+}: {
+  pricing: PricingSettings | null;
+  posts: IGPost[];
+}) {
+  if (!pricing) return null;
+  const proposed = posts
+    .filter((p) => p.type === "proposed")
+    .sort((a, b) => a.position - b.position);
+  if (!proposed.length) return null;
+  const fmt = (n: number) => fmtMoney(pricing, n);
+  const subtotal = proposed.reduce((s, p) => s + priceForFormat(pricing, p.format), 0);
+  const total = subtotal + Number(pricing.pack_price ?? 0);
+
+  const label = (f: PostFormat) => f === "reel" ? "Reel" : f === "carousel" ? "Carrusel" : "Foto";
+
+  return (
+    <div className="rounded-2xl border bg-surface p-5">
+      <div className="flex items-baseline justify-between mb-3">
+        <h3 className="font-semibold">Desglose de costos · Propuesta</h3>
+        <span className="text-xs text-muted-foreground">{pricing.currency}</span>
+      </div>
+      <div className="space-y-1.5 text-sm">
+        {proposed.map((p, i) => (
+          <div key={p.id} className="flex justify-between py-1 border-b last:border-0">
+            <span className="text-muted-foreground">
+              Post #{i + 1} · <span className="text-foreground">{label(p.format)}</span>
+            </span>
+            <span className="font-medium">{fmt(priceForFormat(pricing, p.format))}</span>
+          </div>
+        ))}
+        <div className="flex justify-between pt-2 border-t mt-2">
+          <span>Subtotal posts</span>
+          <span className="font-medium">{fmt(subtotal)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Pack inicial</span>
+          <span className="font-medium">{fmt(pricing.pack_price)}</span>
+        </div>
+        <div className="flex justify-between pt-2 border-t mt-1 text-base">
+          <span className="font-semibold">Total estimado</span>
+          <span className="font-bold">{fmt(total)}</span>
+        </div>
       </div>
     </div>
   );

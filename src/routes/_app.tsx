@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Users, LogOut, Sparkles } from "lucide-react";
+import { Users, LogOut, Sparkles, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_app")({
@@ -38,6 +38,14 @@ function AppLayout() {
             }`}
           >
             <Users className="w-4 h-4" /> Clientes
+          </Link>
+          <Link
+            to="/settings/pricing"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              path.startsWith("/settings/pricing") ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent/60"
+            }`}
+          >
+            <DollarSign className="w-4 h-4" /> Tarifas
           </Link>
         </nav>
         <div className="mt-auto p-3 border-t">

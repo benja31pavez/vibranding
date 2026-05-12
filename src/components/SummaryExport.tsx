@@ -314,20 +314,50 @@ export function SummaryExport({
             <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, whiteSpace: "nowrap" }}>{v}</div>
           </div>
         );
+        const proposed = posts.filter((p) => p.type === "proposed").sort((a, b) => a.position - b.position);
+        const priceFor = (fmt: string) =>
+          fmt === "reel" ? pricing.reel_price : fmt === "carousel" ? pricing.carousel_price : pricing.photo_price;
+        const subtotal = proposed.reduce((s, p) => s + Number(priceFor(p.format)), 0);
+        const total = subtotal + Number(pricing.pack_price ?? 0);
+        const lbl = (fmt: string) => fmt === "reel" ? "Reel" : fmt === "carousel" ? "Carrusel" : "Foto";
         return (
-          <div style={{ marginTop: 24, border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, background: C.surface }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>Tarifas</div>
-              <div style={{ fontSize: 10, color: C.muted }}>{cur}</div>
+          <>
+            <div style={{ marginTop: 24, border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, background: C.surface }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>Tarifas</div>
+                <div style={{ fontSize: 10, color: C.muted }}>{cur}</div>
+              </div>
+              <Row k="Pack inicial · primer contacto + edición de perfil" sub={pricing.pack_description} v={f(pricing.pack_price)} />
+              <Row k="Foto adicional" v={f(pricing.photo_price)} />
+              <Row k="Carrusel adicional" v={f(pricing.carousel_price)} />
+              <Row k="Reel adicional" v={f(pricing.reel_price)} />
+              {pricing.notes && (
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 10, whiteSpace: "pre-line" }}>{pricing.notes}</div>
+              )}
             </div>
-            <Row k="Pack inicial · primer contacto + edición de perfil" sub={pricing.pack_description} v={f(pricing.pack_price)} />
-            <Row k="Foto adicional" v={f(pricing.photo_price)} />
-            <Row k="Carrusel adicional" v={f(pricing.carousel_price)} />
-            <Row k="Reel adicional" v={f(pricing.reel_price)} />
-            {pricing.notes && (
-              <div style={{ fontSize: 10, color: C.muted, marginTop: 10, whiteSpace: "pre-line" }}>{pricing.notes}</div>
+
+            {proposed.length > 0 && (
+              <div style={{ marginTop: 16, border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, background: C.surface }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.accent, marginBottom: 8 }}>Desglose de costos · Propuesta</div>
+                {proposed.map((p, i) => (
+                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.line}`, fontSize: 12 }}>
+                    <span style={{ color: C.muted }}>Post #{i + 1} · <span style={{ color: C.ink }}>{lbl(p.format)}</span></span>
+                    <span style={{ fontWeight: 600 }}>{f(priceFor(p.format))}</span>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0 4px", fontSize: 12 }}>
+                  <span>Subtotal posts</span><span style={{ fontWeight: 600 }}>{f(subtotal)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "0 0 8px", fontSize: 12 }}>
+                  <span>Pack inicial</span><span style={{ fontWeight: 600 }}>{f(pricing.pack_price)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: `1px solid ${C.line}`, fontSize: 14 }}>
+                  <span style={{ fontWeight: 700 }}>Total estimado</span>
+                  <span style={{ fontWeight: 800 }}>{f(total)}</span>
+                </div>
+              </div>
             )}
-          </div>
+          </>
         );
       })()}
 

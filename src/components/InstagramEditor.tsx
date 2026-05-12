@@ -78,226 +78,217 @@ export interface IGHighlight {
   cover_url: string | null;
 }
 
+type Side = "current" | "proposed";
+
+function TextField({
+  label, value, onChange, onBlur, multiline, accent,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  onBlur: (v: string) => void;
+  multiline?: boolean;
+  accent?: boolean;
+}) {
+  const Comp: any = multiline ? Textarea : Input;
+  return (
+    <div className="space-y-1.5">
+      <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>{label}</Label>
+      <Comp
+        value={value}
+        rows={multiline ? 3 : undefined}
+        onChange={(e: any) => onChange(e.target.value)}
+        onBlur={(e: any) => onBlur(e.target.value)}
+      />
+    </div>
+  );
+}
+
+function NumField({
+  label, value, onChange, onBlur, accent,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  onBlur: (v: number) => void;
+  accent?: boolean;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>{label}</Label>
+      <Input
+        type="number"
+        value={value}
+        className={accent ? "border-accent/40 focus-visible:ring-accent" : undefined}
+        onChange={(e) => onChange(Number(e.target.value))}
+        onBlur={(e) => onBlur(Number(e.target.value))}
+      />
+    </div>
+  );
+}
+
 export function ProfileEditor({
   profile,
   setProfile,
   clientId,
+  side,
 }: {
   profile: IGProfile;
   setProfile: (p: IGProfile) => void;
   clientId: string;
+  side: Side;
 }) {
+  const accent = side === "proposed";
   const set = (patch: Partial<IGProfile>) => setProfile({ ...profile, ...patch });
   const save = async (patch: Partial<IGProfile>) => {
     await supabase.from("instagram_profiles").update(patch).eq("id", profile.id);
   };
 
-  const TextPair = ({
-    label, currentKey, proposedKey, multiline = false,
-  }: {
-    label: string;
-    currentKey: keyof IGProfile;
-    proposedKey: keyof IGProfile;
-    multiline?: boolean;
-  }) => {
-    const Comp: any = multiline ? Textarea : Input;
-    return (
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Actual · {label}</Label>
-          <Comp
-            value={(profile[currentKey] as string) ?? ""}
-            rows={multiline ? 3 : undefined}
-            onChange={(e: any) => set({ [currentKey]: e.target.value } as any)}
-            onBlur={(e: any) => save({ [currentKey]: e.target.value || null } as any)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-accent">Propuesta · {label}</Label>
-          <Comp
-            value={(profile[proposedKey] as string) ?? ""}
-            rows={multiline ? 3 : undefined}
-            onChange={(e: any) => set({ [proposedKey]: e.target.value } as any)}
-            onBlur={(e: any) => save({ [proposedKey]: e.target.value || null } as any)}
-          />
-        </div>
-      </div>
-    );
-  };
+  const k = {
+    username: `${side}_username`,
+    avatar: `${side}_avatar_url`,
+    link: `${side}_link`,
+    bio: `${side}_bio`,
+    followers: `${side}_followers`,
+    following: `${side}_following`,
+    posts: `${side}_posts_count`,
+    accountType: `${side}_account_type`,
+    category: `${side}_category`,
+    verified: `${side}_verified`,
+    threadsEn: `${side}_threads_enabled`,
+    threadsHandle: `${side}_threads_handle`,
+    songEn: `${side}_song_enabled`,
+    song: `${side}_song`,
+  } as const;
 
-  const NumPair = ({
-    label, currentKey, proposedKey,
-  }: {
-    label: string;
-    currentKey: keyof IGProfile;
-    proposedKey: keyof IGProfile;
-  }) => (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <div className="grid grid-cols-2 gap-2">
-        <Input
-          type="number"
-          placeholder="Actual"
-          value={(profile[currentKey] as number) ?? 0}
-          onChange={(e) => set({ [currentKey]: Number(e.target.value) } as any)}
-          onBlur={(e) => save({ [currentKey]: Number(e.target.value) } as any)}
-        />
-        <Input
-          type="number"
-          placeholder="Propuesta"
-          className="border-accent/40 focus-visible:ring-accent"
-          value={(profile[proposedKey] as number) ?? 0}
-          onChange={(e) => set({ [proposedKey]: Number(e.target.value) } as any)}
-          onBlur={(e) => save({ [proposedKey]: Number(e.target.value) } as any)}
-        />
-      </div>
-    </div>
-  );
+  const text = (key: keyof IGProfile) => ({
+    value: (profile[key] as string) ?? "",
+    onChange: (v: string) => set({ [key]: v } as any),
+    onBlur: (v: string) => save({ [key]: v || null } as any),
+  });
+  const num = (key: keyof IGProfile) => ({
+    value: (profile[key] as number) ?? 0,
+    onChange: (v: number) => set({ [key]: v } as any),
+    onBlur: (v: number) => save({ [key]: v } as any),
+  });
 
   return (
     <div className="space-y-5">
-      <TextPair label="Usuario" currentKey="current_username" proposedKey="proposed_username" />
+      <TextField label="Usuario" accent={accent} {...text(k.username as keyof IGProfile)} />
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Actual · Foto perfil</Label>
-          <MediaUpload
-            clientId={clientId}
-            shape="circle"
-            value={profile.current_avatar_url}
-            onChange={(url) => { set({ current_avatar_url: url }); save({ current_avatar_url: url }); }}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-accent">Propuesta · Foto perfil</Label>
-          <MediaUpload
-            clientId={clientId}
-            shape="circle"
-            value={profile.proposed_avatar_url}
-            onChange={(url) => { set({ proposed_avatar_url: url }); save({ proposed_avatar_url: url }); }}
-          />
-        </div>
+      <div className="space-y-1.5">
+        <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>Foto de perfil</Label>
+        <MediaUpload
+          clientId={clientId}
+          shape="circle"
+          value={profile[k.avatar as keyof IGProfile] as string | null}
+          onChange={(url) => { set({ [k.avatar]: url } as any); save({ [k.avatar]: url } as any); }}
+        />
       </div>
 
-      <TextPair label="Enlace" currentKey="current_link" proposedKey="proposed_link" />
-      <TextPair label="Descripción" currentKey="current_bio" proposedKey="proposed_bio" multiline />
+      <TextField label="Enlace" accent={accent} {...text(k.link as keyof IGProfile)} />
+      <TextField label="Descripción" accent={accent} multiline {...text(k.bio as keyof IGProfile)} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <NumPair label="Posts" currentKey="current_posts_count" proposedKey="proposed_posts_count" />
-        <NumPair label="Seguidores" currentKey="current_followers" proposedKey="proposed_followers" />
-        <NumPair label="Seguidos" currentKey="current_following" proposedKey="proposed_following" />
+      <div className="grid grid-cols-3 gap-3">
+        <NumField label="Posts" accent={accent} {...num(k.posts as keyof IGProfile)} />
+        <NumField label="Seguidores" accent={accent} {...num(k.followers as keyof IGProfile)} />
+        <NumField label="Seguidos" accent={accent} {...num(k.following as keyof IGProfile)} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {(["current", "proposed"] as const).map((side) => {
-          const accent = side === "proposed";
-          const atKey = `${side}_account_type` as keyof IGProfile;
-          const catKey = `${side}_category` as keyof IGProfile;
-          const verKey = `${side}_verified` as keyof IGProfile;
-          const thrEnKey = `${side}_threads_enabled` as keyof IGProfile;
-          const thrHandleKey = `${side}_threads_handle` as keyof IGProfile;
-          const songEnKey = `${side}_song_enabled` as keyof IGProfile;
-          const songKey = `${side}_song` as keyof IGProfile;
-          return (
-            <div key={side} className="space-y-3 rounded-xl border p-3 bg-surface">
-              <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>
-                {accent ? "Propuesta" : "Actual"} · Configuración
-              </Label>
+      <div className="space-y-3 rounded-xl border p-3 bg-surface">
+        <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>Configuración</Label>
 
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tipo de cuenta</Label>
-                <select
-                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-                  value={profile[atKey] as AccountType}
-                  onChange={(e) => {
-                    const v = e.target.value as AccountType;
-                    set({ [atKey]: v } as any);
-                    save({ [atKey]: v } as any);
-                  }}
-                >
-                  <option value="personal">Personal</option>
-                  <option value="business">Empresa</option>
-                </select>
-              </div>
+        <div className="space-y-1.5">
+          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tipo de cuenta</Label>
+          <select
+            className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+            value={profile[k.accountType as keyof IGProfile] as AccountType}
+            onChange={(e) => {
+              const v = e.target.value as AccountType;
+              set({ [k.accountType]: v } as any);
+              save({ [k.accountType]: v } as any);
+            }}
+          >
+            <option value="personal">Personal</option>
+            <option value="business">Empresa</option>
+          </select>
+        </div>
 
-              {profile[atKey] === "business" && (
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Categoría</Label>
-                  <select
-                    className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-                    value={(profile[catKey] as string) ?? ""}
-                    onChange={(e) => {
-                      const v = e.target.value || null;
-                      set({ [catKey]: v } as any);
-                      save({ [catKey]: v } as any);
-                    }}
-                  >
-                    <option value="">— Sin categoría —</option>
-                    {IG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              )}
+        {profile[k.accountType as keyof IGProfile] === "business" && (
+          <div className="space-y-1.5">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Categoría</Label>
+            <select
+              className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+              value={(profile[k.category as keyof IGProfile] as string) ?? ""}
+              onChange={(e) => {
+                const v = e.target.value || null;
+                set({ [k.category]: v } as any);
+                save({ [k.category]: v } as any);
+              }}
+            >
+              <option value="">— Sin categoría —</option>
+              {IG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        )}
 
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={!!profile[verKey]}
-                  onChange={(e) => {
-                    set({ [verKey]: e.target.checked } as any);
-                    save({ [verKey]: e.target.checked } as any);
-                  }}
-                />
-                Verificado azul
-              </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={!!profile[k.verified as keyof IGProfile]}
+            onChange={(e) => {
+              set({ [k.verified]: e.target.checked } as any);
+              save({ [k.verified]: e.target.checked } as any);
+            }}
+          />
+          Verificado azul
+        </label>
 
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={!!profile[thrEnKey]}
-                    onChange={(e) => {
-                      set({ [thrEnKey]: e.target.checked } as any);
-                      save({ [thrEnKey]: e.target.checked } as any);
-                    }}
-                  />
-                  Mostrar Threads
-                </label>
-                {profile[thrEnKey] && (
-                  <Input
-                    placeholder="@usuario de Threads"
-                    value={(profile[thrHandleKey] as string) ?? ""}
-                    onChange={(e) => set({ [thrHandleKey]: e.target.value } as any)}
-                    onBlur={(e) => save({ [thrHandleKey]: e.target.value || null } as any)}
-                    className="h-8 text-xs"
-                  />
-                )}
-              </div>
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={!!profile[k.threadsEn as keyof IGProfile]}
+              onChange={(e) => {
+                set({ [k.threadsEn]: e.target.checked } as any);
+                save({ [k.threadsEn]: e.target.checked } as any);
+              }}
+            />
+            Mostrar Threads
+          </label>
+          {profile[k.threadsEn as keyof IGProfile] && (
+            <Input
+              placeholder="@usuario de Threads"
+              value={(profile[k.threadsHandle as keyof IGProfile] as string) ?? ""}
+              onChange={(e) => set({ [k.threadsHandle]: e.target.value } as any)}
+              onBlur={(e) => save({ [k.threadsHandle]: e.target.value || null } as any)}
+              className="h-8 text-xs"
+            />
+          )}
+        </div>
 
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={!!profile[songEnKey]}
-                    onChange={(e) => {
-                      set({ [songEnKey]: e.target.checked } as any);
-                      save({ [songEnKey]: e.target.checked } as any);
-                    }}
-                  />
-                  Mostrar canción
-                </label>
-                {profile[songEnKey] && (
-                  <Input
-                    placeholder="Artista — Canción"
-                    value={(profile[songKey] as string) ?? ""}
-                    onChange={(e) => set({ [songKey]: e.target.value } as any)}
-                    onBlur={(e) => save({ [songKey]: e.target.value || null } as any)}
-                    className="h-8 text-xs"
-                  />
-                )}
-              </div>
-            </div>
-          );
-        })}
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={!!profile[k.songEn as keyof IGProfile]}
+              onChange={(e) => {
+                set({ [k.songEn]: e.target.checked } as any);
+                save({ [k.songEn]: e.target.checked } as any);
+              }}
+            />
+            Mostrar canción
+          </label>
+          {profile[k.songEn as keyof IGProfile] && (
+            <Input
+              placeholder="Artista — Canción"
+              value={(profile[k.song as keyof IGProfile] as string) ?? ""}
+              onChange={(e) => set({ [k.song]: e.target.value } as any)}
+              onBlur={(e) => save({ [k.song]: e.target.value || null } as any)}
+              className="h-8 text-xs"
+            />
+          )}
+        </div>
       </div>
     </div>
   );
