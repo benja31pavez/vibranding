@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { TaskList } from "@/components/TaskList";
-import { IdentityEditor, ConfigEditor, PostsEditor, HighlightsEditor, type IGProfile, type IGPost, type IGHighlight } from "@/components/InstagramEditor";
+import { IdentityEditor, ConfigEditor, PostsEditor, HighlightsEditor, type IGProfile, type IGPost, type IGHighlight, type IGComment } from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
 import { PaymentsPanel } from "@/components/PaymentsPanel";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -31,6 +31,7 @@ function ClientDetail() {
   const [profile, setProfile] = useState<IGProfile | null>(null);
   const [posts, setPosts] = useState<IGPost[]>([]);
   const [highlights, setHighlights] = useState<IGHighlight[]>([]);
+  const [comments, setComments] = useState<IGComment[]>([]);
   const [view, setView] = useState<"current" | "proposed">("proposed");
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -46,14 +47,16 @@ function ClientDetail() {
     setClient(data);
   };
   const loadIG = async () => {
-    const [{ data: pr }, { data: ps }, { data: hi }] = await Promise.all([
+    const [{ data: pr }, { data: ps }, { data: hi }, { data: cm }] = await Promise.all([
       supabase.from("instagram_profiles").select("*").eq("client_id", clientId).maybeSingle(),
       supabase.from("instagram_posts").select("*").eq("client_id", clientId),
       supabase.from("instagram_highlights").select("*").eq("client_id", clientId),
+      supabase.from("instagram_post_comments").select("*").eq("client_id", clientId),
     ]);
     setProfile(pr as IGProfile | null);
     setPosts((ps ?? []) as IGPost[]);
     setHighlights((hi ?? []) as IGHighlight[]);
+    setComments((cm ?? []) as IGComment[]);
   };
 
   useEffect(() => {
@@ -202,7 +205,7 @@ function ClientDetail() {
                       Publicaciones
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">
-                      <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type={view} profile={profile} />
+                      <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type={view} profile={profile} comments={comments} setComments={setComments} />
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
@@ -231,7 +234,7 @@ function ClientDetail() {
               Propuesta
             </button>
           </div>
-          {profile && <IphonePreview profile={profile} posts={posts} highlights={highlights} view={view} />}
+          {profile && <IphonePreview profile={profile} posts={posts} highlights={highlights} comments={comments} view={view} />}
         </div>
       </div>
 
