@@ -496,6 +496,26 @@ export function PostsEditor({
     await supabase.from("instagram_posts").update(patch).eq("id", id);
   };
 
+  const addComment = async (postId: string) => {
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+    const position = comments.filter((c) => c.post_id === postId).length;
+    const { data } = await supabase
+      .from("instagram_post_comments")
+      .insert({ post_id: postId, client_id: post.client_id, username: "", text: "", position })
+      .select("*")
+      .single();
+    if (data) setComments((prev) => [...prev, data as IGComment]);
+  };
+  const updateComment = async (id: string, patch: Partial<IGComment>) => {
+    setComments((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    await supabase.from("instagram_post_comments").update(patch).eq("id", id);
+  };
+  const removeComment = async (id: string) => {
+    setComments((prev) => prev.filter((c) => c.id !== id));
+    await supabase.from("instagram_post_comments").delete().eq("id", id);
+  };
+
   const sorted = [...posts]
     .filter((p) => p.type === type)
     .sort((a, b) => a.position - b.position)
