@@ -12,10 +12,19 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppReportsRouteImport } from './routes/_app/reports'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
 import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
+import { Route as AppClientsClientIdIndexRouteImport } from './routes/_app/clients/$clientId/index'
+import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/clients/$clientId/payments'
+import { Route as AppClientsClientIdObjectivesRouteImport } from './routes/_app/clients/$clientId/objectives'
+import { Route as AppClientsClientIdMetaAdsRouteImport } from './routes/_app/clients/$clientId/meta-ads'
+import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
+import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -30,6 +39,21 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
   id: '/clients/',
@@ -51,59 +75,146 @@ const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
   path: '/clients/$clientId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppClientsClientIdIndexRoute = AppClientsClientIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppClientsClientIdRoute,
+} as any)
+const AppClientsClientIdPaymentsRoute =
+  AppClientsClientIdPaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdObjectivesRoute =
+  AppClientsClientIdObjectivesRouteImport.update({
+    id: '/objectives',
+    path: '/objectives',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdMetaAdsRoute =
+  AppClientsClientIdMetaAdsRouteImport.update({
+    id: '/meta-ads',
+    path: '/meta-ads',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdInstagramRoute =
+  AppClientsClientIdInstagramRouteImport.update({
+    id: '/instagram',
+    path: '/instagram',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdDeliverablesRoute =
+  AppClientsClientIdDeliverablesRouteImport.update({
+    id: '/deliverables',
+    path: '/deliverables',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/clients/$clientId': typeof AppClientsClientIdRoute
+  '/calendar': typeof AppCalendarRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/reports': typeof AppReportsRoute
+  '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients/': typeof AppClientsIndexRoute
+  '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
+  '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
+  '/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
+  '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
+  '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
+  '/clients/$clientId/': typeof AppClientsClientIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/clients/$clientId': typeof AppClientsClientIdRoute
+  '/calendar': typeof AppCalendarRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/reports': typeof AppReportsRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients': typeof AppClientsIndexRoute
+  '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
+  '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
+  '/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
+  '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
+  '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
+  '/clients/$clientId': typeof AppClientsClientIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/clients/$clientId': typeof AppClientsClientIdRoute
+  '/_app/calendar': typeof AppCalendarRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/reports': typeof AppReportsRoute
+  '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/_app/clients/': typeof AppClientsIndexRoute
+  '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
+  '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
+  '/_app/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
+  '/_app/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
+  '/_app/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
+  '/_app/clients/$clientId/': typeof AppClientsClientIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/login'
+    | '/calendar'
+    | '/dashboard'
+    | '/reports'
     | '/clients/$clientId'
     | '/settings/pricing'
     | '/api/meta-ads/sync'
     | '/clients/'
+    | '/clients/$clientId/deliverables'
+    | '/clients/$clientId/instagram'
+    | '/clients/$clientId/meta-ads'
+    | '/clients/$clientId/objectives'
+    | '/clients/$clientId/payments'
+    | '/clients/$clientId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
-    | '/clients/$clientId'
+    | '/calendar'
+    | '/dashboard'
+    | '/reports'
     | '/settings/pricing'
     | '/api/meta-ads/sync'
     | '/clients'
+    | '/clients/$clientId/deliverables'
+    | '/clients/$clientId/instagram'
+    | '/clients/$clientId/meta-ads'
+    | '/clients/$clientId/objectives'
+    | '/clients/$clientId/payments'
+    | '/clients/$clientId'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/login'
+    | '/_app/calendar'
+    | '/_app/dashboard'
+    | '/_app/reports'
     | '/_app/clients/$clientId'
     | '/_app/settings/pricing'
     | '/api/meta-ads/sync'
     | '/_app/clients/'
+    | '/_app/clients/$clientId/deliverables'
+    | '/_app/clients/$clientId/instagram'
+    | '/_app/clients/$clientId/meta-ads'
+    | '/_app/clients/$clientId/objectives'
+    | '/_app/clients/$clientId/payments'
+    | '/_app/clients/$clientId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -136,6 +247,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/clients/': {
       id: '/_app/clients/'
       path: '/clients'
@@ -164,17 +296,86 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/clients/$clientId/': {
+      id: '/_app/clients/$clientId/'
+      path: '/'
+      fullPath: '/clients/$clientId/'
+      preLoaderRoute: typeof AppClientsClientIdIndexRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/payments': {
+      id: '/_app/clients/$clientId/payments'
+      path: '/payments'
+      fullPath: '/clients/$clientId/payments'
+      preLoaderRoute: typeof AppClientsClientIdPaymentsRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/objectives': {
+      id: '/_app/clients/$clientId/objectives'
+      path: '/objectives'
+      fullPath: '/clients/$clientId/objectives'
+      preLoaderRoute: typeof AppClientsClientIdObjectivesRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/meta-ads': {
+      id: '/_app/clients/$clientId/meta-ads'
+      path: '/meta-ads'
+      fullPath: '/clients/$clientId/meta-ads'
+      preLoaderRoute: typeof AppClientsClientIdMetaAdsRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/instagram': {
+      id: '/_app/clients/$clientId/instagram'
+      path: '/instagram'
+      fullPath: '/clients/$clientId/instagram'
+      preLoaderRoute: typeof AppClientsClientIdInstagramRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/deliverables': {
+      id: '/_app/clients/$clientId/deliverables'
+      path: '/deliverables'
+      fullPath: '/clients/$clientId/deliverables'
+      preLoaderRoute: typeof AppClientsClientIdDeliverablesRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
   }
 }
 
+interface AppClientsClientIdRouteChildren {
+  AppClientsClientIdDeliverablesRoute: typeof AppClientsClientIdDeliverablesRoute
+  AppClientsClientIdInstagramRoute: typeof AppClientsClientIdInstagramRoute
+  AppClientsClientIdMetaAdsRoute: typeof AppClientsClientIdMetaAdsRoute
+  AppClientsClientIdObjectivesRoute: typeof AppClientsClientIdObjectivesRoute
+  AppClientsClientIdPaymentsRoute: typeof AppClientsClientIdPaymentsRoute
+  AppClientsClientIdIndexRoute: typeof AppClientsClientIdIndexRoute
+}
+
+const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
+  AppClientsClientIdDeliverablesRoute: AppClientsClientIdDeliverablesRoute,
+  AppClientsClientIdInstagramRoute: AppClientsClientIdInstagramRoute,
+  AppClientsClientIdMetaAdsRoute: AppClientsClientIdMetaAdsRoute,
+  AppClientsClientIdObjectivesRoute: AppClientsClientIdObjectivesRoute,
+  AppClientsClientIdPaymentsRoute: AppClientsClientIdPaymentsRoute,
+  AppClientsClientIdIndexRoute: AppClientsClientIdIndexRoute,
+}
+
+const AppClientsClientIdRouteWithChildren =
+  AppClientsClientIdRoute._addFileChildren(AppClientsClientIdRouteChildren)
+
 interface AppRouteChildren {
-  AppClientsClientIdRoute: typeof AppClientsClientIdRoute
+  AppCalendarRoute: typeof AppCalendarRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppReportsRoute: typeof AppReportsRoute
+  AppClientsClientIdRoute: typeof AppClientsClientIdRouteWithChildren
   AppSettingsPricingRoute: typeof AppSettingsPricingRoute
   AppClientsIndexRoute: typeof AppClientsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppClientsClientIdRoute: AppClientsClientIdRoute,
+  AppCalendarRoute: AppCalendarRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppReportsRoute: AppReportsRoute,
+  AppClientsClientIdRoute: AppClientsClientIdRouteWithChildren,
   AppSettingsPricingRoute: AppSettingsPricingRoute,
   AppClientsIndexRoute: AppClientsIndexRoute,
 }

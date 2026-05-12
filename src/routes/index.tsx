@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
 function Landing() {
   const { session, loading } = useAuth();
   if (loading) return <div className="min-h-screen" />;
-  if (session) return <Navigate to="/clients" />;
+  if (session) return <Navigate to="/dashboard" />;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
