@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
 import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
@@ -41,6 +42,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => AppRoute,
 } as any)
 const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
@@ -102,6 +108,7 @@ const AppClientsClientIdDeliverablesRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/settings/pricing': typeof AppSettingsPricingRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/calendar'
     | '/dashboard'
     | '/clients/$clientId'
     | '/settings/pricing'
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/calendar'
     | '/dashboard'
     | '/settings/pricing'
     | '/api/meta-ads/sync'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
+    | '/_app/calendar'
     | '/_app/dashboard'
     | '/_app/clients/$clientId'
     | '/_app/settings/pricing'
@@ -228,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/clients/': {
@@ -325,6 +344,7 @@ const AppClientsClientIdRouteWithChildren =
   AppClientsClientIdRoute._addFileChildren(AppClientsClientIdRouteChildren)
 
 interface AppRouteChildren {
+  AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRouteWithChildren
   AppSettingsPricingRoute: typeof AppSettingsPricingRoute
@@ -332,6 +352,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppClientsClientIdRoute: AppClientsClientIdRouteWithChildren,
   AppSettingsPricingRoute: AppSettingsPricingRoute,
