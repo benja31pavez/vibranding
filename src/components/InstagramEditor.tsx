@@ -435,13 +435,14 @@ const FORMATS: { value: PostFormat; label: string; Icon: typeof ImageIcon }[] = 
 ];
 
 export function PostsEditor({
-  clientId, posts, setPosts, type, profile, comments, setComments,
+  clientId, posts, setPosts, type, profile, setProfile, comments, setComments,
 }: {
   clientId: string;
   posts: IGPost[];
   setPosts: (updater: (prev: IGPost[]) => IGPost[]) => void;
   type: "current" | "proposed";
   profile?: IGProfile | null;
+  setProfile?: (p: IGProfile | null) => void;
   comments: IGComment[];
   setComments: (updater: (prev: IGComment[]) => IGComment[]) => void;
 }) {
@@ -500,10 +501,54 @@ export function PostsEditor({
     await supabase.from("instagram_post_comments").delete().eq("id", id);
   };
 
+  const countKey = (type === "proposed" ? "proposed_posts_count" : "current_posts_count") as keyof IGProfile;
+
+  const addPost = async () => {
+    const existing = posts.filter((p) => p.type === type);
+    const position = existing.length;
+    if (position >= 30) return;
+    const { data } = await supabase
+      .from("instagram_posts")
+      .insert({ client_id: clientId, type, position })
+      .select("*")
+      .single();
+    if (data) setPosts((prev) => [...prev, data as IGPost]);
+    if (profile && setProfile) {
+      const next = { ...profile, [countKey]: position + 1 } as IGProfile;
+      setProfile(next);
+      await supabase.from("instagram_profiles").update({ [countKey]: position + 1 } as never).eq("id", profile.id);
+    }
+  };
+
+  const removePost = async (id: string) => {
+    const remaining = posts
+      .filter((p) => p.type === type && p.id !== id)
+      .sort((a, b) => a.position - b.position);
+    setPosts((prev) => prev.filter((p) => p.id !== id));
+    await supabase.from("instagram_posts").delete().eq("id", id);
+    const updates = remaining.map((p, i) => ({ id: p.id, position: i }));
+    setPosts((prev) =>
+      prev.map((p) => {
+        const u = updates.find((x) => x.id === p.id);
+        return u ? { ...p, position: u.position } : p;
+      }),
+    );
+    await Promise.all(
+      updates.map((u) =>
+        supabase.from("instagram_posts").update({ position: u.position }).eq("id", u.id),
+      ),
+    );
+    if (profile && setProfile) {
+      const newCount = remaining.length;
+      const next = { ...profile, [countKey]: newCount } as IGProfile;
+      setProfile(next);
+      await supabase.from("instagram_profiles").update({ [countKey]: newCount } as never).eq("id", profile.id);
+    }
+  };
+
   const sorted = [...posts]
     .filter((p) => p.type === type)
-    .sort((a, b) => a.position - b.position)
-    .slice(0, desiredCount);
+    .sort((a, b) => a.position - b.position);
 
   const [dragId, setDragId] = useState<string | null>(null);
 
@@ -546,7 +591,8 @@ export function PostsEditor({
   };
 
   return (
-    <div className="rounded-xl border bg-surface overflow-hidden">
+    <div className="space-y-3">
+      <div className="rounded-xl border bg-surface overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -560,6 +606,7 @@ export function PostsEditor({
               <th className="text-left px-2 py-2">Caption</th>
               <th className="text-left px-2 py-2 w-20">Engagement</th>
               <th className="text-left px-2 py-2 w-44">Objetivo</th>
+              <th className="text-left px-2 py-2 w-10"></th>
               <th className="text-left px-2 py-2 w-10"></th>
             </tr>
           </thead>
@@ -899,6 +946,17 @@ export function PostsEditor({
                       </PopoverContent>
                     </Popover>
                   </td>
+                  <td className="px-2 py-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive h-8 w-8"
+                      onClick={() => removePost(p.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </td>
                   <td className="px-2 py-2 text-muted-foreground cursor-move">
                     <GripVertical className="w-4 h-4" />
                   </td>
@@ -908,6 +966,10 @@ export function PostsEditor({
           </tbody>
         </table>
       </div>
+      </div>
+      <Button type="button" variant="outline" size="sm" onClick={addPost} disabled={sorted.length >= 30}>
+        <Plus className="w-4 h-4 mr-1" /> Añadir publicación
+      </Button>
     </div>
   );
 }
