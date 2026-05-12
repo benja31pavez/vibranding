@@ -17,6 +17,7 @@ import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
 import { Route as AppClientsClientIdIndexRouteImport } from './routes/_app/clients/$clientId/index'
+import { Route as AppClientsClientIdObjectivesRouteImport } from './routes/_app/clients/$clientId/objectives'
 import { Route as AppClientsClientIdMetaAdsRouteImport } from './routes/_app/clients/$clientId/meta-ads'
 import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
 
@@ -59,6 +60,12 @@ const AppClientsClientIdIndexRoute = AppClientsClientIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppClientsClientIdRoute,
 } as any)
+const AppClientsClientIdObjectivesRoute =
+  AppClientsClientIdObjectivesRouteImport.update({
+    id: '/objectives',
+    path: '/objectives',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdMetaAdsRoute =
   AppClientsClientIdMetaAdsRouteImport.update({
     id: '/meta-ads',
@@ -81,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof AppClientsIndexRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
+  '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/': typeof AppClientsClientIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -91,6 +99,7 @@ export interface FileRoutesByTo {
   '/clients': typeof AppClientsIndexRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
+  '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId': typeof AppClientsClientIdIndexRoute
 }
 export interface FileRoutesById {
@@ -104,6 +113,7 @@ export interface FileRoutesById {
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/_app/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
+  '/_app/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/_app/clients/$clientId/': typeof AppClientsClientIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/clients/$clientId/instagram'
     | '/clients/$clientId/meta-ads'
+    | '/clients/$clientId/objectives'
     | '/clients/$clientId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/clients/$clientId/instagram'
     | '/clients/$clientId/meta-ads'
+    | '/clients/$clientId/objectives'
     | '/clients/$clientId'
   id:
     | '__root__'
@@ -139,6 +151,7 @@ export interface FileRouteTypes {
     | '/_app/clients/'
     | '/_app/clients/$clientId/instagram'
     | '/_app/clients/$clientId/meta-ads'
+    | '/_app/clients/$clientId/objectives'
     | '/_app/clients/$clientId/'
   fileRoutesById: FileRoutesById
 }
@@ -207,6 +220,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdIndexRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/objectives': {
+      id: '/_app/clients/$clientId/objectives'
+      path: '/objectives'
+      fullPath: '/clients/$clientId/objectives'
+      preLoaderRoute: typeof AppClientsClientIdObjectivesRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/meta-ads': {
       id: '/_app/clients/$clientId/meta-ads'
       path: '/meta-ads'
@@ -227,12 +247,14 @@ declare module '@tanstack/react-router' {
 interface AppClientsClientIdRouteChildren {
   AppClientsClientIdInstagramRoute: typeof AppClientsClientIdInstagramRoute
   AppClientsClientIdMetaAdsRoute: typeof AppClientsClientIdMetaAdsRoute
+  AppClientsClientIdObjectivesRoute: typeof AppClientsClientIdObjectivesRoute
   AppClientsClientIdIndexRoute: typeof AppClientsClientIdIndexRoute
 }
 
 const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdInstagramRoute: AppClientsClientIdInstagramRoute,
   AppClientsClientIdMetaAdsRoute: AppClientsClientIdMetaAdsRoute,
+  AppClientsClientIdObjectivesRoute: AppClientsClientIdObjectivesRoute,
   AppClientsClientIdIndexRoute: AppClientsClientIdIndexRoute,
 }
 
