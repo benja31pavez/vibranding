@@ -211,6 +211,8 @@ function PostsTable({ title, posts, type }: { title: string; posts: IGPost[]; ty
                 <div style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>
                   POST #{i + 1} · {fmtLabel(p.format)}
                   {p.format === "carousel" && p.carousel_urls?.length ? ` · ${p.carousel_urls.length} img` : ""}
+                  {p.format === "reel" && p.is_trial_reel ? " · PRUEBA" : ""}
+                  {p.close_friends_only ? " · MEJORES AMIGOS" : ""}
                 </div>
                 <div style={{ fontSize: 11, color: C.ink, marginTop: 2, lineHeight: 1.3, wordBreak: "break-word" }}>
                   {p.caption || <span style={{ color: C.muted }}>Sin caption</span>}
