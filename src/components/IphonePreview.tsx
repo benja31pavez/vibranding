@@ -405,8 +405,15 @@ export function IphonePreview({
                     ) : (
                       <div className="w-7 h-7 rounded-full bg-zinc-200" />
                     )}
-                    <span className="text-[12px] font-semibold text-black">{username}</span>
-                    {verified && <BadgeCheck className="w-3 h-3 text-[#0095f6]" fill="#0095f6" stroke="white" />}
+                    <div className="flex flex-col leading-tight min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[12px] font-semibold text-black">{username}</span>
+                        {verified && <BadgeCheck className="w-3 h-3 text-[#0095f6]" fill="#0095f6" stroke="white" />}
+                      </div>
+                      {p.location && (
+                        <span className="text-[10px] text-black truncate">{p.location}</span>
+                      )}
+                    </div>
                   </div>
                   <div className="relative bg-black" style={{ aspectRatio: isReel ? "9/16" : "1/1" }}>
                     {mainSrc && <img src={mainSrc} className="w-full h-full object-cover" alt="" />}
