@@ -111,17 +111,17 @@ export function IphonePreview({
               </div>
               <div className="flex-1 text-black">
                 {displayName && <p className="font-semibold text-[12px] mb-1">{displayName}</p>}
-                <div className="grid grid-cols-3 text-left">
+                <div className="flex gap-4 text-left">
                   <div>
-                    <div className="font-semibold text-sm">{fmt(postsCount)}</div>
+                    <div className="font-semibold text-sm leading-tight">{fmt(postsCount)}</div>
                     <div className="text-[10px] text-zinc-600">publicaciones</div>
                   </div>
                   <div>
-                    <div className="font-semibold text-sm">{fmt(followers)}</div>
+                    <div className="font-semibold text-sm leading-tight">{fmt(followers)}</div>
                     <div className="text-[10px] text-zinc-600">seguidores</div>
                   </div>
                   <div>
-                    <div className="font-semibold text-sm">{fmt(following)}</div>
+                    <div className="font-semibold text-sm leading-tight">{fmt(following)}</div>
                     <div className="text-[10px] text-zinc-600">seguidos</div>
                   </div>
                 </div>
