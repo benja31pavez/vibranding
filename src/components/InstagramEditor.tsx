@@ -77,6 +77,18 @@ export interface IGPost {
   is_trial_reel: boolean;
   close_friends_only: boolean;
   objective: string | null;
+  music: string | null;
+  location: string | null;
+  likes_count: number;
+}
+
+export interface IGComment {
+  id: string;
+  post_id: string;
+  client_id: string;
+  username: string;
+  text: string;
+  position: number;
 }
 
 export interface IGHighlight {
