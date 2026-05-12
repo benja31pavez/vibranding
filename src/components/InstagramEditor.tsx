@@ -220,6 +220,8 @@ export function ConfigEditor({
   const songEnKey = `${side}_song_enabled` as keyof IGProfile;
   const songKey = `${side}_song` as keyof IGProfile;
   const contactKey = `${side}_show_contact_button` as keyof IGProfile;
+  const phoneKey = `${side}_contact_phone` as keyof IGProfile;
+  const emailKey = `${side}_contact_email` as keyof IGProfile;
 
   return (
     <div className="space-y-3">
