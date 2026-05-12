@@ -273,19 +273,29 @@ export function SummaryExport({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <DataCol title="Actual" data={{
             Usuario: profile.current_username,
+            Verificado: profile.current_verified ? "Sí" : "No",
+            "Tipo de cuenta": profile.current_account_type === "business" ? "Empresa" : "Personal",
+            ...(profile.current_account_type === "business" ? { Categoría: profile.current_category } : {}),
             Seguidores: fmt(profile.current_followers),
             Seguidos: fmt(profile.current_following),
             Posts: fmt(profile.current_posts_count),
             Enlace: profile.current_link,
             Descripción: profile.current_bio,
+            ...(profile.current_threads_enabled ? { Threads: profile.current_threads_handle } : {}),
+            ...(profile.current_song_enabled ? { Canción: profile.current_song } : {}),
           }} accent={false} />
           <DataCol title="Propuesta" data={{
             Usuario: profile.proposed_username,
+            Verificado: profile.proposed_verified ? "Sí" : "No",
+            "Tipo de cuenta": profile.proposed_account_type === "business" ? "Empresa" : "Personal",
+            ...(profile.proposed_account_type === "business" ? { Categoría: profile.proposed_category } : {}),
             Seguidores: fmt(profile.proposed_followers),
             Seguidos: fmt(profile.proposed_following),
             Posts: fmt(profile.proposed_posts_count),
             Enlace: profile.proposed_link,
             Descripción: profile.proposed_bio,
+            ...(profile.proposed_threads_enabled ? { Threads: profile.proposed_threads_handle } : {}),
+            ...(profile.proposed_song_enabled ? { Canción: profile.proposed_song } : {}),
           }} accent />
         </div>
       </div>
