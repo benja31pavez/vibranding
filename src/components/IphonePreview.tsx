@@ -106,12 +106,27 @@ export function IphonePreview({
               </div>
             </div>
 
-            <div className="mt-3 text-black text-[12px] leading-snug">
+            <div className="mt-3 text-black text-[12px] leading-snug space-y-0.5">
               {bio && <p className="whitespace-pre-line">{bio}</p>}
+              {accountType === "business" && category && (
+                <p className="text-[11px] text-zinc-600">{category}</p>
+              )}
               {link && (
-                <a className="text-[#00376b] font-medium block mt-0.5" href="#">
+                <a className="text-[#00376b] font-medium block" href="#">
                   {link.replace(/^https?:\/\//, "")}
                 </a>
+              )}
+              {threadsEnabled && threadsHandle && (
+                <div className="flex items-center gap-1 text-[11px] text-zinc-700">
+                  <AtSign className="w-3 h-3" />
+                  <span>{threadsHandle.replace(/^@/, "")} · Threads</span>
+                </div>
+              )}
+              {songEnabled && song && (
+                <div className="flex items-center gap-1 text-[11px] text-zinc-700">
+                  <Music2 className="w-3 h-3" />
+                  <span className="truncate">{song}</span>
+                </div>
               )}
             </div>
 
