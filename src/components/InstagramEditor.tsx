@@ -41,6 +41,8 @@ export interface IGProfile {
   current_song_enabled: boolean;
   current_song: string | null;
   current_show_contact_button: boolean;
+  current_contact_phone: string | null;
+  current_contact_email: string | null;
   proposed_username: string | null;
   proposed_display_name: string | null;
   proposed_followers: number | null;
@@ -57,6 +59,8 @@ export interface IGProfile {
   proposed_song_enabled: boolean;
   proposed_song: string | null;
   proposed_show_contact_button: boolean;
+  proposed_contact_phone: string | null;
+  proposed_contact_email: string | null;
 }
 
 export interface IGPost {
@@ -216,6 +220,8 @@ export function ConfigEditor({
   const songEnKey = `${side}_song_enabled` as keyof IGProfile;
   const songKey = `${side}_song` as keyof IGProfile;
   const contactKey = `${side}_show_contact_button` as keyof IGProfile;
+  const phoneKey = `${side}_contact_phone` as keyof IGProfile;
+  const emailKey = `${side}_contact_email` as keyof IGProfile;
 
   return (
     <div className="space-y-3">
@@ -311,17 +317,38 @@ export function ConfigEditor({
         )}
       </div>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={!!profile[contactKey]}
-          onChange={(e) => {
-            set({ [contactKey]: e.target.checked } as any);
-            save({ [contactKey]: e.target.checked } as any);
-          }}
-        />
-        Mostrar botón "Contactar"
-      </label>
+      <div className="space-y-1.5">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={!!profile[contactKey]}
+            onChange={(e) => {
+              set({ [contactKey]: e.target.checked } as any);
+              save({ [contactKey]: e.target.checked } as any);
+            }}
+          />
+          Mostrar botón "Contactar"
+        </label>
+        {profile[contactKey] && (
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <Input
+              placeholder="Teléfono"
+              value={(profile[phoneKey] as string) ?? ""}
+              onChange={(e) => set({ [phoneKey]: e.target.value } as any)}
+              onBlur={(e) => save({ [phoneKey]: e.target.value || null } as any)}
+              className="h-8 text-xs"
+            />
+            <Input
+              placeholder="Correo"
+              type="email"
+              value={(profile[emailKey] as string) ?? ""}
+              onChange={(e) => set({ [emailKey]: e.target.value } as any)}
+              onBlur={(e) => save({ [emailKey]: e.target.value || null } as any)}
+              className="h-8 text-xs"
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
