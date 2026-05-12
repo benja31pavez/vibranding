@@ -302,6 +302,35 @@ export function SummaryExport({
         </div>
       </div>
 
+      {pricing && (() => {
+        const cur = pricing.currency;
+        const f = (n: number) => `${cur} ${Number(n).toLocaleString("es", { maximumFractionDigits: 2 })}`;
+        const Row = ({ k, v, sub }: any) => (
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.line}`, gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, color: C.ink, fontWeight: 600 }}>{k}</div>
+              {sub && <div style={{ fontSize: 10, color: C.muted, marginTop: 2, whiteSpace: "pre-line" }}>{sub}</div>}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, whiteSpace: "nowrap" }}>{v}</div>
+          </div>
+        );
+        return (
+          <div style={{ marginTop: 24, border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, background: C.surface }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>Tarifas</div>
+              <div style={{ fontSize: 10, color: C.muted }}>{cur}</div>
+            </div>
+            <Row k="Pack inicial · primer contacto + edición de perfil" sub={pricing.pack_description} v={f(pricing.pack_price)} />
+            <Row k="Foto adicional" v={f(pricing.photo_price)} />
+            <Row k="Carrusel adicional" v={f(pricing.carousel_price)} />
+            <Row k="Reel adicional" v={f(pricing.reel_price)} />
+            {pricing.notes && (
+              <div style={{ fontSize: 10, color: C.muted, marginTop: 10, whiteSpace: "pre-line" }}>{pricing.notes}</div>
+            )}
+          </div>
+        );
+      })()}
+
       <PostsTable title="Posts actuales" posts={posts} type="current" />
       <PostsTable title="Posts propuestos" posts={posts} type="proposed" />
     </div>
