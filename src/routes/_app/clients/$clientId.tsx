@@ -227,7 +227,7 @@ function ClientDetail() {
           }}
         >
           <div ref={exportRef}>
-            <SummaryExport client={client} profile={profile} posts={posts} highlights={highlights} />
+            <SummaryExport client={client} profile={profile} posts={posts} highlights={highlights} pricing={pricing} />
           </div>
         </div>
       )}
