@@ -234,7 +234,7 @@ function ClientDetail() {
               Propuesta
             </button>
           </div>
-          {profile && <IphonePreview profile={profile} posts={posts} highlights={highlights} view={view} />}
+          {profile && <IphonePreview profile={profile} posts={posts} highlights={highlights} comments={comments} view={view} />}
         </div>
       </div>
 
