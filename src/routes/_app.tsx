@@ -124,12 +124,24 @@ function AppLayout() {
                   </button>
                 </div>
                 <div className="space-y-0.5 ml-2 pl-2 border-l border-border">
-                  <SubNavItem to="/clients/$clientId" icon={Eye} label="Resumen" active={path === clientBase} />
-                  <SubNavItem to="/clients/$clientId/instagram" icon={Instagram} label="Instagram" active={path === `${clientBase}/instagram`} />
-                  <SubNavItem to="/clients/$clientId/meta-ads" icon={Megaphone} label="Meta Ads" active={path === `${clientBase}/meta-ads`} />
-                  <SubNavItem to="/clients/$clientId/objectives" icon={Target} label="Objetivos" active={path === `${clientBase}/objectives`} />
-                  <SubNavItem to="/clients/$clientId/deliverables" icon={CheckSquare} label="Entregables" active={path === `${clientBase}/deliverables`} />
-                  <SubNavItem to="/clients/$clientId/payments" icon={Wallet} label="Pagos" active={path === `${clientBase}/payments`} />
+                  <Link to="/clients/$clientId" params={{ clientId: activeClient.id }} className={subClass(path === clientBase)}>
+                    <Eye className="w-3.5 h-3.5 shrink-0" /> Resumen
+                  </Link>
+                  <Link to="/clients/$clientId/instagram" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/instagram`)}>
+                    <Instagram className="w-3.5 h-3.5 shrink-0" /> Instagram
+                  </Link>
+                  <Link to="/clients/$clientId/meta-ads" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/meta-ads`)}>
+                    <Megaphone className="w-3.5 h-3.5 shrink-0" /> Meta Ads
+                  </Link>
+                  <Link to="/clients/$clientId/objectives" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/objectives`)}>
+                    <Target className="w-3.5 h-3.5 shrink-0" /> Objetivos
+                  </Link>
+                  <Link to="/clients/$clientId/deliverables" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/deliverables`)}>
+                    <CheckSquare className="w-3.5 h-3.5 shrink-0" /> Entregables
+                  </Link>
+                  <Link to="/clients/$clientId/payments" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/payments`)}>
+                    <Wallet className="w-3.5 h-3.5 shrink-0" /> Pagos
+                  </Link>
                 </div>
               </>
             ) : (
