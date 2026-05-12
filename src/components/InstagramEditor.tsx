@@ -451,13 +451,15 @@ const FORMATS: { value: PostFormat; label: string; Icon: typeof ImageIcon }[] = 
 ];
 
 export function PostsEditor({
-  clientId, posts, setPosts, type, profile,
+  clientId, posts, setPosts, type, profile, comments, setComments,
 }: {
   clientId: string;
   posts: IGPost[];
   setPosts: (updater: (prev: IGPost[]) => IGPost[]) => void;
   type: "current" | "proposed";
   profile?: IGProfile | null;
+  comments: IGComment[];
+  setComments: (updater: (prev: IGComment[]) => IGComment[]) => void;
 }) {
   const desiredCount = Math.max(
     0,
