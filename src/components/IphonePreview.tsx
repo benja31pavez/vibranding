@@ -99,7 +99,7 @@ export function IphonePreview({
           </div>
 
           <div className="px-4">
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-3">
               <div className="ig-ring p-[2px] rounded-full">
                 <div className="bg-white p-[2px] rounded-full">
                   {avatar ? (
