@@ -115,6 +115,67 @@ function TextField({
   );
 }
 
+function CircleCoverUpload({
+  clientId, value, onChange,
+}: {
+  clientId: string;
+  value: string | null;
+  onChange: (url: string | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const handle = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadClientMedia(file, clientId);
+      onChange(url);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al subir");
+    } finally {
+      setUploading(false);
+    }
+  };
+  return (
+    <div className="relative w-14 h-14">
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="w-14 h-14 rounded-full bg-muted border overflow-hidden flex items-center justify-center hover:ring-2 hover:ring-foreground/20"
+        title="Subir portada"
+      >
+        {uploading ? (
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+        ) : value ? (
+          <img src={value} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <Upload className="w-4 h-4 text-muted-foreground" />
+        )}
+      </button>
+      {value && !uploading && (
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className="absolute -top-1 -right-1 bg-black/70 text-white rounded-full p-0.5 hover:bg-black"
+          aria-label="Quitar"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handle(f);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
+}
+
 function NumField({
   label, value, onChange, onBlur, accent,
 }: {
