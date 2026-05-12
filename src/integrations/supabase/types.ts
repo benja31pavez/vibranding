@@ -188,6 +188,7 @@ export type Database = {
           current_avatar_url: string | null
           current_bio: string | null
           current_category: string | null
+          current_display_name: string | null
           current_followers: number | null
           current_following: number | null
           current_link: string | null
@@ -203,6 +204,7 @@ export type Database = {
           proposed_avatar_url: string | null
           proposed_bio: string | null
           proposed_category: string | null
+          proposed_display_name: string | null
           proposed_followers: number | null
           proposed_following: number | null
           proposed_link: string | null
@@ -222,6 +224,7 @@ export type Database = {
           current_avatar_url?: string | null
           current_bio?: string | null
           current_category?: string | null
+          current_display_name?: string | null
           current_followers?: number | null
           current_following?: number | null
           current_link?: string | null
@@ -237,6 +240,7 @@ export type Database = {
           proposed_avatar_url?: string | null
           proposed_bio?: string | null
           proposed_category?: string | null
+          proposed_display_name?: string | null
           proposed_followers?: number | null
           proposed_following?: number | null
           proposed_link?: string | null
@@ -256,6 +260,7 @@ export type Database = {
           current_avatar_url?: string | null
           current_bio?: string | null
           current_category?: string | null
+          current_display_name?: string | null
           current_followers?: number | null
           current_following?: number | null
           current_link?: string | null
@@ -271,6 +276,7 @@ export type Database = {
           proposed_avatar_url?: string | null
           proposed_bio?: string | null
           proposed_category?: string | null
+          proposed_display_name?: string | null
           proposed_followers?: number | null
           proposed_following?: number | null
           proposed_link?: string | null
