@@ -70,6 +70,7 @@ export interface IGPost {
   cover_url: string | null;
   is_trial_reel: boolean;
   close_friends_only: boolean;
+  objective: string | null;
 }
 
 export interface IGHighlight {
