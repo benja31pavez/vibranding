@@ -56,7 +56,7 @@ function LoginPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-success" /> Para diseñadores
           </div>
           <h1 className="mt-6 text-5xl font-semibold leading-[1.05]">
-            Asesorías,<br />simples y bonitas.
+            Viralitycs,<br />simples y bonitas.
           </h1>
           <p className="mt-5 text-lg text-muted-foreground">
             Objetivos, entregables, propuestas de Instagram y pagos. Todo de un cliente, en un solo lugar.

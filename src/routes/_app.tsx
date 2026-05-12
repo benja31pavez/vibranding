@@ -27,7 +27,7 @@ function AppLayout() {
             <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground grid place-items-center">
               <Sparkles className="w-4 h-4" />
             </div>
-            <span className="font-semibold tracking-tight">Asesorías</span>
+            <span className="font-semibold tracking-tight">Viralitycs</span>
           </div>
         </div>
         <nav className="px-3 space-y-1">
