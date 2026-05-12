@@ -82,15 +82,15 @@ export function IphonePreview({
               </div>
               <div className="flex-1 grid grid-cols-3 text-center text-black">
                 <div>
-                  <div className="font-semibold text-sm">{fmt(profile.current_posts_count)}</div>
+                  <div className="font-semibold text-sm">{fmt(postsCount)}</div>
                   <div className="text-[10px] text-zinc-600">posts</div>
                 </div>
                 <div>
-                  <div className="font-semibold text-sm">{fmt(profile.current_followers)}</div>
+                  <div className="font-semibold text-sm">{fmt(followers)}</div>
                   <div className="text-[10px] text-zinc-600">seguidores</div>
                 </div>
                 <div>
-                  <div className="font-semibold text-sm">{fmt(profile.current_following)}</div>
+                  <div className="font-semibold text-sm">{fmt(following)}</div>
                   <div className="text-[10px] text-zinc-600">seguidos</div>
                 </div>
               </div>
