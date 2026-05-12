@@ -249,7 +249,7 @@ function ClientDetail() {
   );
 }
 
-function SummarySection({ clientId, pricing }: { clientId: string; pricing: PricingSettings | null }) {
+function SummarySection({ clientId, pricing, posts }: { clientId: string; pricing: PricingSettings | null; posts: import("@/components/InstagramEditor").IGPost[] }) {
   const [counts, setCounts] = useState({ obj: 0, objDone: 0, del: 0, delDone: 0, paid: 0, pending: 0 });
 
   useEffect(() => {
@@ -295,6 +295,7 @@ function SummarySection({ clientId, pricing }: { clientId: string; pricing: Pric
         <Stat label="Entregables" value={`${counts.delDone}/${counts.del}`} hint="completados" />
         <Stat label="Cobrado" value={`$${counts.paid.toFixed(0)}`} hint={`Pendiente $${counts.pending.toFixed(0)}`} />
       </div>
+      <ProposedCostsBreakdown pricing={pricing} posts={posts} />
       <PricingSummary pricing={pricing} />
     </div>
   );
