@@ -111,10 +111,10 @@ function PhoneCard({
               </div>
             </div>
             <div style={{ marginTop: 10, color: "#000", fontSize: 12, lineHeight: 1.4 }}>
-              {bio && <div style={{ whiteSpace: "pre-line" }}>{bio}</div>}
               {accountType === "business" && category && (
                 <div style={{ color: "#52525b", fontSize: 11 }}>{category}</div>
               )}
+              {bio && <div style={{ whiteSpace: "pre-line" }}>{bio}</div>}
               {link && <div style={{ color: "#00376b", fontWeight: 600, marginTop: 2 }}>{link.replace(/^https?:\/\//, "")}</div>}
               {threadsEnabled && threadsHandle && (
                 <div style={{ color: "#3f3f46", fontSize: 11, marginTop: 2 }}>@{threadsHandle.replace(/^@/, "")} · Threads</div>
@@ -130,24 +130,26 @@ function PhoneCard({
           </div>
           {(() => {
             const myH = highlights.filter((h) => h.type === view).sort((a, b) => a.position - b.position);
-            if (!myH.length) return null;
             return (
-              <div style={{ display: "flex", gap: 10, padding: "10px 14px 4px", overflow: "hidden" }}>
-                {myH.slice(0, 5).map((h) => (
-                  <div key={h.id} style={{ width: 48, textAlign: "center", flexShrink: 0 }}>
-                    <div style={{ width: 48, height: 48, borderRadius: "50%", border: `1px solid ${C.line}`, padding: 2, background: "#fff" }}>
-                      {h.cover_url ? (
-                        <img src={h.cover_url} crossOrigin="anonymous"
-                          style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-                      ) : (
-                        <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#f4f4f5" }} />
-                      )}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 4, padding: "10px 14px 4px" }}>
+                {Array.from({ length: 6 }).map((_, i) => {
+                  const h = myH[i];
+                  return (
+                    <div key={h?.id ?? i} style={{ textAlign: "center", minWidth: 0 }}>
+                      <div style={{ width: 38, height: 38, margin: "0 auto", borderRadius: "50%", border: `1px solid ${C.line}`, padding: 2, background: "#fff" }}>
+                        {h?.cover_url ? (
+                          <img src={h.cover_url} crossOrigin="anonymous"
+                            style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                        ) : (
+                          <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#f4f4f5" }} />
+                        )}
+                      </div>
+                      <div style={{ fontSize: 7, color: "#000", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {h?.title || ""}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 8, color: "#000", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {h.title || "Destacada"}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })()}
