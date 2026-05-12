@@ -501,10 +501,54 @@ export function PostsEditor({
     await supabase.from("instagram_post_comments").delete().eq("id", id);
   };
 
+  const countKey = (type === "proposed" ? "proposed_posts_count" : "current_posts_count") as keyof IGProfile;
+
+  const addPost = async () => {
+    const existing = posts.filter((p) => p.type === type);
+    const position = existing.length;
+    if (position >= 30) return;
+    const { data } = await supabase
+      .from("instagram_posts")
+      .insert({ client_id: clientId, type, position })
+      .select("*")
+      .single();
+    if (data) setPosts((prev) => [...prev, data as IGPost]);
+    if (profile && setProfile) {
+      const next = { ...profile, [countKey]: position + 1 } as IGProfile;
+      setProfile(next);
+      await supabase.from("instagram_profiles").update({ [countKey]: position + 1 }).eq("id", profile.id);
+    }
+  };
+
+  const removePost = async (id: string) => {
+    const remaining = posts
+      .filter((p) => p.type === type && p.id !== id)
+      .sort((a, b) => a.position - b.position);
+    setPosts((prev) => prev.filter((p) => p.id !== id));
+    await supabase.from("instagram_posts").delete().eq("id", id);
+    const updates = remaining.map((p, i) => ({ id: p.id, position: i }));
+    setPosts((prev) =>
+      prev.map((p) => {
+        const u = updates.find((x) => x.id === p.id);
+        return u ? { ...p, position: u.position } : p;
+      }),
+    );
+    await Promise.all(
+      updates.map((u) =>
+        supabase.from("instagram_posts").update({ position: u.position }).eq("id", u.id),
+      ),
+    );
+    if (profile && setProfile) {
+      const newCount = remaining.length;
+      const next = { ...profile, [countKey]: newCount } as IGProfile;
+      setProfile(next);
+      await supabase.from("instagram_profiles").update({ [countKey]: newCount }).eq("id", profile.id);
+    }
+  };
+
   const sorted = [...posts]
     .filter((p) => p.type === type)
-    .sort((a, b) => a.position - b.position)
-    .slice(0, desiredCount);
+    .sort((a, b) => a.position - b.position);
 
   const [dragId, setDragId] = useState<string | null>(null);
 
