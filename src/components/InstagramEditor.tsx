@@ -516,7 +516,7 @@ export function PostsEditor({
     if (profile && setProfile) {
       const next = { ...profile, [countKey]: position + 1 } as IGProfile;
       setProfile(next);
-      await supabase.from("instagram_profiles").update({ [countKey]: position + 1 }).eq("id", profile.id);
+      await supabase.from("instagram_profiles").update({ [countKey]: position + 1 } as never).eq("id", profile.id);
     }
   };
 
@@ -542,7 +542,7 @@ export function PostsEditor({
       const newCount = remaining.length;
       const next = { ...profile, [countKey]: newCount } as IGProfile;
       setProfile(next);
-      await supabase.from("instagram_profiles").update({ [countKey]: newCount }).eq("id", profile.id);
+      await supabase.from("instagram_profiles").update({ [countKey]: newCount } as never).eq("id", profile.id);
     }
   };
 
