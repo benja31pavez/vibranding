@@ -109,9 +109,18 @@ function PhoneCard({
                 </div>
               </div>
             </div>
-            <div style={{ marginTop: 10, color: "#000", fontSize: 12, lineHeight: 1.35 }}>
+            <div style={{ marginTop: 10, color: "#000", fontSize: 12, lineHeight: 1.4 }}>
               {bio && <div style={{ whiteSpace: "pre-line" }}>{bio}</div>}
+              {accountType === "business" && category && (
+                <div style={{ color: "#52525b", fontSize: 11 }}>{category}</div>
+              )}
               {link && <div style={{ color: "#00376b", fontWeight: 600, marginTop: 2 }}>{link.replace(/^https?:\/\//, "")}</div>}
+              {threadsEnabled && threadsHandle && (
+                <div style={{ color: "#3f3f46", fontSize: 11, marginTop: 2 }}>@{threadsHandle.replace(/^@/, "")} · Threads</div>
+              )}
+              {songEnabled && song && (
+                <div style={{ color: "#3f3f46", fontSize: 11, marginTop: 2 }}>♪ {song}</div>
+              )}
             </div>
             <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
               <div style={{ flex: 1, background: C.igBlue, color: "#fff", textAlign: "center", fontSize: 11, fontWeight: 700, padding: "6px 0", borderRadius: 6 }}>Seguir</div>
