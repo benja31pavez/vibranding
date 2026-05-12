@@ -5,8 +5,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { MediaUpload } from "./MediaUpload";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Image as ImageIcon, Layers, Film, Plus, Trash2, GripVertical, Loader2, Upload, X } from "lucide-react";
+import { Image as ImageIcon, Layers, Film, Plus, Trash2, GripVertical, Loader2, Upload, X, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 
 export type PostFormat = "photo" | "carousel" | "reel";
@@ -368,128 +369,249 @@ export function PostsEditor({
     await supabase.from("instagram_posts").update(patch).eq("id", id);
   };
 
+  const sorted = [...posts]
+    .filter((p) => p.type === type)
+    .sort((a, b) => a.position - b.position);
+
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const reorder = async (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const arr = [...sorted];
+    const fromIdx = arr.findIndex((x) => x.id === fromId);
+    const toIdx = arr.findIndex((x) => x.id === toId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const [moved] = arr.splice(fromIdx, 1);
+    arr.splice(toIdx, 0, moved);
+    const updates = arr.map((p, i) => ({ id: p.id, position: i }));
+    setPosts((prev) =>
+      prev.map((p) => {
+        const u = updates.find((x) => x.id === p.id);
+        return u ? { ...p, position: u.position } : p;
+      }),
+    );
+    await Promise.all(
+      updates.map((u) =>
+        supabase.from("instagram_posts").update({ position: u.position }).eq("id", u.id),
+      ),
+    );
+  };
+
+  const splitDateTime = (iso: string | null) => {
+    if (!iso) return { date: "", time: "" };
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return {
+      date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+      time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+    };
+  };
+
+  const combineDateTime = (date: string, time: string): string | null => {
+    if (!date) return null;
+    const t = time || "00:00";
+    return new Date(`${date}T${t}`).toISOString();
+  };
+
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {slots.map((p, i) => (
-        <div key={p?.id ?? i} className="rounded-2xl border bg-surface p-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-muted-foreground">Post #{i + 1}</div>
-            <div className="flex gap-1">
-              {FORMATS.map(({ value, label, Icon }) => (
-                <button
-                  key={value}
-                  type="button"
-                  title={label}
-                  onClick={() => {
-                    if (!p) return;
-                    setLocal(p.id, { format: value });
-                    saveRemote(p.id, { format: value });
+    <div className="rounded-xl border bg-surface overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/40">
+              <th className="text-left px-2 py-2 w-10">#</th>
+              <th className="text-left px-2 py-2 w-20">Imagen</th>
+              <th className="text-left px-2 py-2 w-28">Tipo</th>
+              <th className="text-left px-2 py-2 w-10" title="Mejores amigos">★</th>
+              <th className="text-left px-2 py-2 w-36">Fecha</th>
+              <th className="text-left px-2 py-2 w-24">Hora</th>
+              <th className="text-left px-2 py-2">Caption</th>
+              <th className="text-left px-2 py-2 w-10"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((p, idx) => {
+              const { date, time } = splitDateTime(p.scheduled_at);
+              return (
+                <tr
+                  key={p.id}
+                  draggable
+                  onDragStart={() => setDragId(p.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragId) reorder(dragId, p.id);
+                    setDragId(null);
                   }}
-                  className={`p-1 rounded-md transition-colors ${
-                    p?.format === value
-                      ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:bg-muted"
+                  onDragEnd={() => setDragId(null)}
+                  className={`border-t align-middle transition-opacity ${
+                    dragId === p.id ? "opacity-40" : ""
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                </button>
-              ))}
-            </div>
-          </div>
-          {p && (
-            <>
-              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                {p.format === "reel" ? "Imagen del reel" : "Imagen principal"}
-              </Label>
-              <MediaUpload
-                clientId={clientId}
-                value={p.image_url}
-                onChange={(url) => {
-                  setLocal(p.id, { image_url: url });
-                  saveRemote(p.id, { image_url: url });
-                }}
-                showUrl={false}
-              />
-              {p.format === "reel" && (
-                <>
-                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                    Carátula (thumbnail del grid)
-                  </Label>
-                  <MediaUpload
-                    clientId={clientId}
-                    value={p.cover_url}
-                    onChange={(url) => {
-                      setLocal(p.id, { cover_url: url });
-                      saveRemote(p.id, { cover_url: url });
-                    }}
-                    showUrl={false}
-                  />
-                </>
-              )}
-              {p.format === "carousel" && (
-                <CarouselImages
-                  clientId={clientId}
-                  urls={p.carousel_urls ?? []}
-                  onChange={(urls) => {
-                    setLocal(p.id, { carousel_urls: urls });
-                    saveRemote(p.id, { carousel_urls: urls });
-                  }}
-                />
-              )}
-              <Textarea
-                placeholder="Caption…"
-                value={p.caption ?? ""}
-                rows={2}
-                onChange={(e) => setLocal(p.id, { caption: e.target.value })}
-                onBlur={(e) => saveRemote(p.id, { caption: e.target.value || null })}
-              />
-              <div className="space-y-1">
-                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                  Fecha y hora
-                </Label>
-                <Input
-                  type="datetime-local"
-                  value={p.scheduled_at ? toLocalInput(p.scheduled_at) : ""}
-                  onChange={(e) => {
-                    const v = e.target.value ? new Date(e.target.value).toISOString() : null;
-                    setLocal(p.id, { scheduled_at: v });
-                  }}
-                  onBlur={(e) => {
-                    const v = e.target.value ? new Date(e.target.value).toISOString() : null;
-                    saveRemote(p.id, { scheduled_at: v });
-                  }}
-                />
-              </div>
-              <div className="flex flex-col gap-1 pt-1 border-t">
-                {p.format === "reel" && (
-                  <label className="flex items-center gap-2 text-xs">
-                    <input
-                      type="checkbox"
-                      checked={p.is_trial_reel}
-                      onChange={(e) => {
-                        setLocal(p.id, { is_trial_reel: e.target.checked });
-                        saveRemote(p.id, { is_trial_reel: e.target.checked });
+                  <td className="px-2 py-2 text-muted-foreground text-[10px] tabular-nums">
+                    {idx + 1}
+                  </td>
+                  <td className="px-2 py-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-14 h-14 rounded-md overflow-hidden bg-muted border hover:ring-2 hover:ring-foreground/20 flex items-center justify-center"
+                        >
+                          {p.image_url ? (
+                            <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <Upload className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72 space-y-3" align="start">
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                            {p.format === "reel" ? "Imagen del reel" : "Imagen principal"}
+                          </Label>
+                          <MediaUpload
+                            clientId={clientId}
+                            value={p.image_url}
+                            onChange={(url) => {
+                              setLocal(p.id, { image_url: url });
+                              saveRemote(p.id, { image_url: url });
+                            }}
+                            showUrl={false}
+                          />
+                        </div>
+                        {p.format === "reel" && (
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                              Carátula (thumbnail del grid)
+                            </Label>
+                            <MediaUpload
+                              clientId={clientId}
+                              value={p.cover_url}
+                              onChange={(url) => {
+                                setLocal(p.id, { cover_url: url });
+                                saveRemote(p.id, { cover_url: url });
+                              }}
+                              showUrl={false}
+                            />
+                            <label className="flex items-center gap-2 text-xs pt-1">
+                              <input
+                                type="checkbox"
+                                checked={p.is_trial_reel}
+                                onChange={(e) => {
+                                  setLocal(p.id, { is_trial_reel: e.target.checked });
+                                  saveRemote(p.id, { is_trial_reel: e.target.checked });
+                                }}
+                              />
+                              Reel de prueba
+                            </label>
+                          </div>
+                        )}
+                        {p.format === "carousel" && (
+                          <CarouselImages
+                            clientId={clientId}
+                            urls={p.carousel_urls ?? []}
+                            onChange={(urls) => {
+                              setLocal(p.id, { carousel_urls: urls });
+                              saveRemote(p.id, { carousel_urls: urls });
+                            }}
+                          />
+                        )}
+                      </PopoverContent>
+                    </Popover>
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="flex gap-1">
+                      {FORMATS.map(({ value, label, Icon }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          title={label}
+                          onClick={() => {
+                            setLocal(p.id, { format: value });
+                            saveRemote(p.id, { format: value });
+                          }}
+                          className={`p-1.5 rounded-md transition-colors ${
+                            p.format === value
+                              ? "bg-foreground text-background"
+                              : "text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                        </button>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-2 py-2">
+                    <button
+                      type="button"
+                      title="Solo mejores amigos"
+                      onClick={() => {
+                        const v = !p.close_friends_only;
+                        setLocal(p.id, { close_friends_only: v });
+                        saveRemote(p.id, { close_friends_only: v });
                       }}
+                      className={`p-1.5 rounded-md transition-colors ${
+                        p.close_friends_only
+                          ? "bg-emerald-500 text-white"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <Star
+                        className="w-3.5 h-3.5"
+                        fill={p.close_friends_only ? "currentColor" : "none"}
+                      />
+                    </button>
+                  </td>
+                  <td className="px-2 py-2">
+                    <Input
+                      type="date"
+                      value={date}
+                      onChange={(e) => {
+                        const v = combineDateTime(e.target.value, time);
+                        setLocal(p.id, { scheduled_at: v });
+                      }}
+                      onBlur={(e) => {
+                        const v = combineDateTime(e.target.value, time);
+                        saveRemote(p.id, { scheduled_at: v });
+                      }}
+                      className="h-8 text-xs"
                     />
-                    Reel de prueba
-                  </label>
-                )}
-                <label className="flex items-center gap-2 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={p.close_friends_only}
-                    onChange={(e) => {
-                      setLocal(p.id, { close_friends_only: e.target.checked });
-                      saveRemote(p.id, { close_friends_only: e.target.checked });
-                    }}
-                  />
-                  Solo mejores amigos
-                </label>
-              </div>
-            </>
-          )}
-        </div>
-      ))}
+                  </td>
+                  <td className="px-2 py-2">
+                    <Input
+                      type="time"
+                      value={time}
+                      onChange={(e) => {
+                        const v = combineDateTime(date, e.target.value);
+                        setLocal(p.id, { scheduled_at: v });
+                      }}
+                      onBlur={(e) => {
+                        const v = combineDateTime(date, e.target.value);
+                        saveRemote(p.id, { scheduled_at: v });
+                      }}
+                      className="h-8 text-xs"
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <Textarea
+                      placeholder="Caption…"
+                      value={p.caption ?? ""}
+                      rows={1}
+                      onChange={(e) => setLocal(p.id, { caption: e.target.value })}
+                      onBlur={(e) => saveRemote(p.id, { caption: e.target.value || null })}
+                      className="min-h-[32px] text-xs resize-y"
+                    />
+                  </td>
+                  <td className="px-2 py-2 text-muted-foreground cursor-move">
+                    <GripVertical className="w-4 h-4" />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
