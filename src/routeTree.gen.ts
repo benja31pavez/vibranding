@@ -17,6 +17,7 @@ import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
 import { Route as AppClientsClientIdIndexRouteImport } from './routes/_app/clients/$clientId/index'
+import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -57,6 +58,12 @@ const AppClientsClientIdIndexRoute = AppClientsClientIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppClientsClientIdRoute,
 } as any)
+const AppClientsClientIdInstagramRoute =
+  AppClientsClientIdInstagramRouteImport.update({
+    id: '/instagram',
+    path: '/instagram',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients/': typeof AppClientsIndexRoute
+  '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/': typeof AppClientsClientIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -73,6 +81,7 @@ export interface FileRoutesByTo {
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients': typeof AppClientsIndexRoute
+  '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId': typeof AppClientsClientIdIndexRoute
 }
 export interface FileRoutesById {
@@ -84,6 +93,7 @@ export interface FileRoutesById {
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/_app/clients/': typeof AppClientsIndexRoute
+  '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/_app/clients/$clientId/': typeof AppClientsClientIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
     | '/settings/pricing'
     | '/api/meta-ads/sync'
     | '/clients/'
+    | '/clients/$clientId/instagram'
     | '/clients/$clientId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
     | '/settings/pricing'
     | '/api/meta-ads/sync'
     | '/clients'
+    | '/clients/$clientId/instagram'
     | '/clients/$clientId'
   id:
     | '__root__'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
     | '/_app/settings/pricing'
     | '/api/meta-ads/sync'
     | '/_app/clients/'
+    | '/_app/clients/$clientId/instagram'
     | '/_app/clients/$clientId/'
   fileRoutesById: FileRoutesById
 }
@@ -181,14 +194,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdIndexRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/instagram': {
+      id: '/_app/clients/$clientId/instagram'
+      path: '/instagram'
+      fullPath: '/clients/$clientId/instagram'
+      preLoaderRoute: typeof AppClientsClientIdInstagramRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
   }
 }
 
 interface AppClientsClientIdRouteChildren {
+  AppClientsClientIdInstagramRoute: typeof AppClientsClientIdInstagramRoute
   AppClientsClientIdIndexRoute: typeof AppClientsClientIdIndexRoute
 }
 
 const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
+  AppClientsClientIdInstagramRoute: AppClientsClientIdInstagramRoute,
   AppClientsClientIdIndexRoute: AppClientsClientIdIndexRoute,
 }
 
