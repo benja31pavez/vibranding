@@ -143,6 +143,9 @@ export function IphonePreview({
             <div className="flex gap-1.5 mt-3">
               <button className="flex-1 bg-[#0095f6] text-white text-[11px] font-semibold py-1.5 rounded-md">Seguir</button>
               <button className="flex-1 bg-zinc-100 text-black text-[11px] font-semibold py-1.5 rounded-md">Mensaje</button>
+              {showContact && (
+                <button className="flex-1 bg-zinc-100 text-black text-[11px] font-semibold py-1.5 rounded-md">Contactar</button>
+              )}
               <button className="bg-zinc-100 text-black px-2 py-1.5 rounded-md text-[11px]">▾</button>
             </div>
 
@@ -172,9 +175,9 @@ export function IphonePreview({
             <div className="flex-1 flex justify-center py-2 border-t-2 border-black -mt-px text-black">
               <Grid3x3 className="w-4 h-4" />
             </div>
-            <div className="flex-1 flex justify-center py-2"><Bookmark className="w-4 h-4" /></div>
-            <div className="flex-1 flex justify-center py-2"><Tag className="w-4 h-4" /></div>
-            <div className="flex-1 flex justify-center py-2"><User className="w-4 h-4" /></div>
+            <div className="flex-1 flex justify-center py-2"><Film className="w-4 h-4" /></div>
+            <div className="flex-1 flex justify-center py-2"><Repeat2 className="w-4 h-4" /></div>
+            <div className="flex-1 flex justify-center py-2"><SquareUser className="w-4 h-4" /></div>
           </div>
 
           <div className="grid grid-cols-3 gap-[2px] bg-white">
@@ -204,8 +207,10 @@ export function IphonePreview({
               );
             })}
           </div>
+            </div>
+          </div>
 
-          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-black rounded-full" />
+          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-black rounded-full z-30" />
         </div>
       </div>
     </div>
