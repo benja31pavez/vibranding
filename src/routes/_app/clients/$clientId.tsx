@@ -12,6 +12,8 @@ import { IphonePreview } from "@/components/IphonePreview";
 import { PaymentsPanel } from "@/components/PaymentsPanel";
 import { SummaryExport } from "@/components/SummaryExport";
 import { exportElementToPdf } from "@/lib/exportPdf";
+import { PricingSummary, loadPricing, type PricingSettings } from "@/components/PricingPanel";
+import { useAuth } from "@/hooks/use-auth";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -31,6 +33,12 @@ function ClientDetail() {
   const [view, setView] = useState<"current" | "proposed">("proposed");
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+  const [pricing, setPricing] = useState<PricingSettings | null>(null);
+
+  useEffect(() => {
+    if (user) loadPricing(user.id).then(setPricing);
+  }, [user]);
 
   const loadClient = async () => {
     const { data } = await supabase.from("clients").select("id,name,instagram_handle").eq("id", clientId).maybeSingle();
@@ -148,7 +156,7 @@ function ClientDetail() {
             </TabsList>
 
             <TabsContent value="summary" className="mt-6 space-y-8">
-              <SummarySection clientId={clientId} />
+              <SummarySection clientId={clientId} pricing={pricing} />
             </TabsContent>
 
             <TabsContent value="objectives" className="mt-6">
@@ -219,7 +227,7 @@ function ClientDetail() {
           }}
         >
           <div ref={exportRef}>
-            <SummaryExport client={client} profile={profile} posts={posts} highlights={highlights} />
+            <SummaryExport client={client} profile={profile} posts={posts} highlights={highlights} pricing={pricing} />
           </div>
         </div>
       )}
@@ -227,7 +235,7 @@ function ClientDetail() {
   );
 }
 
-function SummarySection({ clientId }: { clientId: string }) {
+function SummarySection({ clientId, pricing }: { clientId: string; pricing: PricingSettings | null }) {
   const [counts, setCounts] = useState({ obj: 0, objDone: 0, del: 0, delDone: 0, paid: 0, pending: 0 });
 
   useEffect(() => {
@@ -273,6 +281,7 @@ function SummarySection({ clientId }: { clientId: string }) {
         <Stat label="Entregables" value={`${counts.delDone}/${counts.del}`} hint="completados" />
         <Stat label="Cobrado" value={`$${counts.paid.toFixed(0)}`} hint={`Pendiente $${counts.pending.toFixed(0)}`} />
       </div>
+      <PricingSummary pricing={pricing} />
     </div>
   );
 }

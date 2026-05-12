@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Instagram, ArrowRight } from "lucide-react";
+import { Plus, Instagram, ArrowRight, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
@@ -67,10 +67,14 @@ function ClientsList() {
           <h1 className="text-4xl font-semibold tracking-tight">Clientes</h1>
           <p className="text-muted-foreground mt-1">Gestiona las asesorías de cada uno.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="rounded-full h-11 px-5"><Plus className="w-4 h-4 mr-1" /> Nuevo cliente</Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" className="rounded-full h-11 px-5">
+            <Link to="/settings/pricing"><DollarSign className="w-4 h-4 mr-1" /> Tarifas</Link>
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="rounded-full h-11 px-5"><Plus className="w-4 h-4 mr-1" /> Nuevo cliente</Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Nuevo cliente</DialogTitle></DialogHeader>
             <form onSubmit={create} className="space-y-4">
@@ -88,6 +92,7 @@ function ClientsList() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </header>
 
       {loading ? (
