@@ -108,14 +108,43 @@ function PhoneCard({
               <div style={{ flex: 1, background: "#f4f4f5", color: "#000", textAlign: "center", fontSize: 11, fontWeight: 700, padding: "6px 0", borderRadius: 6 }}>Mensaje</div>
             </div>
           </div>
+          {(() => {
+            const myH = highlights.filter((h) => h.type === view).sort((a, b) => a.position - b.position);
+            if (!myH.length) return null;
+            return (
+              <div style={{ display: "flex", gap: 10, padding: "10px 14px 4px", overflow: "hidden" }}>
+                {myH.slice(0, 5).map((h) => (
+                  <div key={h.id} style={{ width: 48, textAlign: "center", flexShrink: 0 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: "50%", border: `1px solid ${C.line}`, padding: 2, background: "#fff" }}>
+                      {h.cover_url ? (
+                        <img src={h.cover_url} crossOrigin="anonymous"
+                          style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                      ) : (
+                        <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#f4f4f5" }} />
+                      )}
+                    </div>
+                    <div style={{ fontSize: 8, color: "#000", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {h.title || "Destacada"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 2, background: "#fff", marginTop: 8 }}>
             {Array.from({ length: 6 }).map((_, i) => {
               const p = grid.find((x) => x.position === i);
+              const badge = p?.format === "reel" ? "▶" : p?.format === "carousel" ? "▦" : null;
               return (
-                <div key={i} style={{ aspectRatio: "1 / 1", background: "#f4f4f5" }}>
+                <div key={i} style={{ aspectRatio: "1 / 1", background: "#f4f4f5", position: "relative" }}>
                   {p?.image_url && (
                     <img src={p.image_url} crossOrigin="anonymous"
                       style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  )}
+                  {badge && (
+                    <div style={{ position: "absolute", top: 4, right: 4, color: "#fff", fontSize: 11, fontWeight: 700, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
+                      {badge}
+                    </div>
                   )}
                 </div>
               );
@@ -128,6 +157,7 @@ function PhoneCard({
 }
 
 function PostsTable({ title, posts, type }: { title: string; posts: IGPost[]; type: "current" | "proposed" }) {
+  const fmtLabel = (f: string) => f === "reel" ? "Reel" : f === "carousel" ? "Carrusel" : "Foto";
   const items = posts
     .filter((p) => p.type === type)
     .sort((a, b) => a.position - b.position)
