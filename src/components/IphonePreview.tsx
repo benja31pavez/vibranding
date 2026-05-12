@@ -118,16 +118,20 @@ export function IphonePreview({
                   {link.replace(/^https?:\/\//, "")}
                 </a>
               )}
-              {threadsEnabled && threadsHandle && (
-                <div className="flex items-center gap-1 text-[11px] text-zinc-700">
-                  <AtSign className="w-3 h-3" />
-                  <span>{threadsHandle.replace(/^@/, "")} · Threads</span>
-                </div>
-              )}
-              {songEnabled && song && (
-                <div className="flex items-center gap-1 text-[11px] text-zinc-700">
-                  <Music2 className="w-3 h-3" />
-                  <span className="truncate">{song}</span>
+              {((threadsEnabled && threadsHandle) || (songEnabled && song)) && (
+                <div className="flex items-center gap-3 text-[11px] text-zinc-700 flex-wrap">
+                  {threadsEnabled && threadsHandle && (
+                    <span className="inline-flex items-center gap-1">
+                      <AtSign className="w-3 h-3" />
+                      <span>{threadsHandle.replace(/^@/, "")} · Threads</span>
+                    </span>
+                  )}
+                  {songEnabled && song && (
+                    <span className="inline-flex items-center gap-1 min-w-0">
+                      <Music2 className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{song}</span>
+                    </span>
+                  )}
                 </div>
               )}
             </div>
