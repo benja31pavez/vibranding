@@ -86,6 +86,7 @@ export interface IGHighlight {
   position: number;
   title: string | null;
   cover_url: string | null;
+  media_urls: string[];
 }
 
 type Side = "current" | "proposed";
