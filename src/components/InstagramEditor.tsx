@@ -235,6 +235,9 @@ export function PostsEditor({
           </div>
           {p && (
             <>
+              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                {p.format === "reel" ? "Imagen del reel" : "Imagen principal"}
+              </Label>
               <MediaUpload
                 clientId={clientId}
                 value={p.image_url}
@@ -244,6 +247,32 @@ export function PostsEditor({
                 }}
                 showUrl={false}
               />
+              {p.format === "reel" && (
+                <>
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Carátula (thumbnail del grid)
+                  </Label>
+                  <MediaUpload
+                    clientId={clientId}
+                    value={p.cover_url}
+                    onChange={(url) => {
+                      setLocal(p.id, { cover_url: url });
+                      saveRemote(p.id, { cover_url: url });
+                    }}
+                    showUrl={false}
+                  />
+                </>
+              )}
+              {p.format === "carousel" && (
+                <CarouselImages
+                  clientId={clientId}
+                  urls={p.carousel_urls ?? []}
+                  onChange={(urls) => {
+                    setLocal(p.id, { carousel_urls: urls });
+                    saveRemote(p.id, { carousel_urls: urls });
+                  }}
+                />
+              )}
               <Textarea
                 placeholder="Caption…"
                 value={p.caption ?? ""}
