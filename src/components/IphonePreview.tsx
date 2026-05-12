@@ -189,7 +189,17 @@ export function IphonePreview({
               {Array.from({ length: 5 }).map((_, i) => {
                 const h = myHighlights[i];
                 return (
-                  <div key={h?.id ?? i} className="flex flex-col items-center min-w-0">
+                  <button
+                    key={h?.id ?? i}
+                    type="button"
+                    disabled={!h}
+                    onClick={() => {
+                      if (!h) return;
+                      setStoryHighlight(h);
+                      setStoryIndex(0);
+                    }}
+                    className="flex flex-col items-center min-w-0 disabled:cursor-default"
+                  >
                     <div className="w-12 h-12 rounded-full border border-zinc-300 p-[2px] bg-white">
                       {h?.cover_url ? (
                         <img src={h.cover_url} alt="" className="w-full h-full rounded-full object-cover" />
@@ -200,7 +210,7 @@ export function IphonePreview({
                     <div className="text-[9px] text-black mt-1 truncate w-full text-center leading-tight">
                       {h?.title || ""}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
