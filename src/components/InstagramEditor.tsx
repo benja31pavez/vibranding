@@ -40,6 +40,7 @@ export interface IGProfile {
   current_threads_handle: string | null;
   current_song_enabled: boolean;
   current_song: string | null;
+  current_show_contact_button: boolean;
   proposed_username: string | null;
   proposed_display_name: string | null;
   proposed_followers: number | null;
