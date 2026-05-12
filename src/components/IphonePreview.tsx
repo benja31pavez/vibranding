@@ -232,7 +232,7 @@ export function IphonePreview({
                 const Icon = p?.format === "reel" ? Film : p?.format === "carousel" ? Layers : null;
                 const thumb = p?.format === "reel" ? (p.cover_url || p.image_url) : p?.image_url;
                 return (
-                  <div key={i} className="aspect-square bg-zinc-100 relative">
+                  <div key={i} className="bg-zinc-100 relative" style={{ aspectRatio: "3/4" }}>
                     {thumb && <img src={thumb} className="w-full h-full object-cover" alt="" />}
                     {p?.close_friends_only && (
                       <div className="absolute top-1 left-1 bg-[#1c8c5b] text-white rounded-full p-[2px] drop-shadow">
