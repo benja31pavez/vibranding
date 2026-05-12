@@ -59,6 +59,8 @@ export interface IGProfile {
   proposed_song_enabled: boolean;
   proposed_song: string | null;
   proposed_show_contact_button: boolean;
+  proposed_contact_phone: string | null;
+  proposed_contact_email: string | null;
 }
 
 export interface IGPost {
