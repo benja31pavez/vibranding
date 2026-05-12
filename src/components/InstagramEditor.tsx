@@ -253,24 +253,8 @@ export function IdentityEditor({
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3">
         <TextField label="Usuario" accent={accent} {...text(usernameKey)} />
-        <TextField label="Nombre real" accent={accent} {...text(displayKey)} />
-      </div>
+        <TextField label="Nombre" accent={accent} {...text(displayKey)} />
 
-      <div className="space-y-1.5">
-        <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>Foto de perfil</Label>
-        <MediaUpload
-          clientId={clientId}
-          shape="circle"
-          value={profile[avatarKey] as string | null}
-          onChange={(url) => { set({ [avatarKey]: url } as any); save({ [avatarKey]: url } as any); }}
-        />
-      </div>
-
-      <TextField label="Enlace" accent={accent} {...text(linkKey)} />
-      <TextField label="Descripción" accent={accent} multiline {...text(bioKey)} />
-
-      <div className="grid grid-cols-3 gap-3">
-        <NumField label="Posts" accent={accent} {...num(postsKey)} />
         <NumField label="Seguidores" accent={accent} {...num(followersKey)} />
         <NumField label="Seguidos" accent={accent} {...num(followingKey)} />
       </div>
