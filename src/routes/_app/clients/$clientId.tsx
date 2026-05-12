@@ -235,7 +235,7 @@ function ClientDetail() {
   );
 }
 
-function SummarySection({ clientId }: { clientId: string }) {
+function SummarySection({ clientId, pricing }: { clientId: string; pricing: PricingSettings | null }) {
   const [counts, setCounts] = useState({ obj: 0, objDone: 0, del: 0, delDone: 0, paid: 0, pending: 0 });
 
   useEffect(() => {
