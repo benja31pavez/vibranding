@@ -1,4 +1,5 @@
 import type { IGProfile, IGPost, IGHighlight } from "./InstagramEditor";
+import type { PricingSettings } from "./PricingPanel";
 
 const fmt = (n: number | null | undefined) => {
   if (n == null) return "0";
