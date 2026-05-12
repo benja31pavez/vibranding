@@ -813,15 +813,11 @@ export function HighlightsEditor({
                     {idx + 1}
                   </td>
                   <td className="px-2 py-2">
-                    <div className="w-14 h-14">
-                      <MediaUpload
-                        clientId={clientId}
-                        shape="circle"
-                        value={h.cover_url}
-                        onChange={(url) => update(h.id, { cover_url: url })}
-                        showUrl={false}
-                      />
-                    </div>
+                    <CircleCoverUpload
+                      clientId={clientId}
+                      value={h.cover_url}
+                      onChange={(url) => update(h.id, { cover_url: url })}
+                    />
                   </td>
                   <td className="px-2 py-2">
                     <Input
