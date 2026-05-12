@@ -160,7 +160,15 @@ function ClientDetail() {
             </TabsContent>
 
             <TabsContent value="instagram" className="mt-6 space-y-8">
-              {profile && <ProfileEditor profile={profile} setProfile={setProfile} />}
+              {profile && <ProfileEditor profile={profile} setProfile={setProfile} clientId={clientId} />}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Historias destacadas actuales</h3>
+                <HighlightsEditor clientId={clientId} highlights={highlights} setHighlights={setHighlights} type="current" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-accent">Historias destacadas propuestas</h3>
+                <HighlightsEditor clientId={clientId} highlights={highlights} setHighlights={setHighlights} type="proposed" />
+              </div>
               <div>
                 <h3 className="text-lg font-semibold mb-3">Posts actuales</h3>
                 <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type="current" />
@@ -193,7 +201,7 @@ function ClientDetail() {
               Propuesta
             </button>
           </div>
-          {profile && <IphonePreview profile={profile} posts={posts} view={view} />}
+          {profile && <IphonePreview profile={profile} posts={posts} highlights={highlights} view={view} />}
         </div>
       </div>
 
