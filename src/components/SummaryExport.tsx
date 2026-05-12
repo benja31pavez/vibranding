@@ -161,6 +161,12 @@ function PhoneCard({
                     <img src={thumb} crossOrigin="anonymous"
                       style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                   )}
+                  {p?.close_friends_only && (
+                    <div style={{ position: "absolute", top: 4, left: 4, background: "#1c8c5b", color: "#fff", fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 4 }}>★</div>
+                  )}
+                  {p?.format === "reel" && p?.is_trial_reel && (
+                    <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 8, fontWeight: 700, padding: "1px 4px", borderRadius: 3 }}>PRUEBA</div>
+                  )}
                   {badge && (
                     <div style={{ position: "absolute", top: 4, right: 4, color: "#fff", fontSize: 11, fontWeight: 700, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
                       {badge}
