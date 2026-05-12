@@ -1,11 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { MediaUpload } from "./MediaUpload";
-import { Image as ImageIcon, Layers, Film, Plus, Trash2 } from "lucide-react";
+import { uploadClientMedia } from "@/lib/uploadMedia";
+import { Image as ImageIcon, Layers, Film, Plus, Trash2, GripVertical, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export type PostFormat = "photo" | "carousel" | "reel";
 
