@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Signal, Wifi, BatteryFull, Grid3x3, Layers, Film, BadgeCheck, Play, AtSign, Star, FlaskConical, Repeat, SquareUser, Link as LinkIcon, PlaySquare, Phone, Mail, X, Heart, MessageCircle, Send, Bookmark, ChevronLeft, ChevronRight, MapPin, Music } from "lucide-react";
+import { Signal, Wifi, BatteryFull, Grid3x3, Layers, Film, BadgeCheck, Play, AtSign, Star, FlaskConical, Repeat, SquareUser, Link as LinkIcon, PlaySquare, Phone, Mail, X, Heart, MessageCircle, Send, Bookmark, ChevronLeft, ChevronRight, MapPin, Music, House, Search } from "lucide-react";
 import type { IGProfile, IGPost, IGHighlight, IGComment } from "./InstagramEditor";
 
 const fmt = (n: number | null) => {
@@ -84,19 +84,24 @@ export function IphonePreview({
                 <BatteryFull className="w-4 h-4" />
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto overscroll-contain pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex-1 overflow-y-auto overscroll-contain pb-14 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
-          <div className="flex items-center justify-between px-4 pt-6 pb-2">
-            <div className="text-black font-semibold text-sm flex items-center gap-1">
+          <div className="grid grid-cols-3 items-center px-4 pt-6 pb-2">
+            <div className="flex justify-start">
+              <button type="button" className="text-black" aria-label="Crear">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+              </button>
+            </div>
+            <div className="flex justify-center text-black font-semibold text-sm items-center gap-1">
               <span className="text-[15px]">{username}</span>
               {verified && <BadgeCheck className="w-3.5 h-3.5 text-[#0095f6]" fill="#0095f6" stroke="white" />}
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
             </div>
-            <div className="flex gap-3 text-black">
-              <span className="text-lg leading-none">+</span>
+            <div className="flex justify-end text-black">
               <span className="text-lg leading-none">≡</span>
             </div>
           </div>
+
 
           <div className="px-4">
             <div className="flex items-center gap-3">
@@ -502,6 +507,17 @@ export function IphonePreview({
             );
           })()}
 
+          <div className="absolute bottom-0 left-0 right-0 z-20 bg-white border-t border-zinc-200 pt-2 pb-4 px-4 flex items-center justify-between text-black">
+            <House className="w-5 h-5" fill="currentColor" strokeWidth={1.5} />
+            <Search className="w-5 h-5" strokeWidth={1.5} />
+            <Film className="w-5 h-5" strokeWidth={1.5} />
+            <Send className="w-5 h-5" strokeWidth={1.5} />
+            {avatar ? (
+              <img src={avatar} alt="" className="w-6 h-6 rounded-full object-cover ring-1 ring-black" />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-zinc-300 ring-1 ring-black" />
+            )}
+          </div>
           <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-black rounded-full z-30" />
         </div>
       </div>
