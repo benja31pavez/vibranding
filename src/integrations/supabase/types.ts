@@ -88,11 +88,45 @@ export type Database = {
           },
         ]
       }
+      instagram_highlights: {
+        Row: {
+          client_id: string
+          cover_url: string | null
+          created_at: string
+          id: string
+          position: number
+          title: string | null
+          type: Database["public"]["Enums"]["ig_post_type"]
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          position?: number
+          title?: string | null
+          type: Database["public"]["Enums"]["ig_post_type"]
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          position?: number
+          title?: string | null
+          type?: Database["public"]["Enums"]["ig_post_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       instagram_posts: {
         Row: {
           caption: string | null
           client_id: string
           created_at: string
+          format: Database["public"]["Enums"]["post_format"]
           id: string
           image_url: string | null
           position: number
@@ -104,6 +138,7 @@ export type Database = {
           caption?: string | null
           client_id: string
           created_at?: string
+          format?: Database["public"]["Enums"]["post_format"]
           id?: string
           image_url?: string | null
           position?: number
@@ -115,6 +150,7 @@ export type Database = {
           caption?: string | null
           client_id?: string
           created_at?: string
+          format?: Database["public"]["Enums"]["post_format"]
           id?: string
           image_url?: string | null
           position?: number
@@ -304,6 +340,7 @@ export type Database = {
     Enums: {
       ig_post_type: "current" | "proposed"
       payment_status: "pending" | "paid" | "overdue" | "cancelled"
+      post_format: "photo" | "carousel" | "reel"
       task_status: "pending" | "in_progress" | "done"
     }
     CompositeTypes: {
@@ -434,6 +471,7 @@ export const Constants = {
     Enums: {
       ig_post_type: ["current", "proposed"],
       payment_status: ["pending", "paid", "overdue", "cancelled"],
+      post_format: ["photo", "carousel", "reel"],
       task_status: ["pending", "in_progress", "done"],
     },
   },
