@@ -384,6 +384,48 @@ export type Database = {
           },
         ]
       }
+      pricing_settings: {
+        Row: {
+          carousel_price: number
+          created_at: string
+          currency: string
+          id: string
+          notes: string | null
+          pack_description: string | null
+          pack_price: number
+          photo_price: number
+          reel_price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          carousel_price?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          notes?: string | null
+          pack_description?: string | null
+          pack_price?: number
+          photo_price?: number
+          reel_price?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          carousel_price?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          notes?: string | null
+          pack_description?: string | null
+          pack_price?: number
+          photo_price?: number
+          reel_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
