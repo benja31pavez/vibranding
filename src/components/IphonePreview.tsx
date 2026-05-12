@@ -1,5 +1,5 @@
-import { Signal, Wifi, BatteryFull, Grid3x3, User, Bookmark, Tag } from "lucide-react";
-import type { IGProfile, IGPost } from "./InstagramEditor";
+import { Signal, Wifi, BatteryFull, Grid3x3, User, Bookmark, Tag, Layers, Film, Plus } from "lucide-react";
+import type { IGProfile, IGPost, IGHighlight } from "./InstagramEditor";
 
 const fmt = (n: number | null) => {
   if (n == null) return "0";
@@ -11,10 +11,12 @@ const fmt = (n: number | null) => {
 export function IphonePreview({
   profile,
   posts,
+  highlights,
   view,
 }: {
   profile: IGProfile;
   posts: IGPost[];
+  highlights: IGHighlight[];
   view: "current" | "proposed";
 }) {
   const pick = <T,>(p: T | null | undefined, c: T | null | undefined): T | null =>
@@ -33,6 +35,10 @@ export function IphonePreview({
     .sort((a, b) => a.position - b.position)
     .slice(0, 6);
 
+  const myHighlights = highlights
+    .filter((h) => h.type === view)
+    .sort((a, b) => a.position - b.position);
+
   const time = new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
 
   return (
@@ -40,13 +46,10 @@ export function IphonePreview({
       <div className="text-xs text-center text-muted-foreground mb-3 font-medium uppercase tracking-wider">
         {view === "proposed" ? "Propuesta" : "Actual"}
       </div>
-      {/* iPhone frame */}
       <div className="relative rounded-[3rem] bg-black p-2 shadow-2xl">
         <div className="relative rounded-[2.5rem] overflow-hidden bg-white" style={{ aspectRatio: "9/19.5" }}>
-          {/* Dynamic island */}
           <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-30" />
 
-          {/* Status bar */}
           <div className="flex items-center justify-between px-7 pt-3 pb-1 text-black text-[11px] font-semibold">
             <span>{time}</span>
             <div className="flex items-center gap-1">
@@ -56,7 +59,6 @@ export function IphonePreview({
             </div>
           </div>
 
-          {/* Instagram header */}
           <div className="flex items-center justify-between px-4 pt-6 pb-2">
             <div className="text-black font-semibold text-sm flex items-center gap-1">
               <span className="text-[15px]">{username}</span>
@@ -68,7 +70,6 @@ export function IphonePreview({
             </div>
           </div>
 
-          {/* Profile */}
           <div className="px-4">
             <div className="flex items-center gap-5">
               <div className="ig-ring p-[2px] rounded-full">
@@ -110,9 +111,34 @@ export function IphonePreview({
               <button className="flex-1 bg-zinc-100 text-black text-[11px] font-semibold py-1.5 rounded-md">Mensaje</button>
               <button className="bg-zinc-100 text-black px-2 py-1.5 rounded-md text-[11px]">▾</button>
             </div>
+
+            {/* Highlights */}
+            {(myHighlights.length > 0) && (
+              <div className="mt-3 -mx-1 flex gap-3 overflow-x-auto pb-1">
+                {myHighlights.map((h) => (
+                  <div key={h.id} className="flex flex-col items-center flex-shrink-0 w-14">
+                    <div className="w-12 h-12 rounded-full border border-zinc-300 p-[2px] bg-white">
+                      {h.cover_url ? (
+                        <img src={h.cover_url} alt="" className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-zinc-100" />
+                      )}
+                    </div>
+                    <div className="text-[9px] text-black mt-1 truncate w-full text-center">
+                      {h.title || "Destacada"}
+                    </div>
+                  </div>
+                ))}
+                <div className="flex flex-col items-center flex-shrink-0 w-14">
+                  <div className="w-12 h-12 rounded-full border border-zinc-300 flex items-center justify-center text-zinc-500">
+                    <Plus className="w-4 h-4" />
+                  </div>
+                  <div className="text-[9px] text-zinc-500 mt-1">Nueva</div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Tabs */}
           <div className="mt-3 border-t border-zinc-200 flex text-zinc-500">
             <div className="flex-1 flex justify-center py-2 border-t-2 border-black -mt-px text-black">
               <Grid3x3 className="w-4 h-4" />
@@ -122,19 +148,23 @@ export function IphonePreview({
             <div className="flex-1 flex justify-center py-2"><User className="w-4 h-4" /></div>
           </div>
 
-          {/* Grid */}
           <div className="grid grid-cols-3 gap-[2px] bg-white">
             {Array.from({ length: 6 }).map((_, i) => {
               const p = myPosts.find((x) => x.position === i);
+              const Icon = p?.format === "reel" ? Film : p?.format === "carousel" ? Layers : null;
               return (
-                <div key={i} className="aspect-square bg-zinc-100">
+                <div key={i} className="aspect-square bg-zinc-100 relative">
                   {p?.image_url && <img src={p.image_url} className="w-full h-full object-cover" alt="" />}
+                  {Icon && (
+                    <div className="absolute top-1 right-1 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                      <Icon className="w-3.5 h-3.5" fill="white" />
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
 
-          {/* Home indicator */}
           <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-black rounded-full" />
         </div>
       </div>
