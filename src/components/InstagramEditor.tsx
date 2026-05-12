@@ -317,40 +317,38 @@ export function ConfigEditor({
         )}
       </div>
 
-  const phoneKey = `${side}_contact_phone` as keyof IGProfile;
-  const emailKey = `${side}_contact_email` as keyof IGProfile;
-  return (
-    <div className="space-y-1.5">
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={!!profile[contactKey]}
-          onChange={(e) => {
-            set({ [contactKey]: e.target.checked } as any);
-            save({ [contactKey]: e.target.checked } as any);
-          }}
-        />
-        Mostrar botón "Contactar"
-      </label>
-      {profile[contactKey] && (
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <Input
-            placeholder="Teléfono"
-            value={(profile[phoneKey] as string) ?? ""}
-            onChange={(e) => set({ [phoneKey]: e.target.value } as any)}
-            onBlur={(e) => save({ [phoneKey]: e.target.value || null } as any)}
-            className="h-8 text-xs"
+      <div className="space-y-1.5">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={!!profile[contactKey]}
+            onChange={(e) => {
+              set({ [contactKey]: e.target.checked } as any);
+              save({ [contactKey]: e.target.checked } as any);
+            }}
           />
-          <Input
-            placeholder="Correo"
-            type="email"
-            value={(profile[emailKey] as string) ?? ""}
-            onChange={(e) => set({ [emailKey]: e.target.value } as any)}
-            onBlur={(e) => save({ [emailKey]: e.target.value || null } as any)}
-            className="h-8 text-xs"
-          />
-        </div>
-      )}
+          Mostrar botón "Contactar"
+        </label>
+        {profile[contactKey] && (
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <Input
+              placeholder="Teléfono"
+              value={(profile[phoneKey] as string) ?? ""}
+              onChange={(e) => set({ [phoneKey]: e.target.value } as any)}
+              onBlur={(e) => save({ [phoneKey]: e.target.value || null } as any)}
+              className="h-8 text-xs"
+            />
+            <Input
+              placeholder="Correo"
+              type="email"
+              value={(profile[emailKey] as string) ?? ""}
+              onChange={(e) => set({ [emailKey]: e.target.value } as any)}
+              onBlur={(e) => save({ [emailKey]: e.target.value || null } as any)}
+              className="h-8 text-xs"
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
