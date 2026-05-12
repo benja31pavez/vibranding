@@ -40,6 +40,7 @@ export interface IGProfile {
   current_threads_handle: string | null;
   current_song_enabled: boolean;
   current_song: string | null;
+  current_show_contact_button: boolean;
   proposed_username: string | null;
   proposed_display_name: string | null;
   proposed_followers: number | null;
@@ -55,6 +56,7 @@ export interface IGProfile {
   proposed_threads_handle: string | null;
   proposed_song_enabled: boolean;
   proposed_song: string | null;
+  proposed_show_contact_button: boolean;
 }
 
 export interface IGPost {
@@ -213,6 +215,7 @@ export function ConfigEditor({
   const threadsHandleKey = `${side}_threads_handle` as keyof IGProfile;
   const songEnKey = `${side}_song_enabled` as keyof IGProfile;
   const songKey = `${side}_song` as keyof IGProfile;
+  const contactKey = `${side}_show_contact_button` as keyof IGProfile;
 
   return (
     <div className="space-y-3">
@@ -307,6 +310,18 @@ export function ConfigEditor({
           />
         )}
       </div>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={!!profile[contactKey]}
+          onChange={(e) => {
+            set({ [contactKey]: e.target.checked } as any);
+            save({ [contactKey]: e.target.checked } as any);
+          }}
+        />
+        Mostrar botón "Contactar"
+      </label>
     </div>
   );
 }

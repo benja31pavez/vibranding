@@ -196,6 +196,7 @@ export type Database = {
           current_following: number | null
           current_link: string | null
           current_posts_count: number | null
+          current_show_contact_button: boolean
           current_song: string | null
           current_song_enabled: boolean
           current_threads_enabled: boolean
@@ -212,6 +213,7 @@ export type Database = {
           proposed_following: number | null
           proposed_link: string | null
           proposed_posts_count: number | null
+          proposed_show_contact_button: boolean
           proposed_song: string | null
           proposed_song_enabled: boolean
           proposed_threads_enabled: boolean
@@ -232,6 +234,7 @@ export type Database = {
           current_following?: number | null
           current_link?: string | null
           current_posts_count?: number | null
+          current_show_contact_button?: boolean
           current_song?: string | null
           current_song_enabled?: boolean
           current_threads_enabled?: boolean
@@ -248,6 +251,7 @@ export type Database = {
           proposed_following?: number | null
           proposed_link?: string | null
           proposed_posts_count?: number | null
+          proposed_show_contact_button?: boolean
           proposed_song?: string | null
           proposed_song_enabled?: boolean
           proposed_threads_enabled?: boolean
@@ -268,6 +272,7 @@ export type Database = {
           current_following?: number | null
           current_link?: string | null
           current_posts_count?: number | null
+          current_show_contact_button?: boolean
           current_song?: string | null
           current_song_enabled?: boolean
           current_threads_enabled?: boolean
@@ -284,6 +289,7 @@ export type Database = {
           proposed_following?: number | null
           proposed_link?: string | null
           proposed_posts_count?: number | null
+          proposed_show_contact_button?: boolean
           proposed_song?: string | null
           proposed_song_enabled?: boolean
           proposed_threads_enabled?: boolean
