@@ -1,11 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { MediaUpload } from "./MediaUpload";
-import { Image as ImageIcon, Layers, Film, Plus, Trash2 } from "lucide-react";
+import { uploadClientMedia } from "@/lib/uploadMedia";
+import { Image as ImageIcon, Layers, Film, Plus, Trash2, GripVertical, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export type PostFormat = "photo" | "carousel" | "reel";
 
@@ -37,6 +39,8 @@ export interface IGPost {
   caption: string | null;
   scheduled_at: string | null;
   format: PostFormat;
+  carousel_urls: string[];
+  cover_url: string | null;
 }
 
 export interface IGHighlight {
@@ -233,6 +237,9 @@ export function PostsEditor({
           </div>
           {p && (
             <>
+              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                {p.format === "reel" ? "Imagen del reel" : "Imagen principal"}
+              </Label>
               <MediaUpload
                 clientId={clientId}
                 value={p.image_url}
@@ -242,6 +249,32 @@ export function PostsEditor({
                 }}
                 showUrl={false}
               />
+              {p.format === "reel" && (
+                <>
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Carátula (thumbnail del grid)
+                  </Label>
+                  <MediaUpload
+                    clientId={clientId}
+                    value={p.cover_url}
+                    onChange={(url) => {
+                      setLocal(p.id, { cover_url: url });
+                      saveRemote(p.id, { cover_url: url });
+                    }}
+                    showUrl={false}
+                  />
+                </>
+              )}
+              {p.format === "carousel" && (
+                <CarouselImages
+                  clientId={clientId}
+                  urls={p.carousel_urls ?? []}
+                  onChange={(urls) => {
+                    setLocal(p.id, { carousel_urls: urls });
+                    saveRemote(p.id, { carousel_urls: urls });
+                  }}
+                />
+              )}
               <Textarea
                 placeholder="Caption…"
                 value={p.caption ?? ""}
@@ -306,11 +339,53 @@ export function HighlightsEditor({
     await supabase.from("instagram_highlights").delete().eq("id", id);
   };
 
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const reorder = async (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const arr = [...items];
+    const fromIdx = arr.findIndex((x) => x.id === fromId);
+    const toIdx = arr.findIndex((x) => x.id === toId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const [moved] = arr.splice(fromIdx, 1);
+    arr.splice(toIdx, 0, moved);
+    const updates = arr.map((h, i) => ({ id: h.id, position: i }));
+    setHighlights((prev) =>
+      prev.map((h) => {
+        const u = updates.find((x) => x.id === h.id);
+        return u ? { ...h, position: u.position } : h;
+      }),
+    );
+    await Promise.all(
+      updates.map((u) =>
+        supabase.from("instagram_highlights").update({ position: u.position }).eq("id", u.id),
+      ),
+    );
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-3">
         {items.map((h) => (
-          <div key={h.id} className="rounded-2xl border bg-surface p-3 w-44 space-y-2">
+          <div
+            key={h.id}
+            draggable
+            onDragStart={() => setDragId(h.id)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (dragId) reorder(dragId, h.id);
+              setDragId(null);
+            }}
+            onDragEnd={() => setDragId(null)}
+            className={`rounded-2xl border bg-surface p-3 w-44 space-y-2 cursor-move transition-opacity ${
+              dragId === h.id ? "opacity-40" : ""
+            }`}
+          >
+            <div className="flex items-center justify-between text-muted-foreground">
+              <GripVertical className="w-4 h-4" />
+              <span className="text-[10px] uppercase tracking-wider">#{h.position + 1}</span>
+            </div>
             <MediaUpload
               clientId={clientId}
               shape="circle"
@@ -355,4 +430,74 @@ function toLocalInput(iso: string) {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function CarouselImages({
+  clientId, urls, onChange,
+}: {
+  clientId: string;
+  urls: string[];
+  onChange: (urls: string[]) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFiles = async (files: FileList) => {
+    setUploading(true);
+    try {
+      const uploaded: string[] = [];
+      for (const f of Array.from(files)) {
+        uploaded.push(await uploadClientMedia(f, clientId));
+      }
+      onChange([...urls, ...uploaded]);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al subir");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeAt = (i: number) => onChange(urls.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+        Imágenes del carrusel ({urls.length})
+      </Label>
+      <div className="flex flex-wrap gap-1.5">
+        {urls.map((u, i) => (
+          <div key={i} className="relative w-12 h-12 rounded-md overflow-hidden bg-muted">
+            <img src={u} alt="" className="w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={() => removeAt(i)}
+              className="absolute top-0 right-0 bg-black/60 text-white rounded-bl-md p-0.5"
+              aria-label="Quitar"
+            >
+              <X className="w-2.5 h-2.5" />
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+          className="w-12 h-12 rounded-md border border-dashed flex items-center justify-center text-muted-foreground hover:bg-muted/50"
+        >
+          {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+        </button>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.length) handleFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
 }

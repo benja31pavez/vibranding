@@ -124,7 +124,9 @@ export type Database = {
       instagram_posts: {
         Row: {
           caption: string | null
+          carousel_urls: string[]
           client_id: string
+          cover_url: string | null
           created_at: string
           format: Database["public"]["Enums"]["post_format"]
           id: string
@@ -136,7 +138,9 @@ export type Database = {
         }
         Insert: {
           caption?: string | null
+          carousel_urls?: string[]
           client_id: string
+          cover_url?: string | null
           created_at?: string
           format?: Database["public"]["Enums"]["post_format"]
           id?: string
@@ -148,7 +152,9 @@ export type Database = {
         }
         Update: {
           caption?: string | null
+          carousel_urls?: string[]
           client_id?: string
+          cover_url?: string | null
           created_at?: string
           format?: Database["public"]["Enums"]["post_format"]
           id?: string
