@@ -456,13 +456,55 @@ export function IphonePreview({
                     </div>
                     <Bookmark className="w-5 h-5" />
                   </div>
+                  {(p.likes_count ?? 0) > 0 && (
+                    <div className="px-3 text-[12px] font-semibold text-black">
+                      {p.likes_count.toLocaleString("es")} Me gusta
+                    </div>
+                  )}
                   {p.caption && (
-                    <div className="px-3 pb-4 text-[12px] text-black whitespace-pre-line leading-snug">
+                    <div className="px-3 pt-1 text-[12px] text-black whitespace-pre-line leading-snug">
                       <span className="font-semibold mr-1">{username}</span>
                       {p.caption}
                     </div>
                   )}
+                  {p.music && (
+                    <div className="px-3 pt-2 flex items-center gap-1.5 text-[11px] text-black">
+                      <Music className="w-3 h-3" fill="currentColor" />
+                      <span className="truncate">{p.music}</span>
+                    </div>
+                  )}
+                  {(() => {
+                    const postComments = comments
+                      .filter((c) => c.post_id === p.id)
+                      .sort((a, b) => a.position - b.position);
+                    if (!postComments.length) return null;
+                    return (
+                      <div className="px-3 pt-2 pb-4 space-y-1">
+                        {postComments.length > 2 && (
+                          <div className="text-[11px] text-zinc-500">
+                            Ver los {postComments.length} comentarios
+                          </div>
+                        )}
+                        {postComments.map((c) => (
+                          <div key={c.id} className="text-[12px] text-black leading-snug">
+                            <span className="font-semibold mr-1">{c.username || "usuario"}</span>
+                            {c.text}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
+              </div>
+            );
+          })()}
+
+          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-black rounded-full z-30" />
+        </div>
+      </div>
+    </div>
+  );
+}
               </div>
             );
           })()}
