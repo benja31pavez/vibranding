@@ -78,9 +78,6 @@ function ClientShell() {
 
   if (!client) return <div className="p-10 text-muted-foreground">Cargando…</div>;
 
-  const base = `/clients/${clientId}`;
-  const currentSub = path.startsWith(base + "/") ? path.slice(base.length + 1).split("/")[0] : "";
-
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
       <Link to="/clients" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
