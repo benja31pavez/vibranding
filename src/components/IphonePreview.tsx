@@ -60,14 +60,16 @@ export function IphonePreview({
         <div className="relative rounded-[2.5rem] overflow-hidden bg-white" style={{ aspectRatio: "9/19.5" }}>
           <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-30" />
 
-          <div className="flex items-center justify-between px-7 pt-3 pb-1 text-black text-[11px] font-semibold">
-            <span>{time}</span>
-            <div className="flex items-center gap-1">
-              <Signal className="w-3 h-3" />
-              <Wifi className="w-3 h-3" />
-              <BatteryFull className="w-4 h-4" />
+          <div className="absolute inset-0 flex flex-col">
+            <div className="flex items-center justify-between px-7 pt-3 pb-1 text-black text-[11px] font-semibold shrink-0">
+              <span>{time}</span>
+              <div className="flex items-center gap-1">
+                <Signal className="w-3 h-3" />
+                <Wifi className="w-3 h-3" />
+                <BatteryFull className="w-4 h-4" />
+              </div>
             </div>
-          </div>
+            <div className="flex-1 overflow-y-auto overscroll-contain pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
           <div className="flex items-center justify-between px-4 pt-6 pb-2">
             <div className="text-black font-semibold text-sm flex items-center gap-1">
