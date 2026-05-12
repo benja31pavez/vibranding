@@ -109,24 +109,27 @@ export function IphonePreview({
                   )}
                 </div>
               </div>
-              <div className="flex-1 grid grid-cols-3 text-center text-black">
-                <div>
-                  <div className="font-semibold text-sm">{fmt(postsCount)}</div>
-                  <div className="text-[10px] text-zinc-600">posts</div>
-                </div>
-                <div>
-                  <div className="font-semibold text-sm">{fmt(followers)}</div>
-                  <div className="text-[10px] text-zinc-600">seguidores</div>
-                </div>
-                <div>
-                  <div className="font-semibold text-sm">{fmt(following)}</div>
-                  <div className="text-[10px] text-zinc-600">seguidos</div>
+              <div className="flex-1 text-black">
+                {displayName && <p className="font-semibold text-[12px] mb-1">{displayName}</p>}
+                <div className="grid grid-cols-3 text-left">
+                  <div>
+                    <div className="font-semibold text-sm">{fmt(postsCount)}</div>
+                    <div className="text-[10px] text-zinc-600">publicaciones</div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-sm">{fmt(followers)}</div>
+                    <div className="text-[10px] text-zinc-600">seguidores</div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-sm">{fmt(following)}</div>
+                    <div className="text-[10px] text-zinc-600">seguidos</div>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="mt-3 text-black text-[12px] leading-snug space-y-0.5">
-              {displayName && <p className="font-semibold">{displayName}</p>}
+
               {accountType === "business" && category && (
                 <p className="text-[11px] text-zinc-600">{category}</p>
               )}
