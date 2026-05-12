@@ -437,6 +437,32 @@ export function PostsEditor({
                   }}
                 />
               </div>
+              <div className="flex flex-col gap-1 pt-1 border-t">
+                {p.format === "reel" && (
+                  <label className="flex items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={p.is_trial_reel}
+                      onChange={(e) => {
+                        setLocal(p.id, { is_trial_reel: e.target.checked });
+                        saveRemote(p.id, { is_trial_reel: e.target.checked });
+                      }}
+                    />
+                    Reel de prueba
+                  </label>
+                )}
+                <label className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={p.close_friends_only}
+                    onChange={(e) => {
+                      setLocal(p.id, { close_friends_only: e.target.checked });
+                      saveRemote(p.id, { close_friends_only: e.target.checked });
+                    }}
+                  />
+                  Solo mejores amigos
+                </label>
+              </div>
             </>
           )}
         </div>
