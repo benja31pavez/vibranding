@@ -816,6 +816,39 @@ export function HighlightsEditor({
               onBlur={(e) => update(h.id, { title: e.target.value || null })}
               className="text-xs h-8"
             />
+            <div className="space-y-1">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Contenido ({(h.media_urls ?? []).length})
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                {(h.media_urls ?? []).map((url, i) => (
+                  <div key={i} className="relative group aspect-[9/16] rounded overflow-hidden bg-muted">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = (h.media_urls ?? []).filter((_, idx) => idx !== i);
+                        update(h.id, { media_urls: next });
+                      }}
+                      className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <MediaUpload
+                clientId={clientId}
+                shape="rect"
+                value={null}
+                onChange={(url) => {
+                  if (!url) return;
+                  const next = [...(h.media_urls ?? []), url];
+                  update(h.id, { media_urls: next });
+                }}
+                showUrl={false}
+              />
+            </div>
             <Button
               type="button"
               variant="ghost"
