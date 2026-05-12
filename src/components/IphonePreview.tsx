@@ -174,7 +174,7 @@ export function IphonePreview({
           </div>
 
           <div className="grid grid-cols-3 gap-[2px] bg-white">
-            {Array.from({ length: 6 }).map((_, i) => {
+            {Array.from({ length: Math.max(0, Math.min(30, postsCount ?? 6)) }).map((_, i) => {
               const p = myPosts.find((x) => x.position === i);
               const Icon = p?.format === "reel" ? Film : p?.format === "carousel" ? Layers : null;
               const thumb = p?.format === "reel" ? (p.cover_url || p.image_url) : p?.image_url;
