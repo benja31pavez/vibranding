@@ -73,8 +73,11 @@ function PhoneCard({
           background: "#fff", borderRadius: 30, overflow: "hidden", position: "relative",
         }}>
           <div style={{ padding: "18px 14px 8px" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#000", marginBottom: 10 }}>
-              {username}
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#000", marginBottom: 10, display: "flex", alignItems: "center", gap: 4 }}>
+              <span>{username}</span>
+              {verified && (
+                <span style={{ background: C.igBlue, color: "#fff", borderRadius: "50%", width: 13, height: 13, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900 }}>✓</span>
+              )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{
