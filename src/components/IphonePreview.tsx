@@ -248,7 +248,7 @@ export function IphonePreview({
                     {thumb && <img src={thumb} className="w-full h-full object-cover" alt="" />}
                     {p?.close_friends_only && (
                       <div className="absolute top-1 left-1 bg-[#1c8c5b] text-white rounded-full p-[2px] drop-shadow">
-                        <Lock className="w-2.5 h-2.5" />
+                        <Star className="w-2.5 h-2.5" fill="currentColor" />
                       </div>
                     )}
                     {p?.format === "reel" && p?.is_trial_reel && (
@@ -289,7 +289,7 @@ export function IphonePreview({
                     )}
                     {p.close_friends_only && (
                       <div className="absolute top-1 left-1 bg-[#1c8c5b] text-white rounded-full p-[2px] drop-shadow">
-                        <Lock className="w-2.5 h-2.5" />
+                        <Star className="w-2.5 h-2.5" fill="currentColor" />
                       </div>
                     )}
                   </div>
