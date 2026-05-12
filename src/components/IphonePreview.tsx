@@ -107,10 +107,10 @@ export function IphonePreview({
             </div>
 
             <div className="mt-3 text-black text-[12px] leading-snug space-y-0.5">
-              {bio && <p className="whitespace-pre-line">{bio}</p>}
               {accountType === "business" && category && (
                 <p className="text-[11px] text-zinc-600">{category}</p>
               )}
+              {bio && <p className="whitespace-pre-line">{bio}</p>}
               {link && (
                 <a className="text-[#00376b] font-medium block" href="#">
                   {link.replace(/^https?:\/\//, "")}
@@ -136,31 +136,26 @@ export function IphonePreview({
               <button className="bg-zinc-100 text-black px-2 py-1.5 rounded-md text-[11px]">▾</button>
             </div>
 
-            {/* Highlights */}
-            {(myHighlights.length > 0) && (
-              <div className="mt-3 -mx-1 flex gap-3 overflow-x-auto pb-1">
-                {myHighlights.map((h) => (
-                  <div key={h.id} className="flex flex-col items-center flex-shrink-0 w-14">
-                    <div className="w-12 h-12 rounded-full border border-zinc-300 p-[2px] bg-white">
-                      {h.cover_url ? (
+            {/* Highlights — always show 6 perfect circles */}
+            <div className="mt-3 grid grid-cols-6 gap-1.5">
+              {Array.from({ length: 6 }).map((_, i) => {
+                const h = myHighlights[i];
+                return (
+                  <div key={h?.id ?? i} className="flex flex-col items-center min-w-0">
+                    <div className="w-10 h-10 rounded-full border border-zinc-300 p-[2px] bg-white">
+                      {h?.cover_url ? (
                         <img src={h.cover_url} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
                         <div className="w-full h-full rounded-full bg-zinc-100" />
                       )}
                     </div>
-                    <div className="text-[9px] text-black mt-1 truncate w-full text-center">
-                      {h.title || "Destacada"}
+                    <div className="text-[8px] text-black mt-1 truncate w-full text-center leading-tight">
+                      {h?.title || (i === myHighlights.length ? "Nueva" : "")}
                     </div>
                   </div>
-                ))}
-                <div className="flex flex-col items-center flex-shrink-0 w-14">
-                  <div className="w-12 h-12 rounded-full border border-zinc-300 flex items-center justify-center text-zinc-500">
-                    <Plus className="w-4 h-4" />
-                  </div>
-                  <div className="text-[9px] text-zinc-500 mt-1">Nueva</div>
-                </div>
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
 
           <div className="mt-3 border-t border-zinc-200 flex text-zinc-500">
