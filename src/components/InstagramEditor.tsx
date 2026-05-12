@@ -431,3 +431,73 @@ function toLocalInput(iso: string) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+function CarouselImages({
+  clientId, urls, onChange,
+}: {
+  clientId: string;
+  urls: string[];
+  onChange: (urls: string[]) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFiles = async (files: FileList) => {
+    setUploading(true);
+    try {
+      const uploaded: string[] = [];
+      for (const f of Array.from(files)) {
+        uploaded.push(await uploadClientMedia(f, clientId));
+      }
+      onChange([...urls, ...uploaded]);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al subir");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeAt = (i: number) => onChange(urls.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+        Imágenes del carrusel ({urls.length})
+      </Label>
+      <div className="flex flex-wrap gap-1.5">
+        {urls.map((u, i) => (
+          <div key={i} className="relative w-12 h-12 rounded-md overflow-hidden bg-muted">
+            <img src={u} alt="" className="w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={() => removeAt(i)}
+              className="absolute top-0 right-0 bg-black/60 text-white rounded-bl-md p-0.5"
+              aria-label="Quitar"
+            >
+              <X className="w-2.5 h-2.5" />
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+          className="w-12 h-12 rounded-md border border-dashed flex items-center justify-center text-muted-foreground hover:bg-muted/50"
+        >
+          {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+        </button>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.length) handleFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
+}
