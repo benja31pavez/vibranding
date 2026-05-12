@@ -12,6 +12,8 @@ import { IphonePreview } from "@/components/IphonePreview";
 import { PaymentsPanel } from "@/components/PaymentsPanel";
 import { SummaryExport } from "@/components/SummaryExport";
 import { exportElementToPdf } from "@/lib/exportPdf";
+import { PricingSummary, loadPricing, type PricingSettings } from "@/components/PricingPanel";
+import { useAuth } from "@/hooks/use-auth";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
