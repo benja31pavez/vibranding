@@ -1,4 +1,5 @@
-import { Signal, Wifi, BatteryFull, Grid3x3, Bookmark, Tag, Layers, Film, Plus, BadgeCheck, Play, AtSign, Lock, FlaskConical, Repeat2, SquareUser, Link as LinkIcon } from "lucide-react";
+import { useState } from "react";
+import { Signal, Wifi, BatteryFull, Grid3x3, Layers, Film, BadgeCheck, Play, AtSign, Lock, FlaskConical, Repeat, SquareUser, Link as LinkIcon, PlaySquare, Phone, Mail, X } from "lucide-react";
 import type { IGProfile, IGPost, IGHighlight } from "./InstagramEditor";
 
 const fmt = (n: number | null) => {
@@ -39,17 +40,24 @@ export function IphonePreview({
   const songEnabled = pickBool(profile.proposed_song_enabled, profile.current_song_enabled);
   const song = pick(profile.proposed_song, profile.current_song);
   const showContact = pickBool(profile.proposed_show_contact_button, profile.current_show_contact_button);
+  const contactPhone = pick(profile.proposed_contact_phone, profile.current_contact_phone);
+  const contactEmail = pick(profile.proposed_contact_email, profile.current_contact_email);
 
   const myPosts = posts
     .filter((p) => p.type === view)
-    .sort((a, b) => a.position - b.position)
-    .slice(0, 6);
+    .sort((a, b) => a.position - b.position);
 
   const myHighlights = highlights
     .filter((h) => h.type === view)
     .sort((a, b) => a.position - b.position);
 
+  const reels = myPosts.filter((p) => p.format === "reel");
+  const gridCount = Math.max(0, Math.min(30, postsCount ?? 6));
+
   const time = new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+
+  const [tab, setTab] = useState<"grid" | "reels" | "tagged" | "reposts">("grid");
+  const [contactOpen, setContactOpen] = useState(false);
 
   return (
     <div className="mx-auto" style={{ width: 320 }}>
@@ -144,10 +152,35 @@ export function IphonePreview({
               <button className="flex-1 bg-[#0095f6] text-white text-[11px] font-semibold py-1.5 rounded-md">Seguir</button>
               <button className="flex-1 bg-zinc-100 text-black text-[11px] font-semibold py-1.5 rounded-md">Mensaje</button>
               {showContact && (
-                <button className="flex-1 bg-zinc-100 text-black text-[11px] font-semibold py-1.5 rounded-md">Contactar</button>
+                <button
+                  type="button"
+                  onClick={() => setContactOpen((v) => !v)}
+                  className="flex-1 bg-zinc-100 text-black text-[11px] font-semibold py-1.5 rounded-md"
+                >
+                  Contactar
+                </button>
               )}
               <button className="bg-zinc-100 text-black px-2 py-1.5 rounded-md text-[11px]">▾</button>
             </div>
+
+            {showContact && contactOpen && (
+              <div className="mt-2 rounded-md border border-zinc-200 bg-white text-black text-[11px] divide-y divide-zinc-100 shadow-sm">
+                <div className="flex items-center justify-between px-3 py-1.5">
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-500">Información de contacto</span>
+                  <button onClick={() => setContactOpen(false)} aria-label="Cerrar">
+                    <X className="w-3 h-3 text-zinc-500" />
+                  </button>
+                </div>
+                <div className="px-3 py-2 flex items-center gap-2">
+                  <Phone className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                  <span className="truncate">{contactPhone || <span className="text-zinc-400">Sin teléfono</span>}</span>
+                </div>
+                <div className="px-3 py-2 flex items-center gap-2">
+                  <Mail className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                  <span className="truncate">{contactEmail || <span className="text-zinc-400">Sin correo</span>}</span>
+                </div>
+              </div>
+            )}
 
             {/* Highlights — 5 perfect circles */}
             <div className="mt-3 grid grid-cols-5 gap-2">
@@ -172,41 +205,92 @@ export function IphonePreview({
           </div>
 
           <div className="mt-3 border-t border-zinc-200 flex text-zinc-500">
-            <div className="flex-1 flex justify-center py-2 border-t-2 border-black -mt-px text-black">
-              <Grid3x3 className="w-4 h-4" />
-            </div>
-            <div className="flex-1 flex justify-center py-2"><Film className="w-4 h-4" /></div>
-            <div className="flex-1 flex justify-center py-2"><Repeat2 className="w-4 h-4" /></div>
-            <div className="flex-1 flex justify-center py-2"><SquareUser className="w-4 h-4" /></div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-[2px] bg-white">
-            {Array.from({ length: Math.max(0, Math.min(30, postsCount ?? 6)) }).map((_, i) => {
-              const p = myPosts.find((x) => x.position === i);
-              const Icon = p?.format === "reel" ? Film : p?.format === "carousel" ? Layers : null;
-              const thumb = p?.format === "reel" ? (p.cover_url || p.image_url) : p?.image_url;
+            {([
+              { key: "grid", Icon: Grid3x3 },
+              { key: "reels", Icon: PlaySquare },
+              { key: "reposts", Icon: Repeat },
+              { key: "tagged", Icon: SquareUser },
+            ] as const).map(({ key, Icon }) => {
+              const active = tab === key;
               return (
-                <div key={i} className="aspect-square bg-zinc-100 relative">
-                  {thumb && <img src={thumb} className="w-full h-full object-cover" alt="" />}
-                  {p?.close_friends_only && (
-                    <div className="absolute top-1 left-1 bg-[#1c8c5b] text-white rounded-full p-[2px] drop-shadow">
-                      <Lock className="w-2.5 h-2.5" />
-                    </div>
-                  )}
-                  {p?.format === "reel" && p?.is_trial_reel && (
-                    <div className="absolute bottom-1 left-1 bg-black/70 text-white text-[8px] font-semibold px-1 py-[1px] rounded flex items-center gap-0.5">
-                      <FlaskConical className="w-2.5 h-2.5" /> Prueba
-                    </div>
-                  )}
-                  {Icon && (
-                    <div className="absolute top-1 right-1 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                      <Icon className="w-3.5 h-3.5" fill="white" />
-                    </div>
-                  )}
-                </div>
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setTab(key)}
+                  className={`flex-1 flex justify-center py-2 -mt-px ${active ? "border-t-2 border-black text-black" : ""}`}
+                >
+                  <Icon className="w-4 h-4" />
+                </button>
               );
             })}
           </div>
+
+          {tab === "grid" && (
+            <div className="grid grid-cols-3 gap-[2px] bg-white">
+              {Array.from({ length: gridCount }).map((_, i) => {
+                const p = myPosts.find((x) => x.position === i);
+                const Icon = p?.format === "reel" ? Film : p?.format === "carousel" ? Layers : null;
+                const thumb = p?.format === "reel" ? (p.cover_url || p.image_url) : p?.image_url;
+                return (
+                  <div key={i} className="aspect-square bg-zinc-100 relative">
+                    {thumb && <img src={thumb} className="w-full h-full object-cover" alt="" />}
+                    {p?.close_friends_only && (
+                      <div className="absolute top-1 left-1 bg-[#1c8c5b] text-white rounded-full p-[2px] drop-shadow">
+                        <Lock className="w-2.5 h-2.5" />
+                      </div>
+                    )}
+                    {p?.format === "reel" && p?.is_trial_reel && (
+                      <div className="absolute bottom-1 left-1 bg-black/70 text-white text-[8px] font-semibold px-1 py-[1px] rounded flex items-center gap-0.5">
+                        <FlaskConical className="w-2.5 h-2.5" /> Prueba
+                      </div>
+                    )}
+                    {Icon && (
+                      <div className="absolute top-1 right-1 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                        <Icon className="w-3.5 h-3.5" fill="white" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {tab === "reels" && (
+            <div className="grid grid-cols-3 gap-[2px] bg-white">
+              {reels.length === 0 && (
+                <div className="col-span-3 text-center text-[10px] text-zinc-400 py-8">
+                  Sin reels aún
+                </div>
+              )}
+              {reels.map((p) => {
+                const thumb = p.cover_url || p.image_url;
+                return (
+                  <div key={p.id} className="bg-zinc-100 relative" style={{ aspectRatio: "9/16" }}>
+                    {thumb && <img src={thumb} className="w-full h-full object-cover" alt="" />}
+                    <div className="absolute top-1 right-1 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                      <Play className="w-3.5 h-3.5" fill="white" />
+                    </div>
+                    {p.is_trial_reel && (
+                      <div className="absolute bottom-1 left-1 bg-black/70 text-white text-[8px] font-semibold px-1 py-[1px] rounded flex items-center gap-0.5">
+                        <FlaskConical className="w-2.5 h-2.5" /> Prueba
+                      </div>
+                    )}
+                    {p.close_friends_only && (
+                      <div className="absolute top-1 left-1 bg-[#1c8c5b] text-white rounded-full p-[2px] drop-shadow">
+                        <Lock className="w-2.5 h-2.5" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {(tab === "reposts" || tab === "tagged") && (
+            <div className="text-center text-[10px] text-zinc-400 py-10">
+              {tab === "reposts" ? "Sin republicaciones" : "Sin etiquetas"}
+            </div>
+          )}
             </div>
           </div>
 
