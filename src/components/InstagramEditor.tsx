@@ -966,6 +966,10 @@ export function PostsEditor({
           </tbody>
         </table>
       </div>
+      </div>
+      <Button type="button" variant="outline" size="sm" onClick={addPost} disabled={sorted.length >= 30}>
+        <Plus className="w-4 h-4 mr-1" /> Añadir publicación
+      </Button>
     </div>
   );
 }
