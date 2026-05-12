@@ -33,6 +33,12 @@ function ClientDetail() {
   const [view, setView] = useState<"current" | "proposed">("proposed");
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+  const [pricing, setPricing] = useState<PricingSettings | null>(null);
+
+  useEffect(() => {
+    if (user) loadPricing(user.id).then(setPricing);
+  }, [user]);
 
   const loadClient = async () => {
     const { data } = await supabase.from("clients").select("id,name,instagram_handle").eq("id", clientId).maybeSingle();
