@@ -56,6 +56,7 @@ export interface IGProfile {
   proposed_threads_handle: string | null;
   proposed_song_enabled: boolean;
   proposed_song: string | null;
+  proposed_show_contact_button: boolean;
 }
 
 export interface IGPost {
