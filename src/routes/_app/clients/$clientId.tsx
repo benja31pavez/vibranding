@@ -12,7 +12,7 @@ import { IphonePreview } from "@/components/IphonePreview";
 import { PaymentsPanel } from "@/components/PaymentsPanel";
 import { SummaryExport } from "@/components/SummaryExport";
 import { exportElementToPdf } from "@/lib/exportPdf";
-import { PricingSummary, loadPricing, type PricingSettings } from "@/components/PricingPanel";
+import { PricingSummary, ProposedCostsBreakdown, loadPricing, type PricingSettings } from "@/components/PricingPanel";
 import { useAuth } from "@/hooks/use-auth";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -156,7 +156,7 @@ function ClientDetail() {
             </TabsList>
 
             <TabsContent value="summary" className="mt-6 space-y-8">
-              <SummarySection clientId={clientId} pricing={pricing} />
+              <SummarySection clientId={clientId} pricing={pricing} posts={posts} />
             </TabsContent>
 
             <TabsContent value="objectives" className="mt-6">
@@ -167,24 +167,38 @@ function ClientDetail() {
               <TaskList clientId={clientId} table="deliverables" title="Entregables" emptyHint="Aún no hay entregables." />
             </TabsContent>
 
-            <TabsContent value="instagram" className="mt-6 space-y-8">
-              {profile && <ProfileEditor profile={profile} setProfile={setProfile} clientId={clientId} />}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Historias destacadas actuales</h3>
-                <HighlightsEditor clientId={clientId} highlights={highlights} setHighlights={setHighlights} type="current" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-accent">Historias destacadas propuestas</h3>
-                <HighlightsEditor clientId={clientId} highlights={highlights} setHighlights={setHighlights} type="proposed" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Posts actuales</h3>
-                <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type="current" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-accent">Posts propuestos</h3>
-                <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type="proposed" />
-              </div>
+            <TabsContent value="instagram" className="mt-6">
+              <Tabs defaultValue="current" className="w-full">
+                <TabsList className="rounded-full bg-secondary p-1 h-auto">
+                  <TabsTrigger value="current" className="rounded-full px-4 py-1.5">Actual</TabsTrigger>
+                  <TabsTrigger value="proposed" className="rounded-full px-4 py-1.5 data-[state=active]:text-accent">Propuesta</TabsTrigger>
+                </TabsList>
+
+                {(["current", "proposed"] as const).map((side) => (
+                  <TabsContent key={side} value={side} className="mt-6 space-y-8">
+                    {profile && (
+                      <ProfileEditor
+                        profile={profile}
+                        setProfile={setProfile}
+                        clientId={clientId}
+                        side={side}
+                      />
+                    )}
+                    <div>
+                      <h3 className={`text-lg font-semibold mb-3 ${side === "proposed" ? "text-accent" : ""}`}>
+                        Historias destacadas {side === "proposed" ? "propuestas" : "actuales"}
+                      </h3>
+                      <HighlightsEditor clientId={clientId} highlights={highlights} setHighlights={setHighlights} type={side} />
+                    </div>
+                    <div>
+                      <h3 className={`text-lg font-semibold mb-3 ${side === "proposed" ? "text-accent" : ""}`}>
+                        Posts {side === "proposed" ? "propuestos" : "actuales"}
+                      </h3>
+                      <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type={side} />
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
             </TabsContent>
 
             <TabsContent value="payments" className="mt-6">
