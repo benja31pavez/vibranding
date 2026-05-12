@@ -13,10 +13,45 @@ function AppLayout() {
   const { session, loading, signOut, user } = useAuth();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const [activeClient, setActiveClient] = useState<{ id: string; name: string; instagram_handle: string | null } | null>(null);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
   }, [loading, session, navigate]);
+
+  // Detect active client from URL or load from localStorage
+  useEffect(() => {
+    if (!session) return;
+    const match = path.match(/^\/clients\/([0-9a-f-]{36})/i);
+    const idFromUrl = match?.[1];
+    const stored = typeof window !== "undefined" ? localStorage.getItem("activeClientId") : null;
+    const targetId = idFromUrl || stored;
+    if (!targetId) {
+      setActiveClient(null);
+      return;
+    }
+    if (activeClient?.id === targetId) return;
+    supabase
+      .from("clients")
+      .select("id,name,instagram_handle")
+      .eq("id", targetId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setActiveClient(data);
+          if (idFromUrl) localStorage.setItem("activeClientId", data.id);
+        } else {
+          setActiveClient(null);
+          localStorage.removeItem("activeClientId");
+        }
+      });
+  }, [path, session]);
+
+  const clearActive = () => {
+    setActiveClient(null);
+    localStorage.removeItem("activeClientId");
+    if (path.startsWith("/clients/")) navigate({ to: "/clients" });
+  };
 
   if (loading || !session) return <div className="min-h-screen" />;
 
