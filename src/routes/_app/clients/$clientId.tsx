@@ -156,7 +156,7 @@ function ClientDetail() {
             </TabsList>
 
             <TabsContent value="summary" className="mt-6 space-y-8">
-              <SummarySection clientId={clientId} />
+              <SummarySection clientId={clientId} pricing={pricing} />
             </TabsContent>
 
             <TabsContent value="objectives" className="mt-6">
