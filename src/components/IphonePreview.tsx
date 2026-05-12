@@ -58,6 +58,8 @@ export function IphonePreview({
 
   const [tab, setTab] = useState<"grid" | "reels" | "tagged" | "reposts">("grid");
   const [contactOpen, setContactOpen] = useState(false);
+  const [storyHighlight, setStoryHighlight] = useState<IGHighlight | null>(null);
+  const [storyIndex, setStoryIndex] = useState(0);
 
   return (
     <div className="mx-auto" style={{ width: 320 }}>
