@@ -17,15 +17,16 @@ export function IphonePreview({
   posts: IGPost[];
   view: "current" | "proposed";
 }) {
-  const username =
-    view === "proposed"
-      ? profile.proposed_username || profile.current_username || "usuario"
-      : profile.current_username || "usuario";
-  const avatar = view === "proposed"
-    ? profile.proposed_avatar_url || profile.current_avatar_url
-    : profile.current_avatar_url;
-  const bio = view === "proposed" ? profile.proposed_bio : profile.current_bio;
-  const link = view === "proposed" ? profile.proposed_link : profile.current_link;
+  const pick = <T,>(p: T | null | undefined, c: T | null | undefined): T | null =>
+    view === "proposed" ? ((p ?? c) as T | null) : ((c ?? null) as T | null);
+
+  const username = pick(profile.proposed_username, profile.current_username) || "usuario";
+  const avatar = pick(profile.proposed_avatar_url, profile.current_avatar_url);
+  const bio = pick(profile.proposed_bio, profile.current_bio);
+  const link = pick(profile.proposed_link, profile.current_link);
+  const followers = pick(profile.proposed_followers, profile.current_followers);
+  const following = pick(profile.proposed_following, profile.current_following);
+  const postsCount = pick(profile.proposed_posts_count, profile.current_posts_count);
 
   const myPosts = posts
     .filter((p) => p.type === view)
