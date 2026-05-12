@@ -24,6 +24,7 @@ export function IphonePreview({
   const pickBool = (p: boolean, c: boolean) => (view === "proposed" ? p : c);
 
   const username = pick(profile.proposed_username, profile.current_username) || "usuario";
+  const displayName = pick(profile.proposed_display_name, profile.current_display_name);
   const avatar = pick(profile.proposed_avatar_url, profile.current_avatar_url);
   const bio = pick(profile.proposed_bio, profile.current_bio);
   const link = pick(profile.proposed_link, profile.current_link);
@@ -107,6 +108,7 @@ export function IphonePreview({
             </div>
 
             <div className="mt-3 text-black text-[12px] leading-snug space-y-0.5">
+              {displayName && <p className="font-semibold">{displayName}</p>}
               {accountType === "business" && category && (
                 <p className="text-[11px] text-zinc-600">{category}</p>
               )}
@@ -136,21 +138,21 @@ export function IphonePreview({
               <button className="bg-zinc-100 text-black px-2 py-1.5 rounded-md text-[11px]">▾</button>
             </div>
 
-            {/* Highlights — always show 6 perfect circles */}
-            <div className="mt-3 grid grid-cols-6 gap-1.5">
-              {Array.from({ length: 6 }).map((_, i) => {
+            {/* Highlights — 5 perfect circles */}
+            <div className="mt-3 grid grid-cols-5 gap-2">
+              {Array.from({ length: 5 }).map((_, i) => {
                 const h = myHighlights[i];
                 return (
                   <div key={h?.id ?? i} className="flex flex-col items-center min-w-0">
-                    <div className="w-10 h-10 rounded-full border border-zinc-300 p-[2px] bg-white">
+                    <div className="w-12 h-12 rounded-full border border-zinc-300 p-[2px] bg-white">
                       {h?.cover_url ? (
                         <img src={h.cover_url} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
                         <div className="w-full h-full rounded-full bg-zinc-100" />
                       )}
                     </div>
-                    <div className="text-[8px] text-black mt-1 truncate w-full text-center leading-tight">
-                      {h?.title || (i === myHighlights.length ? "Nueva" : "")}
+                    <div className="text-[9px] text-black mt-1 truncate w-full text-center leading-tight">
+                      {h?.title || ""}
                     </div>
                   </div>
                 );
