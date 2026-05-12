@@ -1,4 +1,4 @@
-import type { IGProfile, IGPost } from "./InstagramEditor";
+import type { IGProfile, IGPost, IGHighlight } from "./InstagramEditor";
 
 const fmt = (n: number | null | undefined) => {
   if (n == null) return "0";
@@ -27,11 +27,12 @@ const C = {
 };
 
 function PhoneCard({
-  title, profile, posts, view,
+  title, profile, posts, highlights, view,
 }: {
   title: string;
   profile: IGProfile;
   posts: IGPost[];
+  highlights: IGHighlight[];
   view: "current" | "proposed";
 }) {
   const username =
