@@ -591,7 +591,8 @@ export function PostsEditor({
   };
 
   return (
-    <div className="rounded-xl border bg-surface overflow-hidden">
+    <div className="space-y-3">
+      <div className="rounded-xl border bg-surface overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
