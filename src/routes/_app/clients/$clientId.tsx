@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { TaskList } from "@/components/TaskList";
-import { ProfileEditor, PostsEditor, HighlightsEditor, type IGProfile, type IGPost, type IGHighlight } from "@/components/InstagramEditor";
+import { IdentityEditor, ConfigEditor, PostsEditor, HighlightsEditor, type IGProfile, type IGPost, type IGHighlight } from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
 import { PaymentsPanel } from "@/components/PaymentsPanel";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { SummaryExport } from "@/components/SummaryExport";
 import { exportElementToPdf } from "@/lib/exportPdf";
 import { PricingSummary, ProposedCostsBreakdown, loadPricing, type PricingSettings } from "@/components/PricingPanel";
@@ -167,30 +168,45 @@ function ClientDetail() {
               <TaskList clientId={clientId} table="deliverables" title="Entregables" emptyHint="Aún no hay entregables." />
             </TabsContent>
 
-            <TabsContent value="instagram" className="mt-6 space-y-8">
+            <TabsContent value="instagram" className="mt-6 space-y-4">
               <p className="text-xs text-muted-foreground">
                 Editando vista <strong className={view === "proposed" ? "text-accent" : ""}>{view === "proposed" ? "Propuesta" : "Actual"}</strong>. Cambia con el selector del iPhone.
               </p>
               {profile && (
-                <ProfileEditor
-                  profile={profile}
-                  setProfile={setProfile}
-                  clientId={clientId}
-                  side={view}
-                />
+                <Accordion type="single" collapsible defaultValue="identity" className="w-full space-y-2">
+                  <AccordionItem value="identity" className="border rounded-xl bg-surface px-4">
+                    <AccordionTrigger className="text-base font-semibold hover:no-underline">Identidad</AccordionTrigger>
+                    <AccordionContent className="pt-2">
+                      <IdentityEditor profile={profile} setProfile={setProfile} clientId={clientId} side={view} />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="config" className="border rounded-xl bg-surface px-4">
+                    <AccordionTrigger className="text-base font-semibold hover:no-underline">Configuración</AccordionTrigger>
+                    <AccordionContent className="pt-2">
+                      <ConfigEditor profile={profile} setProfile={setProfile} side={view} />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="highlights" className="border rounded-xl bg-surface px-4">
+                    <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                      Historias destacadas {view === "proposed" ? "propuestas" : "actuales"}
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2">
+                      <HighlightsEditor clientId={clientId} highlights={highlights} setHighlights={setHighlights} type={view} />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="posts" className="border rounded-xl bg-surface px-4">
+                    <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                      Posts {view === "proposed" ? "propuestos" : "actuales"}
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2">
+                      <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type={view} />
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               )}
-              <div>
-                <h3 className={`text-lg font-semibold mb-3 ${view === "proposed" ? "text-accent" : ""}`}>
-                  Historias destacadas {view === "proposed" ? "propuestas" : "actuales"}
-                </h3>
-                <HighlightsEditor clientId={clientId} highlights={highlights} setHighlights={setHighlights} type={view} />
-              </div>
-              <div>
-                <h3 className={`text-lg font-semibold mb-3 ${view === "proposed" ? "text-accent" : ""}`}>
-                  Posts {view === "proposed" ? "propuestos" : "actuales"}
-                </h3>
-                <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type={view} />
-              </div>
             </TabsContent>
 
             <TabsContent value="payments" className="mt-6">

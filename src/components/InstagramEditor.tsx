@@ -25,6 +25,7 @@ export interface IGProfile {
   id: string;
   client_id: string;
   current_username: string | null;
+  current_display_name: string | null;
   current_followers: number | null;
   current_following: number | null;
   current_posts_count: number | null;
@@ -39,6 +40,7 @@ export interface IGProfile {
   current_song_enabled: boolean;
   current_song: string | null;
   proposed_username: string | null;
+  proposed_display_name: string | null;
   proposed_followers: number | null;
   proposed_following: number | null;
   proposed_posts_count: number | null;
@@ -127,11 +129,16 @@ function NumField({
   );
 }
 
-export function ProfileEditor({
-  profile,
-  setProfile,
-  clientId,
-  side,
+function useProfileHelpers(profile: IGProfile, setProfile: (p: IGProfile) => void) {
+  const set = (patch: Partial<IGProfile>) => setProfile({ ...profile, ...patch });
+  const save = async (patch: Partial<IGProfile>) => {
+    await supabase.from("instagram_profiles").update(patch).eq("id", profile.id);
+  };
+  return { set, save };
+}
+
+export function IdentityEditor({
+  profile, setProfile, clientId, side,
 }: {
   profile: IGProfile;
   setProfile: (p: IGProfile) => void;
@@ -139,27 +146,15 @@ export function ProfileEditor({
   side: Side;
 }) {
   const accent = side === "proposed";
-  const set = (patch: Partial<IGProfile>) => setProfile({ ...profile, ...patch });
-  const save = async (patch: Partial<IGProfile>) => {
-    await supabase.from("instagram_profiles").update(patch).eq("id", profile.id);
-  };
-
-  const k = {
-    username: `${side}_username`,
-    avatar: `${side}_avatar_url`,
-    link: `${side}_link`,
-    bio: `${side}_bio`,
-    followers: `${side}_followers`,
-    following: `${side}_following`,
-    posts: `${side}_posts_count`,
-    accountType: `${side}_account_type`,
-    category: `${side}_category`,
-    verified: `${side}_verified`,
-    threadsEn: `${side}_threads_enabled`,
-    threadsHandle: `${side}_threads_handle`,
-    songEn: `${side}_song_enabled`,
-    song: `${side}_song`,
-  } as const;
+  const { set, save } = useProfileHelpers(profile, setProfile);
+  const usernameKey = `${side}_username` as keyof IGProfile;
+  const displayKey = `${side}_display_name` as keyof IGProfile;
+  const avatarKey = `${side}_avatar_url` as keyof IGProfile;
+  const linkKey = `${side}_link` as keyof IGProfile;
+  const bioKey = `${side}_bio` as keyof IGProfile;
+  const postsKey = `${side}_posts_count` as keyof IGProfile;
+  const followersKey = `${side}_followers` as keyof IGProfile;
+  const followingKey = `${side}_following` as keyof IGProfile;
 
   const text = (key: keyof IGProfile) => ({
     value: (profile[key] as string) ?? "",
@@ -174,121 +169,158 @@ export function ProfileEditor({
 
   return (
     <div className="space-y-5">
-      <TextField label="Usuario" accent={accent} {...text(k.username as keyof IGProfile)} />
+      <div className="grid grid-cols-2 gap-3">
+        <TextField label="Usuario" accent={accent} {...text(usernameKey)} />
+        <TextField label="Nombre real" accent={accent} {...text(displayKey)} />
+      </div>
 
       <div className="space-y-1.5">
         <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>Foto de perfil</Label>
         <MediaUpload
           clientId={clientId}
           shape="circle"
-          value={profile[k.avatar as keyof IGProfile] as string | null}
-          onChange={(url) => { set({ [k.avatar]: url } as any); save({ [k.avatar]: url } as any); }}
+          value={profile[avatarKey] as string | null}
+          onChange={(url) => { set({ [avatarKey]: url } as any); save({ [avatarKey]: url } as any); }}
         />
       </div>
 
-      <TextField label="Enlace" accent={accent} {...text(k.link as keyof IGProfile)} />
-      <TextField label="Descripción" accent={accent} multiline {...text(k.bio as keyof IGProfile)} />
+      <TextField label="Enlace" accent={accent} {...text(linkKey)} />
+      <TextField label="Descripción" accent={accent} multiline {...text(bioKey)} />
 
       <div className="grid grid-cols-3 gap-3">
-        <NumField label="Posts" accent={accent} {...num(k.posts as keyof IGProfile)} />
-        <NumField label="Seguidores" accent={accent} {...num(k.followers as keyof IGProfile)} />
-        <NumField label="Seguidos" accent={accent} {...num(k.following as keyof IGProfile)} />
+        <NumField label="Posts" accent={accent} {...num(postsKey)} />
+        <NumField label="Seguidores" accent={accent} {...num(followersKey)} />
+        <NumField label="Seguidos" accent={accent} {...num(followingKey)} />
+      </div>
+    </div>
+  );
+}
+
+export function ConfigEditor({
+  profile, setProfile, side,
+}: {
+  profile: IGProfile;
+  setProfile: (p: IGProfile) => void;
+  side: Side;
+}) {
+  const { set, save } = useProfileHelpers(profile, setProfile);
+  const accountTypeKey = `${side}_account_type` as keyof IGProfile;
+  const categoryKey = `${side}_category` as keyof IGProfile;
+  const verifiedKey = `${side}_verified` as keyof IGProfile;
+  const threadsEnKey = `${side}_threads_enabled` as keyof IGProfile;
+  const threadsHandleKey = `${side}_threads_handle` as keyof IGProfile;
+  const songEnKey = `${side}_song_enabled` as keyof IGProfile;
+  const songKey = `${side}_song` as keyof IGProfile;
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1.5">
+        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tipo de cuenta</Label>
+        <select
+          className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+          value={profile[accountTypeKey] as AccountType}
+          onChange={(e) => {
+            const v = e.target.value as AccountType;
+            set({ [accountTypeKey]: v } as any);
+            save({ [accountTypeKey]: v } as any);
+          }}
+        >
+          <option value="personal">Personal</option>
+          <option value="business">Empresa</option>
+        </select>
       </div>
 
-      <div className="space-y-3 rounded-xl border p-3 bg-surface">
-        <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>Configuración</Label>
-
+      {profile[accountTypeKey] === "business" && (
         <div className="space-y-1.5">
-          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tipo de cuenta</Label>
+          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Categoría</Label>
           <select
             className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-            value={profile[k.accountType as keyof IGProfile] as AccountType}
+            value={(profile[categoryKey] as string) ?? ""}
             onChange={(e) => {
-              const v = e.target.value as AccountType;
-              set({ [k.accountType]: v } as any);
-              save({ [k.accountType]: v } as any);
+              const v = e.target.value || null;
+              set({ [categoryKey]: v } as any);
+              save({ [categoryKey]: v } as any);
             }}
           >
-            <option value="personal">Personal</option>
-            <option value="business">Empresa</option>
+            <option value="">— Sin categoría —</option>
+            {IG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
+      )}
 
-        {profile[k.accountType as keyof IGProfile] === "business" && (
-          <div className="space-y-1.5">
-            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Categoría</Label>
-            <select
-              className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-              value={(profile[k.category as keyof IGProfile] as string) ?? ""}
-              onChange={(e) => {
-                const v = e.target.value || null;
-                set({ [k.category]: v } as any);
-                save({ [k.category]: v } as any);
-              }}
-            >
-              <option value="">— Sin categoría —</option>
-              {IG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        )}
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={!!profile[verifiedKey]}
+          onChange={(e) => {
+            set({ [verifiedKey]: e.target.checked } as any);
+            save({ [verifiedKey]: e.target.checked } as any);
+          }}
+        />
+        Verificado azul
+      </label>
 
+      <div className="space-y-1.5">
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
-            checked={!!profile[k.verified as keyof IGProfile]}
+            checked={!!profile[threadsEnKey]}
             onChange={(e) => {
-              set({ [k.verified]: e.target.checked } as any);
-              save({ [k.verified]: e.target.checked } as any);
+              set({ [threadsEnKey]: e.target.checked } as any);
+              save({ [threadsEnKey]: e.target.checked } as any);
             }}
           />
-          Verificado azul
+          Mostrar Threads
         </label>
+        {profile[threadsEnKey] && (
+          <Input
+            placeholder="@usuario de Threads"
+            value={(profile[threadsHandleKey] as string) ?? ""}
+            onChange={(e) => set({ [threadsHandleKey]: e.target.value } as any)}
+            onBlur={(e) => save({ [threadsHandleKey]: e.target.value || null } as any)}
+            className="h-8 text-xs"
+          />
+        )}
+      </div>
 
-        <div className="space-y-1.5">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={!!profile[k.threadsEn as keyof IGProfile]}
-              onChange={(e) => {
-                set({ [k.threadsEn]: e.target.checked } as any);
-                save({ [k.threadsEn]: e.target.checked } as any);
-              }}
-            />
-            Mostrar Threads
-          </label>
-          {profile[k.threadsEn as keyof IGProfile] && (
-            <Input
-              placeholder="@usuario de Threads"
-              value={(profile[k.threadsHandle as keyof IGProfile] as string) ?? ""}
-              onChange={(e) => set({ [k.threadsHandle]: e.target.value } as any)}
-              onBlur={(e) => save({ [k.threadsHandle]: e.target.value || null } as any)}
-              className="h-8 text-xs"
-            />
-          )}
-        </div>
+      <div className="space-y-1.5">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={!!profile[songEnKey]}
+            onChange={(e) => {
+              set({ [songEnKey]: e.target.checked } as any);
+              save({ [songEnKey]: e.target.checked } as any);
+            }}
+          />
+          Mostrar canción
+        </label>
+        {profile[songEnKey] && (
+          <Input
+            placeholder="Artista — Canción"
+            value={(profile[songKey] as string) ?? ""}
+            onChange={(e) => set({ [songKey]: e.target.value } as any)}
+            onBlur={(e) => save({ [songKey]: e.target.value || null } as any)}
+            className="h-8 text-xs"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
 
-        <div className="space-y-1.5">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={!!profile[k.songEn as keyof IGProfile]}
-              onChange={(e) => {
-                set({ [k.songEn]: e.target.checked } as any);
-                save({ [k.songEn]: e.target.checked } as any);
-              }}
-            />
-            Mostrar canción
-          </label>
-          {profile[k.songEn as keyof IGProfile] && (
-            <Input
-              placeholder="Artista — Canción"
-              value={(profile[k.song as keyof IGProfile] as string) ?? ""}
-              onChange={(e) => set({ [k.song]: e.target.value } as any)}
-              onBlur={(e) => save({ [k.song]: e.target.value || null } as any)}
-              className="h-8 text-xs"
-            />
-          )}
-        </div>
+// Backwards-compat wrapper
+export function ProfileEditor(props: {
+  profile: IGProfile;
+  setProfile: (p: IGProfile) => void;
+  clientId: string;
+  side: Side;
+}) {
+  return (
+    <div className="space-y-6">
+      <IdentityEditor {...props} />
+      <div className="rounded-xl border p-3 bg-surface">
+        <ConfigEditor profile={props.profile} setProfile={props.setProfile} side={props.side} />
       </div>
     </div>
   );
