@@ -339,11 +339,53 @@ export function HighlightsEditor({
     await supabase.from("instagram_highlights").delete().eq("id", id);
   };
 
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const reorder = async (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const arr = [...items];
+    const fromIdx = arr.findIndex((x) => x.id === fromId);
+    const toIdx = arr.findIndex((x) => x.id === toId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const [moved] = arr.splice(fromIdx, 1);
+    arr.splice(toIdx, 0, moved);
+    const updates = arr.map((h, i) => ({ id: h.id, position: i }));
+    setHighlights((prev) =>
+      prev.map((h) => {
+        const u = updates.find((x) => x.id === h.id);
+        return u ? { ...h, position: u.position } : h;
+      }),
+    );
+    await Promise.all(
+      updates.map((u) =>
+        supabase.from("instagram_highlights").update({ position: u.position }).eq("id", u.id),
+      ),
+    );
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-3">
         {items.map((h) => (
-          <div key={h.id} className="rounded-2xl border bg-surface p-3 w-44 space-y-2">
+          <div
+            key={h.id}
+            draggable
+            onDragStart={() => setDragId(h.id)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (dragId) reorder(dragId, h.id);
+              setDragId(null);
+            }}
+            onDragEnd={() => setDragId(null)}
+            className={`rounded-2xl border bg-surface p-3 w-44 space-y-2 cursor-move transition-opacity ${
+              dragId === h.id ? "opacity-40" : ""
+            }`}
+          >
+            <div className="flex items-center justify-between text-muted-foreground">
+              <GripVertical className="w-4 h-4" />
+              <span className="text-[10px] uppercase tracking-wider">#{h.position + 1}</span>
+            </div>
             <MediaUpload
               clientId={clientId}
               shape="circle"
