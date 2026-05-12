@@ -1,4 +1,4 @@
-import { Signal, Wifi, BatteryFull, Grid3x3, User, Bookmark, Tag, Layers, Film, Plus, BadgeCheck, Play, AtSign, Lock, FlaskConical, Link as LinkIcon } from "lucide-react";
+import { Signal, Wifi, BatteryFull, Grid3x3, Bookmark, Tag, Layers, Film, Plus, BadgeCheck, Play, AtSign, Lock, FlaskConical, Repeat2, SquareUser, Link as LinkIcon } from "lucide-react";
 import type { IGProfile, IGPost, IGHighlight } from "./InstagramEditor";
 
 const fmt = (n: number | null) => {
