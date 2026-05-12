@@ -14,16 +14,288 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          created_at: string
+          id: string
+          instagram_handle: string | null
+          name: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instagram_handle?: string | null
+          name: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instagram_handle?: string | null
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      deliverables: {
+        Row: {
+          client_id: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          sort_order: number
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliverables_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_posts: {
+        Row: {
+          caption: string | null
+          client_id: string
+          created_at: string
+          id: string
+          image_url: string | null
+          position: number
+          scheduled_at: string | null
+          type: Database["public"]["Enums"]["ig_post_type"]
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          position?: number
+          scheduled_at?: string | null
+          type: Database["public"]["Enums"]["ig_post_type"]
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          position?: number
+          scheduled_at?: string | null
+          type?: Database["public"]["Enums"]["ig_post_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_posts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_profiles: {
+        Row: {
+          client_id: string
+          created_at: string
+          current_avatar_url: string | null
+          current_bio: string | null
+          current_followers: number | null
+          current_following: number | null
+          current_link: string | null
+          current_posts_count: number | null
+          current_username: string | null
+          id: string
+          proposed_avatar_url: string | null
+          proposed_bio: string | null
+          proposed_link: string | null
+          proposed_username: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          current_avatar_url?: string | null
+          current_bio?: string | null
+          current_followers?: number | null
+          current_following?: number | null
+          current_link?: string | null
+          current_posts_count?: number | null
+          current_username?: string | null
+          id?: string
+          proposed_avatar_url?: string | null
+          proposed_bio?: string | null
+          proposed_link?: string | null
+          proposed_username?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          current_avatar_url?: string | null
+          current_bio?: string | null
+          current_followers?: number | null
+          current_following?: number | null
+          current_link?: string | null
+          current_posts_count?: number | null
+          current_username?: string | null
+          id?: string
+          proposed_avatar_url?: string | null
+          proposed_bio?: string | null
+          proposed_link?: string | null
+          proposed_username?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objectives: {
+        Row: {
+          client_id: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          sort_order: number
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objectives_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          currency: string
+          description: string | null
+          due_date: string | null
+          id: string
+          paid_at: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          client_id: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      owns_client: { Args: { _client_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      ig_post_type: "current" | "proposed"
+      payment_status: "pending" | "paid" | "overdue" | "cancelled"
+      task_status: "pending" | "in_progress" | "done"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +422,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      ig_post_type: ["current", "proposed"],
+      payment_status: ["pending", "paid", "overdue", "cancelled"],
+      task_status: ["pending", "in_progress", "done"],
+    },
   },
 } as const
