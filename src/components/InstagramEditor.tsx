@@ -380,7 +380,8 @@ export function PostsEditor({
 
   const sorted = [...posts]
     .filter((p) => p.type === type)
-    .sort((a, b) => a.position - b.position);
+    .sort((a, b) => a.position - b.position)
+    .slice(0, desiredCount);
 
   const [dragId, setDragId] = useState<string | null>(null);
 
