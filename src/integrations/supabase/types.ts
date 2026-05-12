@@ -370,6 +370,312 @@ export type Database = {
           },
         ]
       }
+      meta_ads_accounts: {
+        Row: {
+          ad_account_id: string | null
+          business_name: string | null
+          client_id: string
+          created_at: string
+          id: string
+          instagram_actor_id: string | null
+          last_synced_at: string | null
+          page_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_account_id?: string | null
+          business_name?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          instagram_actor_id?: string | null
+          last_synced_at?: string | null
+          page_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_account_id?: string | null
+          business_name?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          instagram_actor_id?: string | null
+          last_synced_at?: string | null
+          page_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meta_ads_ads: {
+        Row: {
+          adset_id: string
+          carousel_urls: string[]
+          client_id: string
+          created_at: string
+          cta: Database["public"]["Enums"]["meta_cta"] | null
+          description: string | null
+          fb_ad_id: string | null
+          format: string
+          headline: string | null
+          id: string
+          image_url: string | null
+          link_url: string | null
+          name: string
+          placement: Database["public"]["Enums"]["meta_placement"]
+          position: number
+          primary_text: string | null
+          status: Database["public"]["Enums"]["meta_status"]
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          adset_id: string
+          carousel_urls?: string[]
+          client_id: string
+          created_at?: string
+          cta?: Database["public"]["Enums"]["meta_cta"] | null
+          description?: string | null
+          fb_ad_id?: string | null
+          format?: string
+          headline?: string | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          name?: string
+          placement?: Database["public"]["Enums"]["meta_placement"]
+          position?: number
+          primary_text?: string | null
+          status?: Database["public"]["Enums"]["meta_status"]
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          adset_id?: string
+          carousel_urls?: string[]
+          client_id?: string
+          created_at?: string
+          cta?: Database["public"]["Enums"]["meta_cta"] | null
+          description?: string | null
+          fb_ad_id?: string | null
+          format?: string
+          headline?: string | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          name?: string
+          placement?: Database["public"]["Enums"]["meta_placement"]
+          position?: number
+          primary_text?: string | null
+          status?: Database["public"]["Enums"]["meta_status"]
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_ads_ads_adset_id_fkey"
+            columns: ["adset_id"]
+            isOneToOne: false
+            referencedRelation: "meta_ads_adsets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_ads_adsets: {
+        Row: {
+          age_max: number | null
+          age_min: number | null
+          audience_summary: string | null
+          billing_event: string | null
+          campaign_id: string
+          client_id: string
+          countries: string | null
+          created_at: string
+          daily_budget: number | null
+          fb_adset_id: string | null
+          genders: string | null
+          id: string
+          lifetime_budget: number | null
+          name: string
+          optimization_goal: string | null
+          position: number
+          status: Database["public"]["Enums"]["meta_status"]
+          updated_at: string
+        }
+        Insert: {
+          age_max?: number | null
+          age_min?: number | null
+          audience_summary?: string | null
+          billing_event?: string | null
+          campaign_id: string
+          client_id: string
+          countries?: string | null
+          created_at?: string
+          daily_budget?: number | null
+          fb_adset_id?: string | null
+          genders?: string | null
+          id?: string
+          lifetime_budget?: number | null
+          name?: string
+          optimization_goal?: string | null
+          position?: number
+          status?: Database["public"]["Enums"]["meta_status"]
+          updated_at?: string
+        }
+        Update: {
+          age_max?: number | null
+          age_min?: number | null
+          audience_summary?: string | null
+          billing_event?: string | null
+          campaign_id?: string
+          client_id?: string
+          countries?: string | null
+          created_at?: string
+          daily_budget?: number | null
+          fb_adset_id?: string | null
+          genders?: string | null
+          id?: string
+          lifetime_budget?: number | null
+          name?: string
+          optimization_goal?: string | null
+          position?: number
+          status?: Database["public"]["Enums"]["meta_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_ads_adsets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "meta_ads_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_ads_campaigns: {
+        Row: {
+          client_id: string
+          created_at: string
+          currency: string | null
+          daily_budget: number | null
+          fb_campaign_id: string | null
+          id: string
+          lifetime_budget: number | null
+          name: string
+          notes: string | null
+          objective: Database["public"]["Enums"]["meta_campaign_objective"]
+          position: number
+          start_time: string | null
+          status: Database["public"]["Enums"]["meta_status"]
+          stop_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          currency?: string | null
+          daily_budget?: number | null
+          fb_campaign_id?: string | null
+          id?: string
+          lifetime_budget?: number | null
+          name?: string
+          notes?: string | null
+          objective?: Database["public"]["Enums"]["meta_campaign_objective"]
+          position?: number
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["meta_status"]
+          stop_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          currency?: string | null
+          daily_budget?: number | null
+          fb_campaign_id?: string | null
+          id?: string
+          lifetime_budget?: number | null
+          name?: string
+          notes?: string | null
+          objective?: Database["public"]["Enums"]["meta_campaign_objective"]
+          position?: number
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["meta_status"]
+          stop_time?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meta_ads_insights: {
+        Row: {
+          campaign_id: string
+          clicks: number
+          client_id: string
+          conversions: number
+          cpc: number | null
+          cpm: number | null
+          created_at: string
+          ctr: number | null
+          date_start: string | null
+          date_stop: string | null
+          id: string
+          impressions: number
+          notes: string | null
+          purchase_value: number | null
+          reach: number
+          roas: number | null
+          spend: number
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          clicks?: number
+          client_id: string
+          conversions?: number
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string
+          ctr?: number | null
+          date_start?: string | null
+          date_stop?: string | null
+          id?: string
+          impressions?: number
+          notes?: string | null
+          purchase_value?: number | null
+          reach?: number
+          roas?: number | null
+          spend?: number
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          clicks?: number
+          client_id?: string
+          conversions?: number
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string
+          ctr?: number | null
+          date_start?: string | null
+          date_stop?: string | null
+          id?: string
+          impressions?: number
+          notes?: string | null
+          purchase_value?: number | null
+          reach?: number
+          roas?: number | null
+          spend?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_ads_insights_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "meta_ads_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objectives: {
         Row: {
           client_id: string
@@ -513,6 +819,33 @@ export type Database = {
     Enums: {
       account_type: "personal" | "business"
       ig_post_type: "current" | "proposed"
+      meta_campaign_objective:
+        | "OUTCOME_AWARENESS"
+        | "OUTCOME_TRAFFIC"
+        | "OUTCOME_ENGAGEMENT"
+        | "OUTCOME_LEADS"
+        | "OUTCOME_APP_PROMOTION"
+        | "OUTCOME_SALES"
+      meta_cta:
+        | "LEARN_MORE"
+        | "SHOP_NOW"
+        | "SIGN_UP"
+        | "SUBSCRIBE"
+        | "CONTACT_US"
+        | "BOOK_TRAVEL"
+        | "DOWNLOAD"
+        | "GET_OFFER"
+        | "APPLY_NOW"
+        | "SEND_MESSAGE"
+        | "WATCH_MORE"
+      meta_placement:
+        | "feed"
+        | "stories"
+        | "reels"
+        | "marketplace"
+        | "search"
+        | "audience_network"
+      meta_status: "ACTIVE" | "PAUSED" | "DELETED" | "ARCHIVED" | "DRAFT"
       payment_status: "pending" | "paid" | "overdue" | "cancelled"
       post_format: "photo" | "carousel" | "reel"
       task_status: "pending" | "in_progress" | "done"
@@ -645,6 +978,36 @@ export const Constants = {
     Enums: {
       account_type: ["personal", "business"],
       ig_post_type: ["current", "proposed"],
+      meta_campaign_objective: [
+        "OUTCOME_AWARENESS",
+        "OUTCOME_TRAFFIC",
+        "OUTCOME_ENGAGEMENT",
+        "OUTCOME_LEADS",
+        "OUTCOME_APP_PROMOTION",
+        "OUTCOME_SALES",
+      ],
+      meta_cta: [
+        "LEARN_MORE",
+        "SHOP_NOW",
+        "SIGN_UP",
+        "SUBSCRIBE",
+        "CONTACT_US",
+        "BOOK_TRAVEL",
+        "DOWNLOAD",
+        "GET_OFFER",
+        "APPLY_NOW",
+        "SEND_MESSAGE",
+        "WATCH_MORE",
+      ],
+      meta_placement: [
+        "feed",
+        "stories",
+        "reels",
+        "marketplace",
+        "search",
+        "audience_network",
+      ],
+      meta_status: ["ACTIVE", "PAUSED", "DELETED", "ARCHIVED", "DRAFT"],
       payment_status: ["pending", "paid", "overdue", "cancelled"],
       post_format: ["photo", "carousel", "reel"],
       task_status: ["pending", "in_progress", "done"],
