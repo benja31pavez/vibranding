@@ -310,6 +310,18 @@ export function ConfigEditor({
           />
         )}
       </div>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={!!profile[contactKey]}
+          onChange={(e) => {
+            set({ [contactKey]: e.target.checked } as any);
+            save({ [contactKey]: e.target.checked } as any);
+          }}
+        />
+        Mostrar botón "Contactar"
+      </label>
     </div>
   );
 }
