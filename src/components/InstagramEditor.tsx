@@ -11,6 +11,16 @@ import { toast } from "sonner";
 
 export type PostFormat = "photo" | "carousel" | "reel";
 
+export type AccountType = "personal" | "business";
+
+export const IG_CATEGORIES = [
+  "Artista", "Músico/Grupo de música", "Bloguero", "Ropa (marca)", "Comunidad",
+  "Creador digital", "Educación", "Emprendedor", "Salud/Belleza", "Editor",
+  "Escritor", "Blog personal", "Producto/Servicio", "Jugador", "Restaurante",
+  "Belleza, cosmética y cuidado personal", "Tienda de alimentos", "Fotógrafo",
+  "Compras y ventas al por menor", "Creador de reels",
+] as const;
+
 export interface IGProfile {
   id: string;
   client_id: string;
@@ -21,6 +31,13 @@ export interface IGProfile {
   current_avatar_url: string | null;
   current_bio: string | null;
   current_link: string | null;
+  current_account_type: AccountType;
+  current_category: string | null;
+  current_verified: boolean;
+  current_threads_enabled: boolean;
+  current_threads_handle: string | null;
+  current_song_enabled: boolean;
+  current_song: string | null;
   proposed_username: string | null;
   proposed_followers: number | null;
   proposed_following: number | null;
@@ -28,6 +45,13 @@ export interface IGProfile {
   proposed_avatar_url: string | null;
   proposed_bio: string | null;
   proposed_link: string | null;
+  proposed_account_type: AccountType;
+  proposed_category: string | null;
+  proposed_verified: boolean;
+  proposed_threads_enabled: boolean;
+  proposed_threads_handle: string | null;
+  proposed_song_enabled: boolean;
+  proposed_song: string | null;
 }
 
 export interface IGPost {
@@ -41,6 +65,8 @@ export interface IGPost {
   format: PostFormat;
   carousel_urls: string[];
   cover_url: string | null;
+  is_trial_reel: boolean;
+  close_friends_only: boolean;
 }
 
 export interface IGHighlight {
@@ -160,6 +186,118 @@ export function ProfileEditor({
         <NumPair label="Posts" currentKey="current_posts_count" proposedKey="proposed_posts_count" />
         <NumPair label="Seguidores" currentKey="current_followers" proposedKey="proposed_followers" />
         <NumPair label="Seguidos" currentKey="current_following" proposedKey="proposed_following" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {(["current", "proposed"] as const).map((side) => {
+          const accent = side === "proposed";
+          const atKey = `${side}_account_type` as keyof IGProfile;
+          const catKey = `${side}_category` as keyof IGProfile;
+          const verKey = `${side}_verified` as keyof IGProfile;
+          const thrEnKey = `${side}_threads_enabled` as keyof IGProfile;
+          const thrHandleKey = `${side}_threads_handle` as keyof IGProfile;
+          const songEnKey = `${side}_song_enabled` as keyof IGProfile;
+          const songKey = `${side}_song` as keyof IGProfile;
+          return (
+            <div key={side} className="space-y-3 rounded-xl border p-3 bg-surface">
+              <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>
+                {accent ? "Propuesta" : "Actual"} · Configuración
+              </Label>
+
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tipo de cuenta</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={profile[atKey] as AccountType}
+                  onChange={(e) => {
+                    const v = e.target.value as AccountType;
+                    set({ [atKey]: v } as any);
+                    save({ [atKey]: v } as any);
+                  }}
+                >
+                  <option value="personal">Personal</option>
+                  <option value="business">Empresa</option>
+                </select>
+              </div>
+
+              {profile[atKey] === "business" && (
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Categoría</Label>
+                  <select
+                    className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                    value={(profile[catKey] as string) ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value || null;
+                      set({ [catKey]: v } as any);
+                      save({ [catKey]: v } as any);
+                    }}
+                  >
+                    <option value="">— Sin categoría —</option>
+                    {IG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              )}
+
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={!!profile[verKey]}
+                  onChange={(e) => {
+                    set({ [verKey]: e.target.checked } as any);
+                    save({ [verKey]: e.target.checked } as any);
+                  }}
+                />
+                Verificado azul
+              </label>
+
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={!!profile[thrEnKey]}
+                    onChange={(e) => {
+                      set({ [thrEnKey]: e.target.checked } as any);
+                      save({ [thrEnKey]: e.target.checked } as any);
+                    }}
+                  />
+                  Mostrar Threads
+                </label>
+                {profile[thrEnKey] && (
+                  <Input
+                    placeholder="@usuario de Threads"
+                    value={(profile[thrHandleKey] as string) ?? ""}
+                    onChange={(e) => set({ [thrHandleKey]: e.target.value } as any)}
+                    onBlur={(e) => save({ [thrHandleKey]: e.target.value || null } as any)}
+                    className="h-8 text-xs"
+                  />
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={!!profile[songEnKey]}
+                    onChange={(e) => {
+                      set({ [songEnKey]: e.target.checked } as any);
+                      save({ [songEnKey]: e.target.checked } as any);
+                    }}
+                  />
+                  Mostrar canción
+                </label>
+                {profile[songEnKey] && (
+                  <Input
+                    placeholder="Artista — Canción"
+                    value={(profile[songKey] as string) ?? ""}
+                    onChange={(e) => set({ [songKey]: e.target.value } as any)}
+                    onBlur={(e) => save({ [songKey]: e.target.value || null } as any)}
+                    className="h-8 text-xs"
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -298,6 +436,32 @@ export function PostsEditor({
                     saveRemote(p.id, { scheduled_at: v });
                   }}
                 />
+              </div>
+              <div className="flex flex-col gap-1 pt-1 border-t">
+                {p.format === "reel" && (
+                  <label className="flex items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={p.is_trial_reel}
+                      onChange={(e) => {
+                        setLocal(p.id, { is_trial_reel: e.target.checked });
+                        saveRemote(p.id, { is_trial_reel: e.target.checked });
+                      }}
+                    />
+                    Reel de prueba
+                  </label>
+                )}
+                <label className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={p.close_friends_only}
+                    onChange={(e) => {
+                      setLocal(p.id, { close_friends_only: e.target.checked });
+                      saveRemote(p.id, { close_friends_only: e.target.checked });
+                    }}
+                  />
+                  Solo mejores amigos
+                </label>
               </div>
             </>
           )}

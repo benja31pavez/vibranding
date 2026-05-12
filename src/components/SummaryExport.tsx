@@ -47,6 +47,13 @@ function PhoneCard({
   const followers = view === "proposed" ? (profile.proposed_followers ?? profile.current_followers) : profile.current_followers;
   const following = view === "proposed" ? (profile.proposed_following ?? profile.current_following) : profile.current_following;
   const postsCount = view === "proposed" ? (profile.proposed_posts_count ?? profile.current_posts_count) : profile.current_posts_count;
+  const accountType = view === "proposed" ? profile.proposed_account_type : profile.current_account_type;
+  const category = view === "proposed" ? profile.proposed_category : profile.current_category;
+  const verified = view === "proposed" ? profile.proposed_verified : profile.current_verified;
+  const threadsEnabled = view === "proposed" ? profile.proposed_threads_enabled : profile.current_threads_enabled;
+  const threadsHandle = view === "proposed" ? (profile.proposed_threads_handle ?? profile.current_threads_handle) : profile.current_threads_handle;
+  const songEnabled = view === "proposed" ? profile.proposed_song_enabled : profile.current_song_enabled;
+  const song = view === "proposed" ? (profile.proposed_song ?? profile.current_song) : profile.current_song;
 
   const grid = posts
     .filter((p) => p.type === view)
@@ -66,8 +73,11 @@ function PhoneCard({
           background: "#fff", borderRadius: 30, overflow: "hidden", position: "relative",
         }}>
           <div style={{ padding: "18px 14px 8px" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#000", marginBottom: 10 }}>
-              {username}
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#000", marginBottom: 10, display: "flex", alignItems: "center", gap: 4 }}>
+              <span>{username}</span>
+              {verified && (
+                <span style={{ background: C.igBlue, color: "#fff", borderRadius: "50%", width: 13, height: 13, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900 }}>✓</span>
+              )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{
@@ -99,9 +109,18 @@ function PhoneCard({
                 </div>
               </div>
             </div>
-            <div style={{ marginTop: 10, color: "#000", fontSize: 12, lineHeight: 1.35 }}>
+            <div style={{ marginTop: 10, color: "#000", fontSize: 12, lineHeight: 1.4 }}>
               {bio && <div style={{ whiteSpace: "pre-line" }}>{bio}</div>}
+              {accountType === "business" && category && (
+                <div style={{ color: "#52525b", fontSize: 11 }}>{category}</div>
+              )}
               {link && <div style={{ color: "#00376b", fontWeight: 600, marginTop: 2 }}>{link.replace(/^https?:\/\//, "")}</div>}
+              {threadsEnabled && threadsHandle && (
+                <div style={{ color: "#3f3f46", fontSize: 11, marginTop: 2 }}>@{threadsHandle.replace(/^@/, "")} · Threads</div>
+              )}
+              {songEnabled && song && (
+                <div style={{ color: "#3f3f46", fontSize: 11, marginTop: 2 }}>♪ {song}</div>
+              )}
             </div>
             <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
               <div style={{ flex: 1, background: C.igBlue, color: "#fff", textAlign: "center", fontSize: 11, fontWeight: 700, padding: "6px 0", borderRadius: 6 }}>Seguir</div>
@@ -141,6 +160,12 @@ function PhoneCard({
                   {thumb && (
                     <img src={thumb} crossOrigin="anonymous"
                       style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  )}
+                  {p?.close_friends_only && (
+                    <div style={{ position: "absolute", top: 4, left: 4, background: "#1c8c5b", color: "#fff", fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 4 }}>★</div>
+                  )}
+                  {p?.format === "reel" && p?.is_trial_reel && (
+                    <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 8, fontWeight: 700, padding: "1px 4px", borderRadius: 3 }}>PRUEBA</div>
                   )}
                   {badge && (
                     <div style={{ position: "absolute", top: 4, right: 4, color: "#fff", fontSize: 11, fontWeight: 700, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
@@ -186,6 +211,8 @@ function PostsTable({ title, posts, type }: { title: string; posts: IGPost[]; ty
                 <div style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>
                   POST #{i + 1} · {fmtLabel(p.format)}
                   {p.format === "carousel" && p.carousel_urls?.length ? ` · ${p.carousel_urls.length} img` : ""}
+                  {p.format === "reel" && p.is_trial_reel ? " · PRUEBA" : ""}
+                  {p.close_friends_only ? " · MEJORES AMIGOS" : ""}
                 </div>
                 <div style={{ fontSize: 11, color: C.ink, marginTop: 2, lineHeight: 1.3, wordBreak: "break-word" }}>
                   {p.caption || <span style={{ color: C.muted }}>Sin caption</span>}
@@ -246,19 +273,29 @@ export function SummaryExport({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <DataCol title="Actual" data={{
             Usuario: profile.current_username,
+            Verificado: profile.current_verified ? "Sí" : "No",
+            "Tipo de cuenta": profile.current_account_type === "business" ? "Empresa" : "Personal",
+            ...(profile.current_account_type === "business" ? { Categoría: profile.current_category } : {}),
             Seguidores: fmt(profile.current_followers),
             Seguidos: fmt(profile.current_following),
             Posts: fmt(profile.current_posts_count),
             Enlace: profile.current_link,
             Descripción: profile.current_bio,
+            ...(profile.current_threads_enabled ? { Threads: profile.current_threads_handle } : {}),
+            ...(profile.current_song_enabled ? { Canción: profile.current_song } : {}),
           }} accent={false} />
           <DataCol title="Propuesta" data={{
             Usuario: profile.proposed_username,
+            Verificado: profile.proposed_verified ? "Sí" : "No",
+            "Tipo de cuenta": profile.proposed_account_type === "business" ? "Empresa" : "Personal",
+            ...(profile.proposed_account_type === "business" ? { Categoría: profile.proposed_category } : {}),
             Seguidores: fmt(profile.proposed_followers),
             Seguidos: fmt(profile.proposed_following),
             Posts: fmt(profile.proposed_posts_count),
             Enlace: profile.proposed_link,
             Descripción: profile.proposed_bio,
+            ...(profile.proposed_threads_enabled ? { Threads: profile.proposed_threads_handle } : {}),
+            ...(profile.proposed_song_enabled ? { Canción: profile.proposed_song } : {}),
           }} accent />
         </div>
       </div>
