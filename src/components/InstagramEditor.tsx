@@ -3,6 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { MediaUpload } from "./MediaUpload";
+import { Image as ImageIcon, Layers, Film, Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export type PostFormat = "photo" | "carousel" | "reel";
 
 export interface IGProfile {
   id: string;
@@ -31,14 +36,26 @@ export interface IGPost {
   image_url: string | null;
   caption: string | null;
   scheduled_at: string | null;
+  format: PostFormat;
+}
+
+export interface IGHighlight {
+  id: string;
+  client_id: string;
+  type: "current" | "proposed";
+  position: number;
+  title: string | null;
+  cover_url: string | null;
 }
 
 export function ProfileEditor({
   profile,
   setProfile,
+  clientId,
 }: {
   profile: IGProfile;
   setProfile: (p: IGProfile) => void;
+  clientId: string;
 }) {
   const set = (patch: Partial<IGProfile>) => setProfile({ ...profile, ...patch });
   const save = async (patch: Partial<IGProfile>) => {
@@ -110,7 +127,28 @@ export function ProfileEditor({
   return (
     <div className="space-y-5">
       <TextPair label="Usuario" currentKey="current_username" proposedKey="proposed_username" />
-      <TextPair label="Foto perfil (URL)" currentKey="current_avatar_url" proposedKey="proposed_avatar_url" />
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Actual · Foto perfil</Label>
+          <MediaUpload
+            clientId={clientId}
+            shape="circle"
+            value={profile.current_avatar_url}
+            onChange={(url) => { set({ current_avatar_url: url }); save({ current_avatar_url: url }); }}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-accent">Propuesta · Foto perfil</Label>
+          <MediaUpload
+            clientId={clientId}
+            shape="circle"
+            value={profile.proposed_avatar_url}
+            onChange={(url) => { set({ proposed_avatar_url: url }); save({ proposed_avatar_url: url }); }}
+          />
+        </div>
+      </div>
+
       <TextPair label="Enlace" currentKey="current_link" proposedKey="proposed_link" />
       <TextPair label="Descripción" currentKey="current_bio" proposedKey="proposed_bio" multiline />
 
@@ -122,6 +160,12 @@ export function ProfileEditor({
     </div>
   );
 }
+
+const FORMATS: { value: PostFormat; label: string; Icon: typeof ImageIcon }[] = [
+  { value: "photo", label: "Foto", Icon: ImageIcon },
+  { value: "carousel", label: "Carrusel", Icon: Layers },
+  { value: "reel", label: "Reel", Icon: Film },
+];
 
 export function PostsEditor({
   clientId, posts, setPosts, type,
@@ -163,20 +207,41 @@ export function PostsEditor({
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {slots.map((p, i) => (
         <div key={p?.id ?? i} className="rounded-2xl border bg-surface p-3 space-y-2">
-          <div className="text-xs text-muted-foreground">Post #{i + 1}</div>
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-muted-foreground">Post #{i + 1}</div>
+            <div className="flex gap-1">
+              {FORMATS.map(({ value, label, Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  title={label}
+                  onClick={() => {
+                    if (!p) return;
+                    setLocal(p.id, { format: value });
+                    saveRemote(p.id, { format: value });
+                  }}
+                  className={`p-1 rounded-md transition-colors ${
+                    p?.format === value
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                </button>
+              ))}
+            </div>
+          </div>
           {p && (
             <>
-              <Input
-                placeholder="URL de imagen"
-                value={p.image_url ?? ""}
-                onChange={(e) => setLocal(p.id, { image_url: e.target.value })}
-                onBlur={(e) => saveRemote(p.id, { image_url: e.target.value || null })}
+              <MediaUpload
+                clientId={clientId}
+                value={p.image_url}
+                onChange={(url) => {
+                  setLocal(p.id, { image_url: url });
+                  saveRemote(p.id, { image_url: url });
+                }}
+                showUrl={false}
               />
-              {p.image_url && (
-                <div className="aspect-square rounded-lg bg-muted overflow-hidden">
-                  <img src={p.image_url} alt="" className="w-full h-full object-cover" />
-                </div>
-              )}
               <Textarea
                 placeholder="Caption…"
                 value={p.caption ?? ""}
@@ -205,6 +270,83 @@ export function PostsEditor({
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+export function HighlightsEditor({
+  clientId, highlights, setHighlights, type,
+}: {
+  clientId: string;
+  highlights: IGHighlight[];
+  setHighlights: (updater: (prev: IGHighlight[]) => IGHighlight[]) => void;
+  type: "current" | "proposed";
+}) {
+  const items = highlights
+    .filter((h) => h.type === type)
+    .sort((a, b) => a.position - b.position);
+
+  const add = async () => {
+    const position = items.length ? Math.max(...items.map((i) => i.position)) + 1 : 0;
+    const { data } = await supabase
+      .from("instagram_highlights")
+      .insert({ client_id: clientId, type, position, title: "Nueva" })
+      .select("*")
+      .single();
+    if (data) setHighlights((prev) => [...prev, data as IGHighlight]);
+  };
+
+  const update = async (id: string, patch: Partial<IGHighlight>) => {
+    setHighlights((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)));
+    await supabase.from("instagram_highlights").update(patch).eq("id", id);
+  };
+
+  const remove = async (id: string) => {
+    setHighlights((prev) => prev.filter((h) => h.id !== id));
+    await supabase.from("instagram_highlights").delete().eq("id", id);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-3">
+        {items.map((h) => (
+          <div key={h.id} className="rounded-2xl border bg-surface p-3 w-44 space-y-2">
+            <MediaUpload
+              clientId={clientId}
+              shape="circle"
+              value={h.cover_url}
+              onChange={(url) => update(h.id, { cover_url: url })}
+              showUrl={false}
+            />
+            <Input
+              placeholder="Título"
+              value={h.title ?? ""}
+              onChange={(e) => setHighlights((prev) =>
+                prev.map((x) => (x.id === h.id ? { ...x, title: e.target.value } : x))
+              )}
+              onBlur={(e) => update(h.id, { title: e.target.value || null })}
+              className="text-xs h-8"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground hover:text-destructive"
+              onClick={() => remove(h.id)}
+            >
+              <Trash2 className="w-3 h-3 mr-1" /> Quitar
+            </Button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={add}
+          className="w-44 h-[180px] rounded-2xl border border-dashed flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors"
+        >
+          <Plus className="w-5 h-5 mb-1" />
+          <span className="text-xs">Añadir destacada</span>
+        </button>
+      </div>
     </div>
   );
 }

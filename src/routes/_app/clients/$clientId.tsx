@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { TaskList } from "@/components/TaskList";
-import { ProfileEditor, PostsEditor, type IGProfile, type IGPost } from "@/components/InstagramEditor";
+import { ProfileEditor, PostsEditor, HighlightsEditor, type IGProfile, type IGPost, type IGHighlight } from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
 import { PaymentsPanel } from "@/components/PaymentsPanel";
 import { SummaryExport } from "@/components/SummaryExport";
@@ -27,6 +27,7 @@ function ClientDetail() {
   const [client, setClient] = useState<{ id: string; name: string; instagram_handle: string | null } | null>(null);
   const [profile, setProfile] = useState<IGProfile | null>(null);
   const [posts, setPosts] = useState<IGPost[]>([]);
+  const [highlights, setHighlights] = useState<IGHighlight[]>([]);
   const [view, setView] = useState<"current" | "proposed">("proposed");
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -36,12 +37,14 @@ function ClientDetail() {
     setClient(data);
   };
   const loadIG = async () => {
-    const [{ data: pr }, { data: ps }] = await Promise.all([
+    const [{ data: pr }, { data: ps }, { data: hi }] = await Promise.all([
       supabase.from("instagram_profiles").select("*").eq("client_id", clientId).maybeSingle(),
       supabase.from("instagram_posts").select("*").eq("client_id", clientId),
+      supabase.from("instagram_highlights").select("*").eq("client_id", clientId),
     ]);
     setProfile(pr as IGProfile | null);
     setPosts((ps ?? []) as IGPost[]);
+    setHighlights((hi ?? []) as IGHighlight[]);
   };
 
   useEffect(() => {
@@ -157,7 +160,15 @@ function ClientDetail() {
             </TabsContent>
 
             <TabsContent value="instagram" className="mt-6 space-y-8">
-              {profile && <ProfileEditor profile={profile} setProfile={setProfile} />}
+              {profile && <ProfileEditor profile={profile} setProfile={setProfile} clientId={clientId} />}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Historias destacadas actuales</h3>
+                <HighlightsEditor clientId={clientId} highlights={highlights} setHighlights={setHighlights} type="current" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-accent">Historias destacadas propuestas</h3>
+                <HighlightsEditor clientId={clientId} highlights={highlights} setHighlights={setHighlights} type="proposed" />
+              </div>
               <div>
                 <h3 className="text-lg font-semibold mb-3">Posts actuales</h3>
                 <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type="current" />
@@ -190,7 +201,7 @@ function ClientDetail() {
               Propuesta
             </button>
           </div>
-          {profile && <IphonePreview profile={profile} posts={posts} view={view} />}
+          {profile && <IphonePreview profile={profile} posts={posts} highlights={highlights} view={view} />}
         </div>
       </div>
 
@@ -208,7 +219,7 @@ function ClientDetail() {
           }}
         >
           <div ref={exportRef}>
-            <SummaryExport client={client} profile={profile} posts={posts} />
+            <SummaryExport client={client} profile={profile} posts={posts} highlights={highlights} />
           </div>
         </div>
       )}
