@@ -11,6 +11,16 @@ import { toast } from "sonner";
 
 export type PostFormat = "photo" | "carousel" | "reel";
 
+export type AccountType = "personal" | "business";
+
+export const IG_CATEGORIES = [
+  "Artista", "Músico/Grupo de música", "Bloguero", "Ropa (marca)", "Comunidad",
+  "Creador digital", "Educación", "Emprendedor", "Salud/Belleza", "Editor",
+  "Escritor", "Blog personal", "Producto/Servicio", "Jugador", "Restaurante",
+  "Belleza, cosmética y cuidado personal", "Tienda de alimentos", "Fotógrafo",
+  "Compras y ventas al por menor", "Creador de reels",
+] as const;
+
 export interface IGProfile {
   id: string;
   client_id: string;
@@ -21,6 +31,13 @@ export interface IGProfile {
   current_avatar_url: string | null;
   current_bio: string | null;
   current_link: string | null;
+  current_account_type: AccountType;
+  current_category: string | null;
+  current_verified: boolean;
+  current_threads_enabled: boolean;
+  current_threads_handle: string | null;
+  current_song_enabled: boolean;
+  current_song: string | null;
   proposed_username: string | null;
   proposed_followers: number | null;
   proposed_following: number | null;
@@ -28,6 +45,13 @@ export interface IGProfile {
   proposed_avatar_url: string | null;
   proposed_bio: string | null;
   proposed_link: string | null;
+  proposed_account_type: AccountType;
+  proposed_category: string | null;
+  proposed_verified: boolean;
+  proposed_threads_enabled: boolean;
+  proposed_threads_handle: string | null;
+  proposed_song_enabled: boolean;
+  proposed_song: string | null;
 }
 
 export interface IGPost {
@@ -41,6 +65,8 @@ export interface IGPost {
   format: PostFormat;
   carousel_urls: string[];
   cover_url: string | null;
+  is_trial_reel: boolean;
+  close_friends_only: boolean;
 }
 
 export interface IGHighlight {
