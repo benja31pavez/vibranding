@@ -180,6 +180,16 @@ export function IphonePreview({
               return (
                 <div key={i} className="aspect-square bg-zinc-100 relative">
                   {thumb && <img src={thumb} className="w-full h-full object-cover" alt="" />}
+                  {p?.close_friends_only && (
+                    <div className="absolute top-1 left-1 bg-[#1c8c5b] text-white rounded-full p-[2px] drop-shadow">
+                      <Lock className="w-2.5 h-2.5" />
+                    </div>
+                  )}
+                  {p?.format === "reel" && p?.is_trial_reel && (
+                    <div className="absolute bottom-1 left-1 bg-black/70 text-white text-[8px] font-semibold px-1 py-[1px] rounded flex items-center gap-0.5">
+                      <FlaskConical className="w-2.5 h-2.5" /> Prueba
+                    </div>
+                  )}
                   {Icon && (
                     <div className="absolute top-1 right-1 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
                       <Icon className="w-3.5 h-3.5" fill="white" />
