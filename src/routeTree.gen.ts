@@ -16,6 +16,7 @@ import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index
 import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
+import { Route as AppClientsClientIdIndexRouteImport } from './routes/_app/clients/$clientId/index'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -51,32 +52,39 @@ const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
   path: '/clients/$clientId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppClientsClientIdIndexRoute = AppClientsClientIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppClientsClientIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/clients/$clientId': typeof AppClientsClientIdRoute
+  '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients/': typeof AppClientsIndexRoute
+  '/clients/$clientId/': typeof AppClientsClientIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/clients/$clientId': typeof AppClientsClientIdRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients': typeof AppClientsIndexRoute
+  '/clients/$clientId': typeof AppClientsClientIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/clients/$clientId': typeof AppClientsClientIdRoute
+  '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/_app/clients/': typeof AppClientsIndexRoute
+  '/_app/clients/$clientId/': typeof AppClientsClientIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,14 +95,15 @@ export interface FileRouteTypes {
     | '/settings/pricing'
     | '/api/meta-ads/sync'
     | '/clients/'
+    | '/clients/$clientId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
-    | '/clients/$clientId'
     | '/settings/pricing'
     | '/api/meta-ads/sync'
     | '/clients'
+    | '/clients/$clientId'
   id:
     | '__root__'
     | '/'
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
     | '/_app/settings/pricing'
     | '/api/meta-ads/sync'
     | '/_app/clients/'
+    | '/_app/clients/$clientId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -164,17 +174,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/clients/$clientId/': {
+      id: '/_app/clients/$clientId/'
+      path: '/'
+      fullPath: '/clients/$clientId/'
+      preLoaderRoute: typeof AppClientsClientIdIndexRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
   }
 }
 
+interface AppClientsClientIdRouteChildren {
+  AppClientsClientIdIndexRoute: typeof AppClientsClientIdIndexRoute
+}
+
+const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
+  AppClientsClientIdIndexRoute: AppClientsClientIdIndexRoute,
+}
+
+const AppClientsClientIdRouteWithChildren =
+  AppClientsClientIdRoute._addFileChildren(AppClientsClientIdRouteChildren)
+
 interface AppRouteChildren {
-  AppClientsClientIdRoute: typeof AppClientsClientIdRoute
+  AppClientsClientIdRoute: typeof AppClientsClientIdRouteWithChildren
   AppSettingsPricingRoute: typeof AppSettingsPricingRoute
   AppClientsIndexRoute: typeof AppClientsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppClientsClientIdRoute: AppClientsClientIdRoute,
+  AppClientsClientIdRoute: AppClientsClientIdRouteWithChildren,
   AppSettingsPricingRoute: AppSettingsPricingRoute,
   AppClientsIndexRoute: AppClientsIndexRoute,
 }
@@ -190,3 +218,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
