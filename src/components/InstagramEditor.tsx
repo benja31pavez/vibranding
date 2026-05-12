@@ -776,6 +776,117 @@ export function PostsEditor({
                     </Popover>
                   </td>
                   <td className="px-2 py-2">
+                    {(() => {
+                      const postComments = comments
+                        .filter((c) => c.post_id === p.id)
+                        .sort((a, b) => a.position - b.position);
+                      const hasAny = !!(p.music || p.location || p.likes_count || postComments.length);
+                      return (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className={`w-full flex items-center justify-center gap-1 text-[10px] px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] ${hasAny ? "text-foreground" : "text-muted-foreground"}`}
+                              title="Música, ubicación, likes, comentarios"
+                            >
+                              <Heart className="w-3 h-3" />
+                              <span className="tabular-nums">{p.likes_count ?? 0}</span>
+                              <MessageCircle className="w-3 h-3 ml-1" />
+                              <span className="tabular-nums">{postComments.length}</span>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-96 space-y-3" align="start">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" /> Ubicación
+                                </Label>
+                                <Input
+                                  placeholder="Ej: Madrid, España"
+                                  value={p.location ?? ""}
+                                  onChange={(e) => setLocal(p.id, { location: e.target.value })}
+                                  onBlur={(e) => saveRemote(p.id, { location: e.target.value || null })}
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                  <Music className="w-3 h-3" /> Música
+                                </Label>
+                                <Input
+                                  placeholder="Artista — Canción"
+                                  value={p.music ?? ""}
+                                  onChange={(e) => setLocal(p.id, { music: e.target.value })}
+                                  onBlur={(e) => saveRemote(p.id, { music: e.target.value || null })}
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                <Heart className="w-3 h-3" /> Likes
+                              </Label>
+                              <Input
+                                type="number"
+                                min={0}
+                                value={p.likes_count ?? 0}
+                                onChange={(e) => setLocal(p.id, { likes_count: Number(e.target.value) })}
+                                onBlur={(e) => saveRemote(p.id, { likes_count: Number(e.target.value) })}
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                  <MessageCircle className="w-3 h-3" /> Comentarios
+                                </Label>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 text-[10px] px-2"
+                                  onClick={() => addComment(p.id)}
+                                >
+                                  <Plus className="w-3 h-3 mr-0.5" /> Añadir
+                                </Button>
+                              </div>
+                              {postComments.length === 0 && (
+                                <p className="text-[10px] text-muted-foreground italic">Sin comentarios.</p>
+                              )}
+                              {postComments.map((c) => (
+                                <div key={c.id} className="flex items-start gap-1">
+                                  <Input
+                                    placeholder="usuario"
+                                    value={c.username}
+                                    onChange={(e) => setComments((prev) => prev.map((x) => x.id === c.id ? { ...x, username: e.target.value } : x))}
+                                    onBlur={(e) => updateComment(c.id, { username: e.target.value })}
+                                    className="h-7 text-xs w-24"
+                                  />
+                                  <Input
+                                    placeholder="Comentario…"
+                                    value={c.text}
+                                    onChange={(e) => setComments((prev) => prev.map((x) => x.id === c.id ? { ...x, text: e.target.value } : x))}
+                                    onBlur={(e) => updateComment(c.id, { text: e.target.value })}
+                                    className="h-7 text-xs flex-1"
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 shrink-0"
+                                    onClick={() => removeComment(c.id)}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    })()}
+                  </td>
+                  <td className="px-2 py-2">
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
