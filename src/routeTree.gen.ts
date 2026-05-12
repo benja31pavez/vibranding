@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
+import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -34,6 +35,11 @@ const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
   path: '/clients/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsPricingRoute = AppSettingsPricingRouteImport.update({
+  id: '/settings/pricing',
+  path: '/settings/pricing',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
   id: '/clients/$clientId',
   path: '/clients/$clientId',
@@ -44,12 +50,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/clients/$clientId': typeof AppClientsClientIdRoute
+  '/settings/pricing': typeof AppSettingsPricingRoute
   '/clients/': typeof AppClientsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/clients/$clientId': typeof AppClientsClientIdRoute
+  '/settings/pricing': typeof AppSettingsPricingRoute
   '/clients': typeof AppClientsIndexRoute
 }
 export interface FileRoutesById {
@@ -58,19 +66,26 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRoute
+  '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/_app/clients/': typeof AppClientsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/clients/$clientId' | '/clients/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/clients/$clientId'
+    | '/settings/pricing'
+    | '/clients/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/clients/$clientId' | '/clients'
+  to: '/' | '/login' | '/clients/$clientId' | '/settings/pricing' | '/clients'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/login'
     | '/_app/clients/$clientId'
+    | '/_app/settings/pricing'
     | '/_app/clients/'
   fileRoutesById: FileRoutesById
 }
@@ -110,6 +125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/pricing': {
+      id: '/_app/settings/pricing'
+      path: '/settings/pricing'
+      fullPath: '/settings/pricing'
+      preLoaderRoute: typeof AppSettingsPricingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/clients/$clientId': {
       id: '/_app/clients/$clientId'
       path: '/clients/$clientId'
@@ -122,11 +144,13 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppClientsClientIdRoute: typeof AppClientsClientIdRoute
+  AppSettingsPricingRoute: typeof AppSettingsPricingRoute
   AppClientsIndexRoute: typeof AppClientsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppClientsClientIdRoute: AppClientsClientIdRoute,
+  AppSettingsPricingRoute: AppSettingsPricingRoute,
   AppClientsIndexRoute: AppClientsIndexRoute,
 }
 
@@ -140,3 +164,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
