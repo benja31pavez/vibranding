@@ -215,6 +215,7 @@ export function ConfigEditor({
   const threadsHandleKey = `${side}_threads_handle` as keyof IGProfile;
   const songEnKey = `${side}_song_enabled` as keyof IGProfile;
   const songKey = `${side}_song` as keyof IGProfile;
+  const contactKey = `${side}_show_contact_button` as keyof IGProfile;
 
   return (
     <div className="space-y-3">
