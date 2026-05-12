@@ -445,6 +445,18 @@ export function PostsEditor({
   comments: IGComment[];
   setComments: (updater: (prev: IGComment[]) => IGComment[]) => void;
 }) {
+export function PostsEditor({
+  clientId, posts, setPosts, type, profile, setProfile, comments, setComments,
+}: {
+  clientId: string;
+  posts: IGPost[];
+  setPosts: (updater: (prev: IGPost[]) => IGPost[]) => void;
+  type: "current" | "proposed";
+  profile?: IGProfile | null;
+  setProfile?: (p: IGProfile | null) => void;
+  comments: IGComment[];
+  setComments: (updater: (prev: IGComment[]) => IGComment[]) => void;
+}) {
   const desiredCount = Math.max(
     0,
     Math.min(
