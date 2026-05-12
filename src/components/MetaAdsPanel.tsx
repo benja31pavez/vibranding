@@ -1,0 +1,500 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Plus, Trash2, RefreshCw, Megaphone, Layers, Image as ImageIcon } from "lucide-react";
+import { toast } from "sonner";
+import { MediaUpload } from "./MediaUpload";
+
+type MetaStatus = "ACTIVE" | "PAUSED" | "DELETED" | "ARCHIVED" | "DRAFT";
+type MetaObjective = "OUTCOME_AWARENESS" | "OUTCOME_TRAFFIC" | "OUTCOME_ENGAGEMENT" | "OUTCOME_LEADS" | "OUTCOME_APP_PROMOTION" | "OUTCOME_SALES";
+type MetaPlacement = "feed" | "stories" | "reels" | "marketplace" | "search" | "audience_network";
+type MetaCTA = "LEARN_MORE" | "SHOP_NOW" | "SIGN_UP" | "SUBSCRIBE" | "CONTACT_US" | "BOOK_TRAVEL" | "DOWNLOAD" | "GET_OFFER" | "APPLY_NOW" | "SEND_MESSAGE" | "WATCH_MORE";
+
+interface Account { id: string; client_id: string; ad_account_id: string | null; business_name: string | null; page_id: string | null; instagram_actor_id: string | null; last_synced_at: string | null; }
+interface Campaign { id: string; client_id: string; name: string; objective: MetaObjective; status: MetaStatus; daily_budget: number | null; lifetime_budget: number | null; currency: string | null; start_time: string | null; stop_time: string | null; notes: string | null; position: number; }
+interface AdSet { id: string; client_id: string; campaign_id: string; name: string; status: MetaStatus; daily_budget: number | null; optimization_goal: string | null; audience_summary: string | null; age_min: number | null; age_max: number | null; genders: string | null; countries: string | null; position: number; }
+interface Ad { id: string; client_id: string; adset_id: string; name: string; status: MetaStatus; format: string; image_url: string | null; video_url: string | null; carousel_urls: string[]; primary_text: string | null; headline: string | null; description: string | null; cta: MetaCTA | null; link_url: string | null; placement: MetaPlacement; position: number; }
+interface Insight { id: string; campaign_id: string; date_start: string | null; date_stop: string | null; impressions: number; reach: number; clicks: number; ctr: number | null; spend: number; cpc: number | null; cpm: number | null; conversions: number; purchase_value: number | null; roas: number | null; notes: string | null; }
+
+const OBJECTIVES: Record<MetaObjective, string> = {
+  OUTCOME_AWARENESS: "Reconocimiento", OUTCOME_TRAFFIC: "Tráfico", OUTCOME_ENGAGEMENT: "Interacción",
+  OUTCOME_LEADS: "Clientes potenciales", OUTCOME_APP_PROMOTION: "Promoción de app", OUTCOME_SALES: "Ventas",
+};
+const STATUSES: MetaStatus[] = ["DRAFT", "ACTIVE", "PAUSED", "ARCHIVED", "DELETED"];
+const CTAS: MetaCTA[] = ["LEARN_MORE", "SHOP_NOW", "SIGN_UP", "SUBSCRIBE", "CONTACT_US", "DOWNLOAD", "GET_OFFER", "APPLY_NOW", "SEND_MESSAGE", "WATCH_MORE", "BOOK_TRAVEL"];
+const PLACEMENTS: MetaPlacement[] = ["feed", "stories", "reels", "marketplace", "search", "audience_network"];
+
+export function MetaAdsPanel({ clientId }: { clientId: string }) {
+  const [account, setAccount] = useState<Account | null>(null);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [adsets, setAdsets] = useState<AdSet[]>([]);
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [syncing, setSyncing] = useState(false);
+
+  const load = async () => {
+    const [{ data: ac }, { data: cs }, { data: as }, { data: ads_ }, { data: ins }] = await Promise.all([
+      supabase.from("meta_ads_accounts").select("*").eq("client_id", clientId).maybeSingle(),
+      supabase.from("meta_ads_campaigns").select("*").eq("client_id", clientId).order("position"),
+      supabase.from("meta_ads_adsets").select("*").eq("client_id", clientId).order("position"),
+      supabase.from("meta_ads_ads").select("*").eq("client_id", clientId).order("position"),
+      supabase.from("meta_ads_insights").select("*").eq("client_id", clientId),
+    ]);
+    if (!ac) {
+      const { data: created } = await supabase.from("meta_ads_accounts").insert({ client_id: clientId }).select().single();
+      setAccount(created as Account);
+    } else setAccount(ac as Account);
+    setCampaigns((cs ?? []) as Campaign[]);
+    setAdsets((as ?? []) as AdSet[]);
+    setAds((ads_ ?? []) as Ad[]);
+    setInsights((ins ?? []) as Insight[]);
+  };
+
+  useEffect(() => { load(); }, [clientId]);
+
+  const updateAccount = async (patch: Partial<Account>) => {
+    if (!account) return;
+    setAccount({ ...account, ...patch });
+    await supabase.from("meta_ads_accounts").update(patch).eq("id", account.id);
+  };
+
+  const addCampaign = async () => {
+    const { data, error } = await supabase.from("meta_ads_campaigns").insert({
+      client_id: clientId, position: campaigns.length,
+    }).select().single();
+    if (error) return toast.error(error.message);
+    setCampaigns([...campaigns, data as Campaign]);
+  };
+
+  const updateCampaign = async (id: string, patch: Partial<Campaign>) => {
+    setCampaigns(campaigns.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    await supabase.from("meta_ads_campaigns").update(patch).eq("id", id);
+  };
+
+  const removeCampaign = async (id: string) => {
+    if (!confirm("¿Eliminar esta campaña y todo su contenido?")) return;
+    await supabase.from("meta_ads_campaigns").delete().eq("id", id);
+    setCampaigns(campaigns.filter((c) => c.id !== id));
+    setAdsets(adsets.filter((a) => a.campaign_id !== id));
+    setAds(ads.filter((ad) => !adsets.find((a) => a.id === ad.adset_id && a.campaign_id === id)));
+    setInsights(insights.filter((i) => i.campaign_id !== id));
+  };
+
+  const addAdSet = async (campaignId: string) => {
+    const pos = adsets.filter((a) => a.campaign_id === campaignId).length;
+    const { data, error } = await supabase.from("meta_ads_adsets").insert({
+      client_id: clientId, campaign_id: campaignId, position: pos,
+    }).select().single();
+    if (error) return toast.error(error.message);
+    setAdsets([...adsets, data as AdSet]);
+  };
+
+  const updateAdSet = async (id: string, patch: Partial<AdSet>) => {
+    setAdsets(adsets.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+    await supabase.from("meta_ads_adsets").update(patch).eq("id", id);
+  };
+
+  const removeAdSet = async (id: string) => {
+    if (!confirm("¿Eliminar este conjunto de anuncios?")) return;
+    await supabase.from("meta_ads_adsets").delete().eq("id", id);
+    setAdsets(adsets.filter((a) => a.id !== id));
+    setAds(ads.filter((ad) => ad.adset_id !== id));
+  };
+
+  const addAd = async (adsetId: string) => {
+    const pos = ads.filter((a) => a.adset_id === adsetId).length;
+    const { data, error } = await supabase.from("meta_ads_ads").insert({
+      client_id: clientId, adset_id: adsetId, position: pos,
+    }).select().single();
+    if (error) return toast.error(error.message);
+    setAds([...ads, data as Ad]);
+  };
+
+  const updateAd = async (id: string, patch: Partial<Ad>) => {
+    setAds(ads.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+    await supabase.from("meta_ads_ads").update(patch).eq("id", id);
+  };
+
+  const removeAd = async (id: string) => {
+    await supabase.from("meta_ads_ads").delete().eq("id", id);
+    setAds(ads.filter((a) => a.id !== id));
+  };
+
+  const addInsight = async (campaignId: string) => {
+    const { data, error } = await supabase.from("meta_ads_insights").insert({
+      client_id: clientId, campaign_id: campaignId,
+    }).select().single();
+    if (error) return toast.error(error.message);
+    setInsights([...insights, data as Insight]);
+  };
+
+  const updateInsight = async (id: string, patch: Partial<Insight>) => {
+    setInsights(insights.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    await supabase.from("meta_ads_insights").update(patch).eq("id", id);
+  };
+
+  const removeInsight = async (id: string) => {
+    await supabase.from("meta_ads_insights").delete().eq("id", id);
+    setInsights(insights.filter((i) => i.id !== id));
+  };
+
+  const sync = async () => {
+    if (!account?.ad_account_id) return toast.error("Configura primero el ID de cuenta publicitaria");
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/meta-ads/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Error al sincronizar");
+      toast.success(`Sincronizado: ${json.imported} campañas`);
+      await load();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Account config */}
+      <div className="rounded-2xl border bg-surface p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Megaphone className="w-4 h-4 text-primary" />
+            <h3 className="font-semibold">Cuenta de Meta Ads</h3>
+          </div>
+          <Button size="sm" variant="outline" onClick={sync} disabled={syncing || !account?.ad_account_id}>
+            <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Sincronizando…" : "Sincronizar con Meta"}
+          </Button>
+        </div>
+        <div className="grid md:grid-cols-2 gap-3">
+          <Field label="ID de cuenta publicitaria">
+            <Input
+              placeholder="act_1234567890"
+              defaultValue={account?.ad_account_id ?? ""}
+              onBlur={(e) => updateAccount({ ad_account_id: e.target.value || null })}
+            />
+          </Field>
+          <Field label="Nombre del negocio">
+            <Input
+              placeholder="Mi marca"
+              defaultValue={account?.business_name ?? ""}
+              onBlur={(e) => updateAccount({ business_name: e.target.value || null })}
+            />
+          </Field>
+          <Field label="ID de página de Facebook">
+            <Input
+              placeholder="123456789"
+              defaultValue={account?.page_id ?? ""}
+              onBlur={(e) => updateAccount({ page_id: e.target.value || null })}
+            />
+          </Field>
+          <Field label="ID de cuenta de Instagram">
+            <Input
+              placeholder="178414..."
+              defaultValue={account?.instagram_actor_id ?? ""}
+              onBlur={(e) => updateAccount({ instagram_actor_id: e.target.value || null })}
+            />
+          </Field>
+        </div>
+        {account?.last_synced_at && (
+          <p className="text-xs text-muted-foreground">Última sincronización: {new Date(account.last_synced_at).toLocaleString()}</p>
+        )}
+      </div>
+
+      {/* Campaigns */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Campañas ({campaigns.length})</h3>
+          <Button size="sm" onClick={addCampaign}><Plus className="w-4 h-4 mr-1" /> Añadir campaña</Button>
+        </div>
+        {campaigns.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-8 text-center border-2 border-dashed rounded-xl">Aún no hay campañas. Crea una para empezar.</p>
+        ) : (
+          <Accordion type="multiple" className="space-y-2">
+            {campaigns.map((c) => {
+              const myAdsets = adsets.filter((a) => a.campaign_id === c.id);
+              const myInsights = insights.filter((i) => i.campaign_id === c.id);
+              return (
+                <AccordionItem key={c.id} value={c.id} className="border rounded-xl bg-surface px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3 text-left">
+                      <span className={`w-2 h-2 rounded-full ${c.status === "ACTIVE" ? "bg-green-500" : c.status === "PAUSED" ? "bg-yellow-500" : "bg-zinc-400"}`} />
+                      <div>
+                        <div className="font-medium">{c.name}</div>
+                        <div className="text-xs text-muted-foreground">{OBJECTIVES[c.objective]} · {c.status}</div>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-2 space-y-5">
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <Field label="Nombre">
+                        <Input defaultValue={c.name} onBlur={(e) => updateCampaign(c.id, { name: e.target.value })} />
+                      </Field>
+                      <Field label="Objetivo">
+                        <Select value={c.objective} onValueChange={(v) => updateCampaign(c.id, { objective: v as MetaObjective })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(OBJECTIVES).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Estado">
+                        <Select value={c.status} onValueChange={(v) => updateCampaign(c.id, { status: v as MetaStatus })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Moneda">
+                        <Input defaultValue={c.currency ?? "USD"} onBlur={(e) => updateCampaign(c.id, { currency: e.target.value || null })} />
+                      </Field>
+                      <Field label="Presupuesto diario">
+                        <Input type="number" defaultValue={c.daily_budget ?? ""} onBlur={(e) => updateCampaign(c.id, { daily_budget: e.target.value ? Number(e.target.value) : null })} />
+                      </Field>
+                      <Field label="Presupuesto total">
+                        <Input type="number" defaultValue={c.lifetime_budget ?? ""} onBlur={(e) => updateCampaign(c.id, { lifetime_budget: e.target.value ? Number(e.target.value) : null })} />
+                      </Field>
+                      <Field label="Inicio">
+                        <Input type="date" defaultValue={c.start_time ?? ""} onBlur={(e) => updateCampaign(c.id, { start_time: e.target.value || null })} />
+                      </Field>
+                      <Field label="Fin">
+                        <Input type="date" defaultValue={c.stop_time ?? ""} onBlur={(e) => updateCampaign(c.id, { stop_time: e.target.value || null })} />
+                      </Field>
+                    </div>
+                    <Field label="Notas">
+                      <Textarea defaultValue={c.notes ?? ""} onBlur={(e) => updateCampaign(c.id, { notes: e.target.value || null })} />
+                    </Field>
+
+                    {/* Ad sets */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm font-semibold">
+                          <Layers className="w-4 h-4" /> Conjuntos de anuncios ({myAdsets.length})
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => addAdSet(c.id)}><Plus className="w-3 h-3 mr-1" /> Añadir</Button>
+                      </div>
+                      {myAdsets.map((a) => {
+                        const myAds = ads.filter((x) => x.adset_id === a.id);
+                        return (
+                          <div key={a.id} className="rounded-xl border p-4 space-y-3 bg-background">
+                            <div className="flex items-start justify-between gap-2">
+                              <Input className="font-medium" defaultValue={a.name} onBlur={(e) => updateAdSet(a.id, { name: e.target.value })} />
+                              <Button size="icon" variant="ghost" onClick={() => removeAdSet(a.id)}><Trash2 className="w-4 h-4" /></Button>
+                            </div>
+                            <div className="grid md:grid-cols-3 gap-2">
+                              <Field label="Estado">
+                                <Select value={a.status} onValueChange={(v) => updateAdSet(a.id, { status: v as MetaStatus })}>
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                                </Select>
+                              </Field>
+                              <Field label="Presupuesto diario">
+                                <Input type="number" defaultValue={a.daily_budget ?? ""} onBlur={(e) => updateAdSet(a.id, { daily_budget: e.target.value ? Number(e.target.value) : null })} />
+                              </Field>
+                              <Field label="Optimización">
+                                <Input placeholder="LINK_CLICKS, REACH…" defaultValue={a.optimization_goal ?? ""} onBlur={(e) => updateAdSet(a.id, { optimization_goal: e.target.value || null })} />
+                              </Field>
+                              <Field label="Edad mín.">
+                                <Input type="number" defaultValue={a.age_min ?? ""} onBlur={(e) => updateAdSet(a.id, { age_min: e.target.value ? Number(e.target.value) : null })} />
+                              </Field>
+                              <Field label="Edad máx.">
+                                <Input type="number" defaultValue={a.age_max ?? ""} onBlur={(e) => updateAdSet(a.id, { age_max: e.target.value ? Number(e.target.value) : null })} />
+                              </Field>
+                              <Field label="Géneros">
+                                <Input placeholder="all, female, male" defaultValue={a.genders ?? ""} onBlur={(e) => updateAdSet(a.id, { genders: e.target.value || null })} />
+                              </Field>
+                            </div>
+                            <Field label="Países">
+                              <Input placeholder="CL, MX, AR…" defaultValue={a.countries ?? ""} onBlur={(e) => updateAdSet(a.id, { countries: e.target.value || null })} />
+                            </Field>
+                            <Field label="Resumen de audiencia">
+                              <Textarea rows={2} defaultValue={a.audience_summary ?? ""} onBlur={(e) => updateAdSet(a.id, { audience_summary: e.target.value || null })} />
+                            </Field>
+
+                            {/* Ads */}
+                            <div className="space-y-2 pt-2 border-t">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-xs font-semibold">
+                                  <ImageIcon className="w-3 h-3" /> Anuncios ({myAds.length})
+                                </div>
+                                <Button size="sm" variant="ghost" onClick={() => addAd(a.id)}><Plus className="w-3 h-3 mr-1" /> Añadir anuncio</Button>
+                              </div>
+                              {myAds.map((ad) => (
+                                <div key={ad.id} className="rounded-lg border p-3 space-y-2 bg-surface">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <Input className="font-medium" defaultValue={ad.name} onBlur={(e) => updateAd(ad.id, { name: e.target.value })} />
+                                    <Button size="icon" variant="ghost" onClick={() => removeAd(ad.id)}><Trash2 className="w-4 h-4" /></Button>
+                                  </div>
+                                  <div className="grid md:grid-cols-3 gap-2">
+                                    <Field label="Formato">
+                                      <Select value={ad.format} onValueChange={(v) => updateAd(ad.id, { format: v })}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="image">Imagen</SelectItem>
+                                          <SelectItem value="video">Video</SelectItem>
+                                          <SelectItem value="carousel">Carrusel</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </Field>
+                                    <Field label="Ubicación">
+                                      <Select value={ad.placement} onValueChange={(v) => updateAd(ad.id, { placement: v as MetaPlacement })}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>{PLACEMENTS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                                      </Select>
+                                    </Field>
+                                    <Field label="CTA">
+                                      <Select value={ad.cta ?? "LEARN_MORE"} onValueChange={(v) => updateAd(ad.id, { cta: v as MetaCTA })}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>{CTAS.map((cta) => <SelectItem key={cta} value={cta}>{cta}</SelectItem>)}</SelectContent>
+                                      </Select>
+                                    </Field>
+                                  </div>
+                                  <Field label="Imagen / Cover">
+                                    <MediaUpload clientId={clientId} value={ad.image_url} onChange={(url) => updateAd(ad.id, { image_url: url })} />
+                                  </Field>
+                                  <div className="grid md:grid-cols-2 gap-2">
+                                    <Field label="Titular">
+                                      <Input defaultValue={ad.headline ?? ""} onBlur={(e) => updateAd(ad.id, { headline: e.target.value || null })} />
+                                    </Field>
+                                    <Field label="Link">
+                                      <Input placeholder="https://…" defaultValue={ad.link_url ?? ""} onBlur={(e) => updateAd(ad.id, { link_url: e.target.value || null })} />
+                                    </Field>
+                                  </div>
+                                  <Field label="Texto principal">
+                                    <Textarea rows={2} defaultValue={ad.primary_text ?? ""} onBlur={(e) => updateAd(ad.id, { primary_text: e.target.value || null })} />
+                                  </Field>
+                                  <Field label="Descripción">
+                                    <Input defaultValue={ad.description ?? ""} onBlur={(e) => updateAd(ad.id, { description: e.target.value || null })} />
+                                  </Field>
+                                  <AdPreview ad={ad} accountName={account?.business_name ?? "Tu marca"} />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Insights */}
+                    <div className="space-y-2 pt-3 border-t">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold">Resultados / métricas</h4>
+                        <Button size="sm" variant="outline" onClick={() => addInsight(c.id)}><Plus className="w-3 h-3 mr-1" /> Añadir período</Button>
+                      </div>
+                      {myInsights.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Aún no hay métricas registradas.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead className="text-muted-foreground">
+                              <tr className="text-left border-b">
+                                <th className="py-1 pr-2">Desde</th>
+                                <th className="py-1 pr-2">Hasta</th>
+                                <th className="py-1 pr-2">Impr.</th>
+                                <th className="py-1 pr-2">Alcance</th>
+                                <th className="py-1 pr-2">Clics</th>
+                                <th className="py-1 pr-2">CTR %</th>
+                                <th className="py-1 pr-2">Gasto</th>
+                                <th className="py-1 pr-2">CPC</th>
+                                <th className="py-1 pr-2">Conv.</th>
+                                <th className="py-1 pr-2">ROAS</th>
+                                <th></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {myInsights.map((i) => (
+                                <tr key={i.id} className="border-b">
+                                  <td><Input className="h-7 text-xs" type="date" defaultValue={i.date_start ?? ""} onBlur={(e) => updateInsight(i.id, { date_start: e.target.value || null })} /></td>
+                                  <td><Input className="h-7 text-xs" type="date" defaultValue={i.date_stop ?? ""} onBlur={(e) => updateInsight(i.id, { date_stop: e.target.value || null })} /></td>
+                                  <td><Input className="h-7 text-xs w-20" type="number" defaultValue={i.impressions} onBlur={(e) => updateInsight(i.id, { impressions: Number(e.target.value) || 0 })} /></td>
+                                  <td><Input className="h-7 text-xs w-20" type="number" defaultValue={i.reach} onBlur={(e) => updateInsight(i.id, { reach: Number(e.target.value) || 0 })} /></td>
+                                  <td><Input className="h-7 text-xs w-20" type="number" defaultValue={i.clicks} onBlur={(e) => updateInsight(i.id, { clicks: Number(e.target.value) || 0 })} /></td>
+                                  <td><Input className="h-7 text-xs w-16" type="number" step="0.01" defaultValue={i.ctr ?? ""} onBlur={(e) => updateInsight(i.id, { ctr: e.target.value ? Number(e.target.value) : null })} /></td>
+                                  <td><Input className="h-7 text-xs w-20" type="number" step="0.01" defaultValue={i.spend} onBlur={(e) => updateInsight(i.id, { spend: Number(e.target.value) || 0 })} /></td>
+                                  <td><Input className="h-7 text-xs w-16" type="number" step="0.01" defaultValue={i.cpc ?? ""} onBlur={(e) => updateInsight(i.id, { cpc: e.target.value ? Number(e.target.value) : null })} /></td>
+                                  <td><Input className="h-7 text-xs w-16" type="number" defaultValue={i.conversions} onBlur={(e) => updateInsight(i.id, { conversions: Number(e.target.value) || 0 })} /></td>
+                                  <td><Input className="h-7 text-xs w-16" type="number" step="0.01" defaultValue={i.roas ?? ""} onBlur={(e) => updateInsight(i.id, { roas: e.target.value ? Number(e.target.value) : null })} /></td>
+                                  <td><Button size="icon" variant="ghost" onClick={() => removeInsight(i.id)}><Trash2 className="w-3 h-3" /></Button></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t flex justify-end">
+                      <Button variant="ghost" size="sm" onClick={() => removeCampaign(c.id)} className="text-destructive">
+                        <Trash2 className="w-4 h-4 mr-1" /> Eliminar campaña
+                      </Button>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+const CTA_LABELS: Record<MetaCTA, string> = {
+  LEARN_MORE: "Más información", SHOP_NOW: "Comprar ahora", SIGN_UP: "Registrarse",
+  SUBSCRIBE: "Suscribirse", CONTACT_US: "Contáctanos", BOOK_TRAVEL: "Reservar",
+  DOWNLOAD: "Descargar", GET_OFFER: "Ver oferta", APPLY_NOW: "Aplicar",
+  SEND_MESSAGE: "Enviar mensaje", WATCH_MORE: "Ver más",
+};
+
+function AdPreview({ ad, accountName }: { ad: Ad; accountName: string }) {
+  return (
+    <div className="rounded-xl border bg-white text-zinc-900 max-w-sm mx-auto overflow-hidden text-xs">
+      <div className="flex items-center gap-2 px-3 py-2">
+        <div className="w-7 h-7 rounded-full bg-zinc-200" />
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold truncate">{accountName}</div>
+          <div className="text-[10px] text-zinc-500">Patrocinado</div>
+        </div>
+      </div>
+      {ad.primary_text && <div className="px-3 pb-2 whitespace-pre-wrap">{ad.primary_text}</div>}
+      <div className="bg-zinc-100 aspect-square w-full grid place-items-center">
+        {ad.image_url ? (
+          <img src={ad.image_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <ImageIcon className="w-8 h-8 text-zinc-400" />
+        )}
+      </div>
+      <div className="flex items-center justify-between px-3 py-2 bg-zinc-50">
+        <div className="min-w-0">
+          {ad.link_url && <div className="text-[10px] text-zinc-500 uppercase truncate">{new URL(ad.link_url.startsWith("http") ? ad.link_url : `https://${ad.link_url}`).hostname}</div>}
+          {ad.headline && <div className="font-semibold truncate">{ad.headline}</div>}
+          {ad.description && <div className="text-[10px] text-zinc-500 truncate">{ad.description}</div>}
+        </div>
+        <button className="ml-2 text-[10px] font-semibold bg-zinc-900 text-white px-3 py-1.5 rounded shrink-0">
+          {CTA_LABELS[ad.cta ?? "LEARN_MORE"]}
+        </button>
+      </div>
+    </div>
+  );
+}
