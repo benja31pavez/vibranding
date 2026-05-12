@@ -94,6 +94,7 @@ export type Database = {
           cover_url: string | null
           created_at: string
           id: string
+          media_urls: string[]
           position: number
           title: string | null
           type: Database["public"]["Enums"]["ig_post_type"]
@@ -104,6 +105,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           id?: string
+          media_urls?: string[]
           position?: number
           title?: string | null
           type: Database["public"]["Enums"]["ig_post_type"]
@@ -114,6 +116,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           id?: string
+          media_urls?: string[]
           position?: number
           title?: string | null
           type?: Database["public"]["Enums"]["ig_post_type"]
