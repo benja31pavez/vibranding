@@ -31,6 +31,7 @@ function ClientDetail() {
   const [profile, setProfile] = useState<IGProfile | null>(null);
   const [posts, setPosts] = useState<IGPost[]>([]);
   const [highlights, setHighlights] = useState<IGHighlight[]>([]);
+  const [comments, setComments] = useState<IGComment[]>([]);
   const [view, setView] = useState<"current" | "proposed">("proposed");
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
