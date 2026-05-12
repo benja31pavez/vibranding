@@ -37,6 +37,8 @@ export interface IGPost {
   caption: string | null;
   scheduled_at: string | null;
   format: PostFormat;
+  carousel_urls: string[];
+  cover_url: string | null;
 }
 
 export interface IGHighlight {
