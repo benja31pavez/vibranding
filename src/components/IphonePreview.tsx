@@ -375,6 +375,89 @@ export function IphonePreview({
             </div>
           )}
 
+          {openPost && (() => {
+            const p = openPost;
+            const isReel = p.format === "reel";
+            const isCarousel = p.format === "carousel";
+            const carouselImgs = isCarousel && p.carousel_urls?.length
+              ? p.carousel_urls
+              : (p.image_url ? [p.image_url] : []);
+            const mainSrc = isReel
+              ? (p.image_url || p.cover_url)
+              : (carouselImgs[carouselIdx] || p.image_url);
+            return (
+              <div className="absolute inset-0 z-40 bg-white flex flex-col">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-200 shrink-0">
+                  <button onClick={() => setOpenPost(null)} className="text-black p-1" aria-label="Volver">
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <span className="text-[12px] font-semibold text-black">
+                    {isReel ? "Reel" : "Publicación"}
+                  </span>
+                  <span className="w-7" />
+                </div>
+                <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    {avatar ? (
+                      <img src={avatar} className="w-7 h-7 rounded-full object-cover" alt="" />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-zinc-200" />
+                    )}
+                    <span className="text-[12px] font-semibold text-black">{username}</span>
+                    {verified && <BadgeCheck className="w-3 h-3 text-[#0095f6]" fill="#0095f6" stroke="white" />}
+                  </div>
+                  <div className="relative bg-black" style={{ aspectRatio: isReel ? "9/16" : "1/1" }}>
+                    {mainSrc && <img src={mainSrc} className="w-full h-full object-cover" alt="" />}
+                    {isReel && (
+                      <div className="absolute inset-0 flex items-center justify-center text-white/90 pointer-events-none">
+                        <Play className="w-10 h-10" fill="currentColor" />
+                      </div>
+                    )}
+                    {isCarousel && carouselImgs.length > 1 && (
+                      <>
+                        {carouselIdx > 0 && (
+                          <button
+                            onClick={() => setCarouselIdx((i) => Math.max(0, i - 1))}
+                            className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-1"
+                            aria-label="Anterior"
+                          >
+                            <ChevronLeft className="w-3 h-3" />
+                          </button>
+                        )}
+                        {carouselIdx < carouselImgs.length - 1 && (
+                          <button
+                            onClick={() => setCarouselIdx((i) => Math.min(carouselImgs.length - 1, i + 1))}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-1"
+                            aria-label="Siguiente"
+                          >
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
+                        )}
+                        <div className="absolute top-1.5 right-1.5 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-full">
+                          {carouselIdx + 1}/{carouselImgs.length}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 text-black">
+                    <div className="flex items-center gap-3">
+                      <Heart className="w-5 h-5" />
+                      <MessageCircle className="w-5 h-5" />
+                      <Send className="w-5 h-5" />
+                    </div>
+                    <Bookmark className="w-5 h-5" />
+                  </div>
+                  {p.caption && (
+                    <div className="px-3 pb-4 text-[12px] text-black whitespace-pre-line leading-snug">
+                      <span className="font-semibold mr-1">{username}</span>
+                      {p.caption}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-black rounded-full z-30" />
         </div>
       </div>
