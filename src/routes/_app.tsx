@@ -68,17 +68,10 @@ function AppLayout() {
     </Link>
   );
 
-  const SubNavItem = ({ to, icon: Icon, label, active }: { to: string; icon: any; label: string; active: boolean }) => (
-    <Link
-      to="/clients/$clientId/$"
-      params={{ clientId: activeClient!.id, _splat: to }}
-      className={`flex items-center gap-2.5 pl-3 pr-3 py-1.5 rounded-md text-[13px] transition-colors ${
-        active ? "bg-sidebar-accent/80 text-sidebar-accent-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/40"
-      }`}
-    >
-      <Icon className="w-3.5 h-3.5 shrink-0" /> {label}
-    </Link>
-  );
+  const subClass = (active: boolean) =>
+    `flex items-center gap-2.5 pl-3 pr-3 py-1.5 rounded-md text-[13px] transition-colors ${
+      active ? "bg-sidebar-accent/80 text-sidebar-accent-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/40"
+    }`;
 
   const clientBase = activeClient ? `/clients/${activeClient.id}` : "";
 
