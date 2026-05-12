@@ -1,0 +1,1 @@
+ALTER TABLE public.instagram_highlights ADD COLUMN IF NOT EXISTS media_urls text[] NOT NULL DEFAULT '{}';
