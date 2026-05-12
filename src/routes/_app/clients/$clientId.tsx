@@ -47,14 +47,16 @@ function ClientDetail() {
     setClient(data);
   };
   const loadIG = async () => {
-    const [{ data: pr }, { data: ps }, { data: hi }] = await Promise.all([
+    const [{ data: pr }, { data: ps }, { data: hi }, { data: cm }] = await Promise.all([
       supabase.from("instagram_profiles").select("*").eq("client_id", clientId).maybeSingle(),
       supabase.from("instagram_posts").select("*").eq("client_id", clientId),
       supabase.from("instagram_highlights").select("*").eq("client_id", clientId),
+      supabase.from("instagram_post_comments").select("*").eq("client_id", clientId),
     ]);
     setProfile(pr as IGProfile | null);
     setPosts((ps ?? []) as IGPost[]);
     setHighlights((hi ?? []) as IGHighlight[]);
+    setComments((cm ?? []) as IGComment[]);
   };
 
   useEffect(() => {
