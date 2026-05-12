@@ -205,7 +205,7 @@ function ClientDetail() {
                       Publicaciones
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">
-                      <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type={view} profile={profile} />
+                      <PostsEditor clientId={clientId} posts={posts} setPosts={setPosts} type={view} profile={profile} comments={comments} setComments={setComments} />
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
