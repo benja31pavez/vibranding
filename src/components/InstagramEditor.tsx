@@ -945,6 +945,17 @@ export function PostsEditor({
                       </PopoverContent>
                     </Popover>
                   </td>
+                  <td className="px-2 py-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive h-8 w-8"
+                      onClick={() => removePost(p.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </td>
                   <td className="px-2 py-2 text-muted-foreground cursor-move">
                     <GripVertical className="w-4 h-4" />
                   </td>
