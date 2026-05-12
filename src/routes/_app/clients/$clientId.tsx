@@ -10,6 +10,7 @@ import { TaskList } from "@/components/TaskList";
 import { IdentityEditor, ConfigEditor, PostsEditor, HighlightsEditor, type IGProfile, type IGPost, type IGHighlight, type IGComment } from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
 import { PaymentsPanel } from "@/components/PaymentsPanel";
+import { MetaAdsPanel } from "@/components/MetaAdsPanel";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { SummaryExport } from "@/components/SummaryExport";
 import { exportElementToPdf } from "@/lib/exportPdf";
@@ -151,11 +152,12 @@ function ClientDetail() {
       <div className="grid lg:grid-cols-[1fr_360px] gap-10">
         <div>
           <Tabs defaultValue="summary" className="w-full">
-            <TabsList className="rounded-full bg-secondary p-1 h-auto">
+            <TabsList className="rounded-full bg-secondary p-1 h-auto flex-wrap">
               <TabsTrigger value="summary" className="rounded-full px-4 py-1.5">Resumen</TabsTrigger>
               <TabsTrigger value="objectives" className="rounded-full px-4 py-1.5">Objetivos</TabsTrigger>
               <TabsTrigger value="deliverables" className="rounded-full px-4 py-1.5">Entregables</TabsTrigger>
               <TabsTrigger value="instagram" className="rounded-full px-4 py-1.5">Instagram</TabsTrigger>
+              <TabsTrigger value="meta-ads" className="rounded-full px-4 py-1.5">Meta Ads</TabsTrigger>
               <TabsTrigger value="payments" className="rounded-full px-4 py-1.5">Pagos</TabsTrigger>
             </TabsList>
 
@@ -210,6 +212,10 @@ function ClientDetail() {
                   </AccordionItem>
                 </Accordion>
               )}
+            </TabsContent>
+
+            <TabsContent value="meta-ads" className="mt-6">
+              <MetaAdsPanel clientId={clientId} />
             </TabsContent>
 
             <TabsContent value="payments" className="mt-6">
