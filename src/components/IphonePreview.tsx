@@ -70,6 +70,7 @@ export function IphonePreview({
           <div className="flex items-center justify-between px-4 pt-6 pb-2">
             <div className="text-black font-semibold text-sm flex items-center gap-1">
               <span className="text-[15px]">{username}</span>
+              {verified && <BadgeCheck className="w-3.5 h-3.5 text-[#0095f6]" fill="#0095f6" stroke="white" />}
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
             </div>
             <div className="flex gap-3 text-black">
