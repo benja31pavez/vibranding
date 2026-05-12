@@ -152,9 +152,10 @@ export function IphonePreview({
             {Array.from({ length: 6 }).map((_, i) => {
               const p = myPosts.find((x) => x.position === i);
               const Icon = p?.format === "reel" ? Film : p?.format === "carousel" ? Layers : null;
+              const thumb = p?.format === "reel" ? (p.cover_url || p.image_url) : p?.image_url;
               return (
                 <div key={i} className="aspect-square bg-zinc-100 relative">
-                  {p?.image_url && <img src={p.image_url} className="w-full h-full object-cover" alt="" />}
+                  {thumb && <img src={thumb} className="w-full h-full object-cover" alt="" />}
                   {Icon && (
                     <div className="absolute top-1 right-1 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
                       <Icon className="w-3.5 h-3.5" fill="white" />
