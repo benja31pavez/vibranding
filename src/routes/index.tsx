@@ -104,7 +104,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
       {/* Services */}
       <section id="servicios" className="max-w-7xl mx-auto px-6 md:px-10 py-20">
         <div className="text-center mb-14">
-          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">Lo que <span className="text-gradient-brand">hacemos</span></h2>
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">Lo que <span className="font-brand-whats text-gradient-brand">hacemos</span></h2>
           <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
             Una propuesta completa para crecer con intención y datos.
           </p>
