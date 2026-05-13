@@ -5,14 +5,36 @@
 @font-face {
   font-family: "Marola";
   src: url("/fonts/Marola.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "WhatsHappened";
+  src: url("/fonts/WhatsHappened.ttf") format("truetype");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Schizoid";
+  src: url("/fonts/Schizoid_Personality.otf") format("opentype");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Quickend";
+  src: url("/fonts/quickend.ttf") format("truetype");
   font-display: swap;
 }
 
 @utility font-brand {
   font-family: "Marola", "SF Pro Display", system-ui, sans-serif;
   letter-spacing: 0;
+}
+@utility font-brand-whats {
+  font-family: "WhatsHappened", system-ui, sans-serif;
+}
+@utility font-brand-schizoid {
+  font-family: "Schizoid", system-ui, sans-serif;
+}
+@utility font-brand-quickend {
+  font-family: "Quickend", system-ui, sans-serif;
 }
 
 @custom-variant dark (&:is(.dark *));
