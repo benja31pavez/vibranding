@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Sparkles, Mail } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 export function SiteFooter() {
   return (
