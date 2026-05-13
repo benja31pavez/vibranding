@@ -19,7 +19,7 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-function Landing() {
+export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {}) {
   const { session, loading } = useAuth();
   const blob1 = useRef<HTMLDivElement>(null);
   const blob2 = useRef<HTMLDivElement>(null);
@@ -51,7 +51,7 @@ function Landing() {
   }, []);
 
   if (loading) return <div className="min-h-screen" />;
-  if (session) return <Navigate to="/dashboard" />;
+  if (session && !forcePublic) return <Navigate to="/dashboard" />;
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">

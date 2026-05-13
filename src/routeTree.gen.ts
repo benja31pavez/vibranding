@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LandingRouteImport } from './routes/landing'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as AppRouteImport } from './routes/_app'
@@ -43,6 +44,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LandingRoute = LandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaqRoute = FaqRouteImport.update({
@@ -139,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cookies': typeof CookiesRoute
   '/faq': typeof FaqRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cookies': typeof CookiesRoute
   '/faq': typeof FaqRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/cookies': typeof CookiesRoute
   '/faq': typeof FaqRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
@@ -205,6 +214,7 @@ export interface FileRouteTypes {
     | '/'
     | '/cookies'
     | '/faq'
+    | '/landing'
     | '/login'
     | '/privacy'
     | '/terms'
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
     | '/'
     | '/cookies'
     | '/faq'
+    | '/landing'
     | '/login'
     | '/privacy'
     | '/terms'
@@ -247,6 +258,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/cookies'
     | '/faq'
+    | '/landing'
     | '/login'
     | '/privacy'
     | '/terms'
@@ -270,6 +282,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   CookiesRoute: typeof CookiesRoute
   FaqRoute: typeof FaqRoute
+  LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
@@ -297,6 +310,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/faq': {
@@ -467,6 +487,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   CookiesRoute: CookiesRoute,
   FaqRoute: FaqRoute,
+  LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
