@@ -91,14 +91,6 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
                 <span className="font-brand-whats text-5xl text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
                 <span className="text-xs text-muted-foreground">WhatsHappened</span>
               </div>
-              <div className="flex items-baseline justify-between gap-4 border-b pb-3">
-                <span className="font-brand-schizoid text-5xl text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
-                <span className="text-xs text-muted-foreground">Schizoid Personality</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="font-brand-quickend text-5xl text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
-                <span className="text-xs text-muted-foreground">Quickend</span>
-              </div>
             </div>
           </div>
 
