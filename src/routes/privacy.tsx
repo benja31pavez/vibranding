@@ -34,7 +34,7 @@ export const Route = createFileRoute("/privacy")({
       <p>Aplicamos medidas técnicas y organizativas razonables para proteger tu información, incluyendo cifrado en tránsito y control de accesos.</p>
 
       <h2>5. Tus derechos</h2>
-      <p>Puedes acceder, corregir o eliminar tus datos en cualquier momento escribiéndonos a <a href="mailto:hola@viralitycs.com">hola@viralitycs.com</a>.</p>
+      <p>Puedes acceder, corregir o eliminar tus datos en cualquier momento contactándonos por los canales indicados en el sitio.</p>
 
       <h2>6. Conservación</h2>
       <p>Conservamos tus datos mientras dure la relación comercial y por el tiempo que la ley nos exija después.</p>
