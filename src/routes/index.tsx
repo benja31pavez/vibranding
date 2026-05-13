@@ -137,13 +137,13 @@ function Landing() {
       {/* CTA contact */}
       <section id="contacto" className="max-w-4xl mx-auto px-6 md:px-10 py-24 text-center">
         <h2 className="text-4xl md:text-6xl font-semibold tracking-tight">
-          ¿Listo para crecer con nosotros?
+          ¿Listo para <span className="text-gradient-brand">crecer</span> con nosotros?
         </h2>
         <p className="mt-5 text-lg text-muted-foreground">
           Cuéntanos sobre tu marca y te respondemos con una propuesta personalizada.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Button asChild size="lg" className="rounded-full px-8 h-12 text-base">
+          <Button asChild size="lg" className="rounded-full px-8 h-12 text-base bg-gradient-brand hover:opacity-90 text-white border-0 shadow-lg shadow-[color:var(--brand-2)]/30 hover-scale">
             <a href="https://wa.me/" target="_blank" rel="noreferrer">Escríbenos por WhatsApp</a>
           </Button>
         </div>
