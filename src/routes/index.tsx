@@ -57,7 +57,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <header className="px-6 md:px-10 py-5 flex items-center justify-between max-w-7xl mx-auto relative z-10">
         <Link to="/" className="flex items-center gap-2">
-          <span className="font-brand-whats text-4xl tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
+          <span className="font-brand-whats text-6xl tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm">
           <a href="#servicios" className="text-muted-foreground hover:text-foreground story-link">Servicios</a>
