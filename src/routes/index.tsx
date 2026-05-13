@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { SiteFooter } from "@/components/SiteFooter";
 import {
   Sparkles, Instagram, Megaphone, BarChart3, ArrowRight, Check, Mail,
 } from "lucide-react";
@@ -139,9 +140,7 @@ function Landing() {
         </ul>
       </section>
 
-      <footer className="border-t py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Viralitycs. Todos los derechos reservados.
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

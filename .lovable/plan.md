@@ -1,60 +1,59 @@
-## Nueva estructura del menú izquierdo
+## Mejoras propuestas
 
-```
-Viralitycs
-├─ GLOBAL
-│  ├─ Dashboard          (/)  — pendientes, próximos pagos, KPIs
-│  ├─ Clientes           (/clients)
-│  ├─ Calendario         (/calendar) — publicaciones programadas de todos
-│  ├─ Reportes           (/reports) — métricas agregadas
-│  └─ Tarifas            (/settings/pricing)
-│
-├─ CLIENTE CONECTADO  (visible solo si hay uno activo)
-│  ▸ [Avatar] Sori Sweet · @sorisweet.cl   [×]
-│     ├─ Resumen        (/clients/:id)
-│     ├─ Instagram      (/clients/:id/instagram)
-│     ├─ Meta Ads       (/clients/:id/meta-ads)
-│     ├─ Objetivos      (/clients/:id/objectives)
-│     ├─ Entregables    (/clients/:id/deliverables)
-│     └─ Pagos          (/clients/:id/payments)
-│
-└─ usuario@email · Cerrar sesión
-```
+### 1. Objetivos
+- **Prioridad** (alta/media/baja) con badge de color y orden por prioridad + fecha.
+- **Métrica medible**: campo opcional `target_value` + `current_value` + `unit` (ej: "Llegar a 10.000 seguidores"), con barra de progreso visual.
+- **Categoría** (Crecimiento, Engagement, Ventas, Branding) con icono.
+- **Vinculación a entregables**: marcar qué entregables aportan a cada objetivo.
+- **Indicador de vencimiento**: pill rojo si la fecha pasó y no está completado.
 
-Si no hay cliente conectado, el bloque "Cliente conectado" muestra "Sin cliente conectado" en gris. Al hacer click en una tarjeta de cliente queda como activo.
+### 2. Entregables
+- **Vista Kanban** opcional (Pendiente / En curso / Completado) además del listado.
+- **Tipo** (Post, Reel, Historia, Diseño, Reunión, Reporte) con icono.
+- **Asignar a un post de Instagram**: si el entregable es contenido, vincularlo al post programado del calendario.
+- **Subtareas / checklist** dentro de cada entregable.
+- **Adjuntos** (imagen / link de referencia) usando el storage existente.
+- **Filtros** por estado, tipo y rango de fechas; **agrupación por semana**.
 
-## Páginas nuevas
+### 3. Resumen del cliente
+- **Hero del cliente**: avatar grande, handle, métricas IG (seguidores, posts, engagement) en una fila.
+- **Próximas acciones**: lista de los 3 entregables y posts más cercanos.
+- **Salud del proyecto**: 3 indicadores tipo semáforo (Objetivos en plazo, Entregables al día, Pagos al día).
+- **Mini-timeline de 30 días**: actividad reciente (post publicado, pago recibido, entregable completado).
+- **Mini-preview de Instagram** (3-6 posts del feed propuesto) con CTA "Ver Instagram".
+- **Resumen financiero compacto** (cobrado vs pendiente vs propuesto) con barra apilada en lugar de solo número.
 
-1. **Dashboard `/`** (después de login) — tarjetas con: clientes totales, próximos entregables (7 días), pagos vencidos / pendientes, próximas publicaciones programadas, ingresos del mes (suma de `payments.amount` con status `paid`).
+### 4. Landing page (cómo se ve hoy)
+La landing en `/` está implementada con:
+- Header + nav (Servicios / Cómo funciona / Contacto) + Iniciar sesión.
+- Hero centrado: "Hacemos que tu marca se vuelva viral".
+- 3 tarjetas de servicios (Instagram, Meta Ads, Reportes).
+- Sección "Cómo trabajamos" en 3 pasos.
+- CTA de contacto con email `hola@viralitycs.com` y WhatsApp.
+- Footer minimalista.
 
-2. **Calendario `/calendar`** — vista mensual con `instagram_posts.scheduled_at` de todos los clientes; cada evento coloreado por cliente, click abre el post.
+Para verla: cierra sesión o abre `/` en una ventana privada (si hay sesión te redirige a `/dashboard`). Puedo agregar un enlace "Ver landing" en el menú de usuario para revisarla sin cerrar sesión.
 
-3. **Reportes `/reports`** — agregados por cliente y totales:
-   - Instagram: total posts publicados/programados, likes acumulados.
-   - Meta Ads: spend, impressions, clicks, ROAS (suma de `meta_ads_insights`).
-   - Ingresos: pagados vs pendientes por mes.
-   - Filtro por rango de fechas y por cliente.
-
-## Cambios en rutas existentes
-
-- `/clients/$clientId` deja de usar `Tabs` internos. En su lugar:
-  - `/clients/$clientId` → Resumen (lo que hoy es la pestaña "Resumen").
-  - Se crean sub-rutas: `instagram.tsx`, `meta-ads.tsx`, `objectives.tsx`, `deliverables.tsx`, `payments.tsx` bajo `_app/clients/$clientId/`.
-  - El layout `_app/clients/$clientId.tsx` mantiene el header del cliente (nombre, handle, eliminar, exportar PDF) y un `<Outlet/>`.
-- La landing pública pasa de `/` a `/welcome` (o se mantiene `/` con redirect a `/dashboard` si hay sesión, lo que ya hace hoy → simplemente el "home" autenticado se vuelve el Dashboard).
+### 5. Footer estilo de la imagen (FAQ / TOS / Privacidad / Cookies)
+Replicar el bloque de la foto, adaptado a Viralitycs:
+- **Footer ampliado** en la landing con 4 columnas:
+  - Producto: Servicios, Cómo funciona, Contacto.
+  - Recursos: **Preguntas Frecuentes** (`/faq`).
+  - Legal: **Términos de Servicio** (`/terms`), **Política de Privacidad** (`/privacy`), **Cookies** (`/cookies`).
+  - Marca: logo Viralitycs + tagline + email.
+- Línea inferior: `© 2026 Viralitycs. Todos los derechos reservados.`
+- Crear las 4 páginas con contenido base editable (FAQ con 6-8 preguntas iniciales, los 3 documentos legales con plantilla estándar para agencia de marketing en Chile/LatAm).
+- Agregar los enlaces también en el footer de `_app` (área autenticada) para que sean accesibles desde dentro de la app.
 
 ## Detalles técnicos
 
-- **Sidebar**: refactorizar `src/routes/_app.tsx` para usar el componente `Sidebar` de shadcn (`SidebarProvider`, `SidebarGroup`, `SidebarGroupLabel`, `SidebarMenu`) y permitir colapsar a modo icono. Trigger en el header.
-- **Cliente activo**: la lógica actual (URL match + `localStorage`) se conserva; se eleva a un `ActiveClientContext` para que las sub-rutas también lo lean sin re-fetch.
-- **Sub-rutas del cliente**: cada sub-ruta carga solo los datos que necesita (no se carga IG completo al entrar a Pagos). Migrar el contenido actual de cada `TabsContent` a su archivo de ruta correspondiente.
-- **Dashboard**: queries paralelas a `clients`, `deliverables` (status pending, due_date ≤ +7d), `payments` (pending/overdue), `instagram_posts` (scheduled_at futuro), `payments` (paid del mes).
-- **Calendario**: usar el componente `Calendar` de shadcn como base + lista lateral de eventos del día seleccionado. Sin librería extra.
-- **Reportes**: tablas + tarjetas con totales; sin gráficos en v1 (se puede agregar `recharts` después si quieres).
-- **Rutas protegidas**: todo bajo `_app` ya redirige a `/login` si no hay sesión.
+- **Objetivos**: migración para añadir `priority`, `category`, `target_value numeric`, `current_value numeric`, `unit text` a `objectives`. Tabla pivote opcional `objective_deliverables(objective_id, deliverable_id)`.
+- **Entregables**: añadir `type` (enum: post/reel/story/design/meeting/report/other), `instagram_post_id uuid null` (FK a `instagram_posts`), `checklist jsonb` (array `{text, done}`), `attachments jsonb`. Vista Kanban con `@dnd-kit/core` (ya disponible en shadcn) — reutiliza `Tabs` si prefieres no añadir DnD en v1.
+- **Resumen**: nuevo componente `ClientHealth` (3 semáforos), `RecentActivity` (consulta unificada de los últimos 10 eventos por cliente), `MiniFeed` (primeros posts ordenados de `instagram_posts`).
+- **Landing/legal**: 4 nuevas rutas (`/faq`, `/terms`, `/privacy`, `/cookies`) con `head()` propio (title, description, og). Footer extraído a `src/components/SiteFooter.tsx` reutilizable en landing y legales.
+- Sin cambios en auth ni en backend para landing/legal.
 
 ## Fuera de alcance
-
-- Notificaciones, búsqueda global, multi-workspace, roles/permisos.
-- Gráficos avanzados en Reportes (se puede agregar en otra iteración).
-- Edición masiva de publicaciones desde el calendario (solo lectura + click → ir al post).
+- DnD avanzado en Kanban (v1 con clic-cambia-estado).
+- Notificaciones, recordatorios automáticos por email.
+- Generador de FAQ dinámica desde DB (texto estático en v1, fácil de mover a DB después).
