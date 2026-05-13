@@ -71,7 +71,7 @@ function ClientsList() {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-full h-11 px-5"><Plus className="w-4 h-4 mr-1" /> Nuevo cliente</Button>
+            <Button className="rounded-full h-11 px-5 bg-gradient-brand bg-gradient-brand-animated text-white border-0 hover:opacity-90"><Plus className="w-4 h-4 mr-1" /> Nuevo cliente</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Nuevo cliente</DialogTitle></DialogHeader>
