@@ -19,7 +19,7 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-function Landing() {
+export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {}) {
   const { session, loading } = useAuth();
   const blob1 = useRef<HTMLDivElement>(null);
   const blob2 = useRef<HTMLDivElement>(null);
