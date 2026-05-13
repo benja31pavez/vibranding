@@ -87,7 +87,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
                 <span className="font-brand text-5xl text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
                 <span className="text-xs text-muted-foreground">Marola (actual)</span>
               </div>
-              <div className="flex items-baseline justify-between gap-4 border-b pb-3">
+              <div className="flex items-baseline justify-between gap-4">
                 <span className="font-brand-whats text-5xl text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
                 <span className="text-xs text-muted-foreground">WhatsHappened</span>
               </div>
