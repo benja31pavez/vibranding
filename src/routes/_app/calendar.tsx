@@ -87,7 +87,7 @@ function CalendarPage() {
     <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
       <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Calendario</h1>
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight"><span className="font-brand text-gradient-brand bg-gradient-brand-animated">Calendario</span></h1>
           <p className="text-muted-foreground">Publicaciones programadas de todos tus clientes.</p>
         </div>
         <div className="flex items-center gap-2">
