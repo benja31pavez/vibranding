@@ -64,12 +64,14 @@ function ClientsList() {
     <div className="max-w-6xl mx-auto px-6 md:px-10 py-10">
       <header className="flex items-center justify-between mb-10">
         <div>
-          <h1 className="text-4xl font-semibold tracking-tight">Clientes</h1>
+          <h1 className="text-4xl font-semibold tracking-tight">
+            <span className="font-brand text-gradient-brand bg-gradient-brand-animated">Clientes</span>
+          </h1>
           <p className="text-muted-foreground mt-1">Gestiona las asesorías de cada uno.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-full h-11 px-5"><Plus className="w-4 h-4 mr-1" /> Nuevo cliente</Button>
+            <Button className="rounded-full h-11 px-5 bg-gradient-brand bg-gradient-brand-animated text-white border-0 hover:opacity-90"><Plus className="w-4 h-4 mr-1" /> Nuevo cliente</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Nuevo cliente</DialogTitle></DialogHeader>
