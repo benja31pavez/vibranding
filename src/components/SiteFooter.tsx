@@ -15,12 +15,6 @@ export function SiteFooter() {
           <p className="text-sm text-muted-foreground mt-4 max-w-xs">
             Crecemos tu marca en Instagram y Meta Ads con estrategia, diseño y datos.
           </p>
-          <a
-            href="mailto:hola@viralitycs.com"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mt-4"
-          >
-            <Mail className="w-4 h-4" /> hola@viralitycs.com
-          </a>
         </div>
 
         <FooterCol title="Producto">
