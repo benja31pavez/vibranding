@@ -745,29 +745,16 @@ export function PostsEditor({
                   </td>
                   <td className="px-2 py-2">
                     <Input
-                      type="date"
-                      value={date}
+                      type="datetime-local"
+                      value={date && time ? `${date}T${time}` : date ? `${date}T00:00` : ""}
                       onChange={(e) => {
-                        const v = combineDateTime(e.target.value, time);
+                        const [d, t] = e.target.value.split("T");
+                        const v = combineDateTime(d ?? "", t ?? "");
                         setLocal(p.id, { scheduled_at: v });
                       }}
                       onBlur={(e) => {
-                        const v = combineDateTime(e.target.value, time);
-                        saveRemote(p.id, { scheduled_at: v });
-                      }}
-                      className="h-8 text-xs"
-                    />
-                  </td>
-                  <td className="px-2 py-2">
-                    <Input
-                      type="time"
-                      value={time}
-                      onChange={(e) => {
-                        const v = combineDateTime(date, e.target.value);
-                        setLocal(p.id, { scheduled_at: v });
-                      }}
-                      onBlur={(e) => {
-                        const v = combineDateTime(date, e.target.value);
+                        const [d, t] = e.target.value.split("T");
+                        const v = combineDateTime(d ?? "", t ?? "");
                         saveRemote(p.id, { scheduled_at: v });
                       }}
                       className="h-8 text-xs"
