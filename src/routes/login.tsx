@@ -57,10 +57,10 @@ function LoginPage() {
             <span className="text-4xl md:text-5xl font-bold italic tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
           </Link>
           <h1 className="mt-6 text-5xl font-semibold leading-[1.05]">
-            Propuestas que <span className="font-brand text-gradient-brand bg-gradient-brand-animated">vibran</span>.
+            Hacemos que tu branding <span className="font-brand text-gradient-brand bg-gradient-brand-animated">vibre</span>.
           </h1>
           <p className="mt-5 text-lg text-muted-foreground">
-            Objetivos, entregables, propuestas de Instagram y pagos. Todo de un cliente, en un solo lugar.
+            Objetivos, publicaciones, optimización, publicidad y pagos, todo en un solo lugar.
           </p>
         </div>
       </div>
