@@ -84,7 +84,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
             Especialistas en Instagram y Meta Ads
           </div>
           <h1 className="text-5xl md:text-7xl font-semibold tracking-tight leading-[1.05] max-w-4xl mx-auto animate-fade-in">
-            Hacemos que tu marca <span className="text-gradient-brand bg-gradient-brand-animated">crezca de verdad</span>.
+            Hacemos que tu marca <span className="font-brand-whats text-gradient-brand bg-gradient-brand-animated">crezca de verdad</span>.
           </h1>
           <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in">
             En Vibranding combinamos diseño, estrategia y publicidad pagada para
@@ -104,7 +104,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
       {/* Services */}
       <section id="servicios" className="max-w-7xl mx-auto px-6 md:px-10 py-20">
         <div className="text-center mb-14">
-          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">Lo que <span className="text-gradient-brand">hacemos</span></h2>
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">Lo que <span className="font-brand-whats text-gradient-brand">hacemos</span></h2>
           <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
             Una propuesta completa para crecer con intención y datos.
           </p>
@@ -145,7 +145,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
         </div>
         <div className="relative max-w-7xl mx-auto px-6 md:px-10">
           <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">Cómo <span className="text-gradient-brand">trabajamos</span></h2>
+            <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">Cómo <span className="font-brand-whats text-gradient-brand">trabajamos</span></h2>
           </div>
           <div className="grid md:grid-cols-3 gap-5">
             {[
@@ -166,7 +166,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
       {/* CTA contact */}
       <section id="contacto" className="max-w-4xl mx-auto px-6 md:px-10 py-24 text-center">
         <h2 className="text-4xl md:text-6xl font-semibold tracking-tight">
-          ¿Listo para <span className="text-gradient-brand">crecer</span> con nosotros?
+          ¿Listo para <span className="font-brand-whats text-gradient-brand">crecer</span> con nosotros?
         </h2>
         <p className="mt-5 text-lg text-muted-foreground">
           Cuéntanos sobre tu marca y te respondemos con una propuesta personalizada.
