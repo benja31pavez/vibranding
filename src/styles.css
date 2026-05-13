@@ -29,9 +29,11 @@
 }
 @utility font-brand-whats {
   font-family: "WhatsHappened", system-ui, sans-serif;
-  line-height: 1.4;
+  line-height: 1.85;
   display: inline-block;
-  padding: 0.1em 0.05em 0.25em;
+  padding: 0.38em 0.08em 0.48em;
+  vertical-align: middle;
+  overflow: visible;
 }
 @utility font-brand-schizoid {
   font-family: "Schizoid", system-ui, sans-serif;
