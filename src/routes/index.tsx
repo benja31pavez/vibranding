@@ -79,21 +79,6 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
         </div>
 
         <div ref={heroContent} className="will-change-transform">
-          {/* Font comparison preview */}
-          <div className="mx-auto mb-10 max-w-2xl rounded-2xl border bg-card/70 backdrop-blur p-6 md:p-8">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-4">Comparativa de tipografías para el logo</p>
-            <div className="space-y-3 text-left">
-              <div className="flex items-baseline justify-between gap-4 border-b pb-3">
-                <span className="font-brand text-5xl text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
-                <span className="text-xs text-muted-foreground">Marola (actual)</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="font-brand-whats text-5xl text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
-                <span className="text-xs text-muted-foreground">WhatsHappened</span>
-              </div>
-            </div>
-          </div>
-
           <div className="inline-flex items-center gap-2 rounded-full border bg-card/70 backdrop-blur px-3 py-1 text-xs text-muted-foreground mb-6 animate-fade-in">
             <span className="w-1.5 h-1.5 rounded-full bg-gradient-brand"></span>
             Especialistas en Instagram y Meta Ads
