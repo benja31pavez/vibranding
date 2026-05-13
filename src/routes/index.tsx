@@ -1,4 +1,5 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -20,6 +21,35 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const { session, loading } = useAuth();
+  const blob1 = useRef<HTMLDivElement>(null);
+  const blob2 = useRef<HTMLDivElement>(null);
+  const blob3 = useRef<HTMLDivElement>(null);
+  const heroContent = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (blob1.current) blob1.current.style.transform = `translate3d(${y * 0.05}px, ${y * 0.25}px, 0)`;
+        if (blob2.current) blob2.current.style.transform = `translate3d(${y * -0.08}px, ${y * 0.18}px, 0)`;
+        if (blob3.current) blob3.current.style.transform = `translate3d(${y * 0.04}px, ${y * 0.4}px, 0)`;
+        if (heroContent.current) {
+          heroContent.current.style.transform = `translate3d(0, ${y * 0.12}px, 0)`;
+          heroContent.current.style.opacity = String(Math.max(0, 1 - y / 700));
+        }
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   if (loading) return <div className="min-h-screen" />;
   if (session) return <Navigate to="/dashboard" />;
 
@@ -46,29 +76,31 @@ function Landing() {
       <section className="relative max-w-7xl mx-auto px-6 md:px-10 pt-12 md:pt-24 pb-20 md:pb-32 text-center">
         {/* Animated background blobs */}
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="blob absolute -top-20 -left-10 w-[420px] h-[420px] rounded-full bg-[color:var(--brand-1)]/40" />
-          <div className="blob absolute top-10 right-0 w-[380px] h-[380px] rounded-full bg-[color:var(--brand-2)]/40" style={{ animationDelay: "-5s" }} />
-          <div className="blob absolute bottom-0 left-1/3 w-[340px] h-[340px] rounded-full bg-[color:var(--brand-3)]/35" style={{ animationDelay: "-9s" }} />
+          <div ref={blob1} className="blob absolute -top-20 -left-10 w-[420px] h-[420px] rounded-full bg-[color:var(--brand-1)]/40 will-change-transform" />
+          <div ref={blob2} className="blob absolute top-10 right-0 w-[380px] h-[380px] rounded-full bg-[color:var(--brand-2)]/40 will-change-transform" style={{ animationDelay: "-5s" }} />
+          <div ref={blob3} className="blob absolute bottom-0 left-1/3 w-[340px] h-[340px] rounded-full bg-[color:var(--brand-3)]/35 will-change-transform" style={{ animationDelay: "-9s" }} />
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-full border bg-card/70 backdrop-blur px-3 py-1 text-xs text-muted-foreground mb-6 animate-fade-in">
-          <span className="w-1.5 h-1.5 rounded-full bg-gradient-brand"></span>
-          Especialistas en Instagram y Meta Ads
-        </div>
-        <h1 className="text-5xl md:text-7xl font-semibold tracking-tight leading-[1.05] max-w-4xl mx-auto animate-fade-in">
-          Hacemos que tu marca <span className="text-gradient-brand bg-gradient-brand-animated">crezca de verdad</span>.
-        </h1>
-        <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in">
-          En Viralitycs combinamos diseño, estrategia y publicidad pagada para
-          convertir tu Instagram en una máquina de captar clientes.
-        </p>
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in">
-          <Button asChild size="lg" className="rounded-full px-8 h-12 text-base bg-gradient-brand hover:opacity-90 text-white border-0 shadow-lg shadow-[color:var(--brand-2)]/30 hover-scale">
-            <a href="#contacto">Hablemos de tu marca <ArrowRight className="w-4 h-4 ml-1" /></a>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="rounded-full px-8 h-12 text-base hover-scale">
-            <a href="#servicios">Ver servicios</a>
-          </Button>
+        <div ref={heroContent} className="will-change-transform">
+          <div className="inline-flex items-center gap-2 rounded-full border bg-card/70 backdrop-blur px-3 py-1 text-xs text-muted-foreground mb-6 animate-fade-in">
+            <span className="w-1.5 h-1.5 rounded-full bg-gradient-brand"></span>
+            Especialistas en Instagram y Meta Ads
+          </div>
+          <h1 className="text-5xl md:text-7xl font-semibold tracking-tight leading-[1.05] max-w-4xl mx-auto animate-fade-in">
+            Hacemos que tu marca <span className="text-gradient-brand bg-gradient-brand-animated">crezca de verdad</span>.
+          </h1>
+          <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in">
+            En Viralitycs combinamos diseño, estrategia y publicidad pagada para
+            convertir tu Instagram en una máquina de captar clientes.
+          </p>
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in">
+            <Button asChild size="lg" className="rounded-full px-8 h-12 text-base bg-gradient-brand hover:opacity-90 text-white border-0 shadow-lg shadow-[color:var(--brand-2)]/30 hover-scale">
+              <a href="#contacto">Hablemos de tu marca <ArrowRight className="w-4 h-4 ml-1" /></a>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="rounded-full px-8 h-12 text-base hover-scale">
+              <a href="#servicios">Ver servicios</a>
+            </Button>
+          </div>
         </div>
       </section>
 
