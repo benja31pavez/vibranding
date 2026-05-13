@@ -601,8 +601,7 @@ export function PostsEditor({
               <th className="text-left px-2 py-2 w-20">Imagen</th>
               <th className="text-left px-2 py-2 w-28">Tipo</th>
               <th className="text-left px-2 py-2 w-10" title="Mejores amigos">★</th>
-              <th className="text-left px-2 py-2 w-36">Fecha</th>
-              <th className="text-left px-2 py-2 w-24">Hora</th>
+              <th className="text-left px-2 py-2 w-48">Fecha</th>
               <th className="text-left px-2 py-2">Caption</th>
               <th className="text-left px-2 py-2 w-20">Engagement</th>
               <th className="text-left px-2 py-2 w-44">Objetivo</th>
