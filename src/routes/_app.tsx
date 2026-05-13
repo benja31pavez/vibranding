@@ -77,14 +77,14 @@ function AppLayout() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r bg-sidebar">
-        <div className="px-6 py-6">
+      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r bg-sidebar sticky top-0 h-screen">
+        <div className="px-6 pt-6 pb-4 shrink-0">
           <Link to="/dashboard" className="flex items-center gap-2">
-            <span className="font-brand text-3xl tracking-tight">Vibranding</span>
+            <span className="font-brand text-3xl tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
           </Link>
         </div>
 
-        <nav className="px-3 space-y-4 overflow-y-auto pb-4">
+        <nav className="px-3 space-y-3 flex-1 min-h-0 overflow-hidden pb-2">
           {/* Global */}
           <div className="space-y-1">
             <div className="px-3 text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">General</div>
