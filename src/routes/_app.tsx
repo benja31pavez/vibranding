@@ -80,7 +80,7 @@ function AppLayout() {
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r bg-sidebar">
         <div className="px-6 py-6">
           <Link to="/dashboard" className="flex items-center gap-2">
-            <span className="font-brand text-xl tracking-tight">Vibranding</span>
+            <span className="font-brand text-3xl tracking-tight">Vibranding</span>
           </Link>
         </div>
 
