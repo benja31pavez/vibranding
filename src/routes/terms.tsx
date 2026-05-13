@@ -37,7 +37,7 @@ export const Route = createFileRoute("/terms")({
       <p>Podemos actualizar estos términos. Las modificaciones aplican a partir de su publicación en este sitio.</p>
 
       <h2>9. Contacto</h2>
-      <p>Dudas o reclamos: <a href="mailto:hola@viralitycs.com">hola@viralitycs.com</a>.</p>
+      <p>Para dudas o reclamos, contáctanos por los canales indicados en el sitio.</p>
     </LegalPage>
   ),
 });
