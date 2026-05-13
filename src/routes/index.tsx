@@ -21,6 +21,35 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const { session, loading } = useAuth();
+  const blob1 = useRef<HTMLDivElement>(null);
+  const blob2 = useRef<HTMLDivElement>(null);
+  const blob3 = useRef<HTMLDivElement>(null);
+  const heroContent = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (blob1.current) blob1.current.style.transform = `translate3d(${y * 0.05}px, ${y * 0.25}px, 0)`;
+        if (blob2.current) blob2.current.style.transform = `translate3d(${y * -0.08}px, ${y * 0.18}px, 0)`;
+        if (blob3.current) blob3.current.style.transform = `translate3d(${y * 0.04}px, ${y * 0.4}px, 0)`;
+        if (heroContent.current) {
+          heroContent.current.style.transform = `translate3d(0, ${y * 0.12}px, 0)`;
+          heroContent.current.style.opacity = String(Math.max(0, 1 - y / 700));
+        }
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   if (loading) return <div className="min-h-screen" />;
   if (session) return <Navigate to="/dashboard" />;
 
