@@ -7,7 +7,7 @@ export function LegalPage({ title, updated, children }: { title: string; updated
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="px-6 md:px-10 py-5 flex items-center justify-between max-w-7xl mx-auto w-full">
         <Link to="/" className="flex items-center gap-2">
-          <span className="font-semibold text-xl tracking-tight">Vibranding</span>
+          <span className="font-brand text-2xl tracking-tight">Vibranding</span>
         </Link>
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Volver al inicio
