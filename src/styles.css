@@ -2,6 +2,19 @@
 @source "../src";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: "Marola";
+  src: url("/fonts/Marola.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@utility font-brand {
+  font-family: "Marola", "SF Pro Display", system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
