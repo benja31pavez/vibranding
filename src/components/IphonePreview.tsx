@@ -197,36 +197,33 @@ export function IphonePreview({
               </div>
             )}
 
-            {/* Highlights — 5 perfect circles */}
-            <div className="mt-3 grid grid-cols-5 gap-2">
-              {Array.from({ length: 5 }).map((_, i) => {
-                const h = myHighlights[i];
-                return (
+            {/* Highlights — only render added ones */}
+            {myHighlights.length > 0 && (
+              <div className="mt-3 grid grid-cols-5 gap-2">
+                {myHighlights.slice(0, 5).map((h) => (
                   <button
-                    key={h?.id ?? i}
+                    key={h.id}
                     type="button"
-                    disabled={!h}
                     onClick={() => {
-                      if (!h) return;
                       setStoryHighlight(h);
                       setStoryIndex(0);
                     }}
-                    className="flex flex-col items-center min-w-0 disabled:cursor-default"
+                    className="flex flex-col items-center min-w-0"
                   >
                     <div className="w-12 h-12 rounded-full border border-zinc-300 p-[2px] bg-white">
-                      {h?.cover_url ? (
+                      {h.cover_url ? (
                         <img src={h.cover_url} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
                         <div className="w-full h-full rounded-full bg-zinc-100" />
                       )}
                     </div>
                     <div className="text-[9px] text-black mt-1 truncate w-full text-center leading-tight">
-                      {h?.title || ""}
+                      {h.title || ""}
                     </div>
                   </button>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mt-3 border-t border-zinc-200 flex text-zinc-500">

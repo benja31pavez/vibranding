@@ -4,7 +4,21 @@ import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+
+const CURRENCY_OPTIONS = [
+  { code: "USD", label: "USD · Dólar estadounidense" },
+  { code: "EUR", label: "EUR · Euro" },
+  { code: "CLP", label: "CLP · Peso chileno" },
+  { code: "MXN", label: "MXN · Peso mexicano" },
+  { code: "ARS", label: "ARS · Peso argentino" },
+  { code: "COP", label: "COP · Peso colombiano" },
+  { code: "PEN", label: "PEN · Sol peruano" },
+  { code: "BRL", label: "BRL · Real brasileño" },
+  { code: "GBP", label: "GBP · Libra esterlina" },
+  { code: "UYU", label: "UYU · Peso uruguayo" },
+];
 
 export interface PricingSettings {
   id: string;
@@ -84,12 +98,25 @@ export function PricingPanel() {
       </div>
 
       <div className="rounded-2xl border bg-surface p-5 space-y-4">
-        <TextLine
-          label="Moneda (ej. USD, EUR, CLP)"
-          value={p.currency}
-          onChange={(v) => set({ currency: v.toUpperCase() })}
-          onBlur={(v) => save({ currency: v.toUpperCase() || "USD" })}
-        />
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Moneda</Label>
+          <Select
+            value={p.currency}
+            onValueChange={(v) => {
+              set({ currency: v });
+              save({ currency: v });
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecciona una moneda" />
+            </SelectTrigger>
+            <SelectContent>
+              {CURRENCY_OPTIONS.map((c) => (
+                <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="rounded-2xl border bg-surface p-5 space-y-4">
