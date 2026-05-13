@@ -29,7 +29,7 @@ export const Route = createFileRoute("/cookies")({
       <p>Puedes borrar o bloquear las cookies desde la configuración de tu navegador. Ten en cuenta que algunas funciones pueden dejar de operar correctamente si las desactivas.</p>
 
       <h2>Contacto</h2>
-      <p>Dudas sobre esta política: <a href="mailto:hola@viralitycs.com">hola@viralitycs.com</a>.</p>
+      <p>Para dudas sobre esta política, contáctanos por los canales indicados en el sitio.</p>
     </LegalPage>
   ),
 });
