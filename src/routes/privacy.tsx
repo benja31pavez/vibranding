@@ -4,13 +4,13 @@ import { LegalPage } from "@/components/LegalPage";
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "Política de Privacidad — Viralitycs" },
-      { name: "description", content: "Cómo Viralitycs recopila, usa y protege tus datos personales." },
+      { title: "Política de Privacidad — Vibranding" },
+      { name: "description", content: "Cómo Vibranding recopila, usa y protege tus datos personales." },
     ],
   }),
   component: () => (
     <LegalPage title="Política de Privacidad" updated="13 de mayo de 2026">
-      <p>En Viralitycs respetamos tu privacidad. Esta política explica qué datos recopilamos y cómo los usamos.</p>
+      <p>En Vibranding respetamos tu privacidad. Esta política explica qué datos recopilamos y cómo los usamos.</p>
 
       <h2>1. Datos que recopilamos</h2>
       <ul>
