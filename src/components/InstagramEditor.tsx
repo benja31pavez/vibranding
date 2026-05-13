@@ -787,21 +787,49 @@ export function PostsEditor({
                           )}
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-96" align="start">
-                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          Caption
-                        </Label>
-                        <Textarea
-                          autoFocus
-                          placeholder="Escribe el caption…"
-                          value={p.caption ?? ""}
-                          rows={8}
-                          onChange={(e) => setLocal(p.id, { caption: e.target.value })}
-                          onBlur={(e) => saveRemote(p.id, { caption: e.target.value || null })}
-                          className="text-sm mt-1"
-                        />
-                        <div className="text-[10px] text-muted-foreground text-right mt-1">
-                          {(p.caption ?? "").length} caracteres
+                      <PopoverContent className="w-96 space-y-3" align="start">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                            Caption
+                          </Label>
+                          <Textarea
+                            autoFocus
+                            placeholder="Escribe el caption…"
+                            value={p.caption ?? ""}
+                            rows={8}
+                            onChange={(e) => setLocal(p.id, { caption: e.target.value })}
+                            onBlur={(e) => saveRemote(p.id, { caption: e.target.value || null })}
+                            className="text-sm mt-1"
+                          />
+                          <div className="text-[10px] text-muted-foreground text-right">
+                            {(p.caption ?? "").length} caracteres
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                              <MapPin className="w-3 h-3" /> Ubicación
+                            </Label>
+                            <Input
+                              placeholder="Ej: Madrid, España"
+                              value={p.location ?? ""}
+                              onChange={(e) => setLocal(p.id, { location: e.target.value })}
+                              onBlur={(e) => saveRemote(p.id, { location: e.target.value || null })}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                              <Music className="w-3 h-3" /> Música
+                            </Label>
+                            <Input
+                              placeholder="Artista — Canción"
+                              value={p.music ?? ""}
+                              onChange={(e) => setLocal(p.id, { music: e.target.value })}
+                              onBlur={(e) => saveRemote(p.id, { music: e.target.value || null })}
+                              className="h-8 text-xs"
+                            />
+                          </div>
                         </div>
                       </PopoverContent>
                     </Popover>
