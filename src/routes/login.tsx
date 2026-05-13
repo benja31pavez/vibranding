@@ -53,7 +53,7 @@ function LoginPage() {
         <div className="absolute top-1/3 left-1/4 w-[24rem] h-[24rem] rounded-full bg-[color:var(--brand-2)]/25 blur-3xl" />
         <div className="absolute bottom-0 right-0 w-[28rem] h-[28rem] rounded-full bg-[color:var(--brand-3)]/25 blur-3xl" />
         <div className="relative max-w-md px-12">
-          <h1 className="text-5xl md:text-6xl font-semibold leading-[1.05] tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-semibold leading-[1.1] tracking-tight">
             En <Link to="/" className="font-bold italic text-gradient-brand bg-gradient-brand-animated">Vibranding</Link> hacemos que tu branding <span className="font-brand text-gradient-brand bg-gradient-brand-animated">vibre</span>.
           </h1>
           <p className="mt-5 text-lg text-muted-foreground">
