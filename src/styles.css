@@ -11,6 +11,9 @@
   font-family: "WhatsHappened";
   src: url("/fonts/WhatsHappened.ttf") format("truetype");
   font-display: swap;
+  ascent-override: 145%;
+  descent-override: 70%;
+  line-gap-override: 20%;
 }
 @font-face {
   font-family: "Schizoid";
@@ -29,9 +32,9 @@
 }
 @utility font-brand-whats {
   font-family: "WhatsHappened", system-ui, sans-serif;
-  line-height: 1.85;
+  line-height: 2.35;
   display: inline-block;
-  padding: 0.38em 0.08em 0.48em;
+  padding: 0.7em 0.08em 0.75em;
   vertical-align: middle;
   overflow: visible;
 }
