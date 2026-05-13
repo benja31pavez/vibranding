@@ -51,7 +51,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
   }, []);
 
   if (loading) return <div className="min-h-screen" />;
-  if (session) return <Navigate to="/dashboard" />;
+  if (session && !forcePublic) return <Navigate to="/dashboard" />;
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
