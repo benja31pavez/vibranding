@@ -82,6 +82,12 @@
   --accent: oklch(0.62 0.18 255); /* iOS blue */
   --accent-foreground: oklch(0.99 0 0);
 
+  /* Brand palette — used for gradients and dynamic highlights */
+  --brand-1: oklch(0.62 0.18 255);  /* electric blue */
+  --brand-2: oklch(0.66 0.24 330);  /* vibrant magenta */
+  --brand-3: oklch(0.78 0.18 50);   /* warm amber */
+  --gradient-brand: linear-gradient(135deg, var(--brand-1), var(--brand-2) 55%, var(--brand-3));
+
   --destructive: oklch(0.6 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
 
