@@ -145,7 +145,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
         </div>
         <div className="relative max-w-7xl mx-auto px-6 md:px-10">
           <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">Cómo <span className="text-gradient-brand">trabajamos</span></h2>
+            <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">Cómo <span className="font-brand-whats text-gradient-brand">trabajamos</span></h2>
           </div>
           <div className="grid md:grid-cols-3 gap-5">
             {[
