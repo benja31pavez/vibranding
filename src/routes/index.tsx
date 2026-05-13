@@ -166,7 +166,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
       {/* CTA contact */}
       <section id="contacto" className="max-w-4xl mx-auto px-6 md:px-10 py-24 text-center">
         <h2 className="text-4xl md:text-6xl font-semibold tracking-tight">
-          ¿Listo para <span className="text-gradient-brand">crecer</span> con nosotros?
+          ¿Listo para <span className="font-brand-whats text-gradient-brand">crecer</span> con nosotros?
         </h2>
         <p className="mt-5 text-lg text-muted-foreground">
           Cuéntanos sobre tu marca y te respondemos con una propuesta personalizada.
