@@ -855,32 +855,6 @@ export function PostsEditor({
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-96 space-y-3" align="start">
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="space-y-1">
-                                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" /> Ubicación
-                                </Label>
-                                <Input
-                                  placeholder="Ej: Madrid, España"
-                                  value={p.location ?? ""}
-                                  onChange={(e) => setLocal(p.id, { location: e.target.value })}
-                                  onBlur={(e) => saveRemote(p.id, { location: e.target.value || null })}
-                                  className="h-8 text-xs"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                                  <Music className="w-3 h-3" /> Música
-                                </Label>
-                                <Input
-                                  placeholder="Artista — Canción"
-                                  value={p.music ?? ""}
-                                  onChange={(e) => setLocal(p.id, { music: e.target.value })}
-                                  onBlur={(e) => saveRemote(p.id, { music: e.target.value || null })}
-                                  className="h-8 text-xs"
-                                />
-                              </div>
-                            </div>
                             <div className="space-y-1">
                               <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
                                 <Heart className="w-3 h-3" /> Likes
