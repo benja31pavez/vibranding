@@ -91,7 +91,7 @@ export function PricingPanel() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Mis tarifas</h2>
+        <h2 className="text-2xl font-semibold tracking-tight"><span className="font-brand text-gradient-brand bg-gradient-brand-animated">Mis tarifas</span></h2>
         <p className="text-muted-foreground text-sm mt-1">
           Configura los precios de tu empresa. Aparecen en el resumen y el PDF de cada cliente.
         </p>
