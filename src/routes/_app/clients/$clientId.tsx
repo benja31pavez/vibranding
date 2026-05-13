@@ -147,5 +147,3 @@ function ClientShell() {
   );
 }
 
-// Re-export pricing for child summary route
-export { ClientLayout };
