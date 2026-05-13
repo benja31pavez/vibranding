@@ -46,36 +46,48 @@ export type Database = {
       }
       deliverables: {
         Row: {
+          attachments: Json
+          checklist: Json
           client_id: string
           created_at: string
           description: string | null
           due_date: string | null
           id: string
+          instagram_post_id: string | null
           sort_order: number
           status: Database["public"]["Enums"]["task_status"]
           title: string
+          type: Database["public"]["Enums"]["deliverable_type"]
           updated_at: string
         }
         Insert: {
+          attachments?: Json
+          checklist?: Json
           client_id: string
           created_at?: string
           description?: string | null
           due_date?: string | null
           id?: string
+          instagram_post_id?: string | null
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
           title: string
+          type?: Database["public"]["Enums"]["deliverable_type"]
           updated_at?: string
         }
         Update: {
+          attachments?: Json
+          checklist?: Json
           client_id?: string
           created_at?: string
           description?: string | null
           due_date?: string | null
           id?: string
+          instagram_post_id?: string | null
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
+          type?: Database["public"]["Enums"]["deliverable_type"]
           updated_at?: string
         }
         Relationships: [
@@ -678,36 +690,51 @@ export type Database = {
       }
       objectives: {
         Row: {
+          category: Database["public"]["Enums"]["objective_category"]
           client_id: string
           created_at: string
+          current_value: number | null
           description: string | null
           due_date: string | null
           id: string
+          priority: Database["public"]["Enums"]["objective_priority"]
           sort_order: number
           status: Database["public"]["Enums"]["task_status"]
+          target_value: number | null
           title: string
+          unit: string | null
           updated_at: string
         }
         Insert: {
+          category?: Database["public"]["Enums"]["objective_category"]
           client_id: string
           created_at?: string
+          current_value?: number | null
           description?: string | null
           due_date?: string | null
           id?: string
+          priority?: Database["public"]["Enums"]["objective_priority"]
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
+          target_value?: number | null
           title: string
+          unit?: string | null
           updated_at?: string
         }
         Update: {
+          category?: Database["public"]["Enums"]["objective_category"]
           client_id?: string
           created_at?: string
+          current_value?: number | null
           description?: string | null
           due_date?: string | null
           id?: string
+          priority?: Database["public"]["Enums"]["objective_priority"]
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
+          target_value?: number | null
           title?: string
+          unit?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -818,6 +845,14 @@ export type Database = {
     }
     Enums: {
       account_type: "personal" | "business"
+      deliverable_type:
+        | "post"
+        | "reel"
+        | "story"
+        | "design"
+        | "meeting"
+        | "report"
+        | "other"
       ig_post_type: "current" | "proposed"
       meta_campaign_objective:
         | "OUTCOME_AWARENESS"
@@ -846,6 +881,13 @@ export type Database = {
         | "search"
         | "audience_network"
       meta_status: "ACTIVE" | "PAUSED" | "DELETED" | "ARCHIVED" | "DRAFT"
+      objective_category:
+        | "growth"
+        | "engagement"
+        | "sales"
+        | "branding"
+        | "other"
+      objective_priority: "low" | "medium" | "high"
       payment_status: "pending" | "paid" | "overdue" | "cancelled"
       post_format: "photo" | "carousel" | "reel"
       task_status: "pending" | "in_progress" | "done"
@@ -977,6 +1019,15 @@ export const Constants = {
   public: {
     Enums: {
       account_type: ["personal", "business"],
+      deliverable_type: [
+        "post",
+        "reel",
+        "story",
+        "design",
+        "meeting",
+        "report",
+        "other",
+      ],
       ig_post_type: ["current", "proposed"],
       meta_campaign_objective: [
         "OUTCOME_AWARENESS",
@@ -1008,6 +1059,14 @@ export const Constants = {
         "audience_network",
       ],
       meta_status: ["ACTIVE", "PAUSED", "DELETED", "ARCHIVED", "DRAFT"],
+      objective_category: [
+        "growth",
+        "engagement",
+        "sales",
+        "branding",
+        "other",
+      ],
+      objective_priority: ["low", "medium", "high"],
       payment_status: ["pending", "paid", "overdue", "cancelled"],
       post_format: ["photo", "carousel", "reel"],
       task_status: ["pending", "in_progress", "done"],
