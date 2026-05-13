@@ -56,9 +56,6 @@ function LoginPage() {
           <Link to="/" className="inline-block mb-8">
             <span className="text-4xl md:text-5xl font-bold italic tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
           </Link>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-card/70 backdrop-blur border text-xs font-medium tracking-wide">
-            <span className="w-1.5 h-1.5 rounded-full bg-gradient-brand" /> Para diseñadores
-          </div>
           <h1 className="mt-6 text-5xl font-semibold leading-[1.05]">
             Propuestas que <span className="font-brand text-gradient-brand bg-gradient-brand-animated">vibran</span>.
           </h1>
@@ -74,7 +71,6 @@ function LoginPage() {
           </Link>
           <div>
             <h2 className="text-2xl font-semibold">{mode === "signin" ? "Inicia sesión" : "Crea tu cuenta"}</h2>
-            <p className="text-sm text-muted-foreground mt-1">Tu plataforma de asesorías.</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
