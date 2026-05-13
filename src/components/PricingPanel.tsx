@@ -4,7 +4,21 @@ import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+
+const CURRENCY_OPTIONS = [
+  { code: "USD", label: "USD · Dólar estadounidense" },
+  { code: "EUR", label: "EUR · Euro" },
+  { code: "CLP", label: "CLP · Peso chileno" },
+  { code: "MXN", label: "MXN · Peso mexicano" },
+  { code: "ARS", label: "ARS · Peso argentino" },
+  { code: "COP", label: "COP · Peso colombiano" },
+  { code: "PEN", label: "PEN · Sol peruano" },
+  { code: "BRL", label: "BRL · Real brasileño" },
+  { code: "GBP", label: "GBP · Libra esterlina" },
+  { code: "UYU", label: "UYU · Peso uruguayo" },
+];
 
 export interface PricingSettings {
   id: string;
