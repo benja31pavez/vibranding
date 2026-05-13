@@ -89,8 +89,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
             Hacemos que tu Branding <span className="font-brand text-gradient-brand bg-gradient-brand-animated">vibre de verdad</span>.
           </h1>
           <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in">
-            En Vibranding combinamos diseño, estrategia y publicidad pagada para
-            convertir tu Instagram en una máquina de captar clientes.
+            Campañas publicitarias: creatividades, segmentación, presupuesto y optimización.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in">
             <Button asChild size="lg" className="rounded-full px-8 h-12 text-base bg-gradient-brand hover:opacity-90 text-white border-0 shadow-lg shadow-[color:var(--brand-2)]/30 hover-scale">
