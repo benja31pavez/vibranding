@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { SiteFooter } from "@/components/SiteFooter";
 import {
-  Sparkles, Instagram, Megaphone, BarChart3, ArrowRight, Check, Mail,
+  Sparkles, Instagram, Megaphone, BarChart3, ArrowRight, Check,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
