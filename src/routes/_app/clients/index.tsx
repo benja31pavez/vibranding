@@ -64,7 +64,9 @@ function ClientsList() {
     <div className="max-w-6xl mx-auto px-6 md:px-10 py-10">
       <header className="flex items-center justify-between mb-10">
         <div>
-          <h1 className="text-4xl font-semibold tracking-tight">Clientes</h1>
+          <h1 className="text-4xl font-semibold tracking-tight">
+            <span className="font-brand text-gradient-brand bg-gradient-brand-animated">Clientes</span>
+          </h1>
           <p className="text-muted-foreground mt-1">Gestiona las asesorías de cada uno.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
