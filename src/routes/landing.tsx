@@ -4,7 +4,7 @@ import { Landing } from "./index";
 export const Route = createFileRoute("/landing")({
   head: () => ({
     meta: [
-      { title: "Viralitycs — Landing (preview)" },
+      { title: "Vibranding — Landing (preview)" },
       { name: "robots", content: "noindex" },
     ],
   }),

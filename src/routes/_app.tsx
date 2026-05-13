@@ -83,7 +83,7 @@ function AppLayout() {
             <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground grid place-items-center">
               <Sparkles className="w-4 h-4" />
             </div>
-            <span className="font-semibold tracking-tight">Viralitycs</span>
+            <span className="font-semibold tracking-tight">Vibranding</span>
           </Link>
         </div>
 

@@ -10,7 +10,7 @@ export function SiteFooter() {
             <div className="w-9 h-9 rounded-2xl bg-primary text-primary-foreground grid place-items-center">
               <Sparkles className="w-5 h-5" />
             </div>
-            <span className="font-semibold text-lg tracking-tight">Viralitycs</span>
+            <span className="font-semibold text-lg tracking-tight">Vibranding</span>
           </Link>
           <p className="text-sm text-muted-foreground mt-4 max-w-xs">
             Crecemos tu marca en Instagram y Meta Ads con estrategia, diseño y datos.
@@ -35,7 +35,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t">
         <div className="max-w-7xl mx-auto px-6 md:px-10 py-6 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Viralitycs. Todos los derechos reservados.
+          © {new Date().getFullYear()} Vibranding. Todos los derechos reservados.
         </div>
       </div>
     </footer>

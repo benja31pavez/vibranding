@@ -4,8 +4,8 @@ import { LegalPage } from "@/components/LegalPage";
 export const Route = createFileRoute("/cookies")({
   head: () => ({
     meta: [
-      { title: "Política de Cookies — Viralitycs" },
-      { name: "description", content: "Qué cookies usa Viralitycs y cómo puedes controlarlas." },
+      { title: "Política de Cookies — Vibranding" },
+      { name: "description", content: "Qué cookies usa Vibranding y cómo puedes controlarlas." },
     ],
   }),
   component: () => (

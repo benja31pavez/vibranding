@@ -5,7 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 export const Route = createFileRoute("/faq")({
   head: () => ({
     meta: [
-      { title: "Preguntas Frecuentes — Viralitycs" },
+      { title: "Preguntas Frecuentes — Vibranding" },
       { name: "description", content: "Respuestas a las dudas más comunes sobre nuestros servicios de Instagram y Meta Ads." },
     ],
   }),
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/faq")({
 });
 
 const faqs = [
-  { q: "¿Qué incluye una propuesta de Viralitycs?",
+  { q: "¿Qué incluye una propuesta de Vibranding?",
     a: "Una auditoría de tu Instagram actual, una propuesta visual de feed, biografía y destacados, un plan de contenido y, si aplica, una estrategia de Meta Ads con creatividades y presupuesto sugerido." },
   { q: "¿Trabajan con marcas pequeñas?",
     a: "Sí. Adaptamos el alcance al tamaño de tu marca. Tenemos planes desde una sola campaña hasta gestión mensual completa." },

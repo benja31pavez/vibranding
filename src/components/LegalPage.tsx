@@ -10,7 +10,7 @@ export function LegalPage({ title, updated, children }: { title: string; updated
           <div className="w-9 h-9 rounded-2xl bg-primary text-primary-foreground grid place-items-center">
             <Sparkles className="w-5 h-5" />
           </div>
-          <span className="font-semibold text-lg tracking-tight">Viralitycs</span>
+          <span className="font-semibold text-lg tracking-tight">Vibranding</span>
         </Link>
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Volver al inicio
