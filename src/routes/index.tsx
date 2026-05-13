@@ -84,7 +84,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
             Especialistas en Instagram y Meta Ads
           </div>
           <h1 className="text-5xl md:text-7xl font-semibold tracking-tight leading-[1.05] max-w-4xl mx-auto animate-fade-in">
-            Hacemos que tu marca <span className="text-gradient-brand bg-gradient-brand-animated">crezca de verdad</span>.
+            Hacemos que tu marca <span className="font-brand-whats text-gradient-brand bg-gradient-brand-animated">crezca de verdad</span>.
           </h1>
           <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in">
             En Vibranding combinamos diseño, estrategia y publicidad pagada para
