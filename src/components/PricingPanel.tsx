@@ -98,12 +98,25 @@ export function PricingPanel() {
       </div>
 
       <div className="rounded-2xl border bg-surface p-5 space-y-4">
-        <TextLine
-          label="Moneda (ej. USD, EUR, CLP)"
-          value={p.currency}
-          onChange={(v) => set({ currency: v.toUpperCase() })}
-          onBlur={(v) => save({ currency: v.toUpperCase() || "USD" })}
-        />
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Moneda</Label>
+          <Select
+            value={p.currency}
+            onValueChange={(v) => {
+              set({ currency: v });
+              save({ currency: v });
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecciona una moneda" />
+            </SelectTrigger>
+            <SelectContent>
+              {CURRENCY_OPTIONS.map((c) => (
+                <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="rounded-2xl border bg-surface p-5 space-y-4">
