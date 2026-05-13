@@ -1,4 +1,5 @@
 @import "tailwindcss" source(none);
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&display=swap");
 @source "../src";
 @import "tw-animate-css";
 
@@ -27,8 +28,10 @@
 }
 
 @utility font-brand {
-  font-family: "Marola", "SF Pro Display", system-ui, sans-serif;
-  letter-spacing: 0;
+  font-family: "Fraunces", "SF Pro Display", system-ui, serif;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 @utility font-brand-whats {
   font-family: "WhatsHappened", system-ui, sans-serif;
