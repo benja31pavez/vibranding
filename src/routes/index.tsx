@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { SiteFooter } from "@/components/SiteFooter";
 import {
-  Sparkles, Instagram, Megaphone, BarChart3, ArrowRight, Check, Mail,
+  Sparkles, Instagram, Megaphone, BarChart3, ArrowRight, Check,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -38,10 +38,7 @@ function Landing() {
           <a href="#contacto" className="text-muted-foreground hover:text-foreground">Contacto</a>
         </nav>
         <div className="flex items-center gap-2">
-          <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground hidden sm:inline">Iniciar sesión</Link>
-          <Button asChild size="sm" className="rounded-full">
-            <a href="#contacto">Contactar <ArrowRight className="w-4 h-4 ml-1" /></a>
-          </Button>
+          <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground">Iniciar sesión</Link>
         </div>
       </header>
 
@@ -52,7 +49,7 @@ function Landing() {
           Especialistas en Instagram y Meta Ads
         </div>
         <h1 className="text-5xl md:text-7xl font-semibold tracking-tight leading-[1.05] max-w-4xl mx-auto">
-          Hacemos que tu marca <span className="text-primary">se vuelva viral</span>.
+          Hacemos que tu marca <span className="text-primary">crezca de verdad</span>.
         </h1>
         <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
           En Viralitycs combinamos diseño, estrategia y publicidad pagada para
@@ -118,18 +115,13 @@ function Landing() {
       {/* CTA contact */}
       <section id="contacto" className="max-w-4xl mx-auto px-6 md:px-10 py-24 text-center">
         <h2 className="text-4xl md:text-6xl font-semibold tracking-tight">
-          ¿Listo para volverte viral?
+          ¿Listo para crecer con nosotros?
         </h2>
         <p className="mt-5 text-lg text-muted-foreground">
           Cuéntanos sobre tu marca y te respondemos con una propuesta personalizada.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button asChild size="lg" className="rounded-full px-8 h-12 text-base">
-            <a href="mailto:hola@viralitycs.com?subject=Quiero%20crecer%20con%20Viralitycs">
-              <Mail className="w-4 h-4 mr-2" /> hola@viralitycs.com
-            </a>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="rounded-full px-8 h-12 text-base">
             <a href="https://wa.me/" target="_blank" rel="noreferrer">Escríbenos por WhatsApp</a>
           </Button>
         </div>
