@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { SiteFooter } from "@/components/SiteFooter";
 import {
-  Sparkles, Instagram, Megaphone, BarChart3, ArrowRight, Check,
+  Instagram, Megaphone, BarChart3, ArrowRight, Check,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -57,10 +57,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <header className="px-6 md:px-10 py-5 flex items-center justify-between max-w-7xl mx-auto relative z-10">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-brand text-white grid place-items-center shadow-lg shadow-[color:var(--brand-2)]/25">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <span className="font-semibold text-lg tracking-tight">Vibranding</span>
+          <span className="font-semibold text-xl tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm">
           <a href="#servicios" className="text-muted-foreground hover:text-foreground story-link">Servicios</a>

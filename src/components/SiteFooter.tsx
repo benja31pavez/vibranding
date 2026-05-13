@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Sparkles } from "lucide-react";
+
 
 export function SiteFooter() {
   return (
@@ -7,10 +7,7 @@ export function SiteFooter() {
       <div className="max-w-7xl mx-auto px-6 md:px-10 py-14 grid grid-cols-2 md:grid-cols-4 gap-10">
         <div className="col-span-2 md:col-span-1">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-2xl bg-primary text-primary-foreground grid place-items-center">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <span className="font-semibold text-lg tracking-tight">Vibranding</span>
+            <span className="font-semibold text-xl tracking-tight">Vibranding</span>
           </Link>
           <p className="text-sm text-muted-foreground mt-4 max-w-xs">
             Crecemos tu marca en Instagram y Meta Ads con estrategia, diseño y datos.
