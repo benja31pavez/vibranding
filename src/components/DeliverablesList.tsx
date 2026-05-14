@@ -644,3 +644,117 @@ function DividerLine({ divider, onRename, onDelete, dragHandle }: { divider: Div
     </div>
   );
 }
+
+function FilePreview({ fileUrl, fileName, fileSize, mimeType, compact, onRename }: {
+  fileUrl: string;
+  fileName: string | null;
+  fileSize: number | null;
+  mimeType: string | null;
+  compact?: boolean;
+  onRename: (name: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(fileName ?? "");
+  const isImage = mimeType?.startsWith("image/");
+  const isVideo = mimeType?.startsWith("video/");
+  const isPdf = mimeType === "application/pdf" || (fileName?.toLowerCase().endsWith(".pdf") ?? false);
+  const sizeLabel =
+    fileSize != null
+      ? fileSize < 1024 * 1024
+        ? `${Math.round(fileSize / 1024)} KB`
+        : `${(fileSize / 1024 / 1024).toFixed(1)} MB`
+      : null;
+
+  const commitRename = () => {
+    setEditing(false);
+    const trimmed = name.trim();
+    if (trimmed && trimmed !== fileName) onRename(trimmed);
+    else setName(fileName ?? "");
+  };
+
+  return (
+    <div className="mt-2 rounded-xl border bg-secondary/30 overflow-hidden">
+      {!compact && (isImage || isVideo || isPdf) && (
+        <div className="bg-background/60 border-b">
+          {isImage && (
+            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="block">
+              <img
+                src={fileUrl}
+                alt={fileName ?? ""}
+                className="w-full max-h-72 object-contain bg-muted"
+                loading="lazy"
+              />
+            </a>
+          )}
+          {isVideo && (
+            <video
+              src={fileUrl}
+              controls
+              preload="metadata"
+              className="w-full max-h-80 bg-black"
+            />
+          )}
+          {isPdf && !isImage && !isVideo && (
+            <object data={`${fileUrl}#toolbar=0&navpanes=0`} type="application/pdf" className="w-full h-72 bg-background">
+              <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline p-3 block">
+                Abrir PDF
+              </a>
+            </object>
+          )}
+        </div>
+      )}
+      <div className="flex items-center gap-2 px-3 py-2">
+        {isImage ? (
+          <ImageIcon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        ) : isVideo ? (
+          <Film className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        ) : isPdf ? (
+          <FileText className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        ) : (
+          <Paperclip className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        )}
+        {editing ? (
+          <Input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              if (e.key === "Escape") { setName(fileName ?? ""); setEditing(false); }
+            }}
+            className="h-7 text-xs flex-1"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            title="Editar nombre"
+            className="text-xs flex-1 text-left truncate hover:text-foreground"
+          >
+            {fileName ?? "Archivo"}
+          </button>
+        )}
+        {sizeLabel && <span className="text-[11px] text-muted-foreground flex-shrink-0">{sizeLabel}</span>}
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="text-muted-foreground hover:text-foreground flex-shrink-0"
+          title="Renombrar"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+        <a
+          href={fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          download={fileName ?? undefined}
+          className="text-muted-foreground hover:text-foreground flex-shrink-0"
+          title="Descargar"
+        >
+          <Download className="w-3.5 h-3.5" />
+        </a>
+      </div>
+    </div>
+  );
+}
