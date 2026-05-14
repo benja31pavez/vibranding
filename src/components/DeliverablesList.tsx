@@ -270,6 +270,20 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           <Button size="sm" variant="outline" className="rounded-full" onClick={createDivider}>
             <Minus className="w-4 h-4 mr-1" /> Divisor
           </Button>
+          <Button size="sm" variant="outline" className="rounded-full" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+            {uploading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+            {uploading ? "Subiendo…" : "Subir"}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files) uploadFiles(e.target.files, null);
+              e.target.value = "";
+            }}
+          />
           {!adding && (
             <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAdding(true)}>
               <Plus className="w-4 h-4 mr-1" /> Agregar
