@@ -521,7 +521,7 @@ function FolderSection({ folder, count, collapsed, onToggle, onRename, onDelete,
   );
 }
 
-function DeliverableCard({ it, folders, update, remove, compact }: { it: Row; folders: FolderRow[]; update: (id: string, patch: any) => void; remove: (id: string) => void; compact?: boolean }) {
+function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: { it: Row; folders: FolderRow[]; update: (id: string, patch: any) => void; remove: (id: string) => void; compact?: boolean; dragHandle?: DragHandle }) {
   const M = statusMeta[it.status];
   const Icon = M.icon;
   const T = typeMeta[it.type].icon;
