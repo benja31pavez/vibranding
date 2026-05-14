@@ -253,29 +253,39 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {folders.map((f) => {
-              const list = grouped.get(f.id) ?? [];
-              const isCollapsed = collapsed[f.id];
-              return (
-                <FolderSection
-                  key={f.id}
-                  folder={f}
-                  count={list.length}
-                  collapsed={!!isCollapsed}
-                  onToggle={() => setCollapsed((s) => ({ ...s, [f.id]: !s[f.id] }))}
-                  onRename={(name) => renameFolder(f.id, name)}
-                  onDelete={() => removeFolder(f.id)}
-                >
-                  {list.length === 0 ? (
-                    <div className="text-xs text-muted-foreground px-1 py-2">Vacía</div>
-                  ) : (
-                    <ul className="space-y-2">
-                      {list.map((it) => <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} />)}
-                    </ul>
-                  )}
-                </FolderSection>
-              );
-            })}
+            {[
+              ...folders.map((f) => ({ kind: "folder" as const, sort_order: f.sort_order, data: f })),
+              ...dividers.map((d) => ({ kind: "divider" as const, sort_order: d.sort_order, data: d })),
+            ]
+              .sort((a, b) => a.sort_order - b.sort_order)
+              .map((entry) => {
+                if (entry.kind === "divider") {
+                  const d = entry.data;
+                  return <DividerLine key={`d-${d.id}`} divider={d} onRename={(label) => renameDivider(d.id, label)} onDelete={() => removeDivider(d.id)} />;
+                }
+                const f = entry.data;
+                const list = grouped.get(f.id) ?? [];
+                const isCollapsed = collapsed[f.id];
+                return (
+                  <FolderSection
+                    key={f.id}
+                    folder={f}
+                    count={list.length}
+                    collapsed={!!isCollapsed}
+                    onToggle={() => setCollapsed((s) => ({ ...s, [f.id]: !s[f.id] }))}
+                    onRename={(name) => renameFolder(f.id, name)}
+                    onDelete={() => removeFolder(f.id)}
+                  >
+                    {list.length === 0 ? (
+                      <div className="text-xs text-muted-foreground px-1 py-2">Vacía</div>
+                    ) : (
+                      <ul className="space-y-2">
+                        {list.map((it) => <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} />)}
+                      </ul>
+                    )}
+                  </FolderSection>
+                );
+              })}
             {(grouped.get(null) ?? []).length > 0 && (
               <div className="space-y-2">
                 {folders.length > 0 && (
