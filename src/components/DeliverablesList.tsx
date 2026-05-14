@@ -114,7 +114,28 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     load();
   };
 
-  const update = async (id: string, patch: any) => {
+  const createDivider = async () => {
+    const maxOrder = Math.max(0, ...folders.map((f) => f.sort_order), ...dividers.map((d) => d.sort_order));
+    const { error } = await supabase.from("deliverable_dividers").insert({
+      client_id: clientId,
+      label: "Nueva fase",
+      sort_order: maxOrder + 1,
+    });
+    if (error) return toast.error(error.message);
+    load();
+  };
+
+  const renameDivider = async (id: string, label: string) => {
+    const { error } = await supabase.from("deliverable_dividers").update({ label }).eq("id", id);
+    if (error) return toast.error(error.message);
+    load();
+  };
+
+  const removeDivider = async (id: string) => {
+    const { error } = await supabase.from("deliverable_dividers").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    load();
+  };
     const { error } = await supabase.from("deliverables").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
     load();
