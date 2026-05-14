@@ -351,15 +351,32 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   );
 }
 
-function FolderSection({ folder, count, collapsed, onToggle, onRename, onDelete, children }: {
+type DragHandle = { attributes: any; listeners: any };
+
+function SortableWrapper({ id, children }: { id: string; children: (handle: DragHandle) => React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return <div ref={setNodeRef} style={style}>{children({ attributes, listeners })}</div>;
+}
+
+function FolderSection({ folder, count, collapsed, onToggle, onRename, onDelete, children, dragHandle }: {
   folder: FolderRow; count: number; collapsed: boolean; onToggle: () => void;
-  onRename: (name: string) => void; onDelete: () => void; children: React.ReactNode;
+  onRename: (name: string) => void; onDelete: () => void; children: React.ReactNode; dragHandle?: DragHandle;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(folder.name);
   return (
     <div className="rounded-2xl border bg-surface/60 p-3 space-y-2">
       <div className="flex items-center gap-2 group">
+        {dragHandle && (
+          <button {...dragHandle.attributes} {...dragHandle.listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none" aria-label="Reordenar">
+            <GripVertical className="w-4 h-4" />
+          </button>
+        )}
         <button onClick={onToggle} className="text-muted-foreground hover:text-foreground">
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
