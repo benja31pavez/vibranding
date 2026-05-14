@@ -247,7 +247,18 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   }, [filtered, folders]);
 
   return (
-    <div className="space-y-3">
+    <div
+      className={`space-y-3 rounded-2xl transition-colors ${dragOver === "root" ? "outline-dashed outline-2 outline-primary/60 bg-primary/5 p-2 -m-2" : ""}`}
+      onDragOver={(e) => { if (Array.from(e.dataTransfer.types).includes("Files")) { e.preventDefault(); setDragOver("root"); } }}
+      onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOver(null); }}
+      onDrop={(e) => {
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          e.preventDefault();
+          setDragOver(null);
+          uploadFiles(e.dataTransfer.files, null);
+        }
+      }}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-lg font-semibold">Entregables</h3>
         <div className="flex items-center gap-2">
