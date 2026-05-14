@@ -440,9 +440,14 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
                 {folders.length > 0 && (
                   <div className="text-xs uppercase tracking-wider text-muted-foreground px-1">Sin carpeta</div>
                 )}
-                <ul className="space-y-2">
-                  {(grouped.get(null) ?? []).map((it) => <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} />)}
-                </ul>
+                <SortableItemsList
+                  items={grouped.get(null) ?? []}
+                  folders={folders}
+                  update={update}
+                  remove={remove}
+                  sensors={sensors}
+                  onReorder={(a, o) => reorderItems(null, a, o)}
+                />
               </div>
             )}
           </div>
