@@ -788,3 +788,47 @@ function FilePreview({ fileUrl, fileName, fileSize, mimeType, compact, onRename 
     </div>
   );
 }
+
+function SortableItemsList({ items, folders, update, remove, sensors, onReorder }: {
+  items: Row[];
+  folders: FolderRow[];
+  update: (id: string, patch: any) => void;
+  remove: (id: string) => void;
+  sensors: ReturnType<typeof useSensors>;
+  onReorder: (activeId: string, overId: string) => void;
+}) {
+  const ids = items.map((it) => it.id);
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={(e) => {
+        const { active, over } = e;
+        if (!over || active.id === over.id) return;
+        onReorder(String(active.id), String(over.id));
+      }}
+    >
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <ul className="space-y-2">
+          {items.map((it) => (
+            <SortableDeliverable key={it.id} it={it} folders={folders} update={update} remove={remove} />
+          ))}
+        </ul>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+function SortableDeliverable({ it, folders, update, remove }: { it: Row; folders: FolderRow[]; update: (id: string, patch: any) => void; remove: (id: string) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: it.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      <DeliverableCard it={it} folders={folders} update={update} remove={remove} dragHandle={{ attributes, listeners }} />
+    </div>
+  );
+}
