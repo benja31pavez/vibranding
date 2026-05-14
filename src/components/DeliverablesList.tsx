@@ -536,6 +536,16 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
   return (
     <li className="rounded-2xl border bg-surface p-4 group list-none">
       <div className="flex items-start gap-3">
+        {dragHandle && (
+          <button
+            {...dragHandle.attributes}
+            {...dragHandle.listeners}
+            className="mt-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none opacity-0 group-hover:opacity-100"
+            aria-label="Reordenar"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+        )}
         <button className={`mt-0.5 ${M.cls}`} title={M.label}
           onClick={() => update(it.id, { status: it.status === "done" ? "pending" : it.status === "pending" ? "in_progress" : "done" })}>
           <Icon className="w-5 h-5" />
