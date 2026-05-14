@@ -290,6 +290,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
             ref={fileInputRef}
             type="file"
             multiple
+            accept="image/*,video/*,application/pdf"
             className="hidden"
             onChange={(e) => {
               if (e.target.files) uploadFiles(e.target.files, null);
