@@ -196,9 +196,11 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   const handleDragEnd = async (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
+    const rootItems = items.filter((it) => !it.folder_id || !folders.find((f) => f.id === it.folder_id));
     const entries = [
       ...folders.map((f) => ({ kind: "folder" as const, id: `f-${f.id}`, raw: f })),
       ...dividers.map((d) => ({ kind: "divider" as const, id: `d-${d.id}`, raw: d })),
+      ...rootItems.map((it) => ({ kind: "item" as const, id: `i-${it.id}`, raw: it })),
     ].sort((a, b) => a.raw.sort_order - b.raw.sort_order);
     const oldIdx = entries.findIndex((x) => x.id === active.id);
     const newIdx = entries.findIndex((x) => x.id === over.id);
@@ -206,14 +208,15 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     const reordered = arrayMove(entries, oldIdx, newIdx);
 
     // Optimistic update
-    const newFolders = folders.map((f) => ({ ...f, sort_order: reordered.findIndex((x) => x.kind === "folder" && x.raw.id === f.id) }));
-    const newDividers = dividers.map((d) => ({ ...d, sort_order: reordered.findIndex((x) => x.kind === "divider" && x.raw.id === d.id) }));
-    setFolders(newFolders.sort((a, b) => a.sort_order - b.sort_order));
-    setDividers(newDividers.sort((a, b) => a.sort_order - b.sort_order));
+    setFolders(folders.map((f) => ({ ...f, sort_order: reordered.findIndex((x) => x.kind === "folder" && x.raw.id === f.id) })).sort((a, b) => a.sort_order - b.sort_order));
+    setDividers(dividers.map((d) => ({ ...d, sort_order: reordered.findIndex((x) => x.kind === "divider" && x.raw.id === d.id) })).sort((a, b) => a.sort_order - b.sort_order));
+    setItems((prev) => prev.map((it) => {
+      const idx = reordered.findIndex((x) => x.kind === "item" && x.raw.id === it.id);
+      return idx >= 0 ? { ...it, sort_order: idx } : it;
+    }));
 
-    // Persist
     const updates = reordered.map((entry, idx) => {
-      const table = entry.kind === "folder" ? "deliverable_folders" : "deliverable_dividers";
+      const table = entry.kind === "folder" ? "deliverable_folders" : entry.kind === "divider" ? "deliverable_dividers" : "deliverables";
       return supabase.from(table).update({ sort_order: idx }).eq("id", entry.raw.id);
     });
     const results = await Promise.all(updates);
