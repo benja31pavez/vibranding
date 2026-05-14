@@ -96,6 +96,46 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     load();
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState<string | "root" | null>(null);
+
+  const inferType = (mime: string | undefined): DType => {
+    if (!mime) return "other";
+    if (mime.startsWith("image/")) return "design";
+    if (mime.startsWith("video/")) return "reel";
+    return "other";
+  };
+
+  const uploadFiles = async (files: FileList | File[], folderId: string | null) => {
+    const arr = Array.from(files);
+    if (arr.length === 0) return;
+    setUploading(true);
+    try {
+      for (const file of arr) {
+        try {
+          const url = await uploadClientMedia(file, clientId);
+          const { error } = await supabase.from("deliverables").insert({
+            client_id: clientId,
+            title: file.name.replace(/\.[^.]+$/, ""),
+            type: inferType(file.type),
+            folder_id: folderId,
+            file_url: url,
+            file_name: file.name,
+            file_size: file.size,
+            mime_type: file.type || null,
+          });
+          if (error) toast.error(`${file.name}: ${error.message}`);
+        } catch (e: any) {
+          toast.error(`${file.name}: ${e.message ?? "Error al subir"}`);
+        }
+      }
+      toast.success(arr.length === 1 ? "Archivo subido" : `${arr.length} archivos subidos`);
+      load();
+    } finally {
+      setUploading(false);
+    }
+  };
   const createFolder = async () => {
     if (!folderDraft.trim()) return;
     const { error } = await supabase.from("deliverable_folders").insert({
