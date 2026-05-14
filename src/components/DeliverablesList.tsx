@@ -3,10 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus } from "lucide-react";
+import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Status = "pending" | "in_progress" | "done";
 type DType = "post" | "reel" | "story" | "design" | "meeting" | "report" | "other";
@@ -137,6 +140,39 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     load();
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const entries = [
+      ...folders.map((f) => ({ kind: "folder" as const, id: `f-${f.id}`, raw: f })),
+      ...dividers.map((d) => ({ kind: "divider" as const, id: `d-${d.id}`, raw: d })),
+    ].sort((a, b) => a.raw.sort_order - b.raw.sort_order);
+    const oldIdx = entries.findIndex((x) => x.id === active.id);
+    const newIdx = entries.findIndex((x) => x.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(entries, oldIdx, newIdx);
+
+    // Optimistic update
+    const newFolders = folders.map((f) => ({ ...f, sort_order: reordered.findIndex((x) => x.kind === "folder" && x.raw.id === f.id) }));
+    const newDividers = dividers.map((d) => ({ ...d, sort_order: reordered.findIndex((x) => x.kind === "divider" && x.raw.id === d.id) }));
+    setFolders(newFolders.sort((a, b) => a.sort_order - b.sort_order));
+    setDividers(newDividers.sort((a, b) => a.sort_order - b.sort_order));
+
+    // Persist
+    const updates = reordered.map((entry, idx) => {
+      const table = entry.kind === "folder" ? "deliverable_folders" : "deliverable_dividers";
+      return supabase.from(table).update({ sort_order: idx }).eq("id", entry.raw.id);
+    });
+    const results = await Promise.all(updates);
+    const err = results.find((r) => r.error);
+    if (err?.error) { toast.error(err.error.message); load(); }
+  };
+
   const update = async (id: string, patch: any) => {
     const { error } = await supabase.from("deliverables").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
@@ -251,41 +287,53 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
               </div>
             ))}
           </div>
-        ) : (
+        ) : (() => {
+          const sortedEntries = [
+            ...folders.map((f) => ({ kind: "folder" as const, sort_order: f.sort_order, data: f, sortId: `f-${f.id}` })),
+            ...dividers.map((d) => ({ kind: "divider" as const, sort_order: d.sort_order, data: d, sortId: `d-${d.id}` })),
+          ].sort((a, b) => a.sort_order - b.sort_order);
+          return (
           <div className="space-y-4">
-            {[
-              ...folders.map((f) => ({ kind: "folder" as const, sort_order: f.sort_order, data: f })),
-              ...dividers.map((d) => ({ kind: "divider" as const, sort_order: d.sort_order, data: d })),
-            ]
-              .sort((a, b) => a.sort_order - b.sort_order)
-              .map((entry) => {
-                if (entry.kind === "divider") {
-                  const d = entry.data;
-                  return <DividerLine key={`d-${d.id}`} divider={d} onRename={(label) => renameDivider(d.id, label)} onDelete={() => removeDivider(d.id)} />;
-                }
-                const f = entry.data;
-                const list = grouped.get(f.id) ?? [];
-                const isCollapsed = collapsed[f.id];
-                return (
-                  <FolderSection
-                    key={f.id}
-                    folder={f}
-                    count={list.length}
-                    collapsed={!!isCollapsed}
-                    onToggle={() => setCollapsed((s) => ({ ...s, [f.id]: !s[f.id] }))}
-                    onRename={(name) => renameFolder(f.id, name)}
-                    onDelete={() => removeFolder(f.id)}
-                  >
-                    {list.length === 0 ? (
-                      <div className="text-xs text-muted-foreground px-1 py-2">Vacía</div>
-                    ) : (
-                      <ul className="space-y-2">
-                        {list.map((it) => <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} />)}
-                      </ul>
-                    )}
-                  </FolderSection>
-                );
-              })}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={sortedEntries.map((e) => e.sortId)} strategy={verticalListSortingStrategy}>
+                {sortedEntries.map((entry) => {
+                  if (entry.kind === "divider") {
+                    const d = entry.data;
+                    return (
+                      <SortableWrapper key={entry.sortId} id={entry.sortId}>
+                        {(handle) => <DividerLine divider={d} onRename={(label) => renameDivider(d.id, label)} onDelete={() => removeDivider(d.id)} dragHandle={handle} />}
+                      </SortableWrapper>
+                    );
+                  }
+                  const f = entry.data;
+                  const list = grouped.get(f.id) ?? [];
+                  const isCollapsed = collapsed[f.id];
+                  return (
+                    <SortableWrapper key={entry.sortId} id={entry.sortId}>
+                      {(handle) => (
+                        <FolderSection
+                          folder={f}
+                          count={list.length}
+                          collapsed={!!isCollapsed}
+                          onToggle={() => setCollapsed((s) => ({ ...s, [f.id]: !s[f.id] }))}
+                          onRename={(name) => renameFolder(f.id, name)}
+                          onDelete={() => removeFolder(f.id)}
+                          dragHandle={handle}
+                        >
+                          {list.length === 0 ? (
+                            <div className="text-xs text-muted-foreground px-1 py-2">Vacía</div>
+                          ) : (
+                            <ul className="space-y-2">
+                              {list.map((it) => <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} />)}
+                            </ul>
+                          )}
+                        </FolderSection>
+                      )}
+                    </SortableWrapper>
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
             {(grouped.get(null) ?? []).length > 0 && (
               <div className="space-y-2">
                 {folders.length > 0 && (
@@ -297,20 +345,38 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
     </div>
   );
 }
 
-function FolderSection({ folder, count, collapsed, onToggle, onRename, onDelete, children }: {
+type DragHandle = { attributes: any; listeners: any };
+
+function SortableWrapper({ id, children }: { id: string; children: (handle: DragHandle) => React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return <div ref={setNodeRef} style={style}>{children({ attributes, listeners })}</div>;
+}
+
+function FolderSection({ folder, count, collapsed, onToggle, onRename, onDelete, children, dragHandle }: {
   folder: FolderRow; count: number; collapsed: boolean; onToggle: () => void;
-  onRename: (name: string) => void; onDelete: () => void; children: React.ReactNode;
+  onRename: (name: string) => void; onDelete: () => void; children: React.ReactNode; dragHandle?: DragHandle;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(folder.name);
   return (
     <div className="rounded-2xl border bg-surface/60 p-3 space-y-2">
       <div className="flex items-center gap-2 group">
+        {dragHandle && (
+          <button {...dragHandle.attributes} {...dragHandle.listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none" aria-label="Reordenar">
+            <GripVertical className="w-4 h-4" />
+          </button>
+        )}
         <button onClick={onToggle} className="text-muted-foreground hover:text-foreground">
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
@@ -450,11 +516,16 @@ function DeliverableCard({ it, folders, update, remove, compact }: { it: Row; fo
   );
 }
 
-function DividerLine({ divider, onRename, onDelete }: { divider: DividerRow; onRename: (label: string) => void; onDelete: () => void }) {
+function DividerLine({ divider, onRename, onDelete, dragHandle }: { divider: DividerRow; onRename: (label: string) => void; onDelete: () => void; dragHandle?: DragHandle }) {
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(divider.label);
   return (
-    <div className="flex items-center gap-3 group py-1">
+    <div className="flex items-center gap-2 group py-1">
+      {dragHandle && (
+        <button {...dragHandle.attributes} {...dragHandle.listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none opacity-0 group-hover:opacity-100" aria-label="Reordenar">
+          <GripVertical className="w-4 h-4" />
+        </button>
+      )}
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-border" />
       {editing ? (
         <Input autoFocus value={label} onChange={(e) => setLabel(e.target.value)}
