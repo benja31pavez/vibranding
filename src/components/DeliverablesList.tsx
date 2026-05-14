@@ -186,6 +186,9 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAddingFolder(true)}>
             <FolderPlus className="w-4 h-4 mr-1" /> Carpeta
           </Button>
+          <Button size="sm" variant="outline" className="rounded-full" onClick={createDivider}>
+            <Minus className="w-4 h-4 mr-1" /> Divisor
+          </Button>
           {!adding && (
             <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAdding(true)}>
               <Plus className="w-4 h-4 mr-1" /> Agregar
