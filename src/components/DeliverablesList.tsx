@@ -26,6 +26,7 @@ type Row = {
 };
 
 type FolderRow = { id: string; name: string; sort_order: number };
+type DividerRow = { id: string; label: string; sort_order: number };
 
 const statusMeta: Record<Status, { label: string; icon: any; cls: string }> = {
   pending: { label: "Pendiente", icon: Circle, cls: "text-muted-foreground" },
