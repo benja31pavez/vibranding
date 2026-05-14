@@ -140,7 +140,39 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     load();
   };
 
-  const update = async (id: string, patch: any) => {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const entries = [
+      ...folders.map((f) => ({ kind: "folder" as const, id: `f-${f.id}`, raw: f })),
+      ...dividers.map((d) => ({ kind: "divider" as const, id: `d-${d.id}`, raw: d })),
+    ].sort((a, b) => a.raw.sort_order - b.raw.sort_order);
+    const oldIdx = entries.findIndex((x) => x.id === active.id);
+    const newIdx = entries.findIndex((x) => x.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(entries, oldIdx, newIdx);
+
+    // Optimistic update
+    const newFolders = folders.map((f) => ({ ...f, sort_order: reordered.findIndex((x) => x.kind === "folder" && x.raw.id === f.id) }));
+    const newDividers = dividers.map((d) => ({ ...d, sort_order: reordered.findIndex((x) => x.kind === "divider" && x.raw.id === d.id) }));
+    setFolders(newFolders.sort((a, b) => a.sort_order - b.sort_order));
+    setDividers(newDividers.sort((a, b) => a.sort_order - b.sort_order));
+
+    // Persist
+    const updates = reordered.map((entry, idx) => {
+      const table = entry.kind === "folder" ? "deliverable_folders" : "deliverable_dividers";
+      return supabase.from(table).update({ sort_order: idx }).eq("id", entry.raw.id);
+    });
+    const results = await Promise.all(updates);
+    const err = results.find((r) => r.error);
+    if (err?.error) { toast.error(err.error.message); load(); }
+  };
+
     const { error } = await supabase.from("deliverables").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
     load();
