@@ -44,6 +44,33 @@ export type Database = {
         }
         Relationships: []
       }
+      deliverable_dividers: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       deliverable_folders: {
         Row: {
           client_id: string
