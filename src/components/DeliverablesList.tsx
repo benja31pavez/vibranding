@@ -516,11 +516,16 @@ function DeliverableCard({ it, folders, update, remove, compact }: { it: Row; fo
   );
 }
 
-function DividerLine({ divider, onRename, onDelete }: { divider: DividerRow; onRename: (label: string) => void; onDelete: () => void }) {
+function DividerLine({ divider, onRename, onDelete, dragHandle }: { divider: DividerRow; onRename: (label: string) => void; onDelete: () => void; dragHandle?: DragHandle }) {
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(divider.label);
   return (
-    <div className="flex items-center gap-3 group py-1">
+    <div className="flex items-center gap-2 group py-1">
+      {dragHandle && (
+        <button {...dragHandle.attributes} {...dragHandle.listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none opacity-0 group-hover:opacity-100" aria-label="Reordenar">
+          <GripVertical className="w-4 h-4" />
+        </button>
+      )}
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-border" />
       {editing ? (
         <Input autoFocus value={label} onChange={(e) => setLabel(e.target.value)}
