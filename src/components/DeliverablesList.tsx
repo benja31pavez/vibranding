@@ -219,7 +219,25 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     if (err?.error) { toast.error(err.error.message); load(); }
   };
 
-  const update = async (id: string, patch: any) => {
+  const reorderItems = async (folderId: string | null, activeId: string, overId: string) => {
+    const groupItems = items
+      .filter((x) => (x.folder_id ?? null) === folderId)
+      .sort((a, b) => a.sort_order - b.sort_order);
+    const oldIdx = groupItems.findIndex((x) => x.id === activeId);
+    const newIdx = groupItems.findIndex((x) => x.id === overId);
+    if (oldIdx < 0 || newIdx < 0 || oldIdx === newIdx) return;
+    const reordered = arrayMove(groupItems, oldIdx, newIdx);
+    setItems((prev) => {
+      const map = new Map(prev.map((p) => [p.id, p]));
+      reordered.forEach((it, idx) => { map.set(it.id, { ...map.get(it.id)!, sort_order: idx }); });
+      return Array.from(map.values());
+    });
+    const results = await Promise.all(
+      reordered.map((it, idx) => supabase.from("deliverables").update({ sort_order: idx }).eq("id", it.id))
+    );
+    const err = results.find((r) => r.error);
+    if (err?.error) { toast.error(err.error.message); load(); }
+  };
     const { error } = await supabase.from("deliverables").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
     load();
