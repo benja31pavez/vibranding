@@ -385,7 +385,6 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
             ))}
           </div>
         ) : (() => {
-          const sortedEntries = [
           const rootItems = (grouped.get(null) ?? []);
           const sortedEntries = [
             ...folders.map((f) => ({ kind: "folder" as const, sort_order: f.sort_order, data: f, sortId: `f-${f.id}` })),
