@@ -419,9 +419,14 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
                           {list.length === 0 ? (
                             <div className="text-xs text-muted-foreground px-1 py-2">Vacía — arrastra archivos aquí</div>
                           ) : (
-                            <ul className="space-y-2">
-                              {list.map((it) => <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} />)}
-                            </ul>
+                            <SortableItemsList
+                              items={list}
+                              folders={folders}
+                              update={update}
+                              remove={remove}
+                              sensors={sensors}
+                              onReorder={(a, o) => reorderItems(f.id, a, o)}
+                            />
                           )}
                         </FolderSection>
                       )}
