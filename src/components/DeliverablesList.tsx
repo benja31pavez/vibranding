@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil } from "lucide-react";
+import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -26,6 +26,7 @@ type Row = {
 };
 
 type FolderRow = { id: string; name: string; sort_order: number };
+type DividerRow = { id: string; label: string; sort_order: number };
 
 const statusMeta: Record<Status, { label: string; icon: any; cls: string }> = {
   pending: { label: "Pendiente", icon: Circle, cls: "text-muted-foreground" },
@@ -46,6 +47,7 @@ const typeMeta: Record<DType, { label: string; icon: any }> = {
 export function DeliverablesList({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Row[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
+  const [dividers, setDividers] = useState<DividerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [addingFolder, setAddingFolder] = useState(false);
@@ -57,13 +59,15 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: dItems, error }, { data: dFolders }] = await Promise.all([
+    const [{ data: dItems, error }, { data: dFolders }, { data: dDividers }] = await Promise.all([
       supabase.from("deliverables").select("*").eq("client_id", clientId).order("sort_order").order("created_at"),
       supabase.from("deliverable_folders").select("*").eq("client_id", clientId).order("sort_order").order("created_at"),
+      supabase.from("deliverable_dividers").select("*").eq("client_id", clientId).order("sort_order").order("created_at"),
     ]);
     if (error) toast.error(error.message);
     setItems((dItems ?? []).map((r: any) => ({ ...r, checklist: r.checklist ?? [] })) as Row[]);
     setFolders((dFolders ?? []) as FolderRow[]);
+    setDividers((dDividers ?? []) as DividerRow[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, [clientId]);
@@ -106,6 +110,29 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   const removeFolder = async (id: string) => {
     if (!confirm("¿Eliminar carpeta? Los entregables se mantendrán sin carpeta.")) return;
     const { error } = await supabase.from("deliverable_folders").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    load();
+  };
+
+  const createDivider = async () => {
+    const maxOrder = Math.max(0, ...folders.map((f) => f.sort_order), ...dividers.map((d) => d.sort_order));
+    const { error } = await supabase.from("deliverable_dividers").insert({
+      client_id: clientId,
+      label: "Nueva fase",
+      sort_order: maxOrder + 1,
+    });
+    if (error) return toast.error(error.message);
+    load();
+  };
+
+  const renameDivider = async (id: string, label: string) => {
+    const { error } = await supabase.from("deliverable_dividers").update({ label }).eq("id", id);
+    if (error) return toast.error(error.message);
+    load();
+  };
+
+  const removeDivider = async (id: string) => {
+    const { error } = await supabase.from("deliverable_dividers").delete().eq("id", id);
     if (error) return toast.error(error.message);
     load();
   };
@@ -158,6 +185,9 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           </Tabs>
           <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAddingFolder(true)}>
             <FolderPlus className="w-4 h-4 mr-1" /> Carpeta
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-full" onClick={createDivider}>
+            <Minus className="w-4 h-4 mr-1" /> Divisor
           </Button>
           {!adding && (
             <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAdding(true)}>
@@ -223,29 +253,39 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {folders.map((f) => {
-              const list = grouped.get(f.id) ?? [];
-              const isCollapsed = collapsed[f.id];
-              return (
-                <FolderSection
-                  key={f.id}
-                  folder={f}
-                  count={list.length}
-                  collapsed={!!isCollapsed}
-                  onToggle={() => setCollapsed((s) => ({ ...s, [f.id]: !s[f.id] }))}
-                  onRename={(name) => renameFolder(f.id, name)}
-                  onDelete={() => removeFolder(f.id)}
-                >
-                  {list.length === 0 ? (
-                    <div className="text-xs text-muted-foreground px-1 py-2">Vacía</div>
-                  ) : (
-                    <ul className="space-y-2">
-                      {list.map((it) => <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} />)}
-                    </ul>
-                  )}
-                </FolderSection>
-              );
-            })}
+            {[
+              ...folders.map((f) => ({ kind: "folder" as const, sort_order: f.sort_order, data: f })),
+              ...dividers.map((d) => ({ kind: "divider" as const, sort_order: d.sort_order, data: d })),
+            ]
+              .sort((a, b) => a.sort_order - b.sort_order)
+              .map((entry) => {
+                if (entry.kind === "divider") {
+                  const d = entry.data;
+                  return <DividerLine key={`d-${d.id}`} divider={d} onRename={(label) => renameDivider(d.id, label)} onDelete={() => removeDivider(d.id)} />;
+                }
+                const f = entry.data;
+                const list = grouped.get(f.id) ?? [];
+                const isCollapsed = collapsed[f.id];
+                return (
+                  <FolderSection
+                    key={f.id}
+                    folder={f}
+                    count={list.length}
+                    collapsed={!!isCollapsed}
+                    onToggle={() => setCollapsed((s) => ({ ...s, [f.id]: !s[f.id] }))}
+                    onRename={(name) => renameFolder(f.id, name)}
+                    onDelete={() => removeFolder(f.id)}
+                  >
+                    {list.length === 0 ? (
+                      <div className="text-xs text-muted-foreground px-1 py-2">Vacía</div>
+                    ) : (
+                      <ul className="space-y-2">
+                        {list.map((it) => <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} />)}
+                      </ul>
+                    )}
+                  </FolderSection>
+                );
+              })}
             {(grouped.get(null) ?? []).length > 0 && (
               <div className="space-y-2">
                 {folders.length > 0 && (
@@ -407,5 +447,29 @@ function DeliverableCard({ it, folders, update, remove, compact }: { it: Row; fo
         </button>
       </div>
     </li>
+  );
+}
+
+function DividerLine({ divider, onRename, onDelete }: { divider: DividerRow; onRename: (label: string) => void; onDelete: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [label, setLabel] = useState(divider.label);
+  return (
+    <div className="flex items-center gap-3 group py-1">
+      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-border" />
+      {editing ? (
+        <Input autoFocus value={label} onChange={(e) => setLabel(e.target.value)}
+          onBlur={() => { setEditing(false); if (label.trim() && label !== divider.label) onRename(label.trim()); else setLabel(divider.label); }}
+          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") { setLabel(divider.label); setEditing(false); } }}
+          className="h-7 text-xs uppercase tracking-wider font-semibold max-w-[260px] text-center" />
+      ) : (
+        <button onClick={() => setEditing(true)} className="text-xs uppercase tracking-wider font-semibold text-muted-foreground hover:text-foreground px-2">
+          {divider.label || "Sin título"}
+        </button>
+      )}
+      <button onClick={onDelete} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive">
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+      <div className="h-px flex-1 bg-gradient-to-l from-transparent via-border to-border" />
+    </div>
   );
 }
