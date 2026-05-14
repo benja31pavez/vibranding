@@ -386,11 +386,14 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           </div>
         ) : (() => {
           const sortedEntries = [
+          const rootItems = (grouped.get(null) ?? []);
+          const sortedEntries = [
             ...folders.map((f) => ({ kind: "folder" as const, sort_order: f.sort_order, data: f, sortId: `f-${f.id}` })),
             ...dividers.map((d) => ({ kind: "divider" as const, sort_order: d.sort_order, data: d, sortId: `d-${d.id}` })),
+            ...rootItems.map((it) => ({ kind: "item" as const, sort_order: it.sort_order, data: it, sortId: `i-${it.id}` })),
           ].sort((a, b) => a.sort_order - b.sort_order);
           return (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={sortedEntries.map((e) => e.sortId)} strategy={verticalListSortingStrategy}>
                 {sortedEntries.map((entry) => {
@@ -399,6 +402,18 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
                     return (
                       <SortableWrapper key={entry.sortId} id={entry.sortId}>
                         {(handle) => <DividerLine divider={d} onRename={(label) => renameDivider(d.id, label)} onDelete={() => removeDivider(d.id)} dragHandle={handle} />}
+                      </SortableWrapper>
+                    );
+                  }
+                  if (entry.kind === "item") {
+                    const it = entry.data;
+                    return (
+                      <SortableWrapper key={entry.sortId} id={entry.sortId}>
+                        {(handle) => (
+                          it.file_url
+                            ? <MediaTile it={it} update={update} remove={remove} dragHandle={handle} />
+                            : <DeliverableCard it={it} folders={folders} update={update} remove={remove} dragHandle={handle} />
+                        )}
                       </SortableWrapper>
                     );
                   }
@@ -440,21 +455,6 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
                 })}
               </SortableContext>
             </DndContext>
-            {(grouped.get(null) ?? []).length > 0 && (
-              <div className="space-y-2">
-                {folders.length > 0 && (
-                  <div className="text-xs uppercase tracking-wider text-muted-foreground px-1">Sin carpeta</div>
-                )}
-                <SortableItemsList
-                  items={grouped.get(null) ?? []}
-                  folders={folders}
-                  update={update}
-                  remove={remove}
-                  sensors={sensors}
-                  onReorder={(a, o) => reorderItems(null, a, o)}
-                />
-              </div>
-            )}
           </div>
           );
         })()}
