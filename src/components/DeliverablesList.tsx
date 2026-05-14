@@ -970,7 +970,9 @@ function SortableDeliverable({ it, folders, update, remove }: { it: Row; folders
   };
   return (
     <div ref={setNodeRef} style={style}>
-      <DeliverableCard it={it} folders={folders} update={update} remove={remove} dragHandle={{ attributes, listeners }} />
+      {it.file_url
+        ? <MediaTile it={it} update={update} remove={remove} dragHandle={{ attributes, listeners }} />
+        : <DeliverableCard it={it} folders={folders} update={update} remove={remove} dragHandle={{ attributes, listeners }} />}
     </div>
   );
 }
