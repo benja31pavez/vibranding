@@ -44,6 +44,33 @@ export type Database = {
         }
         Relationships: []
       }
+      deliverable_folders: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       deliverables: {
         Row: {
           attachments: Json
@@ -52,6 +79,7 @@ export type Database = {
           created_at: string
           description: string | null
           due_date: string | null
+          folder_id: string | null
           id: string
           instagram_post_id: string | null
           sort_order: number
@@ -67,6 +95,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          folder_id?: string | null
           id?: string
           instagram_post_id?: string | null
           sort_order?: number
@@ -82,6 +111,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          folder_id?: string | null
           id?: string
           instagram_post_id?: string | null
           sort_order?: number
@@ -96,6 +126,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliverables_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "deliverable_folders"
             referencedColumns: ["id"]
           },
         ]
