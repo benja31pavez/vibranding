@@ -437,14 +437,27 @@ function SortableWrapper({ id, children }: { id: string; children: (handle: Drag
   return <div ref={setNodeRef} style={style}>{children({ attributes, listeners })}</div>;
 }
 
-function FolderSection({ folder, count, collapsed, onToggle, onRename, onDelete, children, dragHandle }: {
+function FolderSection({ folder, count, collapsed, onToggle, onRename, onDelete, children, dragHandle, onDropFiles, isDragOver, onDragOver, onDragLeave }: {
   folder: FolderRow; count: number; collapsed: boolean; onToggle: () => void;
   onRename: (name: string) => void; onDelete: () => void; children: React.ReactNode; dragHandle?: DragHandle;
+  onDropFiles?: (files: FileList) => void; isDragOver?: boolean; onDragOver?: () => void; onDragLeave?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(folder.name);
   return (
-    <div className="rounded-2xl border bg-surface/60 p-3 space-y-2">
+    <div
+      className={`rounded-2xl border bg-surface/60 p-3 space-y-2 transition-colors ${isDragOver ? "border-primary bg-primary/5" : ""}`}
+      onDragOver={(e) => { if (onDropFiles && Array.from(e.dataTransfer.types).includes("Files")) { e.preventDefault(); e.stopPropagation(); onDragOver?.(); } }}
+      onDragLeave={(e) => { if (e.currentTarget === e.target) onDragLeave?.(); }}
+      onDrop={(e) => {
+        if (onDropFiles && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          onDropFiles(e.dataTransfer.files);
+          onDragLeave?.();
+        }
+      }}
+    >
       <div className="flex items-center gap-2 group">
         {dragHandle && (
           <button {...dragHandle.attributes} {...dragHandle.listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none" aria-label="Reordenar">
