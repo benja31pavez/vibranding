@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Status = "pending" | "in_progress" | "done";
 type DType = "post" | "reel" | "story" | "design" | "meeting" | "report" | "other";
@@ -31,6 +32,7 @@ type Row = {
   file_name: string | null;
   file_size: number | null;
   mime_type: string | null;
+  created_at?: string;
 };
 
 type FolderRow = { id: string; name: string; sort_order: number };
@@ -194,9 +196,11 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   const handleDragEnd = async (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
+    const rootItems = items.filter((it) => !it.folder_id || !folders.find((f) => f.id === it.folder_id));
     const entries = [
       ...folders.map((f) => ({ kind: "folder" as const, id: `f-${f.id}`, raw: f })),
       ...dividers.map((d) => ({ kind: "divider" as const, id: `d-${d.id}`, raw: d })),
+      ...rootItems.map((it) => ({ kind: "item" as const, id: `i-${it.id}`, raw: it })),
     ].sort((a, b) => a.raw.sort_order - b.raw.sort_order);
     const oldIdx = entries.findIndex((x) => x.id === active.id);
     const newIdx = entries.findIndex((x) => x.id === over.id);
@@ -204,14 +208,15 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     const reordered = arrayMove(entries, oldIdx, newIdx);
 
     // Optimistic update
-    const newFolders = folders.map((f) => ({ ...f, sort_order: reordered.findIndex((x) => x.kind === "folder" && x.raw.id === f.id) }));
-    const newDividers = dividers.map((d) => ({ ...d, sort_order: reordered.findIndex((x) => x.kind === "divider" && x.raw.id === d.id) }));
-    setFolders(newFolders.sort((a, b) => a.sort_order - b.sort_order));
-    setDividers(newDividers.sort((a, b) => a.sort_order - b.sort_order));
+    setFolders(folders.map((f) => ({ ...f, sort_order: reordered.findIndex((x) => x.kind === "folder" && x.raw.id === f.id) })).sort((a, b) => a.sort_order - b.sort_order));
+    setDividers(dividers.map((d) => ({ ...d, sort_order: reordered.findIndex((x) => x.kind === "divider" && x.raw.id === d.id) })).sort((a, b) => a.sort_order - b.sort_order));
+    setItems((prev) => prev.map((it) => {
+      const idx = reordered.findIndex((x) => x.kind === "item" && x.raw.id === it.id);
+      return idx >= 0 ? { ...it, sort_order: idx } : it;
+    }));
 
-    // Persist
     const updates = reordered.map((entry, idx) => {
-      const table = entry.kind === "folder" ? "deliverable_folders" : "deliverable_dividers";
+      const table = entry.kind === "folder" ? "deliverable_folders" : entry.kind === "divider" ? "deliverable_dividers" : "deliverables";
       return supabase.from(table).update({ sort_order: idx }).eq("id", entry.raw.id);
     });
     const results = await Promise.all(updates);
@@ -380,12 +385,14 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
             ))}
           </div>
         ) : (() => {
+          const rootItems = (grouped.get(null) ?? []);
           const sortedEntries = [
             ...folders.map((f) => ({ kind: "folder" as const, sort_order: f.sort_order, data: f, sortId: `f-${f.id}` })),
             ...dividers.map((d) => ({ kind: "divider" as const, sort_order: d.sort_order, data: d, sortId: `d-${d.id}` })),
+            ...rootItems.map((it) => ({ kind: "item" as const, sort_order: it.sort_order, data: it, sortId: `i-${it.id}` })),
           ].sort((a, b) => a.sort_order - b.sort_order);
           return (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={sortedEntries.map((e) => e.sortId)} strategy={verticalListSortingStrategy}>
                 {sortedEntries.map((entry) => {
@@ -394,6 +401,18 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
                     return (
                       <SortableWrapper key={entry.sortId} id={entry.sortId}>
                         {(handle) => <DividerLine divider={d} onRename={(label) => renameDivider(d.id, label)} onDelete={() => removeDivider(d.id)} dragHandle={handle} />}
+                      </SortableWrapper>
+                    );
+                  }
+                  if (entry.kind === "item") {
+                    const it = entry.data;
+                    return (
+                      <SortableWrapper key={entry.sortId} id={entry.sortId}>
+                        {(handle) => (
+                          it.file_url
+                            ? <MediaTile it={it} update={update} remove={remove} dragHandle={handle} />
+                            : <DeliverableCard it={it} folders={folders} update={update} remove={remove} dragHandle={handle} />
+                        )}
                       </SortableWrapper>
                     );
                   }
@@ -435,21 +454,6 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
                 })}
               </SortableContext>
             </DndContext>
-            {(grouped.get(null) ?? []).length > 0 && (
-              <div className="space-y-2">
-                {folders.length > 0 && (
-                  <div className="text-xs uppercase tracking-wider text-muted-foreground px-1">Sin carpeta</div>
-                )}
-                <SortableItemsList
-                  items={grouped.get(null) ?? []}
-                  folders={folders}
-                  update={update}
-                  remove={remove}
-                  sensors={sensors}
-                  onReorder={(a, o) => reorderItems(null, a, o)}
-                />
-              </div>
-            )}
           </div>
           );
         })()}
@@ -799,6 +803,134 @@ function FilePreview({ fileUrl, fileName, fileSize, mimeType, compact, onRename 
   );
 }
 
+function MediaTile({ it, update, remove, dragHandle }: { it: Row; update: (id: string, patch: any) => void; remove: (id: string) => void; dragHandle?: DragHandle }) {
+  const [open, setOpen] = useState(false);
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
+  const isImage = it.mime_type?.startsWith("image/");
+  const isVideo = it.mime_type?.startsWith("video/");
+  const isPdf = it.mime_type === "application/pdf" || (it.file_name?.toLowerCase().endsWith(".pdf") ?? false);
+  const sizeLabel = it.file_size != null
+    ? it.file_size < 1024 * 1024
+      ? `${Math.round(it.file_size / 1024)} KB`
+      : `${(it.file_size / 1024 / 1024).toFixed(1)} MB`
+    : null;
+  const dateLabel = it.created_at ? new Date(it.created_at).toLocaleDateString() : null;
+
+  return (
+    <>
+      <div className="group relative inline-block align-top">
+        {dragHandle && (
+          <button
+            {...dragHandle.attributes}
+            {...dragHandle.listeners}
+            className="absolute -top-2 -left-2 z-10 p-1 rounded-full bg-background border shadow-sm cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none opacity-0 group-hover:opacity-100"
+            aria-label="Reordenar"
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="block rounded-xl overflow-hidden border bg-secondary/30 hover:ring-2 hover:ring-primary/40 transition-all"
+          title={it.title}
+        >
+          {isImage && it.file_url && (
+            <img src={it.file_url} alt={it.title} className="block w-48 h-48 object-cover" loading="lazy" />
+          )}
+          {isVideo && it.file_url && (
+            <video src={it.file_url} className="block w-48 h-48 object-cover bg-black" preload="metadata" muted />
+          )}
+          {isPdf && (
+            <div className="w-48 h-48 flex flex-col items-center justify-center gap-2 bg-muted">
+              <FileText className="w-10 h-10 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground px-2 text-center truncate max-w-full">{it.file_name ?? "PDF"}</span>
+            </div>
+          )}
+          {!isImage && !isVideo && !isPdf && (
+            <div className="w-48 h-48 flex items-center justify-center bg-muted">
+              <Paperclip className="w-10 h-10 text-muted-foreground" />
+            </div>
+          )}
+        </button>
+        <button
+          onClick={() => remove(it.id)}
+          className="absolute -top-2 -right-2 z-10 p-1 rounded-full bg-background border shadow-sm text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100"
+          aria-label="Eliminar"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              <Input
+                defaultValue={it.title}
+                onBlur={(e) => e.target.value !== it.title && update(it.id, { title: e.target.value })}
+                className="border-0 px-0 h-auto py-0 text-lg font-semibold shadow-none focus-visible:ring-0"
+              />
+            </DialogTitle>
+          </DialogHeader>
+          <div className="rounded-xl overflow-hidden bg-muted flex items-center justify-center max-h-[70vh]">
+            {isImage && it.file_url && (
+              <img
+                src={it.file_url}
+                alt={it.title}
+                className="max-h-[70vh] w-auto object-contain"
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  setDims({ w: img.naturalWidth, h: img.naturalHeight });
+                }}
+              />
+            )}
+            {isVideo && it.file_url && (
+              <video src={it.file_url} controls className="max-h-[70vh] w-auto" />
+            )}
+            {isPdf && it.file_url && (
+              <object data={it.file_url} type="application/pdf" className="w-full h-[70vh]">
+                <a href={it.file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline p-3 block">Abrir PDF</a>
+              </object>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Archivo</div>
+              <div className="truncate" title={it.file_name ?? ""}>{it.file_name ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Fecha</div>
+              <div>{dateLabel ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Peso</div>
+              <div>{sizeLabel ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Medidas</div>
+              <div>{dims ? `${dims.w} × ${dims.h}px` : isImage ? "Cargando…" : "—"}</div>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            {it.file_url && (
+              <a
+                href={it.file_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                download={it.file_name ?? undefined}
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <Download className="w-4 h-4" /> Descargar
+              </a>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function SortableItemsList({ items, folders, update, remove, sensors, onReorder }: {
   items: Row[];
   folders: FolderRow[];
@@ -838,7 +970,9 @@ function SortableDeliverable({ it, folders, update, remove }: { it: Row; folders
   };
   return (
     <div ref={setNodeRef} style={style}>
-      <DeliverableCard it={it} folders={folders} update={update} remove={remove} dragHandle={{ attributes, listeners }} />
+      {it.file_url
+        ? <MediaTile it={it} update={update} remove={remove} dragHandle={{ attributes, listeners }} />
+        : <DeliverableCard it={it} folders={folders} update={update} remove={remove} dragHandle={{ attributes, listeners }} />}
     </div>
   );
 }
