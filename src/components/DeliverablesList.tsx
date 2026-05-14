@@ -361,7 +361,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
       )}
 
       {loading ? <div className="text-sm text-muted-foreground">Cargando…</div>
-        : filtered.length === 0 && folders.length === 0 ? (
+        : filtered.length === 0 && folders.length === 0 && dividers.length === 0 ? (
           <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
             Aún no hay entregables.
           </div>
