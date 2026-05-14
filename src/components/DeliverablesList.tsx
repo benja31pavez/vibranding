@@ -27,6 +27,10 @@ type Row = {
   checklist: Checklist;
   sort_order: number;
   folder_id: string | null;
+  file_url: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  mime_type: string | null;
 };
 
 type FolderRow = { id: string; name: string; sort_order: number };
