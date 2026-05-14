@@ -102,6 +102,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
 
   const inferType = (mime: string | undefined): DType => {
     if (!mime) return "other";
+    if (mime === "application/pdf") return "report";
     if (mime.startsWith("image/")) return "design";
     if (mime.startsWith("video/")) return "reel";
     return "other";
@@ -218,6 +219,26 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     if (err?.error) { toast.error(err.error.message); load(); }
   };
 
+  const reorderItems = async (folderId: string | null, activeId: string, overId: string) => {
+    const groupItems = items
+      .filter((x) => (x.folder_id ?? null) === folderId)
+      .sort((a, b) => a.sort_order - b.sort_order);
+    const oldIdx = groupItems.findIndex((x) => x.id === activeId);
+    const newIdx = groupItems.findIndex((x) => x.id === overId);
+    if (oldIdx < 0 || newIdx < 0 || oldIdx === newIdx) return;
+    const reordered = arrayMove(groupItems, oldIdx, newIdx);
+    setItems((prev) => {
+      const map = new Map(prev.map((p) => [p.id, p]));
+      reordered.forEach((it, idx) => { map.set(it.id, { ...map.get(it.id)!, sort_order: idx }); });
+      return Array.from(map.values());
+    });
+    const results = await Promise.all(
+      reordered.map((it, idx) => supabase.from("deliverables").update({ sort_order: idx }).eq("id", it.id))
+    );
+    const err = results.find((r) => r.error);
+    if (err?.error) { toast.error(err.error.message); load(); }
+  };
+
   const update = async (id: string, patch: any) => {
     const { error } = await supabase.from("deliverables").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
@@ -289,6 +310,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
             ref={fileInputRef}
             type="file"
             multiple
+            accept="image/*,video/*,application/pdf"
             className="hidden"
             onChange={(e) => {
               if (e.target.files) uploadFiles(e.target.files, null);
@@ -397,9 +419,14 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
                           {list.length === 0 ? (
                             <div className="text-xs text-muted-foreground px-1 py-2">Vacía — arrastra archivos aquí</div>
                           ) : (
-                            <ul className="space-y-2">
-                              {list.map((it) => <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} />)}
-                            </ul>
+                            <SortableItemsList
+                              items={list}
+                              folders={folders}
+                              update={update}
+                              remove={remove}
+                              sensors={sensors}
+                              onReorder={(a, o) => reorderItems(f.id, a, o)}
+                            />
                           )}
                         </FolderSection>
                       )}
@@ -413,9 +440,14 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
                 {folders.length > 0 && (
                   <div className="text-xs uppercase tracking-wider text-muted-foreground px-1">Sin carpeta</div>
                 )}
-                <ul className="space-y-2">
-                  {(grouped.get(null) ?? []).map((it) => <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} />)}
-                </ul>
+                <SortableItemsList
+                  items={grouped.get(null) ?? []}
+                  folders={folders}
+                  update={update}
+                  remove={remove}
+                  sensors={sensors}
+                  onReorder={(a, o) => reorderItems(null, a, o)}
+                />
               </div>
             )}
           </div>
@@ -489,7 +521,7 @@ function FolderSection({ folder, count, collapsed, onToggle, onRename, onDelete,
   );
 }
 
-function DeliverableCard({ it, folders, update, remove, compact }: { it: Row; folders: FolderRow[]; update: (id: string, patch: any) => void; remove: (id: string) => void; compact?: boolean }) {
+function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: { it: Row; folders: FolderRow[]; update: (id: string, patch: any) => void; remove: (id: string) => void; compact?: boolean; dragHandle?: DragHandle }) {
   const M = statusMeta[it.status];
   const Icon = M.icon;
   const T = typeMeta[it.type].icon;
@@ -504,6 +536,16 @@ function DeliverableCard({ it, folders, update, remove, compact }: { it: Row; fo
   return (
     <li className="rounded-2xl border bg-surface p-4 group list-none">
       <div className="flex items-start gap-3">
+        {dragHandle && (
+          <button
+            {...dragHandle.attributes}
+            {...dragHandle.listeners}
+            className="mt-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none opacity-0 group-hover:opacity-100"
+            aria-label="Reordenar"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+        )}
         <button className={`mt-0.5 ${M.cls}`} title={M.label}
           onClick={() => update(it.id, { status: it.status === "done" ? "pending" : it.status === "pending" ? "in_progress" : "done" })}>
           <Icon className="w-5 h-5" />
@@ -525,26 +567,14 @@ function DeliverableCard({ it, folders, update, remove, compact }: { it: Row; fo
           </div>
 
           {it.file_url && (
-            <a
-              href={it.file_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              download={it.file_name ?? undefined}
-              className="mt-2 inline-flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground max-w-full"
-            >
-              {it.mime_type?.startsWith("image/") ? (
-                <img src={it.file_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
-              ) : (
-                <Paperclip className="w-3.5 h-3.5 flex-shrink-0" />
-              )}
-              <span className="truncate">{it.file_name ?? "Archivo"}</span>
-              {it.file_size != null && (
-                <span className="text-muted-foreground flex-shrink-0">
-                  {it.file_size < 1024 * 1024 ? `${Math.round(it.file_size / 1024)} KB` : `${(it.file_size / 1024 / 1024).toFixed(1)} MB`}
-                </span>
-              )}
-              <Download className="w-3.5 h-3.5 ml-1 flex-shrink-0 text-muted-foreground" />
-            </a>
+            <FilePreview
+              fileUrl={it.file_url}
+              fileName={it.file_name}
+              fileSize={it.file_size}
+              mimeType={it.mime_type}
+              compact={compact}
+              onRename={(name) => update(it.id, { file_name: name })}
+            />
           )}
 
           {!compact && (
@@ -651,6 +681,164 @@ function DividerLine({ divider, onRename, onDelete, dragHandle }: { divider: Div
         <Trash2 className="w-3.5 h-3.5" />
       </button>
       <div className="h-px flex-1 bg-gradient-to-l from-transparent via-border to-border" />
+    </div>
+  );
+}
+
+function FilePreview({ fileUrl, fileName, fileSize, mimeType, compact, onRename }: {
+  fileUrl: string;
+  fileName: string | null;
+  fileSize: number | null;
+  mimeType: string | null;
+  compact?: boolean;
+  onRename: (name: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(fileName ?? "");
+  const isImage = mimeType?.startsWith("image/");
+  const isVideo = mimeType?.startsWith("video/");
+  const isPdf = mimeType === "application/pdf" || (fileName?.toLowerCase().endsWith(".pdf") ?? false);
+  const sizeLabel =
+    fileSize != null
+      ? fileSize < 1024 * 1024
+        ? `${Math.round(fileSize / 1024)} KB`
+        : `${(fileSize / 1024 / 1024).toFixed(1)} MB`
+      : null;
+
+  const commitRename = () => {
+    setEditing(false);
+    const trimmed = name.trim();
+    if (trimmed && trimmed !== fileName) onRename(trimmed);
+    else setName(fileName ?? "");
+  };
+
+  return (
+    <div className="mt-2 rounded-xl border bg-secondary/30 overflow-hidden">
+      {!compact && (isImage || isVideo || isPdf) && (
+        <div className="bg-background/60 border-b">
+          {isImage && (
+            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="block">
+              <img
+                src={fileUrl}
+                alt={fileName ?? ""}
+                className="w-full max-h-72 object-contain bg-muted"
+                loading="lazy"
+              />
+            </a>
+          )}
+          {isVideo && (
+            <video
+              src={fileUrl}
+              controls
+              preload="metadata"
+              className="w-full max-h-80 bg-black"
+            />
+          )}
+          {isPdf && !isImage && !isVideo && (
+            <object data={`${fileUrl}#toolbar=0&navpanes=0`} type="application/pdf" className="w-full h-72 bg-background">
+              <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline p-3 block">
+                Abrir PDF
+              </a>
+            </object>
+          )}
+        </div>
+      )}
+      <div className="flex items-center gap-2 px-3 py-2">
+        {isImage ? (
+          <ImageIcon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        ) : isVideo ? (
+          <Film className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        ) : isPdf ? (
+          <FileText className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        ) : (
+          <Paperclip className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        )}
+        {editing ? (
+          <Input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              if (e.key === "Escape") { setName(fileName ?? ""); setEditing(false); }
+            }}
+            className="h-7 text-xs flex-1"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            title="Editar nombre"
+            className="text-xs flex-1 text-left truncate hover:text-foreground"
+          >
+            {fileName ?? "Archivo"}
+          </button>
+        )}
+        {sizeLabel && <span className="text-[11px] text-muted-foreground flex-shrink-0">{sizeLabel}</span>}
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="text-muted-foreground hover:text-foreground flex-shrink-0"
+          title="Renombrar"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+        <a
+          href={fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          download={fileName ?? undefined}
+          className="text-muted-foreground hover:text-foreground flex-shrink-0"
+          title="Descargar"
+        >
+          <Download className="w-3.5 h-3.5" />
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function SortableItemsList({ items, folders, update, remove, sensors, onReorder }: {
+  items: Row[];
+  folders: FolderRow[];
+  update: (id: string, patch: any) => void;
+  remove: (id: string) => void;
+  sensors: ReturnType<typeof useSensors>;
+  onReorder: (activeId: string, overId: string) => void;
+}) {
+  const ids = items.map((it) => it.id);
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={(e) => {
+        const { active, over } = e;
+        if (!over || active.id === over.id) return;
+        onReorder(String(active.id), String(over.id));
+      }}
+    >
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <ul className="space-y-2">
+          {items.map((it) => (
+            <SortableDeliverable key={it.id} it={it} folders={folders} update={update} remove={remove} />
+          ))}
+        </ul>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+function SortableDeliverable({ it, folders, update, remove }: { it: Row; folders: FolderRow[]; update: (id: string, patch: any) => void; remove: (id: string) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: it.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      <DeliverableCard it={it} folders={folders} update={update} remove={remove} dragHandle={{ attributes, listeners }} />
     </div>
   );
 }
