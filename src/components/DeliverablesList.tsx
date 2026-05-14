@@ -102,6 +102,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
 
   const inferType = (mime: string | undefined): DType => {
     if (!mime) return "other";
+    if (mime === "application/pdf") return "report";
     if (mime.startsWith("image/")) return "design";
     if (mime.startsWith("video/")) return "reel";
     return "other";
