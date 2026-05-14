@@ -527,26 +527,14 @@ function DeliverableCard({ it, folders, update, remove, compact }: { it: Row; fo
           </div>
 
           {it.file_url && (
-            <a
-              href={it.file_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              download={it.file_name ?? undefined}
-              className="mt-2 inline-flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground max-w-full"
-            >
-              {it.mime_type?.startsWith("image/") ? (
-                <img src={it.file_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
-              ) : (
-                <Paperclip className="w-3.5 h-3.5 flex-shrink-0" />
-              )}
-              <span className="truncate">{it.file_name ?? "Archivo"}</span>
-              {it.file_size != null && (
-                <span className="text-muted-foreground flex-shrink-0">
-                  {it.file_size < 1024 * 1024 ? `${Math.round(it.file_size / 1024)} KB` : `${(it.file_size / 1024 / 1024).toFixed(1)} MB`}
-                </span>
-              )}
-              <Download className="w-3.5 h-3.5 ml-1 flex-shrink-0 text-muted-foreground" />
-            </a>
+            <FilePreview
+              fileUrl={it.file_url}
+              fileName={it.file_name}
+              fileSize={it.file_size}
+              mimeType={it.mime_type}
+              compact={compact}
+              onRename={(name) => update(it.id, { file_name: name })}
+            />
           )}
 
           {!compact && (
