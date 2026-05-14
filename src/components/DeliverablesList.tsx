@@ -173,6 +173,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     if (err?.error) { toast.error(err.error.message); load(); }
   };
 
+  const update = async (id: string, patch: any) => {
     const { error } = await supabase.from("deliverables").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
     load();
