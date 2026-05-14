@@ -106,9 +106,13 @@ export type Database = {
           created_at: string
           description: string | null
           due_date: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
           folder_id: string | null
           id: string
           instagram_post_id: string | null
+          mime_type: string | null
           sort_order: number
           status: Database["public"]["Enums"]["task_status"]
           title: string
@@ -122,9 +126,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
           folder_id?: string | null
           id?: string
           instagram_post_id?: string | null
+          mime_type?: string | null
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
           title: string
@@ -138,9 +146,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
           folder_id?: string | null
           id?: string
           instagram_post_id?: string | null
+          mime_type?: string | null
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
           title?: string

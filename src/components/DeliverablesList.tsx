@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical } from "lucide-react";
+import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical, Upload, Paperclip, Download, Loader2 } from "lucide-react";
+import { uploadClientMedia } from "@/lib/uploadMedia";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -26,6 +27,10 @@ type Row = {
   checklist: Checklist;
   sort_order: number;
   folder_id: string | null;
+  file_url: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  mime_type: string | null;
 };
 
 type FolderRow = { id: string; name: string; sort_order: number };
@@ -91,6 +96,46 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     load();
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState<string | "root" | null>(null);
+
+  const inferType = (mime: string | undefined): DType => {
+    if (!mime) return "other";
+    if (mime.startsWith("image/")) return "design";
+    if (mime.startsWith("video/")) return "reel";
+    return "other";
+  };
+
+  const uploadFiles = async (files: FileList | File[], folderId: string | null) => {
+    const arr = Array.from(files);
+    if (arr.length === 0) return;
+    setUploading(true);
+    try {
+      for (const file of arr) {
+        try {
+          const url = await uploadClientMedia(file, clientId);
+          const { error } = await supabase.from("deliverables").insert({
+            client_id: clientId,
+            title: file.name.replace(/\.[^.]+$/, ""),
+            type: inferType(file.type),
+            folder_id: folderId,
+            file_url: url,
+            file_name: file.name,
+            file_size: file.size,
+            mime_type: file.type || null,
+          });
+          if (error) toast.error(`${file.name}: ${error.message}`);
+        } catch (e: any) {
+          toast.error(`${file.name}: ${e.message ?? "Error al subir"}`);
+        }
+      }
+      toast.success(arr.length === 1 ? "Archivo subido" : `${arr.length} archivos subidos`);
+      load();
+    } finally {
+      setUploading(false);
+    }
+  };
   const createFolder = async () => {
     if (!folderDraft.trim()) return;
     const { error } = await supabase.from("deliverable_folders").insert({
@@ -202,7 +247,18 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   }, [filtered, folders]);
 
   return (
-    <div className="space-y-3">
+    <div
+      className={`space-y-3 rounded-2xl transition-colors ${dragOver === "root" ? "outline-dashed outline-2 outline-primary/60 bg-primary/5 p-2 -m-2" : ""}`}
+      onDragOver={(e) => { if (Array.from(e.dataTransfer.types).includes("Files")) { e.preventDefault(); setDragOver("root"); } }}
+      onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOver(null); }}
+      onDrop={(e) => {
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          e.preventDefault();
+          setDragOver(null);
+          uploadFiles(e.dataTransfer.files, null);
+        }
+      }}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-lg font-semibold">Entregables</h3>
         <div className="flex items-center gap-2">
@@ -225,6 +281,20 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           <Button size="sm" variant="outline" className="rounded-full" onClick={createDivider}>
             <Minus className="w-4 h-4 mr-1" /> Divisor
           </Button>
+          <Button size="sm" variant="outline" className="rounded-full" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+            {uploading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+            {uploading ? "Subiendo…" : "Subir"}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files) uploadFiles(e.target.files, null);
+              e.target.value = "";
+            }}
+          />
           {!adding && (
             <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAdding(true)}>
               <Plus className="w-4 h-4 mr-1" /> Agregar
@@ -318,10 +388,14 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
                           onToggle={() => setCollapsed((s) => ({ ...s, [f.id]: !s[f.id] }))}
                           onRename={(name) => renameFolder(f.id, name)}
                           onDelete={() => removeFolder(f.id)}
+                          onDropFiles={(files) => uploadFiles(files, f.id)}
+                          isDragOver={dragOver === f.id}
+                          onDragOver={() => setDragOver(f.id)}
+                          onDragLeave={() => setDragOver((d) => (d === f.id ? null : d))}
                           dragHandle={handle}
                         >
                           {list.length === 0 ? (
-                            <div className="text-xs text-muted-foreground px-1 py-2">Vacía</div>
+                            <div className="text-xs text-muted-foreground px-1 py-2">Vacía — arrastra archivos aquí</div>
                           ) : (
                             <ul className="space-y-2">
                               {list.map((it) => <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} />)}
@@ -363,14 +437,27 @@ function SortableWrapper({ id, children }: { id: string; children: (handle: Drag
   return <div ref={setNodeRef} style={style}>{children({ attributes, listeners })}</div>;
 }
 
-function FolderSection({ folder, count, collapsed, onToggle, onRename, onDelete, children, dragHandle }: {
+function FolderSection({ folder, count, collapsed, onToggle, onRename, onDelete, children, dragHandle, onDropFiles, isDragOver, onDragOver, onDragLeave }: {
   folder: FolderRow; count: number; collapsed: boolean; onToggle: () => void;
   onRename: (name: string) => void; onDelete: () => void; children: React.ReactNode; dragHandle?: DragHandle;
+  onDropFiles?: (files: FileList) => void; isDragOver?: boolean; onDragOver?: () => void; onDragLeave?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(folder.name);
   return (
-    <div className="rounded-2xl border bg-surface/60 p-3 space-y-2">
+    <div
+      className={`rounded-2xl border bg-surface/60 p-3 space-y-2 transition-colors ${isDragOver ? "border-primary bg-primary/5" : ""}`}
+      onDragOver={(e) => { if (onDropFiles && Array.from(e.dataTransfer.types).includes("Files")) { e.preventDefault(); e.stopPropagation(); onDragOver?.(); } }}
+      onDragLeave={(e) => { if (e.currentTarget === e.target) onDragLeave?.(); }}
+      onDrop={(e) => {
+        if (onDropFiles && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          onDropFiles(e.dataTransfer.files);
+          onDragLeave?.();
+        }
+      }}
+    >
       <div className="flex items-center gap-2 group">
         {dragHandle && (
           <button {...dragHandle.attributes} {...dragHandle.listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none" aria-label="Reordenar">
@@ -436,6 +523,29 @@ function DeliverableCard({ it, folders, update, remove, compact }: { it: Row; fo
               </span>
             )}
           </div>
+
+          {it.file_url && (
+            <a
+              href={it.file_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              download={it.file_name ?? undefined}
+              className="mt-2 inline-flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground max-w-full"
+            >
+              {it.mime_type?.startsWith("image/") ? (
+                <img src={it.file_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
+              ) : (
+                <Paperclip className="w-3.5 h-3.5 flex-shrink-0" />
+              )}
+              <span className="truncate">{it.file_name ?? "Archivo"}</span>
+              {it.file_size != null && (
+                <span className="text-muted-foreground flex-shrink-0">
+                  {it.file_size < 1024 * 1024 ? `${Math.round(it.file_size / 1024)} KB` : `${(it.file_size / 1024 / 1024).toFixed(1)} MB`}
+                </span>
+              )}
+              <Download className="w-3.5 h-3.5 ml-1 flex-shrink-0 text-muted-foreground" />
+            </a>
+          )}
 
           {!compact && (
             <Textarea placeholder="Añadir descripción…" defaultValue={it.description ?? ""}
