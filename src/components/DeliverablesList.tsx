@@ -803,6 +803,134 @@ function FilePreview({ fileUrl, fileName, fileSize, mimeType, compact, onRename 
   );
 }
 
+function MediaTile({ it, update, remove, dragHandle }: { it: Row; update: (id: string, patch: any) => void; remove: (id: string) => void; dragHandle?: DragHandle }) {
+  const [open, setOpen] = useState(false);
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
+  const isImage = it.mime_type?.startsWith("image/");
+  const isVideo = it.mime_type?.startsWith("video/");
+  const isPdf = it.mime_type === "application/pdf" || (it.file_name?.toLowerCase().endsWith(".pdf") ?? false);
+  const sizeLabel = it.file_size != null
+    ? it.file_size < 1024 * 1024
+      ? `${Math.round(it.file_size / 1024)} KB`
+      : `${(it.file_size / 1024 / 1024).toFixed(1)} MB`
+    : null;
+  const dateLabel = it.created_at ? new Date(it.created_at).toLocaleDateString() : null;
+
+  return (
+    <>
+      <div className="group relative inline-block align-top">
+        {dragHandle && (
+          <button
+            {...dragHandle.attributes}
+            {...dragHandle.listeners}
+            className="absolute -top-2 -left-2 z-10 p-1 rounded-full bg-background border shadow-sm cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none opacity-0 group-hover:opacity-100"
+            aria-label="Reordenar"
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="block rounded-xl overflow-hidden border bg-secondary/30 hover:ring-2 hover:ring-primary/40 transition-all"
+          title={it.title}
+        >
+          {isImage && it.file_url && (
+            <img src={it.file_url} alt={it.title} className="block w-48 h-48 object-cover" loading="lazy" />
+          )}
+          {isVideo && it.file_url && (
+            <video src={it.file_url} className="block w-48 h-48 object-cover bg-black" preload="metadata" muted />
+          )}
+          {isPdf && (
+            <div className="w-48 h-48 flex flex-col items-center justify-center gap-2 bg-muted">
+              <FileText className="w-10 h-10 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground px-2 text-center truncate max-w-full">{it.file_name ?? "PDF"}</span>
+            </div>
+          )}
+          {!isImage && !isVideo && !isPdf && (
+            <div className="w-48 h-48 flex items-center justify-center bg-muted">
+              <Paperclip className="w-10 h-10 text-muted-foreground" />
+            </div>
+          )}
+        </button>
+        <button
+          onClick={() => remove(it.id)}
+          className="absolute -top-2 -right-2 z-10 p-1 rounded-full bg-background border shadow-sm text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100"
+          aria-label="Eliminar"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              <Input
+                defaultValue={it.title}
+                onBlur={(e) => e.target.value !== it.title && update(it.id, { title: e.target.value })}
+                className="border-0 px-0 h-auto py-0 text-lg font-semibold shadow-none focus-visible:ring-0"
+              />
+            </DialogTitle>
+          </DialogHeader>
+          <div className="rounded-xl overflow-hidden bg-muted flex items-center justify-center max-h-[70vh]">
+            {isImage && it.file_url && (
+              <img
+                src={it.file_url}
+                alt={it.title}
+                className="max-h-[70vh] w-auto object-contain"
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  setDims({ w: img.naturalWidth, h: img.naturalHeight });
+                }}
+              />
+            )}
+            {isVideo && it.file_url && (
+              <video src={it.file_url} controls className="max-h-[70vh] w-auto" />
+            )}
+            {isPdf && it.file_url && (
+              <object data={it.file_url} type="application/pdf" className="w-full h-[70vh]">
+                <a href={it.file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline p-3 block">Abrir PDF</a>
+              </object>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Archivo</div>
+              <div className="truncate" title={it.file_name ?? ""}>{it.file_name ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Fecha</div>
+              <div>{dateLabel ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Peso</div>
+              <div>{sizeLabel ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Medidas</div>
+              <div>{dims ? `${dims.w} × ${dims.h}px` : isImage ? "Cargando…" : "—"}</div>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            {it.file_url && (
+              <a
+                href={it.file_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                download={it.file_name ?? undefined}
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <Download className="w-4 h-4" /> Descargar
+              </a>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function SortableItemsList({ items, folders, update, remove, sensors, onReorder }: {
   items: Row[];
   folders: FolderRow[];
