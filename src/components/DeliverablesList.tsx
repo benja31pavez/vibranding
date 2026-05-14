@@ -32,6 +32,7 @@ type Row = {
   file_name: string | null;
   file_size: number | null;
   mime_type: string | null;
+  created_at?: string;
 };
 
 type FolderRow = { id: string; name: string; sort_order: number };
