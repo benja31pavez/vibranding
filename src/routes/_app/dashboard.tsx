@@ -73,7 +73,7 @@ function Dashboard() {
   );
 
   return (
-    <div className="max-w-6xl mx-auto px-6 md:px-10 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-6 md:px-10 py-8 space-y-8">
       <header>
         <h1 className="text-3xl md:text-4xl font-semibold tracking-tight"><span className="font-brand text-gradient-brand bg-gradient-brand-animated">Inicio</span></h1>
         <p className="text-muted-foreground">Resumen de tus clientes y actividad reciente.</p>
