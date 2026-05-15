@@ -91,9 +91,9 @@ export function PricingPanel() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight"><span className="font-brand text-gradient-brand bg-gradient-brand-animated">Mis tarifas</span></h2>
+        <h2 className="text-2xl font-semibold tracking-tight"><span className="font-brand text-gradient-brand bg-gradient-brand-animated">Mis servicios</span></h2>
         <p className="text-muted-foreground text-sm mt-1">
-          Configura los precios de tu empresa. Aparecen en el resumen y el PDF de cada cliente.
+          Configura los servicios que ofreces. Aparecen en el resumen y el PDF de cada cliente.
         </p>
       </div>
 
@@ -197,7 +197,7 @@ export function PricingSummary({ pricing }: { pricing: PricingSettings | null })
   return (
     <div className="rounded-2xl border bg-surface p-5">
       <div className="flex items-baseline justify-between mb-3">
-        <h3 className="font-semibold">Tarifas</h3>
+        <h3 className="font-semibold">Servicios</h3>
         <span className="text-xs text-muted-foreground">{pricing.currency}</span>
       </div>
       <div className="space-y-2 text-sm">

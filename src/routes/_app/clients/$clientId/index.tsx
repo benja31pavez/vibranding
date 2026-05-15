@@ -109,14 +109,14 @@ function SummaryPage() {
       {/* Health */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Health ok={overdueObj === 0} label="Objetivos en plazo" hint={overdueObj === 0 ? "Todo al día" : `${overdueObj} vencidos`} />
-        <Health ok={overdueDel === 0} label="Entregables al día" hint={overdueDel === 0 ? "Todo al día" : `${overdueDel} vencidos`} />
+        <Health ok={overdueDel === 0} label="Etapas al día" hint={overdueDel === 0 ? "Todo al día" : `${overdueDel} vencidos`} />
         <Health ok={overduePay === 0} label="Pagos al día" hint={overduePay === 0 ? "Sin atrasos" : `${overduePay} vencidos`} />
       </div>
 
       {/* Counters */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <Card label="Objetivos" value={`${objDone}/${data.obj.length}`} hint="completados" />
-        <Card label="Entregables" value={`${delDone}/${data.del.length}`} hint="completados" />
+        <Card label="Etapas" value={`${delDone}/${data.del.length}`} hint="completados" />
         <Card label="Cobrado" value={`$${paid.toFixed(0)}`} hint={`Pendiente $${pending.toFixed(0)}`} />
       </div>
 
@@ -142,10 +142,10 @@ function SummaryPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="rounded-2xl border bg-surface p-5">
           <div className="flex items-center gap-2 text-sm font-medium mb-3">
-            <Activity className="w-4 h-4" /> Próximos entregables
+            <Activity className="w-4 h-4" /> Próximas etapas
           </div>
           {upcomingDel.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No hay entregables próximos.</div>
+            <div className="text-sm text-muted-foreground">No hay etapas próximas.</div>
           ) : (
             <ul className="space-y-2">
               {upcomingDel.map((d, i) => (

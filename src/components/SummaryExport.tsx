@@ -332,7 +332,7 @@ export function SummaryExport({
           <>
             <div style={{ marginTop: 24, border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, background: C.surface }}>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>Tarifas</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>Servicios</div>
                 <div style={{ fontSize: 10, color: C.muted }}>{cur}</div>
               </div>
               <Row k="Pack inicial · primer contacto + edición de perfil" sub={pricing.pack_description} v={f(pricing.pack_price)} />
