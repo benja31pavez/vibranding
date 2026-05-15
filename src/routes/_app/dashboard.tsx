@@ -85,14 +85,14 @@ function Dashboard() {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card icon={Users} label="Clientes" value={String(stats.clients)} />
-            <Card icon={CheckSquare} label="Entregables próximos" value={String(stats.upcomingDeliverables.length)} hint="próximos 7 días" />
+            <Card icon={CheckSquare} label="Etapas próximas" value={String(stats.upcomingDeliverables.length)} hint="próximos 7 días" />
             <Card icon={DollarSign} label="Pagos pendientes" value={String(stats.pendingPayments.length)} />
             <Card icon={TrendingUp} label="Ingresos del mes" value={`${stats.currency} ${stats.monthRevenue.toFixed(0)}`} />
           </div>
 
           <section className="grid lg:grid-cols-2 gap-6">
             <div className="rounded-2xl border bg-surface p-5">
-              <h2 className="font-semibold mb-3 flex items-center gap-2"><CheckSquare className="w-4 h-4" /> Próximos entregables</h2>
+              <h2 className="font-semibold mb-3 flex items-center gap-2"><CheckSquare className="w-4 h-4" /> Próximas etapas</h2>
               {stats.upcomingDeliverables.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nada pendiente esta semana.</p>
               ) : (

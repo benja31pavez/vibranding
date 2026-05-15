@@ -92,7 +92,7 @@ function AppLayout() {
             <NavItem to="/clients" icon={Users} label="Clientes" active={path === "/clients"} />
             <NavItem to="/calendar" icon={CalendarDays} label="Calendario" active={path === "/calendar"} />
             <NavItem to="/reports" icon={BarChart3} label="Reportes" active={path === "/reports"} />
-            <NavItem to="/settings/pricing" icon={DollarSign} label="Tarifas" active={path.startsWith("/settings/pricing")} />
+            <NavItem to="/settings/pricing" icon={DollarSign} label="Servicios" active={path.startsWith("/settings/pricing")} />
           </div>
 
           {/* Cliente conectado */}
@@ -134,7 +134,7 @@ function AppLayout() {
                     <Target className="w-3.5 h-3.5 shrink-0" /> Objetivos
                   </Link>
                   <Link to="/clients/$clientId/deliverables" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/deliverables`)}>
-                    <CheckSquare className="w-3.5 h-3.5 shrink-0" /> Entregables
+                    <CheckSquare className="w-3.5 h-3.5 shrink-0" /> Etapas
                   </Link>
                   <Link to="/clients/$clientId/payments" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/payments`)}>
                     <Wallet className="w-3.5 h-3.5 shrink-0" /> Pagos

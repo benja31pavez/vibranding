@@ -286,7 +286,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
       }}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-lg font-semibold">Entregables</h3>
+        <h3 className="text-lg font-semibold">Etapas</h3>
         <div className="flex items-center gap-2">
           <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
             <SelectTrigger className="h-8 text-xs w-auto gap-1 rounded-full"><SelectValue /></SelectTrigger>
@@ -368,7 +368,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
       {loading ? <div className="text-sm text-muted-foreground">Cargando…</div>
         : filtered.length === 0 && folders.length === 0 && dividers.length === 0 ? (
           <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Aún no hay entregables.
+            Aún no hay etapas.
           </div>
         ) : view === "kanban" ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
