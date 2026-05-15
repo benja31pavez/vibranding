@@ -81,7 +81,7 @@ function AppLayout() {
           <Link to="/dashboard" className="flex items-center gap-2 shrink-0">
             <span className="font-brand text-2xl tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
           </Link>
-          <nav className="flex items-center gap-1 ml-4 flex-1 min-w-0 overflow-x-auto">
+          <nav className="flex items-center gap-1 ml-16 lg:ml-32 flex-1 min-w-0 overflow-x-auto">
             <HeaderItem to="/dashboard" icon={LayoutDashboard} label="Inicio" active={path === "/dashboard"} />
             <HeaderItem to="/clients" icon={Users} label="Clientes" active={path === "/clients"} />
             <HeaderItem to="/calendar" icon={CalendarDays} label="Calendario" active={path === "/calendar"} />
