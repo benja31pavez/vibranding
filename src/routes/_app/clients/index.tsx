@@ -61,10 +61,10 @@ function ClientsList() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-6 md:px-10 py-10">
-      <header className="flex items-center justify-between mb-10">
+    <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
+      <header className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-4xl font-semibold tracking-tight">
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
             <span className="font-brand text-gradient-brand bg-gradient-brand-animated">Clientes</span>
           </h1>
           <p className="text-muted-foreground mt-1">Gestiona las asesorías de cada uno.</p>
