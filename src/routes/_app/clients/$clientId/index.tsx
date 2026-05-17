@@ -109,6 +109,8 @@ function SummaryPage() {
         </div>
       </div>
 
+      <BusinessDescription clientId={clientId} value={client?.business_description ?? ""} onSaved={reloadClient} />
+
       {/* Health */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Health ok={overdueObj === 0} label="Objetivos en plazo" hint={overdueObj === 0 ? "Todo al día" : `${overdueObj} vencidos`} />
