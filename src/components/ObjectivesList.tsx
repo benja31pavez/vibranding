@@ -371,6 +371,44 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
             })}
           </ul>
         )}
+
+      <Dialog open={!!editingId} onOpenChange={(o) => !o && setEditingId(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Editar objetivo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input placeholder="Título" value={editDraft.title}
+              onChange={(e) => setEditDraft({ ...editDraft, title: e.target.value })} autoFocus />
+            <Textarea placeholder="Descripción" value={editDraft.description}
+              onChange={(e) => setEditDraft({ ...editDraft, description: e.target.value })} rows={3} />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <Select value={editDraft.category} onValueChange={(v) => setEditDraft({ ...editDraft, category: v as Category })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(categoryMeta) as Category[]).map((k) => <SelectItem key={k} value={k}>{categoryMeta[k].label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={editDraft.priority} onValueChange={(v) => setEditDraft({ ...editDraft, priority: v as Priority })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(priorityMeta) as Priority[]).map((k) => <SelectItem key={k} value={k}>Prioridad {priorityMeta[k].label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Input type="date" value={editDraft.due_date} onChange={(e) => setEditDraft({ ...editDraft, due_date: e.target.value })} />
+              <Input placeholder="Unidad (seguidores, %…)" value={editDraft.unit} onChange={(e) => setEditDraft({ ...editDraft, unit: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Input type="number" placeholder="Valor actual" value={editDraft.current_value} onChange={(e) => setEditDraft({ ...editDraft, current_value: e.target.value })} />
+              <Input type="number" placeholder="Valor objetivo" value={editDraft.target_value} onChange={(e) => setEditDraft({ ...editDraft, target_value: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditingId(null)}>Cancelar</Button>
+            <Button onClick={saveEdit}>Guardar cambios</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
