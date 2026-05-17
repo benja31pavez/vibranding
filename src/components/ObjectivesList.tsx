@@ -527,13 +527,19 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
               <SmartRow ok={smart.relevant.ok} label="Relevante" hint={smart.relevant.hint} />
               <SmartRow ok={smart.timebound.ok} label="Con plazo" hint={smart.timebound.hint} />
             </ul>
+            {!titleConsistency.ok && (
+              <div className="text-[11px] text-warning pt-1 flex items-start gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>{titleConsistency.message}</span>
+              </div>
+            )}
             {smart.achievable.level === "bad" && (
               <div className="text-[11px] text-destructive pt-1 flex items-start gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>Este objetivo parece poco realista en el plazo dado. Considera ampliar la fecha o bajar el valor objetivo.</span>
               </div>
             )}
-            {smartScore < 5 && smart.achievable.level !== "bad" && (
+            {smartScore < 5 && smart.achievable.level !== "bad" && titleConsistency.ok && (
               <div className="text-[11px] text-muted-foreground pt-1">
                 Puedes guardar igual, pero los objetivos SMART suelen cumplirse más.
               </div>
