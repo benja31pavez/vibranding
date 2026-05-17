@@ -160,15 +160,18 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
     }, 0) / total
   );
 
-  // SMART validation for draft
-  const smart = {
-    specific: draft.title.trim().length >= 10,
-    measurable: !!draft.target_value && Number(draft.target_value) > 0 && draft.unit.trim().length > 0,
-    achievable: draft.target_value === "" || draft.current_value === "" || Number(draft.current_value) <= Number(draft.target_value),
-    relevant: draft.description.trim().length >= 10,
-    timebound: !!draft.due_date && draft.due_date >= today,
-  };
+  // SMART validation
+  const computeSmart = (d: typeof draft) => ({
+    specific: d.title.trim().length >= 10,
+    measurable: !!d.target_value && Number(d.target_value) > 0 && d.unit.trim().length > 0,
+    achievable: d.target_value === "" || d.current_value === "" || Number(d.current_value) <= Number(d.target_value),
+    relevant: d.description.trim().length >= 10,
+    timebound: !!d.due_date && d.due_date >= today,
+  });
+  const smart = computeSmart(draft);
   const smartScore = Object.values(smart).filter(Boolean).length;
+  const editSmart = computeSmart(editDraft);
+  const editSmartScore = Object.values(editSmart).filter(Boolean).length;
 
   return (
     <div className="space-y-4">
@@ -373,15 +376,15 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
         )}
 
       <Dialog open={!!editingId} onOpenChange={(o) => !o && setEditingId(null)}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Editar objetivo</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="Título" value={editDraft.title}
+            <Input placeholder="Ej: Llegar a 10.000 seguidores en Instagram" value={editDraft.title}
               onChange={(e) => setEditDraft({ ...editDraft, title: e.target.value })} autoFocus />
-            <Textarea placeholder="Descripción" value={editDraft.description}
-              onChange={(e) => setEditDraft({ ...editDraft, description: e.target.value })} rows={3} />
+            <Textarea placeholder="¿Por qué importa este objetivo? Contexto, impacto esperado…" value={editDraft.description}
+              onChange={(e) => setEditDraft({ ...editDraft, description: e.target.value })} rows={2} />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <Select value={editDraft.category} onValueChange={(v) => setEditDraft({ ...editDraft, category: v as Category })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -396,16 +399,39 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                 </SelectContent>
               </Select>
               <Input type="date" value={editDraft.due_date} onChange={(e) => setEditDraft({ ...editDraft, due_date: e.target.value })} />
-              <Input placeholder="Unidad (seguidores, %…)" value={editDraft.unit} onChange={(e) => setEditDraft({ ...editDraft, unit: e.target.value })} />
+              <Input placeholder="Unidad (seguidores, %, leads…)" value={editDraft.unit} onChange={(e) => setEditDraft({ ...editDraft, unit: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Input type="number" placeholder="Valor actual" value={editDraft.current_value} onChange={(e) => setEditDraft({ ...editDraft, current_value: e.target.value })} />
               <Input type="number" placeholder="Valor objetivo" value={editDraft.target_value} onChange={(e) => setEditDraft({ ...editDraft, target_value: e.target.value })} />
             </div>
+
+            <div className="rounded-xl border bg-background/50 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-medium">
+                  <ListChecks className="w-3.5 h-3.5" /> Objetivo SMART
+                </div>
+                <span className={`text-[11px] font-semibold ${editSmartScore === 5 ? "text-success" : editSmartScore >= 3 ? "text-warning" : "text-muted-foreground"}`}>
+                  {editSmartScore}/5
+                </span>
+              </div>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
+                <SmartRow ok={editSmart.specific} label="Específico" hint="Título claro (≥ 10 caracteres)" />
+                <SmartRow ok={editSmart.measurable} label="Medible" hint="Valor objetivo + unidad" />
+                <SmartRow ok={editSmart.achievable} label="Alcanzable" hint="Valor actual ≤ objetivo" />
+                <SmartRow ok={editSmart.relevant} label="Relevante" hint="Descripción con contexto (≥ 10 car.)" />
+                <SmartRow ok={editSmart.timebound} label="Con plazo" hint="Fecha límite en el futuro" />
+              </ul>
+              {editSmartScore < 5 && (
+                <div className="text-[11px] text-muted-foreground pt-1">
+                  Puedes guardar igual, pero los objetivos SMART suelen cumplirse más.
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditingId(null)}>Cancelar</Button>
-            <Button onClick={saveEdit}>Guardar cambios</Button>
+            <Button className="rounded-full" onClick={saveEdit}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
