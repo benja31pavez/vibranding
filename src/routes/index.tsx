@@ -17,7 +17,9 @@ export const Route = createFileRoute("/")({
       { name: "description", content: translations.es.seo.home.description },
       { property: "og:title", content: translations.es.seo.home.title },
       { property: "og:description", content: translations.es.seo.home.description },
+      { property: "og:url", content: "https://vibranding.pro/" },
     ],
+    links: [{ rel: "canonical", href: "https://vibranding.pro/" }],
   }),
   component: Landing,
 });
