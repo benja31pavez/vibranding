@@ -51,11 +51,14 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState({
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const emptyDraft = {
     title: "", description: "", due_date: "",
     priority: "medium" as Priority, category: "growth" as Category,
     target_value: "", current_value: "", unit: "",
-  });
+  };
+  const [draft, setDraft] = useState(emptyDraft);
+  const [editDraft, setEditDraft] = useState(emptyDraft);
 
   const load = async () => {
     setLoading(true);
