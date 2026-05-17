@@ -3,12 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, TrendingUp, Heart, ShoppingBag, Sparkles, Flag, AlertCircle, Target, Gauge, CalendarClock, ListChecks, Check, X, MoreVertical, Pencil } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, Circle, Clock, TrendingUp, Heart, ShoppingBag, Sparkles, Flag, AlertCircle, Target, Gauge, CalendarClock, ListChecks, Check, X, MoreVertical, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 type Status = "pending" | "in_progress" | "done";
 type Priority = "low" | "medium" | "high";
@@ -231,7 +234,7 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                 {(Object.keys(priorityMeta) as Priority[]).map((k) => <SelectItem key={k} value={k}>Prioridad {priorityMeta[k].label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Input type="date" value={draft.due_date} onChange={(e) => setDraft({ ...draft, due_date: e.target.value })} />
+            <DatePicker value={draft.due_date || null} onChange={(v) => setDraft({ ...draft, due_date: v ?? "" })} placeholder="Fecha límite" />
             <Input placeholder="Unidad (seguidores, %, leads…)" value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -333,12 +336,11 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                       )}
 
                       <div className="flex items-center gap-3 mt-2 flex-wrap">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Calendar className="w-3.5 h-3.5" />
-                          <input type="date" value={it.due_date ?? ""}
-                            onChange={(e) => update(it.id, { due_date: e.target.value || null })}
-                            className="bg-transparent outline-none" />
-                        </div>
+                        <DatePicker
+                          value={it.due_date}
+                          onChange={(v) => update(it.id, { due_date: v })}
+                          size="sm"
+                        />
                         <Select value={it.priority} onValueChange={(v) => update(it.id, { priority: v as Priority })}>
                           <SelectTrigger className="h-7 text-xs w-auto gap-1 rounded-full border-0 bg-secondary px-2.5"><SelectValue /></SelectTrigger>
                           <SelectContent>{(Object.keys(priorityMeta) as Priority[]).map((k) => <SelectItem key={k} value={k}>{priorityMeta[k].label}</SelectItem>)}</SelectContent>
@@ -398,7 +400,7 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                   {(Object.keys(priorityMeta) as Priority[]).map((k) => <SelectItem key={k} value={k}>Prioridad {priorityMeta[k].label}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Input type="date" value={editDraft.due_date} onChange={(e) => setEditDraft({ ...editDraft, due_date: e.target.value })} />
+              <DatePicker value={editDraft.due_date || null} onChange={(v) => setEditDraft({ ...editDraft, due_date: v ?? "" })} placeholder="Fecha límite" />
               <Input placeholder="Unidad (seguidores, %, leads…)" value={editDraft.unit} onChange={(e) => setEditDraft({ ...editDraft, unit: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -468,5 +470,55 @@ function SmartRow({ ok, label, hint }: { ok: boolean; label: string; hint: strin
         <span className="text-muted-foreground"> — {hint}</span>
       </span>
     </li>
+  );
+}
+
+function DatePicker({ value, onChange, placeholder = "Fecha", size = "md" }: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  placeholder?: string;
+  size?: "sm" | "md";
+}) {
+  const date = value ? new Date(`${value}T00:00`) : undefined;
+  const label = date
+    ? date.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "2-digit" })
+    : placeholder;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(
+            "font-normal justify-start gap-2",
+            size === "sm" ? "h-7 px-2.5 text-xs rounded-full border-0 bg-secondary" : "h-10 w-full",
+            !value && "text-muted-foreground",
+          )}
+        >
+          <CalendarIcon className={size === "sm" ? "w-3.5 h-3.5 shrink-0" : "w-4 h-4 shrink-0"} />
+          <span className="truncate">{label}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={(d) => {
+            if (!d) { onChange(null); return; }
+            const pad = (n: number) => String(n).padStart(2, "0");
+            onChange(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+          }}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+        {value && (
+          <div className="border-t p-2 flex justify-end">
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => onChange(null)}>
+              Quitar fecha
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
