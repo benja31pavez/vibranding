@@ -59,7 +59,7 @@ function SummaryPage() {
     .sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime())
     .slice(0, 3);
 
-  const feedPreview = [...ig.posts].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)).slice(0, 6);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const Health = ({ ok, label, hint }: { ok: boolean; label: string; hint: string }) => (
     <div className="flex items-center gap-3 rounded-2xl border bg-surface p-4">
