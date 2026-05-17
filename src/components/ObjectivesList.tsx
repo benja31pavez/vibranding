@@ -370,6 +370,46 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
 
       {adding && (
         <div className="rounded-2xl border bg-surface p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline" size="sm" className="rounded-full">
+                  <LayoutTemplate className="w-3.5 h-3.5 mr-1.5" /> Usar plantilla
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                <div className="px-2 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">Predefinidas</div>
+                {PREDEFINED_TEMPLATES.map((t) => (
+                  <DropdownMenuItem key={t.id} onClick={() => applyTemplate(t)}>
+                    {t.name}
+                  </DropdownMenuItem>
+                ))}
+                {customTemplates.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <div className="px-2 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">Mis plantillas</div>
+                    {customTemplates.map((t) => (
+                      <div key={t.id} className="flex items-center group">
+                        <DropdownMenuItem onClick={() => applyTemplate(t)} className="flex-1">
+                          {t.name}
+                        </DropdownMenuItem>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteTemplate(t.id); }}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 mr-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                          title="Eliminar plantilla"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button type="button" variant="ghost" size="sm" className="rounded-full text-xs" onClick={saveAsTemplate}>
+              <BookmarkPlus className="w-3.5 h-3.5 mr-1.5" /> Guardar como plantilla
+            </Button>
+          </div>
           <Input placeholder="Ej: Llegar a 10.000 seguidores en Instagram" value={draft.title}
             onChange={(e) => setDraft({ ...draft, title: e.target.value })} autoFocus />
           <Textarea placeholder="¿Por qué importa este objetivo? Contexto, impacto esperado…" value={draft.description}
