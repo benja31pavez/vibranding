@@ -477,13 +477,19 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
               </span>
             </div>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
-              <SmartRow ok={smart.specific} label="Específico" hint="Título claro (≥ 10 caracteres)" />
-              <SmartRow ok={smart.measurable} label="Medible" hint="Valor objetivo + unidad" />
-              <SmartRow ok={smart.achievable} label="Alcanzable" hint="Valor actual ≤ objetivo" />
-              <SmartRow ok={smart.relevant} label="Relevante" hint="Descripción con contexto (≥ 10 car.)" />
-              <SmartRow ok={smart.timebound} label="Con plazo" hint="Fecha límite en el futuro" />
+              <SmartRow ok={smart.specific.ok} label="Específico" hint={smart.specific.hint} />
+              <SmartRow ok={smart.measurable.ok} label="Medible" hint={smart.measurable.hint} />
+              <SmartRow ok={smart.achievable.ok} level={smart.achievable.level} label="Alcanzable" hint={smart.achievable.hint} />
+              <SmartRow ok={smart.relevant.ok} label="Relevante" hint={smart.relevant.hint} />
+              <SmartRow ok={smart.timebound.ok} label="Con plazo" hint={smart.timebound.hint} />
             </ul>
-            {smartScore < 5 && (
+            {smart.achievable.level === "bad" && (
+              <div className="text-[11px] text-destructive pt-1 flex items-start gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>Este objetivo parece poco realista en el plazo dado. Considera ampliar la fecha o bajar el valor objetivo.</span>
+              </div>
+            )}
+            {smartScore < 5 && smart.achievable.level !== "bad" && (
               <div className="text-[11px] text-muted-foreground pt-1">
                 Puedes guardar igual, pero los objetivos SMART suelen cumplirse más.
               </div>
