@@ -336,12 +336,11 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                       )}
 
                       <div className="flex items-center gap-3 mt-2 flex-wrap">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Calendar className="w-3.5 h-3.5" />
-                          <input type="date" value={it.due_date ?? ""}
-                            onChange={(e) => update(it.id, { due_date: e.target.value || null })}
-                            className="bg-transparent outline-none" />
-                        </div>
+                        <DatePicker
+                          value={it.due_date}
+                          onChange={(v) => update(it.id, { due_date: v })}
+                          size="sm"
+                        />
                         <Select value={it.priority} onValueChange={(v) => update(it.id, { priority: v as Priority })}>
                           <SelectTrigger className="h-7 text-xs w-auto gap-1 rounded-full border-0 bg-secondary px-2.5"><SelectValue /></SelectTrigger>
                           <SelectContent>{(Object.keys(priorityMeta) as Priority[]).map((k) => <SelectItem key={k} value={k}>{priorityMeta[k].label}</SelectItem>)}</SelectContent>
