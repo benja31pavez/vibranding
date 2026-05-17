@@ -80,49 +80,6 @@ function ClientShell() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
-      <Link to="/clients" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
-        <ChevronLeft className="w-4 h-4" /> Clientes
-      </Link>
-
-      <header className="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div className="space-y-2 min-w-0">
-          <Input
-            defaultValue={client.name}
-            onBlur={(e) => renameClient(e.target.value)}
-            className="text-3xl md:text-4xl font-semibold tracking-tight border-0 px-0 h-auto py-0 shadow-none focus-visible:ring-0 bg-transparent"
-          />
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>@</span>
-            <Input
-              defaultValue={client.instagram_handle ?? ""}
-              onBlur={(e) => updateHandle(e.target.value.replace(/^@/, ""))}
-              placeholder="usuario"
-              className="border-0 px-0 h-auto py-0 shadow-none focus-visible:ring-0 bg-transparent w-48"
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={exporting || !ig.profile}>
-            <FileDown className="w-4 h-4 mr-1" /> {exporting ? "Generando…" : "Exportar PDF"}
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="text-muted-foreground"><Trash2 className="w-4 h-4 mr-1" /> Eliminar</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>¿Eliminar este cliente?</AlertDialogTitle>
-                <AlertDialogDescription>Se borrarán objetivos, entregables, propuestas y pagos asociados.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={deleteClient}>Eliminar</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </header>
-
       <Outlet />
 
       {/* Off-screen export node — needs IG data */}
