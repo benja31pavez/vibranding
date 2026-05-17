@@ -1,0 +1,12 @@
+# Vibranding
+
+> Vibranding es una agencia que ayuda a marcas a crecer en Instagram y Meta Ads con estrategia, diseño y datos. Ofrecemos auditoría, calendario de contenido, gestión de campañas y reportes claros.
+
+## Pages
+
+- [Inicio](/): Servicios de Vibranding, cómo trabajamos y contacto.
+- [Preguntas Frecuentes](/faq): Respuestas a las dudas más comunes sobre nuestros servicios.
+- [Términos de Servicio](/terms): Condiciones de contratación y uso de la plataforma.
+- [Política de Privacidad](/privacy): Cómo recopilamos, usamos y protegemos los datos.
+- [Política de Cookies](/cookies): Cookies que utiliza el sitio y cómo controlarlas.
+- [Eliminación de datos](/data-deletion): Instrucciones para solicitar la eliminación de tus datos.

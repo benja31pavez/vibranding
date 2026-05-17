@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /dashboard
+Disallow: /clients
+Disallow: /calendar
+Disallow: /reports
+Disallow: /settings
+
+Sitemap: https://vibranding.pro/sitemap.xml
