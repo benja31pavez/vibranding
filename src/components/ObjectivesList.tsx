@@ -320,7 +320,7 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
   const computeSmart = (d: typeof draft) => ({
     specific: d.title.trim().length >= 10,
     measurable: !!d.target_value && Number(d.target_value) > 0 && d.unit.trim().length > 0,
-    achievable: d.target_value === "" || d.current_value === "" || Number(d.current_value) <= Number(d.target_value),
+    achievable: !!d.target_value && Number(d.target_value) > 0 && d.current_value !== "" && Number(d.current_value) <= Number(d.target_value),
     relevant: d.description.trim().length >= 10,
     timebound: !!d.due_date && d.due_date >= today,
   });
