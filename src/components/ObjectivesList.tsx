@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, Circle, Clock, TrendingUp, Heart, ShoppingBag, Sparkles, Flag, AlertCircle, Target, Gauge, CalendarClock, ListChecks, Check, X, MoreVertical, Pencil } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, Circle, Clock, TrendingUp, Heart, ShoppingBag, Sparkles, Flag, AlertCircle, Target, Gauge, CalendarClock, ListChecks, Check, X, MoreVertical, Pencil, BookmarkPlus, LayoutTemplate } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
@@ -49,6 +49,73 @@ const categoryMeta: Record<Category, { label: string; icon: any }> = {
   branding: { label: "Branding", icon: Sparkles },
   other: { label: "Otro", icon: Flag },
 };
+
+type TemplateData = {
+  title: string;
+  description: string;
+  priority: Priority;
+  category: Category;
+  target_value: string;
+  current_value: string;
+  unit: string;
+};
+
+type Template = { id: string; name: string; data: TemplateData };
+
+const PREDEFINED_TEMPLATES: Template[] = [
+  {
+    id: "ig-followers",
+    name: "Crecimiento en Instagram",
+    data: {
+      title: "Llegar a 10.000 seguidores en Instagram",
+      description: "Aumentar la comunidad orgánica para ampliar alcance y autoridad de marca.",
+      priority: "medium", category: "growth",
+      target_value: "10000", current_value: "0", unit: "seguidores",
+    },
+  },
+  {
+    id: "engagement-rate",
+    name: "Subir engagement promedio",
+    data: {
+      title: "Subir el engagement promedio al 5%",
+      description: "Mejorar la interacción por publicación con contenido más relevante y consistente.",
+      priority: "medium", category: "engagement",
+      target_value: "5", current_value: "1", unit: "%",
+    },
+  },
+  {
+    id: "social-sales",
+    name: "Ventas desde redes",
+    data: {
+      title: "Generar 50 ventas desde redes sociales",
+      description: "Convertir tráfico social en ventas mediante CTAs claros y promociones puntuales.",
+      priority: "high", category: "sales",
+      target_value: "50", current_value: "0", unit: "ventas",
+    },
+  },
+  {
+    id: "brand-identity",
+    name: "Identidad visual completa",
+    data: {
+      title: "Publicar la identidad visual completa de la marca",
+      description: "Definir logo, paleta, tipografías y guía de estilo coherente para todos los canales.",
+      priority: "high", category: "branding",
+      target_value: "5", current_value: "0", unit: "entregables",
+    },
+  },
+  {
+    id: "leads",
+    name: "Captación de leads",
+    data: {
+      title: "Captar 200 leads cualificados este trimestre",
+      description: "Generar una base de contactos cualificados desde campañas y contenido orgánico.",
+      priority: "medium", category: "growth",
+      target_value: "200", current_value: "0", unit: "leads",
+    },
+  },
+];
+
+const TEMPLATES_KEY = "objective_templates_v1";
 
 function DatePicker({ value, onChange, placeholder = "Fecha", size = "md" }: {
   value: string | null;
@@ -175,6 +242,42 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
     load();
   };
 
+  const [customTemplates, setCustomTemplates] = useState<Template[]>([]);
+  useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(TEMPLATES_KEY) : null;
+      if (raw) setCustomTemplates(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, []);
+  const persistTemplates = (next: Template[]) => {
+    setCustomTemplates(next);
+    try { localStorage.setItem(TEMPLATES_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+  };
+  const applyTemplate = (t: Template) => {
+    setDraft({ ...emptyDraft, ...t.data, due_date: "" });
+    toast.success(`Plantilla "${t.name}" aplicada`);
+  };
+  const saveAsTemplate = () => {
+    if (!draft.title.trim()) { toast.error("Añade un título antes de guardar la plantilla"); return; }
+    const name = window.prompt("Nombre para esta plantilla:", draft.title.slice(0, 40));
+    if (!name?.trim()) return;
+    const t: Template = {
+      id: `custom-${Date.now()}`,
+      name: name.trim(),
+      data: {
+        title: draft.title, description: draft.description,
+        priority: draft.priority, category: draft.category,
+        target_value: draft.target_value, current_value: draft.current_value,
+        unit: draft.unit,
+      },
+    };
+    persistTemplates([...customTemplates, t]);
+    toast.success("Plantilla guardada");
+  };
+  const deleteTemplate = (id: string) => {
+    persistTemplates(customTemplates.filter((t) => t.id !== id));
+  };
+
   const update = async (id: string, patch: Partial<Row>) => {
     const { error } = await supabase.from("objectives").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
@@ -217,7 +320,7 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
   const computeSmart = (d: typeof draft) => ({
     specific: d.title.trim().length >= 10,
     measurable: !!d.target_value && Number(d.target_value) > 0 && d.unit.trim().length > 0,
-    achievable: d.target_value === "" || d.current_value === "" || Number(d.current_value) <= Number(d.target_value),
+    achievable: !!d.target_value && Number(d.target_value) > 0 && d.current_value !== "" && Number(d.current_value) <= Number(d.target_value),
     relevant: d.description.trim().length >= 10,
     timebound: !!d.due_date && d.due_date >= today,
   });
@@ -267,6 +370,46 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
 
       {adding && (
         <div className="rounded-2xl border bg-surface p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline" size="sm" className="rounded-full">
+                  <LayoutTemplate className="w-3.5 h-3.5 mr-1.5" /> Usar plantilla
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                <div className="px-2 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">Predefinidas</div>
+                {PREDEFINED_TEMPLATES.map((t) => (
+                  <DropdownMenuItem key={t.id} onClick={() => applyTemplate(t)}>
+                    {t.name}
+                  </DropdownMenuItem>
+                ))}
+                {customTemplates.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <div className="px-2 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">Mis plantillas</div>
+                    {customTemplates.map((t) => (
+                      <div key={t.id} className="flex items-center group">
+                        <DropdownMenuItem onClick={() => applyTemplate(t)} className="flex-1">
+                          {t.name}
+                        </DropdownMenuItem>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteTemplate(t.id); }}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 mr-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                          title="Eliminar plantilla"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button type="button" variant="ghost" size="sm" className="rounded-full text-xs" onClick={saveAsTemplate}>
+              <BookmarkPlus className="w-3.5 h-3.5 mr-1.5" /> Guardar como plantilla
+            </Button>
+          </div>
           <Input placeholder="Ej: Llegar a 10.000 seguidores en Instagram" value={draft.title}
             onChange={(e) => setDraft({ ...draft, title: e.target.value })} autoFocus />
           <Textarea placeholder="¿Por qué importa este objetivo? Contexto, impacto esperado…" value={draft.description}
