@@ -68,8 +68,8 @@ function AppLayout() {
   );
 
   const subClass = (active: boolean) =>
-    `flex items-center gap-2.5 pl-3 pr-3 py-1.5 rounded-md text-[13px] transition-colors ${
-      active ? "bg-sidebar-accent/80 text-sidebar-accent-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/40"
+    `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+      active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60"
     }`;
 
   const clientBase = activeClient ? `/clients/${activeClient.id}` : "";
