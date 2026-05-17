@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical, Upload, Paperclip, Download, Loader2 } from "lucide-react";
+import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical, Upload, Paperclip, Download, Loader2, MessageSquare, ThumbsUp, RotateCcw, Send, Eye } from "lucide-react";
 import { uploadClientMedia } from "@/lib/uploadMedia";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,10 +13,19 @@ import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalList
 import { CSS } from "@dnd-kit/utilities";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-type Status = "pending" | "in_progress" | "done";
+type Status = "pending" | "in_progress" | "in_review" | "done";
 type DType = "post" | "reel" | "story" | "design" | "meeting" | "report" | "other";
 
 type Checklist = { text: string; done: boolean }[];
+
+type CommentRow = {
+  id: string;
+  deliverable_id: string;
+  author: string;
+  kind: "comment" | "approval" | "change_request";
+  body: string;
+  created_at: string;
+};
 
 type Row = {
   id: string;
@@ -41,7 +50,15 @@ type DividerRow = { id: string; label: string; sort_order: number };
 const statusMeta: Record<Status, { label: string; icon: any; cls: string }> = {
   pending: { label: "Pendiente", icon: Circle, cls: "text-muted-foreground" },
   in_progress: { label: "En curso", icon: Clock, cls: "text-warning" },
+  in_review: { label: "En revisión cliente", icon: Eye, cls: "text-primary" },
   done: { label: "Completado", icon: CheckCircle2, cls: "text-success" },
+};
+
+const nextStatus: Record<Status, Status> = {
+  pending: "in_progress",
+  in_progress: "in_review",
+  in_review: "done",
+  done: "pending",
 };
 
 const typeMeta: Record<DType, { label: string; icon: any }> = {
@@ -62,7 +79,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   const [adding, setAdding] = useState(false);
   const [addingFolder, setAddingFolder] = useState(false);
   const [folderDraft, setFolderDraft] = useState("");
-  const [view, setView] = useState<"list" | "kanban">("list");
+  const [view, setView] = useState<"list" | "kanban" | "timeline">("list");
   const [filterType, setFilterType] = useState<"all" | DType>("all");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [draft, setDraft] = useState({ title: "", description: "", due_date: "", type: "post" as DType, folder_id: "" as string });
@@ -299,6 +316,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
             <TabsList className="h-8">
               <TabsTrigger value="list" className="text-xs">Lista</TabsTrigger>
               <TabsTrigger value="kanban" className="text-xs">Kanban</TabsTrigger>
+              <TabsTrigger value="timeline" className="text-xs">Timeline</TabsTrigger>
             </TabsList>
           </Tabs>
           <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAddingFolder(true)}>
@@ -371,8 +389,8 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
             Aún no hay etapas.
           </div>
         ) : view === "kanban" ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {(["pending", "in_progress", "done"] as Status[]).map((col) => (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            {(["pending", "in_progress", "in_review", "done"] as Status[]).map((col) => (
               <div key={col} className="rounded-2xl bg-secondary/40 p-3 space-y-2 min-h-[200px]">
                 <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground px-1">
                   <span>{statusMeta[col].label}</span>
@@ -384,6 +402,8 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
               </div>
             ))}
           </div>
+        ) : view === "timeline" ? (
+          <TimelineView items={filtered} update={update} />
         ) : (() => {
           const rootItems = (grouped.get(null) ?? []);
           const sortedEntries = [
@@ -551,7 +571,7 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
           </button>
         )}
         <button className={`mt-0.5 ${M.cls}`} title={M.label}
-          onClick={() => update(it.id, { status: it.status === "done" ? "pending" : it.status === "pending" ? "in_progress" : "done" })}>
+          onClick={() => update(it.id, { status: nextStatus[it.status] })}>
           <Icon className="w-5 h-5" />
         </button>
         <div className="flex-1 min-w-0">
@@ -651,6 +671,7 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
               </button>
             )}
           </div>
+          {!compact && <ReviewPanel it={it} update={update} />}
         </div>
         <button onClick={() => remove(it.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
           <Trash2 className="w-4 h-4" />
@@ -973,6 +994,331 @@ function SortableDeliverable({ it, folders, update, remove }: { it: Row; folders
       {it.file_url
         ? <MediaTile it={it} update={update} remove={remove} dragHandle={{ attributes, listeners }} />
         : <DeliverableCard it={it} folders={folders} update={update} remove={remove} dragHandle={{ attributes, listeners }} />}
+    </div>
+  );
+}
+
+// ───────────────────────── Review thread ─────────────────────────
+
+function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any) => void }) {
+  const [comments, setComments] = useState<CommentRow[]>([]);
+  const [open, setOpen] = useState(false);
+  const [body, setBody] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
+  const load = async () => {
+    const { data } = await supabase
+      .from("deliverable_comments")
+      .select("*")
+      .eq("deliverable_id", it.id)
+      .order("created_at", { ascending: true });
+    setComments((data ?? []) as CommentRow[]);
+    setLoaded(true);
+  };
+
+  useEffect(() => {
+    if (open && !loaded) load();
+  }, [open, loaded]);
+
+  // Lightweight count fetch on mount so badge is accurate
+  useEffect(() => {
+    let alive = true;
+    supabase
+      .from("deliverable_comments")
+      .select("id", { count: "exact", head: true })
+      .eq("deliverable_id", it.id)
+      .then(({ count }) => {
+        if (alive && count != null && !loaded) {
+          // store stub array of length=count for badge display
+          setComments(Array.from({ length: count }, (_, i) => ({ id: `stub-${i}`, deliverable_id: it.id, author: "", kind: "comment", body: "", created_at: "" })));
+        }
+      });
+    return () => { alive = false; };
+  }, [it.id]);
+
+  const addComment = async (kind: CommentRow["kind"], text: string) => {
+    if (!text.trim()) return;
+    const payload = {
+      deliverable_id: it.id,
+      client_id: (it as any).client_id ?? undefined,
+    };
+    // client_id is required — fetch it from the deliverable row if not present
+    let clientId = (it as any).client_id;
+    if (!clientId) {
+      const { data } = await supabase.from("deliverables").select("client_id").eq("id", it.id).single();
+      clientId = data?.client_id;
+    }
+    const { error } = await supabase.from("deliverable_comments").insert({
+      deliverable_id: it.id,
+      client_id: clientId,
+      author: "agency",
+      kind,
+      body: text.trim(),
+    });
+    if (error) { toast.error(error.message); return; }
+    setBody("");
+    load();
+  };
+
+  const sendToReview = async () => {
+    update(it.id, { status: "in_review" });
+    toast.success("Marcado como En revisión cliente");
+  };
+
+  const approve = async () => {
+    await addComment("approval", "Aprobado ✓");
+    update(it.id, { status: "done" });
+    toast.success("Entregable aprobado");
+  };
+
+  const requestChanges = async () => {
+    if (!body.trim()) {
+      toast.error("Escribe qué hay que cambiar antes de enviar");
+      return;
+    }
+    await addComment("change_request", body);
+    update(it.id, { status: "in_progress" });
+    toast.success("Cambios solicitados");
+  };
+
+  const remove = async (id: string) => {
+    await supabase.from("deliverable_comments").delete().eq("id", id);
+    load();
+  };
+
+  const count = comments.length;
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border/60">
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+        >
+          <MessageSquare className="w-3.5 h-3.5" />
+          {count > 0 ? `${count} comentario${count === 1 ? "" : "s"}` : "Comentarios"}
+          {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+        </button>
+        {it.status !== "in_review" && it.status !== "done" && (
+          <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={sendToReview}>
+            <Send className="w-3 h-3 mr-1" /> Enviar a revisión
+          </Button>
+        )}
+        {it.status === "in_review" && (
+          <>
+            <Button size="sm" className="h-7 rounded-full text-xs bg-success text-success-foreground hover:bg-success/90" onClick={approve}>
+              <ThumbsUp className="w-3 h-3 mr-1" /> Aprobar
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => setOpen(true)}>
+              <RotateCcw className="w-3 h-3 mr-1" /> Pedir cambios
+            </Button>
+          </>
+        )}
+      </div>
+
+      {open && (
+        <div className="mt-3 space-y-2">
+          {loaded && comments.length === 0 && (
+            <div className="text-xs text-muted-foreground italic">Sin comentarios todavía.</div>
+          )}
+          {loaded && comments.map((c) => {
+            const tone =
+              c.kind === "approval" ? "border-success/40 bg-success/5"
+              : c.kind === "change_request" ? "border-warning/40 bg-warning/5"
+              : "border-border bg-secondary/30";
+            const label =
+              c.kind === "approval" ? "Aprobación"
+              : c.kind === "change_request" ? "Cambios solicitados"
+              : "Comentario";
+            return (
+              <div key={c.id} className={`rounded-xl border ${tone} px-3 py-2 group/cm`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                    {label} · {new Date(c.created_at).toLocaleString()}
+                  </div>
+                  <button onClick={() => remove(c.id)} className="opacity-0 group-hover/cm:opacity-100 text-muted-foreground hover:text-destructive">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className="text-sm mt-1 whitespace-pre-wrap">{c.body}</div>
+              </div>
+            );
+          })}
+          <div className="flex items-start gap-2">
+            <Textarea
+              rows={2}
+              placeholder={it.status === "in_review" ? "Describe los cambios solicitados…" : "Escribe un comentario…"}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              className="text-sm"
+            />
+            <div className="flex flex-col gap-1">
+              {it.status === "in_review" ? (
+                <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={requestChanges}>
+                  <RotateCcw className="w-3 h-3 mr-1" /> Pedir cambios
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => addComment("comment", body)}>
+                  <Send className="w-3 h-3 mr-1" /> Comentar
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ───────────────────────── Timeline / Gantt ─────────────────────────
+
+function TimelineView({ items, update }: { items: Row[]; update: (id: string, patch: any) => void }) {
+  const scheduled = items.filter((it) => it.due_date);
+  const unscheduled = items.filter((it) => !it.due_date);
+
+  if (scheduled.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+        Aún no hay entregables con fecha. Asigna una fecha de entrega para verlos en la línea de tiempo.
+      </div>
+    );
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dates = scheduled.map((it) => new Date(it.due_date!));
+  const minDate = new Date(Math.min(...dates.map((d) => d.getTime()), today.getTime()));
+  const maxDate = new Date(Math.max(...dates.map((d) => d.getTime()), today.getTime()));
+  // pad start to first day of month, end to last day of month
+  const start = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+  const end = new Date(maxDate.getFullYear(), maxDate.getMonth() + 1, 0);
+  const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000) + 1);
+
+  // build month columns
+  const months: { label: string; days: number; offsetDays: number }[] = [];
+  let cursor = new Date(start);
+  while (cursor <= end) {
+    const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+    const days = Math.round((monthEnd.getTime() - cursor.getTime()) / 86400000) + 1;
+    const offsetDays = Math.round((cursor.getTime() - start.getTime()) / 86400000);
+    months.push({
+      label: cursor.toLocaleDateString("es", { month: "short", year: "2-digit" }),
+      days,
+      offsetDays,
+    });
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+  }
+
+  const todayOffset = Math.round((today.getTime() - start.getTime()) / 86400000);
+  const todayPct = (todayOffset / totalDays) * 100;
+
+  // sort items by due date
+  const sorted = [...scheduled].sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1));
+
+  const statusBar: Record<Status, string> = {
+    pending: "bg-muted-foreground/40",
+    in_progress: "bg-warning",
+    in_review: "bg-primary",
+    done: "bg-success",
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border bg-surface overflow-hidden">
+        {/* Month header */}
+        <div className="flex border-b bg-secondary/40 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <div className="w-64 shrink-0 px-3 py-2 border-r font-medium">Entregable</div>
+          <div className="flex-1 relative flex">
+            {months.map((m, i) => (
+              <div
+                key={i}
+                style={{ width: `${(m.days / totalDays) * 100}%` }}
+                className="px-2 py-2 border-r last:border-r-0 truncate"
+              >
+                {m.label}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Rows */}
+        <div className="relative">
+          {/* Today line */}
+          {todayPct >= 0 && todayPct <= 100 && (
+            <div
+              className="absolute top-0 bottom-0 w-px bg-primary/70 z-10 pointer-events-none"
+              style={{ left: `calc(16rem + ${todayPct}% * (100% - 16rem) / 100)` }}
+              title="Hoy"
+            >
+              <div className="absolute -top-1 -left-1 w-2 h-2 rounded-full bg-primary" />
+            </div>
+          )}
+
+          {sorted.map((it) => {
+            const d = new Date(it.due_date!);
+            const offset = Math.round((d.getTime() - start.getTime()) / 86400000);
+            const leftPct = (offset / totalDays) * 100;
+            const M = statusMeta[it.status];
+            const overdue = it.due_date! < today.toISOString().slice(0, 10) && it.status !== "done";
+            return (
+              <div key={it.id} className="flex items-center border-b last:border-b-0 hover:bg-secondary/20 transition-colors">
+                <div className="w-64 shrink-0 px-3 py-2 border-r flex items-center gap-2 min-w-0">
+                  <M.icon className={`w-4 h-4 shrink-0 ${M.cls}`} />
+                  <div className="min-w-0">
+                    <div className="text-sm truncate font-medium">{it.title}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      {typeMeta[it.type].label} · {M.label}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 relative h-10">
+                  <div className="absolute inset-y-0 left-0 right-0 flex pointer-events-none">
+                    {months.map((m, i) => (
+                      <div key={i} style={{ width: `${(m.days / totalDays) * 100}%` }} className="border-r border-border/40 last:border-r-0" />
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => update(it.id, { status: nextStatus[it.status] })}
+                    className={`absolute top-1/2 -translate-y-1/2 h-5 min-w-[1.25rem] rounded-md ${statusBar[it.status]} ${overdue ? "ring-2 ring-destructive" : ""} hover:scale-y-110 transition-transform shadow-sm`}
+                    style={{
+                      left: `${Math.max(0, leftPct - 1)}%`,
+                      width: `${Math.min(6, Math.max(2, 100 / totalDays * 3))}%`,
+                    }}
+                    title={`${it.title} — ${d.toLocaleDateString()}`}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+        {(["pending", "in_progress", "in_review", "done"] as Status[]).map((s) => (
+          <div key={s} className="inline-flex items-center gap-1.5">
+            <span className={`w-3 h-3 rounded-sm ${statusBar[s]}`} />
+            {statusMeta[s].label}
+          </div>
+        ))}
+        <div className="inline-flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm ring-2 ring-destructive bg-transparent" />
+          Vencido
+        </div>
+        <div className="inline-flex items-center gap-1.5">
+          <span className="w-px h-3 bg-primary" />
+          Hoy
+        </div>
+      </div>
+
+      {unscheduled.length > 0 && (
+        <div className="rounded-2xl border border-dashed p-4 text-xs text-muted-foreground">
+          <strong className="text-foreground font-medium">{unscheduled.length}</strong> entregable{unscheduled.length === 1 ? "" : "s"} sin fecha de entrega — no aparece{unscheduled.length === 1 ? "" : "n"} en la línea de tiempo.
+        </div>
+      )}
     </div>
   );
 }
