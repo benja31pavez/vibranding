@@ -17,7 +17,7 @@ type Status = "pending" | "in_progress" | "done";
 
 function SummaryPage() {
   const { clientId } = Route.useParams();
-  const { client, ig } = useActiveClient();
+  const { client, ig, reloadClient } = useActiveClient();
   const { user } = useAuth();
   const [pricing, setPricing] = useState<PricingSettings | null>(null);
   const [data, setData] = useState<{
