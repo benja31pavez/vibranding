@@ -67,30 +67,30 @@ const PREDEFINED_TEMPLATES: Template[] = [
     id: "ig-followers",
     name: "Crecimiento en Instagram",
     data: {
-      title: "Llegar a 10.000 seguidores en Instagram",
+      title: "Llegar a X seguidores en Instagram",
       description: "Aumentar la comunidad orgánica para ampliar alcance y autoridad de marca.",
       priority: "medium", category: "growth",
-      target_value: "10000", current_value: "0", unit: "seguidores",
+      target_value: "", current_value: "", unit: "seguidores",
     },
   },
   {
     id: "engagement-rate",
     name: "Subir engagement promedio",
     data: {
-      title: "Subir el engagement promedio al 5%",
+      title: "Subir el engagement promedio al X%",
       description: "Mejorar la interacción por publicación con contenido más relevante y consistente.",
       priority: "medium", category: "engagement",
-      target_value: "5", current_value: "1", unit: "%",
+      target_value: "", current_value: "", unit: "%",
     },
   },
   {
     id: "social-sales",
     name: "Ventas desde redes",
     data: {
-      title: "Generar 50 ventas desde redes sociales",
+      title: "Generar X ventas desde redes sociales",
       description: "Convertir tráfico social en ventas mediante CTAs claros y promociones puntuales.",
       priority: "high", category: "sales",
-      target_value: "50", current_value: "0", unit: "ventas",
+      target_value: "", current_value: "", unit: "ventas",
     },
   },
   {
@@ -100,17 +100,17 @@ const PREDEFINED_TEMPLATES: Template[] = [
       title: "Publicar la identidad visual completa de la marca",
       description: "Definir logo, paleta, tipografías y guía de estilo coherente para todos los canales.",
       priority: "high", category: "branding",
-      target_value: "5", current_value: "0", unit: "entregables",
+      target_value: "", current_value: "", unit: "entregables",
     },
   },
   {
     id: "leads",
     name: "Captación de leads",
     data: {
-      title: "Captar 200 leads cualificados este trimestre",
+      title: "Captar X leads cualificados este trimestre",
       description: "Generar una base de contactos cualificados desde campañas y contenido orgánico.",
       priority: "medium", category: "growth",
-      target_value: "200", current_value: "0", unit: "leads",
+      target_value: "", current_value: "", unit: "leads",
     },
   },
 ];
