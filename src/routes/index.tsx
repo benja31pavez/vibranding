@@ -3,6 +3,9 @@ import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { SiteFooter } from "@/components/SiteFooter";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useLang } from "@/i18n/LanguageContext";
+import { translations } from "@/i18n/translations";
 import {
   Instagram, Megaphone, BarChart3, ArrowRight, Check,
 } from "lucide-react";
@@ -10,10 +13,10 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Vibranding — Crece en Instagram y Meta Ads con propuestas claras" },
-      { name: "description", content: "Vibranding te ayuda a planear, presentar y ejecutar estrategias de Instagram y campañas de Meta Ads para tus clientes, todo en un mismo lugar." },
-      { property: "og:title", content: "Vibranding — Plataforma para crecer en Instagram y Meta Ads" },
-      { property: "og:description", content: "Propuestas visuales de Instagram, gestión de campañas Meta Ads y reportes para tus clientes." },
+      { title: translations.es.seo.home.title },
+      { name: "description", content: translations.es.seo.home.description },
+      { property: "og:title", content: translations.es.seo.home.title },
+      { property: "og:description", content: translations.es.seo.home.description },
     ],
   }),
   component: Landing,
@@ -21,6 +24,7 @@ export const Route = createFileRoute("/")({
 
 export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {}) {
   const { session, loading } = useAuth();
+  const { t, lang } = useLang();
   const blob1 = useRef<HTMLDivElement>(null);
   const blob2 = useRef<HTMLDivElement>(null);
   const blob3 = useRef<HTMLDivElement>(null);
