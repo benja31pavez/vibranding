@@ -122,7 +122,17 @@ function SummaryPage() {
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <Card label="Objetivos" value={`${objDone}/${data.obj.length}`} hint="completados" />
         <Card label="Etapas" value={`${delDone}/${data.del.length}`} hint="completados" />
-        <Card label="Cobrado" value={`$${paid.toFixed(0)}`} hint={`Pendiente $${pending.toFixed(0)}`} />
+        <button
+          type="button"
+          onClick={() => setShowBreakdown((v) => !v)}
+          className="text-left rounded-2xl border bg-surface p-5 hover:border-primary/40 hover:shadow-sm transition focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Facturación</div>
+          <div className="text-3xl font-semibold mt-1">${paid.toFixed(0)}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Pendiente ${pending.toFixed(0)} · {showBreakdown ? "Ocultar desglose" : "Ver desglose"}
+          </div>
+        </button>
       </div>
 
       {/* Financial bar */}
@@ -142,6 +152,8 @@ function SummaryPage() {
           </div>
         </div>
       )}
+
+      {showBreakdown && <ProposedCostsBreakdown pricing={pricing} posts={ig.posts} />}
 
       {/* Upcoming */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -185,29 +197,6 @@ function SummaryPage() {
           )}
         </div>
       </div>
-
-      {/* Mini feed */}
-      {feedPreview.length > 0 && (
-        <div className="rounded-2xl border bg-surface p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <IGIcon className="w-4 h-4" /> Feed propuesto
-            </div>
-            <Link to="/clients/$clientId/instagram" params={{ clientId }} className="text-xs text-primary hover:underline inline-flex items-center gap-1">
-              Ver Instagram <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5">
-            {feedPreview.map((p) => (
-              <div key={p.id} className="aspect-square rounded-md bg-secondary overflow-hidden">
-                {(p.image_url || p.cover_url || p.carousel_urls?.[0]) ? (
-                  <img src={(p.image_url || p.cover_url || p.carousel_urls?.[0])!} alt="" className="w-full h-full object-cover" />
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <ProposedCostsBreakdown pricing={pricing} posts={ig.posts} />
     </div>
