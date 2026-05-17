@@ -39,6 +39,7 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Payment[]>([]);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ description: "", amount: "", currency: "USD", due_date: "" });
+  const [editing, setEditing] = useState<Payment | null>(null);
 
   const load = async () => {
     const { data, error } = await supabase
