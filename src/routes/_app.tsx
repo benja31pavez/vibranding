@@ -63,7 +63,7 @@ function AppLayout() {
   const HeaderItem = ({ to, icon: Icon, label, active }: any) => (
     <Link
       to={to}
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+      className={`flex items-center justify-center gap-2 w-32 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
         active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60"
       }`}
     >
@@ -85,7 +85,7 @@ function AppLayout() {
           <Link to="/dashboard" className="flex items-center gap-2 shrink-0">
             <span className="font-brand text-2xl tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
           </Link>
-          <nav className="flex items-center gap-1 ml-16 lg:ml-32 flex-1 min-w-0 overflow-x-auto">
+          <nav className="flex items-center justify-center gap-2 flex-1 min-w-0 overflow-x-auto">
             <HeaderItem to="/dashboard" icon={LayoutDashboard} label="Inicio" active={path === "/dashboard"} />
             <HeaderItem to="/clients" icon={Users} label="Clientes" active={path === "/clients"} />
             <HeaderItem to="/calendar" icon={CalendarDays} label="Calendario" active={path === "/calendar"} />
@@ -142,9 +142,6 @@ function AppLayout() {
                     </button>
                   </div>
                   <div className="space-y-1.5 pt-2">
-                    <Link to="/clients/$clientId" params={{ clientId: activeClient.id }} className={subClass(path === clientBase)}>
-                      <Eye className="w-4 h-4 shrink-0" /> Resumen
-                    </Link>
                     <Link to="/clients/$clientId/instagram" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/instagram`)}>
                       <Instagram className="w-4 h-4 shrink-0" /> Instagram
                     </Link>
