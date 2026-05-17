@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-
+import { useLang } from "@/i18n/LanguageContext";
 
 export function SiteFooter() {
+  const { t } = useLang();
   return (
     <footer className="border-t bg-background">
       <div className="max-w-7xl mx-auto px-6 md:px-10 py-14 grid grid-cols-2 md:grid-cols-4 gap-10">
@@ -9,30 +10,28 @@ export function SiteFooter() {
           <Link to="/" className="flex items-center gap-2">
             <span className="font-brand text-3xl tracking-tight">Vibranding</span>
           </Link>
-          <p className="text-sm text-muted-foreground mt-4 max-w-xs">
-            Crecemos tu marca en Instagram y Meta Ads con estrategia, diseño y datos.
-          </p>
+          <p className="text-sm text-muted-foreground mt-4 max-w-xs">{t.footer.tagline}</p>
         </div>
 
-        <FooterCol title="Producto">
-          <FooterLink href="/#servicios">Servicios</FooterLink>
-          <FooterLink href="/#como">Cómo funciona</FooterLink>
-          <FooterLink href="/#contacto">Contacto</FooterLink>
+        <FooterCol title={t.footer.columns.product}>
+          <FooterLink href="/#servicios">{t.footer.links.services}</FooterLink>
+          <FooterLink href="/#como">{t.footer.links.how}</FooterLink>
+          <FooterLink href="/#contacto">{t.footer.links.contact}</FooterLink>
         </FooterCol>
 
-        <FooterCol title="Recursos">
-          <FooterLink to="/faq">Preguntas Frecuentes</FooterLink>
+        <FooterCol title={t.footer.columns.resources}>
+          <FooterLink to="/faq">{t.footer.links.faq}</FooterLink>
         </FooterCol>
 
-        <FooterCol title="Legal">
-          <FooterLink to="/terms">Términos de Servicio</FooterLink>
-          <FooterLink to="/privacy">Política de Privacidad</FooterLink>
-          <FooterLink to="/cookies">Cookies</FooterLink>
+        <FooterCol title={t.footer.columns.legal}>
+          <FooterLink to="/terms">{t.footer.links.terms}</FooterLink>
+          <FooterLink to="/privacy">{t.footer.links.privacy}</FooterLink>
+          <FooterLink to="/cookies">{t.footer.links.cookies}</FooterLink>
         </FooterCol>
       </div>
       <div className="border-t">
         <div className="max-w-7xl mx-auto px-6 md:px-10 py-6 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Vibranding. Todos los derechos reservados.
+          © {new Date().getFullYear()} Vibranding. {t.footer.rights}
         </div>
       </div>
     </footer>
