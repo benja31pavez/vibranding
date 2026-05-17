@@ -316,6 +316,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
             <TabsList className="h-8">
               <TabsTrigger value="list" className="text-xs">Lista</TabsTrigger>
               <TabsTrigger value="kanban" className="text-xs">Kanban</TabsTrigger>
+              <TabsTrigger value="timeline" className="text-xs">Timeline</TabsTrigger>
             </TabsList>
           </Tabs>
           <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAddingFolder(true)}>
