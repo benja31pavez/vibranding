@@ -719,7 +719,13 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
               {editSmart.achievable.level === "bad" && (
                 <div className="text-[11px] text-destructive pt-1 flex items-start gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <span>Este objetivo parece poco realista en el plazo dado. Considera ampliar la fecha o bajar el valor objetivo.</span>
+                  <span>
+                    {editDraft.current_value !== "" && editDraft.target_value !== "" && Number(editDraft.current_value) > Number(editDraft.target_value)
+                      ? "Ya superaste este valor objetivo. Te sugerimos aumentar la meta para seguir creciendo."
+                      : editDraft.due_date && editDraft.due_date < today
+                      ? "La fecha límite ya pasó. Actualiza la fecha o marca el objetivo como completado."
+                      : "Este objetivo parece poco realista en el plazo dado. Considera ampliar la fecha o bajar el valor objetivo."}
+                  </span>
                 </div>
               )}
               {editSmartScore < 5 && editSmart.achievable.level !== "bad" && editTitleConsistency.ok && (
