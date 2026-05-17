@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLang } from "@/i18n/LanguageContext";
 import { translations } from "@/i18n/translations";
+import { trackLandingEvent } from "@/lib/track";
 import {
   Instagram, Megaphone, BarChart3, ArrowRight, Check,
 } from "lucide-react";
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/")({
 
 export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {}) {
   const { session, loading } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const blob1 = useRef<HTMLDivElement>(null);
   const blob2 = useRef<HTMLDivElement>(null);
   const blob3 = useRef<HTMLDivElement>(null);
@@ -68,7 +69,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
         <nav className="hidden md:flex items-center gap-8 text-sm">
           <a href="#servicios" className="text-muted-foreground hover:text-foreground story-link">{t.nav.services}</a>
           <a href="#como" className="text-muted-foreground hover:text-foreground story-link">{t.nav.how}</a>
-          <a href="#contacto" className="text-muted-foreground hover:text-foreground story-link">{t.nav.contact}</a>
+          <a href="#contacto" onClick={() => trackLandingEvent("contact_click", lang)} className="text-muted-foreground hover:text-foreground story-link">{t.nav.contact}</a>
         </nav>
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
@@ -101,7 +102,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in">
             <Button asChild size="lg" className="rounded-full px-8 h-12 text-base bg-gradient-brand hover:opacity-90 text-white border-0 shadow-lg shadow-[color:var(--brand-2)]/30 hover-scale">
-              <a href="#contacto">{t.hero.ctaPrimary} <ArrowRight className="w-4 h-4 ml-1" /></a>
+              <a href="#contacto" onClick={() => trackLandingEvent("contact_click", lang)}>{t.hero.ctaPrimary} <ArrowRight className="w-4 h-4 ml-1" /></a>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full px-8 h-12 text-base hover-scale">
               <a href="#servicios">{t.hero.ctaSecondary}</a>
@@ -182,6 +183,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
               href={`https://wa.me/56989294014?text=${encodeURIComponent(t.contact.whatsappMessage)}`}
               target="_blank"
               rel="noreferrer"
+              onClick={() => trackLandingEvent("whatsapp_click", lang)}
             >
               {t.contact.whatsapp}
             </a>

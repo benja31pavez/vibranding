@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useLang } from "@/i18n/LanguageContext";
+import { trackLandingEvent } from "@/lib/track";
 
 export function SiteFooter() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   return (
     <footer className="border-t bg-background">
       <div className="max-w-7xl mx-auto px-6 md:px-10 py-14 grid grid-cols-2 md:grid-cols-4 gap-10">
@@ -16,7 +17,7 @@ export function SiteFooter() {
         <FooterCol title={t.footer.columns.product}>
           <FooterLink href="/#servicios">{t.footer.links.services}</FooterLink>
           <FooterLink href="/#como">{t.footer.links.how}</FooterLink>
-          <FooterLink href="/#contacto">{t.footer.links.contact}</FooterLink>
+          <FooterLink href="/#contacto" onClick={() => trackLandingEvent("contact_click", lang)}>{t.footer.links.contact}</FooterLink>
         </FooterCol>
 
         <FooterCol title={t.footer.columns.resources}>
@@ -47,17 +48,18 @@ function FooterCol({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
-function FooterLink({ to, href, children }: { to?: string; href?: string; children: React.ReactNode }) {
+function FooterLink({ to, href, children, onClick }: { to?: string; href?: string; children: React.ReactNode; onClick?: () => void }) {
   if (to) {
     return (
       <li>
-        <Link to={to} className="text-sm text-foreground/80 hover:text-foreground">
+        <Link to={to} onClick={onClick} className="text-sm text-foreground/80 hover:text-foreground">
           {children}
         </Link>
       </li>
     );
   }
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    onClick?.();
     if (!href) return;
     const hashIdx = href.indexOf("#");
     if (hashIdx === -1) return;
