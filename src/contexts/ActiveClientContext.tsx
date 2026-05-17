@@ -6,6 +6,7 @@ export interface ActiveClient {
   id: string;
   name: string;
   instagram_handle: string | null;
+  business_description: string | null;
 }
 
 interface IGData {
