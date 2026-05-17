@@ -8,6 +8,13 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
+  head: () => ({
+    meta: [
+      { title: "Iniciar sesión — Vibranding" },
+      { name: "description", content: "Accede a tu panel de Vibranding para gestionar clientes, contenido y campañas." },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: LoginPage,
 });
 
