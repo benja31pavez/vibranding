@@ -14,6 +14,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LandingRouteImport } from './routes/landing'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as DataDeletionRouteImport } from './routes/data-deletion'
 import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
@@ -54,6 +55,11 @@ const LandingRoute = LandingRouteImport.update({
 const FaqRoute = FaqRouteImport.update({
   id: '/faq',
   path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataDeletionRoute = DataDeletionRouteImport.update({
+  id: '/data-deletion',
+  path: '/data-deletion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CookiesRoute = CookiesRouteImport.update({
@@ -144,6 +150,7 @@ const AppClientsClientIdDeliverablesRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cookies': typeof CookiesRoute
+  '/data-deletion': typeof DataDeletionRoute
   '/faq': typeof FaqRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cookies': typeof CookiesRoute
+  '/data-deletion': typeof DataDeletionRoute
   '/faq': typeof FaqRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
@@ -189,6 +197,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/cookies': typeof CookiesRoute
+  '/data-deletion': typeof DataDeletionRoute
   '/faq': typeof FaqRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
@@ -213,6 +222,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/cookies'
+    | '/data-deletion'
     | '/faq'
     | '/landing'
     | '/login'
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/cookies'
+    | '/data-deletion'
     | '/faq'
     | '/landing'
     | '/login'
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/cookies'
+    | '/data-deletion'
     | '/faq'
     | '/landing'
     | '/login'
@@ -281,6 +293,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   CookiesRoute: typeof CookiesRoute
+  DataDeletionRoute: typeof DataDeletionRoute
   FaqRoute: typeof FaqRoute
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
@@ -324,6 +337,13 @@ declare module '@tanstack/react-router' {
       path: '/faq'
       fullPath: '/faq'
       preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data-deletion': {
+      id: '/data-deletion'
+      path: '/data-deletion'
+      fullPath: '/data-deletion'
+      preLoaderRoute: typeof DataDeletionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cookies': {
@@ -486,6 +506,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   CookiesRoute: CookiesRoute,
+  DataDeletionRoute: DataDeletionRoute,
   FaqRoute: FaqRoute,
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
