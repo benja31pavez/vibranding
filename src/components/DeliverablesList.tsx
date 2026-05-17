@@ -79,7 +79,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   const [adding, setAdding] = useState(false);
   const [addingFolder, setAddingFolder] = useState(false);
   const [folderDraft, setFolderDraft] = useState("");
-  const [view, setView] = useState<"list" | "kanban">("list");
+  const [view, setView] = useState<"list" | "kanban" | "timeline">("list");
   const [filterType, setFilterType] = useState<"all" | DType>("all");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [draft, setDraft] = useState({ title: "", description: "", due_date: "", type: "post" as DType, folder_id: "" as string });
