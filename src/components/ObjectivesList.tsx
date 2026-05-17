@@ -695,14 +695,21 @@ function Kpi({ icon, label, value, tone }: { icon: React.ReactNode; label: strin
   );
 }
 
-function SmartRow({ ok, label, hint }: { ok: boolean; label: string; hint: string }) {
+function SmartRow({ ok, label, hint, level }: { ok: boolean; label: string; hint: string; level?: "ok" | "warn" | "bad" | "empty" }) {
+  const effective: "ok" | "warn" | "bad" | "empty" = level ?? (ok ? "ok" : "empty");
+  const styles = {
+    ok: { badge: "bg-success/20 text-success", icon: <Check className="w-2.5 h-2.5" />, label: "text-foreground" },
+    warn: { badge: "bg-warning/20 text-warning", icon: <AlertCircle className="w-2.5 h-2.5" />, label: "text-foreground" },
+    bad: { badge: "bg-destructive/20 text-destructive", icon: <X className="w-2.5 h-2.5" />, label: "text-destructive" },
+    empty: { badge: "bg-secondary text-muted-foreground", icon: <X className="w-2.5 h-2.5" />, label: "text-muted-foreground" },
+  }[effective];
   return (
     <li className="flex items-start gap-2">
-      <span className={`mt-0.5 w-4 h-4 rounded-full grid place-items-center shrink-0 ${ok ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
-        {ok ? <Check className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
+      <span className={`mt-0.5 w-4 h-4 rounded-full grid place-items-center shrink-0 ${styles.badge}`}>
+        {styles.icon}
       </span>
       <span>
-        <span className={`font-medium ${ok ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
+        <span className={`font-medium ${styles.label}`}>{label}</span>
         <span className="text-muted-foreground"> — {hint}</span>
       </span>
     </li>
