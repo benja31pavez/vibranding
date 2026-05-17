@@ -95,7 +95,8 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
             {t.hero.badge}
           </div>
           <h1 className="text-5xl md:text-7xl font-semibold tracking-tight leading-[1.05] max-w-4xl mx-auto animate-fade-in">
-            {t.hero.title1}<span className="font-brand text-gradient-brand bg-gradient-brand-animated">{t.hero.titleAccent}</span>{t.hero.titleEnd}
+            {t.hero.title1.trimEnd()}
+            <span className="block font-brand text-gradient-brand bg-gradient-brand-animated">{t.hero.titleAccent}{t.hero.titleEnd}</span>
           </h1>
           <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in">
             {t.hero.subtitle}
