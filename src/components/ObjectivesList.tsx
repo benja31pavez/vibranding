@@ -3,10 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, TrendingUp, Heart, ShoppingBag, Sparkles, Flag, AlertCircle, Target, Gauge, CalendarClock, ListChecks, Check, X } from "lucide-react";
+import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, TrendingUp, Heart, ShoppingBag, Sparkles, Flag, AlertCircle, Target, Gauge, CalendarClock, ListChecks, Check, X, MoreVertical, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Status = "pending" | "in_progress" | "done";
 type Priority = "low" | "medium" | "high";
@@ -49,11 +51,14 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState({
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const emptyDraft = {
     title: "", description: "", due_date: "",
     priority: "medium" as Priority, category: "growth" as Category,
     target_value: "", current_value: "", unit: "",
-  });
+  };
+  const [draft, setDraft] = useState(emptyDraft);
+  const [editDraft, setEditDraft] = useState(emptyDraft);
 
   const load = async () => {
     setLoading(true);
@@ -80,8 +85,40 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
       unit: draft.unit.trim() || null,
     });
     if (error) return toast.error(error.message);
-    setDraft({ title: "", description: "", due_date: "", priority: "medium", category: "growth", target_value: "", current_value: "", unit: "" });
+    setDraft(emptyDraft);
     setAdding(false);
+    load();
+  };
+
+  const openEdit = (it: Row) => {
+    setEditDraft({
+      title: it.title,
+      description: it.description ?? "",
+      due_date: it.due_date ?? "",
+      priority: it.priority,
+      category: it.category,
+      target_value: it.target_value != null ? String(it.target_value) : "",
+      current_value: it.current_value != null ? String(it.current_value) : "",
+      unit: it.unit ?? "",
+    });
+    setEditingId(it.id);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editDraft.title.trim()) return;
+    const { error } = await supabase.from("objectives").update({
+      title: editDraft.title.trim(),
+      description: editDraft.description.trim() || null,
+      due_date: editDraft.due_date || null,
+      priority: editDraft.priority,
+      category: editDraft.category,
+      target_value: editDraft.target_value ? Number(editDraft.target_value) : null,
+      current_value: editDraft.current_value ? Number(editDraft.current_value) : null,
+      unit: editDraft.unit.trim() || null,
+    }).eq("id", editingId);
+    if (error) return toast.error(error.message);
+    setEditingId(null);
+    toast.success("Objetivo actualizado");
     load();
   };
 
@@ -309,15 +346,69 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                         </Select>
                       </div>
                     </div>
-                    <button onClick={() => remove(it.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-secondary transition-colors" aria-label="Acciones">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={() => openEdit(it)}>
+                          <Pencil className="w-4 h-4 mr-2" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => { if (confirm("¿Eliminar este objetivo?")) remove(it.id); }}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" /> Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </li>
               );
             })}
           </ul>
         )}
+
+      <Dialog open={!!editingId} onOpenChange={(o) => !o && setEditingId(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Editar objetivo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input placeholder="Título" value={editDraft.title}
+              onChange={(e) => setEditDraft({ ...editDraft, title: e.target.value })} autoFocus />
+            <Textarea placeholder="Descripción" value={editDraft.description}
+              onChange={(e) => setEditDraft({ ...editDraft, description: e.target.value })} rows={3} />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <Select value={editDraft.category} onValueChange={(v) => setEditDraft({ ...editDraft, category: v as Category })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(categoryMeta) as Category[]).map((k) => <SelectItem key={k} value={k}>{categoryMeta[k].label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={editDraft.priority} onValueChange={(v) => setEditDraft({ ...editDraft, priority: v as Priority })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(priorityMeta) as Priority[]).map((k) => <SelectItem key={k} value={k}>Prioridad {priorityMeta[k].label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Input type="date" value={editDraft.due_date} onChange={(e) => setEditDraft({ ...editDraft, due_date: e.target.value })} />
+              <Input placeholder="Unidad (seguidores, %…)" value={editDraft.unit} onChange={(e) => setEditDraft({ ...editDraft, unit: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Input type="number" placeholder="Valor actual" value={editDraft.current_value} onChange={(e) => setEditDraft({ ...editDraft, current_value: e.target.value })} />
+              <Input type="number" placeholder="Valor objetivo" value={editDraft.target_value} onChange={(e) => setEditDraft({ ...editDraft, target_value: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditingId(null)}>Cancelar</Button>
+            <Button onClick={saveEdit}>Guardar cambios</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
