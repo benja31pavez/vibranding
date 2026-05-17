@@ -67,30 +67,30 @@ const PREDEFINED_TEMPLATES: Template[] = [
     id: "ig-followers",
     name: "Crecimiento en Instagram",
     data: {
-      title: "Llegar a 10.000 seguidores en Instagram",
+      title: "Llegar a X seguidores en Instagram",
       description: "Aumentar la comunidad orgánica para ampliar alcance y autoridad de marca.",
       priority: "medium", category: "growth",
-      target_value: "10000", current_value: "0", unit: "seguidores",
+      target_value: "", current_value: "", unit: "seguidores",
     },
   },
   {
     id: "engagement-rate",
     name: "Subir engagement promedio",
     data: {
-      title: "Subir el engagement promedio al 5%",
+      title: "Subir el engagement promedio al X%",
       description: "Mejorar la interacción por publicación con contenido más relevante y consistente.",
       priority: "medium", category: "engagement",
-      target_value: "5", current_value: "1", unit: "%",
+      target_value: "", current_value: "", unit: "%",
     },
   },
   {
     id: "social-sales",
     name: "Ventas desde redes",
     data: {
-      title: "Generar 50 ventas desde redes sociales",
+      title: "Generar X ventas desde redes sociales",
       description: "Convertir tráfico social en ventas mediante CTAs claros y promociones puntuales.",
       priority: "high", category: "sales",
-      target_value: "50", current_value: "0", unit: "ventas",
+      target_value: "", current_value: "", unit: "ventas",
     },
   },
   {
@@ -100,17 +100,17 @@ const PREDEFINED_TEMPLATES: Template[] = [
       title: "Publicar la identidad visual completa de la marca",
       description: "Definir logo, paleta, tipografías y guía de estilo coherente para todos los canales.",
       priority: "high", category: "branding",
-      target_value: "5", current_value: "0", unit: "entregables",
+      target_value: "", current_value: "", unit: "entregables",
     },
   },
   {
     id: "leads",
     name: "Captación de leads",
     data: {
-      title: "Captar 200 leads cualificados este trimestre",
+      title: "Captar X leads cualificados este trimestre",
       description: "Generar una base de contactos cualificados desde campañas y contenido orgánico.",
       priority: "medium", category: "growth",
-      target_value: "200", current_value: "0", unit: "leads",
+      target_value: "", current_value: "", unit: "leads",
     },
   },
 ];
@@ -317,17 +317,48 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
   );
 
   // SMART validation
-  const computeSmart = (d: typeof draft) => ({
-    specific: d.title.trim().length >= 10,
-    measurable: !!d.target_value && Number(d.target_value) > 0 && d.unit.trim().length > 0,
-    achievable: !!d.target_value && Number(d.target_value) > 0 && d.current_value !== "" && Number(d.current_value) <= Number(d.target_value),
-    relevant: d.description.trim().length >= 10,
-    timebound: !!d.due_date && d.due_date >= today,
-  });
+  type Level = "ok" | "warn" | "bad" | "empty";
+  const computeRealism = (d: typeof draft): { level: Level; hint: string } => {
+    if (!d.target_value || d.current_value === "" || !d.due_date) {
+      return { level: "empty", hint: "Completa valores y fecha" };
+    }
+    const target = Number(d.target_value);
+    const current = Number(d.current_value);
+    if (!isFinite(target) || target <= 0) return { level: "empty", hint: "Valor objetivo inválido" };
+    if (current > target) return { level: "bad", hint: "El valor actual ya supera al objetivo" };
+    const days = Math.ceil((new Date(`${d.due_date}T00:00`).getTime() - Date.now()) / 86400000);
+    if (days <= 0) return { level: "bad", hint: "La fecha límite ya pasó" };
+    const delta = target - current;
+    if (delta <= 0) return { level: "ok", hint: "Ya alcanzado" };
+    const perDay = delta / days;
+    // If we have a base value, evaluate required daily growth %
+    if (current > 0) {
+      const dailyPct = (perDay / current) * 100;
+      if (dailyPct > 3) return { level: "bad", hint: `Requiere +${dailyPct.toFixed(1)}%/día · poco realista` };
+      if (dailyPct > 1) return { level: "warn", hint: `Requiere +${dailyPct.toFixed(1)}%/día · ambicioso` };
+      return { level: "ok", hint: `Requiere +${dailyPct.toFixed(2)}%/día · realista` };
+    }
+    // current = 0 → use absolute thresholds (ramp from zero is harder)
+    if (delta >= 1000 && days < 90) return { level: "bad", hint: `+${Math.round(perDay)}/día desde 0 · poco realista, amplía el plazo` };
+    if (delta >= 100 && days < 30) return { level: "bad", hint: `+${Math.round(perDay)}/día desde 0 · poco realista, amplía el plazo` };
+    if (delta >= 500 && days < 60) return { level: "warn", hint: `+${Math.round(perDay)}/día desde 0 · ambicioso` };
+    if (delta >= 50 && days < 14) return { level: "warn", hint: `+${perDay.toFixed(1)}/día desde 0 · ambicioso` };
+    return { level: "ok", hint: `+${perDay < 1 ? perDay.toFixed(2) : Math.round(perDay)}/día · realista` };
+  };
+  const computeSmart = (d: typeof draft) => {
+    const realism = computeRealism(d);
+    return {
+      specific: { ok: d.title.trim().length >= 10, hint: "Título claro (≥ 10 caracteres)" },
+      measurable: { ok: !!d.target_value && Number(d.target_value) > 0 && d.unit.trim().length > 0, hint: "Valor objetivo + unidad" },
+      achievable: { ok: realism.level === "ok" || realism.level === "warn", level: realism.level, hint: realism.hint },
+      relevant: { ok: d.description.trim().length >= 10, hint: "Descripción con contexto (≥ 10 car.)" },
+      timebound: { ok: !!d.due_date && d.due_date >= today, hint: "Fecha límite en el futuro" },
+    };
+  };
   const smart = computeSmart(draft);
-  const smartScore = Object.values(smart).filter(Boolean).length;
+  const smartScore = Object.values(smart).filter((s) => s.ok).length;
   const editSmart = computeSmart(editDraft);
-  const editSmartScore = Object.values(editSmart).filter(Boolean).length;
+  const editSmartScore = Object.values(editSmart).filter((s) => s.ok).length;
 
   return (
     <div className="space-y-4">
@@ -446,13 +477,19 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
               </span>
             </div>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
-              <SmartRow ok={smart.specific} label="Específico" hint="Título claro (≥ 10 caracteres)" />
-              <SmartRow ok={smart.measurable} label="Medible" hint="Valor objetivo + unidad" />
-              <SmartRow ok={smart.achievable} label="Alcanzable" hint="Valor actual ≤ objetivo" />
-              <SmartRow ok={smart.relevant} label="Relevante" hint="Descripción con contexto (≥ 10 car.)" />
-              <SmartRow ok={smart.timebound} label="Con plazo" hint="Fecha límite en el futuro" />
+              <SmartRow ok={smart.specific.ok} label="Específico" hint={smart.specific.hint} />
+              <SmartRow ok={smart.measurable.ok} label="Medible" hint={smart.measurable.hint} />
+              <SmartRow ok={smart.achievable.ok} level={smart.achievable.level} label="Alcanzable" hint={smart.achievable.hint} />
+              <SmartRow ok={smart.relevant.ok} label="Relevante" hint={smart.relevant.hint} />
+              <SmartRow ok={smart.timebound.ok} label="Con plazo" hint={smart.timebound.hint} />
             </ul>
-            {smartScore < 5 && (
+            {smart.achievable.level === "bad" && (
+              <div className="text-[11px] text-destructive pt-1 flex items-start gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>Este objetivo parece poco realista en el plazo dado. Considera ampliar la fecha o bajar el valor objetivo.</span>
+              </div>
+            )}
+            {smartScore < 5 && smart.achievable.level !== "bad" && (
               <div className="text-[11px] text-muted-foreground pt-1">
                 Puedes guardar igual, pero los objetivos SMART suelen cumplirse más.
               </div>
@@ -611,13 +648,19 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                 </span>
               </div>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
-                <SmartRow ok={editSmart.specific} label="Específico" hint="Título claro (≥ 10 caracteres)" />
-                <SmartRow ok={editSmart.measurable} label="Medible" hint="Valor objetivo + unidad" />
-                <SmartRow ok={editSmart.achievable} label="Alcanzable" hint="Valor actual ≤ objetivo" />
-                <SmartRow ok={editSmart.relevant} label="Relevante" hint="Descripción con contexto (≥ 10 car.)" />
-                <SmartRow ok={editSmart.timebound} label="Con plazo" hint="Fecha límite en el futuro" />
+                <SmartRow ok={editSmart.specific.ok} label="Específico" hint={editSmart.specific.hint} />
+                <SmartRow ok={editSmart.measurable.ok} label="Medible" hint={editSmart.measurable.hint} />
+                <SmartRow ok={editSmart.achievable.ok} level={editSmart.achievable.level} label="Alcanzable" hint={editSmart.achievable.hint} />
+                <SmartRow ok={editSmart.relevant.ok} label="Relevante" hint={editSmart.relevant.hint} />
+                <SmartRow ok={editSmart.timebound.ok} label="Con plazo" hint={editSmart.timebound.hint} />
               </ul>
-              {editSmartScore < 5 && (
+              {editSmart.achievable.level === "bad" && (
+                <div className="text-[11px] text-destructive pt-1 flex items-start gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>Este objetivo parece poco realista en el plazo dado. Considera ampliar la fecha o bajar el valor objetivo.</span>
+                </div>
+              )}
+              {editSmartScore < 5 && editSmart.achievable.level !== "bad" && (
                 <div className="text-[11px] text-muted-foreground pt-1">
                   Puedes guardar igual, pero los objetivos SMART suelen cumplirse más.
                 </div>
@@ -652,14 +695,21 @@ function Kpi({ icon, label, value, tone }: { icon: React.ReactNode; label: strin
   );
 }
 
-function SmartRow({ ok, label, hint }: { ok: boolean; label: string; hint: string }) {
+function SmartRow({ ok, label, hint, level }: { ok: boolean; label: string; hint: string; level?: "ok" | "warn" | "bad" | "empty" }) {
+  const effective: "ok" | "warn" | "bad" | "empty" = level ?? (ok ? "ok" : "empty");
+  const styles = {
+    ok: { badge: "bg-success/20 text-success", icon: <Check className="w-2.5 h-2.5" />, label: "text-foreground" },
+    warn: { badge: "bg-warning/20 text-warning", icon: <AlertCircle className="w-2.5 h-2.5" />, label: "text-foreground" },
+    bad: { badge: "bg-destructive/20 text-destructive", icon: <X className="w-2.5 h-2.5" />, label: "text-destructive" },
+    empty: { badge: "bg-secondary text-muted-foreground", icon: <X className="w-2.5 h-2.5" />, label: "text-muted-foreground" },
+  }[effective];
   return (
     <li className="flex items-start gap-2">
-      <span className={`mt-0.5 w-4 h-4 rounded-full grid place-items-center shrink-0 ${ok ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
-        {ok ? <Check className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
+      <span className={`mt-0.5 w-4 h-4 rounded-full grid place-items-center shrink-0 ${styles.badge}`}>
+        {styles.icon}
       </span>
       <span>
-        <span className={`font-medium ${ok ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
+        <span className={`font-medium ${styles.label}`}>{label}</span>
         <span className="text-muted-foreground"> — {hint}</span>
       </span>
     </li>
