@@ -400,7 +400,7 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                   {(Object.keys(priorityMeta) as Priority[]).map((k) => <SelectItem key={k} value={k}>Prioridad {priorityMeta[k].label}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Input type="date" value={editDraft.due_date} onChange={(e) => setEditDraft({ ...editDraft, due_date: e.target.value })} />
+              <DatePicker value={editDraft.due_date || null} onChange={(v) => setEditDraft({ ...editDraft, due_date: v ?? "" })} placeholder="Fecha límite" />
               <Input placeholder="Unidad (seguidores, %, leads…)" value={editDraft.unit} onChange={(e) => setEditDraft({ ...editDraft, unit: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-2">
