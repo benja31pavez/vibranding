@@ -648,13 +648,19 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                 </span>
               </div>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
-                <SmartRow ok={editSmart.specific} label="Específico" hint="Título claro (≥ 10 caracteres)" />
-                <SmartRow ok={editSmart.measurable} label="Medible" hint="Valor objetivo + unidad" />
-                <SmartRow ok={editSmart.achievable} label="Alcanzable" hint="Valor actual ≤ objetivo" />
-                <SmartRow ok={editSmart.relevant} label="Relevante" hint="Descripción con contexto (≥ 10 car.)" />
-                <SmartRow ok={editSmart.timebound} label="Con plazo" hint="Fecha límite en el futuro" />
+                <SmartRow ok={editSmart.specific.ok} label="Específico" hint={editSmart.specific.hint} />
+                <SmartRow ok={editSmart.measurable.ok} label="Medible" hint={editSmart.measurable.hint} />
+                <SmartRow ok={editSmart.achievable.ok} level={editSmart.achievable.level} label="Alcanzable" hint={editSmart.achievable.hint} />
+                <SmartRow ok={editSmart.relevant.ok} label="Relevante" hint={editSmart.relevant.hint} />
+                <SmartRow ok={editSmart.timebound.ok} label="Con plazo" hint={editSmart.timebound.hint} />
               </ul>
-              {editSmartScore < 5 && (
+              {editSmart.achievable.level === "bad" && (
+                <div className="text-[11px] text-destructive pt-1 flex items-start gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>Este objetivo parece poco realista en el plazo dado. Considera ampliar la fecha o bajar el valor objetivo.</span>
+                </div>
+              )}
+              {editSmartScore < 5 && editSmart.achievable.level !== "bad" && (
                 <div className="text-[11px] text-muted-foreground pt-1">
                   Puedes guardar igual, pero los objetivos SMART suelen cumplirse más.
                 </div>
