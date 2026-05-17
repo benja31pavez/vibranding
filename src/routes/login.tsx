@@ -14,7 +14,6 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -27,18 +26,8 @@ function LoginPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: window.location.origin },
-        });
-        if (error) throw error;
-        toast.success("Cuenta creada");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
     } catch (err: any) {
       toast.error(err.message ?? "Error");
     } finally {
@@ -67,7 +56,8 @@ function LoginPage() {
             <span className="text-3xl font-bold italic tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
           </Link>
           <div>
-            <h2 className="text-2xl font-semibold">{mode === "signin" ? "Inicia sesión" : "Crea tu cuenta"}</h2>
+            <h2 className="text-2xl font-semibold">Inicia sesión</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Acceso solo con credenciales proporcionadas por el administrador.</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -78,15 +68,11 @@ function LoginPage() {
             <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           <Button type="submit" disabled={busy} className="w-full rounded-full h-11">
-            {busy ? "..." : mode === "signin" ? "Entrar" : "Crear cuenta"}
+            {busy ? "..." : "Entrar"}
           </Button>
-          <button
-            type="button"
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="block w-full text-center text-sm text-muted-foreground hover:text-foreground"
-          >
-            {mode === "signin" ? "¿No tienes cuenta? Crear una" : "¿Ya tienes cuenta? Entrar"}
-          </button>
+          <p className="text-center text-sm text-muted-foreground">
+            ¿Necesitas acceso? Contacta al administrador.
+          </p>
         </form>
       </div>
     </div>
