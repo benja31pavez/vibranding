@@ -746,21 +746,61 @@ export function PostsEditor({
                     </button>
                   </td>
                   <td className="px-2 py-2">
-                    <Input
-                      type="datetime-local"
-                      value={date && time ? `${date}T${time}` : date ? `${date}T00:00` : ""}
-                      onChange={(e) => {
-                        const [d, t] = e.target.value.split("T");
-                        const v = combineDateTime(d ?? "", t ?? "");
-                        setLocal(p.id, { scheduled_at: v });
-                      }}
-                      onBlur={(e) => {
-                        const [d, t] = e.target.value.split("T");
-                        const v = combineDateTime(d ?? "", t ?? "");
-                        saveRemote(p.id, { scheduled_at: v });
-                      }}
-                      className="h-8 text-xs"
-                    />
+                    <div className="flex items-center gap-1">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={cn(
+                              "h-8 px-2 text-xs font-normal justify-start gap-1.5 flex-1 min-w-0",
+                              !date && "text-muted-foreground",
+                            )}
+                          >
+                            <CalendarIcon className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">
+                              {date
+                                ? new Date(`${date}T00:00`).toLocaleDateString(undefined, {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "2-digit",
+                                  })
+                                : "Fecha"}
+                            </span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={date ? new Date(`${date}T00:00`) : undefined}
+                            onSelect={(d) => {
+                              if (!d) return;
+                              const pad = (n: number) => String(n).padStart(2, "0");
+                              const ds = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                              const v = combineDateTime(ds, time || "00:00");
+                              setLocal(p.id, { scheduled_at: v });
+                              saveRemote(p.id, { scheduled_at: v });
+                            }}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <Input
+                        type="time"
+                        value={time}
+                        disabled={!date}
+                        onChange={(e) => {
+                          const v = combineDateTime(date, e.target.value);
+                          setLocal(p.id, { scheduled_at: v });
+                        }}
+                        onBlur={(e) => {
+                          const v = combineDateTime(date, e.target.value);
+                          saveRemote(p.id, { scheduled_at: v });
+                        }}
+                        className="h-8 text-xs w-[88px] px-2"
+                      />
+                    </div>
                   </td>
                   <td className="px-2 py-2">
                     <Popover>
