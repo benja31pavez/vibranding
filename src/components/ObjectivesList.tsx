@@ -85,8 +85,40 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
       unit: draft.unit.trim() || null,
     });
     if (error) return toast.error(error.message);
-    setDraft({ title: "", description: "", due_date: "", priority: "medium", category: "growth", target_value: "", current_value: "", unit: "" });
+    setDraft(emptyDraft);
     setAdding(false);
+    load();
+  };
+
+  const openEdit = (it: Row) => {
+    setEditDraft({
+      title: it.title,
+      description: it.description ?? "",
+      due_date: it.due_date ?? "",
+      priority: it.priority,
+      category: it.category,
+      target_value: it.target_value != null ? String(it.target_value) : "",
+      current_value: it.current_value != null ? String(it.current_value) : "",
+      unit: it.unit ?? "",
+    });
+    setEditingId(it.id);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editDraft.title.trim()) return;
+    const { error } = await supabase.from("objectives").update({
+      title: editDraft.title.trim(),
+      description: editDraft.description.trim() || null,
+      due_date: editDraft.due_date || null,
+      priority: editDraft.priority,
+      category: editDraft.category,
+      target_value: editDraft.target_value ? Number(editDraft.target_value) : null,
+      current_value: editDraft.current_value ? Number(editDraft.current_value) : null,
+      unit: editDraft.unit.trim() || null,
+    }).eq("id", editingId);
+    if (error) return toast.error(error.message);
+    setEditingId(null);
+    toast.success("Objetivo actualizado");
     load();
   };
 
