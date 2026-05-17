@@ -1,59 +1,57 @@
-## Mejoras propuestas
 
-### 1. Objetivos
-- **Prioridad** (alta/media/baja) con badge de color y orden por prioridad + fecha.
-- **Métrica medible**: campo opcional `target_value` + `current_value` + `unit` (ej: "Llegar a 10.000 seguidores"), con barra de progreso visual.
-- **Categoría** (Crecimiento, Engagement, Ventas, Branding) con icono.
-- **Vinculación a entregables**: marcar qué entregables aportan a cada objetivo.
-- **Indicador de vencimiento**: pill rojo si la fecha pasó y no está completado.
+## Objetivo
+Hacer el landing público disponible en español (idioma por defecto) e inglés, con un selector visible para que visitantes de EE.UU. puedan leerlo en su idioma.
 
-### 2. Entregables
-- **Vista Kanban** opcional (Pendiente / En curso / Completado) además del listado.
-- **Tipo** (Post, Reel, Historia, Diseño, Reunión, Reporte) con icono.
-- **Asignar a un post de Instagram**: si el entregable es contenido, vincularlo al post programado del calendario.
-- **Subtareas / checklist** dentro de cada entregable.
-- **Adjuntos** (imagen / link de referencia) usando el storage existente.
-- **Filtros** por estado, tipo y rango de fechas; **agrupación por semana**.
+## Alcance
+Solo el contenido público no autenticado:
+- `/` (landing en `src/routes/index.tsx`)
+- Footer compartido (`src/components/SiteFooter.tsx`)
+- Páginas legales y de soporte: `/faq`, `/terms`, `/privacy`, `/cookies`, `/data-deletion`
+- Metadatos SEO (`head()`) de cada ruta anterior
 
-### 3. Resumen del cliente
-- **Hero del cliente**: avatar grande, handle, métricas IG (seguidores, posts, engagement) en una fila.
-- **Próximas acciones**: lista de los 3 entregables y posts más cercanos.
-- **Salud del proyecto**: 3 indicadores tipo semáforo (Objetivos en plazo, Entregables al día, Pagos al día).
-- **Mini-timeline de 30 días**: actividad reciente (post publicado, pago recibido, entregable completado).
-- **Mini-preview de Instagram** (3-6 posts del feed propuesto) con CTA "Ver Instagram".
-- **Resumen financiero compacto** (cobrado vs pendiente vs propuesto) con barra apilada en lugar de solo número.
+Fuera de alcance: la app autenticada (`/dashboard`, clientes, objetivos, etc.) y `/login`. Se mantienen solo en español.
 
-### 4. Landing page (cómo se ve hoy)
-La landing en `/` está implementada con:
-- Header + nav (Servicios / Cómo funciona / Contacto) + Iniciar sesión.
-- Hero centrado: "Hacemos que tu marca se vuelva viral".
-- 3 tarjetas de servicios (Instagram, Meta Ads, Reportes).
-- Sección "Cómo trabajamos" en 3 pasos.
-- CTA de contacto con email `hola@viralitycs.com` y WhatsApp.
-- Footer minimalista.
+## Enfoque
 
-Para verla: cierra sesión o abre `/` en una ventana privada (si hay sesión te redirige a `/dashboard`). Puedo agregar un enlace "Ver landing" en el menú de usuario para revisarla sin cerrar sesión.
+### 1. Sistema de i18n ligero (sin librería externa)
+Crear un contexto simple en `src/i18n/`:
+- `src/i18n/LanguageContext.tsx`: provider con `language` (`"es" | "en"`), `setLanguage`, y hook `useT()` que devuelve la función de traducción.
+- `src/i18n/translations.ts`: objeto anidado con todas las cadenas del landing y páginas legales en `es` y `en`.
+- Persistencia en `localStorage` (`vibranding:lang`).
+- Detección inicial: si no hay valor guardado, usar `navigator.language` — `en*` → inglés, cualquier otro → español (default).
+- En SSR, default a español para evitar parpadeo; tras hidratar se ajusta si el usuario tiene preferencia distinta.
 
-### 5. Footer estilo de la imagen (FAQ / TOS / Privacidad / Cookies)
-Replicar el bloque de la foto, adaptado a Viralitycs:
-- **Footer ampliado** en la landing con 4 columnas:
-  - Producto: Servicios, Cómo funciona, Contacto.
-  - Recursos: **Preguntas Frecuentes** (`/faq`).
-  - Legal: **Términos de Servicio** (`/terms`), **Política de Privacidad** (`/privacy`), **Cookies** (`/cookies`).
-  - Marca: logo Viralitycs + tagline + email.
-- Línea inferior: `© 2026 Viralitycs. Todos los derechos reservados.`
-- Crear las 4 páginas con contenido base editable (FAQ con 6-8 preguntas iniciales, los 3 documentos legales con plantilla estándar para agencia de marketing en Chile/LatAm).
-- Agregar los enlaces también en el footer de `_app` (área autenticada) para que sean accesibles desde dentro de la app.
+Se evita añadir `react-i18next` para no inflar el bundle; el contenido es estático y limitado.
+
+### 2. Selector de idioma (UI)
+- Botón compacto `ES / EN` en el header del landing (junto a "Iniciar sesión") y en el header de `LegalPage.tsx`.
+- Estilo: dos pills pequeñas, la activa con fondo `bg-foreground/10` y la otra como link `text-muted-foreground`.
+- También una versión opcional en el footer para accesibilidad.
+
+### 3. Integración del provider
+Envolver el árbol en `src/routes/__root.tsx` con `<LanguageProvider>` para que todas las rutas públicas tengan acceso. No afecta a la app autenticada (simplemente no lo usa).
+
+### 4. Reemplazo de texto en las rutas públicas
+Sustituir cadenas hardcodeadas por `t("clave.subclave")` en:
+- `src/routes/index.tsx` (hero, servicios, "Cómo trabajamos", CTA contacto, nav)
+- `src/components/SiteFooter.tsx` (columnas y enlaces)
+- `src/routes/faq.tsx`, `terms.tsx`, `privacy.tsx`, `cookies.tsx`, `data-deletion.tsx`
+
+### 5. SEO por idioma
+Cada `head()` se ajusta:
+- Mantener título/descripción en español por defecto en el HTML inicial (SSR).
+- Añadir `<link rel="alternate" hreflang="es" href=".../">` y `hreflang="en" href=".../?lang=en">` y `x-default`.
+- Soportar `?lang=en` en la URL para que un enlace compartido abra directamente en inglés (el provider lo lee al montar y lo guarda).
+
+No se crean rutas `/en/...` separadas para mantener el alcance acotado; el contenido cambia client-side via contexto + `?lang=en` para deep-linking.
 
 ## Detalles técnicos
-
-- **Objetivos**: migración para añadir `priority`, `category`, `target_value numeric`, `current_value numeric`, `unit text` a `objectives`. Tabla pivote opcional `objective_deliverables(objective_id, deliverable_id)`.
-- **Entregables**: añadir `type` (enum: post/reel/story/design/meeting/report/other), `instagram_post_id uuid null` (FK a `instagram_posts`), `checklist jsonb` (array `{text, done}`), `attachments jsonb`. Vista Kanban con `@dnd-kit/core` (ya disponible en shadcn) — reutiliza `Tabs` si prefieres no añadir DnD en v1.
-- **Resumen**: nuevo componente `ClientHealth` (3 semáforos), `RecentActivity` (consulta unificada de los últimos 10 eventos por cliente), `MiniFeed` (primeros posts ordenados de `instagram_posts`).
-- **Landing/legal**: 4 nuevas rutas (`/faq`, `/terms`, `/privacy`, `/cookies`) con `head()` propio (title, description, og). Footer extraído a `src/components/SiteFooter.tsx` reutilizable en landing y legales.
-- Sin cambios en auth ni en backend para landing/legal.
+- Claves planas tipo `landing.hero.title`, `landing.services.instagram.title`, `footer.columns.legal`, `legal.terms.body`, etc.
+- Los textos largos de las páginas legales se guardan como bloques de JSX renderizado desde el componente, pero los encabezados, párrafos y listas se externalizan a las traducciones (arrays de strings por sección).
+- Tipado: `type Lang = "es" | "en"`; `translations: Record<Lang, Dict>` con `Dict` derivado del objeto español como fuente de verdad para evitar claves faltantes.
+- WhatsApp: el mensaje pre-llenado también se traduce (saludo en inglés cuando `lang=en`).
 
 ## Fuera de alcance
-- DnD avanzado en Kanban (v1 con clic-cambia-estado).
-- Notificaciones, recordatorios automáticos por email.
-- Generador de FAQ dinámica desde DB (texto estático en v1, fácil de mover a DB después).
+- Traducción de la app interna autenticada.
+- Detección por geolocalización IP (solo `navigator.language`).
+- Rutas separadas por idioma (`/en/...`) — se puede añadir después si SEO en inglés lo requiere.
