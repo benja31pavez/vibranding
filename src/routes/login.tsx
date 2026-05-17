@@ -57,7 +57,6 @@ function LoginPage() {
           </Link>
           <div>
             <h2 className="text-2xl font-semibold">Inicia sesión</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Acceso solo con credenciales proporcionadas por el administrador.</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
