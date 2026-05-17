@@ -39,7 +39,7 @@ export function ClientProvider({ clientId, children }: { clientId: string; child
   const reloadClient = async () => {
     const { data } = await supabase
       .from("clients")
-      .select("id,name,instagram_handle")
+      .select("id,name,instagram_handle,business_description")
       .eq("id", clientId)
       .maybeSingle();
     setClient(data);
