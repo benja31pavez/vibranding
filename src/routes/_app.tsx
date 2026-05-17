@@ -142,9 +142,6 @@ function AppLayout() {
                     </button>
                   </div>
                   <div className="space-y-1.5 pt-2">
-                    <Link to="/clients/$clientId" params={{ clientId: activeClient.id }} className={subClass(path === clientBase)}>
-                      <Eye className="w-4 h-4 shrink-0" /> Resumen
-                    </Link>
                     <Link to="/clients/$clientId/instagram" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/instagram`)}>
                       <Instagram className="w-4 h-4 shrink-0" /> Instagram
                     </Link>
