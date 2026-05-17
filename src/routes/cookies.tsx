@@ -8,7 +8,11 @@ export const Route = createFileRoute("/cookies")({
     meta: [
       { title: translations.es.seo.cookies.title },
       { name: "description", content: translations.es.seo.cookies.description },
+      { property: "og:title", content: translations.es.seo.cookies.title },
+      { property: "og:description", content: translations.es.seo.cookies.description },
+      { property: "og:url", content: "https://vibranding.pro/cookies" },
     ],
+    links: [{ rel: "canonical", href: "https://vibranding.pro/cookies" }],
   }),
   component: CookiesPage,
 });

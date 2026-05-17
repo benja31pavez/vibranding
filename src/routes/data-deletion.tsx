@@ -8,7 +8,11 @@ export const Route = createFileRoute("/data-deletion")({
     meta: [
       { title: translations.es.seo.dataDeletion.title },
       { name: "description", content: translations.es.seo.dataDeletion.description },
+      { property: "og:title", content: translations.es.seo.dataDeletion.title },
+      { property: "og:description", content: translations.es.seo.dataDeletion.description },
+      { property: "og:url", content: "https://vibranding.pro/data-deletion" },
     ],
+    links: [{ rel: "canonical", href: "https://vibranding.pro/data-deletion" }],
   }),
   component: DataDeletionPage,
 });

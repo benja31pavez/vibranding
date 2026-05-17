@@ -17,7 +17,9 @@ export const Route = createFileRoute("/")({
       { name: "description", content: translations.es.seo.home.description },
       { property: "og:title", content: translations.es.seo.home.title },
       { property: "og:description", content: translations.es.seo.home.description },
+      { property: "og:url", content: "https://vibranding.pro/" },
     ],
+    links: [{ rel: "canonical", href: "https://vibranding.pro/" }],
   }),
   component: Landing,
 });
@@ -74,6 +76,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
         </div>
       </header>
 
+      <main>
       {/* Hero */}
       <section className="relative max-w-7xl mx-auto px-6 md:px-10 pt-12 md:pt-24 pb-20 md:pb-32 text-center">
         {/* Animated background blobs */}
@@ -190,6 +193,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
           ))}
         </ul>
       </section>
+      </main>
 
       <SiteFooter />
     </div>

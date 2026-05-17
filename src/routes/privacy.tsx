@@ -8,7 +8,11 @@ export const Route = createFileRoute("/privacy")({
     meta: [
       { title: translations.es.seo.privacy.title },
       { name: "description", content: translations.es.seo.privacy.description },
+      { property: "og:title", content: translations.es.seo.privacy.title },
+      { property: "og:description", content: translations.es.seo.privacy.description },
+      { property: "og:url", content: "https://vibranding.pro/privacy" },
     ],
+    links: [{ rel: "canonical", href: "https://vibranding.pro/privacy" }],
   }),
   component: PrivacyPage,
 });

@@ -8,7 +8,11 @@ export const Route = createFileRoute("/terms")({
     meta: [
       { title: translations.es.seo.terms.title },
       { name: "description", content: translations.es.seo.terms.description },
+      { property: "og:title", content: translations.es.seo.terms.title },
+      { property: "og:description", content: translations.es.seo.terms.description },
+      { property: "og:url", content: "https://vibranding.pro/terms" },
     ],
+    links: [{ rel: "canonical", href: "https://vibranding.pro/terms" }],
   }),
   component: TermsPage,
 });

@@ -257,7 +257,7 @@ const es: Dict = {
   notFound: { title: "404", subtitle: "Esta página no existe.", cta: "Volver al inicio" },
   error: { title: "Algo salió mal", cta: "Reintentar" },
   seo: {
-    home: { title: "Vibranding — Crece en Instagram y Meta Ads con propuestas claras", description: "Vibranding te ayuda a planear, presentar y ejecutar estrategias de Instagram y campañas de Meta Ads para tus clientes, todo en un mismo lugar." },
+    home: { title: "Vibranding — Instagram & Meta Ads", description: "Vibranding te ayuda a planear, presentar y ejecutar estrategias de Instagram y campañas de Meta Ads para tus clientes, todo en un mismo lugar." },
     faq: { title: "Preguntas Frecuentes — Vibranding", description: "Respuestas a las dudas más comunes sobre nuestros servicios de Instagram y Meta Ads." },
     terms: { title: "Términos de Servicio — Vibranding", description: "Términos y condiciones que regulan el uso de los servicios de Vibranding." },
     privacy: { title: "Política de Privacidad — Vibranding", description: "Cómo Vibranding recopila, usa y protege tus datos personales." },
