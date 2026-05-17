@@ -70,13 +70,9 @@ function LoginPage() {
           <Button type="submit" disabled={busy} className="w-full rounded-full h-11">
             {busy ? "..." : "Entrar"}
           </Button>
-          <button
-            type="button"
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="block w-full text-center text-sm text-muted-foreground hover:text-foreground"
-          >
-            {mode === "signin" ? "¿No tienes cuenta? Crear una" : "¿Ya tienes cuenta? Entrar"}
-          </button>
+          <p className="text-center text-sm text-muted-foreground">
+            ¿Necesitas acceso? Contacta al administrador.
+          </p>
         </form>
       </div>
     </div>
