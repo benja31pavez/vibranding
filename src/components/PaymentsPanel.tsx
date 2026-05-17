@@ -6,7 +6,10 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 type Status = "pending" | "paid" | "overdue" | "cancelled";
