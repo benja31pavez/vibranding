@@ -124,7 +124,7 @@ function AppLayout() {
                       <X className="w-3 h-3" />
                     </button>
                   </div>
-                  <div className="space-y-1.5 ml-2 pl-2 border-l border-border">
+                  <div className="space-y-1.5 pt-2">
                     <Link to="/clients/$clientId" params={{ clientId: activeClient.id }} className={subClass(path === clientBase)}>
                       <Eye className="w-4 h-4 shrink-0" /> Resumen
                     </Link>
