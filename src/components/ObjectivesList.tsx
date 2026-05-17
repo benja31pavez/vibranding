@@ -50,6 +50,73 @@ const categoryMeta: Record<Category, { label: string; icon: any }> = {
   other: { label: "Otro", icon: Flag },
 };
 
+type TemplateData = {
+  title: string;
+  description: string;
+  priority: Priority;
+  category: Category;
+  target_value: string;
+  current_value: string;
+  unit: string;
+};
+
+type Template = { id: string; name: string; data: TemplateData };
+
+const PREDEFINED_TEMPLATES: Template[] = [
+  {
+    id: "ig-followers",
+    name: "Crecimiento en Instagram",
+    data: {
+      title: "Llegar a 10.000 seguidores en Instagram",
+      description: "Aumentar la comunidad orgánica para ampliar alcance y autoridad de marca.",
+      priority: "medium", category: "growth",
+      target_value: "10000", current_value: "0", unit: "seguidores",
+    },
+  },
+  {
+    id: "engagement-rate",
+    name: "Subir engagement promedio",
+    data: {
+      title: "Subir el engagement promedio al 5%",
+      description: "Mejorar la interacción por publicación con contenido más relevante y consistente.",
+      priority: "medium", category: "engagement",
+      target_value: "5", current_value: "1", unit: "%",
+    },
+  },
+  {
+    id: "social-sales",
+    name: "Ventas desde redes",
+    data: {
+      title: "Generar 50 ventas desde redes sociales",
+      description: "Convertir tráfico social en ventas mediante CTAs claros y promociones puntuales.",
+      priority: "high", category: "sales",
+      target_value: "50", current_value: "0", unit: "ventas",
+    },
+  },
+  {
+    id: "brand-identity",
+    name: "Identidad visual completa",
+    data: {
+      title: "Publicar la identidad visual completa de la marca",
+      description: "Definir logo, paleta, tipografías y guía de estilo coherente para todos los canales.",
+      priority: "high", category: "branding",
+      target_value: "5", current_value: "0", unit: "entregables",
+    },
+  },
+  {
+    id: "leads",
+    name: "Captación de leads",
+    data: {
+      title: "Captar 200 leads cualificados este trimestre",
+      description: "Generar una base de contactos cualificados desde campañas y contenido orgánico.",
+      priority: "medium", category: "growth",
+      target_value: "200", current_value: "0", unit: "leads",
+    },
+  },
+];
+
+const TEMPLATES_KEY = "objective_templates_v1";
+
 function DatePicker({ value, onChange, placeholder = "Fecha", size = "md" }: {
   value: string | null;
   onChange: (v: string | null) => void;
