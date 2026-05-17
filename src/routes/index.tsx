@@ -168,20 +168,26 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
       {/* CTA contact */}
       <section id="contacto" className="max-w-4xl mx-auto px-6 md:px-10 py-24 text-center">
         <h2 className="text-4xl md:text-6xl font-semibold tracking-tight">
-          ¿Listo para <span className="font-brand text-gradient-brand">vibrar</span> con nosotros?
+          {t.contact.title1}<span className="font-brand text-gradient-brand">{t.contact.accent}</span>{t.contact.title2}
         </h2>
         <p className="mt-5 text-lg text-muted-foreground">
-          Cuéntanos sobre tu marca y te respondemos con una propuesta personalizada.
+          {t.contact.subtitle}
         </p>
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button asChild size="lg" className="rounded-full px-8 h-12 text-base bg-gradient-brand hover:opacity-90 text-white border-0 shadow-lg shadow-[color:var(--brand-2)]/30 hover-scale">
-            <a href="https://wa.me/56989294014?text=Hola%20Vibranding%2C%20me%20gustar%C3%ADa%20saber%20m%C3%A1s%20sobre%20sus%20servicios." target="_blank" rel="noreferrer">Escríbenos por WhatsApp</a>
+            <a
+              href={`https://wa.me/56989294014?text=${encodeURIComponent(t.contact.whatsappMessage)}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t.contact.whatsapp}
+            </a>
           </Button>
         </div>
         <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-          <li className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-primary" /> Respuesta en 24h</li>
-          <li className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-primary" /> Sin compromiso</li>
-          <li className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-primary" /> Plan a tu medida</li>
+          {t.contact.bullets.map((b) => (
+            <li key={b} className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-primary" /> {b}</li>
+          ))}
         </ul>
       </section>
 
