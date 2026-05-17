@@ -6,7 +6,10 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 type Status = "pending" | "paid" | "overdue" | "cancelled";
@@ -36,6 +39,7 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Payment[]>([]);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ description: "", amount: "", currency: "USD", due_date: "" });
+  const [editing, setEditing] = useState<Payment | null>(null);
 
   const load = async () => {
     const { data, error } = await supabase
@@ -152,13 +156,107 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
                   ))}
                 </SelectContent>
               </Select>
-              <button onClick={() => remove(p.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive">
+              <button onClick={() => setEditing(p)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground" title="Editar">
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button onClick={() => remove(p.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" title="Eliminar">
                 <Trash2 className="w-4 h-4" />
               </button>
             </li>
           ))}
         </ul>
       )}
+
+      <EditDialog
+        payment={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => { setEditing(null); load(); }}
+      />
     </div>
+  );
+}
+
+function EditDialog({
+  payment, onClose, onSaved,
+}: {
+  payment: Payment | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState<Payment | null>(payment);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setForm(payment); }, [payment]);
+
+  if (!form) return null;
+
+  const save = async () => {
+    const amount = Number(form.amount);
+    if (!amount || amount <= 0) return toast.error("Ingresa un monto válido");
+    setSaving(true);
+    const patch: Partial<Payment> = {
+      description: form.description?.trim() || null,
+      amount,
+      currency: (form.currency || "USD").toUpperCase(),
+      status: form.status,
+      due_date: form.due_date || null,
+      paid_at: form.status === "paid" ? (form.paid_at || new Date().toISOString().slice(0, 10)) : null,
+    };
+    const { error } = await supabase.from("payments").update(patch).eq("id", form.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Pago actualizado");
+    onSaved();
+  };
+
+  return (
+    <Dialog open={!!payment} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar pago</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Concepto</Label>
+            <Input value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-1.5 col-span-2">
+              <Label className="text-xs text-muted-foreground">Monto</Label>
+              <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Moneda</Label>
+              <Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Fecha de vencimiento</Label>
+              <Input type="date" value={form.due_date ?? ""} onChange={(e) => setForm({ ...form, due_date: e.target.value || null })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Fecha de pago</Label>
+              <Input type="date" value={form.paid_at ?? ""} onChange={(e) => setForm({ ...form, paid_at: e.target.value || null })} disabled={form.status !== "paid"} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Estado</Label>
+            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(statusLabel) as Status[]).map((k) => (
+                  <SelectItem key={k} value={k}>{statusLabel[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button onClick={save} disabled={saving}>{saving ? "Guardando…" : "Guardar"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
