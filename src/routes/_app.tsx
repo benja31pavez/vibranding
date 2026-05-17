@@ -99,13 +99,13 @@ function AppLayout() {
 
       <div className="flex flex-1 min-h-0">
         <aside className="hidden md:flex w-64 shrink-0 flex-col border-r bg-sidebar sticky top-16 h-[calc(100vh-4rem)]">
-          <nav className="px-3 py-4 space-y-3 flex-1 min-h-0 overflow-y-auto">
-            <div className="space-y-1">
-              <div className="px-3 text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Cliente conectado</div>
+          <nav className="px-3 py-6 space-y-6 flex-1 min-h-0 overflow-y-auto">
+            <div className="space-y-3">
+              <div className="px-3 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Cliente conectado</div>
               {activeClient ? (
                 <>
                   <div
-                    className={`group flex items-center gap-2 mx-1 pl-2 pr-1 py-2 rounded-lg border text-sm ${
+                    className={`group flex items-center gap-2 mx-1 pl-3 pr-1 py-3 rounded-lg border text-sm ${
                       path.startsWith(clientBase)
                         ? "border-primary/40 bg-primary/5"
                         : "border-border"
@@ -116,7 +116,7 @@ function AppLayout() {
                       <div className="min-w-0">
                         <div className="truncate font-medium leading-tight">{activeClient.name}</div>
                         {activeClient.instagram_handle && (
-                          <div className="truncate text-[11px] text-muted-foreground leading-tight">@{activeClient.instagram_handle}</div>
+                          <div className="truncate text-[11px] text-muted-foreground leading-tight mt-0.5">@{activeClient.instagram_handle}</div>
                         )}
                       </div>
                     </Link>
@@ -124,24 +124,24 @@ function AppLayout() {
                       <X className="w-3 h-3" />
                     </button>
                   </div>
-                  <div className="space-y-0.5 ml-2 pl-2 border-l border-border">
+                  <div className="space-y-1.5 ml-2 pl-2 border-l border-border">
                     <Link to="/clients/$clientId" params={{ clientId: activeClient.id }} className={subClass(path === clientBase)}>
-                      <Eye className="w-3.5 h-3.5 shrink-0" /> Resumen
+                      <Eye className="w-4 h-4 shrink-0" /> Resumen
                     </Link>
                     <Link to="/clients/$clientId/instagram" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/instagram`)}>
-                      <Instagram className="w-3.5 h-3.5 shrink-0" /> Instagram
+                      <Instagram className="w-4 h-4 shrink-0" /> Instagram
                     </Link>
                     <Link to="/clients/$clientId/meta-ads" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/meta-ads`)}>
-                      <Megaphone className="w-3.5 h-3.5 shrink-0" /> Meta Ads
+                      <Megaphone className="w-4 h-4 shrink-0" /> Meta Ads
                     </Link>
                     <Link to="/clients/$clientId/objectives" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/objectives`)}>
-                      <Target className="w-3.5 h-3.5 shrink-0" /> Objetivos
+                      <Target className="w-4 h-4 shrink-0" /> Objetivos
                     </Link>
                     <Link to="/clients/$clientId/deliverables" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/deliverables`)}>
-                      <CheckSquare className="w-3.5 h-3.5 shrink-0" /> Etapas
+                      <CheckSquare className="w-4 h-4 shrink-0" /> Etapas
                     </Link>
                     <Link to="/clients/$clientId/payments" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/payments`)}>
-                      <Wallet className="w-3.5 h-3.5 shrink-0" /> Pagos
+                      <Wallet className="w-4 h-4 shrink-0" /> Pagos
                     </Link>
                   </div>
                 </>
