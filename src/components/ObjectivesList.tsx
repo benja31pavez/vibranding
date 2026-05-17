@@ -104,8 +104,37 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
     return (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999");
   });
 
+  // KPIs
+  const today = new Date().toISOString().slice(0, 10);
+  const in7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const total = items.length;
+  const done = items.filter((x) => x.status === "done").length;
+  const inProgress = items.filter((x) => x.status === "in_progress").length;
+  const overdueCount = items.filter((x) => x.status !== "done" && x.due_date && x.due_date < today).length;
+  const upcomingCount = items.filter((x) => x.status !== "done" && x.due_date && x.due_date >= today && x.due_date <= in7).length;
+  // Global progress: average of completion% across all items (done = 100%)
+  const globalPct = total === 0 ? 0 : Math.round(
+    items.reduce((s, x) => {
+      if (x.status === "done") return s + 100;
+      if (x.target_value && x.target_value > 0) {
+        return s + Math.min(100, ((x.current_value ?? 0) / x.target_value) * 100);
+      }
+      return s + (x.status === "in_progress" ? 50 : 0);
+    }, 0) / total
+  );
+
+  // SMART validation for draft
+  const smart = {
+    specific: draft.title.trim().length >= 10,
+    measurable: !!draft.target_value && Number(draft.target_value) > 0 && draft.unit.trim().length > 0,
+    achievable: draft.target_value === "" || draft.current_value === "" || Number(draft.current_value) <= Number(draft.target_value),
+    relevant: draft.description.trim().length >= 10,
+    timebound: !!draft.due_date && draft.due_date >= today,
+  };
+  const smartScore = Object.values(smart).filter(Boolean).length;
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Objetivos</h3>
         {!adding && (
@@ -115,11 +144,39 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
         )}
       </div>
 
+      {/* KPI header */}
+      {total > 0 && (
+        <div className="rounded-2xl border bg-surface p-5 space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Kpi icon={<Target className="w-4 h-4" />} label="Completados" value={`${done}/${total}`} tone="success" />
+            <Kpi icon={<Clock className="w-4 h-4" />} label="En curso" value={String(inProgress)} tone="warning" />
+            <Kpi icon={<CalendarClock className="w-4 h-4" />} label="Próximos 7d" value={String(upcomingCount)} tone="default" />
+            <Kpi icon={<AlertCircle className="w-4 h-4" />} label="Vencidos" value={String(overdueCount)} tone={overdueCount > 0 ? "destructive" : "default"} />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                <Gauge className="w-3.5 h-3.5" /> Progreso global
+              </span>
+              <span className="font-semibold">{globalPct}%</span>
+            </div>
+            <div className="h-2.5 rounded-full bg-secondary overflow-hidden">
+              <div
+                className={`h-full transition-all ${
+                  globalPct >= 70 ? "bg-success" : globalPct >= 30 ? "bg-warning" : "bg-destructive"
+                }`}
+                style={{ width: `${globalPct}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {adding && (
         <div className="rounded-2xl border bg-surface p-4 space-y-3">
-          <Input placeholder="Ej: Llegar a 10.000 seguidores" value={draft.title}
+          <Input placeholder="Ej: Llegar a 10.000 seguidores en Instagram" value={draft.title}
             onChange={(e) => setDraft({ ...draft, title: e.target.value })} autoFocus />
-          <Textarea placeholder="Descripción (opcional)" value={draft.description}
+          <Textarea placeholder="¿Por qué importa este objetivo? Contexto, impacto esperado…" value={draft.description}
             onChange={(e) => setDraft({ ...draft, description: e.target.value })} rows={2} />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <Select value={draft.category} onValueChange={(v) => setDraft({ ...draft, category: v as Category })}>
@@ -135,12 +192,37 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
               </SelectContent>
             </Select>
             <Input type="date" value={draft.due_date} onChange={(e) => setDraft({ ...draft, due_date: e.target.value })} />
-            <Input placeholder="Unidad (seguidores, %)" value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} />
+            <Input placeholder="Unidad (seguidores, %, leads…)" value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Input type="number" placeholder="Valor actual" value={draft.current_value} onChange={(e) => setDraft({ ...draft, current_value: e.target.value })} />
             <Input type="number" placeholder="Valor objetivo" value={draft.target_value} onChange={(e) => setDraft({ ...draft, target_value: e.target.value })} />
           </div>
+
+          {/* SMART checklist */}
+          <div className="rounded-xl border bg-background/50 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-medium">
+                <ListChecks className="w-3.5 h-3.5" /> Objetivo SMART
+              </div>
+              <span className={`text-[11px] font-semibold ${smartScore === 5 ? "text-success" : smartScore >= 3 ? "text-warning" : "text-muted-foreground"}`}>
+                {smartScore}/5
+              </span>
+            </div>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
+              <SmartRow ok={smart.specific} label="Específico" hint="Título claro (≥ 10 caracteres)" />
+              <SmartRow ok={smart.measurable} label="Medible" hint="Valor objetivo + unidad" />
+              <SmartRow ok={smart.achievable} label="Alcanzable" hint="Valor actual ≤ objetivo" />
+              <SmartRow ok={smart.relevant} label="Relevante" hint="Descripción con contexto (≥ 10 car.)" />
+              <SmartRow ok={smart.timebound} label="Con plazo" hint="Fecha límite en el futuro" />
+            </ul>
+            {smartScore < 5 && (
+              <div className="text-[11px] text-muted-foreground pt-1">
+                Puedes guardar igual, pero los objetivos SMART suelen cumplirse más.
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>Cancelar</Button>
             <Button size="sm" className="rounded-full" onClick={create}>Guardar</Button>
@@ -162,6 +244,7 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
               const overdue = it.due_date && it.status !== "done" && it.due_date < new Date().toISOString().slice(0, 10);
               const pct = it.target_value && it.target_value > 0
                 ? Math.min(100, Math.round(((it.current_value ?? 0) / it.target_value) * 100)) : null;
+              const barColor = pct === null ? "" : pct >= 70 ? "bg-success" : pct >= 30 ? "bg-warning" : "bg-destructive";
 
               return (
                 <li key={it.id} className="rounded-2xl border bg-surface p-4 group">
@@ -194,12 +277,18 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                         className="border-0 px-0 py-1 min-h-0 text-sm text-muted-foreground shadow-none focus-visible:ring-0 resize-none" rows={1} />
 
                       {pct !== null && (
-                        <div className="mt-2 space-y-1">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>{it.current_value ?? 0} / {it.target_value} {it.unit ?? ""}</span>
-                            <span className="font-medium text-foreground">{pct}%</span>
+                        <div className="mt-3 space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              <span className="font-medium text-foreground">{it.current_value ?? 0}</span>
+                              <span className="mx-1">/</span>
+                              {it.target_value} {it.unit ?? ""}
+                            </span>
+                            <span className="font-semibold">{pct}%</span>
                           </div>
-                          <Progress value={pct} className="h-1.5" />
+                          <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                            <div className={`h-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                          </div>
                         </div>
                       )}
 
@@ -230,5 +319,37 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
           </ul>
         )}
     </div>
+  );
+}
+
+function Kpi({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone: "default" | "success" | "warning" | "destructive" }) {
+  const toneCls = {
+    default: "bg-secondary text-muted-foreground",
+    success: "bg-success/15 text-success",
+    warning: "bg-warning/15 text-warning",
+    destructive: "bg-destructive/15 text-destructive",
+  }[tone];
+  return (
+    <div className="flex items-center gap-3">
+      <div className={`w-9 h-9 rounded-xl grid place-items-center ${toneCls}`}>{icon}</div>
+      <div className="min-w-0">
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="text-lg font-semibold leading-tight">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function SmartRow({ ok, label, hint }: { ok: boolean; label: string; hint: string }) {
+  return (
+    <li className="flex items-start gap-2">
+      <span className={`mt-0.5 w-4 h-4 rounded-full grid place-items-center shrink-0 ${ok ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
+        {ok ? <Check className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
+      </span>
+      <span>
+        <span className={`font-medium ${ok ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
+        <span className="text-muted-foreground"> — {hint}</span>
+      </span>
+    </li>
   );
 }
