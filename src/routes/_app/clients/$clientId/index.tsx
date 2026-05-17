@@ -1,10 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Eye, CheckCircle2, AlertTriangle, Instagram as IGIcon, ArrowRight, Calendar, Activity } from "lucide-react";
+import { Eye, CheckCircle2, AlertTriangle, Instagram as IGIcon, ArrowRight, Calendar, Activity, Building2, Pencil, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { useAuth } from "@/hooks/use-auth";
 import { PricingSummary, ProposedCostsBreakdown, loadPricing, type PricingSettings } from "@/components/PricingPanel";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/clients/$clientId/")({
   component: SummaryPage,
