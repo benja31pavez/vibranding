@@ -571,7 +571,7 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
           </button>
         )}
         <button className={`mt-0.5 ${M.cls}`} title={M.label}
-          onClick={() => update(it.id, { status: it.status === "done" ? "pending" : it.status === "pending" ? "in_progress" : "done" })}>
+          onClick={() => update(it.id, { status: nextStatus[it.status] })}>
           <Icon className="w-5 h-5" />
         </button>
         <div className="flex-1 min-w-0">
