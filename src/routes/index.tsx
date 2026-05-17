@@ -67,13 +67,13 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
           <span className="text-3xl md:text-4xl font-bold italic tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm">
-          <a href="#servicios" className="text-muted-foreground hover:text-foreground story-link">{t.nav.services}</a>
-          <a href="#como" className="text-muted-foreground hover:text-foreground story-link">{t.nav.how}</a>
-          <a href="#contacto" onClick={() => trackLandingEvent("contact_click", lang)} className="text-muted-foreground hover:text-foreground story-link">{t.nav.contact}</a>
+          <a href="#servicios" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5.5rem] text-center"><span className="inline-block">{t.nav.services}</span></a>
+          <a href="#como" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[8rem] text-center"><span className="inline-block">{t.nav.how}</span></a>
+          <a href="#contacto" onClick={() => trackLandingEvent("contact_click", lang)} className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5rem] text-center"><span className="inline-block">{t.nav.contact}</span></a>
         </nav>
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
-          <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground">{t.nav.signIn}</Link>
+          <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground inline-block min-w-[7rem] text-right">{t.nav.signIn}</Link>
         </div>
       </header>
 
