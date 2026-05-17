@@ -174,7 +174,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
         </p>
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button asChild size="lg" className="rounded-full px-8 h-12 text-base bg-gradient-brand hover:opacity-90 text-white border-0 shadow-lg shadow-[color:var(--brand-2)]/30 hover-scale">
-            <a href="https://wa.me/" target="_blank" rel="noreferrer">Escríbenos por WhatsApp</a>
+            <a href="https://wa.me/56989294014?text=Hola%20Vibranding%2C%20me%20gustar%C3%ADa%20saber%20m%C3%A1s%20sobre%20sus%20servicios." target="_blank" rel="noreferrer">Escríbenos por WhatsApp</a>
           </Button>
         </div>
         <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
