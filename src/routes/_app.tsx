@@ -63,7 +63,7 @@ function AppLayout() {
   const HeaderItem = ({ to, icon: Icon, label, active }: any) => (
     <Link
       to={to}
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+      className={`flex items-center justify-center gap-2 w-32 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
         active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60"
       }`}
     >
