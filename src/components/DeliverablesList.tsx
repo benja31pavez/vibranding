@@ -389,8 +389,8 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
             Aún no hay etapas.
           </div>
         ) : view === "kanban" ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {(["pending", "in_progress", "done"] as Status[]).map((col) => (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            {(["pending", "in_progress", "in_review", "done"] as Status[]).map((col) => (
               <div key={col} className="rounded-2xl bg-secondary/40 p-3 space-y-2 min-h-[200px]">
                 <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground px-1">
                   <span>{statusMeta[col].label}</span>
@@ -402,6 +402,8 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
               </div>
             ))}
           </div>
+        ) : view === "timeline" ? (
+          <TimelineView items={filtered} update={update} />
         ) : (() => {
           const rootItems = (grouped.get(null) ?? []);
           const sortedEntries = [
