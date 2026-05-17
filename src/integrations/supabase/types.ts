@@ -499,6 +499,36 @@ export type Database = {
           },
         ]
       }
+      landing_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: string
+          lang: string | null
+          path: string | null
+          referrer: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: string
+          lang?: string | null
+          path?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: string
+          lang?: string | null
+          path?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       meta_ads_accounts: {
         Row: {
           ad_account_id: string | null
