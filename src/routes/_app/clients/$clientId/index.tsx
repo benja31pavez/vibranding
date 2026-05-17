@@ -1,10 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Eye, CheckCircle2, AlertTriangle, Instagram as IGIcon, ArrowRight, Calendar, Activity } from "lucide-react";
+import { Eye, CheckCircle2, AlertTriangle, Instagram as IGIcon, ArrowRight, Calendar, Activity, Building2, Pencil, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { useAuth } from "@/hooks/use-auth";
 import { PricingSummary, ProposedCostsBreakdown, loadPricing, type PricingSettings } from "@/components/PricingPanel";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/clients/$clientId/")({
   component: SummaryPage,
@@ -14,7 +17,7 @@ type Status = "pending" | "in_progress" | "done";
 
 function SummaryPage() {
   const { clientId } = Route.useParams();
-  const { client, ig } = useActiveClient();
+  const { client, ig, reloadClient } = useActiveClient();
   const { user } = useAuth();
   const [pricing, setPricing] = useState<PricingSettings | null>(null);
   const [data, setData] = useState<{
@@ -105,6 +108,8 @@ function SummaryPage() {
           <Stat label="Engagement" value={engagement} />
         </div>
       </div>
+
+      <BusinessDescription clientId={clientId} value={client?.business_description ?? ""} onSaved={reloadClient} />
 
       {/* Health */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -224,6 +229,61 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div>
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function BusinessDescription({ clientId, value, onSaved }: { clientId: string; value: string; onSaved: () => Promise<void> }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setDraft(value); }, [value]);
+
+  const save = async () => {
+    setSaving(true);
+    const { error } = await supabase.from("clients").update({ business_description: draft.trim() || null }).eq("id", clientId);
+    setSaving(false);
+    if (error) { toast.error("No se pudo guardar"); return; }
+    await onSaved();
+    setEditing(false);
+    toast.success("Descripción guardada");
+  };
+
+  return (
+    <div className="rounded-2xl border bg-surface p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Building2 className="w-4 h-4" /> Sobre la empresa
+        </div>
+        {!editing ? (
+          <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+            <Pencil className="w-3.5 h-3.5 mr-1" /> Editar
+          </Button>
+        ) : (
+          <div className="flex gap-1">
+            <Button size="sm" variant="ghost" onClick={() => { setDraft(value); setEditing(false); }}>
+              <X className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" onClick={save} disabled={saving}>
+              <Check className="w-3.5 h-3.5 mr-1" /> Guardar
+            </Button>
+          </div>
+        )}
+      </div>
+      {editing ? (
+        <Textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="¿A qué se dedica esta empresa? Sector, propuesta de valor, productos/servicios, público objetivo…"
+          rows={5}
+          autoFocus
+        />
+      ) : value ? (
+        <p className="text-sm whitespace-pre-line text-foreground/90">{value}</p>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">Aún no has descrito a qué se dedica esta empresa. Haz clic en Editar para añadirlo.</p>
+      )}
     </div>
   );
 }

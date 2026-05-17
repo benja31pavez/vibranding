@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       clients: {
         Row: {
+          business_description: string | null
           created_at: string
           id: string
           instagram_handle: string | null
@@ -25,6 +26,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          business_description?: string | null
           created_at?: string
           id?: string
           instagram_handle?: string | null
@@ -34,6 +36,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          business_description?: string | null
           created_at?: string
           id?: string
           instagram_handle?: string | null
