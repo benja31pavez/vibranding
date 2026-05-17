@@ -234,7 +234,7 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                 {(Object.keys(priorityMeta) as Priority[]).map((k) => <SelectItem key={k} value={k}>Prioridad {priorityMeta[k].label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Input type="date" value={draft.due_date} onChange={(e) => setDraft({ ...draft, due_date: e.target.value })} />
+            <DatePicker value={draft.due_date || null} onChange={(v) => setDraft({ ...draft, due_date: v ?? "" })} placeholder="Fecha límite" />
             <Input placeholder="Unidad (seguidores, %, leads…)" value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-2">
