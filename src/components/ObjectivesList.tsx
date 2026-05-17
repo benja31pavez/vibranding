@@ -317,17 +317,48 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
   );
 
   // SMART validation
-  const computeSmart = (d: typeof draft) => ({
-    specific: d.title.trim().length >= 10,
-    measurable: !!d.target_value && Number(d.target_value) > 0 && d.unit.trim().length > 0,
-    achievable: !!d.target_value && Number(d.target_value) > 0 && d.current_value !== "" && Number(d.current_value) <= Number(d.target_value),
-    relevant: d.description.trim().length >= 10,
-    timebound: !!d.due_date && d.due_date >= today,
-  });
+  type Level = "ok" | "warn" | "bad" | "empty";
+  const computeRealism = (d: typeof draft): { level: Level; hint: string } => {
+    if (!d.target_value || d.current_value === "" || !d.due_date) {
+      return { level: "empty", hint: "Completa valores y fecha" };
+    }
+    const target = Number(d.target_value);
+    const current = Number(d.current_value);
+    if (!isFinite(target) || target <= 0) return { level: "empty", hint: "Valor objetivo inválido" };
+    if (current > target) return { level: "bad", hint: "El valor actual ya supera al objetivo" };
+    const days = Math.ceil((new Date(`${d.due_date}T00:00`).getTime() - Date.now()) / 86400000);
+    if (days <= 0) return { level: "bad", hint: "La fecha límite ya pasó" };
+    const delta = target - current;
+    if (delta <= 0) return { level: "ok", hint: "Ya alcanzado" };
+    const perDay = delta / days;
+    // If we have a base value, evaluate required daily growth %
+    if (current > 0) {
+      const dailyPct = (perDay / current) * 100;
+      if (dailyPct > 3) return { level: "bad", hint: `Requiere +${dailyPct.toFixed(1)}%/día · poco realista` };
+      if (dailyPct > 1) return { level: "warn", hint: `Requiere +${dailyPct.toFixed(1)}%/día · ambicioso` };
+      return { level: "ok", hint: `Requiere +${dailyPct.toFixed(2)}%/día · realista` };
+    }
+    // current = 0 → use absolute thresholds (ramp from zero is harder)
+    if (delta >= 1000 && days < 90) return { level: "bad", hint: `+${Math.round(perDay)}/día desde 0 · poco realista, amplía el plazo` };
+    if (delta >= 100 && days < 30) return { level: "bad", hint: `+${Math.round(perDay)}/día desde 0 · poco realista, amplía el plazo` };
+    if (delta >= 500 && days < 60) return { level: "warn", hint: `+${Math.round(perDay)}/día desde 0 · ambicioso` };
+    if (delta >= 50 && days < 14) return { level: "warn", hint: `+${perDay.toFixed(1)}/día desde 0 · ambicioso` };
+    return { level: "ok", hint: `+${perDay < 1 ? perDay.toFixed(2) : Math.round(perDay)}/día · realista` };
+  };
+  const computeSmart = (d: typeof draft) => {
+    const realism = computeRealism(d);
+    return {
+      specific: { ok: d.title.trim().length >= 10, hint: "Título claro (≥ 10 caracteres)" },
+      measurable: { ok: !!d.target_value && Number(d.target_value) > 0 && d.unit.trim().length > 0, hint: "Valor objetivo + unidad" },
+      achievable: { ok: realism.level === "ok" || realism.level === "warn", level: realism.level, hint: realism.hint },
+      relevant: { ok: d.description.trim().length >= 10, hint: "Descripción con contexto (≥ 10 car.)" },
+      timebound: { ok: !!d.due_date && d.due_date >= today, hint: "Fecha límite en el futuro" },
+    };
+  };
   const smart = computeSmart(draft);
-  const smartScore = Object.values(smart).filter(Boolean).length;
+  const smartScore = Object.values(smart).filter((s) => s.ok).length;
   const editSmart = computeSmart(editDraft);
-  const editSmartScore = Object.values(editSmart).filter(Boolean).length;
+  const editSmartScore = Object.values(editSmart).filter((s) => s.ok).length;
 
   return (
     <div className="space-y-4">
