@@ -64,12 +64,13 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
           <span className="text-3xl md:text-4xl font-bold italic tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm">
-          <a href="#servicios" className="text-muted-foreground hover:text-foreground story-link">Servicios</a>
-          <a href="#como" className="text-muted-foreground hover:text-foreground story-link">Cómo funciona</a>
-          <a href="#contacto" className="text-muted-foreground hover:text-foreground story-link">Contacto</a>
+          <a href="#servicios" className="text-muted-foreground hover:text-foreground story-link">{t.nav.services}</a>
+          <a href="#como" className="text-muted-foreground hover:text-foreground story-link">{t.nav.how}</a>
+          <a href="#contacto" className="text-muted-foreground hover:text-foreground story-link">{t.nav.contact}</a>
         </nav>
-        <div className="flex items-center gap-2">
-          <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground">Iniciar sesión</Link>
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+          <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground">{t.nav.signIn}</Link>
         </div>
       </header>
 
@@ -87,20 +88,20 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
 
           <div className="inline-flex items-center gap-2 rounded-full border bg-card/70 backdrop-blur px-3 py-1 text-xs text-muted-foreground mb-6 animate-fade-in">
             <span className="w-1.5 h-1.5 rounded-full bg-gradient-brand"></span>
-            Especialistas en Instagram y Meta Ads
+            {t.hero.badge}
           </div>
           <h1 className="text-5xl md:text-7xl font-semibold tracking-tight leading-[1.05] max-w-4xl mx-auto animate-fade-in">
-            Hacemos que tu Branding <span className="font-brand text-gradient-brand bg-gradient-brand-animated">vibre de verdad</span>.
+            {t.hero.title1}<span className="font-brand text-gradient-brand bg-gradient-brand-animated">{t.hero.titleAccent}</span>{t.hero.titleEnd}
           </h1>
           <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in">
-            Campañas publicitarias: creatividades, segmentación, presupuesto y optimización.
+            {t.hero.subtitle}
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in">
             <Button asChild size="lg" className="rounded-full px-8 h-12 text-base bg-gradient-brand hover:opacity-90 text-white border-0 shadow-lg shadow-[color:var(--brand-2)]/30 hover-scale">
-              <a href="#contacto">Hablemos de tu marca <ArrowRight className="w-4 h-4 ml-1" /></a>
+              <a href="#contacto">{t.hero.ctaPrimary} <ArrowRight className="w-4 h-4 ml-1" /></a>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full px-8 h-12 text-base hover-scale">
-              <a href="#servicios">Ver servicios</a>
+              <a href="#servicios">{t.hero.ctaSecondary}</a>
             </Button>
           </div>
         </div>
@@ -109,16 +110,16 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
       {/* Services */}
       <section id="servicios" className="max-w-7xl mx-auto px-6 md:px-10 py-20">
         <div className="text-center mb-14">
-          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">Lo que <span className="font-brand text-gradient-brand">hacemos</span></h2>
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">{t.services.eyebrow} <span className="font-brand text-gradient-brand">{t.services.accent}</span></h2>
           <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
-            Una propuesta completa para crecer con intención y datos.
+            {t.services.subtitle}
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-5">
           {[
-            { icon: Instagram, title: "Estrategia de Instagram", desc: "Auditoría de perfil, rediseño visual, calendario de contenido y propuestas con vista previa estilo iPhone.", tone: "var(--brand-2)" },
-            { icon: Megaphone, title: "Meta Ads", desc: "Campañas de Facebook e Instagram Ads: creatividades, segmentación, presupuesto y optimización.", tone: "var(--brand-1)" },
-            { icon: BarChart3, title: "Reportes claros", desc: "Métricas, objetivos y entregables visibles para tu cliente. PDFs listos para presentar.", tone: "var(--brand-3)" },
+            { icon: Instagram, title: t.services.items[0].title, desc: t.services.items[0].desc, tone: "var(--brand-2)" },
+            { icon: Megaphone, title: t.services.items[1].title, desc: t.services.items[1].desc, tone: "var(--brand-1)" },
+            { icon: BarChart3, title: t.services.items[2].title, desc: t.services.items[2].desc, tone: "var(--brand-3)" },
           ].map(({ icon: Icon, title, desc, tone }) => (
             <div
               key={title}
@@ -150,14 +151,10 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
         </div>
         <div className="relative max-w-7xl mx-auto px-6 md:px-10">
           <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">Cómo <span className="font-brand text-gradient-brand">trabajamos</span></h2>
+            <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">{t.how.eyebrow} <span className="font-brand text-gradient-brand">{t.how.accent}</span></h2>
           </div>
           <div className="grid md:grid-cols-3 gap-5">
-            {[
-              { n: "01", t: "Diagnóstico", d: "Analizamos tu marca, tu público y tu competencia." },
-              { n: "02", t: "Propuesta", d: "Te entregamos una visión clara con objetivos, contenido y campañas." },
-              { n: "03", t: "Ejecución", d: "Producimos, publicamos, anunciamos y medimos resultados." },
-            ].map((s) => (
+            {t.how.steps.map((s) => (
               <div key={s.n} className="rounded-3xl bg-card border p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                 <div className="text-sm font-semibold tracking-widest text-gradient-brand">{s.n}</div>
                 <h3 className="mt-3 text-xl font-semibold">{s.t}</h3>
