@@ -160,15 +160,18 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
     }, 0) / total
   );
 
-  // SMART validation for draft
-  const smart = {
-    specific: draft.title.trim().length >= 10,
-    measurable: !!draft.target_value && Number(draft.target_value) > 0 && draft.unit.trim().length > 0,
-    achievable: draft.target_value === "" || draft.current_value === "" || Number(draft.current_value) <= Number(draft.target_value),
-    relevant: draft.description.trim().length >= 10,
-    timebound: !!draft.due_date && draft.due_date >= today,
-  };
+  // SMART validation
+  const computeSmart = (d: typeof draft) => ({
+    specific: d.title.trim().length >= 10,
+    measurable: !!d.target_value && Number(d.target_value) > 0 && d.unit.trim().length > 0,
+    achievable: d.target_value === "" || d.current_value === "" || Number(d.current_value) <= Number(d.target_value),
+    relevant: d.description.trim().length >= 10,
+    timebound: !!d.due_date && d.due_date >= today,
+  });
+  const smart = computeSmart(draft);
   const smartScore = Object.values(smart).filter(Boolean).length;
+  const editSmart = computeSmart(editDraft);
+  const editSmartScore = Object.values(editSmart).filter(Boolean).length;
 
   return (
     <div className="space-y-4">
