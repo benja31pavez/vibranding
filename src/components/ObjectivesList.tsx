@@ -50,6 +50,56 @@ const categoryMeta: Record<Category, { label: string; icon: any }> = {
   other: { label: "Otro", icon: Flag },
 };
 
+function DatePicker({ value, onChange, placeholder = "Fecha", size = "md" }: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  placeholder?: string;
+  size?: "sm" | "md";
+}) {
+  const date = value ? new Date(`${value}T00:00`) : undefined;
+  const label = date
+    ? date.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "2-digit" })
+    : placeholder;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(
+            "font-normal justify-start gap-2",
+            size === "sm" ? "h-7 px-2.5 text-xs rounded-full border-0 bg-secondary" : "h-10 w-full",
+            !value && "text-muted-foreground",
+          )}
+        >
+          <CalendarIcon className={size === "sm" ? "w-3.5 h-3.5 shrink-0" : "w-4 h-4 shrink-0"} />
+          <span className="truncate">{label}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={(d) => {
+            if (!d) { onChange(null); return; }
+            const pad = (n: number) => String(n).padStart(2, "0");
+            onChange(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+          }}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+        {value && (
+          <div className="border-t p-2 flex justify-end">
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => onChange(null)}>
+              Quitar fecha
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function ObjectivesList({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -473,52 +523,3 @@ function SmartRow({ ok, label, hint }: { ok: boolean; label: string; hint: strin
   );
 }
 
-function DatePicker({ value, onChange, placeholder = "Fecha", size = "md" }: {
-  value: string | null;
-  onChange: (v: string | null) => void;
-  placeholder?: string;
-  size?: "sm" | "md";
-}) {
-  const date = value ? new Date(`${value}T00:00`) : undefined;
-  const label = date
-    ? date.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "2-digit" })
-    : placeholder;
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          className={cn(
-            "font-normal justify-start gap-2",
-            size === "sm" ? "h-7 px-2.5 text-xs rounded-full border-0 bg-secondary" : "h-10 w-full",
-            !value && "text-muted-foreground",
-          )}
-        >
-          <CalendarIcon className={size === "sm" ? "w-3.5 h-3.5 shrink-0" : "w-4 h-4 shrink-0"} />
-          <span className="truncate">{label}</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={(d) => {
-            if (!d) { onChange(null); return; }
-            const pad = (n: number) => String(n).padStart(2, "0");
-            onChange(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
-          }}
-          initialFocus
-          className={cn("p-3 pointer-events-auto")}
-        />
-        {value && (
-          <div className="border-t p-2 flex justify-end">
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => onChange(null)}>
-              Quitar fecha
-            </Button>
-          </div>
-        )}
-      </PopoverContent>
-    </Popover>
-  );
-}
