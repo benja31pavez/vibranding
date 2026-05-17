@@ -355,10 +355,54 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
       timebound: { ok: !!d.due_date && d.due_date >= today, hint: "Fecha límite en el futuro" },
     };
   };
+  // Detect number(s) in the title and compare with target_value
+  const extractTitleNumbers = (title: string): number[] => {
+    const nums: number[] = [];
+    // Patterns like "10k", "1.5M", "2 mil", "3 millones"
+    const re = /(\d+(?:[.,]\d+)*)\s*(k|m|mil(?:lones?)?|millones?)?/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(title)) !== null) {
+      const raw = m[1];
+      const suffix = (m[2] ?? "").toLowerCase();
+      // Normalize: treat "." and "," as thousands separator when no decimal-looking suffix
+      // Heuristic: if there's a single separator followed by exactly 3 digits → thousands
+      let num: number;
+      const cleaned = raw.replace(/[.,](?=\d{3}(\D|$))/g, "");
+      // Remaining separator (if any) is decimal
+      num = parseFloat(cleaned.replace(",", "."));
+      if (!isFinite(num)) continue;
+      if (suffix === "k") num *= 1_000;
+      else if (suffix === "m" || suffix.startsWith("millon")) num *= 1_000_000;
+      else if (suffix.startsWith("mil")) num *= 1_000;
+      nums.push(num);
+    }
+    return nums;
+  };
+  const computeTitleConsistency = (d: typeof draft): { ok: boolean; message?: string; titleNum?: number } => {
+    if (!d.target_value || !d.title.trim()) return { ok: true };
+    const target = Number(d.target_value);
+    if (!isFinite(target) || target <= 0) return { ok: true };
+    const nums = extractTitleNumbers(d.title);
+    if (nums.length === 0) return { ok: true };
+    // Pick the largest number from title (most likely the goal mentioned)
+    const titleNum = Math.max(...nums);
+    // Tolerance: 5% or absolute 1 (for small numbers)
+    const tolerance = Math.max(1, target * 0.05);
+    if (Math.abs(titleNum - target) <= tolerance) return { ok: true, titleNum };
+    const fmt = (n: number) => n.toLocaleString("es-ES");
+    return {
+      ok: false,
+      titleNum,
+      message: `El título menciona ${fmt(titleNum)}${d.unit ? " " + d.unit : ""} pero el valor objetivo es ${fmt(target)}${d.unit ? " " + d.unit : ""}. Ajusta uno para que coincidan.`,
+    };
+  };
+
   const smart = computeSmart(draft);
   const smartScore = Object.values(smart).filter((s) => s.ok).length;
+  const titleConsistency = computeTitleConsistency(draft);
   const editSmart = computeSmart(editDraft);
   const editSmartScore = Object.values(editSmart).filter((s) => s.ok).length;
+  const editTitleConsistency = computeTitleConsistency(editDraft);
 
   return (
     <div className="space-y-4">
