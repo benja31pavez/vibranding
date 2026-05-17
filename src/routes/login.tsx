@@ -56,7 +56,8 @@ function LoginPage() {
             <span className="text-3xl font-bold italic tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
           </Link>
           <div>
-            <h2 className="text-2xl font-semibold">{mode === "signin" ? "Inicia sesión" : "Crea tu cuenta"}</h2>
+            <h2 className="text-2xl font-semibold">Inicia sesión</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Acceso solo con credenciales proporcionadas por el administrador.</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -67,7 +68,7 @@ function LoginPage() {
             <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           <Button type="submit" disabled={busy} className="w-full rounded-full h-11">
-            {busy ? "..." : mode === "signin" ? "Entrar" : "Crear cuenta"}
+            {busy ? "..." : "Entrar"}
           </Button>
           <button
             type="button"
