@@ -93,10 +93,23 @@ function AppLayout() {
             <HeaderItem to="/settings/pricing" icon={DollarSign} label="Servicios" active={path.startsWith("/settings/pricing")} />
           </nav>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="hidden md:inline text-xs text-muted-foreground truncate max-w-[180px]">{user?.email}</span>
-            <Button variant="ghost" size="sm" onClick={() => signOut()}>
-              <LogOut className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Cerrar sesión</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="rounded-full px-2">
+                  <UserCircle2 className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Sesión iniciada</div>
+                  <div className="truncate text-sm font-medium mt-1">{user?.email}</div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
+                  <LogOut className="w-4 h-4 mr-2" /> Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
