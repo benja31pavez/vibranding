@@ -232,3 +232,58 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function BusinessDescription({ clientId, value, onSaved }: { clientId: string; value: string; onSaved: () => Promise<void> }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setDraft(value); }, [value]);
+
+  const save = async () => {
+    setSaving(true);
+    const { error } = await supabase.from("clients").update({ business_description: draft.trim() || null }).eq("id", clientId);
+    setSaving(false);
+    if (error) { toast.error("No se pudo guardar"); return; }
+    await onSaved();
+    setEditing(false);
+    toast.success("Descripción guardada");
+  };
+
+  return (
+    <div className="rounded-2xl border bg-surface p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Building2 className="w-4 h-4" /> Sobre la empresa
+        </div>
+        {!editing ? (
+          <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+            <Pencil className="w-3.5 h-3.5 mr-1" /> Editar
+          </Button>
+        ) : (
+          <div className="flex gap-1">
+            <Button size="sm" variant="ghost" onClick={() => { setDraft(value); setEditing(false); }}>
+              <X className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" onClick={save} disabled={saving}>
+              <Check className="w-3.5 h-3.5 mr-1" /> Guardar
+            </Button>
+          </div>
+        )}
+      </div>
+      {editing ? (
+        <Textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="¿A qué se dedica esta empresa? Sector, propuesta de valor, productos/servicios, público objetivo…"
+          rows={5}
+          autoFocus
+        />
+      ) : value ? (
+        <p className="text-sm whitespace-pre-line text-foreground/90">{value}</p>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">Aún no has descrito a qué se dedica esta empresa. Haz clic en Editar para añadirlo.</p>
+      )}
+    </div>
+  );
+}
