@@ -13,10 +13,19 @@ import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalList
 import { CSS } from "@dnd-kit/utilities";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-type Status = "pending" | "in_progress" | "done";
+type Status = "pending" | "in_progress" | "in_review" | "done";
 type DType = "post" | "reel" | "story" | "design" | "meeting" | "report" | "other";
 
 type Checklist = { text: string; done: boolean }[];
+
+type CommentRow = {
+  id: string;
+  deliverable_id: string;
+  author: string;
+  kind: "comment" | "approval" | "change_request";
+  body: string;
+  created_at: string;
+};
 
 type Row = {
   id: string;
@@ -41,7 +50,15 @@ type DividerRow = { id: string; label: string; sort_order: number };
 const statusMeta: Record<Status, { label: string; icon: any; cls: string }> = {
   pending: { label: "Pendiente", icon: Circle, cls: "text-muted-foreground" },
   in_progress: { label: "En curso", icon: Clock, cls: "text-warning" },
+  in_review: { label: "En revisión cliente", icon: Eye, cls: "text-primary" },
   done: { label: "Completado", icon: CheckCircle2, cls: "text-success" },
+};
+
+const nextStatus: Record<Status, Status> = {
+  pending: "in_progress",
+  in_progress: "in_review",
+  in_review: "done",
+  done: "pending",
 };
 
 const typeMeta: Record<DType, { label: string; icon: any }> = {
