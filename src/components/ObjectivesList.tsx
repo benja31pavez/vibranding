@@ -242,6 +242,42 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
     load();
   };
 
+  const [customTemplates, setCustomTemplates] = useState<Template[]>([]);
+  useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(TEMPLATES_KEY) : null;
+      if (raw) setCustomTemplates(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, []);
+  const persistTemplates = (next: Template[]) => {
+    setCustomTemplates(next);
+    try { localStorage.setItem(TEMPLATES_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+  };
+  const applyTemplate = (t: Template) => {
+    setDraft({ ...emptyDraft, ...t.data, due_date: "" });
+    toast.success(`Plantilla "${t.name}" aplicada`);
+  };
+  const saveAsTemplate = () => {
+    if (!draft.title.trim()) { toast.error("Añade un título antes de guardar la plantilla"); return; }
+    const name = window.prompt("Nombre para esta plantilla:", draft.title.slice(0, 40));
+    if (!name?.trim()) return;
+    const t: Template = {
+      id: `custom-${Date.now()}`,
+      name: name.trim(),
+      data: {
+        title: draft.title, description: draft.description,
+        priority: draft.priority, category: draft.category,
+        target_value: draft.target_value, current_value: draft.current_value,
+        unit: draft.unit,
+      },
+    };
+    persistTemplates([...customTemplates, t]);
+    toast.success("Plantilla guardada");
+  };
+  const deleteTemplate = (id: string) => {
+    persistTemplates(customTemplates.filter((t) => t.id !== id));
+  };
+
   const update = async (id: string, patch: Partial<Row>) => {
     const { error } = await supabase.from("objectives").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
