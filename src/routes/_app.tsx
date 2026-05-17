@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Users, LogOut, Sparkles, DollarSign, UserCircle2, X,
-  LayoutDashboard, CalendarDays, BarChart3,
+  LayoutDashboard, CalendarDays, BarChart3, LineChart,
   Eye, Instagram, Megaphone, Target, CheckSquare, Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -105,6 +105,9 @@ function AppLayout() {
                   <div className="truncate text-sm font-medium mt-1">{user?.email}</div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link to="/stats"><LineChart className="w-4 h-4 mr-2" /> Estadísticas del landing</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
                   <LogOut className="w-4 h-4 mr-2" /> Cerrar sesión
                 </DropdownMenuItem>

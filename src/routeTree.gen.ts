@@ -19,6 +19,7 @@ import { Route as DataDeletionRouteImport } from './routes/data-deletion'
 import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppStatsRouteImport } from './routes/_app/stats'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
@@ -81,6 +82,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppStatsRoute = AppStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppReportsRoute = AppReportsRouteImport.update({
   id: '/reports',
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/reports': typeof AppReportsRoute
+  '/stats': typeof AppStatsRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/reports': typeof AppReportsRoute
+  '/stats': typeof AppStatsRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients': typeof AppClientsIndexRoute
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/reports': typeof AppReportsRoute
+  '/_app/stats': typeof AppStatsRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/dashboard'
     | '/reports'
+    | '/stats'
     | '/clients/$clientId'
     | '/settings/pricing'
     | '/api/meta-ads/sync'
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/dashboard'
     | '/reports'
+    | '/stats'
     | '/settings/pricing'
     | '/api/meta-ads/sync'
     | '/clients'
@@ -289,6 +300,7 @@ export interface FileRouteTypes {
     | '/_app/calendar'
     | '/_app/dashboard'
     | '/_app/reports'
+    | '/_app/stats'
     | '/_app/clients/$clientId'
     | '/_app/settings/pricing'
     | '/api/meta-ads/sync'
@@ -386,6 +398,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/stats': {
+      id: '/_app/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof AppStatsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/reports': {
       id: '/_app/reports'
@@ -506,6 +525,7 @@ interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppReportsRoute: typeof AppReportsRoute
+  AppStatsRoute: typeof AppStatsRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRouteWithChildren
   AppSettingsPricingRoute: typeof AppSettingsPricingRoute
   AppClientsIndexRoute: typeof AppClientsIndexRoute
@@ -515,6 +535,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppReportsRoute: AppReportsRoute,
+  AppStatsRoute: AppStatsRoute,
   AppClientsClientIdRoute: AppClientsClientIdRouteWithChildren,
   AppSettingsPricingRoute: AppSettingsPricingRoute,
   AppClientsIndexRoute: AppClientsIndexRoute,
@@ -538,3 +559,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
