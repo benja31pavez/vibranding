@@ -44,6 +44,44 @@ export type Database = {
         }
         Relationships: []
       }
+      deliverable_comments: {
+        Row: {
+          author: string
+          body: string
+          client_id: string
+          created_at: string
+          deliverable_id: string
+          id: string
+          kind: string
+        }
+        Insert: {
+          author?: string
+          body?: string
+          client_id: string
+          created_at?: string
+          deliverable_id: string
+          id?: string
+          kind?: string
+        }
+        Update: {
+          author?: string
+          body?: string
+          client_id?: string
+          created_at?: string
+          deliverable_id?: string
+          id?: string
+          kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliverable_comments_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "deliverables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deliverable_dividers: {
         Row: {
           client_id: string
@@ -966,7 +1004,7 @@ export type Database = {
       objective_priority: "low" | "medium" | "high"
       payment_status: "pending" | "paid" | "overdue" | "cancelled"
       post_format: "photo" | "carousel" | "reel"
-      task_status: "pending" | "in_progress" | "done"
+      task_status: "pending" | "in_progress" | "in_review" | "done"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1145,7 +1183,7 @@ export const Constants = {
       objective_priority: ["low", "medium", "high"],
       payment_status: ["pending", "paid", "overdue", "cancelled"],
       post_format: ["photo", "carousel", "reel"],
-      task_status: ["pending", "in_progress", "done"],
+      task_status: ["pending", "in_progress", "in_review", "done"],
     },
   },
 } as const
