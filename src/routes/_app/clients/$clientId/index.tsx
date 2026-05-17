@@ -204,12 +204,7 @@ function SummaryPage() {
         </div>
       )}
 
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Eye className="w-4 h-4" /> Usa <strong className="text-foreground">Exportar PDF</strong> para enviar este resumen a tu cliente.
-      </div>
-
       <ProposedCostsBreakdown pricing={pricing} posts={ig.posts} />
-      <PricingSummary pricing={pricing} />
     </div>
   );
 }
