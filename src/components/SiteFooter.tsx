@@ -58,9 +58,23 @@ function FooterLink({ to, href, children }: { to?: string; href?: string; childr
       </li>
     );
   }
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!href) return;
+    const hashIdx = href.indexOf("#");
+    if (hashIdx === -1) return;
+    const id = href.slice(hashIdx + 1);
+    const path = href.slice(0, hashIdx) || "/";
+    if (typeof window !== "undefined" && window.location.pathname === path) {
+      const el = document.getElementById(id);
+      if (el) {
+        e.preventDefault();
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  };
   return (
     <li>
-      <a href={href} className="text-sm text-foreground/80 hover:text-foreground">
+      <a href={href} onClick={handleClick} className="text-sm text-foreground/80 hover:text-foreground">
         {children}
       </a>
     </li>
