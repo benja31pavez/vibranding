@@ -71,7 +71,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
         <nav className="hidden md:flex items-center gap-7 text-sm">
           <a href="#servicios" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5.5rem] text-center"><span className="inline-block">{t.nav.services}</span></a>
           <a href="#como" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[8rem] text-center"><span className="inline-block">{t.nav.how}</span></a>
-          <a href="#nosotros" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5rem] text-center"><span className="inline-block">{t.nav.about}</span></a>
+          
           <a href="#clientes" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5rem] text-center"><span className="inline-block">{t.nav.clients}</span></a>
           <a href="#contacto" onClick={() => trackLandingEvent("contact_click", lang)} className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5rem] text-center"><span className="inline-block">{t.nav.contact}</span></a>
         </nav>
