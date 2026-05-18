@@ -9,7 +9,7 @@ export const Route = createFileRoute("/api/meta-ads/discover")({
         try {
           const [accRes, pageRes] = await Promise.all([
             fetch(`https://graph.facebook.com/v21.0/me/assigned_ad_accounts?fields=id,name,account_status,business{name}&limit=100&access_token=${encodeURIComponent(token)}`),
-            fetch(`https://graph.facebook.com/v21.0/me/assigned_pages?fields=id,name&limit=100&access_token=${encodeURIComponent(token)}`),
+            fetch(`https://graph.facebook.com/v21.0/me/assigned_pages?fields=id,name,instagram_business_account{id,username,profile_picture_url}&limit=100&access_token=${encodeURIComponent(token)}`),
           ]);
           const accBody = await accRes.json();
           const pageBody = await pageRes.json();
@@ -20,7 +20,16 @@ export const Route = createFileRoute("/api/meta-ads/discover")({
             id: a.id, name: a.name, status: a.account_status, business: a.business?.name ?? "",
           }));
           const pages = ((pageBody.data ?? []) as any[]).map((p) => ({
-            id: p.id, name: p.name, business: "",
+            id: p.id,
+            name: p.name,
+            business: "",
+            instagram: p.instagram_business_account
+              ? {
+                  id: p.instagram_business_account.id,
+                  username: p.instagram_business_account.username ?? "",
+                  avatar: p.instagram_business_account.profile_picture_url ?? "",
+                }
+              : null,
           }));
 
           return json({ adAccounts, pages });
