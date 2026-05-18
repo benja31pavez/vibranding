@@ -118,7 +118,7 @@ const es: Dict = {
   services: {
     eyebrow: "Lo que",
     accent: "hacemos",
-    subtitle: "Una propuesta completa para crecer con intención y datos.",
+    subtitle: "",
     items: [
       { title: "Estrategia de Instagram", desc: "Auditoría de perfil, rediseño visual, calendario de contenido y propuestas con vista previa estilo iPhone." },
       { title: "Meta Ads", desc: "Campañas de Facebook e Instagram Ads: creatividades, segmentación, presupuesto y optimización." },
@@ -148,7 +148,7 @@ const es: Dict = {
   clients: {
     eyebrow: "Marcas con las que",
     accent: "hemos trabajado",
-    subtitle: "Algunos de los proyectos en los que hemos trabajado.",
+    subtitle: "",
     viewWork: "Ver trabajo",
     empty: "Pronto compartiremos nuestros próximos casos.",
   },
@@ -321,7 +321,7 @@ const en: Dict = {
   services: {
     eyebrow: "What we",
     accent: "do",
-    subtitle: "A complete proposal to grow with intent and data.",
+    subtitle: "",
     items: [
       { title: "Instagram strategy", desc: "Profile audit, visual redesign, content calendar and proposals with an iPhone-style preview." },
       { title: "Meta Ads", desc: "Facebook and Instagram Ads campaigns: creative, targeting, budget and optimization." },
@@ -351,7 +351,7 @@ const en: Dict = {
   clients: {
     eyebrow: "Brands we've",
     accent: "worked with",
-    subtitle: "Some of the projects we've worked on.",
+    subtitle: "",
     viewWork: "View work",
     empty: "We'll share our next case studies soon.",
   },
