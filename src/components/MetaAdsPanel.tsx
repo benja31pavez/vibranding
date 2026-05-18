@@ -497,7 +497,17 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                       )}
                     </div>
 
-                    <div className="pt-3 border-t flex justify-end">
+                    <div className="pt-3 border-t flex justify-between items-center gap-2">
+                      {c.fb_campaign_id ? (
+                        <span className="text-xs text-green-600 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Publicada en Meta (pausada por seguridad)
+                        </span>
+                      ) : (
+                        <Button size="sm" onClick={() => publishCampaign(c.id)} disabled={publishing === c.id || !account?.ad_account_id}>
+                          <Upload className="w-4 h-4 mr-1" />
+                          {publishing === c.id ? "Publicando…" : "Publicar en Meta"}
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => removeCampaign(c.id)} className="text-destructive">
                         <Trash2 className="w-4 h-4 mr-1" /> Eliminar campaña
                       </Button>
@@ -509,6 +519,60 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
           </Accordion>
         )}
       </div>
+
+      {/* Discover dialog */}
+      <Dialog open={discoverOpen} onOpenChange={setDiscoverOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Activos detectados en Meta</DialogTitle>
+            <DialogDescription>Selecciona la cuenta publicitaria y la página para vincularlas a este cliente.</DialogDescription>
+          </DialogHeader>
+          {discovering ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">Buscando…</p>
+          ) : discoverData ? (
+            <div className="space-y-5 max-h-[60vh] overflow-y-auto">
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Cuentas publicitarias</h4>
+                {discoverData.adAccounts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No se encontraron cuentas publicitarias.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {discoverData.adAccounts.map((a) => (
+                      <button
+                        key={a.id}
+                        onClick={async () => { await updateAccount({ ad_account_id: a.id, business_name: a.business }); toast.success(`Cuenta ${a.name} vinculada`); }}
+                        className={`w-full text-left rounded-lg border p-3 text-sm hover:bg-muted transition-colors ${account?.ad_account_id === a.id ? "border-primary bg-primary/5" : ""}`}
+                      >
+                        <div className="font-medium">{a.name}</div>
+                        <div className="text-xs text-muted-foreground">{a.id} · {a.business} · {a.status === 1 ? "Activa" : `status ${a.status}`}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Páginas de Facebook</h4>
+                {discoverData.pages.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No se encontraron páginas.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {discoverData.pages.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={async () => { await updateAccount({ page_id: p.id }); toast.success(`Página ${p.name} vinculada`); }}
+                        className={`w-full text-left rounded-lg border p-3 text-sm hover:bg-muted transition-colors ${account?.page_id === p.id ? "border-primary bg-primary/5" : ""}`}
+                      >
+                        <div className="font-medium">{p.name}</div>
+                        <div className="text-xs text-muted-foreground">{p.id} · {p.business}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
