@@ -26,6 +26,7 @@ import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
 import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
+import { Route as ApiMetaAdsDiscoverRouteImport } from './routes/api/meta-ads/discover'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
 import { Route as AppClientsClientIdIndexRouteImport } from './routes/_app/clients/$clientId/index'
@@ -119,6 +120,11 @@ const ApiMetaAdsSyncRoute = ApiMetaAdsSyncRouteImport.update({
   path: '/api/meta-ads/sync',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMetaAdsDiscoverRoute = ApiMetaAdsDiscoverRouteImport.update({
+  id: '/api/meta-ads/discover',
+  path: '/api/meta-ads/discover',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppSettingsPricingRoute = AppSettingsPricingRouteImport.update({
   id: '/settings/pricing',
   path: '/settings/pricing',
@@ -182,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/stats': typeof AppStatsRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/settings/pricing': typeof AppSettingsPricingRoute
+  '/api/meta-ads/discover': typeof ApiMetaAdsDiscoverRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients/': typeof AppClientsIndexRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
@@ -207,6 +214,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
+  '/api/meta-ads/discover': typeof ApiMetaAdsDiscoverRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients': typeof AppClientsIndexRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
@@ -235,6 +243,7 @@ export interface FileRoutesById {
   '/_app/stats': typeof AppStatsRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
+  '/api/meta-ads/discover': typeof ApiMetaAdsDiscoverRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
@@ -263,6 +272,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/clients/$clientId'
     | '/settings/pricing'
+    | '/api/meta-ads/discover'
     | '/api/meta-ads/sync'
     | '/clients/'
     | '/clients/$clientId/deliverables'
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/stats'
     | '/settings/pricing'
+    | '/api/meta-ads/discover'
     | '/api/meta-ads/sync'
     | '/clients'
     | '/clients/$clientId/deliverables'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/_app/stats'
     | '/_app/clients/$clientId'
     | '/_app/settings/pricing'
+    | '/api/meta-ads/discover'
     | '/api/meta-ads/sync'
     | '/_app/clients/'
     | '/_app/clients/$clientId/deliverables'
@@ -336,6 +348,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  ApiMetaAdsDiscoverRoute: typeof ApiMetaAdsDiscoverRoute
   ApiMetaAdsSyncRoute: typeof ApiMetaAdsSyncRoute
 }
 
@@ -460,6 +473,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMetaAdsSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/meta-ads/discover': {
+      id: '/api/meta-ads/discover'
+      path: '/api/meta-ads/discover'
+      fullPath: '/api/meta-ads/discover'
+      preLoaderRoute: typeof ApiMetaAdsDiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/settings/pricing': {
       id: '/_app/settings/pricing'
       path: '/settings/pricing'
@@ -575,18 +595,9 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  ApiMetaAdsDiscoverRoute: ApiMetaAdsDiscoverRoute,
   ApiMetaAdsSyncRoute: ApiMetaAdsSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
