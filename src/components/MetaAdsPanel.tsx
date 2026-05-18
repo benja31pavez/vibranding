@@ -559,9 +559,9 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                 )}
               </div>
               <div>
-                <h4 className="text-sm font-semibold mb-1">Páginas de Facebook e Instagram</h4>
+                <h4 className="text-sm font-semibold mb-1">Página de Facebook</h4>
                 <p className="text-xs text-muted-foreground mb-2">
-                  Vincula la página del cliente. Si tiene una cuenta de Instagram conectada, podrás elegir que los anuncios salgan desde su IG (así la gente le escribe directamente a su cuenta).
+                  La página es la "identidad" del anuncio en Facebook (aparece como remitente del post).
                 </p>
                 {discoverData.pages.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No se encontraron páginas.</p>
@@ -569,93 +569,81 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                   <div className="space-y-1.5">
                     {discoverData.pages.map((p) => {
                       const pageSelected = account?.page_id === p.id;
-                      const igSelected = p.instagram && account?.instagram_actor_id === p.instagram.id;
                       return (
-                        <div
+                        <button
                           key={p.id}
-                          className={`rounded-lg border p-3 text-sm ${pageSelected ? "border-primary bg-primary/5" : ""}`}
+                          onClick={async () => {
+                            await updateAccount({ page_id: p.id });
+                            toast.success(`Página ${p.name} vinculada`);
+                          }}
+                          className={`w-full text-left rounded-lg border p-3 text-sm hover:bg-muted transition-colors ${pageSelected ? "border-primary bg-primary/5" : ""}`}
                         >
-                          <button
-                            onClick={async () => {
-                              await updateAccount({ page_id: p.id });
-                              toast.success(`Página ${p.name} vinculada`);
-                            }}
-                            className="w-full text-left"
-                          >
-                            <div className="font-medium">{p.name} {pageSelected && <span className="text-xs text-primary">· seleccionada</span>}</div>
-                            <div className="text-xs text-muted-foreground">{p.id}</div>
-                          </button>
-                          {p.instagram ? (
-                            <div className="mt-2 flex items-center justify-between gap-2 rounded-md bg-muted/40 p-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                {p.instagram.avatar && (
-                                  <img src={p.instagram.avatar} alt="" className="w-6 h-6 rounded-full object-cover" />
-                                )}
-                                <div className="min-w-0">
-                                  <div className="text-xs font-medium truncate">@{p.instagram.username || p.instagram.id}</div>
-                                  <div className="text-[10px] text-muted-foreground">Instagram vinculado</div>
-                                </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant={igSelected ? "default" : "outline"}
-                                onClick={async () => {
-                                  await updateAccount({ instagram_actor_id: p.instagram!.id });
-                                  toast.success(`Anuncios saldrán desde @${p.instagram!.username}`);
-                                }}
-                              >
-                                {igSelected ? "IG vinculado" : "Usar este IG"}
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="mt-2 text-[11px] text-muted-foreground">
-                              Sin IG vinculado a esta página. Conecta la cuenta de Instagram a la página en Meta Business Suite para usarla aquí.
-                            </div>
-                          )}
-                        </div>
+                          <div className="font-medium">{p.name} {pageSelected && <span className="text-xs text-primary">· seleccionada</span>}</div>
+                          <div className="text-xs text-muted-foreground">{p.id}</div>
+                        </button>
                       );
                     })}
                   </div>
                 )}
               </div>
 
-              {discoverData.instagramAccounts && discoverData.instagramAccounts.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold mb-1">Cuentas de Instagram</h4>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Cuentas IG asignadas directamente al System User. Elige desde cuál deben salir los anuncios de este cliente.
-                  </p>
-                  <div className="space-y-1.5">
-                    {discoverData.instagramAccounts.map((ig) => {
-                      const selected = account?.instagram_actor_id === ig.id;
-                      return (
-                        <div
-                          key={ig.id}
-                          className={`flex items-center justify-between gap-2 rounded-lg border p-3 text-sm ${selected ? "border-primary bg-primary/5" : ""}`}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            {ig.avatar && <img src={ig.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />}
-                            <div className="min-w-0">
-                              <div className="font-medium truncate">@{ig.username || ig.id}</div>
-                              <div className="text-xs text-muted-foreground">{ig.id}</div>
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant={selected ? "default" : "outline"}
-                            onClick={async () => {
-                              await updateAccount({ instagram_actor_id: ig.id });
-                              toast.success(`Anuncios saldrán desde @${ig.username || ig.id}`);
-                            }}
+              <div>
+                <h4 className="text-sm font-semibold mb-1">Cuenta de Instagram</h4>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Elige desde qué cuenta de Instagram saldrán los anuncios. Así la gente le escribirá directamente al cliente.
+                </p>
+                {(() => {
+                  // Unimos IGs vinculados a páginas + IGs detectados aparte (sin duplicar)
+                  const merged = new Map<string, DiscoverIG>();
+                  for (const p of discoverData.pages) {
+                    if (p.instagram) merged.set(p.instagram.id, { ...p.instagram, source: `vinculado a ${p.name}` });
+                  }
+                  for (const ig of discoverData.instagramAccounts ?? []) {
+                    if (!merged.has(ig.id)) merged.set(ig.id, ig);
+                  }
+                  const list = Array.from(merged.values());
+                  if (list.length === 0) {
+                    return (
+                      <p className="text-xs text-muted-foreground rounded-md border border-dashed p-3">
+                        No se detectaron cuentas de Instagram. Verifica en Business Settings → Usuarios → System Users que la cuenta IG esté asignada al System User con los permisos <strong>instagram_basic</strong> e <strong>instagram_content_publish</strong>.
+                      </p>
+                    );
+                  }
+                  return (
+                    <div className="space-y-1.5">
+                      {list.map((ig) => {
+                        const selected = account?.instagram_actor_id === ig.id;
+                        return (
+                          <div
+                            key={ig.id}
+                            className={`flex items-center justify-between gap-2 rounded-lg border p-3 text-sm ${selected ? "border-primary bg-primary/5" : ""}`}
                           >
-                            {selected ? "IG vinculado" : "Usar este IG"}
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                            <div className="flex items-center gap-2 min-w-0">
+                              {ig.avatar && <img src={ig.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />}
+                              <div className="min-w-0">
+                                <div className="font-medium truncate">@{ig.username || ig.id}</div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {ig.id}{ig.source ? ` · ${ig.source}` : ""}
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant={selected ? "default" : "outline"}
+                              onClick={async () => {
+                                await updateAccount({ instagram_actor_id: ig.id });
+                                toast.success(`Anuncios saldrán desde @${ig.username || ig.id}`);
+                              }}
+                            >
+                              {selected ? "IG vinculado" : "Usar este IG"}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           ) : null}
         </DialogContent>
