@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Plus, Trash2, RefreshCw, Megaphone, Layers, Image as ImageIcon, Sparkles, Upload, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { MediaUpload } from "./MediaUpload";
+import { CampaignWizard } from "./meta-ads/CampaignWizard";
 
 interface DiscoverPage {
   id: string;
