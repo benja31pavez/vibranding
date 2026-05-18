@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import {
   Plus, Trash2, Upload, ImageIcon, Save, Loader2, ExternalLink, GripVertical,
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import type { PortfolioClient, PortfolioWork } from "@/lib/portfolio";
 
 export const Route = createFileRoute("/_app/portfolio")({
@@ -72,7 +72,7 @@ function PortfolioAdminPage() {
       .select()
       .single();
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast.error("Error", { description: error.message });
       return;
     }
     setItems((prev) => [...prev, { ...(data as PortfolioClient), works: [] }]);
@@ -82,7 +82,7 @@ function PortfolioAdminPage() {
     if (!confirm("¿Eliminar este cliente y todos sus trabajos?")) return;
     const { error } = await supabase.from("portfolio_clients").delete().eq("id", id);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast.error("Error", { description: error.message });
       return;
     }
     setItems((prev) => prev.filter((c) => c.id !== id));
@@ -154,9 +154,9 @@ function ClientCard({
       .eq("id", draft.id);
     setSaving(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast.error("Error", { description: error.message });
     } else {
-      toast({ title: "Guardado" });
+      toast.success("Guardado");
       await onReload();
     }
   };
@@ -168,7 +168,7 @@ function ClientCard({
       const url = await uploadToBucket(file, userId, "logo");
       setDraft((d) => ({ ...d, logo_url: url }));
     } catch (e: any) {
-      toast({ title: "Error al subir", description: e.message, variant: "destructive" });
+      toast.error("Error al subir", { description: e.message });
     } finally {
       setUploadingLogo(false);
     }
@@ -289,9 +289,9 @@ function WorksManager({
       const { error } = await supabase.from("portfolio_works").insert(rows);
       if (error) throw error;
       await onChange();
-      toast({ title: `${rows.length} trabajo(s) añadido(s)` });
+      toast.success(`${rows.length} trabajo(s) añadido(s)`);
     } catch (e: any) {
-      toast({ title: "Error al subir", description: e.message, variant: "destructive" });
+      toast.error("Error al subir", { description: e.message });
     } finally {
       setUploading(false);
     }
@@ -300,7 +300,7 @@ function WorksManager({
   const updateWork = async (id: string, patch: Partial<PortfolioWork>) => {
     const { error } = await supabase.from("portfolio_works").update(patch).eq("id", id);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast.error("Error", { description: error.message });
     } else {
       await onChange();
     }
@@ -310,7 +310,7 @@ function WorksManager({
     if (!confirm("¿Eliminar este trabajo?")) return;
     const { error } = await supabase.from("portfolio_works").delete().eq("id", id);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast.error("Error", { description: error.message });
     } else {
       await onChange();
     }
