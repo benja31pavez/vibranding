@@ -1,5 +1,5 @@
 import { useLang } from "@/i18n/LanguageContext";
-import { Languages } from "lucide-react";
+
 
 export function LanguageSwitcher({ className = "" }: { className?: string }) {
   const { lang, setLang, t } = useLang();
@@ -9,7 +9,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
       role="group"
       aria-label={t.langSwitcher.label}
     >
-      <Languages className="w-3.5 h-3.5 ml-1.5 text-muted-foreground" aria-hidden />
+      
       <button
         type="button"
         onClick={() => setLang("es")}
