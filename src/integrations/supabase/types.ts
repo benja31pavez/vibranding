@@ -1199,6 +1199,10 @@ export type Database = {
         | "APPLY_NOW"
         | "SEND_MESSAGE"
         | "WATCH_MORE"
+        | "BOOK_NOW"
+        | "GET_QUOTE"
+        | "GET_DIRECTIONS"
+        | "CALL_NOW"
       meta_placement:
         | "feed"
         | "stories"
@@ -1375,6 +1379,10 @@ export const Constants = {
         "APPLY_NOW",
         "SEND_MESSAGE",
         "WATCH_MORE",
+        "BOOK_NOW",
+        "GET_QUOTE",
+        "GET_DIRECTIONS",
+        "CALL_NOW",
       ],
       meta_placement: [
         "feed",
