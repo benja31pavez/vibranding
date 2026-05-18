@@ -59,6 +59,29 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   const [publishing, setPublishing] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
 
+  const authedFetch = async (path: string, body: any) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(path, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || "Error");
+    return json;
+  };
+
+  const pushToMeta = async (entity: "campaign" | "adset" | "ad", id: string, patch: Record<string, any>) => {
+    try {
+      await authedFetch("/api/meta-ads/update", { entity, id, patch });
+    } catch (e: any) {
+      toast.error(`Meta: ${e.message}`);
+    }
+  };
+
   const openDiscover = async () => {
     setDiscoverOpen(true);
     if (discoverData) return;
