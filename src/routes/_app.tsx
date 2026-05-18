@@ -106,6 +106,9 @@ function AppLayout() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link to="/portfolio"><Sparkles className="w-4 h-4 mr-2" /> Portafolio público</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
                   <Link to="/stats"><LineChart className="w-4 h-4 mr-2" /> Estadísticas del landing</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
