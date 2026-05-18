@@ -264,7 +264,6 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
             <Sparkles className="w-4 h-4 mr-1" /> Crear campaña en Meta
           </Button>
         </div>
-        </div>
         {campaigns.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center border-2 border-dashed rounded-xl">Aún no hay campañas. Crea una para empezar.</p>
         ) : (
