@@ -255,7 +255,13 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
                   title={c.name}
                 >
                   {c.logo_url ? (
-                    <img src={c.logo_url} alt={c.name} className="h-8 md:h-10 w-auto object-contain" loading="lazy" />
+                    <img
+                      src={c.logo_url}
+                      alt={c.name}
+                      className="h-8 md:h-10 w-auto object-contain"
+                      style={{ filter: "brightness(0)" }}
+                      loading="lazy"
+                    />
                   ) : (
                     <span className="text-base md:text-lg font-semibold tracking-tight">{c.name}</span>
                   )}
