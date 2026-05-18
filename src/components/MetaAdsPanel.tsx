@@ -527,14 +527,9 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                     <div className="pt-3 border-t flex justify-between items-center gap-2">
                       {c.fb_campaign_id ? (
                         <span className="text-xs text-green-600 flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Publicada en Meta (pausada por seguridad)
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Sincronizada con Meta · {c.fb_campaign_id}
                         </span>
-                      ) : (
-                        <Button size="sm" onClick={() => publishCampaign(c.id)} disabled={publishing === c.id || !account?.ad_account_id}>
-                          <Upload className="w-4 h-4 mr-1" />
-                          {publishing === c.id ? "Publicando…" : "Publicar en Meta"}
-                        </Button>
-                      )}
+                      ) : <span />}
                       <Button variant="ghost" size="sm" onClick={() => removeCampaign(c.id)} className="text-destructive">
                         <Trash2 className="w-4 h-4 mr-1" /> Eliminar campaña
                       </Button>
