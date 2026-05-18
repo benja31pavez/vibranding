@@ -22,6 +22,7 @@ interface DiscoverPage {
 interface DiscoverData {
   adAccounts: Array<{ id: string; name: string; status: number; business: string }>;
   pages: DiscoverPage[];
+  instagramAccounts?: Array<{ id: string; username: string; avatar: string }>;
 }
 
 type MetaStatus = "ACTIVE" | "PAUSED" | "DELETED" | "ARCHIVED" | "DRAFT";
