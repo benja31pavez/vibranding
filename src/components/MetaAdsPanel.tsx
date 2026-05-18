@@ -287,7 +287,12 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">Campañas ({campaigns.length})</h3>
-          <Button size="sm" onClick={addCampaign}><Plus className="w-4 h-4 mr-1" /> Añadir campaña</Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={addCampaign}><Plus className="w-4 h-4 mr-1" /> Borrador rápido</Button>
+            <Button size="sm" onClick={() => setWizardOpen(true)} disabled={!account?.ad_account_id}>
+              <Sparkles className="w-4 h-4 mr-1" /> Crear con asistente
+            </Button>
+          </div>
         </div>
         {campaigns.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center border-2 border-dashed rounded-xl">Aún no hay campañas. Crea una para empezar.</p>
