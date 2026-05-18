@@ -653,9 +653,11 @@ export type Database = {
           fb_adset_id: string | null
           genders: string | null
           id: string
+          interests: string | null
           lifetime_budget: number | null
           name: string
           optimization_goal: string | null
+          placements: string[]
           position: number
           status: Database["public"]["Enums"]["meta_status"]
           updated_at: string
@@ -673,9 +675,11 @@ export type Database = {
           fb_adset_id?: string | null
           genders?: string | null
           id?: string
+          interests?: string | null
           lifetime_budget?: number | null
           name?: string
           optimization_goal?: string | null
+          placements?: string[]
           position?: number
           status?: Database["public"]["Enums"]["meta_status"]
           updated_at?: string
@@ -693,9 +697,11 @@ export type Database = {
           fb_adset_id?: string | null
           genders?: string | null
           id?: string
+          interests?: string | null
           lifetime_budget?: number | null
           name?: string
           optimization_goal?: string | null
+          placements?: string[]
           position?: number
           status?: Database["public"]["Enums"]["meta_status"]
           updated_at?: string

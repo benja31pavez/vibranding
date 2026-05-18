@@ -33,7 +33,7 @@ type MetaCTA = "LEARN_MORE" | "SHOP_NOW" | "SIGN_UP" | "SUBSCRIBE" | "CONTACT_US
 
 interface Account { id: string; client_id: string; ad_account_id: string | null; business_name: string | null; page_id: string | null; instagram_actor_id: string | null; last_synced_at: string | null; }
 interface Campaign { id: string; client_id: string; name: string; objective: MetaObjective; status: MetaStatus; daily_budget: number | null; lifetime_budget: number | null; currency: string | null; start_time: string | null; stop_time: string | null; notes: string | null; position: number; fb_campaign_id: string | null; }
-interface AdSet { id: string; client_id: string; campaign_id: string; name: string; status: MetaStatus; daily_budget: number | null; optimization_goal: string | null; audience_summary: string | null; age_min: number | null; age_max: number | null; genders: string | null; countries: string | null; position: number; }
+interface AdSet { id: string; client_id: string; campaign_id: string; name: string; status: MetaStatus; daily_budget: number | null; optimization_goal: string | null; audience_summary: string | null; age_min: number | null; age_max: number | null; genders: string | null; countries: string | null; interests: string | null; placements: string[]; position: number; }
 interface Ad { id: string; client_id: string; adset_id: string; name: string; status: MetaStatus; format: string; image_url: string | null; video_url: string | null; carousel_urls: string[]; primary_text: string | null; headline: string | null; description: string | null; cta: MetaCTA | null; link_url: string | null; placement: MetaPlacement; position: number; }
 interface Insight { id: string; campaign_id: string; date_start: string | null; date_stop: string | null; impressions: number; reach: number; clicks: number; ctr: number | null; spend: number; cpc: number | null; cpm: number | null; conversions: number; purchase_value: number | null; roas: number | null; notes: string | null; }
 
@@ -383,11 +383,42 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                                 <Input type="number" defaultValue={a.age_max ?? ""} onBlur={(e) => updateAdSet(a.id, { age_max: e.target.value ? Number(e.target.value) : null })} />
                               </Field>
                               <Field label="Géneros">
-                                <Input placeholder="all, female, male" defaultValue={a.genders ?? ""} onBlur={(e) => updateAdSet(a.id, { genders: e.target.value || null })} />
+                                <Select value={a.genders ?? "all"} onValueChange={(v) => updateAdSet(a.id, { genders: v === "all" ? null : v })}>
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todos</SelectItem>
+                                    <SelectItem value="female">Mujeres</SelectItem>
+                                    <SelectItem value="male">Hombres</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </Field>
                             </div>
-                            <Field label="Países">
-                              <Input placeholder="CL, MX, AR…" defaultValue={a.countries ?? ""} onBlur={(e) => updateAdSet(a.id, { countries: e.target.value || null })} />
+                            <Field label="Países (códigos ISO separados por coma)">
+                              <Input placeholder="CL, MX, AR, ES…" defaultValue={a.countries ?? ""} onBlur={(e) => updateAdSet(a.id, { countries: e.target.value || null })} />
+                            </Field>
+                            <Field label="Intereses (separados por coma)">
+                              <Input placeholder="moda, deporte, tecnología…" defaultValue={a.interests ?? ""} onBlur={(e) => updateAdSet(a.id, { interests: e.target.value || null })} />
+                            </Field>
+                            <Field label="Ubicaciones (publisher platforms)">
+                              <div className="flex flex-wrap gap-3 pt-1">
+                                {(["facebook", "instagram", "audience_network", "messenger"] as const).map((p) => {
+                                  const checked = (a.placements ?? []).includes(p);
+                                  return (
+                                    <label key={p} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={(e) => {
+                                          const cur = new Set(a.placements ?? []);
+                                          if (e.target.checked) cur.add(p); else cur.delete(p);
+                                          updateAdSet(a.id, { placements: Array.from(cur) });
+                                        }}
+                                      />
+                                      {p === "audience_network" ? "Audience Network" : p === "facebook" ? "Facebook" : p === "instagram" ? "Instagram" : "Messenger"}
+                                    </label>
+                                  );
+                                })}
+                              </div>
                             </Field>
                             <Field label="Resumen de audiencia">
                               <Textarea rows={2} defaultValue={a.audience_summary ?? ""} onBlur={(e) => updateAdSet(a.id, { audience_summary: e.target.value || null })} />
@@ -427,19 +458,30 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                                     <Field label="CTA">
                                       <Select value={ad.cta ?? "LEARN_MORE"} onValueChange={(v) => updateAd(ad.id, { cta: v as MetaCTA })}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>{CTAS.map((cta) => <SelectItem key={cta} value={cta}>{cta}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{CTAS.map((cta) => <SelectItem key={cta} value={cta}>{CTA_LABELS[cta]}</SelectItem>)}</SelectContent>
                                       </Select>
                                     </Field>
                                   </div>
-                                  <Field label="Imagen / Cover">
-                                    <MediaUpload clientId={clientId} value={ad.image_url} onChange={(url) => updateAd(ad.id, { image_url: url })} />
-                                  </Field>
+                                  {ad.format === "video" ? (
+                                    <>
+                                      <Field label="Video (URL o subir)">
+                                        <MediaUpload clientId={clientId} value={ad.video_url} onChange={(url) => updateAd(ad.id, { video_url: url })} placeholder="URL del video o sube archivo" />
+                                      </Field>
+                                      <Field label="Miniatura / cover">
+                                        <MediaUpload clientId={clientId} value={ad.image_url} onChange={(url) => updateAd(ad.id, { image_url: url })} />
+                                      </Field>
+                                    </>
+                                  ) : (
+                                    <Field label="Imagen">
+                                      <MediaUpload clientId={clientId} value={ad.image_url} onChange={(url) => updateAd(ad.id, { image_url: url })} />
+                                    </Field>
+                                  )}
                                   <div className="grid md:grid-cols-2 gap-2">
                                     <Field label="Titular">
                                       <Input defaultValue={ad.headline ?? ""} onBlur={(e) => updateAd(ad.id, { headline: e.target.value || null })} />
                                     </Field>
-                                    <Field label="Link">
-                                      <Input placeholder="https://…" defaultValue={ad.link_url ?? ""} onBlur={(e) => updateAd(ad.id, { link_url: e.target.value || null })} />
+                                    <Field label="URL de destino">
+                                      <Input placeholder="https://tusitio.com/landing" defaultValue={ad.link_url ?? ""} onBlur={(e) => updateAd(ad.id, { link_url: e.target.value || null })} />
                                     </Field>
                                   </div>
                                   <Field label="Texto principal">
