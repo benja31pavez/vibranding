@@ -59,6 +59,29 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   const [publishing, setPublishing] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
 
+  const authedFetch = async (path: string, body: any) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(path, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || "Error");
+    return json;
+  };
+
+  const pushToMeta = async (entity: "campaign" | "adset" | "ad", id: string, patch: Record<string, any>) => {
+    try {
+      await authedFetch("/api/meta-ads/update", { entity, id, patch });
+    } catch (e: any) {
+      toast.error(`Meta: ${e.message}`);
+    }
+  };
+
   const openDiscover = async () => {
     setDiscoverOpen(true);
     if (discoverData) return;
@@ -73,29 +96,6 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       setDiscoverOpen(false);
     } finally {
       setDiscovering(false);
-    }
-  };
-
-  const publishCampaign = async (id: string) => {
-    setPublishing(id);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/meta-ads/create-campaign", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-        body: JSON.stringify({ campaignId: id }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Error al publicar");
-      toast.success("Campaña creada en Meta (pausada)");
-      await load();
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setPublishing(null);
     }
   };
 
@@ -125,85 +125,58 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     await supabase.from("meta_ads_accounts").update(patch).eq("id", account.id);
   };
 
-  const addCampaign = async () => {
-    const { data, error } = await supabase.from("meta_ads_campaigns").insert({
-      client_id: clientId, position: campaigns.length,
-    }).select().single();
-    if (error) return toast.error(error.message);
-    setCampaigns([...campaigns, data as Campaign]);
-  };
-
   const updateCampaign = async (id: string, patch: Partial<Campaign>) => {
     setCampaigns(campaigns.map((c) => (c.id === id ? { ...c, ...patch } : c)));
     await supabase.from("meta_ads_campaigns").update(patch).eq("id", id);
+    const c = campaigns.find((x) => x.id === id);
+    if (c?.fb_campaign_id) await pushToMeta("campaign", id, patch);
   };
 
   const removeCampaign = async (id: string) => {
-    if (!confirm("¿Eliminar esta campaña y todo su contenido?")) return;
-    await supabase.from("meta_ads_campaigns").delete().eq("id", id);
-    setCampaigns(campaigns.filter((c) => c.id !== id));
-    setAdsets(adsets.filter((a) => a.campaign_id !== id));
-    setAds(ads.filter((ad) => !adsets.find((a) => a.id === ad.adset_id && a.campaign_id === id)));
-    setInsights(insights.filter((i) => i.campaign_id !== id));
-  };
-
-  const addAdSet = async (campaignId: string) => {
-    const pos = adsets.filter((a) => a.campaign_id === campaignId).length;
-    const { data, error } = await supabase.from("meta_ads_adsets").insert({
-      client_id: clientId, campaign_id: campaignId, position: pos,
-    }).select().single();
-    if (error) return toast.error(error.message);
-    setAdsets([...adsets, data as AdSet]);
+    if (!confirm("¿Eliminar esta campaña? También se eliminará en Meta.")) return;
+    try {
+      await authedFetch("/api/meta-ads/archive", { entity: "campaign", id });
+      setCampaigns(campaigns.filter((c) => c.id !== id));
+      setAdsets(adsets.filter((a) => a.campaign_id !== id));
+      setAds(ads.filter((ad) => !adsets.find((a) => a.id === ad.adset_id && a.campaign_id === id)));
+      setInsights(insights.filter((i) => i.campaign_id !== id));
+      toast.success("Eliminada en Meta");
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const updateAdSet = async (id: string, patch: Partial<AdSet>) => {
     setAdsets(adsets.map((a) => (a.id === id ? { ...a, ...patch } : a)));
     await supabase.from("meta_ads_adsets").update(patch).eq("id", id);
+    const a = adsets.find((x) => x.id === id) as any;
+    if (a?.fb_adset_id) await pushToMeta("adset", id, patch);
   };
 
   const removeAdSet = async (id: string) => {
-    if (!confirm("¿Eliminar este conjunto de anuncios?")) return;
-    await supabase.from("meta_ads_adsets").delete().eq("id", id);
-    setAdsets(adsets.filter((a) => a.id !== id));
-    setAds(ads.filter((ad) => ad.adset_id !== id));
-  };
-
-  const addAd = async (adsetId: string) => {
-    const pos = ads.filter((a) => a.adset_id === adsetId).length;
-    const { data, error } = await supabase.from("meta_ads_ads").insert({
-      client_id: clientId, adset_id: adsetId, position: pos,
-    }).select().single();
-    if (error) return toast.error(error.message);
-    setAds([...ads, data as Ad]);
+    if (!confirm("¿Eliminar este conjunto? También se eliminará en Meta.")) return;
+    try {
+      await authedFetch("/api/meta-ads/archive", { entity: "adset", id });
+      setAdsets(adsets.filter((a) => a.id !== id));
+      setAds(ads.filter((ad) => ad.adset_id !== id));
+      toast.success("Conjunto eliminado en Meta");
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const updateAd = async (id: string, patch: Partial<Ad>) => {
     setAds(ads.map((a) => (a.id === id ? { ...a, ...patch } : a)));
     await supabase.from("meta_ads_ads").update(patch).eq("id", id);
+    const a = ads.find((x) => x.id === id) as any;
+    if (a?.fb_ad_id) await pushToMeta("ad", id, patch);
   };
 
   const removeAd = async (id: string) => {
-    await supabase.from("meta_ads_ads").delete().eq("id", id);
-    setAds(ads.filter((a) => a.id !== id));
+    if (!confirm("¿Eliminar este anuncio? También se eliminará en Meta.")) return;
+    try {
+      await authedFetch("/api/meta-ads/archive", { entity: "ad", id });
+      setAds(ads.filter((a) => a.id !== id));
+      toast.success("Anuncio eliminado en Meta");
+    } catch (e: any) { toast.error(e.message); }
   };
 
-  const addInsight = async (campaignId: string) => {
-    const { data, error } = await supabase.from("meta_ads_insights").insert({
-      client_id: clientId, campaign_id: campaignId,
-    }).select().single();
-    if (error) return toast.error(error.message);
-    setInsights([...insights, data as Insight]);
-  };
-
-  const updateInsight = async (id: string, patch: Partial<Insight>) => {
-    setInsights(insights.map((i) => (i.id === id ? { ...i, ...patch } : i)));
-    await supabase.from("meta_ads_insights").update(patch).eq("id", id);
-  };
-
-  const removeInsight = async (id: string) => {
-    await supabase.from("meta_ads_insights").delete().eq("id", id);
-    setInsights(insights.filter((i) => i.id !== id));
-  };
 
   const sync = async () => {
     if (!account?.ad_account_id) return toast.error("Configura primero el ID de cuenta publicitaria");
@@ -220,7 +193,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Error al sincronizar");
-      toast.success(`Sincronizado: ${json.imported} campañas`);
+      toast.success(`Sincronizado: ${json.campaigns ?? 0} campañas · ${json.adsets ?? 0} conjuntos · ${json.ads ?? 0} anuncios · ${json.insights ?? 0} métricas`);
       await load();
     } catch (e: any) {
       toast.error(e.message);
@@ -287,12 +260,9 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">Campañas ({campaigns.length})</h3>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={addCampaign}><Plus className="w-4 h-4 mr-1" /> Borrador rápido</Button>
-            <Button size="sm" onClick={() => setWizardOpen(true)} disabled={!account?.ad_account_id}>
-              <Sparkles className="w-4 h-4 mr-1" /> Crear con asistente
-            </Button>
-          </div>
+          <Button size="sm" onClick={() => setWizardOpen(true)} disabled={!account?.ad_account_id}>
+            <Sparkles className="w-4 h-4 mr-1" /> Crear campaña en Meta
+          </Button>
         </div>
         {campaigns.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center border-2 border-dashed rounded-xl">Aún no hay campañas. Crea una para empezar.</p>
@@ -360,7 +330,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                         <div className="flex items-center gap-2 text-sm font-semibold">
                           <Layers className="w-4 h-4" /> Conjuntos de anuncios ({myAdsets.length})
                         </div>
-                        <Button size="sm" variant="outline" onClick={() => addAdSet(c.id)}><Plus className="w-3 h-3 mr-1" /> Añadir</Button>
+                        <span />
                       </div>
                       {myAdsets.map((a) => {
                         const myAds = ads.filter((x) => x.adset_id === a.id);
@@ -437,7 +407,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                                 <div className="flex items-center gap-2 text-xs font-semibold">
                                   <ImageIcon className="w-3 h-3" /> Anuncios ({myAds.length})
                                 </div>
-                                <Button size="sm" variant="ghost" onClick={() => addAd(a.id)}><Plus className="w-3 h-3 mr-1" /> Añadir anuncio</Button>
+                                <span />
                               </div>
                               {myAds.map((ad) => (
                                 <div key={ad.id} className="rounded-lg border p-3 space-y-2 bg-surface">
@@ -510,7 +480,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                     <div className="space-y-2 pt-3 border-t">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-semibold">Resultados / métricas</h4>
-                        <Button size="sm" variant="outline" onClick={() => addInsight(c.id)}><Plus className="w-3 h-3 mr-1" /> Añadir período</Button>
+                        <span />
                       </div>
                       {myInsights.length === 0 ? (
                         <p className="text-xs text-muted-foreground">Aún no hay métricas registradas.</p>
@@ -535,17 +505,17 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                             <tbody>
                               {myInsights.map((i) => (
                                 <tr key={i.id} className="border-b">
-                                  <td><Input className="h-7 text-xs" type="date" defaultValue={i.date_start ?? ""} onBlur={(e) => updateInsight(i.id, { date_start: e.target.value || null })} /></td>
-                                  <td><Input className="h-7 text-xs" type="date" defaultValue={i.date_stop ?? ""} onBlur={(e) => updateInsight(i.id, { date_stop: e.target.value || null })} /></td>
-                                  <td><Input className="h-7 text-xs w-20" type="number" defaultValue={i.impressions} onBlur={(e) => updateInsight(i.id, { impressions: Number(e.target.value) || 0 })} /></td>
-                                  <td><Input className="h-7 text-xs w-20" type="number" defaultValue={i.reach} onBlur={(e) => updateInsight(i.id, { reach: Number(e.target.value) || 0 })} /></td>
-                                  <td><Input className="h-7 text-xs w-20" type="number" defaultValue={i.clicks} onBlur={(e) => updateInsight(i.id, { clicks: Number(e.target.value) || 0 })} /></td>
-                                  <td><Input className="h-7 text-xs w-16" type="number" step="0.01" defaultValue={i.ctr ?? ""} onBlur={(e) => updateInsight(i.id, { ctr: e.target.value ? Number(e.target.value) : null })} /></td>
-                                  <td><Input className="h-7 text-xs w-20" type="number" step="0.01" defaultValue={i.spend} onBlur={(e) => updateInsight(i.id, { spend: Number(e.target.value) || 0 })} /></td>
-                                  <td><Input className="h-7 text-xs w-16" type="number" step="0.01" defaultValue={i.cpc ?? ""} onBlur={(e) => updateInsight(i.id, { cpc: e.target.value ? Number(e.target.value) : null })} /></td>
-                                  <td><Input className="h-7 text-xs w-16" type="number" defaultValue={i.conversions} onBlur={(e) => updateInsight(i.id, { conversions: Number(e.target.value) || 0 })} /></td>
-                                  <td><Input className="h-7 text-xs w-16" type="number" step="0.01" defaultValue={i.roas ?? ""} onBlur={(e) => updateInsight(i.id, { roas: e.target.value ? Number(e.target.value) : null })} /></td>
-                                  <td><Button size="icon" variant="ghost" onClick={() => removeInsight(i.id)}><Trash2 className="w-3 h-3" /></Button></td>
+                                  <td className="py-1 pr-2">{i.date_start ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.date_stop ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.impressions}</td>
+                                  <td className="py-1 pr-2">{i.reach}</td>
+                                  <td className="py-1 pr-2">{i.clicks}</td>
+                                  <td className="py-1 pr-2">{i.ctr ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.spend}</td>
+                                  <td className="py-1 pr-2">{i.cpc ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.conversions}</td>
+                                  <td className="py-1 pr-2">{i.roas ?? "—"}</td>
+                                  <td></td>
                                 </tr>
                               ))}
                             </tbody>
@@ -557,14 +527,9 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                     <div className="pt-3 border-t flex justify-between items-center gap-2">
                       {c.fb_campaign_id ? (
                         <span className="text-xs text-green-600 flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Publicada en Meta (pausada por seguridad)
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Sincronizada con Meta · {c.fb_campaign_id}
                         </span>
-                      ) : (
-                        <Button size="sm" onClick={() => publishCampaign(c.id)} disabled={publishing === c.id || !account?.ad_account_id}>
-                          <Upload className="w-4 h-4 mr-1" />
-                          {publishing === c.id ? "Publicando…" : "Publicar en Meta"}
-                        </Button>
-                      )}
+                      ) : <span />}
                       <Button variant="ghost" size="sm" onClick={() => removeCampaign(c.id)} className="text-destructive">
                         <Trash2 className="w-4 h-4 mr-1" /> Eliminar campaña
                       </Button>

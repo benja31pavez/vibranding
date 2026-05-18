@@ -25,10 +25,12 @@ import { Route as AppPortfolioRouteImport } from './routes/_app/portfolio'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
+import { Route as ApiMetaAdsUpdateRouteImport } from './routes/api/meta-ads/update'
 import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
 import { Route as ApiMetaAdsPublishFullRouteImport } from './routes/api/meta-ads/publish-full'
 import { Route as ApiMetaAdsDiscoverRouteImport } from './routes/api/meta-ads/discover'
 import { Route as ApiMetaAdsCreateCampaignRouteImport } from './routes/api/meta-ads/create-campaign'
+import { Route as ApiMetaAdsArchiveRouteImport } from './routes/api/meta-ads/archive'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
 import { Route as AppClientsClientIdIndexRouteImport } from './routes/_app/clients/$clientId/index'
@@ -118,6 +120,11 @@ const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
   path: '/clients/',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiMetaAdsUpdateRoute = ApiMetaAdsUpdateRouteImport.update({
+  id: '/api/meta-ads/update',
+  path: '/api/meta-ads/update',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMetaAdsSyncRoute = ApiMetaAdsSyncRouteImport.update({
   id: '/api/meta-ads/sync',
   path: '/api/meta-ads/sync',
@@ -139,6 +146,11 @@ const ApiMetaAdsCreateCampaignRoute =
     path: '/api/meta-ads/create-campaign',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMetaAdsArchiveRoute = ApiMetaAdsArchiveRouteImport.update({
+  id: '/api/meta-ads/archive',
+  path: '/api/meta-ads/archive',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppSettingsPricingRoute = AppSettingsPricingRouteImport.update({
   id: '/settings/pricing',
   path: '/settings/pricing',
@@ -208,10 +220,12 @@ export interface FileRoutesByFullPath {
   '/stats': typeof AppStatsRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/settings/pricing': typeof AppSettingsPricingRoute
+  '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
   '/api/meta-ads/discover': typeof ApiMetaAdsDiscoverRoute
   '/api/meta-ads/publish-full': typeof ApiMetaAdsPublishFullRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
+  '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients/': typeof AppClientsIndexRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
@@ -237,10 +251,12 @@ export interface FileRoutesByTo {
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
+  '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
   '/api/meta-ads/discover': typeof ApiMetaAdsDiscoverRoute
   '/api/meta-ads/publish-full': typeof ApiMetaAdsPublishFullRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
+  '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients': typeof AppClientsIndexRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
@@ -269,10 +285,12 @@ export interface FileRoutesById {
   '/_app/stats': typeof AppStatsRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
+  '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
   '/api/meta-ads/discover': typeof ApiMetaAdsDiscoverRoute
   '/api/meta-ads/publish-full': typeof ApiMetaAdsPublishFullRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
+  '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
@@ -301,10 +319,12 @@ export interface FileRouteTypes {
     | '/stats'
     | '/clients/$clientId'
     | '/settings/pricing'
+    | '/api/meta-ads/archive'
     | '/api/meta-ads/create-campaign'
     | '/api/meta-ads/discover'
     | '/api/meta-ads/publish-full'
     | '/api/meta-ads/sync'
+    | '/api/meta-ads/update'
     | '/clients/'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/instagram'
@@ -330,10 +350,12 @@ export interface FileRouteTypes {
     | '/reports'
     | '/stats'
     | '/settings/pricing'
+    | '/api/meta-ads/archive'
     | '/api/meta-ads/create-campaign'
     | '/api/meta-ads/discover'
     | '/api/meta-ads/publish-full'
     | '/api/meta-ads/sync'
+    | '/api/meta-ads/update'
     | '/clients'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/instagram'
@@ -361,10 +383,12 @@ export interface FileRouteTypes {
     | '/_app/stats'
     | '/_app/clients/$clientId'
     | '/_app/settings/pricing'
+    | '/api/meta-ads/archive'
     | '/api/meta-ads/create-campaign'
     | '/api/meta-ads/discover'
     | '/api/meta-ads/publish-full'
     | '/api/meta-ads/sync'
+    | '/api/meta-ads/update'
     | '/_app/clients/'
     | '/_app/clients/$clientId/deliverables'
     | '/_app/clients/$clientId/instagram'
@@ -386,10 +410,12 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  ApiMetaAdsArchiveRoute: typeof ApiMetaAdsArchiveRoute
   ApiMetaAdsCreateCampaignRoute: typeof ApiMetaAdsCreateCampaignRoute
   ApiMetaAdsDiscoverRoute: typeof ApiMetaAdsDiscoverRoute
   ApiMetaAdsPublishFullRoute: typeof ApiMetaAdsPublishFullRoute
   ApiMetaAdsSyncRoute: typeof ApiMetaAdsSyncRoute
+  ApiMetaAdsUpdateRoute: typeof ApiMetaAdsUpdateRoute
   ApiPublicMetaAdsDiscoverRoute: typeof ApiPublicMetaAdsDiscoverRoute
 }
 
@@ -507,6 +533,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/meta-ads/update': {
+      id: '/api/meta-ads/update'
+      path: '/api/meta-ads/update'
+      fullPath: '/api/meta-ads/update'
+      preLoaderRoute: typeof ApiMetaAdsUpdateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/meta-ads/sync': {
       id: '/api/meta-ads/sync'
       path: '/api/meta-ads/sync'
@@ -533,6 +566,13 @@ declare module '@tanstack/react-router' {
       path: '/api/meta-ads/create-campaign'
       fullPath: '/api/meta-ads/create-campaign'
       preLoaderRoute: typeof ApiMetaAdsCreateCampaignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/meta-ads/archive': {
+      id: '/api/meta-ads/archive'
+      path: '/api/meta-ads/archive'
+      fullPath: '/api/meta-ads/archive'
+      preLoaderRoute: typeof ApiMetaAdsArchiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/settings/pricing': {
@@ -657,10 +697,12 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  ApiMetaAdsArchiveRoute: ApiMetaAdsArchiveRoute,
   ApiMetaAdsCreateCampaignRoute: ApiMetaAdsCreateCampaignRoute,
   ApiMetaAdsDiscoverRoute: ApiMetaAdsDiscoverRoute,
   ApiMetaAdsPublishFullRoute: ApiMetaAdsPublishFullRoute,
   ApiMetaAdsSyncRoute: ApiMetaAdsSyncRoute,
+  ApiMetaAdsUpdateRoute: ApiMetaAdsUpdateRoute,
   ApiPublicMetaAdsDiscoverRoute: ApiPublicMetaAdsDiscoverRoute,
 }
 export const routeTree = rootRouteImport
