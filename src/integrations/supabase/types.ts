@@ -568,65 +568,92 @@ export type Database = {
       meta_ads_ads: {
         Row: {
           adset_id: string
+          carousel_cards: Json
           carousel_urls: string[]
           client_id: string
           created_at: string
           cta: Database["public"]["Enums"]["meta_cta"] | null
           description: string | null
+          display_url: string | null
           fb_ad_id: string | null
+          fb_adset_id: string | null
+          fb_creative_id: string | null
           format: string
           headline: string | null
           id: string
           image_url: string | null
+          instagram_actor_id: string | null
           link_url: string | null
+          multi_share_end_card: boolean
           name: string
+          optimize_carousel_order: boolean
+          page_id: string | null
           placement: Database["public"]["Enums"]["meta_placement"]
           position: number
           primary_text: string | null
           status: Database["public"]["Enums"]["meta_status"]
           updated_at: string
+          utm_params: Json | null
           video_url: string | null
         }
         Insert: {
           adset_id: string
+          carousel_cards?: Json
           carousel_urls?: string[]
           client_id: string
           created_at?: string
           cta?: Database["public"]["Enums"]["meta_cta"] | null
           description?: string | null
+          display_url?: string | null
           fb_ad_id?: string | null
+          fb_adset_id?: string | null
+          fb_creative_id?: string | null
           format?: string
           headline?: string | null
           id?: string
           image_url?: string | null
+          instagram_actor_id?: string | null
           link_url?: string | null
+          multi_share_end_card?: boolean
           name?: string
+          optimize_carousel_order?: boolean
+          page_id?: string | null
           placement?: Database["public"]["Enums"]["meta_placement"]
           position?: number
           primary_text?: string | null
           status?: Database["public"]["Enums"]["meta_status"]
           updated_at?: string
+          utm_params?: Json | null
           video_url?: string | null
         }
         Update: {
           adset_id?: string
+          carousel_cards?: Json
           carousel_urls?: string[]
           client_id?: string
           created_at?: string
           cta?: Database["public"]["Enums"]["meta_cta"] | null
           description?: string | null
+          display_url?: string | null
           fb_ad_id?: string | null
+          fb_adset_id?: string | null
+          fb_creative_id?: string | null
           format?: string
           headline?: string | null
           id?: string
           image_url?: string | null
+          instagram_actor_id?: string | null
           link_url?: string | null
+          multi_share_end_card?: boolean
           name?: string
+          optimize_carousel_order?: boolean
+          page_id?: string | null
           placement?: Database["public"]["Enums"]["meta_placement"]
           position?: number
           primary_text?: string | null
           status?: Database["public"]["Enums"]["meta_status"]
           updated_at?: string
+          utm_params?: Json | null
           video_url?: string | null
         }
         Relationships: [
@@ -644,67 +671,109 @@ export type Database = {
           age_max: number | null
           age_min: number | null
           audience_summary: string | null
+          behaviors: string | null
+          bid_amount: number | null
           billing_event: string | null
           campaign_id: string
+          cities: string | null
           client_id: string
           countries: string | null
           created_at: string
+          custom_audiences: string[]
           daily_budget: number | null
+          demographics: string | null
+          device_platforms: string[]
+          end_time: string | null
+          excluded_audiences: string[]
           fb_adset_id: string | null
           genders: string | null
           id: string
           interests: string | null
+          languages: string | null
           lifetime_budget: number | null
+          lookalike_audiences: string[]
           name: string
           optimization_goal: string | null
+          placement_mode: string
           placements: string[]
           position: number
+          start_time: string | null
           status: Database["public"]["Enums"]["meta_status"]
           updated_at: string
+          user_os: string[]
+          wifi_only: boolean
         }
         Insert: {
           age_max?: number | null
           age_min?: number | null
           audience_summary?: string | null
+          behaviors?: string | null
+          bid_amount?: number | null
           billing_event?: string | null
           campaign_id: string
+          cities?: string | null
           client_id: string
           countries?: string | null
           created_at?: string
+          custom_audiences?: string[]
           daily_budget?: number | null
+          demographics?: string | null
+          device_platforms?: string[]
+          end_time?: string | null
+          excluded_audiences?: string[]
           fb_adset_id?: string | null
           genders?: string | null
           id?: string
           interests?: string | null
+          languages?: string | null
           lifetime_budget?: number | null
+          lookalike_audiences?: string[]
           name?: string
           optimization_goal?: string | null
+          placement_mode?: string
           placements?: string[]
           position?: number
+          start_time?: string | null
           status?: Database["public"]["Enums"]["meta_status"]
           updated_at?: string
+          user_os?: string[]
+          wifi_only?: boolean
         }
         Update: {
           age_max?: number | null
           age_min?: number | null
           audience_summary?: string | null
+          behaviors?: string | null
+          bid_amount?: number | null
           billing_event?: string | null
           campaign_id?: string
+          cities?: string | null
           client_id?: string
           countries?: string | null
           created_at?: string
+          custom_audiences?: string[]
           daily_budget?: number | null
+          demographics?: string | null
+          device_platforms?: string[]
+          end_time?: string | null
+          excluded_audiences?: string[]
           fb_adset_id?: string | null
           genders?: string | null
           id?: string
           interests?: string | null
+          languages?: string | null
           lifetime_budget?: number | null
+          lookalike_audiences?: string[]
           name?: string
           optimization_goal?: string | null
+          placement_mode?: string
           placements?: string[]
           position?: number
+          start_time?: string | null
           status?: Database["public"]["Enums"]["meta_status"]
           updated_at?: string
+          user_os?: string[]
+          wifi_only?: boolean
         }
         Relationships: [
           {
@@ -718,6 +787,9 @@ export type Database = {
       }
       meta_ads_campaigns: {
         Row: {
+          bid_strategy: string | null
+          buying_type: string
+          cbo_enabled: boolean
           client_id: string
           created_at: string
           currency: string | null
@@ -729,12 +801,16 @@ export type Database = {
           notes: string | null
           objective: Database["public"]["Enums"]["meta_campaign_objective"]
           position: number
+          spend_cap: number | null
           start_time: string | null
           status: Database["public"]["Enums"]["meta_status"]
           stop_time: string | null
           updated_at: string
         }
         Insert: {
+          bid_strategy?: string | null
+          buying_type?: string
+          cbo_enabled?: boolean
           client_id: string
           created_at?: string
           currency?: string | null
@@ -746,12 +822,16 @@ export type Database = {
           notes?: string | null
           objective?: Database["public"]["Enums"]["meta_campaign_objective"]
           position?: number
+          spend_cap?: number | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["meta_status"]
           stop_time?: string | null
           updated_at?: string
         }
         Update: {
+          bid_strategy?: string | null
+          buying_type?: string
+          cbo_enabled?: boolean
           client_id?: string
           created_at?: string
           currency?: string | null
@@ -763,6 +843,7 @@ export type Database = {
           notes?: string | null
           objective?: Database["public"]["Enums"]["meta_campaign_objective"]
           position?: number
+          spend_cap?: number | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["meta_status"]
           stop_time?: string | null
