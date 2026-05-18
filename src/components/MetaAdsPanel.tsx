@@ -193,7 +193,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Error al sincronizar");
-      toast.success(`Sincronizado: ${json.imported} campañas`);
+      toast.success(`Sincronizado: ${json.campaigns ?? 0} campañas · ${json.adsets ?? 0} conjuntos · ${json.ads ?? 0} anuncios · ${json.insights ?? 0} métricas`);
       await load();
     } catch (e: any) {
       toast.error(e.message);
