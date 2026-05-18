@@ -557,21 +557,62 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                 )}
               </div>
               <div>
-                <h4 className="text-sm font-semibold mb-2">Páginas de Facebook</h4>
+                <h4 className="text-sm font-semibold mb-1">Páginas de Facebook e Instagram</h4>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Vincula la página del cliente. Si tiene una cuenta de Instagram conectada, podrás elegir que los anuncios salgan desde su IG (así la gente le escribe directamente a su cuenta).
+                </p>
                 {discoverData.pages.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No se encontraron páginas.</p>
                 ) : (
                   <div className="space-y-1.5">
-                    {discoverData.pages.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={async () => { await updateAccount({ page_id: p.id }); toast.success(`Página ${p.name} vinculada`); }}
-                        className={`w-full text-left rounded-lg border p-3 text-sm hover:bg-muted transition-colors ${account?.page_id === p.id ? "border-primary bg-primary/5" : ""}`}
-                      >
-                        <div className="font-medium">{p.name}</div>
-                        <div className="text-xs text-muted-foreground">{p.id} · {p.business}</div>
-                      </button>
-                    ))}
+                    {discoverData.pages.map((p) => {
+                      const pageSelected = account?.page_id === p.id;
+                      const igSelected = p.instagram && account?.instagram_actor_id === p.instagram.id;
+                      return (
+                        <div
+                          key={p.id}
+                          className={`rounded-lg border p-3 text-sm ${pageSelected ? "border-primary bg-primary/5" : ""}`}
+                        >
+                          <button
+                            onClick={async () => {
+                              await updateAccount({ page_id: p.id });
+                              toast.success(`Página ${p.name} vinculada`);
+                            }}
+                            className="w-full text-left"
+                          >
+                            <div className="font-medium">{p.name} {pageSelected && <span className="text-xs text-primary">· seleccionada</span>}</div>
+                            <div className="text-xs text-muted-foreground">{p.id}</div>
+                          </button>
+                          {p.instagram ? (
+                            <div className="mt-2 flex items-center justify-between gap-2 rounded-md bg-muted/40 p-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {p.instagram.avatar && (
+                                  <img src={p.instagram.avatar} alt="" className="w-6 h-6 rounded-full object-cover" />
+                                )}
+                                <div className="min-w-0">
+                                  <div className="text-xs font-medium truncate">@{p.instagram.username || p.instagram.id}</div>
+                                  <div className="text-[10px] text-muted-foreground">Instagram vinculado</div>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant={igSelected ? "default" : "outline"}
+                                onClick={async () => {
+                                  await updateAccount({ instagram_actor_id: p.instagram!.id });
+                                  toast.success(`Anuncios saldrán desde @${p.instagram!.username}`);
+                                }}
+                              >
+                                {igSelected ? "IG vinculado" : "Usar este IG"}
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="mt-2 text-[11px] text-muted-foreground">
+                              Sin IG vinculado a esta página. Conecta la cuenta de Instagram a la página en Meta Business Suite para usarla aquí.
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
