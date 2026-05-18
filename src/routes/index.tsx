@@ -243,30 +243,36 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
           </div>
         ) : (
           <>
-            {/* Logo strip */}
-            <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-6 mb-14">
-              {portfolio.map((c) => (
-                <a
-                  key={c.id}
-                  href={c.website_url || `#client-${c.id}`}
-                  target={c.website_url ? "_blank" : undefined}
-                  rel={c.website_url ? "noreferrer" : undefined}
-                  className="group flex items-center gap-2 opacity-70 hover:opacity-100 transition-opacity"
-                  title={c.name}
-                >
-                  {c.logo_url ? (
-                    <img
-                      src={c.logo_url}
-                      alt={c.name}
-                      className="h-8 md:h-10 w-auto object-contain"
-                      style={{ filter: "brightness(0)" }}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span className="text-base md:text-lg font-semibold tracking-tight">{c.name}</span>
-                  )}
-                </a>
-              ))}
+            {/* Logo marquee */}
+            <div
+              className="relative mb-14 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]"
+            >
+              <div className="flex w-max items-center animate-marquee gap-0 hover:[animation-play-state:paused]">
+                {[...portfolio, ...portfolio].map((c, i) => (
+                  <div key={`${c.id}-${i}`} className="flex items-center">
+                    <a
+                      href={c.website_url || `#client-${c.id}`}
+                      target={c.website_url ? "_blank" : undefined}
+                      rel={c.website_url ? "noreferrer" : undefined}
+                      className="flex items-center px-10 opacity-70 hover:opacity-100 transition-opacity"
+                      title={c.name}
+                    >
+                      {c.logo_url ? (
+                        <img
+                          src={c.logo_url}
+                          alt={c.name}
+                          className="h-8 md:h-10 w-auto object-contain"
+                          style={{ filter: "brightness(0)" }}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="text-base md:text-lg font-semibold tracking-tight">{c.name}</span>
+                      )}
+                    </a>
+                    <span aria-hidden className="h-8 w-px bg-border/70" />
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Works grid */}
