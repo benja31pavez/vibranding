@@ -261,7 +261,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
                         <img
                           src={c.logo_url}
                           alt={c.name}
-                          className="h-8 md:h-10 w-auto object-contain"
+                          className={`${c.name === "Essence Emporium" ? "h-12 md:h-14" : "h-8 md:h-10"} w-auto object-contain`}
                           style={{ filter: "brightness(0)" }}
                           loading="lazy"
                         />
