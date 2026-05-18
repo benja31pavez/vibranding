@@ -33,7 +33,7 @@ export function CarouselCardsEditor({
           <div className="grid sm:grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-[11px]">Imagen</Label>
-              <MediaUpload value={c.image_url ?? ""} onChange={(v) => update(i, { image_url: v })} clientId={clientId} accept="image/*" />
+              <MediaUpload value={c.image_url ?? null} onChange={(v) => update(i, { image_url: v ?? "" })} clientId={clientId} />
             </div>
             <div className="space-y-1">
               <Label className="text-[11px]">Titular ({(c.headline ?? "").length}/{LIMITS.HEADLINE})</Label>
