@@ -125,85 +125,58 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     await supabase.from("meta_ads_accounts").update(patch).eq("id", account.id);
   };
 
-  const addCampaign = async () => {
-    const { data, error } = await supabase.from("meta_ads_campaigns").insert({
-      client_id: clientId, position: campaigns.length,
-    }).select().single();
-    if (error) return toast.error(error.message);
-    setCampaigns([...campaigns, data as Campaign]);
-  };
-
   const updateCampaign = async (id: string, patch: Partial<Campaign>) => {
     setCampaigns(campaigns.map((c) => (c.id === id ? { ...c, ...patch } : c)));
     await supabase.from("meta_ads_campaigns").update(patch).eq("id", id);
+    const c = campaigns.find((x) => x.id === id);
+    if (c?.fb_campaign_id) await pushToMeta("campaign", id, patch);
   };
 
   const removeCampaign = async (id: string) => {
-    if (!confirm("¿Eliminar esta campaña y todo su contenido?")) return;
-    await supabase.from("meta_ads_campaigns").delete().eq("id", id);
-    setCampaigns(campaigns.filter((c) => c.id !== id));
-    setAdsets(adsets.filter((a) => a.campaign_id !== id));
-    setAds(ads.filter((ad) => !adsets.find((a) => a.id === ad.adset_id && a.campaign_id === id)));
-    setInsights(insights.filter((i) => i.campaign_id !== id));
-  };
-
-  const addAdSet = async (campaignId: string) => {
-    const pos = adsets.filter((a) => a.campaign_id === campaignId).length;
-    const { data, error } = await supabase.from("meta_ads_adsets").insert({
-      client_id: clientId, campaign_id: campaignId, position: pos,
-    }).select().single();
-    if (error) return toast.error(error.message);
-    setAdsets([...adsets, data as AdSet]);
+    if (!confirm("¿Eliminar esta campaña? También se eliminará en Meta.")) return;
+    try {
+      await authedFetch("/api/meta-ads/archive", { entity: "campaign", id });
+      setCampaigns(campaigns.filter((c) => c.id !== id));
+      setAdsets(adsets.filter((a) => a.campaign_id !== id));
+      setAds(ads.filter((ad) => !adsets.find((a) => a.id === ad.adset_id && a.campaign_id === id)));
+      setInsights(insights.filter((i) => i.campaign_id !== id));
+      toast.success("Eliminada en Meta");
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const updateAdSet = async (id: string, patch: Partial<AdSet>) => {
     setAdsets(adsets.map((a) => (a.id === id ? { ...a, ...patch } : a)));
     await supabase.from("meta_ads_adsets").update(patch).eq("id", id);
+    const a = adsets.find((x) => x.id === id) as any;
+    if (a?.fb_adset_id) await pushToMeta("adset", id, patch);
   };
 
   const removeAdSet = async (id: string) => {
-    if (!confirm("¿Eliminar este conjunto de anuncios?")) return;
-    await supabase.from("meta_ads_adsets").delete().eq("id", id);
-    setAdsets(adsets.filter((a) => a.id !== id));
-    setAds(ads.filter((ad) => ad.adset_id !== id));
-  };
-
-  const addAd = async (adsetId: string) => {
-    const pos = ads.filter((a) => a.adset_id === adsetId).length;
-    const { data, error } = await supabase.from("meta_ads_ads").insert({
-      client_id: clientId, adset_id: adsetId, position: pos,
-    }).select().single();
-    if (error) return toast.error(error.message);
-    setAds([...ads, data as Ad]);
+    if (!confirm("¿Eliminar este conjunto? También se eliminará en Meta.")) return;
+    try {
+      await authedFetch("/api/meta-ads/archive", { entity: "adset", id });
+      setAdsets(adsets.filter((a) => a.id !== id));
+      setAds(ads.filter((ad) => ad.adset_id !== id));
+      toast.success("Conjunto eliminado en Meta");
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const updateAd = async (id: string, patch: Partial<Ad>) => {
     setAds(ads.map((a) => (a.id === id ? { ...a, ...patch } : a)));
     await supabase.from("meta_ads_ads").update(patch).eq("id", id);
+    const a = ads.find((x) => x.id === id) as any;
+    if (a?.fb_ad_id) await pushToMeta("ad", id, patch);
   };
 
   const removeAd = async (id: string) => {
-    await supabase.from("meta_ads_ads").delete().eq("id", id);
-    setAds(ads.filter((a) => a.id !== id));
+    if (!confirm("¿Eliminar este anuncio? También se eliminará en Meta.")) return;
+    try {
+      await authedFetch("/api/meta-ads/archive", { entity: "ad", id });
+      setAds(ads.filter((a) => a.id !== id));
+      toast.success("Anuncio eliminado en Meta");
+    } catch (e: any) { toast.error(e.message); }
   };
 
-  const addInsight = async (campaignId: string) => {
-    const { data, error } = await supabase.from("meta_ads_insights").insert({
-      client_id: clientId, campaign_id: campaignId,
-    }).select().single();
-    if (error) return toast.error(error.message);
-    setInsights([...insights, data as Insight]);
-  };
-
-  const updateInsight = async (id: string, patch: Partial<Insight>) => {
-    setInsights(insights.map((i) => (i.id === id ? { ...i, ...patch } : i)));
-    await supabase.from("meta_ads_insights").update(patch).eq("id", id);
-  };
-
-  const removeInsight = async (id: string) => {
-    await supabase.from("meta_ads_insights").delete().eq("id", id);
-    setInsights(insights.filter((i) => i.id !== id));
-  };
 
   const sync = async () => {
     if (!account?.ad_account_id) return toast.error("Configura primero el ID de cuenta publicitaria");
