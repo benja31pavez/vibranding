@@ -383,11 +383,42 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                                 <Input type="number" defaultValue={a.age_max ?? ""} onBlur={(e) => updateAdSet(a.id, { age_max: e.target.value ? Number(e.target.value) : null })} />
                               </Field>
                               <Field label="Géneros">
-                                <Input placeholder="all, female, male" defaultValue={a.genders ?? ""} onBlur={(e) => updateAdSet(a.id, { genders: e.target.value || null })} />
+                                <Select value={a.genders ?? "all"} onValueChange={(v) => updateAdSet(a.id, { genders: v === "all" ? null : v })}>
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todos</SelectItem>
+                                    <SelectItem value="female">Mujeres</SelectItem>
+                                    <SelectItem value="male">Hombres</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </Field>
                             </div>
-                            <Field label="Países">
-                              <Input placeholder="CL, MX, AR…" defaultValue={a.countries ?? ""} onBlur={(e) => updateAdSet(a.id, { countries: e.target.value || null })} />
+                            <Field label="Países (códigos ISO separados por coma)">
+                              <Input placeholder="CL, MX, AR, ES…" defaultValue={a.countries ?? ""} onBlur={(e) => updateAdSet(a.id, { countries: e.target.value || null })} />
+                            </Field>
+                            <Field label="Intereses (separados por coma)">
+                              <Input placeholder="moda, deporte, tecnología…" defaultValue={a.interests ?? ""} onBlur={(e) => updateAdSet(a.id, { interests: e.target.value || null })} />
+                            </Field>
+                            <Field label="Ubicaciones (publisher platforms)">
+                              <div className="flex flex-wrap gap-3 pt-1">
+                                {(["facebook", "instagram", "audience_network", "messenger"] as const).map((p) => {
+                                  const checked = (a.placements ?? []).includes(p);
+                                  return (
+                                    <label key={p} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={(e) => {
+                                          const cur = new Set(a.placements ?? []);
+                                          if (e.target.checked) cur.add(p); else cur.delete(p);
+                                          updateAdSet(a.id, { placements: Array.from(cur) });
+                                        }}
+                                      />
+                                      {p === "audience_network" ? "Audience Network" : p === "facebook" ? "Facebook" : p === "instagram" ? "Instagram" : "Messenger"}
+                                    </label>
+                                  );
+                                })}
+                              </div>
                             </Field>
                             <Field label="Resumen de audiencia">
                               <Textarea rows={2} defaultValue={a.audience_summary ?? ""} onBlur={(e) => updateAdSet(a.id, { audience_summary: e.target.value || null })} />
