@@ -458,7 +458,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                                     <Field label="CTA">
                                       <Select value={ad.cta ?? "LEARN_MORE"} onValueChange={(v) => updateAd(ad.id, { cta: v as MetaCTA })}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>{CTAS.map((cta) => <SelectItem key={cta} value={cta}>{cta}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{CTAS.map((cta) => <SelectItem key={cta} value={cta}>{CTA_LABELS[cta]}</SelectItem>)}</SelectContent>
                                       </Select>
                                     </Field>
                                   </div>
