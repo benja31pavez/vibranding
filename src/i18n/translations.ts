@@ -167,6 +167,8 @@ const es: Dict = {
     links: {
       services: "Servicios",
       how: "Cómo funciona",
+      about: "Nosotros",
+      clients: "Clientes",
       contact: "Contacto",
       faq: "Preguntas Frecuentes",
       terms: "Términos de Servicio",
@@ -306,7 +308,7 @@ const es: Dict = {
 
 const en: Dict = {
   langSwitcher: { label: "Language", es: "ES", en: "EN" },
-  nav: { services: "Services", how: "How it works", contact: "Contact", signIn: "Sign in" },
+  nav: { services: "Services", how: "How it works", about: "About", clients: "Clients", contact: "Contact", signIn: "Sign in" },
   hero: {
     badge: "Instagram & Meta Ads specialists",
     title1: "We make your branding ",
@@ -335,6 +337,24 @@ const en: Dict = {
       { n: "03", t: "Execution", d: "We produce, publish, advertise and measure results." },
     ],
   },
+  about: {
+    eyebrow: "Who",
+    accent: "we are",
+    title: "A Chilean couple building brands that vibrate",
+    subtitle: "We're not a giant agency: we're two people who love what we do.",
+    paragraph1: "We're Antonia and Benjamín, partners in life and at work. From Chile we mix graphic design and advertising to grow brands with identity, intent and care for detail.",
+    paragraph2: "We treat every brand we take on as if it were our own. We talk, listen, propose and execute — no middlemen.",
+    chips: ["Made in Chile 🇨🇱", "Couple & team", "Direct relationship"],
+    antonia: { name: "Antonia", role: "Graphic Designer", bio: "Brings visual soul to every brand: identity, feed and pieces that feel right." },
+    benjamin: { name: "Benjamín", role: "Advertiser", bio: "Lands the strategy and the campaigns: the right message in front of the right person." },
+  },
+  clients: {
+    eyebrow: "Brands that",
+    accent: "trust us",
+    subtitle: "Some of the projects we've worked on.",
+    viewWork: "View work",
+    empty: "We'll share our next case studies soon.",
+  },
   contact: {
     title1: "Ready to ",
     accent: "vibrate",
@@ -350,6 +370,8 @@ const en: Dict = {
     links: {
       services: "Services",
       how: "How it works",
+      about: "About",
+      clients: "Clients",
       contact: "Contact",
       faq: "FAQ",
       terms: "Terms of Service",
