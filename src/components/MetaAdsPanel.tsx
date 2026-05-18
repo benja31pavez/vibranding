@@ -330,7 +330,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                         <div className="flex items-center gap-2 text-sm font-semibold">
                           <Layers className="w-4 h-4" /> Conjuntos de anuncios ({myAdsets.length})
                         </div>
-                        <Button size="sm" variant="outline" onClick={() => addAdSet(c.id)}><Plus className="w-3 h-3 mr-1" /> Añadir</Button>
+                        <span />
                       </div>
                       {myAdsets.map((a) => {
                         const myAds = ads.filter((x) => x.adset_id === a.id);
@@ -407,7 +407,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                                 <div className="flex items-center gap-2 text-xs font-semibold">
                                   <ImageIcon className="w-3 h-3" /> Anuncios ({myAds.length})
                                 </div>
-                                <Button size="sm" variant="ghost" onClick={() => addAd(a.id)}><Plus className="w-3 h-3 mr-1" /> Añadir anuncio</Button>
+                                <span />
                               </div>
                               {myAds.map((ad) => (
                                 <div key={ad.id} className="rounded-lg border p-3 space-y-2 bg-surface">
@@ -480,7 +480,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                     <div className="space-y-2 pt-3 border-t">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-semibold">Resultados / métricas</h4>
-                        <Button size="sm" variant="outline" onClick={() => addInsight(c.id)}><Plus className="w-3 h-3 mr-1" /> Añadir período</Button>
+                        <span />
                       </div>
                       {myInsights.length === 0 ? (
                         <p className="text-xs text-muted-foreground">Aún no hay métricas registradas.</p>
