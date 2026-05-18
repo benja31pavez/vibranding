@@ -505,17 +505,17 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                             <tbody>
                               {myInsights.map((i) => (
                                 <tr key={i.id} className="border-b">
-                                  <td><Input className="h-7 text-xs" type="date" defaultValue={i.date_start ?? ""} onBlur={(e) => updateInsight(i.id, { date_start: e.target.value || null })} /></td>
-                                  <td><Input className="h-7 text-xs" type="date" defaultValue={i.date_stop ?? ""} onBlur={(e) => updateInsight(i.id, { date_stop: e.target.value || null })} /></td>
-                                  <td><Input className="h-7 text-xs w-20" type="number" defaultValue={i.impressions} onBlur={(e) => updateInsight(i.id, { impressions: Number(e.target.value) || 0 })} /></td>
-                                  <td><Input className="h-7 text-xs w-20" type="number" defaultValue={i.reach} onBlur={(e) => updateInsight(i.id, { reach: Number(e.target.value) || 0 })} /></td>
-                                  <td><Input className="h-7 text-xs w-20" type="number" defaultValue={i.clicks} onBlur={(e) => updateInsight(i.id, { clicks: Number(e.target.value) || 0 })} /></td>
-                                  <td><Input className="h-7 text-xs w-16" type="number" step="0.01" defaultValue={i.ctr ?? ""} onBlur={(e) => updateInsight(i.id, { ctr: e.target.value ? Number(e.target.value) : null })} /></td>
-                                  <td><Input className="h-7 text-xs w-20" type="number" step="0.01" defaultValue={i.spend} onBlur={(e) => updateInsight(i.id, { spend: Number(e.target.value) || 0 })} /></td>
-                                  <td><Input className="h-7 text-xs w-16" type="number" step="0.01" defaultValue={i.cpc ?? ""} onBlur={(e) => updateInsight(i.id, { cpc: e.target.value ? Number(e.target.value) : null })} /></td>
-                                  <td><Input className="h-7 text-xs w-16" type="number" defaultValue={i.conversions} onBlur={(e) => updateInsight(i.id, { conversions: Number(e.target.value) || 0 })} /></td>
-                                  <td><Input className="h-7 text-xs w-16" type="number" step="0.01" defaultValue={i.roas ?? ""} onBlur={(e) => updateInsight(i.id, { roas: e.target.value ? Number(e.target.value) : null })} /></td>
-                                  <td><Button size="icon" variant="ghost" onClick={() => removeInsight(i.id)}><Trash2 className="w-3 h-3" /></Button></td>
+                                  <td className="py-1 pr-2">{i.date_start ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.date_stop ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.impressions}</td>
+                                  <td className="py-1 pr-2">{i.reach}</td>
+                                  <td className="py-1 pr-2">{i.clicks}</td>
+                                  <td className="py-1 pr-2">{i.ctr ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.spend}</td>
+                                  <td className="py-1 pr-2">{i.cpc ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.conversions}</td>
+                                  <td className="py-1 pr-2">{i.roas ?? "—"}</td>
+                                  <td></td>
                                 </tr>
                               ))}
                             </tbody>
