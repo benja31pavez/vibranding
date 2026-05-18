@@ -14,7 +14,7 @@ export type LegalContent = {
 
 type Dict = {
   langSwitcher: { label: string; es: string; en: string };
-  nav: { services: string; how: string; contact: string; signIn: string };
+  nav: { services: string; how: string; about: string; clients: string; contact: string; signIn: string };
   hero: {
     badge: string;
     title1: string;
@@ -35,6 +35,24 @@ type Dict = {
     accent: string;
     steps: { n: string; t: string; d: string }[];
   };
+  about: {
+    eyebrow: string;
+    accent: string;
+    title: string;
+    subtitle: string;
+    paragraph1: string;
+    paragraph2: string;
+    chips: string[];
+    antonia: { name: string; role: string; bio: string };
+    benjamin: { name: string; role: string; bio: string };
+  };
+  clients: {
+    eyebrow: string;
+    accent: string;
+    subtitle: string;
+    viewWork: string;
+    empty: string;
+  };
   contact: {
     title1: string;
     accent: string;
@@ -50,6 +68,8 @@ type Dict = {
     links: {
       services: string;
       how: string;
+      about: string;
+      clients: string;
       contact: string;
       faq: string;
       terms: string;
@@ -85,7 +105,7 @@ type Dict = {
 
 const es: Dict = {
   langSwitcher: { label: "Idioma", es: "ES", en: "EN" },
-  nav: { services: "Servicios", how: "Cómo funciona", contact: "Contacto", signIn: "Iniciar sesión" },
+  nav: { services: "Servicios", how: "Cómo funciona", about: "Nosotros", clients: "Clientes", contact: "Contacto", signIn: "Iniciar sesión" },
   hero: {
     badge: "Especialistas en Instagram y Meta Ads",
     title1: "Hacemos que tu Branding ",
@@ -113,6 +133,24 @@ const es: Dict = {
       { n: "02", t: "Propuesta", d: "Te entregamos una visión clara con objetivos, contenido y campañas." },
       { n: "03", t: "Ejecución", d: "Producimos, publicamos, anunciamos y medimos resultados." },
     ],
+  },
+  about: {
+    eyebrow: "Quiénes",
+    accent: "somos",
+    title: "Una pareja chilena haciendo marcas que vibran",
+    subtitle: "No somos una agencia gigante: somos dos personas que aman lo que hacen.",
+    paragraph1: "Somos Antonia y Benjamín, pareja en la vida y en el trabajo. Desde Chile combinamos diseño gráfico y publicidad para hacer crecer marcas con identidad, intención y cariño por el detalle.",
+    paragraph2: "Cada marca que tomamos la cuidamos como si fuera la nuestra. Conversamos, escuchamos, proponemos y ejecutamos — sin intermediarios.",
+    chips: ["Hecho en Chile 🇨🇱", "Pareja & equipo", "Trato directo"],
+    antonia: { name: "Antonia", role: "Diseñadora Gráfica", bio: "Le da alma visual a cada marca: identidad, feed y piezas que se sienten." },
+    benjamin: { name: "Benjamín", role: "Publicista", bio: "Aterriza la estrategia y las campañas: el mensaje correcto frente a la persona correcta." },
+  },
+  clients: {
+    eyebrow: "Marcas que",
+    accent: "confían en nosotros",
+    subtitle: "Algunos de los proyectos en los que hemos trabajado.",
+    viewWork: "Ver trabajo",
+    empty: "Pronto compartiremos nuestros próximos casos.",
   },
   contact: {
     title1: "¿Listo para ",
