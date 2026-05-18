@@ -577,6 +577,18 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
         )}
       </div>
 
+      {account?.ad_account_id && (
+        <CampaignWizard
+          clientId={clientId}
+          accountId={account.ad_account_id}
+          defaultPageId={account.page_id}
+          defaultIgId={account.instagram_actor_id}
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+          onComplete={() => { setWizardOpen(false); load(); }}
+        />
+      )}
+
       {/* Discover dialog */}
       <Dialog open={discoverOpen} onOpenChange={setDiscoverOpen}>
         <DialogContent className="max-w-2xl">
