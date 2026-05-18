@@ -44,6 +44,50 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   const [ads, setAds] = useState<Ad[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [discoverOpen, setDiscoverOpen] = useState(false);
+  const [discoverData, setDiscoverData] = useState<DiscoverData | null>(null);
+  const [discovering, setDiscovering] = useState(false);
+  const [publishing, setPublishing] = useState<string | null>(null);
+
+  const openDiscover = async () => {
+    setDiscoverOpen(true);
+    if (discoverData) return;
+    setDiscovering(true);
+    try {
+      const res = await fetch("/api/meta-ads/discover");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Error al detectar");
+      setDiscoverData(json);
+    } catch (e: any) {
+      toast.error(e.message);
+      setDiscoverOpen(false);
+    } finally {
+      setDiscovering(false);
+    }
+  };
+
+  const publishCampaign = async (id: string) => {
+    setPublishing(id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/meta-ads/create-campaign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ campaignId: id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Error al publicar");
+      toast.success("Campaña creada en Meta (pausada)");
+      await load();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setPublishing(null);
+    }
+  };
 
   const load = async () => {
     const [{ data: ac }, { data: cs }, { data: as }, { data: ads_ }, { data: ins }] = await Promise.all([
