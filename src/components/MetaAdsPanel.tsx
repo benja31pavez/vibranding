@@ -480,8 +480,8 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                                     <Field label="Titular">
                                       <Input defaultValue={ad.headline ?? ""} onBlur={(e) => updateAd(ad.id, { headline: e.target.value || null })} />
                                     </Field>
-                                    <Field label="Link">
-                                      <Input placeholder="https://…" defaultValue={ad.link_url ?? ""} onBlur={(e) => updateAd(ad.id, { link_url: e.target.value || null })} />
+                                    <Field label="URL de destino">
+                                      <Input placeholder="https://tusitio.com/landing" defaultValue={ad.link_url ?? ""} onBlur={(e) => updateAd(ad.id, { link_url: e.target.value || null })} />
                                     </Field>
                                   </div>
                                   <Field label="Texto principal">
