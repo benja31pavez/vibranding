@@ -26,6 +26,7 @@ import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
 import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
+import { Route as ApiMetaAdsPublishFullRouteImport } from './routes/api/meta-ads/publish-full'
 import { Route as ApiMetaAdsDiscoverRouteImport } from './routes/api/meta-ads/discover'
 import { Route as ApiMetaAdsCreateCampaignRouteImport } from './routes/api/meta-ads/create-campaign'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
@@ -122,6 +123,11 @@ const ApiMetaAdsSyncRoute = ApiMetaAdsSyncRouteImport.update({
   path: '/api/meta-ads/sync',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMetaAdsPublishFullRoute = ApiMetaAdsPublishFullRouteImport.update({
+  id: '/api/meta-ads/publish-full',
+  path: '/api/meta-ads/publish-full',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMetaAdsDiscoverRoute = ApiMetaAdsDiscoverRouteImport.update({
   id: '/api/meta-ads/discover',
   path: '/api/meta-ads/discover',
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
   '/api/meta-ads/discover': typeof ApiMetaAdsDiscoverRoute
+  '/api/meta-ads/publish-full': typeof ApiMetaAdsPublishFullRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients/': typeof AppClientsIndexRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
   '/api/meta-ads/discover': typeof ApiMetaAdsDiscoverRoute
+  '/api/meta-ads/publish-full': typeof ApiMetaAdsPublishFullRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/clients': typeof AppClientsIndexRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
@@ -263,6 +271,7 @@ export interface FileRoutesById {
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
   '/api/meta-ads/discover': typeof ApiMetaAdsDiscoverRoute
+  '/api/meta-ads/publish-full': typeof ApiMetaAdsPublishFullRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
     | '/settings/pricing'
     | '/api/meta-ads/create-campaign'
     | '/api/meta-ads/discover'
+    | '/api/meta-ads/publish-full'
     | '/api/meta-ads/sync'
     | '/clients/'
     | '/clients/$clientId/deliverables'
@@ -322,6 +332,7 @@ export interface FileRouteTypes {
     | '/settings/pricing'
     | '/api/meta-ads/create-campaign'
     | '/api/meta-ads/discover'
+    | '/api/meta-ads/publish-full'
     | '/api/meta-ads/sync'
     | '/clients'
     | '/clients/$clientId/deliverables'
@@ -352,6 +363,7 @@ export interface FileRouteTypes {
     | '/_app/settings/pricing'
     | '/api/meta-ads/create-campaign'
     | '/api/meta-ads/discover'
+    | '/api/meta-ads/publish-full'
     | '/api/meta-ads/sync'
     | '/_app/clients/'
     | '/_app/clients/$clientId/deliverables'
@@ -376,6 +388,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiMetaAdsCreateCampaignRoute: typeof ApiMetaAdsCreateCampaignRoute
   ApiMetaAdsDiscoverRoute: typeof ApiMetaAdsDiscoverRoute
+  ApiMetaAdsPublishFullRoute: typeof ApiMetaAdsPublishFullRoute
   ApiMetaAdsSyncRoute: typeof ApiMetaAdsSyncRoute
   ApiPublicMetaAdsDiscoverRoute: typeof ApiPublicMetaAdsDiscoverRoute
 }
@@ -499,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/api/meta-ads/sync'
       fullPath: '/api/meta-ads/sync'
       preLoaderRoute: typeof ApiMetaAdsSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/meta-ads/publish-full': {
+      id: '/api/meta-ads/publish-full'
+      path: '/api/meta-ads/publish-full'
+      fullPath: '/api/meta-ads/publish-full'
+      preLoaderRoute: typeof ApiMetaAdsPublishFullRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/meta-ads/discover': {
@@ -639,6 +659,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiMetaAdsCreateCampaignRoute: ApiMetaAdsCreateCampaignRoute,
   ApiMetaAdsDiscoverRoute: ApiMetaAdsDiscoverRoute,
+  ApiMetaAdsPublishFullRoute: ApiMetaAdsPublishFullRoute,
   ApiMetaAdsSyncRoute: ApiMetaAdsSyncRoute,
   ApiPublicMetaAdsDiscoverRoute: ApiPublicMetaAdsDiscoverRoute,
 }
