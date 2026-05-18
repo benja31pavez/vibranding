@@ -462,9 +462,20 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                                       </Select>
                                     </Field>
                                   </div>
-                                  <Field label="Imagen / Cover">
-                                    <MediaUpload clientId={clientId} value={ad.image_url} onChange={(url) => updateAd(ad.id, { image_url: url })} />
-                                  </Field>
+                                  {ad.format === "video" ? (
+                                    <>
+                                      <Field label="Video (URL o subir)">
+                                        <MediaUpload clientId={clientId} value={ad.video_url} onChange={(url) => updateAd(ad.id, { video_url: url })} placeholder="URL del video o sube archivo" />
+                                      </Field>
+                                      <Field label="Miniatura / cover">
+                                        <MediaUpload clientId={clientId} value={ad.image_url} onChange={(url) => updateAd(ad.id, { image_url: url })} />
+                                      </Field>
+                                    </>
+                                  ) : (
+                                    <Field label="Imagen">
+                                      <MediaUpload clientId={clientId} value={ad.image_url} onChange={(url) => updateAd(ad.id, { image_url: url })} />
+                                    </Field>
+                                  )}
                                   <div className="grid md:grid-cols-2 gap-2">
                                     <Field label="Titular">
                                       <Input defaultValue={ad.headline ?? ""} onBlur={(e) => updateAd(ad.id, { headline: e.target.value || null })} />
