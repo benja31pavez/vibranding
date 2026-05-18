@@ -60,7 +60,7 @@ export function Step3Ad({
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Cuenta de Instagram (opcional)</Label>
-            <Select value={draft.instagramActorId ?? ""} onValueChange={(v) => onChange({ instagramActorId: v || null })}>
+            <Select value={draft.instagramActorId ?? "__none__"} onValueChange={(v) => onChange({ instagramActorId: v === "__none__" ? null : v })}>
               <SelectTrigger><SelectValue placeholder="Solo Facebook" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">Ninguna (solo Facebook)</SelectItem>
