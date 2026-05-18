@@ -57,6 +57,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   const [discoverData, setDiscoverData] = useState<DiscoverData | null>(null);
   const [discovering, setDiscovering] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const openDiscover = async () => {
     setDiscoverOpen(true);
