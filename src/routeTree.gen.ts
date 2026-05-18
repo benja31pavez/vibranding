@@ -25,6 +25,7 @@ import { Route as AppPortfolioRouteImport } from './routes/_app/portfolio'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
+import { Route as ApiMetaAdsUpdateRouteImport } from './routes/api/meta-ads/update'
 import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
 import { Route as ApiMetaAdsPublishFullRouteImport } from './routes/api/meta-ads/publish-full'
 import { Route as ApiMetaAdsDiscoverRouteImport } from './routes/api/meta-ads/discover'
@@ -117,6 +118,11 @@ const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
   id: '/clients/',
   path: '/clients/',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiMetaAdsUpdateRoute = ApiMetaAdsUpdateRouteImport.update({
+  id: '/api/meta-ads/update',
+  path: '/api/meta-ads/update',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMetaAdsSyncRoute = ApiMetaAdsSyncRouteImport.update({
   id: '/api/meta-ads/sync',
@@ -212,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/api/meta-ads/discover': typeof ApiMetaAdsDiscoverRoute
   '/api/meta-ads/publish-full': typeof ApiMetaAdsPublishFullRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
+  '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients/': typeof AppClientsIndexRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
@@ -241,6 +248,7 @@ export interface FileRoutesByTo {
   '/api/meta-ads/discover': typeof ApiMetaAdsDiscoverRoute
   '/api/meta-ads/publish-full': typeof ApiMetaAdsPublishFullRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
+  '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients': typeof AppClientsIndexRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
@@ -273,6 +281,7 @@ export interface FileRoutesById {
   '/api/meta-ads/discover': typeof ApiMetaAdsDiscoverRoute
   '/api/meta-ads/publish-full': typeof ApiMetaAdsPublishFullRoute
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
+  '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
@@ -305,6 +314,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/discover'
     | '/api/meta-ads/publish-full'
     | '/api/meta-ads/sync'
+    | '/api/meta-ads/update'
     | '/clients/'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/instagram'
@@ -334,6 +344,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/discover'
     | '/api/meta-ads/publish-full'
     | '/api/meta-ads/sync'
+    | '/api/meta-ads/update'
     | '/clients'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/instagram'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/discover'
     | '/api/meta-ads/publish-full'
     | '/api/meta-ads/sync'
+    | '/api/meta-ads/update'
     | '/_app/clients/'
     | '/_app/clients/$clientId/deliverables'
     | '/_app/clients/$clientId/instagram'
@@ -390,6 +402,7 @@ export interface RootRouteChildren {
   ApiMetaAdsDiscoverRoute: typeof ApiMetaAdsDiscoverRoute
   ApiMetaAdsPublishFullRoute: typeof ApiMetaAdsPublishFullRoute
   ApiMetaAdsSyncRoute: typeof ApiMetaAdsSyncRoute
+  ApiMetaAdsUpdateRoute: typeof ApiMetaAdsUpdateRoute
   ApiPublicMetaAdsDiscoverRoute: typeof ApiPublicMetaAdsDiscoverRoute
 }
 
@@ -506,6 +519,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/clients/'
       preLoaderRoute: typeof AppClientsIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/meta-ads/update': {
+      id: '/api/meta-ads/update'
+      path: '/api/meta-ads/update'
+      fullPath: '/api/meta-ads/update'
+      preLoaderRoute: typeof ApiMetaAdsUpdateRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/meta-ads/sync': {
       id: '/api/meta-ads/sync'
@@ -661,8 +681,19 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMetaAdsDiscoverRoute: ApiMetaAdsDiscoverRoute,
   ApiMetaAdsPublishFullRoute: ApiMetaAdsPublishFullRoute,
   ApiMetaAdsSyncRoute: ApiMetaAdsSyncRoute,
+  ApiMetaAdsUpdateRoute: ApiMetaAdsUpdateRoute,
   ApiPublicMetaAdsDiscoverRoute: ApiPublicMetaAdsDiscoverRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
