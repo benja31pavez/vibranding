@@ -48,15 +48,6 @@ export const Route = createFileRoute("/api/meta-ads/discover")({
             }
           }
 
-          // (2) IGs asignados directamente al System User
-          if (igAssignedRes.ok) {
-            for (const i of (igAssignedBody.data ?? []) as any[]) {
-              if (!igMap.has(i.id)) {
-                igMap.set(i.id, { id: i.id, username: i.username ?? "", avatar: i.profile_pic ?? "", source: "asignado a System User" });
-              }
-            }
-          }
-
           // (3) IGs propiedad del Business / clientes del Business (fallback que sí captura cuentas asignadas al Business)
           if (bizRes.ok) {
             const businesses = (bizBody.data ?? []) as any[];
