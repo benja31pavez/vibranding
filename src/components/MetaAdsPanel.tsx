@@ -19,10 +19,11 @@ interface DiscoverPage {
   business: string;
   instagram: { id: string; username: string; avatar: string } | null;
 }
+interface DiscoverIG { id: string; username: string; avatar: string; source?: string }
 interface DiscoverData {
   adAccounts: Array<{ id: string; name: string; status: number; business: string }>;
   pages: DiscoverPage[];
-  instagramAccounts?: Array<{ id: string; username: string; avatar: string }>;
+  instagramAccounts?: DiscoverIG[];
 }
 
 type MetaStatus = "ACTIVE" | "PAUSED" | "DELETED" | "ARCHIVED" | "DRAFT";
