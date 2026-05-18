@@ -617,6 +617,44 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                   </div>
                 )}
               </div>
+
+              {discoverData.instagramAccounts && discoverData.instagramAccounts.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">Cuentas de Instagram</h4>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Cuentas IG asignadas directamente al System User. Elige desde cuál deben salir los anuncios de este cliente.
+                  </p>
+                  <div className="space-y-1.5">
+                    {discoverData.instagramAccounts.map((ig) => {
+                      const selected = account?.instagram_actor_id === ig.id;
+                      return (
+                        <div
+                          key={ig.id}
+                          className={`flex items-center justify-between gap-2 rounded-lg border p-3 text-sm ${selected ? "border-primary bg-primary/5" : ""}`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {ig.avatar && <img src={ig.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />}
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">@{ig.username || ig.id}</div>
+                              <div className="text-xs text-muted-foreground">{ig.id}</div>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant={selected ? "default" : "outline"}
+                            onClick={async () => {
+                              await updateAccount({ instagram_actor_id: ig.id });
+                              toast.success(`Anuncios saldrán desde @${ig.username || ig.id}`);
+                            }}
+                          >
+                            {selected ? "IG vinculado" : "Usar este IG"}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           ) : null}
         </DialogContent>
