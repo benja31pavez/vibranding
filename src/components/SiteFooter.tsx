@@ -17,6 +17,8 @@ export function SiteFooter() {
         <FooterCol title={t.footer.columns.product}>
           <FooterLink href="/#servicios">{t.footer.links.services}</FooterLink>
           <FooterLink href="/#como">{t.footer.links.how}</FooterLink>
+          <FooterLink href="/#nosotros">{t.footer.links.about}</FooterLink>
+          <FooterLink href="/#clientes">{t.footer.links.clients}</FooterLink>
           <FooterLink href="/#contacto" onClick={() => trackLandingEvent("contact_click", lang)}>{t.footer.links.contact}</FooterLink>
         </FooterCol>
 

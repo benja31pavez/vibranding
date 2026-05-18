@@ -21,6 +21,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppStatsRouteImport } from './routes/_app/stats'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
+import { Route as AppPortfolioRouteImport } from './routes/_app/portfolio'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
@@ -91,6 +92,11 @@ const AppStatsRoute = AppStatsRouteImport.update({
 const AppReportsRoute = AppReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPortfolioRoute = AppPortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
+  '/portfolio': typeof AppPortfolioRoute
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
@@ -196,6 +203,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
+  '/portfolio': typeof AppPortfolioRoute
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
@@ -222,6 +230,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/portfolio': typeof AppPortfolioRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/stats': typeof AppStatsRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/calendar'
     | '/dashboard'
+    | '/portfolio'
     | '/reports'
     | '/stats'
     | '/clients/$clientId'
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/calendar'
     | '/dashboard'
+    | '/portfolio'
     | '/reports'
     | '/stats'
     | '/settings/pricing'
@@ -299,6 +310,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_app/calendar'
     | '/_app/dashboard'
+    | '/_app/portfolio'
     | '/_app/reports'
     | '/_app/stats'
     | '/_app/clients/$clientId'
@@ -413,6 +425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/portfolio': {
+      id: '/_app/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof AppPortfolioRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -524,6 +543,7 @@ const AppClientsClientIdRouteWithChildren =
 interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppPortfolioRoute: typeof AppPortfolioRoute
   AppReportsRoute: typeof AppReportsRoute
   AppStatsRoute: typeof AppStatsRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRouteWithChildren
@@ -534,6 +554,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppPortfolioRoute: AppPortfolioRoute,
   AppReportsRoute: AppReportsRoute,
   AppStatsRoute: AppStatsRoute,
   AppClientsClientIdRoute: AppClientsClientIdRouteWithChildren,

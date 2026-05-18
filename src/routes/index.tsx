@@ -7,8 +7,9 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLang } from "@/i18n/LanguageContext";
 import { translations } from "@/i18n/translations";
 import { trackLandingEvent } from "@/lib/track";
+import { usePublicPortfolio } from "@/lib/portfolio";
 import {
-  Instagram, Megaphone, BarChart3, ArrowRight, Check,
+  Instagram, Megaphone, BarChart3, ArrowRight, Check, Heart, MapPin, ExternalLink, Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/")({
 export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {}) {
   const { session, loading } = useAuth();
   const { t, lang } = useLang();
+  const { data: portfolio } = usePublicPortfolio();
   const blob1 = useRef<HTMLDivElement>(null);
   const blob2 = useRef<HTMLDivElement>(null);
   const blob3 = useRef<HTMLDivElement>(null);
@@ -66,9 +68,11 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
         <Link to="/" className="flex items-center gap-2">
           <span className="text-3xl md:text-4xl font-bold italic tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-8 text-sm">
+        <nav className="hidden md:flex items-center gap-7 text-sm">
           <a href="#servicios" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5.5rem] text-center"><span className="inline-block">{t.nav.services}</span></a>
           <a href="#como" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[8rem] text-center"><span className="inline-block">{t.nav.how}</span></a>
+          <a href="#nosotros" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5rem] text-center"><span className="inline-block">{t.nav.about}</span></a>
+          <a href="#clientes" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5rem] text-center"><span className="inline-block">{t.nav.clients}</span></a>
           <a href="#contacto" onClick={() => trackLandingEvent("contact_click", lang)} className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5rem] text-center"><span className="inline-block">{t.nav.contact}</span></a>
         </nav>
         <div className="flex items-center gap-3">
@@ -168,6 +172,166 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
             ))}
           </div>
         </div>
+      </section>
+
+      {/* About us — Antonia & Benjamín */}
+      <section id="nosotros" className="relative max-w-7xl mx-auto px-6 md:px-10 py-24">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-4">
+              <Heart className="w-3.5 h-3.5 text-[color:var(--brand-1)]" /> {t.about.eyebrow} <span className="font-brand text-gradient-brand normal-case tracking-normal text-sm">{t.about.accent}</span>
+            </div>
+            <h2 className="text-3xl md:text-5xl font-semibold tracking-tight leading-[1.1]">
+              {t.about.title}
+            </h2>
+            <p className="mt-5 text-lg text-muted-foreground leading-relaxed">{t.about.subtitle}</p>
+            <p className="mt-4 text-base text-muted-foreground leading-relaxed">{t.about.paragraph1}</p>
+            <p className="mt-3 text-base text-muted-foreground leading-relaxed">{t.about.paragraph2}</p>
+            <div className="mt-7 flex flex-wrap gap-2">
+              {t.about.chips.map((c) => (
+                <span key={c} className="inline-flex items-center gap-1.5 rounded-full border bg-card/70 backdrop-blur px-3 py-1 text-xs text-muted-foreground">
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative">
+            <div aria-hidden className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-brand opacity-20 blur-3xl" />
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { person: t.about.antonia, tone: "var(--brand-1)" },
+                { person: t.about.benjamin, tone: "var(--brand-2)" },
+              ].map(({ person, tone }, i) => (
+                <div
+                  key={person.name}
+                  className="group relative rounded-3xl border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl overflow-hidden"
+                  style={{ marginTop: i === 1 ? "2.5rem" : 0 }}
+                >
+                  <div
+                    aria-hidden
+                    className="absolute inset-x-0 -top-px h-px"
+                    style={{ background: `linear-gradient(90deg, transparent, ${tone}, transparent)` }}
+                  />
+                  <div
+                    className="w-16 h-16 rounded-2xl grid place-items-center text-white text-2xl font-brand font-semibold shadow-md mb-4"
+                    style={{ background: `linear-gradient(135deg, ${tone}, color-mix(in oklab, ${tone} 55%, white))` }}
+                    aria-hidden
+                  >
+                    {person.name.charAt(0)}
+                  </div>
+                  <div className="text-xs font-medium tracking-widest uppercase text-muted-foreground">{person.role}</div>
+                  <h3 className="mt-1 text-2xl font-semibold font-brand">{person.name}</h3>
+                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{person.bio}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-5 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <MapPin className="w-3.5 h-3.5" /> Santiago, Chile
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Clients & work */}
+      <section id="clientes" className="relative max-w-7xl mx-auto px-6 md:px-10 py-20">
+        <div className="text-center mb-14">
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">
+            {t.clients.eyebrow} <span className="font-brand text-gradient-brand">{t.clients.accent}</span>
+          </h2>
+          <p className="text-muted-foreground mt-3 max-w-xl mx-auto">{t.clients.subtitle}</p>
+        </div>
+
+        {portfolio.length === 0 ? (
+          <div className="rounded-3xl border border-dashed bg-card/40 p-10 text-center text-muted-foreground">
+            <Sparkles className="w-6 h-6 mx-auto mb-3 text-[color:var(--brand-2)]" />
+            {t.clients.empty}
+          </div>
+        ) : (
+          <>
+            {/* Logo strip */}
+            <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-6 mb-14">
+              {portfolio.map((c) => (
+                <a
+                  key={c.id}
+                  href={c.website_url || `#client-${c.id}`}
+                  target={c.website_url ? "_blank" : undefined}
+                  rel={c.website_url ? "noreferrer" : undefined}
+                  className="group flex items-center gap-2 opacity-70 hover:opacity-100 transition-opacity"
+                  title={c.name}
+                >
+                  {c.logo_url ? (
+                    <img src={c.logo_url} alt={c.name} className="h-8 md:h-10 w-auto object-contain" loading="lazy" />
+                  ) : (
+                    <span className="text-base md:text-lg font-semibold tracking-tight">{c.name}</span>
+                  )}
+                </a>
+              ))}
+            </div>
+
+            {/* Works grid */}
+            <div className="space-y-16">
+              {portfolio.filter((c) => c.works.length > 0).map((c) => (
+                <div key={c.id} id={`client-${c.id}`}>
+                  <div className="flex items-end justify-between flex-wrap gap-3 mb-5">
+                    <div className="flex items-center gap-3">
+                      {c.logo_url && (
+                        <img src={c.logo_url} alt={c.name} className="h-9 w-9 rounded-xl object-cover bg-muted" loading="lazy" />
+                      )}
+                      <div>
+                        <h3 className="text-xl font-semibold">{c.name}</h3>
+                        {(c.industry || c.description) && (
+                          <p className="text-sm text-muted-foreground">{c.industry || c.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    {c.website_url && (
+                      <a
+                        href={c.website_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        {c.website_url.replace(/^https?:\/\//, "").replace(/\/$/, "")} <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {c.works.map((w) => {
+                      const inner = (
+                        <div className="group relative rounded-2xl overflow-hidden border bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                          {w.image_url ? (
+                            <div className="aspect-[4/5] overflow-hidden bg-muted">
+                              <img
+                                src={w.image_url}
+                                alt={w.title || c.name}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                                loading="lazy"
+                              />
+                            </div>
+                          ) : (
+                            <div className="aspect-[4/5] bg-gradient-brand opacity-80" />
+                          )}
+                          {(w.title || w.description) && (
+                            <div className="p-4">
+                              {w.title && <div className="text-sm font-semibold">{w.title}</div>}
+                              {w.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{w.description}</p>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                      return w.link_url ? (
+                        <a key={w.id} href={w.link_url} target="_blank" rel="noreferrer">{inner}</a>
+                      ) : (
+                        <div key={w.id}>{inner}</div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {/* CTA contact */}
