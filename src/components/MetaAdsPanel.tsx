@@ -289,11 +289,14 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
               return (
                 <AccordionItem key={c.id} value={c.id} className="border rounded-xl bg-surface px-4">
                   <AccordionTrigger className="hover:no-underline">
-                    <div className="flex items-center gap-3 text-left">
+                    <div className="flex items-center gap-3 text-left flex-1">
                       <span className={`w-2 h-2 rounded-full ${c.status === "ACTIVE" ? "bg-green-500" : c.status === "PAUSED" ? "bg-yellow-500" : "bg-zinc-400"}`} />
-                      <div>
-                        <div className="font-medium">{c.name}</div>
-                        <div className="text-xs text-muted-foreground">{OBJECTIVES[c.objective]} · {c.status}</div>
+                      <div className="flex-1">
+                        <div className="font-medium flex items-center gap-2">
+                          {c.name}
+                          {c.fb_campaign_id && <CheckCircle2 className="w-3.5 h-3.5 text-green-600" aria-label="Publicada en Meta" />}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{OBJECTIVES[c.objective]} · {c.status}{c.fb_campaign_id ? ` · ${c.fb_campaign_id}` : " · Solo local"}</div>
                       </div>
                     </div>
                   </AccordionTrigger>
