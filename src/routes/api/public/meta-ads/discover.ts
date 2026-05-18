@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/api/meta-ads/discover")({
+export const Route = createFileRoute("/api/public/meta-ads/discover")({
   server: {
     handlers: {
       GET: async () => {
