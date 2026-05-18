@@ -3,13 +3,13 @@ import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { SiteFooter } from "@/components/SiteFooter";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+
 import { useLang } from "@/i18n/LanguageContext";
 import { translations } from "@/i18n/translations";
 import { trackLandingEvent } from "@/lib/track";
 import { usePublicPortfolio } from "@/lib/portfolio";
 import {
-  Instagram, Megaphone, BarChart3, ArrowRight, Check, MapPin, ExternalLink, Sparkles,
+  Instagram, Megaphone, BarChart3, ArrowRight, Check, ExternalLink, Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -77,7 +77,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
           <a href="#contacto" onClick={() => trackLandingEvent("contact_click", lang)} className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5rem] text-center"><span className="inline-block">{t.nav.contact}</span></a>
         </nav>
         <div className="flex items-center gap-3">
-          <LanguageSwitcher />
+          
           <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground inline-block min-w-[7rem] text-right">{t.nav.signIn}</Link>
         </div>
       </header>
@@ -222,9 +222,6 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
                   <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{person.bio}</p>
                 </div>
               ))}
-            </div>
-            <div className="mt-5 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-              <MapPin className="w-3.5 h-3.5" /> Santiago, Chile
             </div>
           </div>
         </div>
