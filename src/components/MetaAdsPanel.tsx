@@ -13,9 +13,15 @@ import { Plus, Trash2, RefreshCw, Megaphone, Layers, Image as ImageIcon, Sparkle
 import { toast } from "sonner";
 import { MediaUpload } from "./MediaUpload";
 
+interface DiscoverPage {
+  id: string;
+  name: string;
+  business: string;
+  instagram: { id: string; username: string; avatar: string } | null;
+}
 interface DiscoverData {
   adAccounts: Array<{ id: string; name: string; status: number; business: string }>;
-  pages: Array<{ id: string; name: string; business: string }>;
+  pages: DiscoverPage[];
 }
 
 type MetaStatus = "ACTIVE" | "PAUSED" | "DELETED" | "ARCHIVED" | "DRAFT";
