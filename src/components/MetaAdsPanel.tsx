@@ -8,9 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Plus, Trash2, RefreshCw, Megaphone, Layers, Image as ImageIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Plus, Trash2, RefreshCw, Megaphone, Layers, Image as ImageIcon, Sparkles, Upload, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { MediaUpload } from "./MediaUpload";
+
+interface DiscoverData {
+  adAccounts: Array<{ id: string; name: string; status: number; business: string }>;
+  pages: Array<{ id: string; name: string; business: string }>;
+}
 
 type MetaStatus = "ACTIVE" | "PAUSED" | "DELETED" | "ARCHIVED" | "DRAFT";
 type MetaObjective = "OUTCOME_AWARENESS" | "OUTCOME_TRAFFIC" | "OUTCOME_ENGAGEMENT" | "OUTCOME_LEADS" | "OUTCOME_APP_PROMOTION" | "OUTCOME_SALES";
