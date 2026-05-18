@@ -99,29 +99,6 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     }
   };
 
-  const publishCampaign = async (id: string) => {
-    setPublishing(id);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/meta-ads/create-campaign", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-        body: JSON.stringify({ campaignId: id }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Error al publicar");
-      toast.success("Campaña creada en Meta (pausada)");
-      await load();
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setPublishing(null);
-    }
-  };
-
   const load = async () => {
     const [{ data: ac }, { data: cs }, { data: as }, { data: ads_ }, { data: ins }] = await Promise.all([
       supabase.from("meta_ads_accounts").select("*").eq("client_id", clientId).maybeSingle(),
