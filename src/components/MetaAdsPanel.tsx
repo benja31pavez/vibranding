@@ -228,10 +228,15 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
             <Megaphone className="w-4 h-4 text-primary" />
             <h3 className="font-semibold">Cuenta de Meta Ads</h3>
           </div>
-          <Button size="sm" variant="outline" onClick={sync} disabled={syncing || !account?.ad_account_id}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Sincronizando…" : "Sincronizar con Meta"}
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={openDiscover}>
+              <Sparkles className="w-4 h-4 mr-1" /> Autodetectar
+            </Button>
+            <Button size="sm" variant="outline" onClick={sync} disabled={syncing || !account?.ad_account_id}>
+              <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Sincronizando…" : "Sincronizar con Meta"}
+            </Button>
+          </div>
         </div>
         <div className="grid md:grid-cols-2 gap-3">
           <Field label="ID de cuenta publicitaria">
