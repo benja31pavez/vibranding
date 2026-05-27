@@ -689,13 +689,22 @@ export function PostsEditor({
                             </label>
                           </div>
                         )}
-                        {p.format === "carousel" && (
+                        {p.format !== "reel" && (
                           <CarouselImages
                             clientId={clientId}
                             urls={p.carousel_urls ?? []}
                             onChange={(urls) => {
-                              setLocal(p.id, { carousel_urls: urls });
-                              saveRemote(p.id, { carousel_urls: urls });
+                              const patch: Partial<IGPost> = { carousel_urls: urls };
+                              // Auto-switch to carousel format when adding multiple slides
+                              if (urls.length > 1 && p.format !== "carousel") {
+                                patch.format = "carousel";
+                              }
+                              // Use first slide as cover if no main image yet
+                              if (!p.image_url && urls[0]) {
+                                patch.image_url = urls[0];
+                              }
+                              setLocal(p.id, patch);
+                              saveRemote(p.id, patch);
                             }}
                           />
                         )}
