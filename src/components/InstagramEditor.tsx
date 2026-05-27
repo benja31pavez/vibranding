@@ -1200,20 +1200,54 @@ function CarouselImages({
   onChange: (urls: string[]) => void;
 }) {
   const [uploading, setUploading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [progress, setProgress] = useState<string | null>(null);
+  const imgInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFiles = async (files: FileList) => {
+  const uploadFiles = async (files: File[]) => {
+    const uploaded: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      setProgress(`Subiendo ${i + 1}/${files.length}`);
+      uploaded.push(await uploadClientMedia(files[i], clientId));
+    }
+    return uploaded;
+  };
+
+  const handleImages = async (files: FileList) => {
     setUploading(true);
     try {
-      const uploaded: string[] = [];
-      for (const f of Array.from(files)) {
-        uploaded.push(await uploadClientMedia(f, clientId));
-      }
+      const uploaded = await uploadFiles(Array.from(files));
       onChange([...urls, ...uploaded]);
     } catch (e: any) {
       toast.error(e.message ?? "Error al subir");
     } finally {
       setUploading(false);
+      setProgress(null);
+    }
+  };
+
+  const handlePdfs = async (files: FileList) => {
+    setUploading(true);
+    try {
+      const { pdfToImageFiles } = await import("@/lib/pdfToImages");
+      const allImages: File[] = [];
+      for (const f of Array.from(files)) {
+        setProgress(`Convirtiendo ${f.name}…`);
+        const pages = await pdfToImageFiles(f);
+        allImages.push(...pages);
+      }
+      if (allImages.length === 0) {
+        toast.error("El PDF no contiene páginas");
+        return;
+      }
+      const uploaded = await uploadFiles(allImages);
+      onChange([...urls, ...uploaded]);
+      toast.success(`${uploaded.length} diapositivas añadidas`);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al procesar el PDF");
+    } finally {
+      setUploading(false);
+      setProgress(null);
     }
   };
 
@@ -1238,23 +1272,53 @@ function CarouselImages({
             </button>
           </div>
         ))}
-        <button
-          type="button"
-          disabled={uploading}
-          onClick={() => inputRef.current?.click()}
-          className="w-12 h-12 rounded-md border border-dashed flex items-center justify-center text-muted-foreground hover:bg-muted/50"
-        >
-          {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-        </button>
       </div>
+      <div className="flex gap-1.5 pt-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={uploading}
+          onClick={() => imgInputRef.current?.click()}
+          className="flex-1 h-8 text-xs"
+        >
+          {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+          Subir imagen
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={uploading}
+          onClick={() => pdfInputRef.current?.click()}
+          className="flex-1 h-8 text-xs"
+        >
+          {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+          Subir PDF
+        </Button>
+      </div>
+      {progress && (
+        <p className="text-[10px] text-muted-foreground">{progress}</p>
+      )}
       <input
-        ref={inputRef}
+        ref={imgInputRef}
         type="file"
         accept="image/*"
         multiple
         className="hidden"
         onChange={(e) => {
-          if (e.target.files?.length) handleFiles(e.target.files);
+          if (e.target.files?.length) handleImages(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={pdfInputRef}
+        type="file"
+        accept="application/pdf"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.length) handlePdfs(e.target.files);
           e.target.value = "";
         }}
       />
