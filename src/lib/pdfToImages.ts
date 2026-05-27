@@ -1,10 +1,12 @@
 // Renders each page of a PDF to a JPEG File using pdfjs-dist.
 // Runs entirely in the browser.
 import * as pdfjsLib from "pdfjs-dist";
-// @ts-ignore - vite handles ?url import
-import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+// Use Vite's recommended worker URL pattern (works with pdfjs-dist v5).
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString();
 
 export async function pdfToImageFiles(
   file: File,
@@ -15,10 +17,22 @@ export async function pdfToImageFiles(
   const baseName = (opts.baseName ?? file.name.replace(/\.pdf$/i, "")) || "page";
 
   const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-  const files: File[] = [];
+  let pdf;
+  try {
+    pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+  } catch (e: any) {
+    console.error("[pdfToImages] getDocument failed", e);
+    throw new Error(`No se pudo leer el PDF: ${e?.message ?? e}`);
+  }
 
-  for (let i = 1; i <= pdf.numPages; i++) {
+  const numPages = pdf.numPages ?? 0;
+  console.log("[pdfToImages]", file.name, "numPages=", numPages);
+  if (!numPages || numPages < 1) {
+    throw new Error("El PDF no contiene páginas legibles");
+  }
+
+  const files: File[] = [];
+  for (let i = 1; i <= numPages; i++) {
     const page = await pdf.getPage(i);
     const viewport = page.getViewport({ scale });
     const canvas = document.createElement("canvas");
@@ -26,10 +40,15 @@ export async function pdfToImageFiles(
     canvas.height = Math.ceil(viewport.height);
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas no disponible");
-    // White background for transparent PDFs
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    try {
+      // pdfjs v5 accepts { canvasContext, viewport } (canvas optional)
+      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+    } catch (e: any) {
+      console.error(`[pdfToImages] render page ${i} failed`, e);
+      throw new Error(`Error al renderizar página ${i}: ${e?.message ?? e}`);
+    }
 
     const blob: Blob = await new Promise((resolve, reject) =>
       canvas.toBlob(
