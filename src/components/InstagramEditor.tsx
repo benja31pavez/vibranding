@@ -1073,6 +1073,22 @@ export function PostsEditor({
                         "Construir comunidad",
                         "Posicionar marca",
                         "Vender",
+                        "Entretener",
+                        "Inspirar",
+                        "Crear reconocimiento",
+                        "Behind the scenes",
+                        "Promocionar oferta",
+                        "Anunciar evento",
+                        "Recopilar opiniones",
+                        "Dirigir tráfico web",
+                        "Destacar testimonios",
+                        "Presentar equipo",
+                        "Repost de cliente",
+                        "Tendencia o meme",
+                        "Lanzar producto",
+                        "FOMO o escasez",
+                        "Contar historia de marca",
+                        "Comparativa o vs",
                       ];
                       const selected = (p.objective ?? "")
                         .split(",")
