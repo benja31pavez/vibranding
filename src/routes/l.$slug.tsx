@@ -58,7 +58,7 @@ function PublicMultilink() {
         {ml.bio && <p className="mt-2 opacity-80 whitespace-pre-line">{ml.bio}</p>}
 
         <div className="mt-8 space-y-3">
-          {items.map(i => (
+          {items.map((i: any) => (
             <a key={i.id} href={i.url} target="_blank" rel="noreferrer noopener"
               onClick={() => onClick(i.id)}
               className="block rounded-xl py-4 px-5 font-medium transition hover:scale-[1.02]"
