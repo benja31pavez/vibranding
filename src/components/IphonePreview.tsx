@@ -108,8 +108,8 @@ export function IphonePreview({
           </div>
 
 
-          <div className="px-4">
-            <div className="flex items-center gap-3">
+          <div className="pl-2 pr-4">
+            <div className="flex items-center gap-2">
               <div className="ig-ring p-[2px] rounded-full shrink-0">
                 <div className="bg-white p-[2px] rounded-full">
                   {avatar ? (
@@ -126,18 +126,18 @@ export function IphonePreview({
                     {verified && <BadgeCheck className="w-3.5 h-3.5 text-[#0095f6]" fill="#0095f6" stroke="white" />}
                   </p>
                 )}
-                <div className="flex gap-4 text-left">
+                <div className="flex gap-3 text-left">
                   <div>
-                    <div className="font-semibold text-sm leading-tight">{fmt(postsCount)}</div>
-                    <div className="text-[10px] text-zinc-600">publicaciones</div>
+                    <div className="font-semibold text-[12px] leading-tight">{fmt(postsCount)}</div>
+                    <div className="text-[9px] text-zinc-600">publicaciones</div>
                   </div>
                   <div>
-                    <div className="font-semibold text-sm leading-tight">{fmt(followers)}</div>
-                    <div className="text-[10px] text-zinc-600">seguidores</div>
+                    <div className="font-semibold text-[12px] leading-tight">{fmt(followers)}</div>
+                    <div className="text-[9px] text-zinc-600">seguidores</div>
                   </div>
                   <div>
-                    <div className="font-semibold text-sm leading-tight">{fmt(following)}</div>
-                    <div className="text-[10px] text-zinc-600">seguidos</div>
+                    <div className="font-semibold text-[12px] leading-tight">{fmt(following)}</div>
+                    <div className="text-[9px] text-zinc-600">seguidos</div>
                   </div>
                 </div>
               </div>
