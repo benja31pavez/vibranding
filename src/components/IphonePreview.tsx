@@ -8,8 +8,8 @@ const fmt = (n: number | null) => {
     const s = v.toFixed(1).replace(".", ",");
     return s.endsWith(",0") ? s.slice(0, -2) : s;
   };
-  if (n >= 1_000_000) return trim(n / 1_000_000) + " mill.";
-  if (n >= 10_000) return trim(n / 1_000) + " mil";
+  if (n >= 1_000_000) return trim(n / 1_000_000) + "\u00A0mill.";
+  if (n >= 10_000) return trim(n / 1_000) + "\u00A0mil";
   return n.toLocaleString("es");
 };
 
