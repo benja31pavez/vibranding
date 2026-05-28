@@ -4,9 +4,13 @@ import type { IGProfile, IGPost, IGHighlight, IGComment } from "./InstagramEdito
 
 const fmt = (n: number | null) => {
   if (n == null) return "0";
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
-  return n.toString();
+  const trim = (v: number) => {
+    const s = v.toFixed(1).replace(".", ",");
+    return s.endsWith(",0") ? s.slice(0, -2) : s;
+  };
+  if (n >= 1_000_000) return trim(n / 1_000_000) + " mill.";
+  if (n >= 10_000) return trim(n / 1_000) + " mil";
+  return n.toLocaleString("es");
 };
 
 export function IphonePreview({
