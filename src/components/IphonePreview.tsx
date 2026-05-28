@@ -110,7 +110,7 @@ export function IphonePreview({
 
           <div className="px-4">
             <div className="flex items-center gap-3">
-              <div className="ig-ring p-[2px] rounded-full">
+              <div className="ig-ring p-[2px] rounded-full shrink-0">
                 <div className="bg-white p-[2px] rounded-full">
                   {avatar ? (
                     <img src={avatar} className="w-[72px] h-[72px] rounded-full object-cover" alt="" />
