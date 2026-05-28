@@ -320,8 +320,8 @@ function MultilinkPage() {
                 <div className="absolute inset-0 flex flex-col pt-10 px-5 pb-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <div className="text-center">
                     <div className="w-20 h-20 rounded-full bg-black/10 mx-auto overflow-hidden grid place-items-center text-2xl font-semibold">
-                      {ml.avatar_url
-                        ? <img src={ml.avatar_url} alt="" className="w-full h-full object-cover" />
+                      {effectiveAvatarUrl
+                        ? <img src={effectiveAvatarUrl} alt="" className="w-full h-full object-cover" />
                         : (ml.title[0] || "?")}
                     </div>
                     <h2 className="mt-3 font-semibold text-lg">{ml.title || "Título"}</h2>
