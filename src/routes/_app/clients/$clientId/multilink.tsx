@@ -57,12 +57,23 @@ function MultilinkPage() {
       supabase.from("multilinks").select("*").eq("client_id", clientId).maybeSingle(),
       supabase.from("instagram_profiles").select("*").eq("client_id", clientId).maybeSingle(),
     ]);
-    setMl(m as Multilink | null);
-    setIgProfile((ig ?? null) as IGProfile | null);
-    if (m) {
+    const igP = (ig ?? null) as IGProfile | null;
+    setIgProfile(igP);
+
+    let multilink = m as Multilink | null;
+    if (multilink && !multilink.avatar_url) {
+      const igAvatar = igP?.proposed_avatar_url ?? igP?.current_avatar_url ?? null;
+      if (igAvatar) {
+        await supabase.from("multilinks").update({ avatar_url: igAvatar }).eq("id", multilink.id);
+        multilink = { ...multilink, avatar_url: igAvatar };
+      }
+    }
+    setMl(multilink);
+
+    if (multilink) {
       const { data: it } = await supabase
         .from("multilink_items").select("*")
-        .eq("multilink_id", m.id).order("sort_order");
+        .eq("multilink_id", multilink.id).order("sort_order");
       setItems((it ?? []) as Item[]);
     }
     setLoading(false);
