@@ -70,7 +70,7 @@ function LandingEditor() {
       hero_subtitle: "Descripción breve y atractiva", cta_text: "Contáctanos",
     }).select("*").single();
     if (error) return toast.error(error.message);
-    setLp(data as Landing);
+    setLp(data as unknown as Landing);
     toast.success("Landing creada");
   };
 
