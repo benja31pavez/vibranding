@@ -253,6 +253,20 @@ export function IdentityEditor({
 
   return (
     <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <CircleCoverUpload
+          clientId={clientId}
+          value={(profile[avatarKey] as string) ?? null}
+          onChange={(url) => {
+            set({ [avatarKey]: url } as any);
+            save({ [avatarKey]: url } as any);
+          }}
+        />
+        <div className="flex flex-col">
+          <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>Foto de perfil</Label>
+          <span className="text-[11px] text-muted-foreground">PNG o JPG</span>
+        </div>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <TextField label="Usuario" accent={accent} {...text(usernameKey)} />
         <TextField label="Nombre" accent={accent} {...text(displayKey)} />
