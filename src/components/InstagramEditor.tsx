@@ -361,6 +361,17 @@ export function ConfigEditor({
         />
       </div>
 
+      <div className="space-y-1.5">
+        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Enlace</Label>
+        <Input
+          placeholder="https://..."
+          value={(profile[`${side}_link` as keyof IGProfile] as string) ?? ""}
+          onChange={(e) => set({ [`${side}_link`]: e.target.value } as any)}
+          onBlur={(e) => save({ [`${side}_link`]: e.target.value || null } as any)}
+          className="h-8 text-xs"
+        />
+      </div>
+
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"
