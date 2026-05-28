@@ -1252,19 +1252,36 @@ export function PostsEditor({
                     })()}
                   </td>
                   <td className="px-2 py-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-destructive h-8 w-8"
-                      onClick={() => removePost(p.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          disabled={idx === 0}
+                          onClick={() => { if (idx > 0) reorder(p.id, sorted[idx - 1].id); }}
+                        >
+                          <ArrowUp className="w-4 h-4 mr-2" /> Subir
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={idx === sorted.length - 1}
+                          onClick={() => { if (idx < sorted.length - 1) reorder(p.id, sorted[idx + 1].id); }}
+                        >
+                          <ArrowDown className="w-4 h-4 mr-2" /> Bajar
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => removePost(p.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" /> Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
-                  <td className="px-2 py-2 text-muted-foreground cursor-move">
-                    <GripVertical className="w-4 h-4" />
-                  </td>
+
                 </tr>
               );
             })}
