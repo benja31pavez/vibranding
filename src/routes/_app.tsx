@@ -83,9 +83,9 @@ function AppLayout() {
     <div className="min-h-screen flex flex-col bg-background">
       <header className="sticky top-0 z-30 border-b bg-sidebar/95 backdrop-blur">
         <div className="flex items-center gap-4 px-4 md:px-6 h-16">
-          <Link to="/dashboard" className="flex items-center gap-2 shrink-0">
+          <a href="/" className="flex items-center gap-2 shrink-0">
             <span className="font-brand text-2xl tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
-          </Link>
+          </a>
           <nav className="flex items-center justify-center gap-2 flex-1 min-w-0 overflow-x-auto">
             <HeaderItem to="/dashboard" icon={LayoutDashboard} label="Inicio" active={path === "/dashboard"} />
             <HeaderItem to="/clients" icon={Users} label="Clientes" active={path === "/clients"} />
