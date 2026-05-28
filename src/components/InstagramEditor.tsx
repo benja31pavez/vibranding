@@ -1206,12 +1206,13 @@ export function PostsEditor({
                           <PopoverTrigger asChild>
                             <button
                               type="button"
-                              className="w-full text-left text-xs px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] line-clamp-2 whitespace-pre-wrap break-words"
+                              className="w-full text-left text-xs px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] flex items-center gap-1.5"
                               title={selected.join(", ") || "Definir objetivo"}
                             >
-                              {selected.length > 0 ? selected.join(", ") : (
-                                <span className="text-muted-foreground">Objetivo…</span>
-                              )}
+                              <span className={`inline-block w-1.5 h-1.5 rounded-full ${selected.length > 0 ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+                              <span className={selected.length > 0 ? "" : "text-muted-foreground"}>
+                                {selected.length > 0 ? `Definido (${selected.length})` : "Por definir"}
+                              </span>
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-72 max-h-80 overflow-y-auto" align="start">
