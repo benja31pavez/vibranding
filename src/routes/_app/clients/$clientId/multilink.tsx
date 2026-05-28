@@ -227,7 +227,7 @@ function MultilinkPage() {
             <h3 className="font-medium text-sm">Perfil</h3>
             <div className="flex items-center gap-3">
               <div className="w-16 h-16 rounded-full bg-secondary overflow-hidden grid place-items-center text-xl font-semibold">
-                {ml.avatar_url ? <img src={ml.avatar_url} alt="" className="w-full h-full object-cover" /> : (ml.title[0] || "?")}
+                {effectiveAvatarUrl ? <img src={effectiveAvatarUrl} alt="" className="w-full h-full object-cover" /> : (ml.title[0] || "?")}
               </div>
               <label className="text-sm text-primary cursor-pointer hover:underline">
                 Cambiar avatar
