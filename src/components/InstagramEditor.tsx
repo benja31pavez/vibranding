@@ -1176,7 +1176,6 @@ export function PostsEditor({
                             "POV (punto de vista)",
                             "ASMR",
                             "Reacción en vivo",
-                            "Bloopers",
                             "Juego o trivia",
                             "Esto o aquello",
                             "Tier list o ranking",
