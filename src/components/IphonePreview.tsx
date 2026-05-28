@@ -121,7 +121,7 @@ export function IphonePreview({
               </div>
               <div className="flex-1 text-black">
                 {displayName && (
-                  <p className="font-semibold text-[11px] mb-1 flex items-center gap-1">
+                  <p className="font-semibold text-[9px] mb-1 flex items-center gap-1">
                     <span>{displayName}</span>
                     {verified && <BadgeCheck className="w-3.5 h-3.5 text-[#0095f6]" fill="#0095f6" stroke="white" />}
                   </p>
