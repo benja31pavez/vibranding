@@ -119,7 +119,7 @@ export function IphonePreview({
                   )}
                 </div>
               </div>
-              <div className="flex-1 text-black">
+              <div className="flex-1 text-black pt-2">
                 {displayName && (
                   <p className="font-semibold text-[12px] mb-1 flex items-center gap-1">
                     <span>{displayName}</span>
