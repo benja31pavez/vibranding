@@ -1140,6 +1140,8 @@ export function PostsEditor({
                             "Proceso de creación",
                             "Día de la vida",
                             "Spoiler de novedad",
+                            "Bloopers",
+
                           ],
                         },
                         {
