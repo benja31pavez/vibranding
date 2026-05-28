@@ -1246,7 +1246,7 @@ function CarouselImages({
         allImages.push(...pages);
       }
       if (allImages.length === 0) {
-        toast.error("El PDF no contiene páginas");
+        toast.error("No se pudo convertir ninguna página del PDF");
         return;
       }
       const uploaded = await uploadFiles(allImages);
