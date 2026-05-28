@@ -275,6 +275,17 @@ export function IdentityEditor({
         <NumField label="Seguidores" accent={accent} {...num(followersKey)} />
         <NumField label="Seguidos" accent={accent} {...num(followingKey)} />
       </div>
+      <div className="space-y-1.5">
+        <Label className={`text-[10px] uppercase tracking-wider ${accent ? "text-accent" : "text-muted-foreground"}`}>Descripción del perfil</Label>
+        <Textarea
+          rows={3}
+          placeholder="Bio que aparece bajo la categoría"
+          value={(profile[bioKey] as string) ?? ""}
+          onChange={(e) => set({ [bioKey]: e.target.value } as any)}
+          onBlur={(e) => save({ [bioKey]: e.target.value || null } as any)}
+          className="text-xs"
+        />
+      </div>
     </div>
   );
 }
