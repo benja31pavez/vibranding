@@ -64,6 +64,7 @@ export function IphonePreview({
   const [storyIndex, setStoryIndex] = useState(0);
   const [openPost, setOpenPost] = useState<IGPost | null>(null);
   const [carouselIdx, setCarouselIdx] = useState(0);
+  const [imgRatios, setImgRatios] = useState<Record<string, number>>({});
   const openPostViewer = (p: IGPost) => { setOpenPost(p); setCarouselIdx(0); };
 
   return (
