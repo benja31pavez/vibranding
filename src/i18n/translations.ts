@@ -108,7 +108,7 @@ const es: Dict = {
   nav: { services: "Servicios", how: "Cómo funciona", about: "Nosotros", clients: "Clientes", contact: "Contacto", signIn: "Iniciar sesión" },
   hero: {
     badge: "Especialistas en Instagram y Meta Ads",
-    title1: "Hacemos que tu Marca ",
+    title1: "Hacemos que tu marca ",
     titleAccent: "vibre de verdad",
     titleEnd: ".",
     subtitle: "",
