@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { IdentityEditor, ConfigEditor, PostsEditor, HighlightsEditor } from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
@@ -11,9 +12,24 @@ export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
 
 function InstagramPage() {
   const { clientId } = Route.useParams();
-  const { ig, setProfile, setPosts, setHighlights, setComments } = useActiveClient();
+  const { client, ig, setProfile } = useActiveClient();
   const [view, setView] = useState<"current" | "proposed">("proposed");
   const profile = ig.profile;
+
+  // Prefill IG usernames from the client's saved handle
+  useEffect(() => {
+    if (!profile || !client?.instagram_handle) return;
+    const handle = client.instagram_handle.replace(/^@/, "").trim();
+    if (!handle) return;
+    const patch: Partial<typeof profile> = {};
+    if (!profile.current_username) patch.current_username = handle;
+    if (!profile.proposed_username) patch.proposed_username = handle;
+    if (Object.keys(patch).length === 0) return;
+    setProfile({ ...profile, ...patch });
+    supabase.from("instagram_profiles").update(patch).eq("client_id", clientId);
+  }, [client?.instagram_handle, profile?.id]);
+
+  const { setPosts, setHighlights, setComments } = useActiveClient();
 
   return (
     <div className="grid lg:grid-cols-[1fr_360px] gap-10">
