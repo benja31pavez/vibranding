@@ -2,7 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/l/$slug")({
+export const Route = createFileRoute("/@{$slug}/links")({
   loader: async ({ params }) => {
     const { data: ml } = await supabase
       .from("multilinks").select("*").eq("slug", params.slug).eq("published", true).maybeSingle();
