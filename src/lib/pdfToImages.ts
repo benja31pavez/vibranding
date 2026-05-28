@@ -1,16 +1,11 @@
 // Renders each page of a PDF to a JPEG File using pdfjs-dist.
 // Runs entirely in the browser.
-import * as pdfjsLib from "pdfjs-dist";
-import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
-let workerPort: Worker | null = null;
-
-const ensurePdfWorker = () => {
-  if (!workerPort) {
-    workerPort = new PdfWorker();
-    pdfjsLib.GlobalWorkerOptions.workerPort = workerPort;
-  }
-};
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString();
 
 export async function pdfToImageFiles(
   file: File,
@@ -19,7 +14,6 @@ export async function pdfToImageFiles(
   const scale = opts.scale ?? 2;
   const quality = opts.quality ?? 0.9;
   const baseName = (opts.baseName ?? file.name.replace(/\.pdf$/i, "")) || "page";
-  ensurePdfWorker();
 
   const buf = await file.arrayBuffer();
   if (!buf || buf.byteLength === 0) {
@@ -33,6 +27,7 @@ export async function pdfToImageFiles(
       useSystemFonts: true,
       disableAutoFetch: true,
       disableStream: true,
+      useWasm: false,
     } as any);
     pdf = await loadingTask.promise;
   } catch (e: any) {
