@@ -19,6 +19,8 @@ import { Route as DataDeletionRouteImport } from './routes/data-deletion'
 import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PSlugRouteImport } from './routes/p.$slug'
+import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as AppStatsRouteImport } from './routes/_app/stats'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppPortfolioRouteImport } from './routes/_app/portfolio'
@@ -37,7 +39,9 @@ import { Route as AppClientsClientIdIndexRouteImport } from './routes/_app/clien
 import { Route as ApiPublicMetaAdsDiscoverRouteImport } from './routes/api/public/meta-ads/discover'
 import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/clients/$clientId/payments'
 import { Route as AppClientsClientIdObjectivesRouteImport } from './routes/_app/clients/$clientId/objectives'
+import { Route as AppClientsClientIdMultilinkRouteImport } from './routes/_app/clients/$clientId/multilink'
 import { Route as AppClientsClientIdMetaAdsRouteImport } from './routes/_app/clients/$clientId/meta-ads'
+import { Route as AppClientsClientIdLandingRouteImport } from './routes/_app/clients/$clientId/landing'
 import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
 import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
 
@@ -88,6 +92,16 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PSlugRoute = PSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LSlugRoute = LSlugRouteImport.update({
+  id: '/l/$slug',
+  path: '/l/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppStatsRoute = AppStatsRouteImport.update({
@@ -184,10 +198,22 @@ const AppClientsClientIdObjectivesRoute =
     path: '/objectives',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdMultilinkRoute =
+  AppClientsClientIdMultilinkRouteImport.update({
+    id: '/multilink',
+    path: '/multilink',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdMetaAdsRoute =
   AppClientsClientIdMetaAdsRouteImport.update({
     id: '/meta-ads',
     path: '/meta-ads',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdLandingRoute =
+  AppClientsClientIdLandingRouteImport.update({
+    id: '/landing',
+    path: '/landing',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
 const AppClientsClientIdInstagramRoute =
@@ -218,6 +244,8 @@ export interface FileRoutesByFullPath {
   '/portfolio': typeof AppPortfolioRoute
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
+  '/l/$slug': typeof LSlugRoute
+  '/p/$slug': typeof PSlugRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -229,7 +257,9 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof AppClientsIndexRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
+  '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
   '/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
+  '/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/api/public/meta-ads/discover': typeof ApiPublicMetaAdsDiscoverRoute
@@ -250,6 +280,8 @@ export interface FileRoutesByTo {
   '/portfolio': typeof AppPortfolioRoute
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
+  '/l/$slug': typeof LSlugRoute
+  '/p/$slug': typeof PSlugRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
@@ -260,7 +292,9 @@ export interface FileRoutesByTo {
   '/clients': typeof AppClientsIndexRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
+  '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
   '/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
+  '/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/api/public/meta-ads/discover': typeof ApiPublicMetaAdsDiscoverRoute
@@ -283,6 +317,8 @@ export interface FileRoutesById {
   '/_app/portfolio': typeof AppPortfolioRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/stats': typeof AppStatsRoute
+  '/l/$slug': typeof LSlugRoute
+  '/p/$slug': typeof PSlugRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -294,7 +330,9 @@ export interface FileRoutesById {
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
+  '/_app/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
   '/_app/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
+  '/_app/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/_app/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/_app/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/api/public/meta-ads/discover': typeof ApiPublicMetaAdsDiscoverRoute
@@ -317,6 +355,8 @@ export interface FileRouteTypes {
     | '/portfolio'
     | '/reports'
     | '/stats'
+    | '/l/$slug'
+    | '/p/$slug'
     | '/clients/$clientId'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
@@ -328,7 +368,9 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/instagram'
+    | '/clients/$clientId/landing'
     | '/clients/$clientId/meta-ads'
+    | '/clients/$clientId/multilink'
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
     | '/api/public/meta-ads/discover'
@@ -349,6 +391,8 @@ export interface FileRouteTypes {
     | '/portfolio'
     | '/reports'
     | '/stats'
+    | '/l/$slug'
+    | '/p/$slug'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
     | '/api/meta-ads/create-campaign'
@@ -359,7 +403,9 @@ export interface FileRouteTypes {
     | '/clients'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/instagram'
+    | '/clients/$clientId/landing'
     | '/clients/$clientId/meta-ads'
+    | '/clients/$clientId/multilink'
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
     | '/api/public/meta-ads/discover'
@@ -381,6 +427,8 @@ export interface FileRouteTypes {
     | '/_app/portfolio'
     | '/_app/reports'
     | '/_app/stats'
+    | '/l/$slug'
+    | '/p/$slug'
     | '/_app/clients/$clientId'
     | '/_app/settings/pricing'
     | '/api/meta-ads/archive'
@@ -392,7 +440,9 @@ export interface FileRouteTypes {
     | '/_app/clients/'
     | '/_app/clients/$clientId/deliverables'
     | '/_app/clients/$clientId/instagram'
+    | '/_app/clients/$clientId/landing'
     | '/_app/clients/$clientId/meta-ads'
+    | '/_app/clients/$clientId/multilink'
     | '/_app/clients/$clientId/objectives'
     | '/_app/clients/$clientId/payments'
     | '/api/public/meta-ads/discover'
@@ -410,6 +460,8 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  LSlugRoute: typeof LSlugRoute
+  PSlugRoute: typeof PSlugRoute
   ApiMetaAdsArchiveRoute: typeof ApiMetaAdsArchiveRoute
   ApiMetaAdsCreateCampaignRoute: typeof ApiMetaAdsCreateCampaignRoute
   ApiMetaAdsDiscoverRoute: typeof ApiMetaAdsDiscoverRoute
@@ -489,6 +541,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$slug': {
+      id: '/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/p/$slug'
+      preLoaderRoute: typeof PSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/l/$slug': {
+      id: '/l/$slug'
+      path: '/l/$slug'
+      fullPath: '/l/$slug'
+      preLoaderRoute: typeof LSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/stats': {
@@ -617,11 +683,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdObjectivesRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/multilink': {
+      id: '/_app/clients/$clientId/multilink'
+      path: '/multilink'
+      fullPath: '/clients/$clientId/multilink'
+      preLoaderRoute: typeof AppClientsClientIdMultilinkRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/meta-ads': {
       id: '/_app/clients/$clientId/meta-ads'
       path: '/meta-ads'
       fullPath: '/clients/$clientId/meta-ads'
       preLoaderRoute: typeof AppClientsClientIdMetaAdsRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/landing': {
+      id: '/_app/clients/$clientId/landing'
+      path: '/landing'
+      fullPath: '/clients/$clientId/landing'
+      preLoaderRoute: typeof AppClientsClientIdLandingRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
     '/_app/clients/$clientId/instagram': {
@@ -644,7 +724,9 @@ declare module '@tanstack/react-router' {
 interface AppClientsClientIdRouteChildren {
   AppClientsClientIdDeliverablesRoute: typeof AppClientsClientIdDeliverablesRoute
   AppClientsClientIdInstagramRoute: typeof AppClientsClientIdInstagramRoute
+  AppClientsClientIdLandingRoute: typeof AppClientsClientIdLandingRoute
   AppClientsClientIdMetaAdsRoute: typeof AppClientsClientIdMetaAdsRoute
+  AppClientsClientIdMultilinkRoute: typeof AppClientsClientIdMultilinkRoute
   AppClientsClientIdObjectivesRoute: typeof AppClientsClientIdObjectivesRoute
   AppClientsClientIdPaymentsRoute: typeof AppClientsClientIdPaymentsRoute
   AppClientsClientIdIndexRoute: typeof AppClientsClientIdIndexRoute
@@ -653,7 +735,9 @@ interface AppClientsClientIdRouteChildren {
 const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdDeliverablesRoute: AppClientsClientIdDeliverablesRoute,
   AppClientsClientIdInstagramRoute: AppClientsClientIdInstagramRoute,
+  AppClientsClientIdLandingRoute: AppClientsClientIdLandingRoute,
   AppClientsClientIdMetaAdsRoute: AppClientsClientIdMetaAdsRoute,
+  AppClientsClientIdMultilinkRoute: AppClientsClientIdMultilinkRoute,
   AppClientsClientIdObjectivesRoute: AppClientsClientIdObjectivesRoute,
   AppClientsClientIdPaymentsRoute: AppClientsClientIdPaymentsRoute,
   AppClientsClientIdIndexRoute: AppClientsClientIdIndexRoute,
@@ -697,6 +781,8 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  LSlugRoute: LSlugRoute,
+  PSlugRoute: PSlugRoute,
   ApiMetaAdsArchiveRoute: ApiMetaAdsArchiveRoute,
   ApiMetaAdsCreateCampaignRoute: ApiMetaAdsCreateCampaignRoute,
   ApiMetaAdsDiscoverRoute: ApiMetaAdsDiscoverRoute,
