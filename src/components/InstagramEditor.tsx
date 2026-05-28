@@ -1222,10 +1222,10 @@ function CarouselImages({
     return uploaded;
   };
 
-  const handleImages = async (files: FileList) => {
+  const handleImages = async (files: File[]) => {
     setUploading(true);
     try {
-      const uploaded = await uploadFiles(Array.from(files));
+      const uploaded = await uploadFiles(files);
       onChange([...urls, ...uploaded]);
     } catch (e: any) {
       toast.error(e.message ?? "Error al subir");
@@ -1235,12 +1235,12 @@ function CarouselImages({
     }
   };
 
-  const handlePdfs = async (files: FileList) => {
+  const handlePdfs = async (files: File[]) => {
     setUploading(true);
     try {
       const { pdfToImageFiles } = await import("@/lib/pdfToImages");
       const allImages: File[] = [];
-      for (const f of Array.from(files)) {
+      for (const f of files) {
         setProgress(`Convirtiendo ${f.name}…`);
         const pages = await pdfToImageFiles(f);
         allImages.push(...pages);
@@ -1316,7 +1316,8 @@ function CarouselImages({
         multiple
         className="hidden"
         onChange={(e) => {
-          if (e.target.files?.length) handleImages(e.target.files);
+          const files = Array.from(e.target.files ?? []);
+          if (files.length) handleImages(files);
           e.target.value = "";
         }}
       />
@@ -1327,7 +1328,8 @@ function CarouselImages({
         multiple
         className="hidden"
         onChange={(e) => {
-          if (e.target.files?.length) handlePdfs(e.target.files);
+          const files = Array.from(e.target.files ?? []);
+          if (files.length) handlePdfs(files);
           e.target.value = "";
         }}
       />
