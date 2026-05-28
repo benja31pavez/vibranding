@@ -1,7 +1,11 @@
 // Renders each page of a PDF to a JPEG File using pdfjs-dist.
 // Runs entirely in the browser.
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
-import type { DocumentInitParameters, PDFDocumentProxy, RenderParameters } from "pdfjs-dist/types/src/display/api";
+import type {
+  DocumentInitParameters,
+  PDFDocumentProxy,
+  RenderParameters,
+} from "pdfjs-dist/types/src/display/api";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
