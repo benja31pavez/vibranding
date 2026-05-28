@@ -1,11 +1,9 @@
 // Renders each page of a PDF to a JPEG File using pdfjs-dist.
 // Runs entirely in the browser.
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
 export async function pdfToImageFiles(
   file: File,
@@ -16,18 +14,24 @@ export async function pdfToImageFiles(
   const baseName = (opts.baseName ?? file.name.replace(/\.pdf$/i, "")) || "page";
 
   const buf = await file.arrayBuffer();
-  if (!buf || buf.byteLength === 0) {
+  const bytes = new Uint8Array(buf);
+  if (bytes.byteLength === 0) {
     throw new Error("El archivo PDF está vacío");
+  }
+  const header = new TextDecoder("ascii").decode(bytes.slice(0, 8));
+  if (!header.includes("%PDF")) {
+    throw new Error("El archivo seleccionado no parece ser un PDF válido");
   }
 
   let pdf: any;
   try {
     const loadingTask = pdfjsLib.getDocument({
-      data: buf,
+      data: bytes,
       useSystemFonts: true,
       disableAutoFetch: true,
       disableStream: true,
       useWasm: false,
+      isOffscreenCanvasSupported: false,
     } as any);
     pdf = await loadingTask.promise;
   } catch (e: any) {
