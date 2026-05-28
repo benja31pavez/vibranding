@@ -319,6 +319,18 @@ export function ConfigEditor({
         </div>
       )}
 
+      <div className="space-y-1.5">
+        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Descripción del perfil</Label>
+        <Textarea
+          rows={3}
+          placeholder="Bio que aparece bajo la categoría"
+          value={(profile[`${side}_bio` as keyof IGProfile] as string) ?? ""}
+          onChange={(e) => set({ [`${side}_bio`]: e.target.value } as any)}
+          onBlur={(e) => save({ [`${side}_bio`]: e.target.value || null } as any)}
+          className="text-xs"
+        />
+      </div>
+
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"
