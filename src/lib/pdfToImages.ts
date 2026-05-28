@@ -23,10 +23,8 @@ export async function pdfToImageFiles(
   try {
     const loadingTask = pdfjsLib.getDocument({
       data: new Uint8Array(buf),
-      // Disable features that often trip on minimal/legal PDFs.
-      isEvalSupported: false,
       useSystemFonts: true,
-    });
+    } as any);
     pdf = await loadingTask.promise;
   } catch (e: any) {
     console.error("[pdfToImages] getDocument failed", e);
