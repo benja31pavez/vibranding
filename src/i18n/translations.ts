@@ -108,10 +108,10 @@ const es: Dict = {
   nav: { services: "Servicios", how: "Cómo funciona", about: "Nosotros", clients: "Clientes", contact: "Contacto", signIn: "Iniciar sesión" },
   hero: {
     badge: "Especialistas en Instagram y Meta Ads",
-    title1: "Hacemos que tu Branding ",
+    title1: "Hacemos que tu Marca ",
     titleAccent: "vibre de verdad",
     titleEnd: ".",
-    subtitle: "Campañas publicitarias: creatividades, segmentación, presupuesto y optimización.",
+    subtitle: "",
     ctaPrimary: "Hablemos de tu marca",
     ctaSecondary: "Ver servicios",
   },
