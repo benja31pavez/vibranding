@@ -708,7 +708,7 @@ export function PostsEditor({
               <th className="text-left px-2 py-2 w-20">Engagement</th>
               <th className="text-left px-2 py-2 w-44">Objetivo</th>
               <th className="text-left px-2 py-2 w-10"></th>
-              <th className="text-left px-2 py-2 w-10"></th>
+
             </tr>
           </thead>
           <tbody>
