@@ -7,7 +7,7 @@ let workerPort: Worker | null = null;
 
 const ensurePdfWorker = () => {
   if (!workerPort) {
-    workerPort = new PdfWorker({ type: "module" });
+    workerPort = new PdfWorker();
     pdfjsLib.GlobalWorkerOptions.workerPort = workerPort;
   }
 };
