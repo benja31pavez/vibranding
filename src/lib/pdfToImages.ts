@@ -1,13 +1,14 @@
 // Renders each page of a PDF to a JPEG File using pdfjs-dist.
 // Runs entirely in the browser.
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import type { DocumentInitParameters, PDFDocumentProxy, RenderParameters } from "pdfjs-dist/types/src/display/api";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
 export async function pdfToImageFiles(
   file: File,
-  opts: { scale?: number; quality?: number; baseName?: string } = {}
+  opts: { scale?: number; quality?: number; baseName?: string } = {},
 ): Promise<File[]> {
   const scale = opts.scale ?? 2;
   const quality = opts.quality ?? 0.9;
@@ -23,7 +24,7 @@ export async function pdfToImageFiles(
     throw new Error("El archivo seleccionado no parece ser un PDF válido");
   }
 
-  let pdf: any;
+  let pdf: PDFDocumentProxy;
   try {
     const loadingTask = pdfjsLib.getDocument({
       data: bytes,
@@ -32,15 +33,15 @@ export async function pdfToImageFiles(
       disableStream: true,
       useWasm: false,
       isOffscreenCanvasSupported: false,
-    } as any);
+    } satisfies DocumentInitParameters);
     pdf = await loadingTask.promise;
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("[pdfToImages] getDocument failed", e);
-    throw new Error(`No se pudo leer el PDF: ${e?.message ?? e}`);
+    throw new Error(`No se pudo leer el PDF: ${messageFromError(e)}`);
   }
 
   const numPages = pdf?.numPages ?? 0;
-  console.log("[pdfToImages]", file.name, "size=", buf.byteLength, "numPages=", numPages);
+  console.log("[pdfToImages]", file.name, "size=", bytes.byteLength, "numPages=", numPages);
   if (!numPages || numPages < 1) {
     throw new Error("El PDF no contiene páginas legibles");
   }
@@ -57,24 +58,29 @@ export async function pdfToImageFiles(
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     try {
-      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
-    } catch (e: any) {
+      const renderParams: RenderParameters = { canvas, canvasContext: ctx, viewport };
+      await page.render(renderParams).promise;
+    } catch (e: unknown) {
       console.error(`[pdfToImages] render page ${i} failed`, e);
-      throw new Error(`Error al renderizar página ${i}: ${e?.message ?? e}`);
+      throw new Error(`Error al renderizar página ${i}: ${messageFromError(e)}`);
     }
 
     const blob: Blob = await new Promise((resolve, reject) =>
       canvas.toBlob(
         (b) => (b ? resolve(b) : reject(new Error("toBlob falló"))),
         "image/jpeg",
-        quality
-      )
+        quality,
+      ),
     );
     files.push(
       new File([blob], `${baseName}-${String(i).padStart(2, "0")}.jpg`, {
         type: "image/jpeg",
-      })
+      }),
     );
   }
   return files;
+}
+
+function messageFromError(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
 }
