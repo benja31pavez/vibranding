@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
 
 function InstagramPage() {
   const { clientId } = Route.useParams();
-  const { client, ig, setProfile } = useActiveClient();
+  const { client, ig, setProfile, setPosts, setHighlights, setComments } = useActiveClient();
   const [view, setView] = useState<"current" | "proposed">("proposed");
   const profile = ig.profile;
 
@@ -27,9 +27,8 @@ function InstagramPage() {
     if (Object.keys(patch).length === 0) return;
     setProfile({ ...profile, ...patch });
     supabase.from("instagram_profiles").update(patch).eq("client_id", clientId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client?.instagram_handle, profile?.id]);
-
-  const { setPosts, setHighlights, setComments } = useActiveClient();
 
   return (
     <div className="grid lg:grid-cols-[1fr_360px] gap-10">
