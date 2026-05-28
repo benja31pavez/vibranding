@@ -1058,77 +1058,122 @@ export function PostsEditor({
                   </td>
                   <td className="px-2 py-2">
                     {(() => {
-                      const OBJECTIVES = [
-                        "Publicación colaborativa",
-                        "Generar leads",
-                        "Para hacer anuncios",
-                        "Generar conversación",
-                        "Que me escriban por DM",
-                        "Que lo compartan",
-                        "Que lo guarden",
-                        "Educar",
-                        "Mostrar producto",
-                        "Generar interacción",
-                        "Aumentar alcance",
-                        "Construir comunidad",
-                        "Posicionar marca",
-                        "Vender",
-                        "Entretener",
-                        "Inspirar",
-                        "Crear reconocimiento",
-                        "Behind the scenes",
-                        "Promocionar oferta",
-                        "Anunciar evento",
-                        "Recopilar opiniones",
-                        "Dirigir tráfico web",
-                        "Destacar testimonios",
-                        "Presentar equipo",
-                        "Repost de cliente",
-                        "Tendencia o meme",
-                        "Lanzar producto",
-                        "FOMO o escasez",
-                        "Contar historia de marca",
-                        "Comparativa o vs",
-                        "Hacer unboxing",
-                        "Tutorial o how-to",
-                        "Mitos vs realidades",
-                        "Preguntas frecuentes",
-                        "Día de la vida",
-                        "Antes y después",
-                        "Top productos",
-                        "Sorteo o giveaway",
-                        "Agradecimiento a clientes",
-                        "Expectativa vs realidad",
-                        "Hacer un reel viral",
-                        "Carrusel educativo",
-                        "Abrir debate",
-                        "Noticia de la industria",
-                        "Consejo rápido",
-                        "Frase o reflexión",
-                        "Cita de autoridad",
-                        "Revelar un secreto",
-                        "Proceso de creación",
-                        "Errores comunes",
-                        "Historias de fracaso",
-                        "Celebrar un logro",
-                        "Reto o desafío",
-                        "Encuesta o dinámica",
-                        "Reacción a comentario",
-                        "Mini serie",
-                        "Spoiler de novedad",
-                        "Nostalgia",
-                        "Humor de la industria",
-                        "Revelar datos curiosos",
-                        "Activismo o causas",
-                        "Recomendación de libro o podcast",
-                        "Refutar mito",
-                        "Caso de éxito",
-                        "Transformación",
-                        "Expectativa vs resultado",
-                        "Hacer una lista",
-                        "Desmitificar precios",
-                        "Explicar el proceso",
-                        "Reaccionar a tendencia",
+                      const OBJECTIVE_GROUPS: { category: string; items: string[] }[] = [
+                        {
+                          category: "Venta",
+                          items: [
+                            "Vender",
+                            "Promocionar oferta",
+                            "Para hacer anuncios",
+                            "Lanzar producto",
+                            "Mostrar producto",
+                            "Top productos",
+                            "FOMO o escasez",
+                            "Desmitificar precios",
+                          ],
+                        },
+                        {
+                          category: "Leads y tráfico",
+                          items: [
+                            "Generar leads",
+                            "Dirigir tráfico web",
+                            "Que me escriban por DM",
+                            "Sorteo o giveaway",
+                          ],
+                        },
+                        {
+                          category: "Comunidad e interacción",
+                          items: [
+                            "Generar conversación",
+                            "Generar interacción",
+                            "Construir comunidad",
+                            "Abrir debate",
+                            "Encuesta o dinámica",
+                            "Reacción a comentario",
+                            "Reto o desafío",
+                            "Que lo compartan",
+                            "Que lo guarden",
+                          ],
+                        },
+                        {
+                          category: "Alcance y viralidad",
+                          items: [
+                            "Aumentar alcance",
+                            "Hacer un reel viral",
+                            "Tendencia o meme",
+                            "Reaccionar a tendencia",
+                            "Publicación colaborativa",
+                            "Humor de la industria",
+                            "Nostalgia",
+                          ],
+                        },
+                        {
+                          category: "Educación y valor",
+                          items: [
+                            "Educar",
+                            "Tutorial o how-to",
+                            "Carrusel educativo",
+                            "Consejo rápido",
+                            "Explicar el proceso",
+                            "Preguntas frecuentes",
+                            "Mitos vs realidades",
+                            "Refutar mito",
+                            "Errores comunes",
+                            "Hacer una lista",
+                            "Revelar datos curiosos",
+                            "Revelar un secreto",
+                            "Recomendación de libro o podcast",
+                            "Noticia de la industria",
+                          ],
+                        },
+                        {
+                          category: "Marca y posicionamiento",
+                          items: [
+                            "Posicionar marca",
+                            "Crear reconocimiento",
+                            "Contar historia de marca",
+                            "Cita de autoridad",
+                            "Activismo o causas",
+                            "Inspirar",
+                            "Frase o reflexión",
+                          ],
+                        },
+                        {
+                          category: "Detrás de cámaras",
+                          items: [
+                            "Behind the scenes",
+                            "Presentar equipo",
+                            "Proceso de creación",
+                            "Día de la vida",
+                            "Spoiler de novedad",
+                          ],
+                        },
+                        {
+                          category: "Prueba social",
+                          items: [
+                            "Destacar testimonios",
+                            "Repost de cliente",
+                            "Caso de éxito",
+                            "Agradecimiento a clientes",
+                            "Celebrar un logro",
+                            "Recopilar opiniones",
+                            "Antes y después",
+                            "Transformación",
+                            "Expectativa vs realidad",
+                            "Expectativa vs resultado",
+                            "Comparativa o vs",
+                            "Hacer unboxing",
+                            "Historias de fracaso",
+                          ],
+                        },
+                        {
+                          category: "Entretenimiento",
+                          items: [
+                            "Entretener",
+                            "Anunciar evento",
+                            "Mini serie",
+                          ],
+                        },
                       ];
                       const selected = (p.objective ?? "")
                         .split(",")
@@ -1159,25 +1204,35 @@ export function PostsEditor({
                             <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
                               Objetivos de la publicación
                             </Label>
-                            <div className="mt-2 space-y-1.5">
-                              {OBJECTIVES.map((opt) => {
-                                const checked = selected.includes(opt);
-                                return (
-                                  <label
-                                    key={opt}
-                                    className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1.5 py-1"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={checked}
-                                      onChange={() => toggle(opt)}
-                                      className="accent-primary"
-                                    />
-                                    <span>{opt}</span>
-                                  </label>
-                                );
-                              })}
+                            <div className="mt-2 space-y-3">
+                              {OBJECTIVE_GROUPS.map((group) => (
+                                <div key={group.category}>
+                                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 px-1.5 mb-1 border-b pb-1">
+                                    {group.category}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {group.items.map((opt) => {
+                                      const checked = selected.includes(opt);
+                                      return (
+                                        <label
+                                          key={opt}
+                                          className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1.5 py-1"
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => toggle(opt)}
+                                            className="accent-primary"
+                                          />
+                                          <span>{opt}</span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
+
                           </PopoverContent>
                         </Popover>
                       );
