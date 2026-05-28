@@ -303,19 +303,35 @@ export function ConfigEditor({
 
       {profile[accountTypeKey] === "business" && (
         <div className="space-y-1.5">
-          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Categoría</Label>
-          <select
-            className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-            value={(profile[categoryKey] as string) ?? ""}
-            onChange={(e) => {
-              const v = e.target.value || null;
-              set({ [categoryKey]: v } as any);
-              save({ [categoryKey]: v } as any);
-            }}
-          >
-            <option value="">— Sin categoría —</option>
-            {IG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={profile[categoryKey] !== null}
+              onChange={(e) => {
+                const v = e.target.checked ? "" : null;
+                set({ [categoryKey]: v } as any);
+                save({ [categoryKey]: v } as any);
+              }}
+            />
+            Mostrar categoría
+          </label>
+          {profile[categoryKey] !== null && (
+            <>
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Categoría</Label>
+              <select
+                className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                value={(profile[categoryKey] as string) ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  set({ [categoryKey]: v } as any);
+                  save({ [categoryKey]: v } as any);
+                }}
+              >
+                <option value="">— Selecciona —</option>
+                {IG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </>
+          )}
         </div>
       )}
 
