@@ -1,10 +1,11 @@
 // Renders each page of a PDF to a JPEG File using pdfjs-dist.
 // Runs entirely in the browser.
-import * as pdfjsLib from "pdfjs-dist";
-// Vite-native worker URL import (?url returns a hashed asset URL at build time).
-import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString();
 
 export async function pdfToImageFiles(
   file: File,
@@ -22,8 +23,11 @@ export async function pdfToImageFiles(
   let pdf: any;
   try {
     const loadingTask = pdfjsLib.getDocument({
-      data: new Uint8Array(buf),
+      data: buf,
       useSystemFonts: true,
+      disableAutoFetch: true,
+      disableStream: true,
+      useWasm: false,
     } as any);
     pdf = await loadingTask.promise;
   } catch (e: any) {
