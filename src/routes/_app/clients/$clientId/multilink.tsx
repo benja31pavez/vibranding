@@ -47,14 +47,18 @@ function MultilinkPage() {
   const { client } = useActiveClient();
   const [ml, setMl] = useState<Multilink | null>(null);
   const [items, setItems] = useState<Item[]>([]);
+  const [igProfile, setIgProfile] = useState<IGProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const { data: m } = await supabase
-      .from("multilinks").select("*").eq("client_id", clientId).maybeSingle();
+    const [{ data: m }, { data: ig }] = await Promise.all([
+      supabase.from("multilinks").select("*").eq("client_id", clientId).maybeSingle(),
+      supabase.from("instagram_profiles").select("*").eq("client_id", clientId).maybeSingle(),
+    ]);
     setMl(m as Multilink | null);
+    setIgProfile((ig ?? null) as IGProfile | null);
     if (m) {
       const { data: it } = await supabase
         .from("multilink_items").select("*")
@@ -65,6 +69,9 @@ function MultilinkPage() {
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [clientId]);
+
+  const defaultAvatarUrl = igProfile?.proposed_avatar_url ?? igProfile?.current_avatar_url ?? null;
+  const effectiveAvatarUrl = ml?.avatar_url ?? defaultAvatarUrl;
 
   const createMultilink = async () => {
     if (!client) return;
