@@ -143,7 +143,7 @@ export function IphonePreview({
               </div>
             </div>
 
-            <div className="mt-3 text-black text-[12px] leading-snug space-y-0.5">
+            <div className="mt-3 text-black text-[11px] leading-snug space-y-0.5">
 
               {accountType === "business" && category && (
                 <p className="text-[11px] text-zinc-600">{category}</p>
