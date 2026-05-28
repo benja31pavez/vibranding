@@ -535,9 +535,9 @@ export function IphonePreview({
 
           <div className="absolute bottom-0 left-0 right-0 z-20 bg-white border-t border-zinc-200 pt-2 pb-4 px-4 flex items-center justify-between text-black">
             <House className="w-5 h-5" strokeWidth={1.75} />
-            <Search className="w-5 h-5" strokeWidth={1.75} />
             <PlaySquare className="w-5 h-5" strokeWidth={1.75} />
             <Send className="w-5 h-5" strokeWidth={1.75} />
+            <Search className="w-5 h-5" strokeWidth={1.75} />
             {avatar ? (
               <img src={avatar} alt="" className="w-6 h-6 rounded-full object-cover ring-1 ring-black" />
             ) : (
