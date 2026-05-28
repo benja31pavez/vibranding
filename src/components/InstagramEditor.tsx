@@ -361,16 +361,63 @@ export function ConfigEditor({
         />
       </div>
 
-      <div className="space-y-1.5">
-        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Enlace</Label>
-        <Input
-          placeholder="https://..."
-          value={(profile[`${side}_link` as keyof IGProfile] as string) ?? ""}
-          onChange={(e) => set({ [`${side}_link`]: e.target.value } as any)}
-          onBlur={(e) => save({ [`${side}_link`]: e.target.value || null } as any)}
-          className="h-8 text-xs"
-        />
-      </div>
+      {(() => {
+        const linkKey = `${side}_link` as keyof IGProfile;
+        const raw = (profile[linkKey] as string) ?? "";
+        const links = raw ? raw.split("\n") : [""];
+        while (links.length < 1) links.push("");
+        const commit = (arr: string[]) => {
+          const cleaned = arr.map((s) => s.trim()).filter(Boolean);
+          const v = cleaned.length ? cleaned.join("\n") : null;
+          set({ [linkKey]: v } as any);
+          save({ [linkKey]: v } as any);
+        };
+        const updateAt = (i: number, val: string) => {
+          const next = [...links];
+          next[i] = val;
+          set({ [linkKey]: next.join("\n") } as any);
+        };
+        return (
+          <div className="space-y-1.5">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Enlaces ({links.filter(Boolean).length}/5)
+            </Label>
+            {links.map((l, i) => (
+              <div key={i} className="flex items-center gap-1">
+                <Input
+                  placeholder="https://..."
+                  value={l}
+                  onChange={(e) => updateAt(i, e.target.value)}
+                  onBlur={() => commit(links)}
+                  className="h-8 text-xs"
+                />
+                {links.length > 1 && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => commit(links.filter((_, idx) => idx !== i))}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            {links.length < 5 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => commit([...links, ""])}
+              >
+                <Plus className="w-3 h-3 mr-1" /> Agregar enlace
+              </Button>
+            )}
+          </div>
+        );
+      })()}
 
       <label className="flex items-center gap-2 text-sm">
         <input
