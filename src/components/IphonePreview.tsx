@@ -420,8 +420,31 @@ export function IphonePreview({
                       )}
                     </div>
                   </div>
-                  <div className="relative bg-black" style={{ aspectRatio: isReel ? "9/16" : "1/1" }}>
-                    {mainSrc && <img src={mainSrc} className="w-full h-full object-cover" alt="" />}
+                  <div
+                    className="relative bg-black"
+                    style={{
+                      aspectRatio: isReel
+                        ? "9/16"
+                        : (mainSrc && imgRatios[mainSrc]
+                            ? String(Math.min(1.91, Math.max(0.8, imgRatios[mainSrc])))
+                            : "1/1"),
+                    }}
+                  >
+                    {mainSrc && (
+                      <img
+                        src={mainSrc}
+                        className="w-full h-full object-cover"
+                        alt=""
+                        onLoad={(e) => {
+                          const el = e.currentTarget;
+                          if (el.naturalWidth && el.naturalHeight) {
+                            setImgRatios((r) =>
+                              r[mainSrc] ? r : { ...r, [mainSrc]: el.naturalWidth / el.naturalHeight }
+                            );
+                          }
+                        }}
+                      />
+                    )}
                     {isReel && (
                       <div className="absolute inset-0 flex items-center justify-center text-white/90 pointer-events-none">
                         <Play className="w-10 h-10" fill="currentColor" />
