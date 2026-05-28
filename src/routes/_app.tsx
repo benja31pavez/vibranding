@@ -164,6 +164,12 @@ function AppLayout() {
                     <Link to="/clients/$clientId/payments" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/payments`)}>
                       <Wallet className="w-4 h-4 shrink-0" /> Pagos
                     </Link>
+                    <Link to="/clients/$clientId/multilink" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/multilink`)}>
+                      <Link2 className="w-4 h-4 shrink-0" /> Multienlace
+                    </Link>
+                    <Link to="/clients/$clientId/landing" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/landing`)}>
+                      <Globe className="w-4 h-4 shrink-0" /> Landing page
+                    </Link>
                   </div>
                 </>
               ) : (
