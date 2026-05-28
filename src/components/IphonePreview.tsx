@@ -149,12 +149,18 @@ export function IphonePreview({
                 <p className="text-[11px] text-zinc-600">{category}</p>
               )}
               {bio && <p className="whitespace-pre-line">{bio}</p>}
-              {link && (
-                <a className="text-[#00376b] font-medium inline-flex items-center gap-1" href="#">
-                  <LinkIcon className="w-3 h-3" />
-                  <span>{link.replace(/^https?:\/\//, "")}</span>
-                </a>
-              )}
+              {link && (() => {
+                const links = link.split("\n").map((s) => s.trim()).filter(Boolean);
+                if (!links.length) return null;
+                const first = links[0].replace(/^https?:\/\//, "");
+                const extra = links.length - 1;
+                return (
+                  <a className="text-[#00376b] font-medium inline-flex items-center gap-1" href="#">
+                    <LinkIcon className="w-3 h-3" />
+                    <span>{first}{extra > 0 ? ` y ${extra} más` : ""}</span>
+                  </a>
+                );
+              })()}
               {((threadsEnabled && threadsHandle) || (songEnabled && song)) && (
                 <div className="flex items-center gap-3 text-[11px] text-zinc-700 flex-wrap">
                   {threadsEnabled && threadsHandle && (
