@@ -1,12 +1,10 @@
 // Renders each page of a PDF to a JPEG File using pdfjs-dist.
 // Runs entirely in the browser.
 import * as pdfjsLib from "pdfjs-dist";
+// Vite-native worker URL import (?url returns a hashed asset URL at build time).
+import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-// Use Vite's recommended worker URL pattern (works with pdfjs-dist v5).
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
 export async function pdfToImageFiles(
   file: File,
@@ -17,16 +15,26 @@ export async function pdfToImageFiles(
   const baseName = (opts.baseName ?? file.name.replace(/\.pdf$/i, "")) || "page";
 
   const buf = await file.arrayBuffer();
-  let pdf;
+  if (!buf || buf.byteLength === 0) {
+    throw new Error("El archivo PDF está vacío");
+  }
+
+  let pdf: any;
   try {
-    pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+    const loadingTask = pdfjsLib.getDocument({
+      data: new Uint8Array(buf),
+      // Disable features that often trip on minimal/legal PDFs.
+      isEvalSupported: false,
+      useSystemFonts: true,
+    });
+    pdf = await loadingTask.promise;
   } catch (e: any) {
     console.error("[pdfToImages] getDocument failed", e);
     throw new Error(`No se pudo leer el PDF: ${e?.message ?? e}`);
   }
 
-  const numPages = pdf.numPages ?? 0;
-  console.log("[pdfToImages]", file.name, "numPages=", numPages);
+  const numPages = pdf?.numPages ?? 0;
+  console.log("[pdfToImages]", file.name, "size=", buf.byteLength, "numPages=", numPages);
   if (!numPages || numPages < 1) {
     throw new Error("El PDF no contiene páginas legibles");
   }
@@ -43,7 +51,6 @@ export async function pdfToImageFiles(
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     try {
-      // pdfjs v5 accepts { canvasContext, viewport } (canvas optional)
       await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
     } catch (e: any) {
       console.error(`[pdfToImages] render page ${i} failed`, e);
