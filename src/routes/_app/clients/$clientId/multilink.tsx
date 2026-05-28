@@ -77,10 +77,12 @@ function MultilinkPage() {
     if (!client) return;
     const base = client.instagram_handle || slugify(client.name);
     const slug = await uniqueSlug("multilinks", base);
+    const igAvatar = igProfile?.proposed_avatar_url ?? igProfile?.current_avatar_url ?? null;
     const { data, error } = await supabase.from("multilinks").insert({
       client_id: clientId,
       slug,
       title: client.name,
+      avatar_url: igAvatar,
     }).select("*").single();
     if (error) { toast.error(error.message); return; }
     setMl(data as Multilink);
