@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
 import { Plus, Trash2, ExternalLink, Copy, Eye, GripVertical, Link2 } from "lucide-react";
+import type { IGProfile } from "@/components/InstagramEditor";
 
 export const Route = createFileRoute("/_app/clients/$clientId/multilink")({
   component: MultilinkPage,
