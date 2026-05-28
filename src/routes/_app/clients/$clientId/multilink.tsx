@@ -295,29 +295,39 @@ function MultilinkPage() {
 
         {/* Preview */}
         <div className="md:sticky md:top-20 h-fit">
-          <div className="text-xs text-muted-foreground mb-2">Vista previa</div>
-          <div
-            className="rounded-3xl border p-6 min-h-[480px]"
-            style={{
-              background: ml.theme_mode === "dark" ? "#111" : "#fafafa",
-              color: ml.theme_mode === "dark" ? "#fafafa" : "#111",
-            }}
-          >
-            <div className="text-center">
-              <div className="w-20 h-20 rounded-full bg-black/10 mx-auto overflow-hidden grid place-items-center text-2xl font-semibold">
-                {ml.avatar_url ? <img src={ml.avatar_url} alt="" className="w-full h-full object-cover" /> : (ml.title[0] || "?")}
-              </div>
-              <h2 className="mt-3 font-semibold text-lg">{ml.title || "Título"}</h2>
-              {ml.bio && <p className="mt-1 text-sm opacity-80 whitespace-pre-line">{ml.bio}</p>}
-            </div>
-            <div className="mt-6 space-y-3">
-              {items.filter(i => i.is_active).map(i => (
-                <div key={i.id}
-                  className="rounded-xl py-3 px-4 text-center text-sm font-medium"
-                  style={{ background: ml.theme_color, color: "#fff" }}>
-                  {i.title || "Enlace"}
+          <div className="text-xs text-muted-foreground mb-2 text-center">Vista previa</div>
+          <div className="mx-auto" style={{ width: 320 }}>
+            <div className="relative rounded-[3rem] bg-black p-2 shadow-2xl">
+              <div
+                className="relative rounded-[2.5rem] overflow-hidden"
+                style={{
+                  aspectRatio: "9/19.5",
+                  background: ml.theme_mode === "dark" ? "#0a0a0a" : "#fafafa",
+                  color: ml.theme_mode === "dark" ? "#fafafa" : "#0a0a0a",
+                }}
+              >
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-30" />
+                <div className="absolute inset-0 flex flex-col pt-10 px-5 pb-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="text-center">
+                    <div className="w-20 h-20 rounded-full bg-black/10 mx-auto overflow-hidden grid place-items-center text-2xl font-semibold">
+                      {ml.avatar_url
+                        ? <img src={ml.avatar_url} alt="" className="w-full h-full object-cover" />
+                        : (ml.title[0] || "?")}
+                    </div>
+                    <h2 className="mt-3 font-semibold text-lg">{ml.title || "Título"}</h2>
+                    {ml.bio && <p className="mt-1 text-sm opacity-80 whitespace-pre-line">{ml.bio}</p>}
+                  </div>
+                  <div className="mt-6 space-y-3">
+                    {items.filter(i => i.is_active).map(i => (
+                      <div key={i.id}
+                        className="rounded-xl py-3 px-4 text-center text-sm font-medium"
+                        style={{ background: ml.theme_color, color: "#fff" }}>
+                        {i.title || "Enlace"}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </div>
