@@ -1057,33 +1057,75 @@ export function PostsEditor({
                     })()}
                   </td>
                   <td className="px-2 py-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className="w-full text-left text-xs px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] line-clamp-2 whitespace-pre-wrap break-words"
-                          title={p.objective ?? "Definir objetivo"}
-                        >
-                          {p.objective?.trim() ? p.objective : (
-                            <span className="text-muted-foreground">Objetivo…</span>
-                          )}
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80" align="start">
-                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          Objetivo de la publicación
-                        </Label>
-                        <Textarea
-                          autoFocus
-                          placeholder="Ej: Generar interacción, captar leads, mostrar producto…"
-                          value={p.objective ?? ""}
-                          rows={4}
-                          onChange={(e) => setLocal(p.id, { objective: e.target.value })}
-                          onBlur={(e) => saveRemote(p.id, { objective: e.target.value || null })}
-                          className="text-sm mt-1"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    {(() => {
+                      const OBJECTIVES = [
+                        "Publicación colaborativa",
+                        "Generar leads",
+                        "Para hacer anuncios",
+                        "Generar conversación",
+                        "Que me escriban por DM",
+                        "Que lo compartan",
+                        "Que lo guarden",
+                        "Educar",
+                        "Mostrar producto",
+                        "Generar interacción",
+                        "Aumentar alcance",
+                        "Construir comunidad",
+                        "Posicionar marca",
+                        "Vender",
+                      ];
+                      const selected = (p.objective ?? "")
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean);
+                      const toggle = (opt: string) => {
+                        const next = selected.includes(opt)
+                          ? selected.filter((s) => s !== opt)
+                          : [...selected, opt];
+                        const value = next.join(", ");
+                        setLocal(p.id, { objective: value });
+                        saveRemote(p.id, { objective: value || null });
+                      };
+                      return (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className="w-full text-left text-xs px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] line-clamp-2 whitespace-pre-wrap break-words"
+                              title={selected.join(", ") || "Definir objetivo"}
+                            >
+                              {selected.length > 0 ? selected.join(", ") : (
+                                <span className="text-muted-foreground">Objetivo…</span>
+                              )}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-72 max-h-80 overflow-y-auto" align="start">
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                              Objetivos de la publicación
+                            </Label>
+                            <div className="mt-2 space-y-1.5">
+                              {OBJECTIVES.map((opt) => {
+                                const checked = selected.includes(opt);
+                                return (
+                                  <label
+                                    key={opt}
+                                    className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1.5 py-1"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() => toggle(opt)}
+                                      className="accent-primary"
+                                    />
+                                    <span>{opt}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    })()}
                   </td>
                   <td className="px-2 py-2">
                     <Button
