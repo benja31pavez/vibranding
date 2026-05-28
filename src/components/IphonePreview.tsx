@@ -129,15 +129,15 @@ export function IphonePreview({
                 <div className="flex gap-3 text-left">
                   <div>
                     <div className="font-semibold text-[12px] leading-tight">{fmt(postsCount)}</div>
-                    <div className="text-[9px] text-zinc-600">publicaciones</div>
+                    <div className="text-[11px] text-black">publicaciones</div>
                   </div>
                   <div>
                     <div className="font-semibold text-[12px] leading-tight">{fmt(followers)}</div>
-                    <div className="text-[9px] text-zinc-600">seguidores</div>
+                    <div className="text-[11px] text-black">seguidores</div>
                   </div>
                   <div>
                     <div className="font-semibold text-[12px] leading-tight">{fmt(following)}</div>
-                    <div className="text-[9px] text-zinc-600">seguidos</div>
+                    <div className="text-[11px] text-black">seguidos</div>
                   </div>
                 </div>
               </div>
