@@ -499,6 +499,44 @@ export type Database = {
           },
         ]
       }
+      landing_contact_submissions: {
+        Row: {
+          client_id: string
+          created_at: string
+          email: string
+          id: string
+          landing_id: string
+          message: string
+          name: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          email: string
+          id?: string
+          landing_id: string
+          message: string
+          name: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          landing_id?: string
+          message?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_contact_submissions_landing_id_fkey"
+            columns: ["landing_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landing_events: {
         Row: {
           created_at: string
@@ -526,6 +564,63 @@ export type Database = {
           path?: string | null
           referrer?: string | null
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      landing_pages: {
+        Row: {
+          client_id: string
+          contact_enabled: boolean
+          created_at: string
+          cta_text: string | null
+          cta_url: string | null
+          gallery: Json
+          hero_image_url: string | null
+          hero_subtitle: string | null
+          hero_title: string
+          id: string
+          published: boolean
+          services: Json
+          slug: string
+          theme_color: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          client_id: string
+          contact_enabled?: boolean
+          created_at?: string
+          cta_text?: string | null
+          cta_url?: string | null
+          gallery?: Json
+          hero_image_url?: string | null
+          hero_subtitle?: string | null
+          hero_title?: string
+          id?: string
+          published?: boolean
+          services?: Json
+          slug: string
+          theme_color?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          client_id?: string
+          contact_enabled?: boolean
+          created_at?: string
+          cta_text?: string | null
+          cta_url?: string | null
+          gallery?: Json
+          hero_image_url?: string | null
+          hero_subtitle?: string | null
+          hero_title?: string
+          id?: string
+          published?: boolean
+          services?: Json
+          slug?: string
+          theme_color?: string
+          updated_at?: string
+          view_count?: number
         }
         Relationships: []
       }
@@ -922,6 +1017,98 @@ export type Database = {
           },
         ]
       }
+      multilink_items: {
+        Row: {
+          click_count: number
+          client_id: string
+          created_at: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          multilink_id: string
+          sort_order: number
+          title: string
+          url: string
+        }
+        Insert: {
+          click_count?: number
+          client_id: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          multilink_id: string
+          sort_order?: number
+          title?: string
+          url?: string
+        }
+        Update: {
+          click_count?: number
+          client_id?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          multilink_id?: string
+          sort_order?: number
+          title?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multilink_items_multilink_id_fkey"
+            columns: ["multilink_id"]
+            isOneToOne: false
+            referencedRelation: "multilinks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multilinks: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          client_id: string
+          created_at: string
+          id: string
+          published: boolean
+          slug: string
+          theme_color: string
+          theme_mode: string
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          published?: boolean
+          slug: string
+          theme_color?: string
+          theme_mode?: string
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          published?: boolean
+          slug?: string
+          theme_color?: string
+          theme_mode?: string
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: []
+      }
       objectives: {
         Row: {
           category: Database["public"]["Enums"]["objective_category"]
@@ -1167,6 +1354,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      increment_landing_view: { Args: { _id: string }; Returns: undefined }
+      increment_multilink_click: { Args: { _id: string }; Returns: undefined }
+      increment_multilink_view: { Args: { _id: string }; Returns: undefined }
       owns_client: { Args: { _client_id: string }; Returns: boolean }
     }
     Enums: {
