@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { MediaUpload } from "./MediaUpload";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Image as ImageIcon, Layers, Film, Plus, Trash2, GripVertical, Loader2, Upload, X, Star, MapPin, Music, Heart, MessageCircle, Calendar as CalendarIcon } from "lucide-react";
+import { Image as ImageIcon, Layers, Film, Plus, Trash2, GripVertical, Loader2, Upload, X, Star, MapPin, Music, Heart, MessageCircle, Calendar as CalendarIcon, MoreVertical, ArrowUp, ArrowDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -708,7 +709,7 @@ export function PostsEditor({
               <th className="text-left px-2 py-2 w-20">Engagement</th>
               <th className="text-left px-2 py-2 w-44">Objetivo</th>
               <th className="text-left px-2 py-2 w-10"></th>
-              <th className="text-left px-2 py-2 w-10"></th>
+
             </tr>
           </thead>
           <tbody>
@@ -1140,6 +1141,8 @@ export function PostsEditor({
                             "Proceso de creación",
                             "Día de la vida",
                             "Spoiler de novedad",
+                            "Bloopers",
+
                           ],
                         },
                         {
@@ -1174,7 +1177,6 @@ export function PostsEditor({
                             "POV (punto de vista)",
                             "ASMR",
                             "Reacción en vivo",
-                            "Bloopers",
                             "Juego o trivia",
                             "Esto o aquello",
                             "Tier list o ranking",
@@ -1251,19 +1253,36 @@ export function PostsEditor({
                     })()}
                   </td>
                   <td className="px-2 py-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-destructive h-8 w-8"
-                      onClick={() => removePost(p.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          disabled={idx === 0}
+                          onClick={() => { if (idx > 0) reorder(p.id, sorted[idx - 1].id); }}
+                        >
+                          <ArrowUp className="w-4 h-4 mr-2" /> Subir
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={idx === sorted.length - 1}
+                          onClick={() => { if (idx < sorted.length - 1) reorder(p.id, sorted[idx + 1].id); }}
+                        >
+                          <ArrowDown className="w-4 h-4 mr-2" /> Bajar
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => removePost(p.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" /> Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
-                  <td className="px-2 py-2 text-muted-foreground cursor-move">
-                    <GripVertical className="w-4 h-4" />
-                  </td>
+
                 </tr>
               );
             })}
