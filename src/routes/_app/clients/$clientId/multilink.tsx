@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
 import { Plus, Trash2, ExternalLink, Copy, Eye, GripVertical, Link2 } from "lucide-react";
+import type { IGProfile } from "@/components/InstagramEditor";
 
 export const Route = createFileRoute("/_app/clients/$clientId/multilink")({
   component: MultilinkPage,
@@ -46,18 +47,33 @@ function MultilinkPage() {
   const { client } = useActiveClient();
   const [ml, setMl] = useState<Multilink | null>(null);
   const [items, setItems] = useState<Item[]>([]);
+  const [igProfile, setIgProfile] = useState<IGProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const { data: m } = await supabase
-      .from("multilinks").select("*").eq("client_id", clientId).maybeSingle();
-    setMl(m as Multilink | null);
-    if (m) {
+    const [{ data: m }, { data: ig }] = await Promise.all([
+      supabase.from("multilinks").select("*").eq("client_id", clientId).maybeSingle(),
+      supabase.from("instagram_profiles").select("*").eq("client_id", clientId).maybeSingle(),
+    ]);
+    const igP = (ig ?? null) as IGProfile | null;
+    setIgProfile(igP);
+
+    let multilink = m as Multilink | null;
+    if (multilink && !multilink.avatar_url) {
+      const igAvatar = igP?.proposed_avatar_url ?? igP?.current_avatar_url ?? null;
+      if (igAvatar) {
+        await supabase.from("multilinks").update({ avatar_url: igAvatar }).eq("id", multilink.id);
+        multilink = { ...multilink, avatar_url: igAvatar };
+      }
+    }
+    setMl(multilink);
+
+    if (multilink) {
       const { data: it } = await supabase
         .from("multilink_items").select("*")
-        .eq("multilink_id", m.id).order("sort_order");
+        .eq("multilink_id", multilink.id).order("sort_order");
       setItems((it ?? []) as Item[]);
     }
     setLoading(false);
@@ -65,14 +81,19 @@ function MultilinkPage() {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [clientId]);
 
+  const defaultAvatarUrl = igProfile?.proposed_avatar_url ?? igProfile?.current_avatar_url ?? null;
+  const effectiveAvatarUrl = ml?.avatar_url ?? defaultAvatarUrl;
+
   const createMultilink = async () => {
     if (!client) return;
     const base = client.instagram_handle || slugify(client.name);
     const slug = await uniqueSlug("multilinks", base);
+    const igAvatar = igProfile?.proposed_avatar_url ?? igProfile?.current_avatar_url ?? null;
     const { data, error } = await supabase.from("multilinks").insert({
       client_id: clientId,
       slug,
       title: client.name,
+      avatar_url: igAvatar,
     }).select("*").single();
     if (error) { toast.error(error.message); return; }
     setMl(data as Multilink);
@@ -217,7 +238,7 @@ function MultilinkPage() {
             <h3 className="font-medium text-sm">Perfil</h3>
             <div className="flex items-center gap-3">
               <div className="w-16 h-16 rounded-full bg-secondary overflow-hidden grid place-items-center text-xl font-semibold">
-                {ml.avatar_url ? <img src={ml.avatar_url} alt="" className="w-full h-full object-cover" /> : (ml.title[0] || "?")}
+                {effectiveAvatarUrl ? <img src={effectiveAvatarUrl} alt="" className="w-full h-full object-cover" /> : (ml.title[0] || "?")}
               </div>
               <label className="text-sm text-primary cursor-pointer hover:underline">
                 Cambiar avatar
@@ -310,8 +331,8 @@ function MultilinkPage() {
                 <div className="absolute inset-0 flex flex-col pt-10 px-5 pb-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <div className="text-center">
                     <div className="w-20 h-20 rounded-full bg-black/10 mx-auto overflow-hidden grid place-items-center text-2xl font-semibold">
-                      {ml.avatar_url
-                        ? <img src={ml.avatar_url} alt="" className="w-full h-full object-cover" />
+                      {effectiveAvatarUrl
+                        ? <img src={effectiveAvatarUrl} alt="" className="w-full h-full object-cover" />
                         : (ml.title[0] || "?")}
                     </div>
                     <h2 className="mt-3 font-semibold text-lg">{ml.title || "Título"}</h2>
