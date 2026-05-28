@@ -18,14 +18,14 @@ import { Route as FaqRouteImport } from './routes/faq'
 import { Route as DataDeletionRouteImport } from './routes/data-deletion'
 import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AtChar123slugChar125RouteImport } from './routes/@{$slug}'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as PSlugRouteImport } from './routes/p.$slug'
-import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as AppStatsRouteImport } from './routes/_app/stats'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppPortfolioRouteImport } from './routes/_app/portfolio'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AtChar123slugChar125LinksRouteImport } from './routes/@{$slug}.links'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
 import { Route as ApiMetaAdsUpdateRouteImport } from './routes/api/meta-ads/update'
 import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
@@ -89,19 +89,14 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AtChar123slugChar125Route = AtChar123slugChar125RouteImport.update({
+  id: '/@{$slug}',
+  path: '/@{$slug}',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PSlugRoute = PSlugRouteImport.update({
-  id: '/p/$slug',
-  path: '/p/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LSlugRoute = LSlugRouteImport.update({
-  id: '/l/$slug',
-  path: '/l/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppStatsRoute = AppStatsRouteImport.update({
@@ -129,6 +124,12 @@ const AppCalendarRoute = AppCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AppRoute,
 } as any)
+const AtChar123slugChar125LinksRoute =
+  AtChar123slugChar125LinksRouteImport.update({
+    id: '/links',
+    path: '/links',
+    getParentRoute: () => AtChar123slugChar125Route,
+  } as any)
 const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
   id: '/clients/',
   path: '/clients/',
@@ -231,6 +232,7 @@ const AppClientsClientIdDeliverablesRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
   '/faq': typeof FaqRoute
@@ -239,13 +241,12 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/portfolio': typeof AppPortfolioRoute
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
-  '/l/$slug': typeof LSlugRoute
-  '/p/$slug': typeof PSlugRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -267,6 +268,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
   '/faq': typeof FaqRoute
@@ -275,13 +277,12 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/portfolio': typeof AppPortfolioRoute
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
-  '/l/$slug': typeof LSlugRoute
-  '/p/$slug': typeof PSlugRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
@@ -303,6 +304,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
   '/_app': typeof AppRouteWithChildren
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
@@ -312,13 +314,12 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/portfolio': typeof AppPortfolioRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/stats': typeof AppStatsRoute
-  '/l/$slug': typeof LSlugRoute
-  '/p/$slug': typeof PSlugRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -342,6 +343,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/@{$slug}'
     | '/cookies'
     | '/data-deletion'
     | '/faq'
@@ -350,13 +352,12 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/sitemap.xml'
     | '/terms'
+    | '/@{$slug}/links'
     | '/calendar'
     | '/dashboard'
     | '/portfolio'
     | '/reports'
     | '/stats'
-    | '/l/$slug'
-    | '/p/$slug'
     | '/clients/$clientId'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
@@ -378,6 +379,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/@{$slug}'
     | '/cookies'
     | '/data-deletion'
     | '/faq'
@@ -386,13 +388,12 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/sitemap.xml'
     | '/terms'
+    | '/@{$slug}/links'
     | '/calendar'
     | '/dashboard'
     | '/portfolio'
     | '/reports'
     | '/stats'
-    | '/l/$slug'
-    | '/p/$slug'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
     | '/api/meta-ads/create-campaign'
@@ -413,6 +414,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/@{$slug}'
     | '/_app'
     | '/cookies'
     | '/data-deletion'
@@ -422,13 +424,12 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/sitemap.xml'
     | '/terms'
+    | '/@{$slug}/links'
     | '/_app/calendar'
     | '/_app/dashboard'
     | '/_app/portfolio'
     | '/_app/reports'
     | '/_app/stats'
-    | '/l/$slug'
-    | '/p/$slug'
     | '/_app/clients/$clientId'
     | '/_app/settings/pricing'
     | '/api/meta-ads/archive'
@@ -451,6 +452,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AtChar123slugChar125Route: typeof AtChar123slugChar125RouteWithChildren
   AppRoute: typeof AppRouteWithChildren
   CookiesRoute: typeof CookiesRoute
   DataDeletionRoute: typeof DataDeletionRoute
@@ -460,8 +462,6 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
-  LSlugRoute: typeof LSlugRoute
-  PSlugRoute: typeof PSlugRoute
   ApiMetaAdsArchiveRoute: typeof ApiMetaAdsArchiveRoute
   ApiMetaAdsCreateCampaignRoute: typeof ApiMetaAdsCreateCampaignRoute
   ApiMetaAdsDiscoverRoute: typeof ApiMetaAdsDiscoverRoute
@@ -536,25 +536,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/@{$slug}': {
+      id: '/@{$slug}'
+      path: '/@{$slug}'
+      fullPath: '/@{$slug}'
+      preLoaderRoute: typeof AtChar123slugChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/p/$slug': {
-      id: '/p/$slug'
-      path: '/p/$slug'
-      fullPath: '/p/$slug'
-      preLoaderRoute: typeof PSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/l/$slug': {
-      id: '/l/$slug'
-      path: '/l/$slug'
-      fullPath: '/l/$slug'
-      preLoaderRoute: typeof LSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/stats': {
@@ -591,6 +584,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/calendar'
       preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/@{$slug}/links': {
+      id: '/@{$slug}/links'
+      path: '/links'
+      fullPath: '/@{$slug}/links'
+      preLoaderRoute: typeof AtChar123slugChar125LinksRouteImport
+      parentRoute: typeof AtChar123slugChar125Route
     }
     '/_app/clients/': {
       id: '/_app/clients/'
@@ -721,6 +721,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AtChar123slugChar125RouteChildren {
+  AtChar123slugChar125LinksRoute: typeof AtChar123slugChar125LinksRoute
+}
+
+const AtChar123slugChar125RouteChildren: AtChar123slugChar125RouteChildren = {
+  AtChar123slugChar125LinksRoute: AtChar123slugChar125LinksRoute,
+}
+
+const AtChar123slugChar125RouteWithChildren =
+  AtChar123slugChar125Route._addFileChildren(AtChar123slugChar125RouteChildren)
+
 interface AppClientsClientIdRouteChildren {
   AppClientsClientIdDeliverablesRoute: typeof AppClientsClientIdDeliverablesRoute
   AppClientsClientIdInstagramRoute: typeof AppClientsClientIdInstagramRoute
@@ -772,6 +783,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AtChar123slugChar125Route: AtChar123slugChar125RouteWithChildren,
   AppRoute: AppRouteWithChildren,
   CookiesRoute: CookiesRoute,
   DataDeletionRoute: DataDeletionRoute,
@@ -781,8 +793,6 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
-  LSlugRoute: LSlugRoute,
-  PSlugRoute: PSlugRoute,
   ApiMetaAdsArchiveRoute: ApiMetaAdsArchiveRoute,
   ApiMetaAdsCreateCampaignRoute: ApiMetaAdsCreateCampaignRoute,
   ApiMetaAdsDiscoverRoute: ApiMetaAdsDiscoverRoute,
@@ -794,3 +804,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

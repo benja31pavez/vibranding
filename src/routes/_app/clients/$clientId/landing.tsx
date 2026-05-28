@@ -147,7 +147,7 @@ function LandingEditor() {
     );
   }
 
-  const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/p/${lp.slug}`;
+  const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/@${lp.slug}`;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -162,7 +162,7 @@ function LandingEditor() {
             {lp.published ? "Publicado" : "Borrador"}
           </Label>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/p/$slug" params={{ slug: lp.slug }} target="_blank">
+            <Link to="/@{$slug}" params={{ slug: lp.slug }} target="_blank">
               <Eye className="w-4 h-4 mr-1" /> Vista previa
             </Link>
           </Button>

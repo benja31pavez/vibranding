@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { z } from "zod";
 
-export const Route = createFileRoute("/p/$slug")({
+export const Route = createFileRoute("/@{$slug}")({
   loader: async ({ params }) => {
     const { data } = await supabase
       .from("landing_pages").select("*").eq("slug", params.slug).eq("published", true).maybeSingle();
