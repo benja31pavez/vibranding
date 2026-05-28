@@ -49,7 +49,7 @@ function LandingEditor() {
   const load = async () => {
     setLoading(true);
     const { data } = await supabase.from("landing_pages").select("*").eq("client_id", clientId).maybeSingle();
-    setLp(data as Landing | null);
+    setLp(data as unknown as Landing | null);
     if (data) {
       const { data: s } = await supabase.from("landing_contact_submissions")
         .select("id,name,email,message,created_at")
