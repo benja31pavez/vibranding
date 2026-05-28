@@ -174,7 +174,7 @@ function MultilinkPage() {
     );
   }
 
-  const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/l/${ml.slug}`;
+  const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/@${ml.slug}/links`;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -189,7 +189,7 @@ function MultilinkPage() {
             {ml.published ? "Publicado" : "Borrador"}
           </Label>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/l/$slug" params={{ slug: ml.slug }} target="_blank">
+            <Link to="/@{$slug}/links" params={{ slug: ml.slug }} target="_blank">
               <Eye className="w-4 h-4 mr-1" /> Vista previa
             </Link>
           </Button>
