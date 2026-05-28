@@ -311,10 +311,10 @@ const en: Dict = {
   nav: { services: "Services", how: "How it works", about: "About", clients: "Clients", contact: "Contact", signIn: "Sign in" },
   hero: {
     badge: "Instagram & Meta Ads specialists",
-    title1: "We make your branding ",
+    title1: "We make your brand ",
     titleAccent: "truly vibrate",
     titleEnd: ".",
-    subtitle: "Ad campaigns: creative, targeting, budget and optimization.",
+    subtitle: "",
     ctaPrimary: "Let's talk about your brand",
     ctaSecondary: "See services",
   },
