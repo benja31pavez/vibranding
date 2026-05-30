@@ -377,7 +377,7 @@ const en: Dict = {
       },
       {
         title: "Chatbot",
-        desc: "I completely separated client acquisition from your day-to-day operation. A dedicated WhatsApp handled by a chatbot that qualifies and closes: it doesn't pollute your personal WhatsApp, it doesn't share private conversations with us, and it measures exactly how many clients arrived thanks to your marketing work.",
+        desc: "A dedicated WhatsApp with a chatbot that qualifies and closes: it separates acquisition from your day-to-day.",
         why: "To close clients and prove results with real data.",
       },
     ],
