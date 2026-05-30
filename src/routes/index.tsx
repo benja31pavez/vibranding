@@ -10,6 +10,7 @@ import { trackLandingEvent } from "@/lib/track";
 import { usePublicPortfolio } from "@/lib/portfolio";
 import {
   Instagram, Megaphone, BarChart3, ArrowRight, Check, ExternalLink, Sparkles,
+  Search, Camera, MonitorSmartphone, MessageCircle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
