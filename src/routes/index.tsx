@@ -126,54 +126,11 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
             {t.services.subtitle}
           </p>
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[
-            { icon: Sparkles,           tone: "var(--brand-1)" },
-            { icon: Search,             tone: "var(--brand-2)" },
-            { icon: Camera,             tone: "var(--brand-3)" },
-            { icon: Megaphone,          tone: "var(--brand-1)" },
-            { icon: MonitorSmartphone,  tone: "var(--brand-2)" },
-            { icon: MessageCircle,      tone: "var(--brand-3)" },
-          ].map(({ icon: Icon, tone }, i) => {
-            const item = t.services.items[i];
-            if (!item) return null;
-            const step = String(i + 1).padStart(2, "0");
-            return (
-              <div
-                key={item.title}
-                className="group relative rounded-3xl border bg-card p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl overflow-hidden"
-              >
-                <div
-                  aria-hidden
-                  className="absolute -inset-px rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-0"
-                  style={{ background: `radial-gradient(600px circle at 0% 0%, color-mix(in oklab, ${tone} 18%, transparent), transparent 40%)` }}
-                />
-                <div className="relative flex items-center justify-between mb-4">
-                  <div
-                    className="w-11 h-11 rounded-2xl grid place-items-center text-white shadow-md"
-                    style={{ background: `linear-gradient(135deg, ${tone}, color-mix(in oklab, ${tone} 60%, white))` }}
-                  >
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <span
-                    className="text-xs font-semibold tracking-widest px-2.5 py-1 rounded-full border bg-background/60"
-                    style={{ color: tone, borderColor: `color-mix(in oklab, ${tone} 35%, transparent)` }}
-                  >
-                    PASO {step}
-                  </span>
-                </div>
-                <h3 className="relative text-lg font-semibold">{item.title}</h3>
-                <p className="relative text-sm text-muted-foreground mt-2 leading-relaxed">{item.desc}</p>
-                <div
-                  className="relative mt-4 pt-4 border-t text-xs italic text-muted-foreground/90"
-                  style={{ borderColor: `color-mix(in oklab, ${tone} 18%, transparent)` }}
-                >
-                  {item.why}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+
+        <ServicesStepper
+          items={t.services.items}
+          icons={[Sparkles, Search, Camera, Megaphone, MonitorSmartphone, MessageCircle]}
+        />
       </section>
 
       {/* How it works */}
