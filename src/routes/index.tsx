@@ -365,7 +365,7 @@ function ServicesStepper({ items }: { items: ServiceItem[]; icons?: IconType[] }
         const tone = TONES[i];
         const isLast = i === items.length - 1;
         return (
-          <div key={it.title} className="flex flex-col group">
+          <div key={it.title} className="flex flex-col group h-full">
             {/* Chevron header */}
             <div
               className="relative text-left transition-transform duration-300 group-hover:-translate-y-0.5"
@@ -395,7 +395,7 @@ function ServicesStepper({ items }: { items: ServiceItem[]; icons?: IconType[] }
 
             {/* Content card under each chevron */}
             <div
-              className="relative mt-4 mx-1 rounded-2xl border bg-card p-5 overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
+              className="relative mt-4 mx-1 flex-1 flex flex-col rounded-2xl border bg-card p-5 overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
               style={{
                 borderColor: `color-mix(in oklab, ${tone} 18%, hsl(var(--border)))`,
                 background: `linear-gradient(180deg, color-mix(in oklab, ${tone} 6%, hsl(var(--card))) 0%, hsl(var(--card)) 70%)`,
@@ -421,7 +421,7 @@ function ServicesStepper({ items }: { items: ServiceItem[]; icons?: IconType[] }
 
               <p className="relative text-sm text-foreground/85 leading-relaxed">{it.desc}</p>
 
-              <div className="relative mt-4 pt-4 flex items-start gap-2">
+              <div className="relative mt-auto pt-4 flex items-start gap-2">
                 <span
                   aria-hidden
                   className="absolute left-0 right-0 top-0 h-px"
