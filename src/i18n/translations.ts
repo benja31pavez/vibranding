@@ -352,33 +352,33 @@ const en: Dict = {
     items: [
       {
         title: "Branding",
-        desc: "Visual identity, tone and brand strategy. The foundation everything else is built on.",
+        desc: "Visual identity, tone and clear strategy. The foundation everything else is built on.",
         why: "Without this, your brand will never vibrate.",
       },
       {
         title: "Optimization",
-        desc: "Audit and tune-up of your Instagram profile and digital presence so people find you on the first try.",
-        why: "Without this, people may not find you when they look.",
+        desc: "We tune up your Instagram profile and digital presence so people find you on the first try.",
+        why: "Without this, people don't find you when they look.",
       },
       {
         title: "Content",
-        desc: "Calendar, photography, copy and visuals that actually communicate the value of what you offer.",
+        desc: "Calendar, photography and copy that actually communicate the real value of what you offer.",
         why: "Without this, you're not delivering value.",
       },
       {
         title: "Ads",
-        desc: "Meta Ads campaigns designed to reach the people who don't know you yet — but should.",
-        why: "Without ads, your content won't reach people who don't know you exist.",
+        desc: "Meta Ads campaigns designed to reach the people who don't know you yet but should.",
+        why: "Without this, no new audience ever finds you.",
       },
       {
         title: "Landing Page",
-        desc: "A clear page that explains 100% of what you offer and turns curiosity into real interest.",
-        why: "Without this, many people never fully grasp what you do.",
+        desc: "A clear page that explains what you offer and turns curiosity into real interest.",
+        why: "Without this, people never fully grasp what you do.",
       },
       {
         title: "Chatbot",
-        desc: "A dedicated WhatsApp with a chatbot that qualifies and closes: it separates acquisition from your day-to-day.",
-        why: "Without this, you can't close or measure real results.",
+        desc: "A dedicated WhatsApp with a chatbot that qualifies and closes clients while you work.",
+        why: "Without this, you don't close or measure results.",
       },
     ],
   },
