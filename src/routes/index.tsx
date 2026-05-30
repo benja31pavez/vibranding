@@ -358,25 +358,17 @@ type IconType = React.ComponentType<{ className?: string }>;
 
 const TONES = ["var(--brand-1)", "var(--brand-2)", "var(--brand-3)", "var(--brand-1)", "var(--brand-2)", "var(--brand-3)"];
 
-function ServicesStepper({ items, icons }: { items: ServiceItem[]; icons: IconType[] }) {
-  const [active, setActive] = useState(0);
-  const current = items[active];
-  const Icon = icons[active];
-  const tone = TONES[active];
-
+function ServicesStepper({ items }: { items: ServiceItem[]; icons?: IconType[] }) {
   return (
-    <div>
-      {/* Chevron tabs */}
-      <div className="flex w-full overflow-x-auto pb-2 -mx-2 px-2 gap-1.5 snap-x">
-        {items.map((it, i) => {
-          const isActive = i === active;
-          const t = TONES[i];
-          const isLast = i === items.length - 1;
-          return (
-            <button
-              key={it.title}
-              onClick={() => setActive(i)}
-              className={`relative flex-1 min-w-[180px] snap-start text-left transition-all duration-300 ${isActive ? "scale-[1.02]" : "opacity-70 hover:opacity-100"}`}
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-1.5 gap-y-6">
+      {items.map((it, i) => {
+        const tone = TONES[i];
+        const isLast = i === items.length - 1;
+        return (
+          <div key={it.title} className="flex flex-col">
+            {/* Chevron header */}
+            <div
+              className="relative text-left"
               style={{
                 clipPath: isLast
                   ? "polygon(0 0, 100% 0, 100% 100%, 0 100%, 18px 50%)"
@@ -385,55 +377,34 @@ function ServicesStepper({ items, icons }: { items: ServiceItem[]; icons: IconTy
               }}
             >
               <div
-                className="px-6 py-5 pl-9"
+                className="px-5 py-4 pl-9"
                 style={{
-                  background: isActive
-                    ? `linear-gradient(135deg, ${t}, color-mix(in oklab, ${t} 55%, white))`
-                    : "color-mix(in oklab, var(--muted) 80%, transparent)",
-                  color: isActive ? "white" : "var(--muted-foreground)",
+                  background: `linear-gradient(135deg, ${tone}, color-mix(in oklab, ${tone} 55%, white))`,
+                  color: "white",
                 }}
               >
-                <div className={`text-[10px] font-bold tracking-[0.2em] ${isActive ? "text-white/90" : ""}`}>
+                <div className="text-[10px] font-bold tracking-[0.2em] text-white/90">
                   PASO {String(i + 1).padStart(2, "0")}
                 </div>
-                <div className={`mt-1 font-semibold text-sm md:text-base ${isActive ? "text-white" : "text-foreground"}`}>
+                <div className="mt-1 font-semibold text-sm md:text-base text-white leading-tight">
                   {it.title}
                 </div>
               </div>
-            </button>
-          );
-        })}
-      </div>
+            </div>
 
-      {/* Active content panel */}
-      <div
-        key={active}
-        className="mt-8 relative rounded-3xl border bg-card p-8 md:p-10 overflow-hidden animate-fade-in"
-      >
-        <div
-          aria-hidden
-          className="absolute inset-0 -z-0 opacity-60"
-          style={{ background: `radial-gradient(800px circle at 0% 0%, color-mix(in oklab, ${tone} 12%, transparent), transparent 50%)` }}
-        />
-        <div className="relative flex items-start gap-5">
-          <div
-            className="w-14 h-14 rounded-2xl grid place-items-center text-white shadow-md shrink-0"
-            style={{ background: `linear-gradient(135deg, ${tone}, color-mix(in oklab, ${tone} 60%, white))` }}
-          >
-            <Icon className="w-6 h-6" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-2xl md:text-3xl font-semibold">{current.title}</h3>
-            <p className="mt-3 text-muted-foreground leading-relaxed">{current.desc}</p>
-            <div
-              className="mt-5 pt-5 border-t italic text-sm text-muted-foreground/90"
-              style={{ borderColor: `color-mix(in oklab, ${tone} 20%, transparent)` }}
-            >
-              {current.why}
+            {/* Content under each chevron */}
+            <div className="mt-4 px-1">
+              <p className="text-sm text-muted-foreground leading-relaxed">{it.desc}</p>
+              <div
+                className="mt-4 pt-4 border-t text-xs italic text-muted-foreground/90"
+                style={{ borderColor: `color-mix(in oklab, ${tone} 20%, transparent)` }}
+              >
+                {it.why}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 }
