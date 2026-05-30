@@ -5,7 +5,7 @@ import {
   Users, LogOut, Sparkles, DollarSign, UserCircle2, X,
   LayoutDashboard, CalendarDays, BarChart3, LineChart,
   Eye, Instagram, Megaphone, Target, CheckSquare, Wallet,
-  Link2, Globe, MessageCircle,
+  Link2, Globe, MessageCircle, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -163,6 +163,9 @@ function AppLayout() {
                     </Link>
                     <Link to="/clients/$clientId/payments" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/payments`)}>
                       <Wallet className="w-4 h-4 shrink-0" /> Pagos
+                    </Link>
+                    <Link to="/clients/$clientId/contracts" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/contracts`)}>
+                      <FileText className="w-4 h-4 shrink-0" /> Contratos
                     </Link>
                     <Link to="/clients/$clientId/multilink" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/multilink`)}>
                       <Link2 className="w-4 h-4 shrink-0" /> Multienlace
