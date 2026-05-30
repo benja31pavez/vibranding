@@ -5,7 +5,7 @@ import {
   Users, LogOut, Sparkles, DollarSign, UserCircle2, X,
   LayoutDashboard, CalendarDays, BarChart3, LineChart,
   Eye, Instagram, Megaphone, Target, CheckSquare, Wallet,
-  Link2, Globe,
+  Link2, Globe, MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -169,6 +169,9 @@ function AppLayout() {
                     </Link>
                     <Link to="/clients/$clientId/landing" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/landing`)}>
                       <Globe className="w-4 h-4 shrink-0" /> Landing page
+                    </Link>
+                    <Link to="/clients/$clientId/chatbot" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/chatbot`)}>
+                      <MessageCircle className="w-4 h-4 shrink-0" /> Chatbot
                     </Link>
                   </div>
                 </>
