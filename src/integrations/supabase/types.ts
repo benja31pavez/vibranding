@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_contracts: {
+        Row: {
+          agency_snapshot: Json
+          clauses_snapshot: Json
+          client_id: string
+          client_snapshot: Json
+          created_at: string
+          currency: string
+          effective_date: string | null
+          id: string
+          notes: string | null
+          payment_due_days: number
+          services_snapshot: Json
+          signed_at: string | null
+          status: Database["public"]["Enums"]["contract_status"]
+          title: string
+          total_monthly: number
+          total_one_time: number
+          updated_at: string
+        }
+        Insert: {
+          agency_snapshot?: Json
+          clauses_snapshot?: Json
+          client_id: string
+          client_snapshot?: Json
+          created_at?: string
+          currency?: string
+          effective_date?: string | null
+          id?: string
+          notes?: string | null
+          payment_due_days?: number
+          services_snapshot?: Json
+          signed_at?: string | null
+          status?: Database["public"]["Enums"]["contract_status"]
+          title?: string
+          total_monthly?: number
+          total_one_time?: number
+          updated_at?: string
+        }
+        Update: {
+          agency_snapshot?: Json
+          clauses_snapshot?: Json
+          client_id?: string
+          client_snapshot?: Json
+          created_at?: string
+          currency?: string
+          effective_date?: string | null
+          id?: string
+          notes?: string | null
+          payment_due_days?: number
+          services_snapshot?: Json
+          signed_at?: string | null
+          status?: Database["public"]["Enums"]["contract_status"]
+          title?: string
+          total_monthly?: number
+          total_one_time?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           business_description: string | null
@@ -1309,41 +1369,107 @@ export type Database = {
       }
       pricing_settings: {
         Row: {
+          agency_address: string | null
+          agency_email: string | null
+          agency_legal_name: string | null
+          agency_tax_id: string | null
           carousel_price: number
+          clause_esim: string | null
+          clause_extra: string | null
+          clause_late_payment: string | null
+          clause_meta_api: string | null
           created_at: string
           currency: string
           id: string
+          jurisdiction: string | null
           notes: string | null
           pack_description: string | null
           pack_price: number
+          payment_due_days: number
           photo_price: number
           reel_price: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          agency_address?: string | null
+          agency_email?: string | null
+          agency_legal_name?: string | null
+          agency_tax_id?: string | null
           carousel_price?: number
+          clause_esim?: string | null
+          clause_extra?: string | null
+          clause_late_payment?: string | null
+          clause_meta_api?: string | null
           created_at?: string
           currency?: string
           id?: string
+          jurisdiction?: string | null
           notes?: string | null
           pack_description?: string | null
           pack_price?: number
+          payment_due_days?: number
           photo_price?: number
           reel_price?: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          agency_address?: string | null
+          agency_email?: string | null
+          agency_legal_name?: string | null
+          agency_tax_id?: string | null
           carousel_price?: number
+          clause_esim?: string | null
+          clause_extra?: string | null
+          clause_late_payment?: string | null
+          clause_meta_api?: string | null
           created_at?: string
           currency?: string
           id?: string
+          jurisdiction?: string | null
           notes?: string | null
           pack_description?: string | null
           pack_price?: number
+          payment_due_days?: number
           photo_price?: number
           reel_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      service_pricing: {
+        Row: {
+          created_at: string
+          id: string
+          included_text: string | null
+          is_active: boolean
+          monthly_price: number
+          one_time_price: number
+          service_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          included_text?: string | null
+          is_active?: boolean
+          monthly_price?: number
+          one_time_price?: number
+          service_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          included_text?: string | null
+          is_active?: boolean
+          monthly_price?: number
+          one_time_price?: number
+          service_key?: string
           updated_at?: string
           user_id?: string
         }
@@ -1551,6 +1677,7 @@ export type Database = {
     }
     Enums: {
       account_type: "personal" | "business"
+      contract_status: "draft" | "sent" | "signed" | "cancelled"
       deliverable_type:
         | "post"
         | "reel"
@@ -1729,6 +1856,7 @@ export const Constants = {
   public: {
     Enums: {
       account_type: ["personal", "business"],
+      contract_status: ["draft", "sent", "signed", "cancelled"],
       deliverable_type: [
         "post",
         "reel",
