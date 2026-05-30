@@ -378,7 +378,7 @@ const en: Dict = {
       {
         title: "Chatbot",
         desc: "A dedicated WhatsApp with a chatbot that qualifies and closes: it separates acquisition from your day-to-day.",
-        why: "To close clients and prove results with real data.",
+        why: "Without this, you can't close or measure real results.",
       },
     ],
   },
