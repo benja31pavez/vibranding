@@ -365,7 +365,7 @@ function ServicesStepper({ items }: { items: ServiceItem[]; icons?: IconType[] }
         const tone = TONES[i];
         const isLast = i === items.length - 1;
         return (
-          <div key={it.title} className="flex flex-col group">
+          <div key={it.title} className="flex flex-col group h-full">
             {/* Chevron header */}
             <div
               className="relative text-left transition-transform duration-300 group-hover:-translate-y-0.5"
