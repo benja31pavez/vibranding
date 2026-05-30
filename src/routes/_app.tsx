@@ -5,7 +5,7 @@ import {
   Users, LogOut, Sparkles, DollarSign, UserCircle2, X,
   LayoutDashboard, CalendarDays, BarChart3, LineChart,
   Eye, Instagram, Megaphone, Target, CheckSquare, Wallet,
-  Link2, Globe, MessageCircle,
+  Link2, Globe, MessageCircle, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
