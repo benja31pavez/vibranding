@@ -419,7 +419,7 @@ function ServicesStepper({ items }: { items: ServiceItem[]; icons?: IconType[] }
                 style={{ background: `radial-gradient(circle, ${tone}, transparent 70%)` }}
               />
 
-              <p className="relative text-sm text-foreground/85 leading-relaxed">{it.desc}</p>
+              <p className="relative text-sm text-foreground/85 leading-relaxed min-h-[7rem]">{it.desc}</p>
 
               <div className="relative mt-auto pt-4 flex items-start gap-2">
                 <span
