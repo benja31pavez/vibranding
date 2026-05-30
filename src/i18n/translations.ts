@@ -28,7 +28,7 @@ type Dict = {
     eyebrow: string;
     accent: string;
     subtitle: string;
-    items: { title: string; desc: string }[];
+    items: { title: string; desc: string; why: string }[];
   };
   how: {
     eyebrow: string;
