@@ -1,0 +1,222 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { Copy, CheckCircle2, Plug, AlertCircle } from "lucide-react";
+import type { WAAccount } from "@/routes/_app/clients/$clientId/chatbot";
+
+export function ConnectWhatsAppCard({
+  clientId,
+  account,
+  onChange,
+}: {
+  clientId: string;
+  account: WAAccount | null;
+  onChange: () => void;
+}) {
+  const [phoneNumberId, setPhoneNumberId] = useState(account?.phone_number_id ?? "");
+  const [wabaId, setWabaId] = useState(account?.waba_id ?? "");
+  const [displayPhone, setDisplayPhone] = useState(account?.display_phone_number ?? "");
+  const [accessToken, setAccessToken] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setPhoneNumberId(account?.phone_number_id ?? "");
+    setWabaId(account?.waba_id ?? "");
+    setDisplayPhone(account?.display_phone_number ?? "");
+  }, [account]);
+
+  const webhookUrl = account
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/api/public/whatsapp/webhook/${account.id}`
+    : "";
+
+  const ensureAccount = async (): Promise<WAAccount | null> => {
+    if (account) return account;
+    const { data, error } = await supabase
+      .from("whatsapp_accounts")
+      .insert({ client_id: clientId })
+      .select("*")
+      .single();
+    if (error) {
+      toast.error(error.message);
+      return null;
+    }
+    onChange();
+    return data as WAAccount;
+  };
+
+  const save = async () => {
+    setSaving(true);
+    const a = await ensureAccount();
+    if (!a) {
+      setSaving(false);
+      return;
+    }
+    const updates: {
+      phone_number_id: string | null;
+      waba_id: string | null;
+      display_phone_number: string | null;
+      connected: boolean;
+      access_token?: string;
+    } = {
+      phone_number_id: phoneNumberId || null,
+      waba_id: wabaId || null,
+      display_phone_number: displayPhone || null,
+      connected: !!(phoneNumberId && (accessToken || a.access_token)),
+    };
+    if (accessToken) updates.access_token = accessToken;
+    const { error } = await supabase
+      .from("whatsapp_accounts")
+      .update(updates)
+      .eq("id", a.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    setAccessToken("");
+    toast.success("Conexión guardada");
+    onChange();
+  };
+
+  const disconnect = async () => {
+    if (!account) return;
+    if (!confirm("¿Desconectar WhatsApp? Los mensajes históricos se conservan.")) return;
+    const { error } = await supabase
+      .from("whatsapp_accounts")
+      .update({ connected: false, access_token: null })
+      .eq("id", account.id);
+    if (error) return toast.error(error.message);
+    onChange();
+  };
+
+  const copy = (val: string, label: string) => {
+    navigator.clipboard.writeText(val);
+    toast.success(`${label} copiado`);
+  };
+
+  const initOrSetup = async () => {
+    await ensureAccount();
+  };
+
+  if (!account) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plug className="w-5 h-5" /> Conectar WhatsApp Business
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Conectaremos un número de WhatsApp Business via Meta Cloud API. Necesitarás una App en
+            Meta for Developers y un número verificado en tu WhatsApp Business Account (WABA).
+          </p>
+          <Button onClick={initOrSetup}>Iniciar configuración</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2">
+          <Plug className="w-5 h-5" />
+          {account.connected ? "WhatsApp conectado" : "Configurar WhatsApp"}
+          {account.connected ? (
+            <Badge variant="default" className="gap-1">
+              <CheckCircle2 className="w-3 h-3" /> Activo
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1">
+              <AlertCircle className="w-3 h-3" /> Pendiente
+            </Badge>
+          )}
+        </CardTitle>
+        {account.connected && (
+          <Button variant="ghost" size="sm" onClick={disconnect}>
+            Desconectar
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Webhook (configurar en Meta → WhatsApp → Configuration)
+          </div>
+          <div className="space-y-2">
+            <div>
+              <Label className="text-xs">Callback URL</Label>
+              <div className="flex gap-2">
+                <Input readOnly value={webhookUrl} className="font-mono text-xs" />
+                <Button size="icon" variant="outline" onClick={() => copy(webhookUrl, "URL")}>
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Verify Token</Label>
+              <div className="flex gap-2">
+                <Input readOnly value={account.verify_token} className="font-mono text-xs" />
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => copy(account.verify_token, "Token")}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Suscríbete al campo <code className="font-mono">messages</code> para recibir mensajes.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">Phone Number ID</Label>
+            <Input
+              value={phoneNumberId}
+              onChange={(e) => setPhoneNumberId(e.target.value)}
+              placeholder="123456789012345"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">WhatsApp Business Account ID (WABA)</Label>
+            <Input
+              value={wabaId}
+              onChange={(e) => setWabaId(e.target.value)}
+              placeholder="987654321098765"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Número visible (opcional)</Label>
+            <Input
+              value={displayPhone}
+              onChange={(e) => setDisplayPhone(e.target.value)}
+              placeholder="+56 9 1234 5678"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">
+              Access Token permanente {account.access_token && "(guardado)"}
+            </Label>
+            <Input
+              type="password"
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              placeholder={account.access_token ? "•••••••• (dejar vacío para mantener)" : "EAAG..."}
+            />
+          </div>
+        </div>
+
+        <Button onClick={save} disabled={saving}>
+          {saving ? "Guardando…" : "Guardar conexión"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
