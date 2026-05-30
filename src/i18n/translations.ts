@@ -348,11 +348,38 @@ const en: Dict = {
   services: {
     eyebrow: "What we",
     accent: "do",
-    subtitle: "",
+    subtitle: "Six stages, in order. Each one holds up the next: skip one and the rest only half-vibrate.",
     items: [
-      { title: "Instagram strategy", desc: "Profile audit, visual redesign, content calendar and proposals with an iPhone-style preview." },
-      { title: "Meta Ads", desc: "Facebook and Instagram Ads campaigns: creative, targeting, budget and optimization." },
-      { title: "Clear reports", desc: "Metrics, goals and deliverables your client can see. Ready-to-present PDFs." },
+      {
+        title: "Branding",
+        desc: "Visual identity, tone and brand strategy. The foundation everything else is built on.",
+        why: "Without this, your brand will never vibrate.",
+      },
+      {
+        title: "Optimization",
+        desc: "Audit and tune-up of your Instagram profile and digital presence so people find you on the first try.",
+        why: "Without this, people may not find you when they look.",
+      },
+      {
+        title: "Content",
+        desc: "Calendar, photography, copy and visuals that actually communicate the value of what you offer.",
+        why: "Without this, you're not delivering value.",
+      },
+      {
+        title: "Ads",
+        desc: "Meta Ads campaigns designed to reach the people who don't know you yet — but should.",
+        why: "Without ads, your content won't reach people who don't know you exist.",
+      },
+      {
+        title: "Landing Page",
+        desc: "A clear page that explains 100% of what you offer and turns curiosity into real interest.",
+        why: "Without this, many people never fully grasp what you do.",
+      },
+      {
+        title: "Chatbot",
+        desc: "I completely separated client acquisition from your day-to-day operation. A dedicated WhatsApp handled by a chatbot that qualifies and closes: it doesn't pollute your personal WhatsApp, it doesn't share private conversations with us, and it measures exactly how many clients arrived thanks to your marketing work.",
+        why: "To close clients and prove results with real data.",
+      },
     ],
   },
   how: {
