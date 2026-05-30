@@ -118,11 +118,38 @@ const es: Dict = {
   services: {
     eyebrow: "Lo que",
     accent: "hacemos",
-    subtitle: "",
+    subtitle: "Seis etapas en orden. Cada una sostiene a la siguiente: si te saltas una, las demás vibran a medias.",
     items: [
-      { title: "Estrategia de Instagram", desc: "Auditoría de perfil, rediseño visual, calendario de contenido y propuestas con vista previa estilo iPhone." },
-      { title: "Meta Ads", desc: "Campañas de Facebook e Instagram Ads: creatividades, segmentación, presupuesto y optimización." },
-      { title: "Reportes claros", desc: "Métricas, objetivos y entregables visibles para tu cliente. PDFs listos para presentar." },
+      {
+        title: "Branding",
+        desc: "Identidad visual, tono y estrategia de marca. La base sobre la que se construye todo lo demás.",
+        why: "Sin esto tu marca nunca vibrará.",
+      },
+      {
+        title: "Optimización",
+        desc: "Auditoría y optimización de tu perfil de Instagram y presencia digital para que te encuentren a la primera.",
+        why: "Sin esto puede que no te encuentren cuando te buscan.",
+      },
+      {
+        title: "Contenido",
+        desc: "Calendario, fotografía, copy y piezas visuales que comunican el valor real de lo que ofreces.",
+        why: "Sin esto no estás entregando valor.",
+      },
+      {
+        title: "Anuncios",
+        desc: "Campañas Meta Ads pensadas para llegar a quienes aún no te conocen y deberían conocerte.",
+        why: "Sin anunciarte, tu contenido no llega a quien aún no sabe de ti.",
+      },
+      {
+        title: "Landing Page",
+        desc: "Una página clara que explica al 100% lo que ofreces y convierte la curiosidad en interés real.",
+        why: "Sin esto, mucha gente no termina de entender qué ofreces.",
+      },
+      {
+        title: "Chatbot",
+        desc: "Separé completamente la captación de clientes de tu operación diaria. Un WhatsApp dedicado, atendido por un chatbot que califica y cierra: no contamina tu WhatsApp personal, no comparte conversaciones privadas con nosotros, y mide exactamente cuántos clientes llegaron gracias a tu trabajo en marketing.",
+        why: "Para cerrar a tus clientes y demostrar resultados con datos reales.",
+      },
     ],
   },
   how: {
