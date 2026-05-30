@@ -44,6 +44,7 @@ import { Route as AppClientsClientIdMetaAdsRouteImport } from './routes/_app/cli
 import { Route as AppClientsClientIdLandingRouteImport } from './routes/_app/clients/$clientId/landing'
 import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
 import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
+import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
 import { Route as AppClientsClientIdChatbotRouteImport } from './routes/_app/clients/$clientId/chatbot'
 import { Route as ApiPublicWhatsappWebhookAccountIdRouteImport } from './routes/api/public/whatsapp/webhook/$accountId'
 
@@ -231,6 +232,12 @@ const AppClientsClientIdDeliverablesRoute =
     path: '/deliverables',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdContractsRoute =
+  AppClientsClientIdContractsRouteImport.update({
+    id: '/contracts',
+    path: '/contracts',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdChatbotRoute =
   AppClientsClientIdChatbotRouteImport.update({
     id: '/chatbot',
@@ -271,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients/': typeof AppClientsIndexRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
+  '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
@@ -308,6 +316,7 @@ export interface FileRoutesByTo {
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients': typeof AppClientsIndexRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
+  '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
@@ -348,6 +357,7 @@ export interface FileRoutesById {
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
+  '/_app/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/_app/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
@@ -388,6 +398,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/update'
     | '/clients/'
     | '/clients/$clientId/chatbot'
+    | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/instagram'
     | '/clients/$clientId/landing'
@@ -425,6 +436,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/update'
     | '/clients'
     | '/clients/$clientId/chatbot'
+    | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/instagram'
     | '/clients/$clientId/landing'
@@ -464,6 +476,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/update'
     | '/_app/clients/'
     | '/_app/clients/$clientId/chatbot'
+    | '/_app/clients/$clientId/contracts'
     | '/_app/clients/$clientId/deliverables'
     | '/_app/clients/$clientId/instagram'
     | '/_app/clients/$clientId/landing'
@@ -745,6 +758,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdDeliverablesRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/contracts': {
+      id: '/_app/clients/$clientId/contracts'
+      path: '/contracts'
+      fullPath: '/clients/$clientId/contracts'
+      preLoaderRoute: typeof AppClientsClientIdContractsRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/chatbot': {
       id: '/_app/clients/$clientId/chatbot'
       path: '/chatbot'
@@ -775,6 +795,7 @@ const AtChar123slugChar125RouteWithChildren =
 
 interface AppClientsClientIdRouteChildren {
   AppClientsClientIdChatbotRoute: typeof AppClientsClientIdChatbotRoute
+  AppClientsClientIdContractsRoute: typeof AppClientsClientIdContractsRoute
   AppClientsClientIdDeliverablesRoute: typeof AppClientsClientIdDeliverablesRoute
   AppClientsClientIdInstagramRoute: typeof AppClientsClientIdInstagramRoute
   AppClientsClientIdLandingRoute: typeof AppClientsClientIdLandingRoute
@@ -787,6 +808,7 @@ interface AppClientsClientIdRouteChildren {
 
 const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdChatbotRoute: AppClientsClientIdChatbotRoute,
+  AppClientsClientIdContractsRoute: AppClientsClientIdContractsRoute,
   AppClientsClientIdDeliverablesRoute: AppClientsClientIdDeliverablesRoute,
   AppClientsClientIdInstagramRoute: AppClientsClientIdInstagramRoute,
   AppClientsClientIdLandingRoute: AppClientsClientIdLandingRoute,
