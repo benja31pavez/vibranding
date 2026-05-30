@@ -148,7 +148,7 @@ const es: Dict = {
       {
         title: "Chatbot",
         desc: "Un WhatsApp dedicado con chatbot que califica y cierra: separa la captación de tu operación diaria.",
-        why: "Para cerrar a tus clientes y demostrar resultados con datos reales.",
+        why: "Sin esto, no cierras ni puedes medir resultados reales.",
       },
     ],
   },
@@ -378,7 +378,7 @@ const en: Dict = {
       {
         title: "Chatbot",
         desc: "A dedicated WhatsApp with a chatbot that qualifies and closes: it separates acquisition from your day-to-day.",
-        why: "To close clients and prove results with real data.",
+        why: "Without this, you can't close or measure real results.",
       },
     ],
   },

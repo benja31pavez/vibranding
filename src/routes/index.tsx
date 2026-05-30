@@ -365,15 +365,16 @@ function ServicesStepper({ items }: { items: ServiceItem[]; icons?: IconType[] }
         const tone = TONES[i];
         const isLast = i === items.length - 1;
         return (
-          <div key={it.title} className="flex flex-col">
+          <div key={it.title} className="flex flex-col group">
             {/* Chevron header */}
             <div
-              className="relative text-left"
+              className="relative text-left transition-transform duration-300 group-hover:-translate-y-0.5"
               style={{
                 clipPath: isLast
                   ? "polygon(0 0, 100% 0, 100% 100%, 0 100%, 18px 50%)"
                   : "polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%, 18px 50%)",
                 marginLeft: i === 0 ? "-18px" : "0",
+                filter: `drop-shadow(0 8px 20px color-mix(in oklab, ${tone} 35%, transparent))`,
               }}
             >
               <div
@@ -392,14 +393,51 @@ function ServicesStepper({ items }: { items: ServiceItem[]; icons?: IconType[] }
               </div>
             </div>
 
-            {/* Content under each chevron */}
-            <div className="mt-4 px-1">
-              <p className="text-sm text-muted-foreground leading-relaxed">{it.desc}</p>
+            {/* Content card under each chevron */}
+            <div
+              className="relative mt-4 mx-1 rounded-2xl border bg-card p-5 overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
+              style={{
+                borderColor: `color-mix(in oklab, ${tone} 18%, hsl(var(--border)))`,
+                background: `linear-gradient(180deg, color-mix(in oklab, ${tone} 6%, hsl(var(--card))) 0%, hsl(var(--card)) 70%)`,
+              }}
+            >
+              {/* Big watermark number */}
               <div
-                className="mt-4 pt-4 border-t text-xs italic text-muted-foreground/90"
-                style={{ borderColor: `color-mix(in oklab, ${tone} 20%, transparent)` }}
+                aria-hidden
+                className="pointer-events-none absolute -top-4 -right-2 font-brand font-bold leading-none select-none"
+                style={{
+                  fontSize: "5rem",
+                  color: `color-mix(in oklab, ${tone} 14%, transparent)`,
+                }}
               >
-                {it.why}
+                {String(i + 1).padStart(2, "0")}
+              </div>
+              {/* Accent corner glow */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -bottom-10 -left-10 w-32 h-32 rounded-full blur-2xl opacity-60 transition-opacity duration-300 group-hover:opacity-100"
+                style={{ background: `radial-gradient(circle, ${tone}, transparent 70%)` }}
+              />
+
+              <p className="relative text-sm text-foreground/85 leading-relaxed">{it.desc}</p>
+
+              <div className="relative mt-4 pt-4 flex items-start gap-2">
+                <span
+                  aria-hidden
+                  className="absolute left-0 right-0 top-0 h-px"
+                  style={{
+                    background: `linear-gradient(90deg, transparent, color-mix(in oklab, ${tone} 50%, transparent), transparent)`,
+                  }}
+                />
+                <span
+                  aria-hidden
+                  className="mt-1 w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{
+                    background: tone,
+                    boxShadow: `0 0 10px ${tone}`,
+                  }}
+                />
+                <p className="text-xs italic text-muted-foreground leading-relaxed">{it.why}</p>
               </div>
             </div>
           </div>
