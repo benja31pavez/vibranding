@@ -56,7 +56,13 @@ export function ConnectWhatsAppCard({
       setSaving(false);
       return;
     }
-    const updates: Record<string, unknown> = {
+    const updates: {
+      phone_number_id: string | null;
+      waba_id: string | null;
+      display_phone_number: string | null;
+      connected: boolean;
+      access_token?: string;
+    } = {
       phone_number_id: phoneNumberId || null,
       waba_id: wabaId || null,
       display_phone_number: displayPhone || null,
