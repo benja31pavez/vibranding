@@ -395,7 +395,7 @@ function ServicesStepper({ items }: { items: ServiceItem[]; icons?: IconType[] }
 
             {/* Content card under each chevron */}
             <div
-              className="relative mt-4 mx-1 rounded-2xl border bg-card p-5 overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
+              className="relative mt-4 mx-1 flex-1 flex flex-col rounded-2xl border bg-card p-5 overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
               style={{
                 borderColor: `color-mix(in oklab, ${tone} 18%, hsl(var(--border)))`,
                 background: `linear-gradient(180deg, color-mix(in oklab, ${tone} 6%, hsl(var(--card))) 0%, hsl(var(--card)) 70%)`,
