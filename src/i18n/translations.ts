@@ -147,7 +147,7 @@ const es: Dict = {
       },
       {
         title: "Chatbot",
-        desc: "Separé completamente la captación de clientes de tu operación diaria. Un WhatsApp dedicado, atendido por un chatbot que califica y cierra: no contamina tu WhatsApp personal, no comparte conversaciones privadas con nosotros, y mide exactamente cuántos clientes llegaron gracias a tu trabajo en marketing.",
+        desc: "Un WhatsApp dedicado con chatbot que califica y cierra: separa la captación de tu operación diaria.",
         why: "Para cerrar a tus clientes y demostrar resultados con datos reales.",
       },
     ],
@@ -377,7 +377,7 @@ const en: Dict = {
       },
       {
         title: "Chatbot",
-        desc: "I completely separated client acquisition from your day-to-day operation. A dedicated WhatsApp handled by a chatbot that qualifies and closes: it doesn't pollute your personal WhatsApp, it doesn't share private conversations with us, and it measures exactly how many clients arrived thanks to your marketing work.",
+        desc: "A dedicated WhatsApp with a chatbot that qualifies and closes: it separates acquisition from your day-to-day.",
         why: "To close clients and prove results with real data.",
       },
     ],
