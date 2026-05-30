@@ -65,21 +65,23 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      <header className="px-6 md:px-10 py-5 flex items-center justify-between max-w-7xl mx-auto relative z-10">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="text-3xl md:text-4xl font-bold italic tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
-        </Link>
-        <nav className="hidden md:flex items-center gap-7 text-sm">
-          <a href="#servicios" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5.5rem] text-center"><span className="inline-block">{t.nav.services}</span></a>
-          <a href="#como" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[8rem] text-center"><span className="inline-block">{t.nav.how}</span></a>
-          <a href="#nosotros" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[7rem] text-center"><span className="inline-block">{t.nav.about}</span></a>
-          
-          <a href="#clientes" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5rem] text-center"><span className="inline-block">{t.nav.clients}</span></a>
-          <a href="#contacto" onClick={() => trackLandingEvent("contact_click", lang)} className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5rem] text-center"><span className="inline-block">{t.nav.contact}</span></a>
-        </nav>
-        <div className="flex items-center gap-3">
-          <LanguageSwitcher />
-          <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground inline-block min-w-[7rem] text-right">{t.nav.signIn}</Link>
+      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
+        <div className="px-4 md:px-10 py-3 md:py-5 flex items-center justify-between max-w-7xl mx-auto gap-3">
+          <Link to="/" className="flex items-center gap-2 shrink-0">
+            <span className="text-2xl md:text-4xl font-bold italic tracking-tight text-gradient-brand bg-gradient-brand-animated">Vibranding</span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-7 text-sm">
+            <a href="#servicios" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5.5rem] text-center"><span className="inline-block">{t.nav.services}</span></a>
+            <a href="#como" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[8rem] text-center"><span className="inline-block">{t.nav.how}</span></a>
+            <a href="#nosotros" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[7rem] text-center"><span className="inline-block">{t.nav.about}</span></a>
+
+            <a href="#clientes" className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5rem] text-center"><span className="inline-block">{t.nav.clients}</span></a>
+            <a href="#contacto" onClick={() => trackLandingEvent("contact_click", lang)} className="text-muted-foreground hover:text-foreground story-link inline-block min-w-[5rem] text-center"><span className="inline-block">{t.nav.contact}</span></a>
+          </nav>
+          <div className="flex items-center gap-2 md:gap-3 ml-auto">
+            <Link to="/login" className="text-xs md:text-sm font-medium text-muted-foreground hover:text-foreground whitespace-nowrap">{t.nav.signIn}</Link>
+            <LanguageSwitcher className="scale-90 md:scale-100 opacity-80 hover:opacity-100" />
+          </div>
         </div>
       </header>
 
