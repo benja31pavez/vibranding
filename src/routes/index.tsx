@@ -421,7 +421,7 @@ function ServicesStepper({ items }: { items: ServiceItem[]; icons?: IconType[] }
 
               <p className="relative text-sm text-foreground/85 leading-relaxed">{it.desc}</p>
 
-              <div className="relative mt-4 pt-4 flex items-start gap-2">
+              <div className="relative mt-auto pt-4 flex items-start gap-2">
                 <span
                   aria-hidden
                   className="absolute left-0 right-0 top-0 h-px"
