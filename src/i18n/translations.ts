@@ -122,33 +122,33 @@ const es: Dict = {
     items: [
       {
         title: "Branding",
-        desc: "Identidad visual, tono y estrategia de marca. La base sobre la que se construye todo lo demás.",
+        desc: "Identidad visual, tono y estrategia clara. La base sobre la que se construye todo lo demás.",
         why: "Sin esto tu marca nunca vibrará.",
       },
       {
         title: "Optimización",
-        desc: "Auditoría y optimización de tu perfil de Instagram y presencia digital para que te encuentren a la primera.",
-        why: "Sin esto puede que no te encuentren cuando te buscan.",
+        desc: "Optimizamos tu perfil de Instagram y presencia digital para que te encuentren a la primera.",
+        why: "Sin esto, no te encuentran cuando te buscan.",
       },
       {
         title: "Contenido",
-        desc: "Calendario, fotografía, copy y piezas visuales que comunican el valor real de lo que ofreces.",
+        desc: "Calendario, fotografía y copy que comunican el valor real de lo que ofreces cada semana.",
         why: "Sin esto no estás entregando valor.",
       },
       {
         title: "Anuncios",
         desc: "Campañas Meta Ads pensadas para llegar a quienes aún no te conocen y deberían conocerte.",
-        why: "Sin anunciarte, tu contenido no llega a quien aún no sabe de ti.",
+        why: "Sin esto, nadie nuevo llega a conocerte.",
       },
       {
         title: "Landing Page",
-        desc: "Una página clara que explica al 100% lo que ofreces y convierte la curiosidad en interés real.",
-        why: "Sin esto, mucha gente no termina de entender qué ofreces.",
+        desc: "Una página clara que explica lo que ofreces y convierte la curiosidad en interés real.",
+        why: "Sin esto, no terminan de entender qué ofreces.",
       },
       {
         title: "Chatbot",
-        desc: "Un WhatsApp dedicado con chatbot que califica y cierra: separa la captación de tu operación diaria.",
-        why: "Sin esto, no cierras ni puedes medir resultados reales.",
+        desc: "Un WhatsApp dedicado con chatbot que califica y cierra clientes mientras tú trabajas.",
+        why: "Sin esto, no cierras ni mides resultados.",
       },
     ],
   },
