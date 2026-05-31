@@ -31,7 +31,7 @@ export function ConnectWhatsAppCard({
   }, [account]);
 
   const webhookUrl = account
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/api/public/whatsapp/webhook/${account.id}`
+    ? `https://vibranding.pro/api/public/whatsapp/webhook/${account.id}`
     : "";
 
   const ensureAccount = async (): Promise<WAAccount | null> => {
