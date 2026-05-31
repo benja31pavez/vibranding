@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConnectWhatsAppCard } from "@/components/chatbot/ConnectWhatsAppCard";
 import { ConversationsTab } from "@/components/chatbot/ConversationsTab";
 import { BotRulesTab } from "@/components/chatbot/BotRulesTab";
+import { AIBotTab } from "@/components/chatbot/AIBotTab";
 import { MetricsTab } from "@/components/chatbot/MetricsTab";
 import { MessageCircle } from "lucide-react";
 
@@ -21,6 +22,12 @@ export type WAAccount = {
   verify_token: string;
   access_token: string | null;
   connected: boolean;
+  ai_enabled: boolean;
+  ai_system_prompt: string;
+  ai_model: string;
+  ai_debounce_seconds: number;
+  ai_max_history: number;
+  ai_business_context: string | null;
 };
 
 function ChatbotPage() {
@@ -65,11 +72,15 @@ function ChatbotPage() {
         <Tabs defaultValue="conversations" className="space-y-4">
           <TabsList>
             <TabsTrigger value="conversations">Conversaciones</TabsTrigger>
-            <TabsTrigger value="rules">Respuestas automáticas</TabsTrigger>
+            <TabsTrigger value="ai">IA</TabsTrigger>
+            <TabsTrigger value="rules">Reglas</TabsTrigger>
             <TabsTrigger value="metrics">Métricas</TabsTrigger>
           </TabsList>
           <TabsContent value="conversations">
             <ConversationsTab clientId={clientId} />
+          </TabsContent>
+          <TabsContent value="ai">
+            <AIBotTab clientId={clientId} account={acc} onChange={load} />
           </TabsContent>
           <TabsContent value="rules">
             <BotRulesTab clientId={clientId} />
