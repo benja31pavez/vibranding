@@ -45,6 +45,7 @@ function LandingEditor() {
   const [subs, setSubs] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">("mobile");
 
   const load = async () => {
     setLoading(true);
