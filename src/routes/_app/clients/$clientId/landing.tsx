@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail, Smartphone, Monitor } from "lucide-react";
 
 export const Route = createFileRoute("/_app/clients/$clientId/landing")({
   component: LandingEditor,
