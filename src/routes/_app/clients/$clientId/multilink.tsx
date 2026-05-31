@@ -50,6 +50,7 @@ function MultilinkPage() {
   const [igProfile, setIgProfile] = useState<IGProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">("mobile");
 
   const load = async () => {
     setLoading(true);
