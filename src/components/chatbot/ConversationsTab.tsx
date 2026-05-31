@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, User, Star, X, Search, RefreshCw } from "lucide-react";
+import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 type Conv = {
@@ -17,6 +17,8 @@ type Conv = {
   unread_count: number;
   is_lead: boolean;
   status: string;
+  ai_paused: boolean;
+  pending_response_at: string | null;
 };
 
 type Msg = {
@@ -89,6 +91,19 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
     const next = active.status === "open" ? "closed" : "open";
     await supabase.from("whatsapp_conversations").update({ status: next }).eq("id", active.id);
     setActive({ ...active, status: next });
+    loadConvs();
+  };
+
+  const togglePauseBot = async () => {
+    if (!active) return;
+    const next = !active.ai_paused;
+    const { error } = await supabase
+      .from("whatsapp_conversations")
+      .update({ ai_paused: next, pending_response_at: next ? null : active.pending_response_at })
+      .eq("id", active.id);
+    if (error) return toast.error(error.message);
+    setActive({ ...active, ai_paused: next });
+    toast.success(next ? "Bot pausado — ahora respondes tú" : "Bot reactivado");
     loadConvs();
   };
 
@@ -175,13 +190,30 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
           </div>
         ) : (
           <>
-            <div className="p-3 border-b flex items-center gap-3">
+            <div className="p-3 border-b flex items-center gap-2 flex-wrap">
               <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">
+                <div className="font-medium truncate flex items-center gap-2">
                   {active.contact_name || active.contact_wa_id}
+                  {active.pending_response_at && !active.ai_paused && (
+                    <Badge variant="outline" className="gap-1 text-[10px]">
+                      <Clock className="w-3 h-3" /> Bot responderá pronto
+                    </Badge>
+                  )}
                 </div>
                 <div className="text-xs text-muted-foreground">+{active.contact_wa_id}</div>
               </div>
+              <Button
+                size="sm"
+                variant={active.ai_paused ? "default" : "outline"}
+                onClick={togglePauseBot}
+                title={active.ai_paused ? "Reactivar bot" : "Pausar bot en este chat"}
+              >
+                {active.ai_paused ? (
+                  <><Bot className="w-3 h-3 mr-1" /> Reactivar bot</>
+                ) : (
+                  <><BotOff className="w-3 h-3 mr-1" /> Pausar bot</>
+                )}
+              </Button>
               <Button size="sm" variant={active.is_lead ? "default" : "outline"} onClick={toggleLead}>
                 <Star className="w-3 h-3 mr-1" />
                 {active.is_lead ? "Lead" : "Marcar lead"}

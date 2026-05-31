@@ -1478,6 +1478,12 @@ export type Database = {
       whatsapp_accounts: {
         Row: {
           access_token: string | null
+          ai_business_context: string | null
+          ai_debounce_seconds: number
+          ai_enabled: boolean
+          ai_max_history: number
+          ai_model: string
+          ai_system_prompt: string
           client_id: string
           connected: boolean
           created_at: string
@@ -1491,6 +1497,12 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
+          ai_business_context?: string | null
+          ai_debounce_seconds?: number
+          ai_enabled?: boolean
+          ai_max_history?: number
+          ai_model?: string
+          ai_system_prompt?: string
           client_id: string
           connected?: boolean
           created_at?: string
@@ -1504,6 +1516,12 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
+          ai_business_context?: string | null
+          ai_debounce_seconds?: number
+          ai_enabled?: boolean
+          ai_max_history?: number
+          ai_model?: string
+          ai_system_prompt?: string
           client_id?: string
           connected?: boolean
           created_at?: string
@@ -1562,42 +1580,51 @@ export type Database = {
       whatsapp_conversations: {
         Row: {
           account_id: string
+          ai_paused: boolean
           client_id: string
           contact_name: string | null
           contact_wa_id: string
           created_at: string
           id: string
           is_lead: boolean
+          last_bot_at: string | null
           last_message_at: string | null
           last_message_preview: string | null
+          pending_response_at: string | null
           status: string
           unread_count: number
           updated_at: string
         }
         Insert: {
           account_id: string
+          ai_paused?: boolean
           client_id: string
           contact_name?: string | null
           contact_wa_id: string
           created_at?: string
           id?: string
           is_lead?: boolean
+          last_bot_at?: string | null
           last_message_at?: string | null
           last_message_preview?: string | null
+          pending_response_at?: string | null
           status?: string
           unread_count?: number
           updated_at?: string
         }
         Update: {
           account_id?: string
+          ai_paused?: boolean
           client_id?: string
           contact_name?: string | null
           contact_wa_id?: string
           created_at?: string
           id?: string
           is_lead?: boolean
+          last_bot_at?: string | null
           last_message_at?: string | null
           last_message_preview?: string | null
+          pending_response_at?: string | null
           status?: string
           unread_count?: number
           updated_at?: string

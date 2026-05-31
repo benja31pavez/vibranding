@@ -135,8 +135,10 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
                 .maybeSingle();
 
               let conversationId: string;
+              let aiPaused = false;
               if (existing) {
                 conversationId = existing.id;
+                aiPaused = !!existing.ai_paused;
                 await supabaseAdmin
                   .from("whatsapp_conversations")
                   .update({
@@ -179,7 +181,7 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
                 status: "received",
               });
 
-              // Run bot rules
+              // 1) Try keyword rules first (instant response)
               const { data: rules } = await supabaseAdmin
                 .from("whatsapp_bot_rules")
                 .select("*")
@@ -192,8 +194,13 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
                 if (b.match_type === "fallback" && a.match_type !== "fallback") return -1;
                 return 0;
               });
+              // Skip fallback at this stage if AI is enabled — AI handles fallback
+              const ruleCandidates = acc.ai_enabled
+                ? sorted.filter((r) => r.match_type !== "fallback")
+                : sorted;
 
-              const matched = sorted.find((r) => matchRule(body, r));
+              const matched = !aiPaused ? ruleCandidates.find((r) => matchRule(body, r)) : undefined;
+
               if (matched && matched.response_text && acc.phone_number_id && acc.access_token) {
                 const sent = await sendWhatsApp(
                   acc.phone_number_id,
@@ -218,7 +225,17 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
                     last_message_at: new Date().toISOString(),
                     last_message_preview: matched.response_text.slice(0, 140),
                     is_lead: matched.mark_as_lead ? true : undefined,
+                    pending_response_at: null,
+                    last_bot_at: new Date().toISOString(),
                   })
+                  .eq("id", conversationId);
+              } else if (acc.ai_enabled && !aiPaused) {
+                // 2) Schedule AI reply with debounce. Each new message extends the deadline.
+                const debounce = Math.max(15, acc.ai_debounce_seconds ?? 75);
+                const dueAt = new Date(Date.now() + debounce * 1000).toISOString();
+                await supabaseAdmin
+                  .from("whatsapp_conversations")
+                  .update({ pending_response_at: dueAt })
                   .eq("id", conversationId);
               }
             }
