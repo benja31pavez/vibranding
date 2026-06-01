@@ -127,11 +127,11 @@ export function ConnectWhatsAppCard({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-2 text-left">
+            <button type="button" className="flex items-center gap-2 text-left">
               <ChevronDown
                 className={`w-4 h-4 text-muted-foreground transition-transform ${detailsOpen ? "rotate-180" : ""}`}
               />
-              <CardTitle className="flex items-center gap-2">
+              <span className="flex items-center gap-2 font-semibold leading-none tracking-tight">
                 <Plug className="w-5 h-5" />
                 {account.connected ? "WhatsApp conectado" : "Configurar WhatsApp"}
                 {account.connected ? (
@@ -143,7 +143,7 @@ export function ConnectWhatsAppCard({
                     <AlertCircle className="w-3 h-3" /> Pendiente
                   </Badge>
                 )}
-              </CardTitle>
+              </span>
             </button>
           </CollapsibleTrigger>
           {account.connected && (
