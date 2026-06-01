@@ -7,6 +7,7 @@ import { ConversationsTab } from "@/components/chatbot/ConversationsTab";
 import { BotRulesTab } from "@/components/chatbot/BotRulesTab";
 import { AIBotTab } from "@/components/chatbot/AIBotTab";
 import { MetricsTab } from "@/components/chatbot/MetricsTab";
+import { BusinessProfileTab } from "@/components/chatbot/BusinessProfileTab";
 import { MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_app/clients/$clientId/chatbot")({
@@ -28,6 +29,10 @@ export type WAAccount = {
   ai_debounce_seconds: number;
   ai_max_history: number;
   ai_business_context: string | null;
+  profile_photo_url: string | null;
+  website_url: string | null;
+  social_links: { label: string; url: string }[] | null;
+  catalog: { name: string; price?: string; url?: string; image_url?: string }[] | null;
 };
 
 function ChatbotPage() {
@@ -72,12 +77,16 @@ function ChatbotPage() {
         <Tabs defaultValue="conversations" className="space-y-4">
           <TabsList>
             <TabsTrigger value="conversations">Conversaciones</TabsTrigger>
+            <TabsTrigger value="profile">Perfil</TabsTrigger>
             <TabsTrigger value="ai">IA</TabsTrigger>
             <TabsTrigger value="rules">Reglas</TabsTrigger>
             <TabsTrigger value="metrics">Métricas</TabsTrigger>
           </TabsList>
           <TabsContent value="conversations">
             <ConversationsTab clientId={clientId} />
+          </TabsContent>
+          <TabsContent value="profile">
+            <BusinessProfileTab account={acc} onChange={load} />
           </TabsContent>
           <TabsContent value="ai">
             <AIBotTab clientId={clientId} account={acc} onChange={load} />

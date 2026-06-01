@@ -14,6 +14,9 @@ type WAAccount = {
   ai_model: string;
   ai_max_history: number;
   ai_business_context: string | null;
+  website_url: string | null;
+  social_links: { label: string; url: string }[] | null;
+  catalog: { name: string; price?: string; url?: string; image_url?: string }[] | null;
 };
 
 async function sendWhatsApp(
@@ -95,7 +98,7 @@ async function processConversation(convId: string) {
   const { data: acc } = await supabaseAdmin
     .from("whatsapp_accounts")
     .select(
-      "id,client_id,phone_number_id,access_token,ai_enabled,ai_system_prompt,ai_model,ai_max_history,ai_business_context",
+      "id,client_id,phone_number_id,access_token,ai_enabled,ai_system_prompt,ai_model,ai_max_history,ai_business_context,website_url,social_links,catalog",
     )
     .eq("id", conv.account_id)
     .maybeSingle<WAAccount>();
@@ -137,11 +140,31 @@ async function processConversation(convId: string) {
     return;
   }
 
+  const socials = (acc.social_links ?? []).filter((s) => s?.url?.trim());
+  const catalog = (acc.catalog ?? []).filter((c) => c?.name?.trim());
+  const profileBlock = [
+    acc.website_url ? `Sitio web: ${acc.website_url}` : "",
+    socials.length
+      ? `Redes:\n${socials.map((s) => `- ${s.label || s.url}: ${s.url}`).join("\n")}`
+      : "",
+    catalog.length
+      ? `Catálogo:\n${catalog
+          .map(
+            (c) =>
+              `- ${c.name}${c.price ? ` (${c.price})` : ""}${c.url ? ` → ${c.url}` : ""}`,
+          )
+          .join("\n")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
   const systemPrompt = [
     acc.ai_system_prompt,
     acc.ai_business_context
       ? `\n\nContexto del negocio (úsalo para responder):\n${acc.ai_business_context}`
       : "",
+    profileBlock ? `\n\nPerfil del negocio:\n${profileBlock}` : "",
     `\n\nResponde SOLO con el mensaje que se debe enviar al cliente por WhatsApp. Sin prefijos como "Bot:" ni explicaciones meta. Sé conciso (idealmente 1-3 frases).`,
   ].join("");
 
