@@ -1537,6 +1537,7 @@ export type Database = {
       }
       whatsapp_bot_rules: {
         Row: {
+          actions: Json
           client_id: string
           created_at: string
           id: string
@@ -1550,6 +1551,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          actions?: Json
           client_id: string
           created_at?: string
           id?: string
@@ -1563,6 +1565,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          actions?: Json
           client_id?: string
           created_at?: string
           id?: string

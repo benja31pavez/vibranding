@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-
-const META = "https://graph.facebook.com/v21.0";
+import { ruleToActions, sendBotActions } from "@/lib/whatsapp/sendActions";
 
 function normalize(s: string): string {
   return (s ?? "").toLowerCase().trim();
@@ -24,33 +23,6 @@ function matchRule(text: string, rule: any): boolean {
   }
 }
 
-async function sendWhatsApp(
-  phoneNumberId: string,
-  accessToken: string,
-  to: string,
-  body: string,
-): Promise<{ ok: boolean; wa_id?: string; error?: string }> {
-  try {
-    const res = await fetch(`${META}/${phoneNumberId}/messages`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to,
-        type: "text",
-        text: { body },
-      }),
-    });
-    const data: any = await res.json();
-    if (!res.ok) return { ok: false, error: data?.error?.message ?? "error" };
-    return { ok: true, wa_id: data?.messages?.[0]?.id };
-  } catch (e: any) {
-    return { ok: false, error: e?.message ?? "fetch failed" };
-  }
-}
 
 export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")({
   server: {
@@ -201,29 +173,34 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
 
               const matched = !aiPaused ? ruleCandidates.find((r) => matchRule(body, r)) : undefined;
 
-              if (matched && matched.response_text && acc.phone_number_id && acc.access_token) {
-                const sent = await sendWhatsApp(
+              const matchedActions = matched ? ruleToActions(matched) : [];
+              if (matched && matchedActions.length > 0 && acc.phone_number_id && acc.access_token) {
+                const results = await sendBotActions(
                   acc.phone_number_id,
                   acc.access_token,
                   from,
-                  matched.response_text,
+                  matchedActions,
                 );
-                await supabaseAdmin.from("whatsapp_messages").insert({
-                  conversation_id: conversationId,
-                  client_id: acc.client_id,
-                  wa_message_id: sent.wa_id ?? null,
-                  direction: "outbound",
-                  from_bot: true,
-                  type: "text",
-                  body: matched.response_text,
-                  timestamp: new Date().toISOString(),
-                  status: sent.ok ? "sent" : "failed",
-                });
+                let lastPreview = "";
+                for (const r of results) {
+                  lastPreview = r.preview;
+                  await supabaseAdmin.from("whatsapp_messages").insert({
+                    conversation_id: conversationId,
+                    client_id: acc.client_id,
+                    wa_message_id: r.wa_id ?? null,
+                    direction: "outbound",
+                    from_bot: true,
+                    type: r.type,
+                    body: r.preview,
+                    timestamp: new Date().toISOString(),
+                    status: r.ok ? "sent" : "failed",
+                  });
+                }
                 await supabaseAdmin
                   .from("whatsapp_conversations")
                   .update({
                     last_message_at: new Date().toISOString(),
-                    last_message_preview: matched.response_text.slice(0, 140),
+                    last_message_preview: lastPreview.slice(0, 140),
                     is_lead: matched.mark_as_lead ? true : undefined,
                     pending_response_at: null,
                     last_bot_at: new Date().toISOString(),
