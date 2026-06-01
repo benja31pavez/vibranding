@@ -46,6 +46,9 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [search, setSearch] = useState("");
   const [filterLead, setFilterLead] = useState(false);
+  const [filterFollowup, setFilterFollowup] = useState(false);
+
+  const followupCount = convs.filter((c) => c.needs_human_followup).length;
 
   const loadConvs = async () => {
     const { data } = await supabase
