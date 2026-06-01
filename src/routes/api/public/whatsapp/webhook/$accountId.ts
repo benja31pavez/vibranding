@@ -173,29 +173,34 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
 
               const matched = !aiPaused ? ruleCandidates.find((r) => matchRule(body, r)) : undefined;
 
-              if (matched && matched.response_text && acc.phone_number_id && acc.access_token) {
-                const sent = await sendWhatsApp(
+              const matchedActions = matched ? ruleToActions(matched) : [];
+              if (matched && matchedActions.length > 0 && acc.phone_number_id && acc.access_token) {
+                const results = await sendBotActions(
                   acc.phone_number_id,
                   acc.access_token,
                   from,
-                  matched.response_text,
+                  matchedActions,
                 );
-                await supabaseAdmin.from("whatsapp_messages").insert({
-                  conversation_id: conversationId,
-                  client_id: acc.client_id,
-                  wa_message_id: sent.wa_id ?? null,
-                  direction: "outbound",
-                  from_bot: true,
-                  type: "text",
-                  body: matched.response_text,
-                  timestamp: new Date().toISOString(),
-                  status: sent.ok ? "sent" : "failed",
-                });
+                let lastPreview = "";
+                for (const r of results) {
+                  lastPreview = r.preview;
+                  await supabaseAdmin.from("whatsapp_messages").insert({
+                    conversation_id: conversationId,
+                    client_id: acc.client_id,
+                    wa_message_id: r.wa_id ?? null,
+                    direction: "outbound",
+                    from_bot: true,
+                    type: r.type,
+                    body: r.preview,
+                    timestamp: new Date().toISOString(),
+                    status: r.ok ? "sent" : "failed",
+                  });
+                }
                 await supabaseAdmin
                   .from("whatsapp_conversations")
                   .update({
                     last_message_at: new Date().toISOString(),
-                    last_message_preview: matched.response_text.slice(0, 140),
+                    last_message_preview: lastPreview.slice(0, 140),
                     is_lead: matched.mark_as_lead ? true : undefined,
                     pending_response_at: null,
                     last_bot_at: new Date().toISOString(),
