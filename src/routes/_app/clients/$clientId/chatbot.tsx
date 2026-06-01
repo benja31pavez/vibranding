@@ -77,12 +77,16 @@ function ChatbotPage() {
         <Tabs defaultValue="conversations" className="space-y-4">
           <TabsList>
             <TabsTrigger value="conversations">Conversaciones</TabsTrigger>
+            <TabsTrigger value="profile">Perfil</TabsTrigger>
             <TabsTrigger value="ai">IA</TabsTrigger>
             <TabsTrigger value="rules">Reglas</TabsTrigger>
             <TabsTrigger value="metrics">Métricas</TabsTrigger>
           </TabsList>
           <TabsContent value="conversations">
             <ConversationsTab clientId={clientId} />
+          </TabsContent>
+          <TabsContent value="profile">
+            <BusinessProfileTab account={acc} onChange={load} />
           </TabsContent>
           <TabsContent value="ai">
             <AIBotTab clientId={clientId} account={acc} onChange={load} />
