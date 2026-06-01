@@ -14,6 +14,9 @@ type WAAccount = {
   ai_model: string;
   ai_max_history: number;
   ai_business_context: string | null;
+  website_url: string | null;
+  social_links: { label: string; url: string }[] | null;
+  catalog: { name: string; price?: string; url?: string; image_url?: string }[] | null;
 };
 
 async function sendWhatsApp(
