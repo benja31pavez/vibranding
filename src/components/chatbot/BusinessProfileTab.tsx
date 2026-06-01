@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, X, Building2, Globe, Share2, ShoppingBag } from "lucide-react";
+import { Plus, X, Building2, Globe, Share2, ShoppingBag, Clock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { MediaUpload } from "@/components/MediaUpload";
 import { syncWhatsAppProfile } from "@/lib/whatsapp/syncProfile.functions";
@@ -13,6 +14,18 @@ import type { WAAccount } from "@/routes/_app/clients/$clientId/chatbot";
 
 type Social = { label: string; url: string };
 type CatalogItem = { name: string; price?: string; url?: string; image_url?: string };
+type HourRow = { day: number; enabled: boolean; open: string; close: string };
+
+const DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+function defaultHours(): HourRow[] {
+  return Array.from({ length: 7 }, (_, i) => ({
+    day: i,
+    enabled: i < 5,
+    open: "09:00",
+    close: "18:00",
+  }));
+}
 
 export function BusinessProfileTab({
   account,
