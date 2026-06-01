@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, X, Building2, Globe, Share2, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { MediaUpload } from "@/components/MediaUpload";
+import { syncWhatsAppProfile } from "@/lib/whatsapp/syncProfile.functions";
 import type { WAAccount } from "@/routes/_app/clients/$clientId/chatbot";
 
 type Social = { label: string; url: string };
@@ -36,6 +38,8 @@ export function BusinessProfileTab({
     setCatalog(Array.isArray(account.catalog) ? (account.catalog as CatalogItem[]) : []);
   }, [account.id]);
 
+  const syncFn = useServerFn(syncWhatsAppProfile);
+
   const save = async () => {
     setSaving(true);
     const { error } = await supabase
@@ -47,10 +51,29 @@ export function BusinessProfileTab({
         catalog: catalog.filter((c) => c.name.trim()),
       } as any)
       .eq("id", account.id);
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Perfil del negocio guardado");
-    onChange();
+    if (error) {
+      setSaving(false);
+      return toast.error(error.message);
+    }
+    toast.success("Perfil guardado. Sincronizando con WhatsApp…");
+    try {
+      const res = await syncFn({ data: { accountId: account.id } });
+      const bits: string[] = [];
+      if (res.synced.websites) bits.push(`${res.synced.websites} enlace(s)`);
+      if (res.synced.description) bits.push("descripción");
+      if (res.synced.photo) bits.push("foto");
+      toast.success(
+        bits.length
+          ? `Perfil de WhatsApp actualizado: ${bits.join(", ")}.`
+          : "Perfil de WhatsApp actualizado.",
+      );
+      for (const w of res.warnings ?? []) toast.warning(w);
+    } catch (e: any) {
+      toast.error(`No se pudo sincronizar con WhatsApp: ${e?.message ?? "error"}`);
+    } finally {
+      setSaving(false);
+      onChange();
+    }
   };
 
   return (
