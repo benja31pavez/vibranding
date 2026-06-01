@@ -106,6 +106,7 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
 
     // "About" — short visible bio under the contact name (max 139 chars).
     const aboutParts: string[] = [];
+    if (acc.business_name) aboutParts.push(acc.business_name);
     if (acc.website_url) aboutParts.push(acc.website_url);
     for (const s of socials) {
       if (s?.url?.trim()) aboutParts.push(`${s.label || "Red"}: ${s.url}`);
@@ -114,6 +115,7 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
 
     // "Description" — long description shown on the business profile screen.
     const descParts: string[] = [];
+    if (acc.business_name) descParts.push(acc.business_name);
     if (socials.length) {
       descParts.push(
         socials
@@ -121,6 +123,9 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
           .map((s) => `${s.label || "Red"}: ${s.url}`)
           .join(" · "),
       );
+    }
+    if (hoursSummary) {
+      descParts.push(`Horarios: ${hoursSummary}`);
     }
     if (catalog.length) {
       descParts.push(
