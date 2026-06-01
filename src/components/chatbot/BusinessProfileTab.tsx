@@ -36,6 +36,12 @@ export function BusinessProfileTab({
 }) {
   const [photo, setPhoto] = useState(account.profile_photo_url ?? "");
   const [website, setWebsite] = useState(account.website_url ?? "");
+  const [name, setName] = useState(account.business_name ?? "");
+  const [hours, setHours] = useState<HourRow[]>(
+    Array.isArray(account.business_hours) && account.business_hours.length === 7
+      ? (account.business_hours as HourRow[])
+      : defaultHours(),
+  );
   const [socials, setSocials] = useState<Social[]>(
     Array.isArray(account.social_links) ? (account.social_links as Social[]) : [],
   );
@@ -47,6 +53,12 @@ export function BusinessProfileTab({
   useEffect(() => {
     setPhoto(account.profile_photo_url ?? "");
     setWebsite(account.website_url ?? "");
+    setName(account.business_name ?? "");
+    setHours(
+      Array.isArray(account.business_hours) && account.business_hours.length === 7
+        ? (account.business_hours as HourRow[])
+        : defaultHours(),
+    );
     setSocials(Array.isArray(account.social_links) ? (account.social_links as Social[]) : []);
     setCatalog(Array.isArray(account.catalog) ? (account.catalog as CatalogItem[]) : []);
   }, [account.id]);
@@ -60,6 +72,8 @@ export function BusinessProfileTab({
       .update({
         profile_photo_url: photo || null,
         website_url: website || null,
+        business_name: name.trim() || null,
+        business_hours: hours,
         social_links: socials.filter((s) => s.url.trim()),
         catalog: catalog.filter((c) => c.name.trim()),
       } as any)
