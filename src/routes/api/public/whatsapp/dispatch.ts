@@ -192,7 +192,9 @@ async function processConversation(convId: string) {
 
   const socials = (acc.social_links ?? []).filter((s) => s?.url?.trim());
   const catalog = (acc.catalog ?? []).filter((c) => c?.name?.trim());
+  const { summary: hoursSummary, nowOpen } = describeHours(acc.business_hours);
   const profileBlock = [
+    acc.business_name ? `Nombre del negocio: ${acc.business_name}` : "",
     acc.website_url ? `Sitio web: ${acc.website_url}` : "",
     socials.length
       ? `Redes:\n${socials.map((s) => `- ${s.label || s.url}: ${s.url}`).join("\n")}`
@@ -205,6 +207,11 @@ async function processConversation(convId: string) {
           )
           .join("\n")}`
       : "",
+    hoursSummary
+      ? `Horarios de atención:\n${hoursSummary}\nEstado ahora mismo: ${
+          nowOpen === null ? "desconocido" : nowOpen ? "ABIERTO" : "CERRADO"
+        }`
+      : "",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -215,7 +222,10 @@ async function processConversation(convId: string) {
       ? `\n\nContexto del negocio (úsalo para responder):\n${acc.ai_business_context}`
       : "",
     profileBlock ? `\n\nPerfil del negocio:\n${profileBlock}` : "",
-    `\n\nResponde SOLO con el mensaje que se debe enviar al cliente por WhatsApp. Sin prefijos como "Bot:" ni explicaciones meta. Sé conciso (idealmente 1-3 frases).`,
+    nowOpen === false
+      ? `\n\nIMPORTANTE: El negocio está cerrado en este momento. Indícalo amablemente y menciona cuándo se atenderá su consulta.`
+      : "",
+    `\n\nResponde SOLO con el mensaje que se debe enviar al cliente por WhatsApp. Sin prefijos como "Bot:" ni explicaciones meta. Sé conciso (idealmente 1-3 frases). Si necesitas derivar a una persona real, dilo con claridad ("alguien del equipo te contactará pronto") — esto activa un recordatorio interno.`,
   ].join("");
 
   const ai = await callAI(apiKey, acc.ai_model, systemPrompt, history);
@@ -245,14 +255,26 @@ async function processConversation(convId: string) {
     status: sent.ok ? "sent" : "failed",
   });
 
+  // Detect AI handoff to a human → flag conversation as needing follow-up
+  // and pause the bot so the human takes over.
+  const handoff = detectHandoff(text);
+  const updatePatch: Record<string, unknown> = {
+    pending_response_at: null,
+    last_bot_at: new Date().toISOString(),
+    last_message_at: new Date().toISOString(),
+    last_message_preview: text.slice(0, 140),
+  };
+  if (handoff && !conv.needs_human_followup) {
+    updatePatch.needs_human_followup = true;
+    updatePatch.human_followup_reason = `IA derivó al equipo: "${handoff.slice(0, 120)}"`;
+    updatePatch.human_followup_at = new Date().toISOString();
+    updatePatch.is_lead = true;
+    updatePatch.ai_paused = true;
+  }
+
   await supabaseAdmin
     .from("whatsapp_conversations")
-    .update({
-      pending_response_at: null,
-      last_bot_at: new Date().toISOString(),
-      last_message_at: new Date().toISOString(),
-      last_message_preview: text.slice(0, 140),
-    })
+    .update(updatePatch)
     .eq("id", convId);
 }
 
