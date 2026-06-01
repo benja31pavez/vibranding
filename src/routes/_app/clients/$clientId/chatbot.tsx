@@ -68,7 +68,7 @@ function ChatbotPage() {
           <MessageCircle className="w-5 h-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Chatbot WhatsApp</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">WhatsApp</h1>
           <p className="text-sm text-muted-foreground">
             Sigue las conversaciones de tu cliente y configura respuestas automáticas.
           </p>
