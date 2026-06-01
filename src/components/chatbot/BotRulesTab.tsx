@@ -206,10 +206,70 @@ function RuleEditor({
       ? [{ kind: "text", body: rule.response_text }]
       : rule.actions ?? [];
 
+  const actionsCount = effectiveActions.length;
+  const matchLabel: Record<Rule["match_type"], string> = {
+    keyword: "Contiene",
+    starts_with: "Empieza con",
+    exact: "Exacto",
+    fallback: "Fallback",
+  };
+
+  if (collapsed) {
+    return (
+      <Card>
+        <CardContent className="p-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setCollapsed(false)}
+              className="text-muted-foreground hover:text-foreground"
+              title="Expandir"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-medium truncate">{rule.name}</span>
+                <Badge variant="outline" className="text-[10px]">
+                  {matchLabel[rule.match_type]}
+                </Badge>
+                {rule.keywords.length > 0 && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {rule.keywords.slice(0, 4).join(", ")}
+                    {rule.keywords.length > 4 ? "…" : ""}
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  · {actionsCount} {actionsCount === 1 ? "acción" : "acciones"}
+                </span>
+              </div>
+            </div>
+            <Switch
+              checked={rule.is_active}
+              onCheckedChange={(v) => onChange({ is_active: v })}
+            />
+            <Button size="icon" variant="ghost" onClick={() => setCollapsed(false)}>
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={onDelete}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCollapsed(true)}
+            className="text-muted-foreground hover:text-foreground"
+            title="Colapsar"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </button>
           <Input
             value={rule.name}
             onChange={(e) => onChange({ name: e.target.value })}
@@ -335,6 +395,18 @@ function RuleEditor({
               />
             ))}
           </div>
+        </div>
+
+        <div className="flex justify-end pt-2 border-t">
+          <Button
+            onClick={() => {
+              // Persistence is automatic on each edit; this just collapses the card.
+              setCollapsed(true);
+              toast.success("Regla guardada");
+            }}
+          >
+            <Check className="w-4 h-4 mr-1" /> Guardar regla
+          </Button>
         </div>
       </CardContent>
     </Card>
