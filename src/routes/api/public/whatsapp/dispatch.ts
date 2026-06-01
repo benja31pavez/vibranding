@@ -140,11 +140,31 @@ async function processConversation(convId: string) {
     return;
   }
 
+  const socials = (acc.social_links ?? []).filter((s) => s?.url?.trim());
+  const catalog = (acc.catalog ?? []).filter((c) => c?.name?.trim());
+  const profileBlock = [
+    acc.website_url ? `Sitio web: ${acc.website_url}` : "",
+    socials.length
+      ? `Redes:\n${socials.map((s) => `- ${s.label || s.url}: ${s.url}`).join("\n")}`
+      : "",
+    catalog.length
+      ? `Catálogo:\n${catalog
+          .map(
+            (c) =>
+              `- ${c.name}${c.price ? ` (${c.price})` : ""}${c.url ? ` → ${c.url}` : ""}`,
+          )
+          .join("\n")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
   const systemPrompt = [
     acc.ai_system_prompt,
     acc.ai_business_context
       ? `\n\nContexto del negocio (úsalo para responder):\n${acc.ai_business_context}`
       : "",
+    profileBlock ? `\n\nPerfil del negocio:\n${profileBlock}` : "",
     `\n\nResponde SOLO con el mensaje que se debe enviar al cliente por WhatsApp. Sin prefijos como "Bot:" ni explicaciones meta. Sé conciso (idealmente 1-3 frases).`,
   ].join("");
 
