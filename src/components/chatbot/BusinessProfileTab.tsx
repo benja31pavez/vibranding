@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, X, Building2, Globe, Share2, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { MediaUpload } from "@/components/MediaUpload";
+import { syncWhatsAppProfile } from "@/lib/whatsapp/syncProfile.functions";
 import type { WAAccount } from "@/routes/_app/clients/$clientId/chatbot";
 
 type Social = { label: string; url: string };
