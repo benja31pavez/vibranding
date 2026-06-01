@@ -17,7 +17,57 @@ type WAAccount = {
   website_url: string | null;
   social_links: { label: string; url: string }[] | null;
   catalog: { name: string; price?: string; url?: string; image_url?: string }[] | null;
+  business_name: string | null;
+  business_hours:
+    | { day: number; enabled: boolean; open: string; close: string }[]
+    | null;
 };
+
+const DAY_NAMES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+
+function describeHours(
+  hours: WAAccount["business_hours"],
+): { summary: string; nowOpen: boolean | null } {
+  if (!Array.isArray(hours) || hours.length === 0) return { summary: "", nowOpen: null };
+  const lines = hours.map((h) => {
+    const name = DAY_NAMES[h.day] ?? `día ${h.day}`;
+    return h.enabled ? `${name}: ${h.open}–${h.close}` : `${name}: cerrado`;
+  });
+  // Compute current open/closed using local server time (best-effort)
+  const now = new Date();
+  // JS getDay: 0=Sun..6=Sat → our index: 0=Mon..6=Sun
+  const jsDay = now.getDay();
+  const idx = (jsDay + 6) % 7;
+  const today = hours.find((h) => h.day === idx);
+  let nowOpen: boolean | null = null;
+  if (today) {
+    if (!today.enabled) nowOpen = false;
+    else {
+      const [oh, om] = today.open.split(":").map(Number);
+      const [ch, cm] = today.close.split(":").map(Number);
+      const mins = now.getHours() * 60 + now.getMinutes();
+      nowOpen = mins >= oh * 60 + om && mins <= ch * 60 + cm;
+    }
+  }
+  return { summary: lines.join("\n"), nowOpen };
+}
+
+// Phrases that signal the AI is handing off to a human.
+const HANDOFF_PATTERNS: RegExp[] = [
+  /se (pondr[áa]|comunicar[áa]|contactar[áa])/i,
+  /(te|le) (contactar[áa]|escribir[áa]|llamar[áa]|responder[áa])/i,
+  /(nuestro|nuestra|el|la) (equipo|asesor|representante|encargado|encargada|due[ñn]o|due[ñn]a)/i,
+  /(un|una) (asesor|asesora|representante|persona|agente) .*(contact|escrib|responder|llamar)/i,
+  /derivar(é|e) (tu|este) (caso|consulta|mensaje)/i,
+  /pasar(é|e) (tu|este) (caso|consulta|mensaje)/i,
+];
+
+function detectHandoff(text: string): string | null {
+  for (const re of HANDOFF_PATTERNS) {
+    if (re.test(text)) return text.match(re)?.[0] ?? "Handoff detectado";
+  }
+  return null;
+}
 
 async function sendWhatsApp(
   phoneNumberId: string,
@@ -98,7 +148,7 @@ async function processConversation(convId: string) {
   const { data: acc } = await supabaseAdmin
     .from("whatsapp_accounts")
     .select(
-      "id,client_id,phone_number_id,access_token,ai_enabled,ai_system_prompt,ai_model,ai_max_history,ai_business_context,website_url,social_links,catalog",
+      "id,client_id,phone_number_id,access_token,ai_enabled,ai_system_prompt,ai_model,ai_max_history,ai_business_context,website_url,social_links,catalog,business_name,business_hours",
     )
     .eq("id", conv.account_id)
     .maybeSingle<WAAccount>();
@@ -142,7 +192,9 @@ async function processConversation(convId: string) {
 
   const socials = (acc.social_links ?? []).filter((s) => s?.url?.trim());
   const catalog = (acc.catalog ?? []).filter((c) => c?.name?.trim());
+  const { summary: hoursSummary, nowOpen } = describeHours(acc.business_hours);
   const profileBlock = [
+    acc.business_name ? `Nombre del negocio: ${acc.business_name}` : "",
     acc.website_url ? `Sitio web: ${acc.website_url}` : "",
     socials.length
       ? `Redes:\n${socials.map((s) => `- ${s.label || s.url}: ${s.url}`).join("\n")}`
@@ -155,6 +207,11 @@ async function processConversation(convId: string) {
           )
           .join("\n")}`
       : "",
+    hoursSummary
+      ? `Horarios de atención:\n${hoursSummary}\nEstado ahora mismo: ${
+          nowOpen === null ? "desconocido" : nowOpen ? "ABIERTO" : "CERRADO"
+        }`
+      : "",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -165,7 +222,10 @@ async function processConversation(convId: string) {
       ? `\n\nContexto del negocio (úsalo para responder):\n${acc.ai_business_context}`
       : "",
     profileBlock ? `\n\nPerfil del negocio:\n${profileBlock}` : "",
-    `\n\nResponde SOLO con el mensaje que se debe enviar al cliente por WhatsApp. Sin prefijos como "Bot:" ni explicaciones meta. Sé conciso (idealmente 1-3 frases).`,
+    nowOpen === false
+      ? `\n\nIMPORTANTE: El negocio está cerrado en este momento. Indícalo amablemente y menciona cuándo se atenderá su consulta.`
+      : "",
+    `\n\nResponde SOLO con el mensaje que se debe enviar al cliente por WhatsApp. Sin prefijos como "Bot:" ni explicaciones meta. Sé conciso (idealmente 1-3 frases). Si necesitas derivar a una persona real, dilo con claridad ("alguien del equipo te contactará pronto") — esto activa un recordatorio interno.`,
   ].join("");
 
   const ai = await callAI(apiKey, acc.ai_model, systemPrompt, history);
@@ -195,14 +255,26 @@ async function processConversation(convId: string) {
     status: sent.ok ? "sent" : "failed",
   });
 
+  // Detect AI handoff to a human → flag conversation as needing follow-up
+  // and pause the bot so the human takes over.
+  const handoff = detectHandoff(text);
+  const updatePatch: Record<string, unknown> = {
+    pending_response_at: null,
+    last_bot_at: new Date().toISOString(),
+    last_message_at: new Date().toISOString(),
+    last_message_preview: text.slice(0, 140),
+  };
+  if (handoff && !conv.needs_human_followup) {
+    updatePatch.needs_human_followup = true;
+    updatePatch.human_followup_reason = `IA derivó al equipo: "${handoff.slice(0, 120)}"`;
+    updatePatch.human_followup_at = new Date().toISOString();
+    updatePatch.is_lead = true;
+    updatePatch.ai_paused = true;
+  }
+
   await supabaseAdmin
     .from("whatsapp_conversations")
-    .update({
-      pending_response_at: null,
-      last_bot_at: new Date().toISOString(),
-      last_message_at: new Date().toISOString(),
-      last_message_preview: text.slice(0, 140),
-    })
+    .update(updatePatch as any)
     .eq("id", convId);
 }
 

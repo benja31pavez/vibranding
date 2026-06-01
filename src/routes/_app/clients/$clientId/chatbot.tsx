@@ -33,6 +33,10 @@ export type WAAccount = {
   website_url: string | null;
   social_links: { label: string; url: string }[] | null;
   catalog: { name: string; price?: string; url?: string; image_url?: string }[] | null;
+  business_name: string | null;
+  business_hours:
+    | { day: number; enabled: boolean; open: string; close: string }[]
+    | null;
 };
 
 function ChatbotPage() {

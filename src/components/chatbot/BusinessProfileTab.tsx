@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, X, Building2, Globe, Share2, ShoppingBag } from "lucide-react";
+import { Plus, X, Building2, Globe, Share2, ShoppingBag, Clock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { MediaUpload } from "@/components/MediaUpload";
 import { syncWhatsAppProfile } from "@/lib/whatsapp/syncProfile.functions";
@@ -13,6 +14,18 @@ import type { WAAccount } from "@/routes/_app/clients/$clientId/chatbot";
 
 type Social = { label: string; url: string };
 type CatalogItem = { name: string; price?: string; url?: string; image_url?: string };
+type HourRow = { day: number; enabled: boolean; open: string; close: string };
+
+const DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+function defaultHours(): HourRow[] {
+  return Array.from({ length: 7 }, (_, i) => ({
+    day: i,
+    enabled: i < 5,
+    open: "09:00",
+    close: "18:00",
+  }));
+}
 
 export function BusinessProfileTab({
   account,
@@ -23,6 +36,12 @@ export function BusinessProfileTab({
 }) {
   const [photo, setPhoto] = useState(account.profile_photo_url ?? "");
   const [website, setWebsite] = useState(account.website_url ?? "");
+  const [name, setName] = useState(account.business_name ?? "");
+  const [hours, setHours] = useState<HourRow[]>(
+    Array.isArray(account.business_hours) && account.business_hours.length === 7
+      ? (account.business_hours as HourRow[])
+      : defaultHours(),
+  );
   const [socials, setSocials] = useState<Social[]>(
     Array.isArray(account.social_links) ? (account.social_links as Social[]) : [],
   );
@@ -34,6 +53,12 @@ export function BusinessProfileTab({
   useEffect(() => {
     setPhoto(account.profile_photo_url ?? "");
     setWebsite(account.website_url ?? "");
+    setName(account.business_name ?? "");
+    setHours(
+      Array.isArray(account.business_hours) && account.business_hours.length === 7
+        ? (account.business_hours as HourRow[])
+        : defaultHours(),
+    );
     setSocials(Array.isArray(account.social_links) ? (account.social_links as Social[]) : []);
     setCatalog(Array.isArray(account.catalog) ? (account.catalog as CatalogItem[]) : []);
   }, [account.id]);
@@ -47,6 +72,8 @@ export function BusinessProfileTab({
       .update({
         profile_photo_url: photo || null,
         website_url: website || null,
+        business_name: name.trim() || null,
+        business_hours: hours,
         social_links: socials.filter((s) => s.url.trim()),
         catalog: catalog.filter((c) => c.name.trim()),
       } as any)
@@ -107,19 +134,80 @@ export function BusinessProfileTab({
                 placeholder="Sube o pega URL"
               />
             </div>
-            <div>
-              <Label className="text-xs flex items-center gap-1">
-                <Globe className="w-3 h-3" /> Sitio web
-              </Label>
-              <Input
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                placeholder="https://tunegocio.com"
-              />
-              <p className="text-[11px] text-muted-foreground mt-1">
-                El bot lo puede compartir y usarlo como referencia al responder.
-              </p>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Nombre del negocio</Label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ej: Estudio Vibranding"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Cómo se llama tu empresa. El bot lo usa al responder a los clientes.
+                </p>
+              </div>
+              <div>
+                <Label className="text-xs flex items-center gap-1">
+                  <Globe className="w-3 h-3" /> Sitio web
+                </Label>
+                <Input
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  placeholder="https://tunegocio.com"
+                />
+              </div>
             </div>
+          </div>
+
+          <div>
+            <Label className="text-xs flex items-center gap-1 mb-2">
+              <Clock className="w-3 h-3" /> Horarios de atención
+            </Label>
+            <div className="space-y-1.5 border rounded-md p-3 bg-muted/30">
+              {hours.map((h, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="w-10 text-xs font-medium">{DAYS[h.day]}</div>
+                  <Switch
+                    checked={h.enabled}
+                    onCheckedChange={(v) => {
+                      const next = [...hours];
+                      next[i] = { ...next[i], enabled: v };
+                      setHours(next);
+                    }}
+                  />
+                  {h.enabled ? (
+                    <div className="flex items-center gap-1 text-xs">
+                      <Input
+                        type="time"
+                        value={h.open}
+                        onChange={(e) => {
+                          const next = [...hours];
+                          next[i] = { ...next[i], open: e.target.value };
+                          setHours(next);
+                        }}
+                        className="h-8 w-[110px]"
+                      />
+                      <span>–</span>
+                      <Input
+                        type="time"
+                        value={h.close}
+                        onChange={(e) => {
+                          const next = [...hours];
+                          next[i] = { ...next[i], close: e.target.value };
+                          setHours(next);
+                        }}
+                        className="h-8 w-[110px]"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Cerrado</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              El bot sabe si está abierto o cerrado y se lo comunica al cliente.
+            </p>
           </div>
 
           <div>

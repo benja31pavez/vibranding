@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock } from "lucide-react";
+import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock, AlertTriangle, Check } from "lucide-react";
 import { toast } from "sonner";
 
 type Conv = {
@@ -19,6 +19,9 @@ type Conv = {
   status: string;
   ai_paused: boolean;
   pending_response_at: string | null;
+  needs_human_followup: boolean;
+  human_followup_reason: string | null;
+  human_followup_at: string | null;
 };
 
 type Msg = {
@@ -43,6 +46,9 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [search, setSearch] = useState("");
   const [filterLead, setFilterLead] = useState(false);
+  const [filterFollowup, setFilterFollowup] = useState(false);
+
+  const followupCount = convs.filter((c) => c.needs_human_followup).length;
 
   const loadConvs = async () => {
     const { data } = await supabase
@@ -107,8 +113,25 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
     loadConvs();
   };
 
+  const resolveFollowup = async () => {
+    if (!active) return;
+    const { error } = await supabase
+      .from("whatsapp_conversations")
+      .update({
+        needs_human_followup: false,
+        human_followup_reason: null,
+        human_followup_at: null,
+      } as any)
+      .eq("id", active.id);
+    if (error) return toast.error(error.message);
+    setActive({ ...active, needs_human_followup: false, human_followup_reason: null, human_followup_at: null });
+    toast.success("Recordatorio resuelto");
+    loadConvs();
+  };
+
   const filtered = convs.filter((c) => {
     if (filterLead && !c.is_lead) return false;
+    if (filterFollowup && !c.needs_human_followup) return false;
     if (search) {
       const s = search.toLowerCase();
       return (
@@ -139,14 +162,24 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
               <RefreshCw className="w-4 h-4" />
             </Button>
           </div>
-          <Button
-            variant={filterLead ? "default" : "outline"}
-            size="sm"
-            className="w-full"
-            onClick={() => setFilterLead((v) => !v)}
-          >
-            <Star className="w-3 h-3 mr-1" /> Solo leads
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant={filterLead ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterLead((v) => !v)}
+            >
+              <Star className="w-3 h-3 mr-1" /> Leads
+            </Button>
+            <Button
+              variant={filterFollowup ? "destructive" : "outline"}
+              size="sm"
+              onClick={() => setFilterFollowup((v) => !v)}
+              title="Conversaciones donde la IA derivó al equipo"
+            >
+              <AlertTriangle className="w-3 h-3 mr-1" />
+              Pendientes{followupCount > 0 ? ` (${followupCount})` : ""}
+            </Button>
+          </div>
         </div>
         <ScrollArea className="flex-1">
           {filtered.length === 0 && (
@@ -160,12 +193,15 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
               onClick={() => setActive(c)}
               className={`w-full text-left p-3 border-b hover:bg-muted/50 transition ${
                 active?.id === c.id ? "bg-muted" : ""
-              }`}
+              } ${c.needs_human_followup ? "border-l-4 border-l-destructive" : ""}`}
             >
               <div className="flex items-center gap-2">
                 <div className="font-medium text-sm truncate flex-1">
                   {c.contact_name || c.contact_wa_id}
                 </div>
+                {c.needs_human_followup && (
+                  <AlertTriangle className="w-3 h-3 text-destructive" />
+                )}
                 {c.is_lead && <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />}
                 {c.unread_count > 0 && (
                   <Badge className="h-5 px-1.5 text-[10px]">{c.unread_count}</Badge>
@@ -223,6 +259,25 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
                 {active.status === "open" ? "Cerrar" : "Reabrir"}
               </Button>
             </div>
+            {active.needs_human_followup && (
+              <div className="px-3 py-2 bg-destructive/10 border-b border-destructive/30 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0 text-xs">
+                  <div className="font-medium text-destructive">
+                    Pendiente de respuesta humana
+                  </div>
+                  <div className="text-muted-foreground mt-0.5">
+                    {active.human_followup_reason ?? "La IA prometió que alguien del equipo contactaría al cliente."}
+                    {active.human_followup_at && (
+                      <> · {fmtTime(active.human_followup_at)}</>
+                    )}
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={resolveFollowup}>
+                  <Check className="w-3 h-3 mr-1" /> Resuelto
+                </Button>
+              </div>
+            )}
             <ScrollArea className="flex-1 p-4 bg-muted/20">
               <div className="space-y-3">
                 {messages.map((m) => {

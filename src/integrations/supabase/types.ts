@@ -1484,6 +1484,8 @@ export type Database = {
           ai_max_history: number
           ai_model: string
           ai_system_prompt: string
+          business_hours: Json
+          business_name: string | null
           catalog: Json
           client_id: string
           connected: boolean
@@ -1507,6 +1509,8 @@ export type Database = {
           ai_max_history?: number
           ai_model?: string
           ai_system_prompt?: string
+          business_hours?: Json
+          business_name?: string | null
           catalog?: Json
           client_id: string
           connected?: boolean
@@ -1530,6 +1534,8 @@ export type Database = {
           ai_max_history?: number
           ai_model?: string
           ai_system_prompt?: string
+          business_hours?: Json
+          business_name?: string | null
           catalog?: Json
           client_id?: string
           connected?: boolean
@@ -1600,11 +1606,14 @@ export type Database = {
           contact_name: string | null
           contact_wa_id: string
           created_at: string
+          human_followup_at: string | null
+          human_followup_reason: string | null
           id: string
           is_lead: boolean
           last_bot_at: string | null
           last_message_at: string | null
           last_message_preview: string | null
+          needs_human_followup: boolean
           pending_response_at: string | null
           status: string
           unread_count: number
@@ -1617,11 +1626,14 @@ export type Database = {
           contact_name?: string | null
           contact_wa_id: string
           created_at?: string
+          human_followup_at?: string | null
+          human_followup_reason?: string | null
           id?: string
           is_lead?: boolean
           last_bot_at?: string | null
           last_message_at?: string | null
           last_message_preview?: string | null
+          needs_human_followup?: boolean
           pending_response_at?: string | null
           status?: string
           unread_count?: number
@@ -1634,11 +1646,14 @@ export type Database = {
           contact_name?: string | null
           contact_wa_id?: string
           created_at?: string
+          human_followup_at?: string | null
+          human_followup_reason?: string | null
           id?: string
           is_lead?: boolean
           last_bot_at?: string | null
           last_message_at?: string | null
           last_message_preview?: string | null
+          needs_human_followup?: boolean
           pending_response_at?: string | null
           status?: string
           unread_count?: number
