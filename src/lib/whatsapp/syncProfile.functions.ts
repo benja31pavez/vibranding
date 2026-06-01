@@ -81,7 +81,7 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
     const { data: acc } = await supabaseAdmin
       .from("whatsapp_accounts")
       .select(
-        "id,client_id,phone_number_id,access_token,profile_photo_url,website_url,social_links,catalog",
+        "id,client_id,phone_number_id,access_token,profile_photo_url,website_url,social_links,catalog,business_name,business_hours",
       )
       .eq("id", data.accountId)
       .maybeSingle();
@@ -93,6 +93,8 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
 
     const socials = (Array.isArray(acc.social_links) ? acc.social_links : []) as Social[];
     const catalog = (Array.isArray(acc.catalog) ? acc.catalog : []) as CatalogItem[];
+    const hours = (Array.isArray(acc.business_hours) ? acc.business_hours : []) as HourRow[];
+    const hoursSummary = summarizeHours(hours);
 
     // Build websites array (Meta allows up to 2)
     const websites: string[] = [];
