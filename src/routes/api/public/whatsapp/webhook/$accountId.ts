@@ -23,33 +23,6 @@ function matchRule(text: string, rule: any): boolean {
   }
 }
 
-async function sendWhatsApp(
-  phoneNumberId: string,
-  accessToken: string,
-  to: string,
-  body: string,
-): Promise<{ ok: boolean; wa_id?: string; error?: string }> {
-  try {
-    const res = await fetch(`${META}/${phoneNumberId}/messages`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to,
-        type: "text",
-        text: { body },
-      }),
-    });
-    const data: any = await res.json();
-    if (!res.ok) return { ok: false, error: data?.error?.message ?? "error" };
-    return { ok: true, wa_id: data?.messages?.[0]?.id };
-  } catch (e: any) {
-    return { ok: false, error: e?.message ?? "fetch failed" };
-  }
-}
 
 export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")({
   server: {
