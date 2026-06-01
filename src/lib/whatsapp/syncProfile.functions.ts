@@ -175,13 +175,26 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
     }
 
     // Read back what Meta actually has stored so the user can verify in the UI.
-    let actual: Record<string, unknown> | null = null;
+    let actual: {
+      about?: string;
+      description?: string;
+      websites?: string[];
+      profile_picture_url?: string;
+    } | null = null;
     try {
       const verifyRes = await fetch(
         `${META}/${acc.phone_number_id}/whatsapp_business_profile?fields=about,description,websites,profile_picture_url&access_token=${acc.access_token}`,
       );
       const verifyJson: any = await verifyRes.json().catch(() => ({}));
-      actual = verifyJson?.data?.[0] ?? null;
+      const row = verifyJson?.data?.[0];
+      actual = row
+        ? {
+            about: typeof row.about === "string" ? row.about : undefined,
+            description: typeof row.description === "string" ? row.description : undefined,
+            websites: Array.isArray(row.websites) ? row.websites.filter((x: unknown) => typeof x === "string") : undefined,
+            profile_picture_url: typeof row.profile_picture_url === "string" ? row.profile_picture_url : undefined,
+          }
+        : null;
     } catch {
       // best-effort
     }
