@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, X, GripVertical, FileText, Link as LinkIcon, Image as ImageIcon, ListChecks, ShoppingBag, Type } from "lucide-react";
+import { Plus, Trash2, X, GripVertical, FileText, Link as LinkIcon, Image as ImageIcon, ListChecks, ShoppingBag, Type, ChevronDown, ChevronRight, Check, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { MediaUpload } from "@/components/MediaUpload";
 
