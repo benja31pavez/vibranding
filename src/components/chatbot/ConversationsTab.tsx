@@ -113,8 +113,25 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
     loadConvs();
   };
 
+  const resolveFollowup = async () => {
+    if (!active) return;
+    const { error } = await supabase
+      .from("whatsapp_conversations")
+      .update({
+        needs_human_followup: false,
+        human_followup_reason: null,
+        human_followup_at: null,
+      } as any)
+      .eq("id", active.id);
+    if (error) return toast.error(error.message);
+    setActive({ ...active, needs_human_followup: false, human_followup_reason: null, human_followup_at: null });
+    toast.success("Recordatorio resuelto");
+    loadConvs();
+  };
+
   const filtered = convs.filter((c) => {
     if (filterLead && !c.is_lead) return false;
+    if (filterFollowup && !c.needs_human_followup) return false;
     if (search) {
       const s = search.toLowerCase();
       return (
