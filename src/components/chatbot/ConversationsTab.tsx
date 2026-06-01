@@ -193,12 +193,15 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
               onClick={() => setActive(c)}
               className={`w-full text-left p-3 border-b hover:bg-muted/50 transition ${
                 active?.id === c.id ? "bg-muted" : ""
-              }`}
+              } ${c.needs_human_followup ? "border-l-4 border-l-destructive" : ""}`}
             >
               <div className="flex items-center gap-2">
                 <div className="font-medium text-sm truncate flex-1">
                   {c.contact_name || c.contact_wa_id}
                 </div>
+                {c.needs_human_followup && (
+                  <AlertTriangle className="w-3 h-3 text-destructive" />
+                )}
                 {c.is_lead && <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />}
                 {c.unread_count > 0 && (
                   <Badge className="h-5 px-1.5 text-[10px]">{c.unread_count}</Badge>
