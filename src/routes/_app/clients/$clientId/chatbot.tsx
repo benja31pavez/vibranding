@@ -7,6 +7,7 @@ import { ConversationsTab } from "@/components/chatbot/ConversationsTab";
 import { BotRulesTab } from "@/components/chatbot/BotRulesTab";
 import { AIBotTab } from "@/components/chatbot/AIBotTab";
 import { MetricsTab } from "@/components/chatbot/MetricsTab";
+import { BusinessProfileTab } from "@/components/chatbot/BusinessProfileTab";
 import { MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_app/clients/$clientId/chatbot")({
