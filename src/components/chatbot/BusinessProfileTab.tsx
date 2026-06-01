@@ -143,7 +143,7 @@ export function BusinessProfileTab({
                   placeholder="Ej: Estudio Vibranding"
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Cómo se llama tu empresa. El bot lo usa al responder a los clientes.
+                  Se usa en respuestas del bot y aparece en la descripción del perfil de WhatsApp. El nombre visible bajo el número solo se puede cambiar desde Meta Business Manager (requiere revisión).
                 </p>
               </div>
               <div>
