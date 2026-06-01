@@ -174,7 +174,7 @@ function AppLayout() {
                       <Globe className="w-4 h-4 shrink-0" /> Landing page
                     </Link>
                     <Link to="/clients/$clientId/chatbot" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/chatbot`)}>
-                      <MessageCircle className="w-4 h-4 shrink-0" /> Chatbot
+                      <MessageCircle className="w-4 h-4 shrink-0" /> WhatsApp
                     </Link>
                   </div>
                 </>
