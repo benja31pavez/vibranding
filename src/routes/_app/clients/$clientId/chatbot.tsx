@@ -28,6 +28,10 @@ export type WAAccount = {
   ai_debounce_seconds: number;
   ai_max_history: number;
   ai_business_context: string | null;
+  profile_photo_url: string | null;
+  website_url: string | null;
+  social_links: { label: string; url: string }[] | null;
+  catalog: { name: string; price?: string; url?: string; image_url?: string }[] | null;
 };
 
 function ChatbotPage() {
