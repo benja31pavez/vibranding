@@ -1,68 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  socialDisplay,
+  summarizeHours,
+  uploadProfilePhotoHandle,
+  type CatalogItem,
+  type HourRow,
+  type Social,
+} from "./profileSync.server";
 
 const META = "https://graph.facebook.com/v21.0";
-
-type Social = { label: string; url: string };
-type CatalogItem = { name: string; price?: string; url?: string; image_url?: string };
-type HourRow = { day: number; enabled: boolean; open: string; close: string };
-
-const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-
-function summarizeHours(hours: HourRow[]): string {
-  if (!Array.isArray(hours) || hours.length === 0) return "";
-  return hours
-    .map((h) => `${DAY_NAMES[h.day] ?? h.day}: ${h.enabled ? `${h.open}-${h.close}` : "cerrado"}`)
-    .join(" · ");
-}
-
-async function uploadProfilePhotoHandle(
-  appId: string,
-  accessToken: string,
-  imageUrl: string,
-): Promise<string | null> {
-  try {
-    // 1) Download the image bytes
-    const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) return null;
-    const contentType = imgRes.headers.get("content-type") || "image/jpeg";
-    const buf = new Uint8Array(await imgRes.arrayBuffer());
-
-    // 2) Create an upload session
-    const sessionRes = await fetch(
-      `${META}/${appId}/uploads?file_length=${buf.byteLength}&file_type=${encodeURIComponent(
-        contentType,
-      )}&access_token=${accessToken}`,
-      { method: "POST" },
-    );
-    const sessionJson: any = await sessionRes.json();
-    if (!sessionRes.ok || !sessionJson?.id) {
-      console.error("[wa-sync] upload session failed", sessionJson);
-      return null;
-    }
-
-    // 3) Upload the binary, get the handle
-    const upRes = await fetch(`${META}/${sessionJson.id}`, {
-      method: "POST",
-      headers: {
-        Authorization: `OAuth ${accessToken}`,
-        file_offset: "0",
-        "Content-Type": contentType,
-      },
-      body: buf,
-    });
-    const upJson: any = await upRes.json();
-    if (!upRes.ok || !upJson?.h) {
-      console.error("[wa-sync] upload bytes failed", upJson);
-      return null;
-    }
-    return upJson.h as string;
-  } catch (e: any) {
-    console.error("[wa-sync] photo upload error", e?.message);
-    return null;
-  }
-}
 
 export const syncWhatsAppProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -116,16 +64,11 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
     // "Description" — long description shown on the business profile screen.
     const descParts: string[] = [];
     if (acc.business_name) descParts.push(acc.business_name);
-    if (socials.length) {
-      descParts.push(
-        socials
-          .filter((s) => s?.url?.trim())
-          .map((s) => `${s.label || "Red"}: ${s.url}`)
-          .join(" · "),
-      );
-    }
     if (hoursSummary) {
-      descParts.push(`Horarios: ${hoursSummary}`);
+      descParts.push(`Horario: ${hoursSummary}`);
+    }
+    if (socials.length) {
+      descParts.push(socials.filter((s) => s?.url?.trim()).map(socialDisplay).join(" · "));
     }
     if (catalog.length) {
       descParts.push(
@@ -172,6 +115,11 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
           warnings.push("No se pudo subir la foto de perfil a Meta.");
         }
       }
+    }
+    if (acc.business_name) {
+      warnings.push(
+        "El nombre grande que aparece arriba en WhatsApp solo lo cambia Meta Business Manager después de revisión; aquí queda actualizado en bio/descripción y para la IA.",
+      );
     }
 
     const res = await fetch(

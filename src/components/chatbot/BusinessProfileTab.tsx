@@ -102,6 +102,7 @@ export function BusinessProfileTab({
       if (res.actual) {
         const stored: string[] = [];
         if (res.actual.about) stored.push(`bio="${res.actual.about.slice(0, 40)}…"`);
+        if (res.actual.description) stored.push(`desc="${res.actual.description.slice(0, 55)}…"`);
         if (res.actual.websites?.length) stored.push(`${res.actual.websites.length} web(s)`);
         if (res.actual.profile_picture_url) stored.push("foto ✓");
         if (stored.length) toast.message(`Meta confirma: ${stored.join(" · ")}`);
@@ -143,7 +144,7 @@ export function BusinessProfileTab({
                   placeholder="Ej: Estudio Vibranding"
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Se usa en respuestas del bot y aparece en la descripción del perfil de WhatsApp. El nombre visible bajo el número solo se puede cambiar desde Meta Business Manager (requiere revisión).
+                  Se usa en respuestas del bot y en la descripción/bio del perfil. El nombre grande visible arriba en WhatsApp solo se puede cambiar desde Meta Business Manager y requiere revisión de Meta.
                 </p>
               </div>
               <div>
@@ -206,7 +207,7 @@ export function BusinessProfileTab({
               ))}
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
-              El bot sabe si está abierto o cerrado y se lo comunica al cliente.
+              El bot sabe si está abierto o cerrado. También se envía a la descripción del perfil de WhatsApp al guardar.
             </p>
           </div>
 
