@@ -6,6 +6,16 @@ const META = "https://graph.facebook.com/v21.0";
 
 type Social = { label: string; url: string };
 type CatalogItem = { name: string; price?: string; url?: string; image_url?: string };
+type HourRow = { day: number; enabled: boolean; open: string; close: string };
+
+const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+function summarizeHours(hours: HourRow[]): string {
+  if (!Array.isArray(hours) || hours.length === 0) return "";
+  return hours
+    .map((h) => `${DAY_NAMES[h.day] ?? h.day}: ${h.enabled ? `${h.open}-${h.close}` : "cerrado"}`)
+    .join(" · ");
+}
 
 async function uploadProfilePhotoHandle(
   appId: string,
@@ -71,7 +81,7 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
     const { data: acc } = await supabaseAdmin
       .from("whatsapp_accounts")
       .select(
-        "id,client_id,phone_number_id,access_token,profile_photo_url,website_url,social_links,catalog",
+        "id,client_id,phone_number_id,access_token,profile_photo_url,website_url,social_links,catalog,business_name,business_hours",
       )
       .eq("id", data.accountId)
       .maybeSingle();
@@ -83,6 +93,8 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
 
     const socials = (Array.isArray(acc.social_links) ? acc.social_links : []) as Social[];
     const catalog = (Array.isArray(acc.catalog) ? acc.catalog : []) as CatalogItem[];
+    const hours = (Array.isArray(acc.business_hours) ? acc.business_hours : []) as HourRow[];
+    const hoursSummary = summarizeHours(hours);
 
     // Build websites array (Meta allows up to 2)
     const websites: string[] = [];
@@ -94,6 +106,7 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
 
     // "About" — short visible bio under the contact name (max 139 chars).
     const aboutParts: string[] = [];
+    if (acc.business_name) aboutParts.push(acc.business_name);
     if (acc.website_url) aboutParts.push(acc.website_url);
     for (const s of socials) {
       if (s?.url?.trim()) aboutParts.push(`${s.label || "Red"}: ${s.url}`);
@@ -102,6 +115,7 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
 
     // "Description" — long description shown on the business profile screen.
     const descParts: string[] = [];
+    if (acc.business_name) descParts.push(acc.business_name);
     if (socials.length) {
       descParts.push(
         socials
@@ -109,6 +123,9 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
           .map((s) => `${s.label || "Red"}: ${s.url}`)
           .join(" · "),
       );
+    }
+    if (hoursSummary) {
+      descParts.push(`Horarios: ${hoursSummary}`);
     }
     if (catalog.length) {
       descParts.push(
