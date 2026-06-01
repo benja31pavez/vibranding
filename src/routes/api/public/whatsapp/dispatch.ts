@@ -274,7 +274,7 @@ async function processConversation(convId: string) {
 
   await supabaseAdmin
     .from("whatsapp_conversations")
-    .update(updatePatch)
+    .update(updatePatch as any)
     .eq("id", convId);
 }
 
