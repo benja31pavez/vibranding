@@ -222,21 +222,7 @@ function RuleEditor({
               <ChevronRight className="w-4 h-4" />
             </button>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium truncate">{rule.name}</span>
-                <Badge variant="outline" className="text-[10px]">
-                  {matchLabel[rule.match_type]}
-                </Badge>
-                {rule.keywords.length > 0 && (
-                  <span className="text-xs text-muted-foreground truncate">
-                    {rule.keywords.slice(0, 4).join(", ")}
-                    {rule.keywords.length > 4 ? "…" : ""}
-                  </span>
-                )}
-                <span className="text-xs text-muted-foreground">
-                  · {actionsCount} {actionsCount === 1 ? "acción" : "acciones"}
-                </span>
-              </div>
+              <span className="font-medium truncate">{rule.name}</span>
             </div>
             <Switch
               checked={rule.is_active}
@@ -245,9 +231,7 @@ function RuleEditor({
             <Button size="icon" variant="ghost" onClick={() => setCollapsed(false)}>
               <Pencil className="w-4 h-4" />
             </Button>
-            <Button size="icon" variant="ghost" onClick={onDelete}>
-              <Trash2 className="w-4 h-4" />
-            </Button>
+
           </div>
         </CardContent>
       </Card>
