@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock } from "lucide-react";
+import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock, AlertTriangle, Check } from "lucide-react";
 import { toast } from "sonner";
 
 type Conv = {
@@ -19,6 +19,9 @@ type Conv = {
   status: string;
   ai_paused: boolean;
   pending_response_at: string | null;
+  needs_human_followup: boolean;
+  human_followup_reason: string | null;
+  human_followup_at: string | null;
 };
 
 type Msg = {
