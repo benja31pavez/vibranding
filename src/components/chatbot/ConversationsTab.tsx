@@ -259,6 +259,25 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
                 {active.status === "open" ? "Cerrar" : "Reabrir"}
               </Button>
             </div>
+            {active.needs_human_followup && (
+              <div className="px-3 py-2 bg-destructive/10 border-b border-destructive/30 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0 text-xs">
+                  <div className="font-medium text-destructive">
+                    Pendiente de respuesta humana
+                  </div>
+                  <div className="text-muted-foreground mt-0.5">
+                    {active.human_followup_reason ?? "La IA prometió que alguien del equipo contactaría al cliente."}
+                    {active.human_followup_at && (
+                      <> · {fmtTime(active.human_followup_at)}</>
+                    )}
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={resolveFollowup}>
+                  <Check className="w-3 h-3 mr-1" /> Resuelto
+                </Button>
+              </div>
+            )}
             <ScrollArea className="flex-1 p-4 bg-muted/20">
               <div className="space-y-3">
                 {messages.map((m) => {
