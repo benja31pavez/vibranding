@@ -92,7 +92,15 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
       if (s?.url?.trim()) websites.push(s.url.trim());
     }
 
-    // Description (max 512 chars). Include socials + catalog summary.
+    // "About" — short visible bio under the contact name (max 139 chars).
+    const aboutParts: string[] = [];
+    if (acc.website_url) aboutParts.push(acc.website_url);
+    for (const s of socials) {
+      if (s?.url?.trim()) aboutParts.push(`${s.label || "Red"}: ${s.url}`);
+    }
+    const about = aboutParts.join(" · ").slice(0, 139);
+
+    // "Description" — long description shown on the business profile screen.
     const descParts: string[] = [];
     if (socials.length) {
       descParts.push(
@@ -119,13 +127,22 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
     };
     if (websites.length) body.websites = websites;
     if (description) body.description = description;
+    if (about) body.about = about;
 
-    // Optional: profile photo upload
+    // Optional: profile photo upload (Meta only accepts JPG/JPEG)
     const warnings: string[] = [];
+    let photoAttempted = false;
     if (acc.profile_photo_url) {
+      photoAttempted = true;
       const appId = process.env.META_APP_ID;
+      const lower = acc.profile_photo_url.toLowerCase().split("?")[0];
+      const isJpg = lower.endsWith(".jpg") || lower.endsWith(".jpeg");
       if (!appId) {
         warnings.push("Foto no sincronizada: falta META_APP_ID en el servidor.");
+      } else if (!isJpg) {
+        warnings.push(
+          "WhatsApp solo acepta fotos de perfil en formato JPG/JPEG. Vuelve a subir la imagen como .jpg.",
+        );
       } else {
         const handle = await uploadProfilePhotoHandle(
           appId,
@@ -157,13 +174,28 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
       throw new Error(`Meta rechazó la actualización: ${msg}`);
     }
 
+    // Read back what Meta actually has stored so the user can verify in the UI.
+    let actual: Record<string, unknown> | null = null;
+    try {
+      const verifyRes = await fetch(
+        `${META}/${acc.phone_number_id}/whatsapp_business_profile?fields=about,description,websites,profile_picture_url&access_token=${acc.access_token}`,
+      );
+      const verifyJson: any = await verifyRes.json().catch(() => ({}));
+      actual = verifyJson?.data?.[0] ?? null;
+    } catch {
+      // best-effort
+    }
+
     return {
       ok: true,
       synced: {
         websites: websites.length,
         description: !!description,
+        about: !!about,
         photo: !!body.profile_picture_handle,
+        photoAttempted,
       },
+      actual,
       warnings,
       userId,
     };
