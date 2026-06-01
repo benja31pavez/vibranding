@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-
-const META = "https://graph.facebook.com/v21.0";
+import { ruleToActions, sendBotActions } from "@/lib/whatsapp/sendActions";
 
 function normalize(s: string): string {
   return (s ?? "").toLowerCase().trim();
