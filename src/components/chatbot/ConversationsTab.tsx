@@ -162,14 +162,24 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
               <RefreshCw className="w-4 h-4" />
             </Button>
           </div>
-          <Button
-            variant={filterLead ? "default" : "outline"}
-            size="sm"
-            className="w-full"
-            onClick={() => setFilterLead((v) => !v)}
-          >
-            <Star className="w-3 h-3 mr-1" /> Solo leads
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant={filterLead ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterLead((v) => !v)}
+            >
+              <Star className="w-3 h-3 mr-1" /> Leads
+            </Button>
+            <Button
+              variant={filterFollowup ? "destructive" : "outline"}
+              size="sm"
+              onClick={() => setFilterFollowup((v) => !v)}
+              title="Conversaciones donde la IA derivó al equipo"
+            >
+              <AlertTriangle className="w-3 h-3 mr-1" />
+              Pendientes{followupCount > 0 ? ` (${followupCount})` : ""}
+            </Button>
+          </div>
         </div>
         <ScrollArea className="flex-1">
           {filtered.length === 0 && (
