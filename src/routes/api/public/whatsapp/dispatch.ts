@@ -98,7 +98,7 @@ async function processConversation(convId: string) {
   const { data: acc } = await supabaseAdmin
     .from("whatsapp_accounts")
     .select(
-      "id,client_id,phone_number_id,access_token,ai_enabled,ai_system_prompt,ai_model,ai_max_history,ai_business_context",
+      "id,client_id,phone_number_id,access_token,ai_enabled,ai_system_prompt,ai_model,ai_max_history,ai_business_context,website_url,social_links,catalog",
     )
     .eq("id", conv.account_id)
     .maybeSingle<WAAccount>();
