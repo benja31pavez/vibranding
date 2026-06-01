@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { Copy, CheckCircle2, Plug, AlertCircle } from "lucide-react";
+import { Copy, CheckCircle2, Plug, AlertCircle, ChevronDown } from "lucide-react";
 import type { WAAccount } from "@/routes/_app/clients/$clientId/chatbot";
 
 export function ConnectWhatsAppCard({
@@ -23,11 +24,13 @@ export function ConnectWhatsAppCard({
   const [displayPhone, setDisplayPhone] = useState(account?.display_phone_number ?? "");
   const [accessToken, setAccessToken] = useState("");
   const [saving, setSaving] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(!account?.connected);
 
   useEffect(() => {
     setPhoneNumberId(account?.phone_number_id ?? "");
     setWabaId(account?.waba_id ?? "");
     setDisplayPhone(account?.display_phone_number ?? "");
+    setDetailsOpen(!account?.connected);
   }, [account]);
 
   const webhookUrl = account
@@ -120,28 +123,37 @@ export function ConnectWhatsAppCard({
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <Plug className="w-5 h-5" />
-          {account.connected ? "WhatsApp conectado" : "Configurar WhatsApp"}
-          {account.connected ? (
-            <Badge variant="default" className="gap-1">
-              <CheckCircle2 className="w-3 h-3" /> Activo
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="gap-1">
-              <AlertCircle className="w-3 h-3" /> Pendiente
-            </Badge>
+    <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center gap-2 text-left">
+              <ChevronDown
+                className={`w-4 h-4 text-muted-foreground transition-transform ${detailsOpen ? "rotate-180" : ""}`}
+              />
+              <CardTitle className="flex items-center gap-2">
+                <Plug className="w-5 h-5" />
+                {account.connected ? "WhatsApp conectado" : "Configurar WhatsApp"}
+                {account.connected ? (
+                  <Badge variant="default" className="gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Activo
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="gap-1">
+                    <AlertCircle className="w-3 h-3" /> Pendiente
+                  </Badge>
+                )}
+              </CardTitle>
+            </button>
+          </CollapsibleTrigger>
+          {account.connected && (
+            <Button variant="ghost" size="sm" onClick={disconnect}>
+              Desconectar
+            </Button>
           )}
-        </CardTitle>
-        {account.connected && (
-          <Button variant="ghost" size="sm" onClick={disconnect}>
-            Desconectar
-          </Button>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className="space-y-4">
         <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
           <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Webhook (configurar en Meta → WhatsApp → Configuration)
@@ -216,7 +228,9 @@ export function ConnectWhatsAppCard({
         <Button onClick={save} disabled={saving}>
           {saving ? "Guardando…" : "Guardar conexión"}
         </Button>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }
