@@ -114,17 +114,12 @@ export function BotRulesTab({ clientId }: { clientId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-semibold">Reglas de respuestas automáticas</h2>
-          <p className="text-xs text-muted-foreground">
-            Se evalúan por prioridad (mayor primero). Cada regla puede enviar varios mensajes:
-            texto, enlace, documento, imagen, encuesta o catálogo.
-          </p>
-        </div>
+        <h2 className="font-semibold">Reglas de respuestas automáticas</h2>
         <Button onClick={add}>
           <Plus className="w-4 h-4 mr-1" /> Nueva regla
         </Button>
       </div>
+
 
       {rules.length === 0 && (
         <Card>
@@ -227,21 +222,7 @@ function RuleEditor({
               <ChevronRight className="w-4 h-4" />
             </button>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium truncate">{rule.name}</span>
-                <Badge variant="outline" className="text-[10px]">
-                  {matchLabel[rule.match_type]}
-                </Badge>
-                {rule.keywords.length > 0 && (
-                  <span className="text-xs text-muted-foreground truncate">
-                    {rule.keywords.slice(0, 4).join(", ")}
-                    {rule.keywords.length > 4 ? "…" : ""}
-                  </span>
-                )}
-                <span className="text-xs text-muted-foreground">
-                  · {actionsCount} {actionsCount === 1 ? "acción" : "acciones"}
-                </span>
-              </div>
+              <span className="font-medium truncate">{rule.name}</span>
             </div>
             <Switch
               checked={rule.is_active}
@@ -250,9 +231,7 @@ function RuleEditor({
             <Button size="icon" variant="ghost" onClick={() => setCollapsed(false)}>
               <Pencil className="w-4 h-4" />
             </Button>
-            <Button size="icon" variant="ghost" onClick={onDelete}>
-              <Trash2 className="w-4 h-4" />
-            </Button>
+
           </div>
         </CardContent>
       </Card>
