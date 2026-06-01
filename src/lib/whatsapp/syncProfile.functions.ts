@@ -12,9 +12,36 @@ const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 function summarizeHours(hours: HourRow[]): string {
   if (!Array.isArray(hours) || hours.length === 0) return "";
-  return hours
-    .map((h) => `${DAY_NAMES[h.day] ?? h.day}: ${h.enabled ? `${h.open}-${h.close}` : "cerrado"}`)
+  const rows = hours
+    .slice()
+    .sort((a, b) => a.day - b.day)
+    .map((h) => ({
+      label: DAY_NAMES[h.day] ?? `${h.day}`,
+      value: h.enabled ? `${h.open}-${h.close}` : "cerrado",
+    }));
+
+  const groups: Array<{ start: string; end: string; value: string }> = [];
+  for (const row of rows) {
+    const last = groups[groups.length - 1];
+    if (last && last.value === row.value) last.end = row.label;
+    else groups.push({ start: row.label, end: row.label, value: row.value });
+  }
+
+  return groups
+    .map((g) => `${g.start === g.end ? g.start : `${g.start}-${g.end}`}: ${g.value}`)
     .join(" · ");
+}
+
+function socialDisplay(social: Social): string {
+  const raw = social.url.trim();
+  const label = social.label?.trim() || "Red";
+  try {
+    const url = new URL(raw);
+    const handle = url.pathname.replace(/^\/+|\/+$/g, "");
+    return handle ? `${label}: @${handle}` : `${label}: ${url.hostname}`;
+  } catch {
+    return `${label}: ${raw}`;
+  }
 }
 
 async function uploadProfilePhotoHandle(
@@ -116,16 +143,11 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
     // "Description" — long description shown on the business profile screen.
     const descParts: string[] = [];
     if (acc.business_name) descParts.push(acc.business_name);
-    if (socials.length) {
-      descParts.push(
-        socials
-          .filter((s) => s?.url?.trim())
-          .map((s) => `${s.label || "Red"}: ${s.url}`)
-          .join(" · "),
-      );
-    }
     if (hoursSummary) {
-      descParts.push(`Horarios: ${hoursSummary}`);
+      descParts.push(`Horario: ${hoursSummary}`);
+    }
+    if (socials.length) {
+      descParts.push(socials.filter((s) => s?.url?.trim()).map(socialDisplay).join(" · "));
     }
     if (catalog.length) {
       descParts.push(
@@ -172,6 +194,11 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
           warnings.push("No se pudo subir la foto de perfil a Meta.");
         }
       }
+    }
+    if (acc.business_name) {
+      warnings.push(
+        "El nombre grande que aparece arriba en WhatsApp solo lo cambia Meta Business Manager después de revisión; aquí queda actualizado en bio/descripción y para la IA.",
+      );
     }
 
     const res = await fetch(
