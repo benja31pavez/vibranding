@@ -114,17 +114,12 @@ export function BotRulesTab({ clientId }: { clientId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-semibold">Reglas de respuestas automáticas</h2>
-          <p className="text-xs text-muted-foreground">
-            Se evalúan por prioridad (mayor primero). Cada regla puede enviar varios mensajes:
-            texto, enlace, documento, imagen, encuesta o catálogo.
-          </p>
-        </div>
+        <h2 className="font-semibold">Reglas de respuestas automáticas</h2>
         <Button onClick={add}>
           <Plus className="w-4 h-4 mr-1" /> Nueva regla
         </Button>
       </div>
+
 
       {rules.length === 0 && (
         <Card>
