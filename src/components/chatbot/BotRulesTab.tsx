@@ -159,6 +159,12 @@ function RuleEditor({
   onDelete: () => void;
 }) {
   const [kwInput, setKwInput] = useState("");
+  // New rules (name "Nueva regla" and no actions/keywords) start expanded; the rest collapsed.
+  const isFresh =
+    rule.name === "Nueva regla" &&
+    (rule.actions ?? []).length === 0 &&
+    rule.keywords.length === 0;
+  const [collapsed, setCollapsed] = useState(!isFresh);
 
   const addKeyword = () => {
     const k = kwInput.trim();
