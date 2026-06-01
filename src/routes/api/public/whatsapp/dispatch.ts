@@ -17,7 +17,57 @@ type WAAccount = {
   website_url: string | null;
   social_links: { label: string; url: string }[] | null;
   catalog: { name: string; price?: string; url?: string; image_url?: string }[] | null;
+  business_name: string | null;
+  business_hours:
+    | { day: number; enabled: boolean; open: string; close: string }[]
+    | null;
 };
+
+const DAY_NAMES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+
+function describeHours(
+  hours: WAAccount["business_hours"],
+): { summary: string; nowOpen: boolean | null } {
+  if (!Array.isArray(hours) || hours.length === 0) return { summary: "", nowOpen: null };
+  const lines = hours.map((h) => {
+    const name = DAY_NAMES[h.day] ?? `día ${h.day}`;
+    return h.enabled ? `${name}: ${h.open}–${h.close}` : `${name}: cerrado`;
+  });
+  // Compute current open/closed using local server time (best-effort)
+  const now = new Date();
+  // JS getDay: 0=Sun..6=Sat → our index: 0=Mon..6=Sun
+  const jsDay = now.getDay();
+  const idx = (jsDay + 6) % 7;
+  const today = hours.find((h) => h.day === idx);
+  let nowOpen: boolean | null = null;
+  if (today) {
+    if (!today.enabled) nowOpen = false;
+    else {
+      const [oh, om] = today.open.split(":").map(Number);
+      const [ch, cm] = today.close.split(":").map(Number);
+      const mins = now.getHours() * 60 + now.getMinutes();
+      nowOpen = mins >= oh * 60 + om && mins <= ch * 60 + cm;
+    }
+  }
+  return { summary: lines.join("\n"), nowOpen };
+}
+
+// Phrases that signal the AI is handing off to a human.
+const HANDOFF_PATTERNS: RegExp[] = [
+  /se (pondr[áa]|comunicar[áa]|contactar[áa])/i,
+  /(te|le) (contactar[áa]|escribir[áa]|llamar[áa]|responder[áa])/i,
+  /(nuestro|nuestra|el|la) (equipo|asesor|representante|encargado|encargada|due[ñn]o|due[ñn]a)/i,
+  /(un|una) (asesor|asesora|representante|persona|agente) .*(contact|escrib|responder|llamar)/i,
+  /derivar(é|e) (tu|este) (caso|consulta|mensaje)/i,
+  /pasar(é|e) (tu|este) (caso|consulta|mensaje)/i,
+];
+
+function detectHandoff(text: string): string | null {
+  for (const re of HANDOFF_PATTERNS) {
+    if (re.test(text)) return text.match(re)?.[0] ?? "Handoff detectado";
+  }
+  return null;
+}
 
 async function sendWhatsApp(
   phoneNumberId: string,
