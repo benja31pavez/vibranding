@@ -38,6 +38,8 @@ export function BusinessProfileTab({
     setCatalog(Array.isArray(account.catalog) ? (account.catalog as CatalogItem[]) : []);
   }, [account.id]);
 
+  const syncFn = useServerFn(syncWhatsAppProfile);
+
   const save = async () => {
     setSaving(true);
     const { error } = await supabase
@@ -49,10 +51,29 @@ export function BusinessProfileTab({
         catalog: catalog.filter((c) => c.name.trim()),
       } as any)
       .eq("id", account.id);
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Perfil del negocio guardado");
-    onChange();
+    if (error) {
+      setSaving(false);
+      return toast.error(error.message);
+    }
+    toast.success("Perfil guardado. Sincronizando con WhatsApp…");
+    try {
+      const res = await syncFn({ data: { accountId: account.id } });
+      const bits: string[] = [];
+      if (res.synced.websites) bits.push(`${res.synced.websites} enlace(s)`);
+      if (res.synced.description) bits.push("descripción");
+      if (res.synced.photo) bits.push("foto");
+      toast.success(
+        bits.length
+          ? `Perfil de WhatsApp actualizado: ${bits.join(", ")}.`
+          : "Perfil de WhatsApp actualizado.",
+      );
+      for (const w of res.warnings ?? []) toast.warning(w);
+    } catch (e: any) {
+      toast.error(`No se pudo sincronizar con WhatsApp: ${e?.message ?? "error"}`);
+    } finally {
+      setSaving(false);
+      onChange();
+    }
   };
 
   return (
