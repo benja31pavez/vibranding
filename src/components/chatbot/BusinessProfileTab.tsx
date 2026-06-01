@@ -57,16 +57,28 @@ export function BusinessProfileTab({
     }
     toast.success("Perfil guardado. Sincronizando con WhatsApp…");
     try {
-      const res = await syncFn({ data: { accountId: account.id } });
+      const res = (await syncFn({ data: { accountId: account.id } })) as {
+        synced: { websites: number; description: boolean; about: boolean; photo: boolean; photoAttempted: boolean };
+        actual: { about?: string; description?: string; websites?: string[]; profile_picture_url?: string } | null;
+        warnings: string[];
+      };
       const bits: string[] = [];
       if (res.synced.websites) bits.push(`${res.synced.websites} enlace(s)`);
+      if (res.synced.about) bits.push("bio");
       if (res.synced.description) bits.push("descripción");
       if (res.synced.photo) bits.push("foto");
       toast.success(
         bits.length
-          ? `Perfil de WhatsApp actualizado: ${bits.join(", ")}.`
+          ? `Enviado a WhatsApp: ${bits.join(", ")}.`
           : "Perfil de WhatsApp actualizado.",
       );
+      if (res.actual) {
+        const stored: string[] = [];
+        if (res.actual.about) stored.push(`bio="${res.actual.about.slice(0, 40)}…"`);
+        if (res.actual.websites?.length) stored.push(`${res.actual.websites.length} web(s)`);
+        if (res.actual.profile_picture_url) stored.push("foto ✓");
+        if (stored.length) toast.message(`Meta confirma: ${stored.join(" · ")}`);
+      }
       for (const w of res.warnings ?? []) toast.warning(w);
     } catch (e: any) {
       toast.error(`No se pudo sincronizar con WhatsApp: ${e?.message ?? "error"}`);
