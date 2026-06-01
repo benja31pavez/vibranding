@@ -6,6 +6,16 @@ const META = "https://graph.facebook.com/v21.0";
 
 type Social = { label: string; url: string };
 type CatalogItem = { name: string; price?: string; url?: string; image_url?: string };
+type HourRow = { day: number; enabled: boolean; open: string; close: string };
+
+const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+function summarizeHours(hours: HourRow[]): string {
+  if (!Array.isArray(hours) || hours.length === 0) return "";
+  return hours
+    .map((h) => `${DAY_NAMES[h.day] ?? h.day}: ${h.enabled ? `${h.open}-${h.close}` : "cerrado"}`)
+    .join(" · ");
+}
 
 async function uploadProfilePhotoHandle(
   appId: string,
