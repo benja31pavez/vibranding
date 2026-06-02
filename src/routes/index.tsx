@@ -317,9 +317,6 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
         <h2 className="text-4xl md:text-6xl font-semibold tracking-tight">
           {t.contact.title1}<span className="font-brand text-gradient-brand">{t.contact.accent}</span>{t.contact.title2}
         </h2>
-        <p className="mt-5 text-lg text-muted-foreground">
-          {t.contact.subtitle}
-        </p>
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button asChild size="lg" className="rounded-full px-8 h-12 text-base bg-gradient-brand hover:opacity-90 text-white border-0 shadow-lg shadow-[color:var(--brand-2)]/30 hover-scale">
             <a
