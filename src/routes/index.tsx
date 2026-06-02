@@ -124,9 +124,6 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
       <section id="servicios" className="max-w-7xl mx-auto px-6 md:px-10 py-20">
         <div className="text-center mb-14">
           <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">{t.services.eyebrow} <span className="font-brand text-gradient-brand">{t.services.accent}</span></h2>
-          <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
-            {t.services.subtitle}
-          </p>
         </div>
 
         <ServicesStepper
@@ -166,13 +163,6 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed">{t.about.subtitle}</p>
             <p className="mt-4 text-base text-muted-foreground leading-relaxed">{t.about.paragraph1}</p>
             <p className="mt-3 text-base text-muted-foreground leading-relaxed">{t.about.paragraph2}</p>
-            <div className="mt-7 flex flex-wrap gap-2">
-              {t.about.chips.map((c) => (
-                <span key={c} className="inline-flex items-center gap-1.5 rounded-full border bg-card/70 backdrop-blur px-3 py-1 text-xs text-muted-foreground">
-                  {c}
-                </span>
-              ))}
-            </div>
           </div>
 
           <div className="relative">
@@ -327,9 +317,6 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
         <h2 className="text-4xl md:text-6xl font-semibold tracking-tight">
           {t.contact.title1}<span className="font-brand text-gradient-brand">{t.contact.accent}</span>{t.contact.title2}
         </h2>
-        <p className="mt-5 text-lg text-muted-foreground">
-          {t.contact.subtitle}
-        </p>
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button asChild size="lg" className="rounded-full px-8 h-12 text-base bg-gradient-brand hover:opacity-90 text-white border-0 shadow-lg shadow-[color:var(--brand-2)]/30 hover-scale">
             <a
