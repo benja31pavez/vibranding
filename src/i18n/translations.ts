@@ -107,7 +107,7 @@ const es: Dict = {
   langSwitcher: { label: "Idioma", es: "ES", en: "EN" },
   nav: { services: "Servicios", how: "Cómo funciona", about: "Nosotros", clients: "Clientes", contact: "Contacto", signIn: "Iniciar sesión" },
   hero: {
-    badge: "Especialistas en Instagram y Meta Ads",
+    badge: "Especialistas en Diseño y Publicidad",
     title1: "Hacemos que tu marca ",
     titleAccent: "vibre de verdad",
     titleEnd: ".",
