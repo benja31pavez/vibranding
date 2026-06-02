@@ -124,9 +124,6 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
       <section id="servicios" className="max-w-7xl mx-auto px-6 md:px-10 py-20">
         <div className="text-center mb-14">
           <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">{t.services.eyebrow} <span className="font-brand text-gradient-brand">{t.services.accent}</span></h2>
-          <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
-            {t.services.subtitle}
-          </p>
         </div>
 
         <ServicesStepper
