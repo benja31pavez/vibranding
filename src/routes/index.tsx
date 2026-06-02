@@ -163,13 +163,6 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed">{t.about.subtitle}</p>
             <p className="mt-4 text-base text-muted-foreground leading-relaxed">{t.about.paragraph1}</p>
             <p className="mt-3 text-base text-muted-foreground leading-relaxed">{t.about.paragraph2}</p>
-            <div className="mt-7 flex flex-wrap gap-2">
-              {t.about.chips.map((c) => (
-                <span key={c} className="inline-flex items-center gap-1.5 rounded-full border bg-card/70 backdrop-blur px-3 py-1 text-xs text-muted-foreground">
-                  {c}
-                </span>
-              ))}
-            </div>
           </div>
 
           <div className="relative">
