@@ -177,6 +177,9 @@ function AppLayout() {
                     <Link to="/clients/$clientId/chatbot" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/chatbot`)}>
                       <MessageCircle className="w-4 h-4 shrink-0" /> WhatsApp
                     </Link>
+                    <Link to="/clients/$clientId/leads" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/leads`)}>
+                      <Inbox className="w-4 h-4 shrink-0" /> Leads
+                    </Link>
                   </div>
                 </>
               ) : (
