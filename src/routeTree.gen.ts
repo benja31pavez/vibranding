@@ -20,11 +20,13 @@ import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AtChar123slugChar125RouteImport } from './routes/@{$slug}'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as AppStatsRouteImport } from './routes/_app/stats'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppPortfolioRouteImport } from './routes/_app/portfolio'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AppBookingsRouteImport } from './routes/_app/bookings'
 import { Route as AtChar123slugChar125LinksRouteImport } from './routes/@{$slug}.links'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
 import { Route as ApiMetaAdsUpdateRouteImport } from './routes/api/meta-ads/update'
@@ -103,6 +105,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BookSlugRoute = BookSlugRouteImport.update({
+  id: '/book/$slug',
+  path: '/book/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppStatsRoute = AppStatsRouteImport.update({
   id: '/stats',
   path: '/stats',
@@ -126,6 +133,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
 const AppCalendarRoute = AppCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBookingsRoute = AppBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
   getParentRoute: () => AppRoute,
 } as any)
 const AtChar123slugChar125LinksRoute =
@@ -270,11 +282,13 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
+  '/bookings': typeof AppBookingsRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/portfolio': typeof AppPortfolioRoute
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
+  '/book/$slug': typeof BookSlugRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -310,11 +324,13 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
+  '/bookings': typeof AppBookingsRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/portfolio': typeof AppPortfolioRoute
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
+  '/book/$slug': typeof BookSlugRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
@@ -351,11 +367,13 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
+  '/_app/bookings': typeof AppBookingsRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/portfolio': typeof AppPortfolioRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/stats': typeof AppStatsRoute
+  '/book/$slug': typeof BookSlugRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -393,11 +411,13 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/@{$slug}/links'
+    | '/bookings'
     | '/calendar'
     | '/dashboard'
     | '/portfolio'
     | '/reports'
     | '/stats'
+    | '/book/$slug'
     | '/clients/$clientId'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
@@ -433,11 +453,13 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/@{$slug}/links'
+    | '/bookings'
     | '/calendar'
     | '/dashboard'
     | '/portfolio'
     | '/reports'
     | '/stats'
+    | '/book/$slug'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
     | '/api/meta-ads/create-campaign'
@@ -473,11 +495,13 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/@{$slug}/links'
+    | '/_app/bookings'
     | '/_app/calendar'
     | '/_app/dashboard'
     | '/_app/portfolio'
     | '/_app/reports'
     | '/_app/stats'
+    | '/book/$slug'
     | '/_app/clients/$clientId'
     | '/_app/settings/pricing'
     | '/api/meta-ads/archive'
@@ -514,6 +538,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  BookSlugRoute: typeof BookSlugRoute
   ApiMetaAdsArchiveRoute: typeof ApiMetaAdsArchiveRoute
   ApiMetaAdsCreateCampaignRoute: typeof ApiMetaAdsCreateCampaignRoute
   ApiMetaAdsDiscoverRoute: typeof ApiMetaAdsDiscoverRoute
@@ -604,6 +629,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/book/$slug': {
+      id: '/book/$slug'
+      path: '/book/$slug'
+      fullPath: '/book/$slug'
+      preLoaderRoute: typeof BookSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/stats': {
       id: '/_app/stats'
       path: '/stats'
@@ -637,6 +669,13 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bookings': {
+      id: '/_app/bookings'
+      path: '/bookings'
+      fullPath: '/bookings'
+      preLoaderRoute: typeof AppBookingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/@{$slug}/links': {
@@ -844,6 +883,7 @@ const AppClientsClientIdRouteWithChildren =
   AppClientsClientIdRoute._addFileChildren(AppClientsClientIdRouteChildren)
 
 interface AppRouteChildren {
+  AppBookingsRoute: typeof AppBookingsRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppPortfolioRoute: typeof AppPortfolioRoute
@@ -855,6 +895,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppBookingsRoute: AppBookingsRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppPortfolioRoute: AppPortfolioRoute,
@@ -879,6 +920,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  BookSlugRoute: BookSlugRoute,
   ApiMetaAdsArchiveRoute: ApiMetaAdsArchiveRoute,
   ApiMetaAdsCreateCampaignRoute: ApiMetaAdsCreateCampaignRoute,
   ApiMetaAdsDiscoverRoute: ApiMetaAdsDiscoverRoute,
