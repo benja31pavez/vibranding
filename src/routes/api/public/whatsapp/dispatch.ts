@@ -339,6 +339,37 @@ async function processConversation(convId: string) {
     .from("whatsapp_conversations")
     .update(updatePatch as any)
     .eq("id", convId);
+
+  // Dynamic learning: when we had to hand off, ask the AI to identify ONE
+  // missing piece of info the owner should provide so the bot can answer
+  // similar messages autonomously next time. Insert as a pending question.
+  if (handoff) {
+    try {
+      const recentUser = history.filter((h) => h.role === "user").slice(-3).map((h) => h.content).join("\n");
+      const gapPrompt = `Eres un coach que ayuda a un dueño de negocio a entrenar a su bot de WhatsApp. El bot acaba de derivar esta consulta a un humano porque no supo responder. Tu tarea: redactar UNA sola pregunta breve y específica (máx. 140 caracteres) que el dueño debería responder para que el bot pueda manejar consultas similares por sí solo. NO repitas información ya conocida. Responde SOLO con la pregunta, sin comillas ni prefijos.\n\nMensajes del cliente:\n${recentUser}\n\nLo que el bot respondió (derivó):\n${text}`;
+      const gap = await callAI(apiKey, acc.ai_model, gapPrompt, [{ role: "user", content: "Genera la pregunta." }]);
+      const question = gap.text?.trim().replace(/^["'\s]+|["'\s]+$/g, "").slice(0, 280);
+      if (question && question.length > 8) {
+        const { data: existing } = await (supabaseAdmin.from("bot_knowledge" as any) as any)
+          .select("question").eq("account_id", acc.id);
+        const norm = (s: string) => s.toLowerCase().replace(/[¿?¡!.,;:]/g, "").trim();
+        const exists = ((existing ?? []) as Array<{ question: string }>).some(
+          (e) => norm(e.question) === norm(question),
+        );
+        if (!exists) {
+          await (supabaseAdmin.from("bot_knowledge" as any) as any).insert({
+            account_id: acc.id,
+            client_id: acc.client_id,
+            question,
+            origin: "auto",
+            context_snippet: recentUser.slice(0, 200),
+          });
+        }
+      }
+    } catch (e: any) {
+      console.error("[dispatch] knowledge-gap generation failed", e?.message);
+    }
+  }
 }
 
 export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
