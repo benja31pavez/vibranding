@@ -133,6 +133,66 @@ export type Database = {
           },
         ]
       }
+      bot_knowledge: {
+        Row: {
+          account_id: string
+          answer: string | null
+          answered_at: string | null
+          client_id: string
+          context_snippet: string | null
+          created_at: string
+          id: string
+          origin: string
+          question: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          answer?: string | null
+          answered_at?: string | null
+          client_id: string
+          context_snippet?: string | null
+          created_at?: string
+          id?: string
+          origin?: string
+          question: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          answer?: string | null
+          answered_at?: string | null
+          client_id?: string
+          context_snippet?: string | null
+          created_at?: string
+          id?: string
+          origin?: string
+          question?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_knowledge_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_knowledge_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_contracts: {
         Row: {
           agency_snapshot: Json
@@ -802,6 +862,50 @@ export type Database = {
           view_count?: number
         }
         Relationships: []
+      }
+      lead_meta: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          source: string
+          source_id: string
+          status: string
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          source: string
+          source_id: string
+          status?: string
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          source?: string
+          source_id?: string
+          status?: string
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_meta_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meta_ads_accounts: {
         Row: {

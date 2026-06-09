@@ -44,6 +44,7 @@ import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/cl
 import { Route as AppClientsClientIdObjectivesRouteImport } from './routes/_app/clients/$clientId/objectives'
 import { Route as AppClientsClientIdMultilinkRouteImport } from './routes/_app/clients/$clientId/multilink'
 import { Route as AppClientsClientIdMetaAdsRouteImport } from './routes/_app/clients/$clientId/meta-ads'
+import { Route as AppClientsClientIdLeadsRouteImport } from './routes/_app/clients/$clientId/leads'
 import { Route as AppClientsClientIdLandingRouteImport } from './routes/_app/clients/$clientId/landing'
 import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
 import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
@@ -233,6 +234,11 @@ const AppClientsClientIdMetaAdsRoute =
     path: '/meta-ads',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdLeadsRoute = AppClientsClientIdLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AppClientsClientIdRoute,
+} as any)
 const AppClientsClientIdLandingRoute =
   AppClientsClientIdLandingRouteImport.update({
     id: '/landing',
@@ -303,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
+  '/clients/$clientId/leads': typeof AppClientsClientIdLeadsRoute
   '/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
   '/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
@@ -344,6 +351,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
+  '/clients/$clientId/leads': typeof AppClientsClientIdLeadsRoute
   '/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
   '/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
@@ -388,6 +396,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/_app/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
+  '/_app/clients/$clientId/leads': typeof AppClientsClientIdLeadsRoute
   '/_app/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
   '/_app/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/_app/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
@@ -432,6 +441,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/instagram'
     | '/clients/$clientId/landing'
+    | '/clients/$clientId/leads'
     | '/clients/$clientId/meta-ads'
     | '/clients/$clientId/multilink'
     | '/clients/$clientId/objectives'
@@ -473,6 +483,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/instagram'
     | '/clients/$clientId/landing'
+    | '/clients/$clientId/leads'
     | '/clients/$clientId/meta-ads'
     | '/clients/$clientId/multilink'
     | '/clients/$clientId/objectives'
@@ -516,6 +527,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/deliverables'
     | '/_app/clients/$clientId/instagram'
     | '/_app/clients/$clientId/landing'
+    | '/_app/clients/$clientId/leads'
     | '/_app/clients/$clientId/meta-ads'
     | '/_app/clients/$clientId/multilink'
     | '/_app/clients/$clientId/objectives'
@@ -797,6 +809,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdMetaAdsRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/leads': {
+      id: '/_app/clients/$clientId/leads'
+      path: '/leads'
+      fullPath: '/clients/$clientId/leads'
+      preLoaderRoute: typeof AppClientsClientIdLeadsRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/landing': {
       id: '/_app/clients/$clientId/landing'
       path: '/landing'
@@ -859,6 +878,7 @@ interface AppClientsClientIdRouteChildren {
   AppClientsClientIdDeliverablesRoute: typeof AppClientsClientIdDeliverablesRoute
   AppClientsClientIdInstagramRoute: typeof AppClientsClientIdInstagramRoute
   AppClientsClientIdLandingRoute: typeof AppClientsClientIdLandingRoute
+  AppClientsClientIdLeadsRoute: typeof AppClientsClientIdLeadsRoute
   AppClientsClientIdMetaAdsRoute: typeof AppClientsClientIdMetaAdsRoute
   AppClientsClientIdMultilinkRoute: typeof AppClientsClientIdMultilinkRoute
   AppClientsClientIdObjectivesRoute: typeof AppClientsClientIdObjectivesRoute
@@ -872,6 +892,7 @@ const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdDeliverablesRoute: AppClientsClientIdDeliverablesRoute,
   AppClientsClientIdInstagramRoute: AppClientsClientIdInstagramRoute,
   AppClientsClientIdLandingRoute: AppClientsClientIdLandingRoute,
+  AppClientsClientIdLeadsRoute: AppClientsClientIdLeadsRoute,
   AppClientsClientIdMetaAdsRoute: AppClientsClientIdMetaAdsRoute,
   AppClientsClientIdMultilinkRoute: AppClientsClientIdMultilinkRoute,
   AppClientsClientIdObjectivesRoute: AppClientsClientIdObjectivesRoute,
@@ -935,13 +956,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
