@@ -114,7 +114,9 @@ export function BotRulesTab({ clientId }: { clientId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <BotKnowledgeSection clientId={clientId} />
+
+      <div className="flex items-center justify-between pt-2">
         <h2 className="font-semibold">Reglas de respuestas automáticas</h2>
         <Button onClick={add}>
           <Plus className="w-4 h-4 mr-1" /> Nueva regla
