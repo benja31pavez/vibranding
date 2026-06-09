@@ -216,7 +216,69 @@ async function processConversation(convId: string) {
     .filter(Boolean)
     .join("\n\n");
 
+  // Booking context — let the AI know how the agenda works and what's already taken.
+  const { data: bs } = await supabaseAdmin
+    .from("booking_settings")
+    .select("slug,display_name,hours,slot_minutes,timezone,enabled")
+    .eq("owner_user_id", acc.client_id ? undefined as any : undefined as any) // placeholder, replaced below
+    .limit(1);
+
+  // Look up the client's owner via the clients table to find the right agenda
+  const { data: cli } = await supabaseAdmin
+    .from("clients")
+    .select("user_id")
+    .eq("id", acc.client_id)
+    .maybeSingle();
+
+  let bookingBlock = "";
+  if (cli?.user_id) {
+    const { data: settings } = await supabaseAdmin
+      .from("booking_settings")
+      .select("id,slug,display_name,hours,slot_minutes,timezone,enabled")
+      .eq("owner_user_id", cli.user_id)
+      .eq("enabled", true);
+
+    if (settings && settings.length > 0) {
+      const now = new Date();
+      const in14d = new Date(now.getTime() + 14 * 86_400_000);
+      const ids = settings.map((s) => s.id);
+      const { data: upcoming } = await supabaseAdmin
+        .from("bookings")
+        .select("scheduled_at,settings_id")
+        .in("settings_id", ids)
+        .eq("status", "confirmed")
+        .gte("scheduled_at", now.toISOString())
+        .lte("scheduled_at", in14d.toISOString());
+
+      const lines = settings.map((s) => {
+        const hrs = (s.hours as any as { day: number; enabled: boolean; open: string; close: string }[])
+          .map((h) => (h.enabled ? `${DAY_NAMES[h.day]} ${h.open}-${h.close}` : null))
+          .filter(Boolean)
+          .join(", ");
+        const taken = (upcoming ?? [])
+          .filter((u) => u.settings_id === s.id)
+          .map((u) => new Date(u.scheduled_at).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short", timeZone: s.timezone }))
+          .join("; ");
+        return `- ${s.display_name}\n  Link: https://vibranding.lovable.app/book/${s.slug}\n  Citas de ${s.slot_minutes} min · ${hrs}\n  Reglas: solo se puede agendar desde MAÑANA hasta 30 días en adelante. NO se permite agendar el mismo día.\n  Slots ya ocupados (próximos 14 días): ${taken || "ninguno"}`;
+      });
+      bookingBlock = lines.join("\n\n");
+    }
+  }
+
   const systemPrompt = [
+    acc.ai_system_prompt,
+    acc.ai_business_context
+      ? `\n\nContexto del negocio (úsalo para responder):\n${acc.ai_business_context}`
+      : "",
+    profileBlock ? `\n\nPerfil del negocio:\n${profileBlock}` : "",
+    bookingBlock
+      ? `\n\nAgenda y reservas:\n${bookingBlock}\n\nSi alguien quiere agendar una reunión, comparte el link de reservas correspondiente y explícale que solo se puede reservar a partir de MAÑANA (no hoy) y hasta 30 días en adelante.`
+      : "",
+    nowOpen === false
+      ? `\n\nIMPORTANTE: El negocio está cerrado en este momento. Indícalo amablemente y menciona cuándo se atenderá su consulta.`
+      : "",
+    `\n\nResponde SOLO con el mensaje que se debe enviar al cliente por WhatsApp. Sin prefijos como "Bot:" ni explicaciones meta. Sé conciso (idealmente 1-3 frases). Si necesitas derivar a una persona real, dilo con claridad ("alguien del equipo te contactará pronto") — esto activa un recordatorio interno.`,
+  ].join("");
     acc.ai_system_prompt,
     acc.ai_business_context
       ? `\n\nContexto del negocio (úsalo para responder):\n${acc.ai_business_context}`
