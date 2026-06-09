@@ -54,7 +54,7 @@ function BookingsPage() {
   const load = async () => {
     if (!user) return;
     const s = await ensure({ data: { clientId: null } });
-    setSettings(s as Settings);
+    setSettings(s as unknown as Settings);
     const { data: bs } = await supabase
       .from("bookings")
       .select("*")
