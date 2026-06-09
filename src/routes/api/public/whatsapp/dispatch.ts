@@ -279,16 +279,6 @@ async function processConversation(convId: string) {
       : "",
     `\n\nResponde SOLO con el mensaje que se debe enviar al cliente por WhatsApp. Sin prefijos como "Bot:" ni explicaciones meta. Sé conciso (idealmente 1-3 frases). Si necesitas derivar a una persona real, dilo con claridad ("alguien del equipo te contactará pronto") — esto activa un recordatorio interno.`,
   ].join("");
-    acc.ai_system_prompt,
-    acc.ai_business_context
-      ? `\n\nContexto del negocio (úsalo para responder):\n${acc.ai_business_context}`
-      : "",
-    profileBlock ? `\n\nPerfil del negocio:\n${profileBlock}` : "",
-    nowOpen === false
-      ? `\n\nIMPORTANTE: El negocio está cerrado en este momento. Indícalo amablemente y menciona cuándo se atenderá su consulta.`
-      : "",
-    `\n\nResponde SOLO con el mensaje que se debe enviar al cliente por WhatsApp. Sin prefijos como "Bot:" ni explicaciones meta. Sé conciso (idealmente 1-3 frases). Si necesitas derivar a una persona real, dilo con claridad ("alguien del equipo te contactará pronto") — esto activa un recordatorio interno.`,
-  ].join("");
 
   const ai = await callAI(apiKey, acc.ai_model, systemPrompt, history);
   if (!ai.ok || !ai.text) {
