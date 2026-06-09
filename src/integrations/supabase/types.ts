@@ -14,6 +14,125 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_settings: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          display_name: string
+          enabled: boolean
+          hours: Json
+          id: string
+          intro: string | null
+          notification_email: string | null
+          owner_user_id: string
+          slot_minutes: number
+          slug: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          display_name?: string
+          enabled?: boolean
+          hours?: Json
+          id?: string
+          intro?: string | null
+          notification_email?: string | null
+          owner_user_id: string
+          slot_minutes?: number
+          slug: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          display_name?: string
+          enabled?: boolean
+          hours?: Json
+          id?: string
+          intro?: string | null
+          notification_email?: string | null
+          owner_user_id?: string
+          slot_minutes?: number
+          slug?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_settings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookings: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          duration_minutes: number
+          id: string
+          notes: string | null
+          owner_user_id: string
+          scheduled_at: string
+          settings_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          owner_user_id: string
+          scheduled_at: string
+          settings_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          owner_user_id?: string
+          scheduled_at?: string
+          settings_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: false
+            referencedRelation: "booking_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_contracts: {
         Row: {
           agency_snapshot: Json
@@ -1727,9 +1846,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_booking_settings_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          client_id: string
+          display_name: string
+          enabled: boolean
+          hours: Json
+          id: string
+          intro: string
+          owner_user_id: string
+          slot_minutes: number
+          timezone: string
+        }[]
+      }
       increment_landing_view: { Args: { _id: string }; Returns: undefined }
       increment_multilink_click: { Args: { _id: string }; Returns: undefined }
       increment_multilink_view: { Args: { _id: string }; Returns: undefined }
+      list_taken_slots: {
+        Args: { _from: string; _settings_id: string; _to: string }
+        Returns: {
+          duration_minutes: number
+          scheduled_at: string
+        }[]
+      }
       owns_client: { Args: { _client_id: string }; Returns: boolean }
     }
     Enums: {
