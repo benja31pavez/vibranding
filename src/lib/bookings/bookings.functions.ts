@@ -157,12 +157,14 @@ export const ensureBookingSettings = createServerFn({ method: "POST" })
   }))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
-    const { data: existing } = await supabase
+    const query = supabase
       .from("booking_settings")
       .select("*")
-      .eq("owner_user_id", userId)
-      .is("client_id", data.clientId === null ? null : (undefined as any))
-      .maybeSingle();
+      .eq("owner_user_id", userId);
+    const { data: existing } = await (data.clientId === null
+      ? query.is("client_id", null)
+      : query.eq("client_id", data.clientId)
+    ).maybeSingle();
     if (existing) return existing;
 
     // Generate slug
