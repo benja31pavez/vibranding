@@ -260,12 +260,28 @@ async function processConversation(convId: string) {
     }
   }
 
+  // Knowledge base — answered Q&A from the owner enriches the bot's understanding.
+  const { data: knowledge } = await (supabaseAdmin.from("bot_knowledge" as any) as any)
+    .select("question,answer")
+    .eq("account_id", acc.id)
+    .eq("status", "answered")
+    .order("sort_order", { ascending: true })
+    .limit(60);
+
+  const knowledgeBlock = ((knowledge ?? []) as Array<{ question: string; answer: string }>)
+    .filter((k) => k.answer && k.answer.trim())
+    .map((k) => `P: ${k.question}\nR: ${k.answer.trim()}`)
+    .join("\n\n");
+
   const systemPrompt = [
     acc.ai_system_prompt,
     acc.ai_business_context
       ? `\n\nContexto del negocio (úsalo para responder):\n${acc.ai_business_context}`
       : "",
     profileBlock ? `\n\nPerfil del negocio:\n${profileBlock}` : "",
+    knowledgeBlock
+      ? `\n\nConocimiento del dueño (respuestas oficiales, prioriza esto sobre suposiciones):\n${knowledgeBlock}`
+      : "",
     bookingBlock
       ? `\n\nAgenda y reservas:\n${bookingBlock}\n\nSi alguien quiere agendar una reunión, comparte el link de reservas correspondiente y explícale que solo se puede reservar a partir de MAÑANA (no hoy) y hasta 30 días en adelante.`
       : "",
