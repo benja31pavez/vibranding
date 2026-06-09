@@ -217,11 +217,6 @@ async function processConversation(convId: string) {
     .join("\n\n");
 
   // Booking context — let the AI know how the agenda works and what's already taken.
-  const { data: bs } = await supabaseAdmin
-    .from("booking_settings")
-    .select("slug,display_name,hours,slot_minutes,timezone,enabled")
-    .eq("owner_user_id", acc.client_id ? undefined as any : undefined as any) // placeholder, replaced below
-    .limit(1);
 
   // Look up the client's owner via the clients table to find the right agenda
   const { data: cli } = await supabaseAdmin
