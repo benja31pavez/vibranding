@@ -17,6 +17,7 @@ import {
 import { Plus, Trash2, X, GripVertical, FileText, Link as LinkIcon, Image as ImageIcon, ListChecks, ShoppingBag, Type, ChevronDown, ChevronRight, Check, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { MediaUpload } from "@/components/MediaUpload";
+import { BotKnowledgeSection } from "@/components/chatbot/BotKnowledgeSection";
 
 type ActionKind = "text" | "link" | "document" | "image" | "poll" | "catalog";
 
