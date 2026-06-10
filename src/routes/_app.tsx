@@ -217,6 +217,7 @@ function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} onSaved={(p) => setProfile(p)} />
     </div>
   );
 }
