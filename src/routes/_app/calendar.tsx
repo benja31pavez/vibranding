@@ -181,6 +181,25 @@ function CalendarPage() {
           </div>
         </aside>
       </div>
+
+      <Collapsible className="mt-8 rounded-2xl border bg-surface">
+        <CollapsibleTrigger className="group w-full flex items-center justify-between px-5 py-4 text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="font-semibold">Agenda</div>
+              <div className="text-xs text-muted-foreground">Tu link público, horarios y reservas entrantes.</div>
+            </div>
+          </div>
+          <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="px-5 pb-5">
+          <BookingsPanel />
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
+
