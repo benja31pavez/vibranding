@@ -245,9 +245,33 @@ function BookingPage() {
 
         {!selectedISO ? (
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
               <h2 className="text-base font-medium">Selecciona una hora para la cita</h2>
-              <span className="text-xs text-muted-foreground">{settings.timezone}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Ver en:</span>
+                <select
+                  value={viewerTz || settings.timezone}
+                  onChange={(e) => setViewerTz(e.target.value)}
+                  className="text-xs border border-border rounded-md px-2 py-1 bg-background"
+                >
+                  {Array.from(new Set([
+                    settings.timezone,
+                    Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    "America/Santiago",
+                    "America/Argentina/Buenos_Aires",
+                    "America/Mexico_City",
+                    "America/Bogota",
+                    "America/Lima",
+                    "America/New_York",
+                    "America/Los_Angeles",
+                    "Europe/Madrid",
+                    "Europe/London",
+                    "UTC",
+                  ])).map((tz) => (
+                    <option key={tz} value={tz}>{tz}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
               {/* Mini month */}
