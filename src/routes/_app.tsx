@@ -115,8 +115,8 @@ function AppLayout() {
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Sesión iniciada</div>
                   {(() => {
                     const meta = (user?.user_metadata ?? {}) as Record<string, any>;
-                    const name = meta.full_name || meta.name || meta.display_name;
-                    const phone = user?.phone || meta.phone;
+                    const name = profile?.full_name || meta.full_name || meta.name || meta.display_name;
+                    const phone = profile?.phone || user?.phone || meta.phone;
                     return (
                       <>
                         {name && <div className="truncate text-sm font-medium mt-1">{name}</div>}
@@ -127,6 +127,9 @@ function AppLayout() {
                   })()}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer">
+                  <UserCog className="w-4 h-4 mr-2" /> Editar perfil
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
                   <Link to="/portfolio"><Sparkles className="w-4 h-4 mr-2" /> Portafolio público</Link>
                 </DropdownMenuItem>
