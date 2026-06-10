@@ -258,7 +258,7 @@ function LeadsPage() {
                 className="w-full text-left p-4 hover:bg-muted/40 transition-colors flex items-center gap-3"
               >
                 <div className="w-9 h-9 rounded-full grid place-items-center shrink-0 bg-primary/10 text-primary">
-                  {lead.source === "whatsapp" ? <MessageCircle className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+                  <SourceIcon source={lead.source} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
