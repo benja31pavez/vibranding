@@ -374,3 +374,78 @@ function TagEditor({ value, onChange }: { value: string[]; onChange: (v: string[
     </div>
   );
 }
+
+function SourceIcon({ source }: { source: Source }) {
+  if (source === "whatsapp") return <MessageCircle className="w-4 h-4" />;
+  if (source === "landing") return <Globe className="w-4 h-4" />;
+  if (source === "meta_ads") return <Megaphone className="w-4 h-4" />;
+  return <Link2 className="w-4 h-4" />;
+}
+
+function AddLeadDialog({ clientId, onCreated }: { clientId: string; onCreated: () => void }) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [source, setSource] = useState<Source>("meta_ads");
+  const [name, setName] = useState("");
+  const [contact, setContact] = useState("");
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !name.trim()) return;
+    setSaving(true);
+    const { error } = await (supabase.from("client_leads" as any) as any).insert({
+      client_id: clientId,
+      source,
+      name: name.trim(),
+      contact: contact.trim() || null,
+      message: message.trim() || null,
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Lead agregado");
+    setName(""); setContact(""); setMessage(""); setOpen(false);
+    onCreated();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button><Plus className="w-4 h-4 mr-1" /> Nuevo lead</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Nuevo lead</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Origen</Label>
+            <Select value={source} onValueChange={(v) => setSource(v as Source)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="meta_ads">Meta Ads</SelectItem>
+                <SelectItem value="multilink">Multienlace</SelectItem>
+                <SelectItem value="landing">Landing Page</SelectItem>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Nombre</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Contacto (teléfono o email)</Label>
+            <Input value={contact} onChange={(e) => setContact(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Mensaje / nota inicial</Label>
+            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Crear lead"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
