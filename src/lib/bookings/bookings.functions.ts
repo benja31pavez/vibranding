@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { zonedParts } from "./tz";
 
 const SlotsInput = z.object({
   slug: z.string().min(1).max(80),
@@ -45,12 +46,11 @@ function withinHours(
   iso: string,
   hours: { day: number; enabled: boolean; open: string; close: string; breaks?: { start: string; end: string }[] }[],
   slotMin: number,
+  timeZone: string,
 ): boolean {
-  const d = new Date(iso);
-  const idx = (d.getUTCDay() + 6) % 7;
-  const today = hours.find((h) => h.day === idx);
+  const { dayIdx, minutes: mins } = zonedParts(iso, timeZone);
+  const today = hours.find((h) => h.day === dayIdx);
   if (!today || !today.enabled) return false;
-  const mins = d.getUTCHours() * 60 + d.getUTCMinutes();
   const [oh, om] = today.open.split(":").map(Number);
   const [ch, cm] = today.close.split(":").map(Number);
   const openM = oh * 60 + om;
@@ -100,8 +100,8 @@ export const createBooking = createServerFn({ method: "POST" })
     maxDate.setUTCDate(maxDate.getUTCDate() + 31);
     if (slotDate < tomorrow) throw new Error("Solo puedes agendar a partir de mañana");
     if (slotDate > maxDate) throw new Error("Solo se permite agendar hasta 30 días en adelante");
-
-    if (!withinHours(data.scheduledAt, s.hours as any, s.slot_minutes)) {
+    const tz = (s as any).timezone || "America/Santiago";
+    if (!withinHours(data.scheduledAt, s.hours as any, s.slot_minutes, tz)) {
       throw new Error("Ese horario no está disponible");
     }
 
