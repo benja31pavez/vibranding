@@ -120,6 +120,7 @@ function BookingPage() {
   const [confirming, setConfirming] = useState(false);
   const [done, setDone] = useState<{ when: string } | null>(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
+  const [viewerTz, setViewerTz] = useState<string>("");
 
   const minDay = useMemo(() => startOfTomorrowUTC(), []);
   const maxDay = useMemo(() => addDays(minDay, 29), [minDay]);
