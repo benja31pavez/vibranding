@@ -45,7 +45,7 @@ function TimeSlider({
         value={[value]}
         min={min}
         max={max}
-        step={15}
+        step={30}
         disabled={disabled}
         onValueChange={(v) => onChange(v[0])}
         onValueCommit={(v) => onCommit(v[0])}
