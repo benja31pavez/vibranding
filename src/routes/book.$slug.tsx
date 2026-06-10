@@ -323,7 +323,7 @@ function BookingPage() {
                 <div className="grid grid-cols-7 gap-2">
                   {weekDays.map((d) => {
                     const outOfRange = d < minDay || d > maxDay;
-                    const slots = outOfRange ? [] : buildSlots(d, settings, taken);
+                    const slots = outOfRange ? [] : buildSlots(d, settings, taken, viewerTz || settings.timezone);
                     return (
                       <div key={d.toISOString()} className="space-y-2">
                         {slots.length === 0 ? (
