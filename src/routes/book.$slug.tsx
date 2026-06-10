@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { CalendarDays, Clock, CheckCircle2 } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/book/$slug")({
@@ -42,7 +42,12 @@ type Settings = {
   intro: string | null;
 };
 
-const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const DAY_LABELS = ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"];
+const MINI_DAY_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
+const MONTH_NAMES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
 
 function startOfTomorrowUTC() {
   const d = new Date();
@@ -57,6 +62,10 @@ function addDays(d: Date, n: number) {
   return x;
 }
 
+function sameUTCDay(a: Date, b: Date) {
+  return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
+}
+
 function buildSlots(date: Date, settings: Settings, taken: Set<string>) {
   const idx = (date.getUTCDay() + 6) % 7;
   const h = settings.hours.find((x) => x.day === idx);
@@ -68,9 +77,13 @@ function buildSlots(date: Date, settings: Settings, taken: Set<string>) {
     const s = new Date(date);
     s.setUTCHours(Math.floor(m / 60), m % 60, 0, 0);
     const iso = s.toISOString();
+    const hour12 = Math.floor(m / 60);
+    const min = m % 60;
+    const period = hour12 >= 12 ? "pm" : "am";
+    const h12 = hour12 % 12 === 0 ? 12 : hour12 % 12;
     slots.push({
       iso,
-      label: `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`,
+      label: `${h12}:${String(min).padStart(2, "0")}${period}`,
       disabled: taken.has(iso),
     });
   }
@@ -90,14 +103,18 @@ function BookingPage() {
   const [done, setDone] = useState<{ when: string } | null>(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
 
-  const days = useMemo(() => {
-    const start = startOfTomorrowUTC();
-    return Array.from({ length: 14 }, (_, i) => addDays(start, i));
-  }, []);
+  const minDay = useMemo(() => startOfTomorrowUTC(), []);
+  const maxDay = useMemo(() => addDays(minDay, 29), [minDay]);
+  const [weekStart, setWeekStart] = useState<Date>(minDay);
+  const [monthCursor, setMonthCursor] = useState<Date>(() => {
+    const d = new Date(minDay);
+    d.setUTCDate(1);
+    return d;
+  });
 
   useEffect(() => {
-    const from = days[0].toISOString();
-    const to = addDays(days[days.length - 1], 1).toISOString();
+    const from = minDay.toISOString();
+    const to = addDays(maxDay, 1).toISOString();
     loadPage({ data: { slug, from, to } })
       .then((r) => {
         setSettings(r.settings as any);
@@ -105,6 +122,19 @@ function BookingPage() {
       })
       .catch((e) => setError(e.message));
   }, [slug]);
+
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
+
+  const miniGrid = useMemo(() => {
+    const first = new Date(monthCursor);
+    first.setUTCDate(1);
+    const offset = (first.getUTCDay() + 6) % 7;
+    const daysInMonth = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+    const cells: (Date | null)[] = Array(offset).fill(null);
+    for (let i = 1; i <= daysInMonth; i++) cells.push(new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), i)));
+    while (cells.length % 7 !== 0) cells.push(null);
+    return cells;
+  }, [monthCursor]);
 
   if (error) {
     return (
@@ -157,9 +187,31 @@ function BookingPage() {
     }
   };
 
+  const goPrevWeek = () => {
+    const prev = addDays(weekStart, -7);
+    setWeekStart(prev < minDay ? minDay : prev);
+  };
+  const goNextWeek = () => {
+    const next = addDays(weekStart, 7);
+    if (next <= maxDay) setWeekStart(next);
+  };
+  const canPrev = weekStart > minDay;
+  const canNext = addDays(weekStart, 7) <= maxDay;
+
+  const prevMonth = () => {
+    const d = new Date(monthCursor);
+    d.setUTCMonth(d.getUTCMonth() - 1);
+    setMonthCursor(d);
+  };
+  const nextMonth = () => {
+    const d = new Date(monthCursor);
+    d.setUTCMonth(d.getUTCMonth() + 1);
+    setMonthCursor(d);
+  };
+
   return (
     <div className="min-h-screen bg-background py-10 px-4">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <header className="mb-8 text-center">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-primary mb-3">
             <CalendarDays className="w-6 h-6" />
@@ -172,33 +224,109 @@ function BookingPage() {
         </header>
 
         {!selectedISO ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-            {days.map((d) => {
-              const slots = buildSlots(d, settings, taken);
-              const label = `${DAY_LABELS[(d.getUTCDay() + 6) % 7]} ${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
-              return (
-                <Card key={d.toISOString()} className="p-3">
-                  <div className="text-xs font-medium text-muted-foreground mb-2">{label}</div>
-                  {slots.length === 0 ? (
-                    <div className="text-xs text-muted-foreground py-3">—</div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {slots.map((s) => (
-                        <button
-                          key={s.iso}
-                          onClick={() => !s.disabled && setSelectedISO(s.iso)}
-                          disabled={s.disabled}
-                          className="w-full px-2 py-1.5 rounded-md text-sm border hover:border-primary hover:bg-primary/5 disabled:opacity-40 disabled:line-through disabled:hover:bg-transparent disabled:hover:border-border transition"
-                        >
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-base font-medium">Selecciona una hora para la cita</h2>
+              <span className="text-xs text-muted-foreground">{settings.timezone}</span>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
+              {/* Mini month */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-medium">
+                    {MONTH_NAMES[monthCursor.getUTCMonth()]} de {monthCursor.getUTCFullYear()}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={prevMonth} className="p-1 rounded hover:bg-muted text-muted-foreground"><ChevronLeft className="w-4 h-4" /></button>
+                    <button onClick={nextMonth} className="p-1 rounded hover:bg-muted text-muted-foreground"><ChevronRight className="w-4 h-4" /></button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-7 gap-1 text-center">
+                  {MINI_DAY_LABELS.map((l) => (
+                    <div key={l} className="text-[10px] text-muted-foreground py-1">{l}</div>
+                  ))}
+                  {miniGrid.map((d, i) => {
+                    if (!d) return <div key={i} />;
+                    const disabled = d < minDay || d > maxDay;
+                    const selected = sameUTCDay(d, weekStart);
+                    const inWeek = weekDays.some((w) => sameUTCDay(w, d));
+                    return (
+                      <button
+                        key={i}
+                        disabled={disabled}
+                        onClick={() => {
+                          setWeekStart(d);
+                          setMonthCursor(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)));
+                        }}
+                        className={`text-xs h-8 w-8 mx-auto rounded-full flex items-center justify-center transition ${
+                          disabled
+                            ? "text-muted-foreground/40 line-through cursor-not-allowed"
+                            : selected
+                            ? "bg-primary text-primary-foreground font-medium"
+                            : inWeek
+                            ? "bg-primary/10 text-foreground hover:bg-primary/20"
+                            : "text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {d.getUTCDate()}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Week grid */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <button onClick={goPrevWeek} disabled={!canPrev} className="p-1.5 rounded-full hover:bg-muted disabled:opacity-30 text-muted-foreground">
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <div className="grid grid-cols-7 gap-2 flex-1">
+                    {weekDays.map((d) => {
+                      const isToday = sameUTCDay(d, minDay);
+                      return (
+                        <div key={d.toISOString()} className="text-center">
+                          <div className="text-[10px] text-muted-foreground tracking-wider">{DAY_LABELS[(d.getUTCDay() + 6) % 7]}</div>
+                          <div className={`mt-1 mx-auto w-9 h-9 rounded-full flex items-center justify-center text-lg ${
+                            isToday ? "bg-primary text-primary-foreground font-medium" : "text-foreground"
+                          }`}>
+                            {d.getUTCDate()}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <button onClick={goNextWeek} disabled={!canNext} className="p-1.5 rounded-full hover:bg-muted disabled:opacity-30 text-muted-foreground">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-7 gap-2">
+                  {weekDays.map((d) => {
+                    const outOfRange = d < minDay || d > maxDay;
+                    const slots = outOfRange ? [] : buildSlots(d, settings, taken);
+                    return (
+                      <div key={d.toISOString()} className="space-y-2">
+                        {slots.length === 0 ? (
+                          <div className="text-center text-muted-foreground py-2">—</div>
+                        ) : (
+                          slots.map((s) => (
+                            <button
+                              key={s.iso}
+                              onClick={() => !s.disabled && setSelectedISO(s.iso)}
+                              disabled={s.disabled}
+                              className="w-full px-2 py-2 rounded-full text-sm border border-border text-primary font-medium hover:border-primary hover:bg-primary/5 disabled:opacity-30 disabled:line-through disabled:text-muted-foreground disabled:hover:bg-transparent disabled:hover:border-border transition"
+                            >
+                              {s.label}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </Card>
         ) : (
           <Card className="max-w-lg mx-auto p-6">
             <button onClick={() => setSelectedISO(null)} className="text-sm text-muted-foreground hover:text-foreground mb-4">
