@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_app/clients/$clientId/leads")({
   component: LeadsPage,
 });
 
-type Source = "whatsapp" | "landing";
+type Source = "whatsapp" | "landing" | "meta_ads" | "multilink";
 type Status = "new" | "contacted" | "won" | "lost";
 
 type Lead = {
