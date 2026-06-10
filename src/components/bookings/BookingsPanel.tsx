@@ -244,20 +244,6 @@ export function BookingsPanel() {
               }}
             />
           </div>
-          <div>
-            <Label>Duración por cita (min)</Label>
-            <Input
-              type="number"
-              min={30}
-              step={15}
-              defaultValue={settings.slot_minutes}
-              onBlur={(e) => {
-                const v = parseInt(e.target.value);
-                if (v && v !== settings.slot_minutes) save({ slot_minutes: v });
-              }}
-            />
-          </div>
-          <div className="hidden" />
 
           <div className="md:col-span-2">
             <Label>Mensaje introductorio (opcional)</Label>
