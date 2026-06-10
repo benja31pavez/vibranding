@@ -104,7 +104,18 @@ function AppLayout() {
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuLabel className="font-normal">
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Sesión iniciada</div>
-                  <div className="truncate text-sm font-medium mt-1">{user?.email}</div>
+                  {(() => {
+                    const meta = (user?.user_metadata ?? {}) as Record<string, any>;
+                    const name = meta.full_name || meta.name || meta.display_name;
+                    const phone = user?.phone || meta.phone;
+                    return (
+                      <>
+                        {name && <div className="truncate text-sm font-medium mt-1">{name}</div>}
+                        <div className="truncate text-xs text-muted-foreground mt-0.5">{user?.email}</div>
+                        {phone && <div className="truncate text-xs text-muted-foreground mt-0.5">{phone}</div>}
+                      </>
+                    );
+                  })()}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild className="cursor-pointer">
