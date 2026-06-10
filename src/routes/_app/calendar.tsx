@@ -36,7 +36,10 @@ function CalendarPage() {
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
   const [events, setEvents] = useState<Evt[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  });
 
   useEffect(() => {
     if (!user) return;
