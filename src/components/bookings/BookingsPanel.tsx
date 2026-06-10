@@ -230,7 +230,7 @@ export function BookingsPanel() {
             <Label>Duración por cita (min)</Label>
             <Input
               type="number"
-              min={15}
+              min={30}
               step={15}
               defaultValue={settings.slot_minutes}
               onBlur={(e) => {
@@ -292,8 +292,8 @@ export function BookingsPanel() {
                             <div className="text-[11px] text-muted-foreground mb-1">Inicio</div>
                             <TimeSlider
                               value={openM}
-                              onChange={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 15)))}
-                              onCommit={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 15)))}
+                              onChange={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 30)))}
+                              onCommit={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 30)))}
                               max={1440 - 15}
                             />
                           </div>
@@ -301,9 +301,9 @@ export function BookingsPanel() {
                             <div className="text-[11px] text-muted-foreground mb-1">Fin</div>
                             <TimeSlider
                               value={closeM}
-                              onChange={(v) => setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 15)))}
-                              onCommit={(v) => setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 15)))}
-                              min={15}
+                              onChange={(v) => setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 30)))}
+                              onCommit={(v) => setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 30)))}
+                              min={30}
                             />
                           </div>
                         </div>
@@ -332,15 +332,15 @@ export function BookingsPanel() {
                             <div className="flex-1 min-w-[260px] grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <TimeSlider
                                 value={bs}
-                                onChange={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 15)))}
-                                onCommit={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 15)))}
+                                onChange={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 30)))}
+                                onCommit={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 30)))}
                                 max={1440 - 15}
                               />
                               <TimeSlider
                                 value={be}
-                                onChange={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 15)))}
-                                onCommit={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 15)))}
-                                min={15}
+                                onChange={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 30)))}
+                                onCommit={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 30)))}
+                                min={30}
                               />
                             </div>
                             <Button type="button" size="sm" variant="ghost" onClick={() => removeBreak(h.day, i)}>
