@@ -137,6 +137,7 @@ function BookingPage() {
     loadPage({ data: { slug, from, to } })
       .then((r) => {
         setSettings(r.settings as any);
+        setViewerTz((r.settings as any).timezone);
         setTaken(new Set(r.taken.map((t) => new Date(t.scheduled_at).toISOString())));
       })
       .catch((e) => setError(e.message));
