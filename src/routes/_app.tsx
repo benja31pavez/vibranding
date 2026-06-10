@@ -2,11 +2,12 @@ import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tan
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  Users, LogOut, Sparkles, DollarSign, UserCircle2, X,
+  Users, LogOut, Sparkles, DollarSign, UserCircle2, X, UserCog,
   LayoutDashboard, CalendarDays, BarChart3, LineChart,
   Eye, Instagram, Megaphone, Target, CheckSquare, Wallet,
   Link2, Globe, MessageCircle, FileText, Inbox,
 } from "lucide-react";
+import { ProfileDialog } from "@/components/profile/ProfileDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
