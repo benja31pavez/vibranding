@@ -253,6 +253,44 @@ export type Database = {
         }
         Relationships: []
       }
+      client_leads: {
+        Row: {
+          client_id: string
+          contact: string | null
+          created_at: string
+          id: string
+          message: string | null
+          name: string
+          source: string
+        }
+        Insert: {
+          client_id: string
+          contact?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          name: string
+          source: string
+        }
+        Update: {
+          client_id?: string
+          contact?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          name?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_leads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           business_description: string | null
