@@ -27,12 +27,12 @@ function AppLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [activeClient, setActiveClient] = useState<ActiveC | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [profile, setProfile] = useState<{ full_name: string | null; phone: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string | null; phone: string | null; avatar_url: string | null } | null>(null);
 
   useEffect(() => {
     if (!session?.user) return;
-    supabase.from("user_profiles").select("full_name,phone").eq("user_id", session.user.id).maybeSingle()
-      .then(({ data }) => setProfile(data ?? { full_name: null, phone: null }));
+    supabase.from("user_profiles").select("full_name,phone,avatar_url").eq("user_id", session.user.id).maybeSingle()
+      .then(({ data }) => setProfile(data ?? { full_name: null, phone: null, avatar_url: null }));
   }, [session?.user?.id]);
 
   useEffect(() => {
