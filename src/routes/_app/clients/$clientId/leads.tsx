@@ -12,14 +12,17 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { MessageCircle, Globe, Download, Search, Filter, Tag as TagIcon, X } from "lucide-react";
+import { MessageCircle, Globe, Download, Search, Filter, Tag as TagIcon, X, Megaphone, Link2, Plus } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/clients/$clientId/leads")({
   component: LeadsPage,
 });
 
-type Source = "whatsapp" | "landing";
+type Source = "whatsapp" | "landing" | "meta_ads" | "multilink";
 type Status = "new" | "contacted" | "won" | "lost";
 
 type Lead = {
@@ -55,7 +58,7 @@ function LeadsPage() {
 
   const load = async () => {
     setLoading(true);
-    const [waRes, lpRes, metaRes] = await Promise.all([
+    const [waRes, lpRes, extraRes, metaRes] = await Promise.all([
       supabase
         .from("whatsapp_conversations")
         .select("id,contact_name,contact_wa_id,last_message_preview,last_message_at,created_at,is_lead,needs_human_followup")
@@ -65,6 +68,10 @@ function LeadsPage() {
       supabase
         .from("landing_contact_submissions")
         .select("id,name,email,message,created_at")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false }),
+      (supabase.from("client_leads" as any) as any)
+        .select("id,source,name,contact,message,created_at")
         .eq("client_id", clientId)
         .order("created_at", { ascending: false }),
       (supabase.from("lead_meta" as any) as any)
@@ -99,6 +106,15 @@ function LeadsPage() {
         message: s.message,
         created_at: s.created_at,
         ...get("landing", s.id),
+      })),
+      ...((extraRes.data ?? []) as any[]).map((s) => ({
+        source: s.source as Source,
+        source_id: s.id,
+        name: s.name,
+        contact: s.contact ?? "",
+        message: s.message,
+        created_at: s.created_at,
+        ...get(s.source as Source, s.id),
       })),
     ];
     all.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
@@ -170,12 +186,15 @@ function LeadsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
           <p className="text-sm text-muted-foreground">
-            Todos los leads del cliente: WhatsApp + Landing en un solo lugar.
+            Todos los leads del cliente: Meta Ads, Multienlace, Landing Page y WhatsApp en un solo lugar.
           </p>
         </div>
-        <Button variant="outline" onClick={exportCsv}>
-          <Download className="w-4 h-4 mr-1" /> Exportar CSV
-        </Button>
+        <div className="flex gap-2">
+          <AddLeadDialog clientId={clientId} onCreated={load} />
+          <Button variant="outline" onClick={exportCsv}>
+            <Download className="w-4 h-4 mr-1" /> Exportar CSV
+          </Button>
+        </div>
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -200,11 +219,13 @@ function LeadsPage() {
           />
         </div>
         <Select value={filterSource} onValueChange={(v) => setFilterSource(v as any)}>
-          <SelectTrigger className="w-[160px]"><Filter className="w-3 h-3 mr-1" /><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[180px]"><Filter className="w-3 h-3 mr-1" /><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los orígenes</SelectItem>
+            <SelectItem value="meta_ads">Meta Ads</SelectItem>
+            <SelectItem value="multilink">Multienlace</SelectItem>
+            <SelectItem value="landing">Landing Page</SelectItem>
             <SelectItem value="whatsapp">WhatsApp</SelectItem>
-            <SelectItem value="landing">Landing</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
@@ -237,7 +258,7 @@ function LeadsPage() {
                 className="w-full text-left p-4 hover:bg-muted/40 transition-colors flex items-center gap-3"
               >
                 <div className="w-9 h-9 rounded-full grid place-items-center shrink-0 bg-primary/10 text-primary">
-                  {lead.source === "whatsapp" ? <MessageCircle className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+                  <SourceIcon source={lead.source} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -268,7 +289,7 @@ function LeadsPage() {
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  {editing.source === "whatsapp" ? <MessageCircle className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+                  <SourceIcon source={editing.source} />
                   {editing.name}
                 </DialogTitle>
               </DialogHeader>
@@ -351,5 +372,80 @@ function TagEditor({ value, onChange }: { value: string[]; onChange: (v: string[
         ))}
       </div>
     </div>
+  );
+}
+
+function SourceIcon({ source }: { source: Source }) {
+  if (source === "whatsapp") return <MessageCircle className="w-4 h-4" />;
+  if (source === "landing") return <Globe className="w-4 h-4" />;
+  if (source === "meta_ads") return <Megaphone className="w-4 h-4" />;
+  return <Link2 className="w-4 h-4" />;
+}
+
+function AddLeadDialog({ clientId, onCreated }: { clientId: string; onCreated: () => void }) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [source, setSource] = useState<Source>("meta_ads");
+  const [name, setName] = useState("");
+  const [contact, setContact] = useState("");
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !name.trim()) return;
+    setSaving(true);
+    const { error } = await (supabase.from("client_leads" as any) as any).insert({
+      client_id: clientId,
+      source,
+      name: name.trim(),
+      contact: contact.trim() || null,
+      message: message.trim() || null,
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Lead agregado");
+    setName(""); setContact(""); setMessage(""); setOpen(false);
+    onCreated();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button><Plus className="w-4 h-4 mr-1" /> Nuevo lead</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Nuevo lead</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Origen</Label>
+            <Select value={source} onValueChange={(v) => setSource(v as Source)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="meta_ads">Meta Ads</SelectItem>
+                <SelectItem value="multilink">Multienlace</SelectItem>
+                <SelectItem value="landing">Landing Page</SelectItem>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Nombre</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Contacto (teléfono o email)</Label>
+            <Input value={contact} onChange={(e) => setContact(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Mensaje / nota inicial</Label>
+            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Crear lead"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
