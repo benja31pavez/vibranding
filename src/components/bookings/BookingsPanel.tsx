@@ -262,8 +262,8 @@ export function BookingsPanel() {
         <div>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <Label className="text-base">Horario semanal</Label>
-              <p className="text-xs text-muted-foreground mt-1">Desliza para ajustar tus horas. Desactiva los días en que no quieres reuniones. Agrega pausas para bloquear bloques dentro del día. Recuerda guardar.</p>
+              <Label className="text-base">Horario semanal <span className="ml-2 text-xs font-normal text-muted-foreground">Zona horaria: {settings.timezone}</span></Label>
+              <p className="text-xs text-muted-foreground mt-1">Las horas configuradas aquí están expresadas en tu zona horaria. Los bloques son de 30 minutos (ej. 09:00–09:30). Desactiva los días sin reuniones. Recuerda guardar.</p>
             </div>
             <div className="flex items-center gap-2">
               {hoursDirty && (
