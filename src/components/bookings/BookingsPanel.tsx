@@ -45,7 +45,7 @@ function TimeSlider({
         value={[value]}
         min={min}
         max={max}
-        step={15}
+        step={30}
         disabled={disabled}
         onValueChange={(v) => onChange(v[0])}
         onValueCommit={(v) => onCommit(v[0])}
@@ -230,7 +230,7 @@ export function BookingsPanel() {
             <Label>Duración por cita (min)</Label>
             <Input
               type="number"
-              min={15}
+              min={30}
               step={15}
               defaultValue={settings.slot_minutes}
               onBlur={(e) => {
@@ -262,8 +262,8 @@ export function BookingsPanel() {
         <div>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <Label className="text-base">Horario semanal</Label>
-              <p className="text-xs text-muted-foreground mt-1">Desliza para ajustar tus horas. Desactiva los días en que no quieres reuniones. Agrega pausas para bloquear bloques dentro del día. Recuerda guardar.</p>
+              <Label className="text-base">Horario semanal <span className="ml-2 text-xs font-normal text-muted-foreground">Zona horaria: {settings.timezone}</span></Label>
+              <p className="text-xs text-muted-foreground mt-1">Las horas configuradas aquí están expresadas en tu zona horaria. Los bloques son de 30 minutos (ej. 09:00–09:30). Desactiva los días sin reuniones. Recuerda guardar.</p>
             </div>
             <div className="flex items-center gap-2">
               {hoursDirty && (
@@ -292,18 +292,18 @@ export function BookingsPanel() {
                             <div className="text-[11px] text-muted-foreground mb-1">Inicio</div>
                             <TimeSlider
                               value={openM}
-                              onChange={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 15)))}
-                              onCommit={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 15)))}
-                              max={1440 - 15}
+                              onChange={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 30)))}
+                              onCommit={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 30)))}
+                              max={1410}
                             />
                           </div>
                           <div>
                             <div className="text-[11px] text-muted-foreground mb-1">Fin</div>
                             <TimeSlider
                               value={closeM}
-                              onChange={(v) => setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 15)))}
-                              onCommit={(v) => setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 15)))}
-                              min={15}
+                              onChange={(v) => setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 30)))}
+                              onCommit={(v) => setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 30)))}
+                              min={30}
                             />
                           </div>
                         </div>
@@ -332,15 +332,15 @@ export function BookingsPanel() {
                             <div className="flex-1 min-w-[260px] grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <TimeSlider
                                 value={bs}
-                                onChange={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 15)))}
-                                onCommit={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 15)))}
-                                max={1440 - 15}
+                                onChange={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 30)))}
+                                onCommit={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 30)))}
+                                max={1410}
                               />
                               <TimeSlider
                                 value={be}
-                                onChange={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 15)))}
-                                onCommit={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 15)))}
-                                min={15}
+                                onChange={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 30)))}
+                                onCommit={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 30)))}
+                                min={30}
                               />
                             </div>
                             <Button type="button" size="sm" variant="ghost" onClick={() => removeBreak(h.day, i)}>
