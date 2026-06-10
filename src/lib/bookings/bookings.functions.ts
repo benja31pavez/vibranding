@@ -43,11 +43,10 @@ const BookingInput = z.object({
 
 function withinHours(
   iso: string,
-  hours: { day: number; enabled: boolean; open: string; close: string }[],
+  hours: { day: number; enabled: boolean; open: string; close: string; breaks?: { start: string; end: string }[] }[],
   slotMin: number,
 ): boolean {
   const d = new Date(iso);
-  // 0=Mon..6=Sun (matches our stored format)
   const idx = (d.getUTCDay() + 6) % 7;
   const today = hours.find((h) => h.day === idx);
   if (!today || !today.enabled) return false;
@@ -58,6 +57,14 @@ function withinHours(
   const closeM = ch * 60 + cm;
   if (mins < openM || mins + slotMin > closeM) return false;
   if ((mins - openM) % slotMin !== 0) return false;
+  for (const br of today.breaks ?? []) {
+    if (!br?.start || !br?.end) continue;
+    const [bsH, bsM] = br.start.split(":").map(Number);
+    const [beH, beM] = br.end.split(":").map(Number);
+    const bs = bsH * 60 + bsM;
+    const be = beH * 60 + beM;
+    if (mins < be && mins + slotMin > bs) return false;
+  }
   return true;
 }
 
