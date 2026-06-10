@@ -186,12 +186,15 @@ function LeadsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
           <p className="text-sm text-muted-foreground">
-            Todos los leads del cliente: WhatsApp + Landing en un solo lugar.
+            Todos los leads del cliente: Meta Ads, Multienlace, Landing Page y WhatsApp en un solo lugar.
           </p>
         </div>
-        <Button variant="outline" onClick={exportCsv}>
-          <Download className="w-4 h-4 mr-1" /> Exportar CSV
-        </Button>
+        <div className="flex gap-2">
+          <AddLeadDialog clientId={clientId} onCreated={load} />
+          <Button variant="outline" onClick={exportCsv}>
+            <Download className="w-4 h-4 mr-1" /> Exportar CSV
+          </Button>
+        </div>
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -216,11 +219,13 @@ function LeadsPage() {
           />
         </div>
         <Select value={filterSource} onValueChange={(v) => setFilterSource(v as any)}>
-          <SelectTrigger className="w-[160px]"><Filter className="w-3 h-3 mr-1" /><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[180px]"><Filter className="w-3 h-3 mr-1" /><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los orígenes</SelectItem>
+            <SelectItem value="meta_ads">Meta Ads</SelectItem>
+            <SelectItem value="multilink">Multienlace</SelectItem>
+            <SelectItem value="landing">Landing Page</SelectItem>
             <SelectItem value="whatsapp">WhatsApp</SelectItem>
-            <SelectItem value="landing">Landing</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
