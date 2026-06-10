@@ -87,17 +87,6 @@ type Settings = {
   client_id: string | null;
 };
 
-type Booking = {
-  id: string;
-  scheduled_at: string;
-  duration_minutes: number;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string | null;
-  notes: string | null;
-  status: string;
-  client_id: string | null;
-};
 
 const DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
