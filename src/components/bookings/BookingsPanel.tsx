@@ -247,71 +247,122 @@ export function BookingsPanel() {
 
         <div>
           <Label className="text-base">Horario semanal</Label>
-          <p className="text-xs text-muted-foreground mt-1">Agrega pausas (almuerzo, reuniones) para bloquear bloques dentro del día.</p>
+          <p className="text-xs text-muted-foreground mt-1">Desliza para ajustar tus horas. Agrega pausas (almuerzo, reuniones) para bloquear bloques dentro del día. Los cambios se guardan al soltar.</p>
           <div className="mt-3 space-y-3">
-            {settings.hours.map((h) => (
-              <div key={h.day} className="border rounded-lg p-3 space-y-2">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="w-12 text-sm font-medium">{DAYS[h.day]}</div>
-                  <Switch checked={h.enabled} onCheckedChange={(v) => setHour(h.day, "enabled", v)} />
-                  <Input
-                    type="time"
-                    value={h.open}
-                    onChange={(e) => setHour(h.day, "open", e.target.value)}
-                    className="w-32"
-                    disabled={!h.enabled}
-                  />
-                  <span className="text-muted-foreground">a</span>
-                  <Input
-                    type="time"
-                    value={h.close}
-                    onChange={(e) => setHour(h.day, "close", e.target.value)}
-                    className="w-32"
-                    disabled={!h.enabled}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    disabled={!h.enabled}
-                    onClick={() => addBreak(h.day)}
-                    className="ml-auto"
-                  >
-                    <Plus className="w-3.5 h-3.5 mr-1" /> Pausa
-                  </Button>
-                </div>
-                {(h.breaks ?? []).length > 0 && (
-                  <div className="pl-15 space-y-1.5">
-                    {(h.breaks ?? []).map((b, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm">
-                        <span className="text-xs text-muted-foreground w-12">Pausa</span>
-                        <Input
-                          type="time"
-                          value={b.start}
-                          onChange={(e) => updateBreak(h.day, i, "start", e.target.value)}
-                          className="w-28 h-8"
+            {settings.hours.map((h) => {
+              const openM = hhmmToMinutes(h.open);
+              const closeM = hhmmToMinutes(h.close);
+              return (
+                <div key={h.day} className="border rounded-lg p-3 space-y-3">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="w-12 text-sm font-medium">{DAYS[h.day]}</div>
+                    <Switch checked={h.enabled} onCheckedChange={(v) => setHour(h.day, "enabled", v)} />
+                    <div className="flex-1 min-w-[260px] grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-[11px] text-muted-foreground mb-1">Inicio</div>
+                        <TimeSlider
+                          value={openM}
                           disabled={!h.enabled}
+                          onChange={(v) => {
+                            const newOpen = Math.min(v, closeM - 15);
+                            setSettings({
+                              ...settings,
+                              hours: settings.hours.map((x) => x.day === h.day ? { ...x, open: minutesToHHMM(newOpen) } : x),
+                            });
+                          }}
+                          onCommit={(v) => {
+                            const newOpen = Math.min(v, closeM - 15);
+                            setHour(h.day, "open", minutesToHHMM(newOpen));
+                          }}
+                          max={1440 - 15}
                         />
-                        <span className="text-muted-foreground">a</span>
-                        <Input
-                          type="time"
-                          value={b.end}
-                          onChange={(e) => updateBreak(h.day, i, "end", e.target.value)}
-                          className="w-28 h-8"
-                          disabled={!h.enabled}
-                        />
-                        <Button type="button" size="sm" variant="ghost" onClick={() => removeBreak(h.day, i)}>
-                          <X className="w-3.5 h-3.5" />
-                        </Button>
                       </div>
-                    ))}
+                      <div>
+                        <div className="text-[11px] text-muted-foreground mb-1">Fin</div>
+                        <TimeSlider
+                          value={closeM}
+                          disabled={!h.enabled}
+                          onChange={(v) => {
+                            const newClose = Math.max(v, openM + 15);
+                            setSettings({
+                              ...settings,
+                              hours: settings.hours.map((x) => x.day === h.day ? { ...x, close: minutesToHHMM(newClose) } : x),
+                            });
+                          }}
+                          onCommit={(v) => {
+                            const newClose = Math.max(v, openM + 15);
+                            setHour(h.day, "close", minutesToHHMM(newClose));
+                          }}
+                          min={15}
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      disabled={!h.enabled}
+                      onClick={() => addBreak(h.day)}
+                      className="ml-auto"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" /> Pausa
+                    </Button>
                   </div>
-                )}
-              </div>
-            ))}
+                  {(h.breaks ?? []).length > 0 && (
+                    <div className="space-y-2 pt-2 border-t">
+                      {(h.breaks ?? []).map((b, i) => {
+                        const bs = hhmmToMinutes(b.start);
+                        const be = hhmmToMinutes(b.end);
+                        return (
+                          <div key={i} className="flex items-center gap-3 flex-wrap">
+                            <span className="text-xs text-muted-foreground w-12">Pausa</span>
+                            <div className="flex-1 min-w-[260px] grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <TimeSlider
+                                value={bs}
+                                disabled={!h.enabled}
+                                onChange={(v) => {
+                                  const nv = Math.min(v, be - 15);
+                                  setSettings({
+                                    ...settings,
+                                    hours: settings.hours.map((x) => x.day === h.day
+                                      ? { ...x, breaks: (x.breaks ?? []).map((y, j) => j === i ? { ...y, start: minutesToHHMM(nv) } : y) }
+                                      : x),
+                                  });
+                                }}
+                                onCommit={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 15)))}
+                                max={1440 - 15}
+                              />
+                              <TimeSlider
+                                value={be}
+                                disabled={!h.enabled}
+                                onChange={(v) => {
+                                  const nv = Math.max(v, bs + 15);
+                                  setSettings({
+                                    ...settings,
+                                    hours: settings.hours.map((x) => x.day === h.day
+                                      ? { ...x, breaks: (x.breaks ?? []).map((y, j) => j === i ? { ...y, end: minutesToHHMM(nv) } : y) }
+                                      : x),
+                                  });
+                                }}
+                                onCommit={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 15)))}
+                                min={15}
+                              />
+                            </div>
+                            <Button type="button" size="sm" variant="ghost" onClick={() => removeBreak(h.day, i)}>
+                              <X className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </Card>
+
 
       <Card className="p-6">
         <h2 className="font-semibold mb-4">Próximas reservas ({upcoming.length})</h2>
