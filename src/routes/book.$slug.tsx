@@ -379,7 +379,7 @@ function BookingPage() {
             <div className="mb-5">
               <div className="text-sm text-muted-foreground">Horario seleccionado</div>
               <div className="text-lg font-semibold">
-                {new Date(selectedISO).toLocaleString("es-CL", { dateStyle: "full", timeStyle: "short", timeZone: settings.timezone })}
+                {new Date(selectedISO).toLocaleString("es-CL", { dateStyle: "full", timeStyle: "short", timeZone: viewerTz || settings.timezone })}
               </div>
             </div>
             <div className="space-y-3">
