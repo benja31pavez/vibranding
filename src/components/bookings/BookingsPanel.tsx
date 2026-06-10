@@ -275,8 +275,21 @@ export function BookingsPanel() {
         <div>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <Label className="text-base">Horario semanal <span className="ml-2 text-xs font-normal text-muted-foreground">Zona horaria: {settings.timezone}</span></Label>
-              <p className="text-xs text-muted-foreground mt-1">Las horas configuradas aquí están expresadas en tu zona horaria. Los bloques son de 30 minutos (ej. 09:00–09:30). Desactiva los días sin reuniones. Recuerda guardar.</p>
+              <Label className="text-base">Horario semanal</Label>
+              <div className="mt-1 flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground">Zona horaria:</span>
+                <Select value={settings.timezone} onValueChange={(v) => save({ timezone: v })}>
+                  <SelectTrigger className="h-7 w-[220px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(TIMEZONES.includes(settings.timezone) ? TIMEZONES : [settings.timezone, ...TIMEZONES]).map((tz) => (
+                      <SelectItem key={tz} value={tz} className="text-xs">{tz}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">Las horas se expresan en esta zona horaria. Los bloques son de 30 minutos (ej. 09:00–09:30). Desactiva los días sin reuniones. Recuerda guardar.</p>
             </div>
             <div className="flex items-center gap-2">
               {hoursDirty && (
