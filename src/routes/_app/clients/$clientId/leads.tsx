@@ -58,7 +58,7 @@ function LeadsPage() {
 
   const load = async () => {
     setLoading(true);
-    const [waRes, lpRes, metaRes] = await Promise.all([
+    const [waRes, lpRes, extraRes, metaRes] = await Promise.all([
       supabase
         .from("whatsapp_conversations")
         .select("id,contact_name,contact_wa_id,last_message_preview,last_message_at,created_at,is_lead,needs_human_followup")
@@ -68,6 +68,10 @@ function LeadsPage() {
       supabase
         .from("landing_contact_submissions")
         .select("id,name,email,message,created_at")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false }),
+      (supabase.from("client_leads" as any) as any)
+        .select("id,source,name,contact,message,created_at")
         .eq("client_id", clientId)
         .order("created_at", { ascending: false }),
       (supabase.from("lead_meta" as any) as any)
