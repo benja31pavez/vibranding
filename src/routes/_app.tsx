@@ -90,9 +90,9 @@ function AppLayout() {
             <HeaderItem to="/dashboard" icon={LayoutDashboard} label="Inicio" active={path === "/dashboard"} />
             <HeaderItem to="/clients" icon={Users} label="Clientes" active={path === "/clients"} />
             <HeaderItem to="/calendar" icon={CalendarDays} label="Calendario" active={path === "/calendar"} />
-            <HeaderItem to="/bookings" icon={Clock} label="Agenda" active={path === "/bookings"} />
             <HeaderItem to="/reports" icon={BarChart3} label="Reportes" active={path === "/reports"} />
             <HeaderItem to="/settings/pricing" icon={DollarSign} label="Servicios" active={path.startsWith("/settings/pricing")} />
+
           </nav>
           <div className="flex items-center gap-2 shrink-0">
             <DropdownMenu>
