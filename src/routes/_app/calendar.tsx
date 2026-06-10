@@ -18,6 +18,9 @@ interface Evt {
   client_name: string;
   type: string;
   caption: string | null;
+  kind: "post" | "booking";
+  duration_minutes?: number;
+  customer_name?: string;
 }
 
 const COLORS = [
@@ -42,15 +45,41 @@ function CalendarPage() {
       const { data: clients } = await supabase.from("clients").select("id,name");
       const ids = (clients ?? []).map((c) => c.id);
       const nameById = new Map((clients ?? []).map((c) => [c.id, c.name]));
-      if (!ids.length) return setEvents([]);
-      const { data } = await supabase
-        .from("instagram_posts")
-        .select("id,scheduled_at,client_id,type,caption")
-        .in("client_id", ids)
-        .gte("scheduled_at", start)
-        .lt("scheduled_at", end)
-        .not("scheduled_at", "is", null);
-      setEvents((data ?? []).map((e: any) => ({ ...e, client_name: nameById.get(e.client_id) ?? "—" })));
+      const [postsRes, bookingsRes] = await Promise.all([
+        ids.length
+          ? supabase
+              .from("instagram_posts")
+              .select("id,scheduled_at,client_id,type,caption")
+              .in("client_id", ids)
+              .gte("scheduled_at", start)
+              .lt("scheduled_at", end)
+              .not("scheduled_at", "is", null)
+          : Promise.resolve({ data: [] as any[] }),
+        supabase
+          .from("bookings")
+          .select("id,scheduled_at,client_id,duration_minutes,customer_name,customer_email,notes,status")
+          .eq("owner_user_id", user.id)
+          .neq("status", "cancelled")
+          .gte("scheduled_at", start)
+          .lt("scheduled_at", end),
+      ]);
+      const posts: Evt[] = (postsRes.data ?? []).map((e: any) => ({
+        ...e,
+        client_name: nameById.get(e.client_id) ?? "—",
+        kind: "post",
+      }));
+      const bookings: Evt[] = (bookingsRes.data ?? []).map((b: any) => ({
+        id: `b-${b.id}`,
+        scheduled_at: b.scheduled_at,
+        client_id: b.client_id ?? "__agenda__",
+        client_name: b.client_id ? nameById.get(b.client_id) ?? "Reserva" : "Mi agenda",
+        type: "booking",
+        caption: b.customer_name ? `${b.customer_name}${b.notes ? ` · ${b.notes}` : ""}` : null,
+        kind: "booking",
+        duration_minutes: b.duration_minutes,
+        customer_name: b.customer_name,
+      }));
+      setEvents([...posts, ...bookings]);
     })();
   }, [user, cursor]);
 
@@ -90,7 +119,7 @@ function CalendarPage() {
       <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight"><span className="font-brand text-gradient-brand bg-gradient-brand-animated">Calendario</span></h1>
-          <p className="text-muted-foreground">Publicaciones programadas de todos tus clientes.</p>
+          <p className="text-muted-foreground">Publicaciones programadas y reservas de agenda.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
@@ -149,20 +178,37 @@ function CalendarPage() {
             <p className="text-sm text-muted-foreground">Sin publicaciones.</p>
           ) : (
             <ul className="space-y-2">
-              {selectedEvents.map((e) => (
-                <li key={e.id} className="text-sm">
-                  <Link to="/clients/$clientId/instagram" params={{ clientId: e.client_id }} className="block rounded-lg border p-2 hover:bg-secondary/40">
+              {selectedEvents.map((e) => {
+                const time = new Date(e.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                const inner = (
+                  <div className="block rounded-lg border p-2 hover:bg-secondary/40">
                     <div className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${colorByClient.get(e.client_id)}`} />
                       <span className="font-medium">{e.client_name}</span>
-                      <span className="text-xs text-muted-foreground ml-auto">
-                        {new Date(e.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
+                      {e.kind === "booking" && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Reserva</span>
+                      )}
+                      <span className="text-xs text-muted-foreground ml-auto">{time}</span>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">{e.type}{e.caption ? ` · ${e.caption.slice(0, 60)}` : ""}</div>
-                  </Link>
-                </li>
-              ))}
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {e.kind === "booking"
+                        ? `${e.customer_name ?? ""}${e.duration_minutes ? ` · ${e.duration_minutes} min` : ""}`
+                        : `${e.type}${e.caption ? ` · ${e.caption.slice(0, 60)}` : ""}`}
+                    </div>
+                  </div>
+                );
+                return (
+                  <li key={e.id} className="text-sm">
+                    {e.kind === "post" ? (
+                      <Link to="/clients/$clientId/instagram" params={{ clientId: e.client_id }}>
+                        {inner}
+                      </Link>
+                    ) : (
+                      inner
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
 
