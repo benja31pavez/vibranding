@@ -88,11 +88,14 @@ export function BookingsPanel() {
   const ensure = useServerFn(ensureBookingSettings);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [draftHours, setDraftHours] = useState<Settings["hours"] | null>(null);
+  const [savingHours, setSavingHours] = useState(false);
 
   const load = async () => {
     if (!user) return;
     const s = await ensure({ data: { clientId: null } });
     setSettings(s as unknown as Settings);
+    setDraftHours((s as unknown as Settings).hours);
     const { data: bs } = await supabase
       .from("bookings")
       .select("*")
@@ -106,7 +109,7 @@ export function BookingsPanel() {
     load();
   }, [user]);
 
-  if (!settings) return <div className="p-6 text-muted-foreground text-sm">Cargando agenda…</div>;
+  if (!settings || !draftHours) return <div className="p-6 text-muted-foreground text-sm">Cargando agenda…</div>;
 
   const save = async (patch: Partial<Settings>) => {
     const { error } = await supabase
@@ -118,30 +121,41 @@ export function BookingsPanel() {
     toast.success("Guardado");
   };
 
-  const setHour = (day: number, field: "enabled" | "open" | "close", value: any) => {
-    const hours = settings.hours.map((h) => (h.day === day ? { ...h, [field]: value } : h));
-    save({ hours });
+  const hoursDirty = JSON.stringify(draftHours) !== JSON.stringify(settings.hours);
+
+  const saveHours = async () => {
+    setSavingHours(true);
+    const { error } = await supabase
+      .from("booking_settings")
+      .update({ hours: draftHours as any })
+      .eq("id", settings.id);
+    setSavingHours(false);
+    if (error) return toast.error(error.message);
+    setSettings({ ...settings, hours: draftHours });
+    toast.success("Horario guardado");
   };
 
+  const resetHours = () => setDraftHours(settings.hours);
+
+  const setHour = (day: number, field: "enabled" | "open" | "close", value: any) => {
+    setDraftHours(draftHours.map((h) => (h.day === day ? { ...h, [field]: value } : h)));
+  };
   const addBreak = (day: number) => {
-    const hours = settings.hours.map((h) =>
+    setDraftHours(draftHours.map((h) =>
       h.day === day ? { ...h, breaks: [...(h.breaks ?? []), { start: "13:00", end: "14:00" }] } : h,
-    );
-    save({ hours });
+    ));
   };
   const updateBreak = (day: number, idx: number, field: "start" | "end", value: string) => {
-    const hours = settings.hours.map((h) =>
+    setDraftHours(draftHours.map((h) =>
       h.day === day
         ? { ...h, breaks: (h.breaks ?? []).map((b, i) => (i === idx ? { ...b, [field]: value } : b)) }
         : h,
-    );
-    save({ hours });
+    ));
   };
   const removeBreak = (day: number, idx: number) => {
-    const hours = settings.hours.map((h) =>
+    setDraftHours(draftHours.map((h) =>
       h.day === day ? { ...h, breaks: (h.breaks ?? []).filter((_, i) => i !== idx) } : h,
-    );
-    save({ hours });
+    ));
   };
 
   const publicUrl = `${window.location.origin}/book/${settings.slug}`;
