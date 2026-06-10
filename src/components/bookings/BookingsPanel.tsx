@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Trash2, Mail, Plus, X } from "lucide-react";
+import { Copy, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 const TIMEZONES = [
@@ -87,17 +87,6 @@ type Settings = {
   client_id: string | null;
 };
 
-type Booking = {
-  id: string;
-  scheduled_at: string;
-  duration_minutes: number;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string | null;
-  notes: string | null;
-  status: string;
-  client_id: string | null;
-};
 
 const DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
@@ -105,7 +94,6 @@ export function BookingsPanel() {
   const { user } = useAuth();
   const ensure = useServerFn(ensureBookingSettings);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [bookings, setBookings] = useState<Booking[]>([]);
   const [draftHours, setDraftHours] = useState<Settings["hours"] | null>(null);
   const [savingHours, setSavingHours] = useState(false);
 
@@ -114,18 +102,12 @@ export function BookingsPanel() {
     const s = await ensure({ data: { clientId: null } });
     setSettings(s as unknown as Settings);
     setDraftHours((s as unknown as Settings).hours);
-    const { data: bs } = await supabase
-      .from("bookings")
-      .select("*")
-      .eq("owner_user_id", user.id)
-      .is("client_id", null)
-      .order("scheduled_at", { ascending: true });
-    setBookings((bs ?? []) as Booking[]);
   };
 
   useEffect(() => {
     load();
   }, [user]);
+
 
   if (!settings || !draftHours) return <div className="p-6 text-muted-foreground text-sm">Cargando agenda…</div>;
 
@@ -177,15 +159,7 @@ export function BookingsPanel() {
   };
 
   const publicUrl = `${window.location.origin}/book/${settings.slug}`;
-  const upcoming = bookings.filter((b) => new Date(b.scheduled_at) >= new Date());
-  const past = bookings.filter((b) => new Date(b.scheduled_at) < new Date());
 
-  const cancel = async (id: string) => {
-    if (!confirm("¿Cancelar esta reserva?")) return;
-    const { error } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", id);
-    if (error) return toast.error(error.message);
-    load();
-  };
 
   return (
     <div className="space-y-6">
@@ -244,20 +218,6 @@ export function BookingsPanel() {
               }}
             />
           </div>
-          <div>
-            <Label>Duración por cita (min)</Label>
-            <Input
-              type="number"
-              min={30}
-              step={15}
-              defaultValue={settings.slot_minutes}
-              onBlur={(e) => {
-                const v = parseInt(e.target.value);
-                if (v && v !== settings.slot_minutes) save({ slot_minutes: v });
-              }}
-            />
-          </div>
-          <div className="hidden" />
 
           <div className="md:col-span-2">
             <Label>Mensaje introductorio (opcional)</Label>
@@ -385,47 +345,6 @@ export function BookingsPanel() {
 
       </Card>
 
-
-      <Card className="p-6">
-        <h2 className="font-semibold mb-4">Próximas reservas ({upcoming.length})</h2>
-        {upcoming.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aún no hay reservas.</p>
-        ) : (
-          <div className="space-y-2">
-            {upcoming.map((b) => (
-              <div key={b.id} className="flex items-center gap-4 p-3 border rounded-lg">
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium">
-                    {new Date(b.scheduled_at).toLocaleString("es-CL", { dateStyle: "full", timeStyle: "short", timeZone: settings.timezone })}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {b.customer_name} · {b.customer_email}{b.customer_phone ? ` · ${b.customer_phone}` : ""}
-                  </div>
-                  {b.notes && <div className="text-xs text-muted-foreground mt-1">"{b.notes}"</div>}
-                </div>
-                <Button size="sm" variant="ghost" onClick={() => cancel(b.id)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-        {past.length > 0 && (
-          <details className="mt-6">
-            <summary className="text-sm text-muted-foreground cursor-pointer">Reservas pasadas ({past.length})</summary>
-            <div className="space-y-2 mt-3">
-              {past.map((b) => (
-                <div key={b.id} className="flex items-center gap-4 p-3 border rounded-lg opacity-70">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm">{new Date(b.scheduled_at).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short", timeZone: settings.timezone })}</div>
-                    <div className="text-xs text-muted-foreground">{b.customer_name} · {b.customer_email}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
-      </Card>
     </div>
   );
 }

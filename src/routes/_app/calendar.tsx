@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { BookingsPanel } from "@/components/bookings/BookingsPanel";
+import { UpcomingBookings } from "@/components/bookings/UpcomingBookings";
 
 export const Route = createFileRoute("/_app/calendar")({
   component: CalendarPage,
@@ -224,6 +225,10 @@ function CalendarPage() {
                 );
               })}
             </ul>
+          </div>
+
+          <div className="mt-6 pt-6 border-t">
+            <UpcomingBookings />
           </div>
         </aside>
       </div>
