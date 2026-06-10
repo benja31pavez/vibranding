@@ -12,7 +12,10 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { MessageCircle, Globe, Download, Search, Filter, Tag as TagIcon, X } from "lucide-react";
+import { MessageCircle, Globe, Download, Search, Filter, Tag as TagIcon, X, Megaphone, Link2, Plus } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/clients/$clientId/leads")({
