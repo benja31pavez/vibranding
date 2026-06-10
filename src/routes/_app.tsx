@@ -2,11 +2,12 @@ import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tan
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  Users, LogOut, Sparkles, DollarSign, UserCircle2, X,
+  Users, LogOut, Sparkles, DollarSign, UserCircle2, X, UserCog,
   LayoutDashboard, CalendarDays, BarChart3, LineChart,
   Eye, Instagram, Megaphone, Target, CheckSquare, Wallet,
   Link2, Globe, MessageCircle, FileText, Inbox,
 } from "lucide-react";
+import { ProfileDialog } from "@/components/profile/ProfileDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -25,6 +26,14 @@ function AppLayout() {
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [activeClient, setActiveClient] = useState<ActiveC | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profile, setProfile] = useState<{ full_name: string | null; phone: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!session?.user) return;
+    supabase.from("user_profiles").select("full_name,phone").eq("user_id", session.user.id).maybeSingle()
+      .then(({ data }) => setProfile(data ?? { full_name: null, phone: null }));
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
@@ -106,8 +115,8 @@ function AppLayout() {
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Sesión iniciada</div>
                   {(() => {
                     const meta = (user?.user_metadata ?? {}) as Record<string, any>;
-                    const name = meta.full_name || meta.name || meta.display_name;
-                    const phone = user?.phone || meta.phone;
+                    const name = profile?.full_name || meta.full_name || meta.name || meta.display_name;
+                    const phone = profile?.phone || user?.phone || meta.phone;
                     return (
                       <>
                         {name && <div className="truncate text-sm font-medium mt-1">{name}</div>}
@@ -118,6 +127,9 @@ function AppLayout() {
                   })()}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer">
+                  <UserCog className="w-4 h-4 mr-2" /> Editar perfil
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
                   <Link to="/portfolio"><Sparkles className="w-4 h-4 mr-2" /> Portafolio público</Link>
                 </DropdownMenuItem>
@@ -205,6 +217,7 @@ function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} onSaved={(p) => setProfile(p)} />
     </div>
   );
 }
