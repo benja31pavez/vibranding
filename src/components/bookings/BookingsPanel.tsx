@@ -16,7 +16,7 @@ type Settings = {
   id: string;
   slug: string;
   display_name: string;
-  hours: { day: number; enabled: boolean; open: string; close: string }[];
+  hours: { day: number; enabled: boolean; open: string; close: string; breaks?: { start: string; end: string }[] }[];
   slot_minutes: number;
   timezone: string;
   notification_email: string | null;
