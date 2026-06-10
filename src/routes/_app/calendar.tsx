@@ -226,6 +226,10 @@ function CalendarPage() {
               })}
             </ul>
           </div>
+
+          <div className="mt-6 pt-6 border-t">
+            <UpcomingBookings />
+          </div>
         </aside>
       </div>
 
