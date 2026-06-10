@@ -27,12 +27,12 @@ function AppLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [activeClient, setActiveClient] = useState<ActiveC | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [profile, setProfile] = useState<{ full_name: string | null; phone: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string | null; phone: string | null; avatar_url: string | null } | null>(null);
 
   useEffect(() => {
     if (!session?.user) return;
-    supabase.from("user_profiles").select("full_name,phone").eq("user_id", session.user.id).maybeSingle()
-      .then(({ data }) => setProfile(data ?? { full_name: null, phone: null }));
+    supabase.from("user_profiles").select("full_name,phone,avatar_url").eq("user_id", session.user.id).maybeSingle()
+      .then(({ data }) => setProfile(data ?? { full_name: null, phone: null, avatar_url: null }));
   }, [session?.user?.id]);
 
   useEffect(() => {
@@ -106,8 +106,12 @@ function AppLayout() {
           <div className="flex items-center gap-2 shrink-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="rounded-full px-2">
-                  <UserCircle2 className="w-5 h-5" />
+                <Button variant="ghost" size="sm" className="rounded-full px-1 h-9">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="Perfil" className="w-7 h-7 rounded-full object-cover" />
+                  ) : (
+                    <UserCircle2 className="w-5 h-5" />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
@@ -115,15 +119,8 @@ function AppLayout() {
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Sesión iniciada</div>
                   {(() => {
                     const meta = (user?.user_metadata ?? {}) as Record<string, any>;
-                    const name = profile?.full_name || meta.full_name || meta.name || meta.display_name;
-                    const phone = profile?.phone || user?.phone || meta.phone;
-                    return (
-                      <>
-                        {name && <div className="truncate text-sm font-medium mt-1">{name}</div>}
-                        <div className="truncate text-xs text-muted-foreground mt-0.5">{user?.email}</div>
-                        {phone && <div className="truncate text-xs text-muted-foreground mt-0.5">{phone}</div>}
-                      </>
-                    );
+                    const name = profile?.full_name || meta.full_name || meta.name || meta.display_name || user?.email;
+                    return <div className="truncate text-sm font-medium mt-1">{name}</div>;
                   })()}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
