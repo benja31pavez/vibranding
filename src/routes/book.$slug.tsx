@@ -1,7 +1,8 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getBookingPage, createBooking } from "@/lib/bookings/bookings.functions";
+import { zonedToUTC } from "@/lib/bookings/tz";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,11 +50,16 @@ const MONTH_NAMES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
-function startOfTomorrowUTC() {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() + 1);
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
+function startOfTodayUTC() {
+  const n = new Date();
+  return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
+}
+
+function mondayOf(d: Date) {
+  const x = new Date(d);
+  const dow = (x.getUTCDay() + 6) % 7; // 0=Mon
+  x.setUTCDate(x.getUTCDate() - dow);
+  return x;
 }
 
 function addDays(d: Date, n: number) {
@@ -66,9 +72,14 @@ function sameUTCDay(a: Date, b: Date) {
   return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
 }
 
-function buildSlots(date: Date, settings: Settings, taken: Set<string>, viewerTz: string) {
-  const idx = (date.getUTCDay() + 6) % 7;
-  const h = settings.hours.find((x) => x.day === idx);
+function buildSlots(date: Date, settings: Settings, taken: Set<string>, viewerTz: string, minBookable: Date) {
+  // calendar day in owner's tz
+  const y = date.getUTCFullYear();
+  const mo = date.getUTCMonth();
+  const d = date.getUTCDate();
+  // weekday index based on calendar date (Mon=0)
+  const dow = (new Date(Date.UTC(y, mo, d)).getUTCDay() + 6) % 7;
+  const h = settings.hours.find((x) => x.day === dow);
   if (!h || !h.enabled) return [];
   const [oh, om] = h.open.split(":").map(Number);
   const [ch, cm] = h.close.split(":").map(Number);
@@ -86,16 +97,17 @@ function buildSlots(date: Date, settings: Settings, taken: Set<string>, viewerTz
     hour12: true,
     timeZone: viewerTz,
   });
+  const now = new Date();
   const slots: { iso: string; label: string; disabled: boolean }[] = [];
   for (let m = oh * 60 + om; m + settings.slot_minutes <= ch * 60 + cm; m += settings.slot_minutes) {
-    const s = new Date(date);
-    s.setUTCHours(Math.floor(m / 60), m % 60, 0, 0);
-    const iso = s.toISOString();
     const inBreak = breaks.some((b) => m < b.e && m + settings.slot_minutes > b.s);
     if (inBreak) continue;
+    // Build the actual UTC moment representing this wall-clock time in the owner's tz.
+    const slotUTC = zonedToUTC(y, mo, d, Math.floor(m / 60), m % 60, settings.timezone);
+    const iso = slotUTC.toISOString();
     let label: string;
     if (useViewerTz) {
-      label = fmt.format(s).replace(/\s/g, "").toLowerCase().replace("a.m.", "am").replace("p.m.", "pm");
+      label = fmt.format(slotUTC).replace(/\s/g, "").toLowerCase().replace("a.m.", "am").replace("p.m.", "pm");
     } else {
       const hour12 = Math.floor(m / 60);
       const min = m % 60;
@@ -103,7 +115,8 @@ function buildSlots(date: Date, settings: Settings, taken: Set<string>, viewerTz
       const h12 = hour12 % 12 === 0 ? 12 : hour12 % 12;
       label = `${h12}:${String(min).padStart(2, "0")}${period}`;
     }
-    slots.push({ iso, label, disabled: taken.has(iso) });
+    const isPast = slotUTC < now || slotUTC < minBookable;
+    slots.push({ iso, label, disabled: taken.has(iso) || isPast });
   }
   return slots;
 }
@@ -122,22 +135,25 @@ function BookingPage() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
   const [viewerTz, setViewerTz] = useState<string>("");
 
-  const minDay = useMemo(() => startOfTomorrowUTC(), []);
-  const maxDay = useMemo(() => addDays(minDay, 29), [minDay]);
-  const [weekStart, setWeekStart] = useState<Date>(minDay);
+  const today0 = useMemo(() => startOfTodayUTC(), []);
+  // Earliest bookable date stays "tomorrow" per server rule
+  const minBookable = useMemo(() => addDays(today0, 1), [today0]);
+  const maxDay = useMemo(() => addDays(today0, 30), [today0]);
+  const [weekStart, setWeekStart] = useState<Date>(() => mondayOf(today0));
   const [monthCursor, setMonthCursor] = useState<Date>(() => {
-    const d = new Date(minDay);
+    const d = new Date(today0);
     d.setUTCDate(1);
     return d;
   });
 
   useEffect(() => {
-    const from = minDay.toISOString();
+    const from = today0.toISOString();
     const to = addDays(maxDay, 1).toISOString();
     loadPage({ data: { slug, from, to } })
       .then((r) => {
         setSettings(r.settings as any);
-        setViewerTz((r.settings as any).timezone);
+        // Default to viewer's local tz so the user immediately sees their own clock
+        setViewerTz(Intl.DateTimeFormat().resolvedOptions().timeZone || (r.settings as any).timezone);
         setTaken(new Set(r.taken.map((t) => new Date(t.scheduled_at).toISOString())));
       })
       .catch((e) => setError(e.message));
@@ -177,7 +193,7 @@ function BookingPage() {
           <CheckCircle2 className="w-12 h-12 text-primary mx-auto" />
           <h1 className="text-2xl font-semibold mt-4">¡Reserva confirmada!</h1>
           <p className="text-muted-foreground mt-2">
-            Te esperamos el {new Date(done.when).toLocaleString("es-CL", { dateStyle: "full", timeStyle: "short", timeZone: settings.timezone })}.
+            Te esperamos el {new Date(done.when).toLocaleString("es-CL", { dateStyle: "full", timeStyle: "short", timeZone: viewerTz || settings.timezone })}.
           </p>
           <p className="text-sm text-muted-foreground mt-4">Recibirás un correo de confirmación.</p>
         </Card>
@@ -207,15 +223,16 @@ function BookingPage() {
     }
   };
 
+  const minWeek = mondayOf(today0);
   const goPrevWeek = () => {
     const prev = addDays(weekStart, -7);
-    setWeekStart(prev < minDay ? minDay : prev);
+    setWeekStart(prev < minWeek ? minWeek : prev);
   };
   const goNextWeek = () => {
     const next = addDays(weekStart, 7);
     if (next <= maxDay) setWeekStart(next);
   };
-  const canPrev = weekStart > minDay;
+  const canPrev = weekStart > minWeek;
   const canNext = addDays(weekStart, 7) <= maxDay;
 
   const prevMonth = () => {
@@ -239,7 +256,7 @@ function BookingPage() {
           <h1 className="text-3xl font-semibold tracking-tight">{settings.display_name}</h1>
           {settings.intro && <p className="text-muted-foreground mt-2 max-w-xl mx-auto">{settings.intro}</p>}
           <p className="text-sm text-muted-foreground mt-1 inline-flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" /> Citas de {settings.slot_minutes} min · zona horaria {settings.timezone}
+            <Clock className="w-3.5 h-3.5" /> Citas de {settings.slot_minutes} min
           </p>
         </header>
 
@@ -291,15 +308,18 @@ function BookingPage() {
                   ))}
                   {miniGrid.map((d, i) => {
                     if (!d) return <div key={i} />;
-                    const disabled = d < minDay || d > maxDay;
-                    const selected = sameUTCDay(d, weekStart);
+                    const isPast = d < minBookable;
+                    const outOfRange = d > maxDay;
+                    const disabled = isPast || outOfRange;
                     const inWeek = weekDays.some((w) => sameUTCDay(w, d));
+                    const selected = inWeek && sameUTCDay(d, weekStart);
                     return (
                       <button
                         key={i}
                         disabled={disabled}
                         onClick={() => {
-                          setWeekStart(d);
+                          const target = mondayOf(d);
+                          setWeekStart(target < minWeek ? minWeek : target);
                           setMonthCursor(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)));
                         }}
                         className={`text-xs h-8 w-8 mx-auto rounded-full flex items-center justify-center transition ${
@@ -327,12 +347,17 @@ function BookingPage() {
                   </button>
                   <div className="grid grid-cols-7 gap-2 flex-1">
                     {weekDays.map((d) => {
-                      const isToday = sameUTCDay(d, minDay);
+                      const isToday = sameUTCDay(d, today0);
+                      const isPast = d < minBookable;
                       return (
                         <div key={d.toISOString()} className="text-center">
                           <div className="text-[10px] text-muted-foreground tracking-wider">{DAY_LABELS[(d.getUTCDay() + 6) % 7]}</div>
                           <div className={`mt-1 mx-auto w-9 h-9 rounded-full flex items-center justify-center text-lg ${
-                            isToday ? "bg-primary text-primary-foreground font-medium" : "text-foreground"
+                            isPast
+                              ? "text-muted-foreground/40 line-through"
+                              : isToday
+                              ? "bg-primary text-primary-foreground font-medium"
+                              : "text-foreground"
                           }`}>
                             {d.getUTCDate()}
                           </div>
@@ -346,8 +371,9 @@ function BookingPage() {
                 </div>
                 <div className="grid grid-cols-7 gap-2">
                   {weekDays.map((d) => {
-                    const outOfRange = d < minDay || d > maxDay;
-                    const slots = outOfRange ? [] : buildSlots(d, settings, taken, viewerTz || settings.timezone);
+                    const isPast = d < minBookable;
+                    const outOfRange = d > maxDay;
+                    const slots = isPast || outOfRange ? [] : buildSlots(d, settings, taken, viewerTz || settings.timezone, minBookable);
                     return (
                       <div key={d.toISOString()} className="space-y-2">
                         {slots.length === 0 ? (
