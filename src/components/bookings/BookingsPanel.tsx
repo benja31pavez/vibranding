@@ -10,8 +10,26 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, Trash2, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
+
+const TIMEZONES = [
+  "America/Santiago",
+  "America/Argentina/Buenos_Aires",
+  "America/Lima",
+  "America/Bogota",
+  "America/Mexico_City",
+  "America/Sao_Paulo",
+  "America/New_York",
+  "America/Los_Angeles",
+  "Europe/Madrid",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Atlantic/Canary",
+  "UTC",
+];
 
 function minutesToHHMM(m: number) {
   const h = Math.floor(m / 60);
