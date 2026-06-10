@@ -100,8 +100,8 @@ export const createBooking = createServerFn({ method: "POST" })
     maxDate.setUTCDate(maxDate.getUTCDate() + 31);
     if (slotDate < tomorrow) throw new Error("Solo puedes agendar a partir de mañana");
     if (slotDate > maxDate) throw new Error("Solo se permite agendar hasta 30 días en adelante");
-
-    if (!withinHours(data.scheduledAt, s.hours as any, s.slot_minutes)) {
+    const tz = (s as any).timezone || "America/Santiago";
+    if (!withinHours(data.scheduledAt, s.hours as any, s.slot_minutes, tz)) {
       throw new Error("Ese horario no está disponible");
     }
 
