@@ -371,47 +371,6 @@ export function BookingsPanel() {
 
       </Card>
 
-
-      <Card className="p-6">
-        <h2 className="font-semibold mb-4">Próximas reservas ({upcoming.length})</h2>
-        {upcoming.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aún no hay reservas.</p>
-        ) : (
-          <div className="space-y-2">
-            {upcoming.map((b) => (
-              <div key={b.id} className="flex items-center gap-4 p-3 border rounded-lg">
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium">
-                    {new Date(b.scheduled_at).toLocaleString("es-CL", { dateStyle: "full", timeStyle: "short", timeZone: settings.timezone })}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {b.customer_name} · {b.customer_email}{b.customer_phone ? ` · ${b.customer_phone}` : ""}
-                  </div>
-                  {b.notes && <div className="text-xs text-muted-foreground mt-1">"{b.notes}"</div>}
-                </div>
-                <Button size="sm" variant="ghost" onClick={() => cancel(b.id)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-        {past.length > 0 && (
-          <details className="mt-6">
-            <summary className="text-sm text-muted-foreground cursor-pointer">Reservas pasadas ({past.length})</summary>
-            <div className="space-y-2 mt-3">
-              {past.map((b) => (
-                <div key={b.id} className="flex items-center gap-4 p-3 border rounded-lg opacity-70">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm">{new Date(b.scheduled_at).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short", timeZone: settings.timezone })}</div>
-                    <div className="text-xs text-muted-foreground">{b.customer_name} · {b.customer_email}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
-      </Card>
     </div>
   );
 }
