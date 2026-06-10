@@ -79,6 +79,27 @@ export function BookingsPanel() {
     save({ hours });
   };
 
+  const addBreak = (day: number) => {
+    const hours = settings.hours.map((h) =>
+      h.day === day ? { ...h, breaks: [...(h.breaks ?? []), { start: "13:00", end: "14:00" }] } : h,
+    );
+    save({ hours });
+  };
+  const updateBreak = (day: number, idx: number, field: "start" | "end", value: string) => {
+    const hours = settings.hours.map((h) =>
+      h.day === day
+        ? { ...h, breaks: (h.breaks ?? []).map((b, i) => (i === idx ? { ...b, [field]: value } : b)) }
+        : h,
+    );
+    save({ hours });
+  };
+  const removeBreak = (day: number, idx: number) => {
+    const hours = settings.hours.map((h) =>
+      h.day === day ? { ...h, breaks: (h.breaks ?? []).filter((_, i) => i !== idx) } : h,
+    );
+    save({ hours });
+  };
+
   const publicUrl = `${window.location.origin}/book/${settings.slug}`;
   const upcoming = bookings.filter((b) => new Date(b.scheduled_at) >= new Date());
   const past = bookings.filter((b) => new Date(b.scheduled_at) < new Date());
