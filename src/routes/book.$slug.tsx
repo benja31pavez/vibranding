@@ -66,26 +66,44 @@ function sameUTCDay(a: Date, b: Date) {
   return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
 }
 
-function buildSlots(date: Date, settings: Settings, taken: Set<string>) {
+function buildSlots(date: Date, settings: Settings, taken: Set<string>, viewerTz: string) {
   const idx = (date.getUTCDay() + 6) % 7;
   const h = settings.hours.find((x) => x.day === idx);
   if (!h || !h.enabled) return [];
   const [oh, om] = h.open.split(":").map(Number);
   const [ch, cm] = h.close.split(":").map(Number);
+  const breaks = (h.breaks ?? [])
+    .filter((b) => b?.start && b?.end)
+    .map((b) => {
+      const [sH, sM] = b.start.split(":").map(Number);
+      const [eH, eM] = b.end.split(":").map(Number);
+      return { s: sH * 60 + sM, e: eH * 60 + eM };
+    });
+  const useViewerTz = viewerTz !== settings.timezone;
+  const fmt = new Intl.DateTimeFormat("es-CL", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: viewerTz,
+  });
   const slots: { iso: string; label: string; disabled: boolean }[] = [];
   for (let m = oh * 60 + om; m + settings.slot_minutes <= ch * 60 + cm; m += settings.slot_minutes) {
     const s = new Date(date);
     s.setUTCHours(Math.floor(m / 60), m % 60, 0, 0);
     const iso = s.toISOString();
-    const hour12 = Math.floor(m / 60);
-    const min = m % 60;
-    const period = hour12 >= 12 ? "pm" : "am";
-    const h12 = hour12 % 12 === 0 ? 12 : hour12 % 12;
-    slots.push({
-      iso,
-      label: `${h12}:${String(min).padStart(2, "0")}${period}`,
-      disabled: taken.has(iso),
-    });
+    const inBreak = breaks.some((b) => m < b.e && m + settings.slot_minutes > b.s);
+    if (inBreak) continue;
+    let label: string;
+    if (useViewerTz) {
+      label = fmt.format(s).replace(/\s/g, "").toLowerCase().replace("a.m.", "am").replace("p.m.", "pm");
+    } else {
+      const hour12 = Math.floor(m / 60);
+      const min = m % 60;
+      const period = hour12 >= 12 ? "pm" : "am";
+      const h12 = hour12 % 12 === 0 ? 12 : hour12 % 12;
+      label = `${h12}:${String(min).padStart(2, "0")}${period}`;
+    }
+    slots.push({ iso, label, disabled: taken.has(iso) });
   }
   return slots;
 }
