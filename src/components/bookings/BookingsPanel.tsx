@@ -105,7 +105,6 @@ export function BookingsPanel() {
   const { user } = useAuth();
   const ensure = useServerFn(ensureBookingSettings);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [bookings, setBookings] = useState<Booking[]>([]);
   const [draftHours, setDraftHours] = useState<Settings["hours"] | null>(null);
   const [savingHours, setSavingHours] = useState(false);
 
@@ -114,18 +113,12 @@ export function BookingsPanel() {
     const s = await ensure({ data: { clientId: null } });
     setSettings(s as unknown as Settings);
     setDraftHours((s as unknown as Settings).hours);
-    const { data: bs } = await supabase
-      .from("bookings")
-      .select("*")
-      .eq("owner_user_id", user.id)
-      .is("client_id", null)
-      .order("scheduled_at", { ascending: true });
-    setBookings((bs ?? []) as Booking[]);
   };
 
   useEffect(() => {
     load();
   }, [user]);
+
 
   if (!settings || !draftHours) return <div className="p-6 text-muted-foreground text-sm">Cargando agenda…</div>;
 
