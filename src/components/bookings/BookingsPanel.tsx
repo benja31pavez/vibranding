@@ -9,8 +9,52 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 import { Copy, Trash2, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
+
+function minutesToHHMM(m: number) {
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+function hhmmToMinutes(s: string) {
+  const [h, m] = s.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+function TimeSlider({
+  value,
+  onChange,
+  onCommit,
+  disabled,
+  min = 0,
+  max = 1440,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  onCommit: (v: number) => void;
+  disabled?: boolean;
+  min?: number;
+  max?: number;
+}) {
+  return (
+    <div className="flex items-center gap-2 min-w-[180px]">
+      <span className="text-xs font-mono tabular-nums w-12 text-right">{minutesToHHMM(value)}</span>
+      <Slider
+        value={[value]}
+        min={min}
+        max={max}
+        step={15}
+        disabled={disabled}
+        onValueChange={(v) => onChange(v[0])}
+        onValueCommit={(v) => onCommit(v[0])}
+        className="flex-1"
+      />
+    </div>
+  );
+}
+
 
 type Settings = {
   id: string;
