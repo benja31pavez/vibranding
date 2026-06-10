@@ -289,7 +289,7 @@ function LeadsPage() {
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  {editing.source === "whatsapp" ? <MessageCircle className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+                  <SourceIcon source={editing.source} />
                   {editing.name}
                 </DialogTitle>
               </DialogHeader>
