@@ -26,6 +26,14 @@ function AppLayout() {
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [activeClient, setActiveClient] = useState<ActiveC | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profile, setProfile] = useState<{ full_name: string | null; phone: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!session?.user) return;
+    supabase.from("user_profiles").select("full_name,phone").eq("user_id", session.user.id).maybeSingle()
+      .then(({ data }) => setProfile(data ?? { full_name: null, phone: null }));
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
