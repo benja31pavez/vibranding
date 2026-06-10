@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, Trash2, Mail } from "lucide-react";
+import { Copy, Trash2, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 type Settings = {
