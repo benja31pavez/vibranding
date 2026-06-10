@@ -294,7 +294,7 @@ export function BookingsPanel() {
                               value={openM}
                               onChange={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 30)))}
                               onCommit={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 30)))}
-                              max={1440 - 15}
+                              max={1410}
                             />
                           </div>
                           <div>
@@ -334,7 +334,7 @@ export function BookingsPanel() {
                                 value={bs}
                                 onChange={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 30)))}
                                 onCommit={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 30)))}
-                                max={1440 - 15}
+                                max={1410}
                               />
                               <TimeSlider
                                 value={be}
