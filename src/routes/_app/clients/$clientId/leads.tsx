@@ -107,6 +107,15 @@ function LeadsPage() {
         created_at: s.created_at,
         ...get("landing", s.id),
       })),
+      ...((extraRes.data ?? []) as any[]).map((s) => ({
+        source: s.source as Source,
+        source_id: s.id,
+        name: s.name,
+        contact: s.contact ?? "",
+        message: s.message,
+        created_at: s.created_at,
+        ...get(s.source as Source, s.id),
+      })),
     ];
     all.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
     setLeads(all);
