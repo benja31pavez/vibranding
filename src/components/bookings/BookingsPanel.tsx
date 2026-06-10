@@ -170,15 +170,7 @@ export function BookingsPanel() {
   };
 
   const publicUrl = `${window.location.origin}/book/${settings.slug}`;
-  const upcoming = bookings.filter((b) => new Date(b.scheduled_at) >= new Date());
-  const past = bookings.filter((b) => new Date(b.scheduled_at) < new Date());
 
-  const cancel = async (id: string) => {
-    if (!confirm("¿Cancelar esta reserva?")) return;
-    const { error } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", id);
-    if (error) return toast.error(error.message);
-    load();
-  };
 
   return (
     <div className="space-y-6">
