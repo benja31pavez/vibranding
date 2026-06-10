@@ -257,13 +257,8 @@ export function BookingsPanel() {
               }}
             />
           </div>
-          <div>
-            <Label>Zona horaria</Label>
-            <Input
-              defaultValue={settings.timezone}
-              onBlur={(e) => e.target.value !== settings.timezone && save({ timezone: e.target.value })}
-            />
-          </div>
+          <div className="hidden" />
+
           <div className="md:col-span-2">
             <Label>Mensaje introductorio (opcional)</Label>
             <Textarea
