@@ -88,11 +88,14 @@ export function BookingsPanel() {
   const ensure = useServerFn(ensureBookingSettings);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [draftHours, setDraftHours] = useState<Settings["hours"] | null>(null);
+  const [savingHours, setSavingHours] = useState(false);
 
   const load = async () => {
     if (!user) return;
     const s = await ensure({ data: { clientId: null } });
     setSettings(s as unknown as Settings);
+    setDraftHours((s as unknown as Settings).hours);
     const { data: bs } = await supabase
       .from("bookings")
       .select("*")
@@ -106,7 +109,7 @@ export function BookingsPanel() {
     load();
   }, [user]);
 
-  if (!settings) return <div className="p-6 text-muted-foreground text-sm">Cargando agenda…</div>;
+  if (!settings || !draftHours) return <div className="p-6 text-muted-foreground text-sm">Cargando agenda…</div>;
 
   const save = async (patch: Partial<Settings>) => {
     const { error } = await supabase
@@ -118,30 +121,41 @@ export function BookingsPanel() {
     toast.success("Guardado");
   };
 
-  const setHour = (day: number, field: "enabled" | "open" | "close", value: any) => {
-    const hours = settings.hours.map((h) => (h.day === day ? { ...h, [field]: value } : h));
-    save({ hours });
+  const hoursDirty = JSON.stringify(draftHours) !== JSON.stringify(settings.hours);
+
+  const saveHours = async () => {
+    setSavingHours(true);
+    const { error } = await supabase
+      .from("booking_settings")
+      .update({ hours: draftHours as any })
+      .eq("id", settings.id);
+    setSavingHours(false);
+    if (error) return toast.error(error.message);
+    setSettings({ ...settings, hours: draftHours });
+    toast.success("Horario guardado");
   };
 
+  const resetHours = () => setDraftHours(settings.hours);
+
+  const setHour = (day: number, field: "enabled" | "open" | "close", value: any) => {
+    setDraftHours(draftHours.map((h) => (h.day === day ? { ...h, [field]: value } : h)));
+  };
   const addBreak = (day: number) => {
-    const hours = settings.hours.map((h) =>
+    setDraftHours(draftHours.map((h) =>
       h.day === day ? { ...h, breaks: [...(h.breaks ?? []), { start: "13:00", end: "14:00" }] } : h,
-    );
-    save({ hours });
+    ));
   };
   const updateBreak = (day: number, idx: number, field: "start" | "end", value: string) => {
-    const hours = settings.hours.map((h) =>
+    setDraftHours(draftHours.map((h) =>
       h.day === day
         ? { ...h, breaks: (h.breaks ?? []).map((b, i) => (i === idx ? { ...b, [field]: value } : b)) }
         : h,
-    );
-    save({ hours });
+    ));
   };
   const removeBreak = (day: number, idx: number) => {
-    const hours = settings.hours.map((h) =>
+    setDraftHours(draftHours.map((h) =>
       h.day === day ? { ...h, breaks: (h.breaks ?? []).filter((_, i) => i !== idx) } : h,
-    );
-    save({ hours });
+    ));
   };
 
   const publicUrl = `${window.location.origin}/book/${settings.slug}`;
@@ -246,69 +260,68 @@ export function BookingsPanel() {
         </div>
 
         <div>
-          <Label className="text-base">Horario semanal</Label>
-          <p className="text-xs text-muted-foreground mt-1">Desliza para ajustar tus horas. Agrega pausas (almuerzo, reuniones) para bloquear bloques dentro del día. Los cambios se guardan al soltar.</p>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <Label className="text-base">Horario semanal</Label>
+              <p className="text-xs text-muted-foreground mt-1">Desliza para ajustar tus horas. Desactiva los días en que no quieres reuniones. Agrega pausas para bloquear bloques dentro del día. Recuerda guardar.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {hoursDirty && (
+                <Button type="button" size="sm" variant="ghost" onClick={resetHours} disabled={savingHours}>
+                  Descartar
+                </Button>
+              )}
+              <Button type="button" size="sm" onClick={saveHours} disabled={!hoursDirty || savingHours}>
+                {savingHours ? "Guardando…" : hoursDirty ? "Guardar horario" : "Guardado"}
+              </Button>
+            </div>
+          </div>
           <div className="mt-3 space-y-3">
-            {settings.hours.map((h) => {
+            {draftHours.map((h) => {
               const openM = hhmmToMinutes(h.open);
               const closeM = hhmmToMinutes(h.close);
               return (
-                <div key={h.day} className="border rounded-lg p-3 space-y-3">
+                <div key={h.day} className={`border rounded-lg p-3 space-y-3 ${!h.enabled ? "bg-muted/30" : ""}`}>
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="w-12 text-sm font-medium">{DAYS[h.day]}</div>
                     <Switch checked={h.enabled} onCheckedChange={(v) => setHour(h.day, "enabled", v)} />
-                    <div className="flex-1 min-w-[260px] grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <div className="text-[11px] text-muted-foreground mb-1">Inicio</div>
-                        <TimeSlider
-                          value={openM}
-                          disabled={!h.enabled}
-                          onChange={(v) => {
-                            const newOpen = Math.min(v, closeM - 15);
-                            setSettings({
-                              ...settings,
-                              hours: settings.hours.map((x) => x.day === h.day ? { ...x, open: minutesToHHMM(newOpen) } : x),
-                            });
-                          }}
-                          onCommit={(v) => {
-                            const newOpen = Math.min(v, closeM - 15);
-                            setHour(h.day, "open", minutesToHHMM(newOpen));
-                          }}
-                          max={1440 - 15}
-                        />
-                      </div>
-                      <div>
-                        <div className="text-[11px] text-muted-foreground mb-1">Fin</div>
-                        <TimeSlider
-                          value={closeM}
-                          disabled={!h.enabled}
-                          onChange={(v) => {
-                            const newClose = Math.max(v, openM + 15);
-                            setSettings({
-                              ...settings,
-                              hours: settings.hours.map((x) => x.day === h.day ? { ...x, close: minutesToHHMM(newClose) } : x),
-                            });
-                          }}
-                          onCommit={(v) => {
-                            const newClose = Math.max(v, openM + 15);
-                            setHour(h.day, "close", minutesToHHMM(newClose));
-                          }}
-                          min={15}
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      disabled={!h.enabled}
-                      onClick={() => addBreak(h.day)}
-                      className="ml-auto"
-                    >
-                      <Plus className="w-3.5 h-3.5 mr-1" /> Pausa
-                    </Button>
+                    {h.enabled ? (
+                      <>
+                        <div className="flex-1 min-w-[260px] grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-[11px] text-muted-foreground mb-1">Inicio</div>
+                            <TimeSlider
+                              value={openM}
+                              onChange={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 15)))}
+                              onCommit={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 15)))}
+                              max={1440 - 15}
+                            />
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-muted-foreground mb-1">Fin</div>
+                            <TimeSlider
+                              value={closeM}
+                              onChange={(v) => setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 15)))}
+                              onCommit={(v) => setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 15)))}
+                              min={15}
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => addBreak(h.day)}
+                          className="ml-auto"
+                        >
+                          <Plus className="w-3.5 h-3.5 mr-1" /> Pausa
+                        </Button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">Sin reuniones este día</span>
+                    )}
                   </div>
-                  {(h.breaks ?? []).length > 0 && (
+                  {h.enabled && (h.breaks ?? []).length > 0 && (
                     <div className="space-y-2 pt-2 border-t">
                       {(h.breaks ?? []).map((b, i) => {
                         const bs = hhmmToMinutes(b.start);
@@ -319,31 +332,13 @@ export function BookingsPanel() {
                             <div className="flex-1 min-w-[260px] grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <TimeSlider
                                 value={bs}
-                                disabled={!h.enabled}
-                                onChange={(v) => {
-                                  const nv = Math.min(v, be - 15);
-                                  setSettings({
-                                    ...settings,
-                                    hours: settings.hours.map((x) => x.day === h.day
-                                      ? { ...x, breaks: (x.breaks ?? []).map((y, j) => j === i ? { ...y, start: minutesToHHMM(nv) } : y) }
-                                      : x),
-                                  });
-                                }}
+                                onChange={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 15)))}
                                 onCommit={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 15)))}
                                 max={1440 - 15}
                               />
                               <TimeSlider
                                 value={be}
-                                disabled={!h.enabled}
-                                onChange={(v) => {
-                                  const nv = Math.max(v, bs + 15);
-                                  setSettings({
-                                    ...settings,
-                                    hours: settings.hours.map((x) => x.day === h.day
-                                      ? { ...x, breaks: (x.breaks ?? []).map((y, j) => j === i ? { ...y, end: minutesToHHMM(nv) } : y) }
-                                      : x),
-                                  });
-                                }}
+                                onChange={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 15)))}
                                 onCommit={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 15)))}
                                 min={15}
                               />
@@ -361,6 +356,7 @@ export function BookingsPanel() {
             })}
           </div>
         </div>
+
       </Card>
 
 
