@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { zonedParts } from "@/lib/bookings/tz";
 
 const META = "https://graph.facebook.com/v21.0";
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -21,33 +22,36 @@ type WAAccount = {
   business_hours:
     | { day: number; enabled: boolean; open: string; close: string }[]
     | null;
+  timezone: string | null;
 };
 
 const DAY_NAMES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
 
 function describeHours(
   hours: WAAccount["business_hours"],
+  timezone: string,
 ): { summary: string; nowOpen: boolean | null } {
   if (!Array.isArray(hours) || hours.length === 0) return { summary: "", nowOpen: null };
   const lines = hours.map((h) => {
     const name = DAY_NAMES[h.day] ?? `día ${h.day}`;
     return h.enabled ? `${name}: ${h.open}–${h.close}` : `${name}: cerrado`;
   });
-  // Compute current open/closed using local server time (best-effort)
-  const now = new Date();
-  // JS getDay: 0=Sun..6=Sat → our index: 0=Mon..6=Sun
-  const jsDay = now.getDay();
-  const idx = (jsDay + 6) % 7;
-  const today = hours.find((h) => h.day === idx);
+  // Resolve "now" in the business timezone (dayIdx: 0=Mon..6=Sun, same as business_hours)
+  const tz = timezone || "America/Santiago";
   let nowOpen: boolean | null = null;
-  if (today) {
-    if (!today.enabled) nowOpen = false;
-    else {
-      const [oh, om] = today.open.split(":").map(Number);
-      const [ch, cm] = today.close.split(":").map(Number);
-      const mins = now.getHours() * 60 + now.getMinutes();
-      nowOpen = mins >= oh * 60 + om && mins <= ch * 60 + cm;
+  try {
+    const { dayIdx, minutes } = zonedParts(new Date().toISOString(), tz);
+    const today = hours.find((h) => h.day === dayIdx);
+    if (today) {
+      if (!today.enabled) nowOpen = false;
+      else {
+        const [oh, om] = today.open.split(":").map(Number);
+        const [ch, cm] = today.close.split(":").map(Number);
+        nowOpen = minutes >= oh * 60 + om && minutes <= ch * 60 + cm;
+      }
     }
+  } catch {
+    nowOpen = null;
   }
   return { summary: lines.join("\n"), nowOpen };
 }
@@ -145,10 +149,22 @@ async function processConversation(convId: string) {
     return;
   }
 
+  // Atomically claim the conversation: only one runner may proceed.
+  const { data: claimed } = await supabaseAdmin
+    .from("whatsapp_conversations")
+    .update({ pending_response_at: null })
+    .eq("id", convId)
+    .eq("pending_response_at", conv.pending_response_at)
+    .select("id");
+  if (!claimed || claimed.length === 0) {
+    // Another dispatch run already took this conversation.
+    return;
+  }
+
   const { data: acc } = await supabaseAdmin
     .from("whatsapp_accounts")
     .select(
-      "id,client_id,phone_number_id,access_token,ai_enabled,ai_system_prompt,ai_model,ai_max_history,ai_business_context,website_url,social_links,catalog,business_name,business_hours",
+      "id,client_id,phone_number_id,access_token,ai_enabled,ai_system_prompt,ai_model,ai_max_history,ai_business_context,website_url,social_links,catalog,business_name,business_hours,timezone",
     )
     .eq("id", conv.account_id)
     .maybeSingle<WAAccount>();
@@ -192,7 +208,7 @@ async function processConversation(convId: string) {
 
   const socials = (acc.social_links ?? []).filter((s) => s?.url?.trim());
   const catalog = (acc.catalog ?? []).filter((c) => c?.name?.trim());
-  const { summary: hoursSummary, nowOpen } = describeHours(acc.business_hours);
+  const { summary: hoursSummary, nowOpen } = describeHours(acc.business_hours, acc.timezone ?? "America/Santiago");
   const profileBlock = [
     acc.business_name ? `Nombre del negocio: ${acc.business_name}` : "",
     acc.website_url ? `Sitio web: ${acc.website_url}` : "",

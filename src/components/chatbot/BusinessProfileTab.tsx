@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, X, Building2, Globe, Share2, ShoppingBag, Clock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { MediaUpload } from "@/components/MediaUpload";
 import { syncWhatsAppProfile } from "@/lib/whatsapp/syncProfile.functions";
@@ -17,6 +24,26 @@ type CatalogItem = { name: string; price?: string; url?: string; image_url?: str
 type HourRow = { day: number; enabled: boolean; open: string; close: string };
 
 const DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+const TIMEZONES = [
+  { value: "America/Santiago", label: "Chile (Santiago)" },
+  { value: "America/Argentina/Buenos_Aires", label: "Argentina (Buenos Aires)" },
+  { value: "America/Lima", label: "Perú (Lima)" },
+  { value: "America/Bogota", label: "Colombia (Bogotá)" },
+  { value: "America/Mexico_City", label: "México (CDMX)" },
+  { value: "America/Montevideo", label: "Uruguay (Montevideo)" },
+  { value: "America/Asuncion", label: "Paraguay (Asunción)" },
+  { value: "America/La_Paz", label: "Bolivia (La Paz)" },
+  { value: "America/Caracas", label: "Venezuela (Caracas)" },
+  { value: "America/Guayaquil", label: "Ecuador (Guayaquil)" },
+  { value: "America/Santo_Domingo", label: "R. Dominicana (Santo Domingo)" },
+  { value: "America/Panama", label: "Panamá" },
+  { value: "America/Costa_Rica", label: "Costa Rica" },
+  { value: "America/Guatemala", label: "Guatemala" },
+  { value: "America/Sao_Paulo", label: "Brasil (São Paulo)" },
+  { value: "Europe/Madrid", label: "España (Madrid)" },
+  { value: "Atlantic/Canary", label: "España (Canarias)" },
+];
 
 function defaultHours(): HourRow[] {
   return Array.from({ length: 7 }, (_, i) => ({
@@ -48,6 +75,9 @@ export function BusinessProfileTab({
   const [catalog, setCatalog] = useState<CatalogItem[]>(
     Array.isArray(account.catalog) ? (account.catalog as CatalogItem[]) : [],
   );
+  const [timezone, setTimezone] = useState<string>(
+    (account as any).timezone ?? "America/Santiago",
+  );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -59,6 +89,7 @@ export function BusinessProfileTab({
         ? (account.business_hours as HourRow[])
         : defaultHours(),
     );
+    setTimezone((account as any).timezone ?? "America/Santiago");
     setSocials(Array.isArray(account.social_links) ? (account.social_links as Social[]) : []);
     setCatalog(Array.isArray(account.catalog) ? (account.catalog as CatalogItem[]) : []);
   }, [account.id]);
@@ -74,6 +105,7 @@ export function BusinessProfileTab({
         website_url: website || null,
         business_name: name.trim() || null,
         business_hours: hours,
+        timezone,
         social_links: socials.filter((s) => s.url.trim()),
         catalog: catalog.filter((c) => c.name.trim()),
       } as any)
@@ -206,8 +238,23 @@ export function BusinessProfileTab({
                 </div>
               ))}
             </div>
+            <div className="mt-2">
+              <Label className="text-xs">Zona horaria del negocio</Label>
+              <Select value={timezone} onValueChange={setTimezone}>
+                <SelectTrigger className="h-9 max-w-[320px]">
+                  <SelectValue placeholder="Selecciona zona horaria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <p className="text-[11px] text-muted-foreground mt-1">
-              El bot sabe si está abierto o cerrado. También se envía a la descripción del perfil de WhatsApp al guardar.
+              El bot sabe si está abierto o cerrado según esta zona horaria. También se envía a la descripción del perfil de WhatsApp al guardar.
             </p>
           </div>
 

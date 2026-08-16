@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { ruleToActions, sendBotActions } from "@/lib/whatsapp/sendActions";
+import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
 
 function normalize(s: string): string {
   return (s ?? "").toLowerCase().trim();
@@ -49,7 +50,35 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
       // Inbound messages from Meta
       POST: async ({ request, params }) => {
         const accountId = params.accountId;
-        const payload: any = await request.json().catch(() => null);
+
+        // Verify Meta's X-Hub-Signature-256 over the RAW body before doing anything.
+        const appSecret = process.env.META_APP_SECRET;
+        if (!appSecret) {
+          console.error(
+            "[whatsapp webhook] META_APP_SECRET missing — rejecting request instead of trusting unsigned payload",
+          );
+          return new Response("Server misconfigured", { status: 500 });
+        }
+
+        const rawBody = await request.text();
+        const header = request.headers.get("x-hub-signature-256") ?? "";
+        const provided = header.startsWith("sha256=") ? header.slice(7).toLowerCase() : "";
+        if (!provided) {
+          console.error("[whatsapp webhook] missing X-Hub-Signature-256");
+          return new Response("Forbidden", { status: 403 });
+        }
+        const expected = await hmacSha256Hex(appSecret, rawBody);
+        if (!timingSafeEqualHex(provided, expected)) {
+          console.error("[whatsapp webhook] invalid signature");
+          return new Response("Forbidden", { status: 403 });
+        }
+
+        let payload: any = null;
+        try {
+          payload = JSON.parse(rawBody);
+        } catch {
+          payload = null;
+        }
         if (!payload) return new Response("ok");
 
         const { data: acc } = await supabaseAdmin

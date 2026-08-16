@@ -76,12 +76,12 @@ function PublicLanding() {
       </section>
 
       {/* Services */}
-      {lp.services?.length > 0 && (
+      {Array.isArray(lp.services) && lp.services.length > 0 && (
         <section className="bg-gray-50 py-20">
           <div className="max-w-6xl mx-auto px-6">
             <h2 className="text-3xl font-bold text-center mb-12">Servicios</h2>
             <div className="grid md:grid-cols-3 gap-6">
-              {lp.services.map((s: any, i: number) => (
+              {(lp.services as any[]).map((s: any, i: number) => (
                 <div key={i} className="rounded-2xl bg-white p-6 shadow-sm border">
                   <div className="w-10 h-10 rounded-lg mb-4" style={{ background: `${color}22` }} />
                   <h3 className="font-semibold text-lg" style={{ color }}>{s.title}</h3>
@@ -94,12 +94,12 @@ function PublicLanding() {
       )}
 
       {/* Gallery */}
-      {lp.gallery?.length > 0 && (
+      {Array.isArray(lp.gallery) && lp.gallery.length > 0 && (
         <section className="py-20">
           <div className="max-w-6xl mx-auto px-6">
             <h2 className="text-3xl font-bold text-center mb-12">Galería</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {lp.gallery.map((g: any, i: number) => (
+              {(lp.gallery as any[]).map((g: any, i: number) => (
                 <img key={i} src={g.url} alt="" className="w-full aspect-square object-cover rounded-xl" />
               ))}
             </div>
