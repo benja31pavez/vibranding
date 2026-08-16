@@ -94,12 +94,12 @@ function PublicLanding() {
       )}
 
       {/* Gallery */}
-      {lp.gallery?.length > 0 && (
+      {Array.isArray(lp.gallery) && lp.gallery.length > 0 && (
         <section className="py-20">
           <div className="max-w-6xl mx-auto px-6">
             <h2 className="text-3xl font-bold text-center mb-12">Galería</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {lp.gallery.map((g: any, i: number) => (
+              {(lp.gallery as any[]).map((g: any, i: number) => (
                 <img key={i} src={g.url} alt="" className="w-full aspect-square object-cover rounded-xl" />
               ))}
             </div>
