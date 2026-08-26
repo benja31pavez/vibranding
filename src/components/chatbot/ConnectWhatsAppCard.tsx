@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { Copy, CheckCircle2, Plug, AlertCircle, ChevronDown } from "lucide-react";
+import { getWhatsAppVerifyToken } from "@/lib/whatsapp/account.functions";
 import type { WAAccount } from "@/routes/_app/clients/$clientId/chatbot";
 
 export function ConnectWhatsAppCard({
@@ -25,12 +27,29 @@ export function ConnectWhatsAppCard({
   const [accessToken, setAccessToken] = useState("");
   const [saving, setSaving] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(!account?.connected);
+  const [verifyToken, setVerifyToken] = useState("");
+  const getVerifyToken = useServerFn(getWhatsAppVerifyToken);
+
+  const revealVerifyToken = async (): Promise<string | null> => {
+    if (!account) return null;
+    try {
+      const res = (await getVerifyToken({ data: { accountId: account.id } })) as {
+        verifyToken: string;
+      };
+      setVerifyToken(res.verifyToken);
+      return res.verifyToken;
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo obtener el token");
+      return null;
+    }
+  };
 
   useEffect(() => {
     setPhoneNumberId(account?.phone_number_id ?? "");
     setWabaId(account?.waba_id ?? "");
     setDisplayPhone(account?.display_phone_number ?? "");
     setDetailsOpen(!account?.connected);
+    setVerifyToken("");
   }, [account]);
 
   const webhookUrl = account
@@ -39,17 +58,21 @@ export function ConnectWhatsAppCard({
 
   const ensureAccount = async (): Promise<WAAccount | null> => {
     if (account) return account;
-    const { data, error } = await supabase
+    const { data: created, error } = await supabase
       .from("whatsapp_accounts")
       .insert({ client_id: clientId })
-      .select("*")
+      .select("id")
       .single();
     if (error) {
       toast.error(error.message);
       return null;
     }
+    const { data } = await (supabase.from("whatsapp_accounts_safe" as any) as any)
+      .select("*")
+      .eq("id", created.id)
+      .maybeSingle();
     onChange();
-    return data as WAAccount;
+    return (data ?? null) as WAAccount | null;
   };
 
   const save = async () => {
@@ -69,7 +92,7 @@ export function ConnectWhatsAppCard({
       phone_number_id: phoneNumberId || null,
       waba_id: wabaId || null,
       display_phone_number: displayPhone || null,
-      connected: !!(phoneNumberId && (accessToken || a.access_token)),
+      connected: !!(phoneNumberId && (accessToken || a.has_access_token)),
     };
     if (accessToken) updates.access_token = accessToken;
     const { error } = await supabase
@@ -82,6 +105,7 @@ export function ConnectWhatsAppCard({
     toast.success("Conexión guardada");
     onChange();
   };
+
 
   const disconnect = async () => {
     if (!account) return;
@@ -171,16 +195,25 @@ export function ConnectWhatsAppCard({
             <div>
               <Label className="text-xs">Verify Token</Label>
               <div className="flex gap-2">
-                <Input readOnly value={account.verify_token} className="font-mono text-xs" />
+                <Input
+                  readOnly
+                  value={verifyToken}
+                  placeholder="•••••••• (oculto)"
+                  className="font-mono text-xs"
+                />
                 <Button
                   size="icon"
                   variant="outline"
-                  onClick={() => copy(account.verify_token, "Token")}
+                  onClick={async () => {
+                    const t = verifyToken || (await revealVerifyToken());
+                    if (t) copy(t, "Token");
+                  }}
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
             </div>
+
             <p className="text-xs text-muted-foreground">
               Suscríbete al campo <code className="font-mono">messages</code> para recibir mensajes.
             </p>
@@ -214,13 +247,13 @@ export function ConnectWhatsAppCard({
           </div>
           <div>
             <Label className="text-xs">
-              Access Token permanente {account.access_token && "(guardado)"}
+              Access Token permanente {account.has_access_token && "(guardado)"}
             </Label>
             <Input
               type="password"
               value={accessToken}
               onChange={(e) => setAccessToken(e.target.value)}
-              placeholder={account.access_token ? "•••••••• (dejar vacío para mantener)" : "EAAG..."}
+              placeholder={account.has_access_token ? "•••••••• (dejar vacío para mantener)" : "EAAG..."}
             />
           </div>
         </div>

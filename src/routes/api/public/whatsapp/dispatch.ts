@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
+
 import { zonedParts } from "@/lib/bookings/tz";
 
 const META = "https://graph.facebook.com/v21.0";
@@ -391,8 +393,26 @@ async function processConversation(convId: string) {
 export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        // This endpoint consumes AI credits — it must never be callable anonymously.
+        const dispatchSecret = process.env.DISPATCH_SECRET;
+        if (!dispatchSecret) {
+          console.error(
+            "[dispatch] DISPATCH_SECRET missing — rejecting request instead of processing untrusted call",
+          );
+          return new Response("Server misconfigured", { status: 500 });
+        }
+        const provided = request.headers.get("x-dispatch-secret") ?? "";
+        const [a, b] = await Promise.all([
+          hmacSha256Hex(dispatchSecret, provided),
+          hmacSha256Hex(dispatchSecret, dispatchSecret),
+        ]);
+        if (!timingSafeEqualHex(a, b)) {
+          return new Response("Forbidden", { status: 403 });
+        }
+
         const nowIso = new Date().toISOString();
+
         const { data: due } = await supabaseAdmin
           .from("whatsapp_conversations")
           .select("id")
