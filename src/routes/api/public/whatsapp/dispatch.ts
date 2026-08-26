@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
+
 import { zonedParts } from "@/lib/bookings/tz";
 
 const META = "https://graph.facebook.com/v21.0";
