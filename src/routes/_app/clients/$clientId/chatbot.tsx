@@ -20,8 +20,8 @@ export type WAAccount = {
   phone_number_id: string | null;
   waba_id: string | null;
   display_phone_number: string | null;
-  verify_token: string;
-  access_token: string | null;
+  /** true when a token is stored (the token itself is server-only) */
+  has_access_token: boolean;
   connected: boolean;
   ai_enabled: boolean;
   ai_system_prompt: string;
@@ -31,6 +31,7 @@ export type WAAccount = {
   ai_business_context: string | null;
   profile_photo_url: string | null;
   website_url: string | null;
+  timezone: string | null;
   social_links: { label: string; url: string }[] | null;
   catalog: { name: string; price?: string; url?: string; image_url?: string }[] | null;
   business_name: string | null;
@@ -46,14 +47,15 @@ function ChatbotPage() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("whatsapp_accounts")
+    // Reads go through the safe view: access_token / verify_token are server-only.
+    const { data } = await (supabase.from("whatsapp_accounts_safe" as any) as any)
       .select("*")
       .eq("client_id", clientId)
       .maybeSingle();
     setAcc((data ?? null) as WAAccount | null);
     setLoading(false);
   };
+
 
   useEffect(() => {
     load();
