@@ -39,17 +39,21 @@ export function ConnectWhatsAppCard({
 
   const ensureAccount = async (): Promise<WAAccount | null> => {
     if (account) return account;
-    const { data, error } = await supabase
+    const { data: created, error } = await supabase
       .from("whatsapp_accounts")
       .insert({ client_id: clientId })
-      .select("*")
+      .select("id")
       .single();
     if (error) {
       toast.error(error.message);
       return null;
     }
+    const { data } = await (supabase.from("whatsapp_accounts_safe" as any) as any)
+      .select("*")
+      .eq("id", created.id)
+      .maybeSingle();
     onChange();
-    return data as WAAccount;
+    return (data ?? null) as WAAccount | null;
   };
 
   const save = async () => {
@@ -69,7 +73,7 @@ export function ConnectWhatsAppCard({
       phone_number_id: phoneNumberId || null,
       waba_id: wabaId || null,
       display_phone_number: displayPhone || null,
-      connected: !!(phoneNumberId && (accessToken || a.access_token)),
+      connected: !!(phoneNumberId && (accessToken || a.has_access_token)),
     };
     if (accessToken) updates.access_token = accessToken;
     const { error } = await supabase
@@ -82,6 +86,7 @@ export function ConnectWhatsAppCard({
     toast.success("Conexión guardada");
     onChange();
   };
+
 
   const disconnect = async () => {
     if (!account) return;
