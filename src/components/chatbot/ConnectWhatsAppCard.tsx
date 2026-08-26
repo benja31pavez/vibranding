@@ -176,16 +176,25 @@ export function ConnectWhatsAppCard({
             <div>
               <Label className="text-xs">Verify Token</Label>
               <div className="flex gap-2">
-                <Input readOnly value={account.verify_token} className="font-mono text-xs" />
+                <Input
+                  readOnly
+                  value={verifyToken}
+                  placeholder="•••••••• (oculto)"
+                  className="font-mono text-xs"
+                />
                 <Button
                   size="icon"
                   variant="outline"
-                  onClick={() => copy(account.verify_token, "Token")}
+                  onClick={async () => {
+                    const t = verifyToken || (await revealVerifyToken());
+                    if (t) copy(t, "Token");
+                  }}
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
             </div>
+
             <p className="text-xs text-muted-foreground">
               Suscríbete al campo <code className="font-mono">messages</code> para recibir mensajes.
             </p>
