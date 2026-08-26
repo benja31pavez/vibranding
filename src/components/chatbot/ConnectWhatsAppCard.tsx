@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { Copy, CheckCircle2, Plug, AlertCircle, ChevronDown } from "lucide-react";
+import { getWhatsAppVerifyToken } from "@/lib/whatsapp/account.functions";
 import type { WAAccount } from "@/routes/_app/clients/$clientId/chatbot";
 
 export function ConnectWhatsAppCard({
@@ -25,12 +27,29 @@ export function ConnectWhatsAppCard({
   const [accessToken, setAccessToken] = useState("");
   const [saving, setSaving] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(!account?.connected);
+  const [verifyToken, setVerifyToken] = useState("");
+  const getVerifyToken = useServerFn(getWhatsAppVerifyToken);
+
+  const revealVerifyToken = async (): Promise<string | null> => {
+    if (!account) return null;
+    try {
+      const res = (await getVerifyToken({ data: { accountId: account.id } })) as {
+        verifyToken: string;
+      };
+      setVerifyToken(res.verifyToken);
+      return res.verifyToken;
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo obtener el token");
+      return null;
+    }
+  };
 
   useEffect(() => {
     setPhoneNumberId(account?.phone_number_id ?? "");
     setWabaId(account?.waba_id ?? "");
     setDisplayPhone(account?.display_phone_number ?? "");
     setDetailsOpen(!account?.connected);
+    setVerifyToken("");
   }, [account]);
 
   const webhookUrl = account
@@ -228,13 +247,13 @@ export function ConnectWhatsAppCard({
           </div>
           <div>
             <Label className="text-xs">
-              Access Token permanente {account.access_token && "(guardado)"}
+              Access Token permanente {account.has_access_token && "(guardado)"}
             </Label>
             <Input
               type="password"
               value={accessToken}
               onChange={(e) => setAccessToken(e.target.value)}
-              placeholder={account.access_token ? "•••••••• (dejar vacío para mantener)" : "EAAG..."}
+              placeholder={account.has_access_token ? "•••••••• (dejar vacío para mantener)" : "EAAG..."}
             />
           </div>
         </div>
