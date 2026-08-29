@@ -319,6 +319,119 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
             <Button onClick={persistMl} disabled={saving}>Guardar cambios</Button>
           </div>
 
+          <div className="rounded-2xl border bg-surface p-5 space-y-4">
+            <h3 className="font-medium text-sm flex items-center gap-2"><Palette className="w-4 h-4" /> Estilo</h3>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Estilo de botón</Label>
+                <select
+                  className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={ml.button_style}
+                  onChange={e => updateMl({ button_style: e.target.value as ButtonStyle })}
+                >
+                  {(Object.keys(BUTTON_STYLE_LABEL) as ButtonStyle[]).map(k => (
+                    <option key={k} value={k}>{BUTTON_STYLE_LABEL[k]}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">Forma</Label>
+                <select
+                  className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={ml.button_shape}
+                  onChange={e => updateMl({ button_shape: e.target.value as ButtonShape })}
+                >
+                  {(Object.keys(BUTTON_SHAPE_LABEL) as ButtonShape[]).map(k => (
+                    <option key={k} value={k}>{BUTTON_SHAPE_LABEL[k]}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Tipografía</Label>
+              <select
+                className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
+                value={ml.font_family}
+                onChange={e => updateMl({ font_family: e.target.value as FontKey })}
+              >
+                {(Object.keys(FONTS) as FontKey[]).map(k => (
+                  <option key={k} value={k}>{FONTS[k].label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-xs">Fondo</Label>
+              <select
+                className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
+                value={bg.type}
+                onChange={e => {
+                  const t = e.target.value as Background["type"];
+                  if (t === "flat") setBg({ type: "flat" });
+                  else if (t === "solid") setBg({ type: "solid", color: "#111827" });
+                  else if (t === "gradient") setBg({ type: "gradient", from: "#6d28d9", to: "#db2777", angle: 160 });
+                  else setBg({ type: "image", url: null, overlay: 0.45 });
+                }}
+              >
+                <option value="flat">Según modo claro/oscuro</option>
+                <option value="solid">Color sólido</option>
+                <option value="gradient">Degradado</option>
+                <option value="image">Imagen</option>
+              </select>
+
+              {bg.type === "solid" && (
+                <Input type="color" value={bg.color} onChange={e => setBg({ ...bg, color: e.target.value })} className="w-20 h-9 p-1" />
+              )}
+
+              {bg.type === "gradient" && (
+                <div className="flex flex-wrap items-end gap-3">
+                  <div>
+                    <Label className="text-[11px] text-muted-foreground">Desde</Label>
+                    <Input type="color" value={bg.from} onChange={e => setBg({ ...bg, from: e.target.value })} className="w-16 h-9 p-1" />
+                  </div>
+                  <div>
+                    <Label className="text-[11px] text-muted-foreground">Hasta</Label>
+                    <Input type="color" value={bg.to} onChange={e => setBg({ ...bg, to: e.target.value })} className="w-16 h-9 p-1" />
+                  </div>
+                  <div className="flex-1 min-w-[140px]">
+                    <Label className="text-[11px] text-muted-foreground">Ángulo: {bg.angle}°</Label>
+                    <input
+                      type="range" min={0} max={360} step={5} value={bg.angle}
+                      onChange={e => setBg({ ...bg, angle: Number(e.target.value) })}
+                      className="w-full accent-primary"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {bg.type === "image" && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-20 h-14 rounded-lg bg-secondary overflow-hidden grid place-items-center">
+                      {bg.url ? <img src={bg.url} alt="" className="w-full h-full object-cover" /> : <Upload className="w-4 h-4 text-muted-foreground" />}
+                    </div>
+                    <label className="text-sm text-primary cursor-pointer hover:underline">
+                      Subir imagen
+                      <input type="file" accept="image/*" className="hidden" onChange={onBackgroundImage} />
+                    </label>
+                  </div>
+                  <Label className="text-[11px] text-muted-foreground">
+                    Oscurecer para legibilidad: {Math.round(bg.overlay * 100)}%
+                  </Label>
+                  <input
+                    type="range" min={0} max={90} step={5} value={Math.round(bg.overlay * 100)}
+                    onChange={e => setBg({ ...bg, overlay: Number(e.target.value) / 100 })}
+                    className="w-full accent-primary"
+                  />
+                </div>
+              )}
+            </div>
+
+            <Button onClick={persistMl} disabled={saving}>Guardar estilo</Button>
+          </div>
+
           <div className="rounded-2xl border bg-surface p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-medium text-sm">Enlaces</h3>
