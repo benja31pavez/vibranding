@@ -158,10 +158,17 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
         ) : (
           <p>
             Autoriza el acceso de lectura a métricas de anuncios, páginas e Instagram. El token
-            queda cifrado en el servidor y nunca se expone al navegador.
+            queda cifrado en el servidor y nunca se expone al navegador. Si la revisión de Meta aún
+            no está aprobada, usa un token permanente de System User.
           </p>
         )}
       </CardContent>
+      <MetaSystemUserDialog
+        clientId={clientId}
+        open={sysOpen}
+        onOpenChange={setSysOpen}
+        onConnected={load}
+      />
     </Card>
   );
 }
