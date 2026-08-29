@@ -160,7 +160,33 @@ export function LandingEditor({ clientId }: { clientId: string }) {
   const updService = (i: number, patch: Partial<Service>) => lp && update({
     services: lp.services.map((s, k) => k === i ? { ...s, ...patch } : s),
   });
-  const rmService = (i: number) => lp && update({ services: lp.services.filter((_, k) => k !== i) });
+
+  const updTestimonial = (i: number, patch: Partial<Testimonial>) => lp && update({
+    testimonials: lp.testimonials.map((t, k) => k === i ? { ...t, ...patch } : t),
+  });
+  const uploadTestimonialPhoto = async (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    try {
+      const url = await uploadClientMedia(f, clientId);
+      updTestimonial(i, { photo_url: url });
+    } catch (err: any) { toast.error(err.message); }
+  };
+  const updFaq = (i: number, patch: Partial<FaqItem>) => lp && update({
+    faq: lp.faq.map((f, k) => k === i ? { ...f, ...patch } : f),
+  });
+  const updHour = (i: number, patch: Partial<{ closed: boolean; from: string; to: string }>) => {
+    if (!lp) return;
+    const hours = (lp.location.hours ?? defaultHours()).map((h, k) => k === i ? { ...h, ...patch } : h);
+    update({ location: { ...lp.location, hours } });
+  };
+  const updFooter = (patch: Partial<LandingFooter>) => lp && update({ footer: { ...lp.footer, ...patch } });
+  const updLegal = (i: number, patch: Partial<{ label: string; url: string }>) => {
+    if (!lp) return;
+    const legal = (lp.footer.legal ?? []).map((l, k) => k === i ? { ...l, ...patch } : l);
+    updFooter({ legal });
+  };
+
+
 
   const deleteSub = async (id: string) => {
     const { error } = await supabase.from("landing_contact_submissions").delete().eq("id", id);
