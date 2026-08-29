@@ -88,30 +88,46 @@ const typeMeta: Record<DType, { label: string; icon: any }> = {
 export function DeliverablesList({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Row[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
-  const [dividers, setDividers] = useState<DividerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [addingFolder, setAddingFolder] = useState(false);
   const [folderDraft, setFolderDraft] = useState("");
-  const [view, setView] = useState<"list" | "kanban" | "timeline">("list");
+  const [view, setView] = useState<"list" | "timeline">("list");
   const [filterType, setFilterType] = useState<"all" | DType>("all");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [seeding, setSeeding] = useState(false);
   const [draft, setDraft] = useState({ title: "", description: "", due_date: "", type: "post" as DType, folder_id: "" as string });
 
   const load = async () => {
     setLoading(true);
-    const [{ data: dItems, error }, { data: dFolders }, { data: dDividers }] = await Promise.all([
+    const [{ data: dItems, error }, { data: dFolders }] = await Promise.all([
       supabase.from("deliverables").select("*").eq("client_id", clientId).order("sort_order").order("created_at"),
       supabase.from("deliverable_folders").select("*").eq("client_id", clientId).order("sort_order").order("created_at"),
-      supabase.from("deliverable_dividers").select("*").eq("client_id", clientId).order("sort_order").order("created_at"),
     ]);
     if (error) toast.error(error.message);
     setItems((dItems ?? []).map((r: any) => ({ ...r, checklist: r.checklist ?? [] })) as Row[]);
     setFolders((dFolders ?? []) as FolderRow[]);
-    setDividers((dDividers ?? []) as DividerRow[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, [clientId]);
+
+  const seedStarter = async () => {
+    setSeeding(true);
+    const { error } = await supabase.from("deliverables").insert(
+      STARTER_STAGES.map((s, i) => ({
+        client_id: clientId,
+        title: s.title,
+        description: s.description,
+        type: s.type,
+        sort_order: i,
+      })),
+    );
+    setSeeding(false);
+    if (error) return toast.error(error.message);
+    toast.success("Etapas iniciales creadas");
+    load();
+  };
+
 
   const create = async () => {
     if (!draft.title.trim()) return;
