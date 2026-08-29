@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, Plug, RefreshCw } from "lucide-react";
+import { CheckCircle2, AlertCircle, Plug, RefreshCw, AlertTriangle } from "lucide-react";
 import {
   getMetaConnection,
   startMetaOAuth,
