@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { Users, CheckSquare, DollarSign, CalendarClock, TrendingUp } from "lucide-react";
+import { Users, CheckSquare, DollarSign, CalendarClock, TrendingUp, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useReviewAlerts } from "@/hooks/use-review-alerts";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
