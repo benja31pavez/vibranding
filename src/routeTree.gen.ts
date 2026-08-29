@@ -47,6 +47,7 @@ import { Route as ApiPublicWhatsappDispatchRouteImport } from './routes/api/publ
 import { Route as ApiPublicMetaIngestDailyRouteImport } from './routes/api/public/meta/ingest-daily'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as AppClientsClientIdSitioRouteImport } from './routes/_app/clients/$clientId/sitio'
+import { Route as AppClientsClientIdSetupRouteImport } from './routes/_app/clients/$clientId/setup'
 import { Route as AppClientsClientIdPlanRouteImport } from './routes/_app/clients/$clientId/plan'
 import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/clients/$clientId/payments'
 import { Route as AppClientsClientIdObjectivesRouteImport } from './routes/_app/clients/$clientId/objectives'
@@ -260,6 +261,11 @@ const AppClientsClientIdSitioRoute = AppClientsClientIdSitioRouteImport.update({
   path: '/sitio',
   getParentRoute: () => AppClientsClientIdRoute,
 } as any)
+const AppClientsClientIdSetupRoute = AppClientsClientIdSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => AppClientsClientIdRoute,
+} as any)
 const AppClientsClientIdPlanRoute = AppClientsClientIdPlanRouteImport.update({
   id: '/plan',
   path: '/plan',
@@ -416,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
+  '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
@@ -472,6 +479,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
+  '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
@@ -531,6 +539,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/_app/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/_app/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
+  '/_app/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/_app/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
@@ -590,6 +599,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
     | '/clients/$clientId/plan'
+    | '/clients/$clientId/setup'
     | '/clients/$clientId/sitio'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
@@ -646,6 +656,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
     | '/clients/$clientId/plan'
+    | '/clients/$clientId/setup'
     | '/clients/$clientId/sitio'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
@@ -704,6 +715,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/objectives'
     | '/_app/clients/$clientId/payments'
     | '/_app/clients/$clientId/plan'
+    | '/_app/clients/$clientId/setup'
     | '/_app/clients/$clientId/sitio'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
@@ -1010,6 +1022,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdSitioRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/setup': {
+      id: '/_app/clients/$clientId/setup'
+      path: '/setup'
+      fullPath: '/clients/$clientId/setup'
+      preLoaderRoute: typeof AppClientsClientIdSetupRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/plan': {
       id: '/_app/clients/$clientId/plan'
       path: '/plan'
@@ -1167,6 +1186,7 @@ interface AppClientsClientIdRouteChildren {
   AppClientsClientIdObjectivesRoute: typeof AppClientsClientIdObjectivesRoute
   AppClientsClientIdPaymentsRoute: typeof AppClientsClientIdPaymentsRoute
   AppClientsClientIdPlanRoute: typeof AppClientsClientIdPlanRoute
+  AppClientsClientIdSetupRoute: typeof AppClientsClientIdSetupRoute
   AppClientsClientIdSitioRoute: typeof AppClientsClientIdSitioRoute
   AppClientsClientIdIndexRoute: typeof AppClientsClientIdIndexRoute
 }
@@ -1188,6 +1208,7 @@ const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdObjectivesRoute: AppClientsClientIdObjectivesRoute,
   AppClientsClientIdPaymentsRoute: AppClientsClientIdPaymentsRoute,
   AppClientsClientIdPlanRoute: AppClientsClientIdPlanRoute,
+  AppClientsClientIdSetupRoute: AppClientsClientIdSetupRoute,
   AppClientsClientIdSitioRoute: AppClientsClientIdSitioRoute,
   AppClientsClientIdIndexRoute: AppClientsClientIdIndexRoute,
 }
