@@ -1,3 +1,4 @@
+import { graphBase } from "@/lib/meta/version";
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
@@ -5,7 +6,7 @@ import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
 import { zonedParts } from "@/lib/bookings/tz";
 import { getWaSecret } from "@/lib/whatsapp/tokens.server";
 
-const META = "https://graph.facebook.com/v21.0";
+const META = graphBase();
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 type WAAccount = {

@@ -1,3 +1,4 @@
+import { graphBase } from "@/lib/meta/version";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/api/meta-ads/discover")({
@@ -8,7 +9,7 @@ export const Route = createFileRoute("/api/meta-ads/discover")({
         if (!token) return json({ error: "Falta META_ADS_ACCESS_TOKEN" }, 400);
         try {
           const t = encodeURIComponent(token);
-          const base = "https://graph.facebook.com/v21.0";
+          const base = graphBase();
 
           // Activos asignados al System User
           const [accRes, pageRes, bizRes] = await Promise.all([

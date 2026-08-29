@@ -1,5 +1,6 @@
+import { graphBase } from "@/lib/meta/version";
 // Server-side helpers to dispatch bot rule "actions" through the WhatsApp Cloud API.
-const META = "https://graph.facebook.com/v21.0";
+const META = graphBase();
 
 export type BotAction =
   | { kind: "text"; body: string }

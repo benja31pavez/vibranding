@@ -1,3 +1,4 @@
+import { metaGraphVersion } from "@/lib/meta/version";
 import { createFileRoute } from "@tanstack/react-router";
 import { hmacSha256Hex } from "@/lib/crypto";
 
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/api/public/meta-ads/discover")({
         if (!token) return json({ error: "Falta META_ADS_ACCESS_TOKEN" }, 400);
         if (!businessId) return json({ error: "Falta META_BUSINESS_ID" }, 400);
 
-        const v = "v21.0";
+        const v = metaGraphVersion();
         const base = `https://graph.facebook.com/${v}`;
         // appsecret_proof for extra security if app secret is present
         const proofParam = appSecret

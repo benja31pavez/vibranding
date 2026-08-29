@@ -1,4 +1,5 @@
-const META = "https://graph.facebook.com/v21.0";
+import { graphBase } from "@/lib/meta/version";
+const META = graphBase();
 
 export type Social = { label: string; url: string };
 export type CatalogItem = { name: string; price?: string; url?: string; image_url?: string };

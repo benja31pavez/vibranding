@@ -1,7 +1,8 @@
 // Server-only helpers for the Meta OAuth flow.
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
 
-export const META_GRAPH_VERSION = "v21.0";
+export { metaGraphVersion, graphUrl, graphBase } from "@/lib/meta/version";
+import { graphUrl } from "@/lib/meta/version";
 export const META_SCOPES = [
   "ads_read",
   "pages_read_engagement",
@@ -61,7 +62,7 @@ export async function graph<T = any>(
   params: Record<string, string>,
 ): Promise<T> {
   const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`https://graph.facebook.com/${META_GRAPH_VERSION}/${path}?${qs}`);
+  const res = await fetch(`${graphUrl(path)}?${qs}`);
   const body = (await res.json()) as any;
   if (!res.ok) {
     throw new Error(body?.error?.error_user_msg ?? body?.error?.message ?? "Error Meta API");

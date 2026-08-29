@@ -27,14 +27,17 @@ export const Route = createFileRoute("/api/public/meta/ingest-daily")({
         const url = new URL(request.url);
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { getMetaToken } = await import("@/lib/meta/tokens.server");
-        const { ingestAccountDay, yesterdayISO } = await import("@/lib/meta/insights.server");
+        const { ingestAccountDay, INGEST_WINDOW_DAYS } = await import(
+          "@/lib/meta/insights.server",
+        );
 
-        const date = url.searchParams.get("date") ?? yesterdayISO();
+        const date = url.searchParams.get("date") ?? undefined;
+        const windowDays = Number(url.searchParams.get("days") ?? INGEST_WINDOW_DAYS);
 
         const { data: accounts, error } = await (
           supabaseAdmin.from("meta_accounts" as any) as any
         )
-          .select("id,client_id,ad_account_id,ig_account_id")
+          .select("id,client_id,ad_account_id,ig_account_id,timezone_name")
           .eq("connected", true);
         if (error) {
           console.error("[meta ingest] cannot list accounts", error.message);
@@ -48,11 +51,11 @@ export const Route = createFileRoute("/api/public/meta/ingest-daily")({
             results.push({ accountId: account.id, error: "sin token en el vault" });
             continue;
           }
-          results.push(await ingestAccountDay(account, token, date));
+          results.push(await ingestAccountDay(account, token, date, windowDays));
         }
 
         const failed = results.filter((r: any) => r.error).length;
-        return Response.json({ date, accounts: results.length, failed, results });
+        return Response.json({ date: date ?? null, windowDays, accounts: results.length, failed, results });
       },
     },
   },

@@ -31,7 +31,9 @@ export const startMetaOAuth = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!owned) throw new Error("No tienes acceso a este cliente");
 
-    const { META_SCOPES, redirectUri, signState } = await import("@/lib/meta/oauth.server");
+    const { META_SCOPES, redirectUri, signState, metaGraphVersion } = await import(
+      "@/lib/meta/oauth.server",
+    );
     const state = await signState(
       { clientId: data.clientId, userId: context.userId, exp: Date.now() + 10 * 60 * 1000 },
       appSecret,
@@ -44,7 +46,7 @@ export const startMetaOAuth = createServerFn({ method: "POST" })
       response_type: "code",
       scope: META_SCOPES.join(","),
     });
-    return { url: `https://www.facebook.com/v21.0/dialog/oauth?${params.toString()}` };
+    return { url: `https://www.facebook.com/${metaGraphVersion()}/dialog/oauth?${params.toString()}` };
   });
 
 export const getMetaConnection = createServerFn({ method: "POST" })
@@ -86,7 +88,7 @@ export const syncMetaInsights = createServerFn({ method: "POST" })
   .inputValidator((input: { accountId: string; date?: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: owned } = await (context.supabase.from("meta_accounts" as any) as any)
-      .select("id,client_id,ad_account_id,ig_account_id,connected")
+      .select("id,client_id,ad_account_id,ig_account_id,connected,timezone_name")
       .eq("id", data.accountId)
       .maybeSingle();
     if (!owned) throw new Error("No tienes acceso a esta conexión");
@@ -96,6 +98,6 @@ export const syncMetaInsights = createServerFn({ method: "POST" })
     const token = await getMetaToken(data.accountId);
     if (!token) throw new Error("No hay token de Meta guardado");
 
-    const { ingestAccountDay, yesterdayISO } = await import("@/lib/meta/insights.server");
-    return await ingestAccountDay(owned as any, token, data.date ?? yesterdayISO());
+    const { ingestAccountDay } = await import("@/lib/meta/insights.server");
+    return await ingestAccountDay(owned as any, token, data.date ?? undefined);
   });

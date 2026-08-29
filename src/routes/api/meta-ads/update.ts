@@ -1,3 +1,4 @@
+import { graphBase } from "@/lib/meta/version";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/api/meta-ads/update")({
           const { entity, id, patch } = (await request.json()) as { entity: Entity; id: string; patch: Record<string, any> };
           if (!entity || !id) return j({ error: "Datos incompletos" }, 400);
 
-          const base = "https://graph.facebook.com/v21.0";
+          const base = graphBase();
           const params = new URLSearchParams({ access_token: token });
           let fbId: string | null = null;
 

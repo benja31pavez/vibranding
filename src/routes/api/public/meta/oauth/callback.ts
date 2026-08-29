@@ -58,7 +58,7 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
           const [adAccounts, pages] = await Promise.all([
             graph<any>("me/adaccounts", {
               access_token: token,
-              fields: "id,account_id,name",
+              fields: "id,account_id,name,timezone_name",
               limit: "25",
             }).catch(() => ({ data: [] })),
             graph<any>("me/accounts", {
@@ -84,6 +84,7 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
                 page_id: page?.id ?? null,
                 ig_account_id: page?.instagram_business_account?.id ?? null,
                 business_name: page?.name ?? adAccount?.name ?? null,
+                timezone_name: adAccount?.timezone_name ?? null,
                 scopes: [...META_SCOPES],
                 connected: true,
                 token_expires_at:
