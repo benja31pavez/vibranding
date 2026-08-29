@@ -1,12 +1,29 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InstagramPage } from "@/components/pages/InstagramPage";
 import { ContentCalendar } from "@/components/instagram/ContentCalendar";
 
 export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
   validateSearch: (s: Record<string, unknown>): { tab?: "grid" | "calendario" } => ({
-    tab: s.tab === "calendario" ? "calendario" : s.tab === "grid" ? "grid" : undefined,
+    tab:
+      s.tab === "calendario"
+        ? "calendario"
+        : s.tab === "grid"
+          ? "grid"
+          : s.tab === "automatizacion" || s.tab === "automation"
+            ? (s.tab as any)
+            : undefined,
   }),
+  beforeLoad: ({ params, search }) => {
+    // Legacy in-page automation tab now lives in its own section.
+    if ((search as any)?.tab === "automatizacion" || (search as any)?.tab === "automation") {
+      throw redirect({
+        to: "/clients/$clientId/automatizacion",
+        params,
+        search: { tab: "comentarios" } as any,
+      });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Instagram del cliente | Vibranding" },
