@@ -10,9 +10,16 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail, Smartphone, Monitor, MessageCircle } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail, Smartphone, Monitor, MessageCircle, AlertTriangle, Moon, MapPin, HelpCircle, Quote } from "lucide-react";
 import { EventsPanel } from "@/components/landing/EventsPanel";
 import { landingWhatsappText } from "@/lib/landingWhatsapp";
+import { PublicLandingView } from "@/components/landing/PublicLandingView";
+import {
+  TEMPLATE_LABEL, HERO_ASPECT_LABEL, SERVICE_ICON_KEYS, SERVICE_ICONS,
+  landingPalette, defaultHours, WEEKDAYS, asArray, asObject,
+  type LandingTemplate, type HeroAspect, type Testimonial, type FaqItem,
+  type LandingLocation, type LandingFooter,
+} from "@/lib/landingTheme";
 
 
 type Service = { title: string; description: string; icon?: string };
@@ -37,7 +44,18 @@ type Landing = {
   whatsapp_number: string | null;
   whatsapp_cta_text: string | null;
   whatsapp_message: string | null;
+  template: LandingTemplate;
+  dark_mode: boolean;
+  hero_aspect: HeroAspect;
+  testimonials_enabled: boolean;
+  testimonials: Testimonial[];
+  location_enabled: boolean;
+  location: LandingLocation;
+  faq_enabled: boolean;
+  faq: FaqItem[];
+  footer: LandingFooter;
 };
+
 
 type Submission = { id: string; name: string; email: string; phone: string | null; message: string; created_at: string };
 
