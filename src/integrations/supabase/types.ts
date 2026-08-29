@@ -432,6 +432,41 @@ export type Database = {
           },
         ]
       }
+      client_users: {
+        Row: {
+          client_id: string
+          created_at: string
+          email: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_users_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           business_description: string | null
@@ -440,6 +475,7 @@ export type Database = {
           instagram_handle: string | null
           name: string
           notes: string | null
+          org_id: string
           updated_at: string
           user_id: string
         }
@@ -450,6 +486,7 @@ export type Database = {
           instagram_handle?: string | null
           name: string
           notes?: string | null
+          org_id: string
           updated_at?: string
           user_id: string
         }
@@ -460,10 +497,19 @@ export type Database = {
           instagram_handle?: string | null
           name?: string
           notes?: string | null
+          org_id?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_outcomes: {
         Row: {
@@ -1779,6 +1825,65 @@ export type Database = {
           },
         ]
       }
+      org_members: {
+        Row: {
+          created_at: string
+          id: string
+          org_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          org_id: string
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          org_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orgs: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -2452,6 +2557,7 @@ export type Database = {
         Args: { _client_id: string; _from: string; _to: string }
         Returns: Json
       }
+      client_analytics_guard: { Args: { _client_id: string }; Returns: boolean }
       get_booking_settings_by_slug: {
         Args: { _slug: string }
         Returns: {
@@ -2469,6 +2575,8 @@ export type Database = {
       increment_landing_view: { Args: { _id: string }; Returns: undefined }
       increment_multilink_click: { Args: { _id: string }; Returns: undefined }
       increment_multilink_view: { Args: { _id: string }; Returns: undefined }
+      is_org_manager: { Args: { _org_id: string }; Returns: boolean }
+      is_org_member: { Args: { _org_id: string }; Returns: boolean }
       job_health: {
         Args: never
         Returns: {
@@ -2488,6 +2596,7 @@ export type Database = {
           scheduled_at: string
         }[]
       }
+      manages_client: { Args: { _client_id: string }; Returns: boolean }
       meta_get_secret: { Args: { _account_id: string }; Returns: string }
       meta_set_secret: {
         Args: { _account_id: string; _secret: string }
@@ -2498,6 +2607,14 @@ export type Database = {
       run_http_cron_job: {
         Args: { _job_name: string; _url: string }
         Returns: undefined
+      }
+      user_client_id: { Args: never; Returns: string }
+      user_orgs: {
+        Args: never
+        Returns: {
+          org_id: string
+          role: string
+        }[]
       }
       wa_get_secret: {
         Args: { _account_id: string; _kind: string }
