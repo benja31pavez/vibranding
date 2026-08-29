@@ -70,7 +70,7 @@ export function LandingEditor({ clientId }: { clientId: string }) {
   const load = async () => {
     setLoading(true);
     const { data } = await supabase.from("landing_pages").select("*").eq("client_id", clientId).maybeSingle();
-    setLp(data as unknown as Landing | null);
+    setLp(data ? normalize(data) : null);
     if (data) {
       const { data: s } = await supabase.from("landing_contact_submissions")
         .select("id,name,email,phone,message,created_at")
