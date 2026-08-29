@@ -198,19 +198,25 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
     loadConvs();
   };
 
-  const filtered = convs.filter((c) => {
-    if (filterLead && !c.is_lead) return false;
-    if (filterFollowup && !c.needs_human_followup) return false;
-    if (search) {
-      const s = search.toLowerCase();
-      return (
-        (c.contact_name ?? "").toLowerCase().includes(s) ||
-        c.contact_wa_id.includes(s) ||
-        (c.last_message_preview ?? "").toLowerCase().includes(s)
-      );
-    }
-    return true;
-  });
+  /** Unmarked and idle for more than 24h → needs an outcome, floats to the top. */
+  const needsOutcome = (c: Conv) => !outcomes[c.id] && isStale(c.last_message_at);
+  const pendingOutcomeCount = convs.filter(needsOutcome).length;
+
+  const filtered = convs
+    .filter((c) => {
+      if (filterLead && !c.is_lead) return false;
+      if (filterFollowup && !c.needs_human_followup) return false;
+      if (search) {
+        const s = search.toLowerCase();
+        return (
+          (c.contact_name ?? "").toLowerCase().includes(s) ||
+          c.contact_wa_id.includes(s) ||
+          (c.last_message_preview ?? "").toLowerCase().includes(s)
+        );
+      }
+      return true;
+    })
+    .sort((a, b) => Number(needsOutcome(b)) - Number(needsOutcome(a)));
 
   return (
     <Card className="h-[640px] grid grid-cols-1 md:grid-cols-[320px_1fr] overflow-hidden">

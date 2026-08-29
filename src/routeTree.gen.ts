@@ -54,6 +54,7 @@ import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/c
 import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
 import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
 import { Route as AppClientsClientIdChatbotRouteImport } from './routes/_app/clients/$clientId/chatbot'
+import { Route as AppClientsClientIdBackfillRouteImport } from './routes/_app/clients/$clientId/backfill'
 import { Route as AppClientsClientIdAnalyticsRouteImport } from './routes/_app/clients/$clientId/analytics'
 import { Route as ApiPublicWhatsappWebhookAccountIdRouteImport } from './routes/api/public/whatsapp/webhook/$accountId'
 import { Route as ApiPublicMetaOauthCallbackRouteImport } from './routes/api/public/meta/oauth/callback'
@@ -296,6 +297,12 @@ const AppClientsClientIdChatbotRoute =
     path: '/chatbot',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdBackfillRoute =
+  AppClientsClientIdBackfillRouteImport.update({
+    id: '/backfill',
+    path: '/backfill',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdAnalyticsRoute =
   AppClientsClientIdAnalyticsRouteImport.update({
     id: '/analytics',
@@ -347,6 +354,7 @@ export interface FileRoutesByFullPath {
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients/': typeof AppClientsIndexRoute
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
+  '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
@@ -395,6 +403,7 @@ export interface FileRoutesByTo {
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients': typeof AppClientsIndexRoute
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
+  '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
@@ -446,6 +455,7 @@ export interface FileRoutesById {
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
+  '/_app/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/_app/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/_app/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
@@ -497,6 +507,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/update'
     | '/clients/'
     | '/clients/$clientId/analytics'
+    | '/clients/$clientId/backfill'
     | '/clients/$clientId/chatbot'
     | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
@@ -545,6 +556,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/update'
     | '/clients'
     | '/clients/$clientId/analytics'
+    | '/clients/$clientId/backfill'
     | '/clients/$clientId/chatbot'
     | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
@@ -595,6 +607,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/update'
     | '/_app/clients/'
     | '/_app/clients/$clientId/analytics'
+    | '/_app/clients/$clientId/backfill'
     | '/_app/clients/$clientId/chatbot'
     | '/_app/clients/$clientId/contracts'
     | '/_app/clients/$clientId/deliverables'
@@ -957,6 +970,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdChatbotRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/backfill': {
+      id: '/_app/clients/$clientId/backfill'
+      path: '/backfill'
+      fullPath: '/clients/$clientId/backfill'
+      preLoaderRoute: typeof AppClientsClientIdBackfillRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/analytics': {
       id: '/_app/clients/$clientId/analytics'
       path: '/analytics'
@@ -994,6 +1014,7 @@ const AtChar123slugChar125RouteWithChildren =
 
 interface AppClientsClientIdRouteChildren {
   AppClientsClientIdAnalyticsRoute: typeof AppClientsClientIdAnalyticsRoute
+  AppClientsClientIdBackfillRoute: typeof AppClientsClientIdBackfillRoute
   AppClientsClientIdChatbotRoute: typeof AppClientsClientIdChatbotRoute
   AppClientsClientIdContractsRoute: typeof AppClientsClientIdContractsRoute
   AppClientsClientIdDeliverablesRoute: typeof AppClientsClientIdDeliverablesRoute
@@ -1009,6 +1030,7 @@ interface AppClientsClientIdRouteChildren {
 
 const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdAnalyticsRoute: AppClientsClientIdAnalyticsRoute,
+  AppClientsClientIdBackfillRoute: AppClientsClientIdBackfillRoute,
   AppClientsClientIdChatbotRoute: AppClientsClientIdChatbotRoute,
   AppClientsClientIdContractsRoute: AppClientsClientIdContractsRoute,
   AppClientsClientIdDeliverablesRoute: AppClientsClientIdDeliverablesRoute,
