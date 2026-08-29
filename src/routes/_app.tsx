@@ -42,6 +42,14 @@ function AppLayout() {
     if (!loading && !session) navigate({ to: "/login" });
   }, [loading, session, navigate]);
 
+  // Invited client users only have the read-only portal.
+  useEffect(() => {
+    if (!session) return;
+    supabase.rpc("user_client_id").then(({ data }) => {
+      if (data) navigate({ to: "/portal" });
+    });
+  }, [session?.user?.id, navigate]);
+
   useEffect(() => {
     if (!session) return;
     const match = path.match(/^\/clients\/([0-9a-f-]{36})/i);
