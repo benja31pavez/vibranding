@@ -32,7 +32,7 @@ type MetaObjective = "OUTCOME_AWARENESS" | "OUTCOME_TRAFFIC" | "OUTCOME_ENGAGEME
 type MetaPlacement = "feed" | "stories" | "reels" | "marketplace" | "search" | "audience_network";
 type MetaCTA = "LEARN_MORE" | "SHOP_NOW" | "SIGN_UP" | "SUBSCRIBE" | "CONTACT_US" | "BOOK_TRAVEL" | "DOWNLOAD" | "GET_OFFER" | "APPLY_NOW" | "SEND_MESSAGE" | "WATCH_MORE";
 
-interface Account { id: string; client_id: string; ad_account_id: string | null; business_name: string | null; page_id: string | null; instagram_actor_id: string | null; last_synced_at: string | null; }
+interface Account { id: string; client_id: string; ad_account_id: string | null; business_name: string | null; page_id: string | null; ig_account_id: string | null; last_synced_at: string | null; }
 interface Campaign { id: string; client_id: string; name: string; objective: MetaObjective; status: MetaStatus; daily_budget: number | null; lifetime_budget: number | null; currency: string | null; start_time: string | null; stop_time: string | null; notes: string | null; position: number; fb_campaign_id: string | null; }
 interface AdSet { id: string; client_id: string; campaign_id: string; name: string; status: MetaStatus; daily_budget: number | null; optimization_goal: string | null; audience_summary: string | null; age_min: number | null; age_max: number | null; genders: string | null; countries: string | null; interests: string | null; placements: string[]; position: number; }
 interface Ad { id: string; client_id: string; adset_id: string; name: string; status: MetaStatus; format: string; image_url: string | null; video_url: string | null; carousel_urls: string[]; primary_text: string | null; headline: string | null; description: string | null; cta: MetaCTA | null; link_url: string | null; placement: MetaPlacement; position: number; }
@@ -246,8 +246,8 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
           <Field label="ID de cuenta de Instagram">
             <Input
               placeholder="178414..."
-              defaultValue={account?.instagram_actor_id ?? ""}
-              onBlur={(e) => updateAccount({ instagram_actor_id: e.target.value || null })}
+              defaultValue={account?.ig_account_id ?? ""}
+              onBlur={(e) => updateAccount({ ig_account_id: e.target.value || null })}
             />
           </Field>
         </div>
@@ -638,7 +638,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                   return (
                     <div className="space-y-1.5">
                       {list.map((ig) => {
-                        const selected = account?.instagram_actor_id === ig.id;
+                        const selected = account?.ig_account_id === ig.id;
                         return (
                           <div
                             key={ig.id}
@@ -657,7 +657,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                               size="sm"
                               variant={selected ? "default" : "outline"}
                               onClick={async () => {
-                                await updateAccount({ instagram_actor_id: ig.id });
+                                await updateAccount({ ig_account_id: ig.id });
                                 toast.success(`Anuncios saldrán desde @${ig.username || ig.id}`);
                               }}
                             >
