@@ -112,6 +112,34 @@ function HealthPage() {
         </Alert>
       )}
 
+      {emptyConnections.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="w-4 h-4" />
+          <AlertTitle>Conexiones sin datos</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc pl-4 space-y-1">
+              {emptyConnections.map((c) => (
+                <li key={c.clientId}>
+                  <span className="font-medium">{c.clientName ?? c.clientId}</span>:{" "}
+                  {[
+                    c.adAccountId && c.adInsightRows === 0
+                      ? "cuenta publicitaria conectada sin ninguna fila en ad_insights_daily"
+                      : null,
+                    c.igAccountId && c.syncedInstagramPosts === 0
+                      ? "Instagram vinculado sin publicaciones sincronizadas (ig_media_id)"
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  {c.lastSyncError ? ` · último error: ${c.lastSyncError}` : ""}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+
       {igBlocked && (
         <Alert variant="destructive">
           <AlertTriangle className="w-4 h-4" />
