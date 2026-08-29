@@ -19,7 +19,11 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { AlertTriangle, KeyRound, Loader2 } from "lucide-react";
-import { discoverSystemUserToken, connectSystemUser } from "@/lib/meta/connection.functions";
+import {
+  discoverSystemUserToken,
+  connectSystemUser,
+  listTakenAdAccounts,
+} from "@/lib/meta/connection.functions";
 
 type Assets = {
   scopes: string[];
@@ -47,9 +51,15 @@ export function MetaSystemUserDialog({
   const [adAccountId, setAdAccountId] = useState<string>(NONE);
   const [igAccountId, setIgAccountId] = useState<string>(NONE);
   const [busy, setBusy] = useState(false);
+  const [taken, setTaken] = useState<Map<string, string>>(new Map());
 
   const discover = useServerFn(discoverSystemUserToken);
   const connect = useServerFn(connectSystemUser);
+  const listTaken = useServerFn(listTakenAdAccounts);
+
+  // An ad account may belong to a single client only, otherwise spend doubles.
+  const takenOwner = (id: string) =>
+    taken.get(id) ?? taken.get(id.replace(/^act_/, "")) ?? taken.get(`act_${id}`) ?? null;
 
   const reset = () => {
     setToken("");
@@ -61,9 +71,22 @@ export function MetaSystemUserDialog({
   const doDiscover = async () => {
     setBusy(true);
     try {
-      const res = (await discover({ data: { clientId, token: token.trim() } })) as Assets;
+      const [res, takenRows] = await Promise.all([
+        discover({ data: { clientId, token: token.trim() } }) as Promise<Assets>,
+        listTaken({ data: { clientId } }),
+      ]);
+      const takenMap = new Map(
+        takenRows.map((r) => [r.adAccountId, r.clientName ?? "otro cliente"]),
+      );
+      setTaken(takenMap);
       setAssets(res);
-      setAdAccountId(res.adAccounts[0]?.id ?? NONE);
+      const firstFree = res.adAccounts.find(
+        (a) =>
+          !takenMap.has(a.id) &&
+          !takenMap.has(a.id.replace(/^act_/, "")) &&
+          !takenMap.has(`act_${a.id}`),
+      );
+      setAdAccountId(firstFree?.id ?? NONE);
       setIgAccountId(res.igAccounts[0]?.id ?? NONE);
       if (res.warnings.length) toast.warning(res.warnings.slice(0, 2).join(" · "));
     } catch (e: any) {
@@ -76,6 +99,15 @@ export function MetaSystemUserDialog({
   const doConnect = async () => {
     if (!assets) return;
     const ad = assets.adAccounts.find((a) => a.id === adAccountId) ?? null;
+    if (ad) {
+      const owner = takenOwner(ad.id);
+      if (owner) {
+        toast.error(
+          `La cuenta publicitaria ${ad.id} ya está asignada a ${owner}. Desvincúlala de ese cliente primero.`,
+        );
+        return;
+      }
+    }
     const ig = assets.igAccounts.find((i) => i.id === igAccountId) ?? null;
     setBusy(true);
     try {
@@ -92,17 +124,9 @@ export function MetaSystemUserDialog({
           tokenExpiresAt: assets.expiresAt,
         },
       })) as { conflicts: { clientId: string; clientName: string | null }[] };
+      void res;
 
-      if (res.conflicts?.length) {
-        toast.warning(
-          `Atención: esta cuenta publicitaria ya está asignada a ${res.conflicts
-            .map((c) => c.clientName ?? c.clientId)
-            .join(", ")}. El gasto se contaría dos veces.`,
-          { duration: 12000 },
-        );
-      } else {
-        toast.success("Cuenta de Meta conectada con token de System User");
-      }
+      toast.success("Cuenta de Meta conectada con token de System User");
       reset();
       onOpenChange(false);
       onConnected();
@@ -166,11 +190,15 @@ export function MetaSystemUserDialog({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NONE}>Sin cuenta publicitaria</SelectItem>
-                    {assets.adAccounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name} · {a.id} ({a.source})
-                      </SelectItem>
-                    ))}
+                    {assets.adAccounts.map((a) => {
+                      const owner = takenOwner(a.id);
+                      return (
+                        <SelectItem key={a.id} value={a.id} disabled={!!owner}>
+                          {a.name} · {a.id} ({a.source})
+                          {owner ? ` — ya asignada a ${owner}` : ""}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
