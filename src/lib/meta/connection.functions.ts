@@ -173,7 +173,7 @@ export const getMetaConnection = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row } = await (context.supabase.from("meta_accounts" as any) as any)
       .select(
-        "id,client_id,ad_account_id,page_id,ig_account_id,business_name,scopes,connected,token_expires_at,last_synced_at,last_sync_error",
+        "id,client_id,ad_account_id,page_id,ig_account_id,business_name,scopes,connected,auth_type,token_expires_at,last_synced_at,last_sync_error",
       )
       .eq("client_id", data.clientId)
       .maybeSingle();
