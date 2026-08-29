@@ -386,23 +386,18 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
       )}
 
       {loading ? <div className="text-sm text-muted-foreground">Cargando…</div>
-        : filtered.length === 0 && folders.length === 0 && dividers.length === 0 ? (
-          <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Aún no hay etapas.
-          </div>
-        ) : view === "kanban" ? (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            {(["pending", "in_progress", "in_review", "done"] as Status[]).map((col) => (
-              <div key={col} className="rounded-2xl bg-secondary/40 p-3 space-y-2 min-h-[200px]">
-                <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground px-1">
-                  <span>{statusMeta[col].label}</span>
-                  <span>{filtered.filter((x) => x.status === col).length}</span>
-                </div>
-                {filtered.filter((x) => x.status === col).map((it) => (
-                  <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} compact />
-                ))}
-              </div>
-            ))}
+        : filtered.length === 0 && folders.length === 0 ? (
+          <div className="rounded-2xl border border-dashed p-8 text-center space-y-3">
+            <div className="text-sm text-muted-foreground">
+              Aún no hay etapas. Puedes empezar con el set por defecto de tus seis servicios.
+            </div>
+            <Button size="sm" className="rounded-full" disabled={seeding} onClick={seedStarter}>
+              {seeding ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+              Crear etapas iniciales
+            </Button>
+            <div className="text-[11px] text-muted-foreground">
+              {STARTER_STAGES.map((s) => s.title).join(" · ")}
+            </div>
           </div>
         ) : view === "timeline" ? (
           <TimelineView items={filtered} update={update} />
@@ -410,7 +405,6 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           const rootItems = (grouped.get(null) ?? []);
           const sortedEntries = [
             ...folders.map((f) => ({ kind: "folder" as const, sort_order: f.sort_order, data: f, sortId: `f-${f.id}` })),
-            ...dividers.map((d) => ({ kind: "divider" as const, sort_order: d.sort_order, data: d, sortId: `d-${d.id}` })),
             ...rootItems.map((it) => ({ kind: "item" as const, sort_order: it.sort_order, data: it, sortId: `i-${it.id}` })),
           ].sort((a, b) => a.sort_order - b.sort_order);
           return (
@@ -418,14 +412,6 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={sortedEntries.map((e) => e.sortId)} strategy={verticalListSortingStrategy}>
                 {sortedEntries.map((entry) => {
-                  if (entry.kind === "divider") {
-                    const d = entry.data;
-                    return (
-                      <SortableWrapper key={entry.sortId} id={entry.sortId}>
-                        {(handle) => <DividerLine divider={d} onRename={(label) => renameDivider(d.id, label)} onDelete={() => removeDivider(d.id)} dragHandle={handle} />}
-                      </SortableWrapper>
-                    );
-                  }
                   if (entry.kind === "item") {
                     const it = entry.data;
                     return (
