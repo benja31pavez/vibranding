@@ -31,7 +31,9 @@ export const startMetaOAuth = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!owned) throw new Error("No tienes acceso a este cliente");
 
-    const { META_SCOPES, redirectUri, signState } = await import("@/lib/meta/oauth.server");
+    const { META_SCOPES, redirectUri, signState, metaGraphVersion } = await import(
+      "@/lib/meta/oauth.server",
+    );
     const state = await signState(
       { clientId: data.clientId, userId: context.userId, exp: Date.now() + 10 * 60 * 1000 },
       appSecret,
