@@ -90,6 +90,8 @@ function Dashboard() {
             <Card icon={TrendingUp} label="Ingresos del mes" value={`${stats.currency} ${stats.monthRevenue.toFixed(0)}`} />
           </div>
 
+          <ReviewActivity />
+
           <section className="grid lg:grid-cols-2 gap-6">
             <div className="rounded-2xl border bg-surface p-5">
               <h2 className="font-semibold mb-3 flex items-center gap-2"><CheckSquare className="w-4 h-4" /> Próximas etapas</h2>
@@ -149,5 +151,45 @@ function Dashboard() {
         </>
       )}
     </div>
+  );
+}
+
+/** Unread client approvals / change requests across all clients. */
+function ReviewActivity() {
+  const { alerts, loading, reload } = useReviewAlerts();
+  if (loading || alerts.length === 0) return null;
+  const markRead = async () => {
+    await supabase
+      .from("deliverable_comments")
+      .update({ read_by_agency: true })
+      .in("id", alerts.map((a) => a.id));
+    reload();
+  };
+  return (
+    <section className="rounded-2xl border border-warning/40 bg-warning/5 p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <MessageSquare className="w-4 h-4" />
+        <h2 className="font-semibold">Revisiones de clientes ({alerts.length})</h2>
+        <Button size="sm" variant="ghost" className="ml-auto rounded-full text-xs" onClick={markRead}>
+          Marcar como leído
+        </Button>
+      </div>
+      <ul className="space-y-2">
+        {alerts.map((a) => (
+          <li key={a.id} className="text-sm flex items-start gap-2">
+            <span className={`mt-0.5 text-[11px] uppercase tracking-wider font-semibold ${a.kind === "approval" ? "text-success" : a.kind === "change_request" ? "text-warning" : "text-muted-foreground"}`}>
+              {a.kind === "approval" ? "Aprobado" : a.kind === "change_request" ? "Cambios" : "Comentario"}
+            </span>
+            <span className="min-w-0">
+              <Link to="/clients/$clientId/plan" params={{ clientId: a.client_id }} className="font-medium hover:underline">
+                {a.deliverable_title}
+              </Link>
+              <span className="text-muted-foreground"> · {a.author_name ?? "Cliente"} · {new Date(a.created_at).toLocaleDateString()}</span>
+              {a.body && <span className="block text-muted-foreground truncate">{a.body}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
