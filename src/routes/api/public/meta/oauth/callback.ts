@@ -29,11 +29,12 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
           console.error("[meta oauth] invalid or expired state");
           return new Response("Forbidden", { status: 403 });
         }
-        const back = (status: string) =>
-          Response.redirect(
-            `${url.origin}/clients/${state.clientId}/meta-ads?meta=${status}`,
-            302,
-          );
+        const back = (status: string, errorMsg?: string) => {
+          const target = new URL(`${url.origin}/clients/${state.clientId}/meta-ads`);
+          target.searchParams.set("meta", status);
+          if (errorMsg) target.searchParams.set("meta_error", errorMsg.slice(0, 300));
+          return Response.redirect(target.toString(), 302);
+        };
 
         if (denied || !code) return back("cancelado");
 
