@@ -31,7 +31,11 @@ function LoginPage() {
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    if (session) navigate({ to: "/clients" });
+    if (!session) return;
+    (async () => {
+      const { data: cid } = await supabase.rpc("user_client_id");
+      navigate({ to: cid ? "/portal" : "/clients" });
+    })();
   }, [session, navigate]);
 
   const submit = async (e: React.FormEvent) => {
