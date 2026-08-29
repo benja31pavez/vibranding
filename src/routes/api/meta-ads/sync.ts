@@ -41,7 +41,7 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
 
           for (const c of campaigns) {
             const payload = {
-              client_id: clientId, fb_campaign_id: c.id, name: c.name ?? "Campaña",
+              client_id: clientId, meta_account_id: account.id, fb_campaign_id: c.id, name: c.name ?? "Campaña",
               objective: mapObjective(c.objective),
               status: (c.status ?? "DRAFT") as string,
               daily_budget: c.daily_budget ? Number(c.daily_budget) / 100 : null,

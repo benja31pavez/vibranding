@@ -157,7 +157,7 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
 
           // 7) Persist to DB
           const { data: dbCampaign } = await supa.from("meta_ads_campaigns").insert({
-            client_id: clientId, fb_campaign_id: fbCampaignId, name: campaign.name, objective: campaign.objective,
+            client_id: clientId, meta_account_id: acc.id, fb_campaign_id: fbCampaignId, name: campaign.name, objective: campaign.objective,
             status: campaign.status, daily_budget: campaign.cboEnabled && campaign.budgetType === "daily" ? campaign.budgetAmount : null,
             lifetime_budget: campaign.cboEnabled && campaign.budgetType === "lifetime" ? campaign.budgetAmount : null,
             start_time: campaign.startTime?.slice(0, 10), stop_time: campaign.endTime?.slice(0, 10),
@@ -165,7 +165,7 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
             bid_strategy: campaign.bidStrategy, buying_type: "AUCTION",
           }).select().single();
           const { data: dbAdset } = await supa.from("meta_ads_adsets").insert({
-            client_id: clientId, campaign_id: dbCampaign!.id, fb_adset_id: fbAdsetId,
+            client_id: clientId, meta_account_id: acc.id, campaign_id: dbCampaign!.id, fb_adset_id: fbAdsetId,
             name: adset.name, status: adset.status,
             daily_budget: !campaign.cboEnabled && adset.budgetType === "daily" ? adset.budgetAmount : null,
             lifetime_budget: !campaign.cboEnabled && adset.budgetType === "lifetime" ? adset.budgetAmount : null,
@@ -175,7 +175,7 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
             placement_mode: adset.placementMode, placements: adset.placements,
           }).select().single();
           await supa.from("meta_ads_ads").insert({
-            client_id: clientId, adset_id: dbAdset!.id, fb_ad_id: adBody.id, fb_creative_id: creativeBody.id,
+            client_id: clientId, meta_account_id: acc.id, adset_id: dbAdset!.id, fb_ad_id: adBody.id, fb_creative_id: creativeBody.id,
             name: ad.name, status: ad.status, format: ad.format,
             image_url: ad.imageUrl || null, video_url: ad.videoUrl || null,
             primary_text: ad.primaryText, headline: ad.headline, description: ad.description,
