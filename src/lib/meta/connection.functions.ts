@@ -83,7 +83,8 @@ export const connectSystemUser = createServerFn({ method: "POST" })
   .inputValidator(
     (input: {
       clientId: string;
-      token: string;
+      token?: string | null;
+      useOrgToken?: boolean;
       adAccountId: string | null;
       igAccountId: string | null;
       pageId: string | null;
@@ -94,11 +95,13 @@ export const connectSystemUser = createServerFn({ method: "POST" })
     }) => input,
   )
   .handler(async ({ data, context }) => {
-    const token = data.token.trim();
-    if (!token) throw new Error("Falta el token");
+    const token = (data.token ?? "").trim();
+    const useOrgToken = !!data.useOrgToken;
+    if (!useOrgToken && !token) throw new Error("Falta el token");
     if (!data.adAccountId && !data.igAccountId) {
       throw new Error("Selecciona al menos una cuenta publicitaria o de Instagram");
     }
+
 
     const { data: owned } = await context.supabase
       .from("clients")
@@ -144,7 +147,7 @@ export const connectSystemUser = createServerFn({ method: "POST" })
           timezone_name: data.timezoneName,
           scopes: data.scopes ?? [],
           connected: true,
-          auth_type: "system_user",
+          auth_type: useOrgToken ? "org_system_user" : "system_user",
           token_expires_at: data.tokenExpiresAt,
           last_sync_error: null,
         },
@@ -155,9 +158,12 @@ export const connectSystemUser = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const { setMetaToken } = await import("@/lib/meta/tokens.server");
-    await setMetaToken(saved.id, token);
+    // With the org token we store no per-client secret: resolution falls back
+    // to the organization token in the vault.
+    await setMetaToken(saved.id, useOrgToken ? null : token);
 
     return { ok: true, accountId: saved.id as string, conflicts };
+
   });
 
 /** Builds the Meta login URL with a signed state carrying the tenant. */
@@ -245,4 +251,102 @@ export const syncMetaInsights = createServerFn({ method: "POST" })
 
     const { ingestAccountDay } = await import("@/lib/meta/insights.server");
     return await ingestAccountDay(owned as any, token, data.date ?? undefined);
+  });
+
+// ---------------------------------------------------------------------------
+// Workspace (organization) level System User token
+// ---------------------------------------------------------------------------
+
+export type OrgTokenStatus = {
+  org_id?: string;
+  org_name?: string;
+  has_token: boolean;
+  expires_at?: string | null;
+  updated_at?: string | null;
+  scopes?: string[];
+  can_manage: boolean;
+};
+
+/** Status of the org-level Meta token for the current user's organization. */
+export const getOrgMetaTokenStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<OrgTokenStatus> => {
+    const { data, error } = await (context.supabase.rpc as any)("org_meta_token_status");
+    if (error) throw new Error(error.message);
+    return (data ?? { has_token: false, can_manage: false }) as OrgTokenStatus;
+  });
+
+/** Validates a pasted token and stores it once for the whole organization. */
+export const saveOrgMetaToken = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { token: string }) => input)
+  .handler(async ({ data, context }) => {
+    const token = data.token.trim();
+    if (token.length < 20) throw new Error("El token pegado no parece válido");
+
+    const { data: status, error: sErr } = await (context.supabase.rpc as any)(
+      "org_meta_token_status",
+    );
+    if (sErr) throw new Error(sErr.message);
+    const orgId = (status as any)?.org_id as string | undefined;
+    if (!orgId) throw new Error("No perteneces a ninguna organización");
+    if (!(status as any)?.can_manage) {
+      throw new Error("Solo el dueño o un administrador puede guardar el token de la organización");
+    }
+
+    const { discoverSystemUserAssets } = await import("@/lib/meta/systemUser.server");
+    const assets = await discoverSystemUserAssets(token);
+
+    const { error } = await (context.supabase.rpc as any)("org_meta_set_secret", {
+      _org_id: orgId,
+      _secret: token,
+      _expires_at: assets.expiresAt,
+      _scopes: assets.scopes ?? [],
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, assets };
+  });
+
+/** Removes the org-level token. Per-client tokens keep working. */
+export const clearOrgMetaToken = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: status } = await (context.supabase.rpc as any)("org_meta_token_status");
+    const orgId = (status as any)?.org_id as string | undefined;
+    if (!orgId) throw new Error("No perteneces a ninguna organización");
+    const { error } = await (context.supabase.rpc as any)("org_meta_set_secret", {
+      _org_id: orgId,
+      _secret: null,
+      _expires_at: null,
+      _scopes: [],
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/**
+ * Lists every asset the org-level token reaches, so a client can be connected
+ * without pasting the token again.
+ */
+export const discoverOrgMetaAssets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clientId: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: client } = await context.supabase
+      .from("clients")
+      .select("id,org_id")
+      .eq("id", data.clientId)
+      .maybeSingle();
+    if (!client) throw new Error("No tienes acceso a este cliente");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: token, error } = await (supabaseAdmin.rpc as any)("org_meta_get_secret", {
+      _org_id: (client as any).org_id,
+    });
+    if (error) throw new Error(error.message);
+    const value = typeof token === "string" ? token.trim() : "";
+    if (!value) throw new Error("La organización todavía no tiene un token de Meta guardado");
+
+    const { discoverSystemUserAssets } = await import("@/lib/meta/systemUser.server");
+    return await discoverSystemUserAssets(value);
   });

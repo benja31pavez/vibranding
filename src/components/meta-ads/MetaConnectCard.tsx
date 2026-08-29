@@ -139,6 +139,7 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
             <KeyRound className="w-3 h-3 mr-1" />
             Conectar con token de System User
           </Button>
+
           <Button asChild size="sm" variant="ghost">
             <Link to="/admin/meta-diagnostics">Diagnóstico</Link>
           </Button>

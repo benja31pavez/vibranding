@@ -1803,6 +1803,10 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          meta_token_expires_at: string | null
+          meta_token_scopes: string[]
+          meta_token_secret_id: string | null
+          meta_token_updated_at: string | null
           name: string
           owner_user_id: string
           updated_at: string
@@ -1810,6 +1814,10 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          meta_token_expires_at?: string | null
+          meta_token_scopes?: string[]
+          meta_token_secret_id?: string | null
+          meta_token_updated_at?: string | null
           name: string
           owner_user_id: string
           updated_at?: string
@@ -1817,6 +1825,10 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          meta_token_expires_at?: string | null
+          meta_token_scopes?: string[]
+          meta_token_secret_id?: string | null
+          meta_token_updated_at?: string | null
           name?: string
           owner_user_id?: string
           updated_at?: string
@@ -2546,6 +2558,17 @@ export type Database = {
         Args: { _account_id: string; _secret: string }
         Returns: string
       }
+      org_meta_get_secret: { Args: { _org_id: string }; Returns: string }
+      org_meta_set_secret: {
+        Args: {
+          _expires_at?: string
+          _org_id: string
+          _scopes?: string[]
+          _secret: string
+        }
+        Returns: string
+      }
+      org_meta_token_status: { Args: never; Returns: Json }
       owns_client: { Args: { _client_id: string }; Returns: boolean }
       reconcile_job_runs: { Args: never; Returns: undefined }
       run_http_cron_job: {
