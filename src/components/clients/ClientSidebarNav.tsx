@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
-  BarChart3, CheckSquare, Globe, Inbox, Instagram, Lock, Megaphone, Settings2,
+  BarChart3, CheckSquare, Globe, Inbox, Instagram, Lock, Megaphone, Settings2, Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -12,6 +12,7 @@ const ICONS: Record<SectionKey, typeof CheckSquare> = {
   plan: CheckSquare,
   instagram: Instagram,
   "meta-ads": Megaphone,
+  automatizacion: Zap,
   sitio: Globe,
   bandeja: Inbox,
   facturacion: BarChart3,
@@ -22,6 +23,7 @@ const ROUTES: Record<SectionKey, string> = {
   plan: "/clients/$clientId/plan",
   instagram: "/clients/$clientId/instagram",
   "meta-ads": "/clients/$clientId/meta-ads",
+  automatizacion: "/clients/$clientId/automatizacion",
   sitio: "/clients/$clientId/sitio",
   bandeja: "/clients/$clientId/bandeja",
   facturacion: "/clients/$clientId/facturacion",

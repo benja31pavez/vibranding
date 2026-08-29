@@ -115,7 +115,7 @@ function SetupPage() {
     {
       n: 3,
       title: "Vincular Instagram",
-      unlocks: "Desbloquea Instagram",
+      unlocks: "Desbloquea Instagram y Automatización",
       state: caps.has_instagram ? "done" : caps.meta_connected ? "available" : "blocked",
       blockedBy: "Primero conecta Meta (paso 1)",
       body: (

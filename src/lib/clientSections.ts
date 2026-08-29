@@ -4,6 +4,7 @@ export type SectionKey =
   | "plan"
   | "instagram"
   | "meta-ads"
+  | "automatizacion"
   | "sitio"
   | "bandeja"
   | "facturacion"
@@ -28,6 +29,12 @@ export const CLIENT_SECTIONS: SectionDef[] = [
     key: "meta-ads",
     label: "Meta Ads",
     lockedReason: (c) => (c.has_ad_account ? null : "Falta asignar una cuenta publicitaria"),
+  },
+  {
+    key: "automatizacion",
+    label: "Automatización",
+    lockedReason: (c) =>
+      c.has_instagram ? null : "Falta vincular una cuenta de Instagram en Meta",
   },
   { key: "sitio", label: "Sitio", lockedReason: () => null },
   {

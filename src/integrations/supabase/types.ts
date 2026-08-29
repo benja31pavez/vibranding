@@ -928,6 +928,68 @@ export type Database = {
           },
         ]
       }
+      ig_dm_triggers: {
+        Row: {
+          client_id: string
+          created_at: string
+          failed_count: number
+          id: string
+          is_active: boolean
+          keywords: string[]
+          kind: string
+          last_triggered_at: string | null
+          match_type: string
+          message: string
+          name: string
+          priority: number
+          sent_count: number
+          triggered_count: number
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          failed_count?: number
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          kind?: string
+          last_triggered_at?: string | null
+          match_type?: string
+          message: string
+          name?: string
+          priority?: number
+          sent_count?: number
+          triggered_count?: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          failed_count?: number
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          kind?: string
+          last_triggered_at?: string | null
+          match_type?: string
+          message?: string
+          name?: string
+          priority?: number
+          sent_count?: number
+          triggered_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ig_dm_triggers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_highlights: {
         Row: {
           client_id: string
@@ -2677,6 +2739,7 @@ export type Database = {
           tags: string[]
           unread_count: number
           updated_at: string
+          welcome_sent_at: string | null
         }
         Insert: {
           account_id?: string | null
@@ -2704,6 +2767,7 @@ export type Database = {
           tags?: string[]
           unread_count?: number
           updated_at?: string
+          welcome_sent_at?: string | null
         }
         Update: {
           account_id?: string | null
@@ -2731,6 +2795,7 @@ export type Database = {
           tags?: string[]
           unread_count?: number
           updated_at?: string
+          welcome_sent_at?: string | null
         }
         Relationships: [
           {
@@ -2989,6 +3054,15 @@ export type Database = {
           slot_minutes: number
           timezone: string
         }[]
+      }
+      ig_dm_trigger_bump: {
+        Args: {
+          _failed: number
+          _sent: number
+          _trigger_id: string
+          _triggered: number
+        }
+        Returns: undefined
       }
       ig_trigger_bump: {
         Args: {
