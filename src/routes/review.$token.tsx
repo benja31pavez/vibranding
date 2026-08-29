@@ -61,7 +61,7 @@ function PublicReview() {
       _token: token,
       _kind: kind,
       _body: body,
-      _name: name.trim() || null,
+      _name: name.trim() || undefined,
     });
     setBusy(false);
     const ok = (res as any)?.ok;

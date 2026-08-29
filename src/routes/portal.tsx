@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { AnalyticsDashboard } from "@/components/analytics/AnalyticsDashboard";
 import { Button } from "@/components/ui/button";
-import { LogOut, Target, CheckSquare } from "lucide-react";
+import { LogOut, Target, CheckSquare, Eye } from "lucide-react";
+import { ReviewThread, type ReviewComment, type ReviewDeliverable } from "@/components/deliverables/ReviewThread";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/portal")({
   ssr: false,
@@ -50,6 +52,57 @@ function ClientPortal() {
   const [ready, setReady] = useState(false);
   const [deliverables, setDeliverables] = useState<Item[]>([]);
   const [objectives, setObjectives] = useState<Item[]>([]);
+  const [reviews, setReviews] = useState<ReviewDeliverable[]>([]);
+  const [threads, setThreads] = useState<Record<string, ReviewComment[]>>({});
+  const [busy, setBusy] = useState(false);
+
+  const loadReviews = async (cid: string) => {
+    const { data: d } = await supabase
+      .from("deliverables")
+      .select("id,title,description,status,due_date,file_url,file_name,mime_type")
+      .eq("client_id", cid)
+      .eq("status", "in_review")
+      .order("sort_order");
+    const rows = (d ?? []) as ReviewDeliverable[];
+    setReviews(rows);
+    if (rows.length === 0) return setThreads({});
+    const { data: c } = await supabase
+      .from("deliverable_comments")
+      .select("id,deliverable_id,kind,body,author_role,author_name,created_at")
+      .in("deliverable_id", rows.map((r) => r.id))
+      .order("created_at");
+    const map: Record<string, ReviewComment[]> = {};
+    for (const row of (c ?? []) as any[]) {
+      (map[row.deliverable_id] ||= []).push(row as ReviewComment);
+    }
+    setThreads(map);
+  };
+
+  const submitReview = async (d: ReviewDeliverable, kind: ReviewComment["kind"], body: string) => {
+    if (!clientId) return;
+    setBusy(true);
+    const { error } = await supabase.from("deliverable_comments").insert({
+      deliverable_id: d.id,
+      client_id: clientId,
+      author: "client",
+      author_role: "client",
+      author_user_id: session?.user?.id ?? null,
+      author_name: (session?.user?.user_metadata?.full_name as string | undefined) || session?.user?.email || "Cliente",
+      read_by_agency: false,
+      kind,
+      body: body.trim(),
+    });
+    if (!error && kind !== "comment") {
+      await supabase
+        .from("deliverables")
+        .update({ status: kind === "approval" ? "done" : "in_progress" })
+        .eq("id", d.id);
+    }
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(kind === "approval" ? "Entregable aprobado" : kind === "change_request" ? "Cambios enviados" : "Comentario enviado");
+    loadReviews(clientId);
+  };
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
@@ -80,6 +133,7 @@ function ClientPortal() {
       setClientName(c?.name ?? "");
       setDeliverables((d ?? []) as Item[]);
       setObjectives((o ?? []) as Item[]);
+      await loadReviews(cid as string);
       setReady(true);
     })();
   }, [session?.user?.id]);
@@ -113,6 +167,27 @@ function ClientPortal() {
           <>
             <h1 className="text-3xl font-semibold tracking-tight">Tu cuenta</h1>
             <AnalyticsDashboard clientId={clientId} />
+
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Eye className="w-4 h-4" /> Pendientes de tu revisión
+              </div>
+              {reviews.length === 0 ? (
+                <div className="rounded-2xl border bg-surface p-5 text-sm text-muted-foreground">
+                  No hay entregables esperando tu revisión.
+                </div>
+              ) : (
+                reviews.map((d) => (
+                  <ReviewThread
+                    key={d.id}
+                    deliverable={d}
+                    comments={threads[d.id] ?? []}
+                    busy={busy}
+                    onSubmit={(kind, body) => submitReview(d, kind, body)}
+                  />
+                ))
+              )}
+            </section>
 
             <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <ReadOnlyList
