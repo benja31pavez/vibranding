@@ -52,110 +52,18 @@ function PublicLanding() {
     trackEvent("page_view", { type: "landing", id: lp.id });
   }, [lp.id]);
 
-  const waUrl = landingWhatsappUrl(lp as any);
-
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28 grid md:grid-cols-2 gap-10 items-center">
-          <div>
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight" style={{ color }}>
-              {lp.hero_title}
-            </h1>
-            {lp.hero_subtitle && (
-              <p className="mt-5 text-lg text-gray-600 whitespace-pre-line">{lp.hero_subtitle}</p>
-            )}
-            {lp.cta_text && (
-              <a
-                href={lp.cta_url || "#contacto"}
-                className="inline-flex items-center mt-8 rounded-full px-7 py-3 font-medium text-white transition hover:opacity-90"
-                style={{ background: color }}
-                onClick={() => trackEvent("contact_click", { type: "landing", id: lp.id })}
-                {...(lp.cta_url ? { target: "_blank", rel: "noreferrer" } : {})}
-              >
-                {lp.cta_text}
-              </a>
-            )}
-          </div>
-          {lp.hero_image_url && (
-            <img src={lp.hero_image_url} alt="" className="w-full rounded-3xl shadow-2xl object-cover aspect-square" />
-          )}
-        </div>
-      </section>
-
-      {/* Services */}
-      {Array.isArray(lp.services) && lp.services.length > 0 && (
-        <section className="bg-gray-50 py-20">
-          <div className="max-w-6xl mx-auto px-6">
-            <h2 className="text-3xl font-bold text-center mb-12">Servicios</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              {(lp.services as any[]).map((s: any, i: number) => (
-                <div key={i} className="rounded-2xl bg-white p-6 shadow-sm border">
-                  <div className="w-10 h-10 rounded-lg mb-4" style={{ background: `${color}22` }} />
-                  <h3 className="font-semibold text-lg" style={{ color }}>{s.title}</h3>
-                  <p className="mt-2 text-sm text-gray-600 whitespace-pre-line">{s.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Gallery */}
-      {Array.isArray(lp.gallery) && lp.gallery.length > 0 && (
-        <section className="py-20">
-          <div className="max-w-6xl mx-auto px-6">
-            <h2 className="text-3xl font-bold text-center mb-12">Galería</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {(lp.gallery as any[]).map((g: any, i: number) => (
-                <img key={i} src={g.url} alt="" className="w-full aspect-square object-cover rounded-xl" />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* WhatsApp CTA */}
-      {waUrl && (
-        <section className="py-16">
-          <div className="max-w-2xl mx-auto px-6 text-center">
-            <h2 className="text-3xl font-bold">{(lp as any).whatsapp_cta_text || "Escríbenos por WhatsApp"}</h2>
-            <p className="mt-3 text-gray-600">
-              Te respondemos por WhatsApp con el mensaje ya listo para enviar.
-            </p>
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => trackEvent("whatsapp_click", { type: "landing", id: lp.id })}
-              className="inline-flex items-center gap-2 mt-7 rounded-full px-7 py-3 font-medium text-white transition hover:opacity-90"
-              style={{ background: "#25D366" }}
-            >
-              <MessageCircle className="w-5 h-5" />
-              {(lp as any).whatsapp_cta_text || "Escríbenos por WhatsApp"}
-            </a>
-          </div>
-        </section>
-      )}
-
-      {/* Contact */}
-      {lp.contact_enabled && (
-        <section id="contacto" className="bg-gray-50 py-20">
-          <div className="max-w-xl mx-auto px-6">
-            <h2 className="text-3xl font-bold text-center mb-2">Contáctanos</h2>
-            <p className="text-center text-gray-600 mb-8">Te responderemos lo antes posible.</p>
-            <ContactForm landingId={lp.id} clientId={lp.client_id} color={color} />
-          </div>
-        </section>
-      )}
-
-      <footer className="py-8 text-center text-xs text-gray-500">
-        © {new Date().getFullYear()} {lp.hero_title}
-      </footer>
+    <div className="min-h-screen">
+      <PublicLandingView
+        lp={lp as any}
+        onCtaClick={() => trackEvent("contact_click", { type: "landing", id: lp.id })}
+        onWhatsappClick={() => trackEvent("whatsapp_click", { type: "landing", id: lp.id })}
+        contactForm={<ContactForm landingId={lp.id} clientId={lp.client_id} color={color} />}
+      />
     </div>
   );
 }
+
 
 function ContactForm({ landingId, clientId, color }: { landingId: string; clientId: string; color: string }) {
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
