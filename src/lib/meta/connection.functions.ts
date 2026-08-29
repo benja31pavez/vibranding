@@ -147,7 +147,7 @@ export const connectSystemUser = createServerFn({ method: "POST" })
           timezone_name: data.timezoneName,
           scopes: data.scopes ?? [],
           connected: true,
-          auth_type: "system_user",
+          auth_type: useOrgToken ? "org_system_user" : "system_user",
           token_expires_at: data.tokenExpiresAt,
           last_sync_error: null,
         },
@@ -158,9 +158,12 @@ export const connectSystemUser = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const { setMetaToken } = await import("@/lib/meta/tokens.server");
-    await setMetaToken(saved.id, token);
+    // With the org token we store no per-client secret: resolution falls back
+    // to the organization token in the vault.
+    await setMetaToken(saved.id, useOrgToken ? null : token);
 
     return { ok: true, accountId: saved.id as string, conflicts };
+
   });
 
 /** Builds the Meta login URL with a signed state carrying the tenant. */
