@@ -535,28 +535,16 @@ function ScheduleBadge({ item }: { item: Item }) {
   return <span className={`text-[11px] px-2 py-1 rounded-full border ${s.className}`}>{s.label}</span>;
 }
 
-function PreviewItem({ item, color }: { item: Item; color: string }) {
-  if (item.kind === "video") {
-    return (
-      <div className="rounded-xl border border-black/10 overflow-hidden text-left">
-        <div className="aspect-video bg-black/10 grid place-items-center">
-          <Play className="w-5 h-5 opacity-60" />
-        </div>
-        <div className="px-3 py-2 text-sm font-medium">{item.title || "Video"}</div>
-      </div>
-    );
-  }
-  const bg = item.kind === "whatsapp" ? "#25D366" : color;
+function SocialSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <div
-      className={`rounded-xl px-4 text-center font-medium ${item.featured ? "py-6 text-base shadow-md" : "py-3 text-sm"}`}
-      style={{ background: bg, color: "#fff" }}
+    <select
+      className="h-9 rounded-md border bg-background px-2 text-sm"
+      value={value}
+      onChange={e => onChange(e.target.value)}
     >
-      <span className="inline-flex items-center gap-1.5">
-        {item.kind === "whatsapp" && <MessageCircle className="w-4 h-4" />}
-        {item.title || "Enlace"}
-      </span>
-      {item.subtitle && <span className="block text-xs opacity-90">{item.subtitle}</span>}
-    </div>
+      {(Object.keys(SOCIAL_LABEL) as SocialNetwork[]).map(k => (
+        <option key={k} value={k}>{SOCIAL_LABEL[k]}</option>
+      ))}
+    </select>
   );
 }
