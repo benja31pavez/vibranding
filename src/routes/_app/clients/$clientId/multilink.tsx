@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { EventsPanel } from "@/components/landing/EventsPanel";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -229,8 +230,15 @@ function MultilinkPage() {
             Abrir <ExternalLink className="w-3 h-3" />
           </a>
         )}
-        <div className="ml-auto text-xs text-muted-foreground">{ml.view_count} visitas</div>
+        <div className="ml-auto text-xs text-muted-foreground">{ml.view_count} visitas acumuladas</div>
       </div>
+
+      <EventsPanel
+        clientId={clientId}
+        sourceType="multilink"
+        sourceId={ml.id}
+        itemLabels={Object.fromEntries(items.map(i => [i.id, i.title]))}
+      />
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Editor */}

@@ -1,6 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { trackEvent } from "@/lib/track";
 
 export const Route = createFileRoute("/@{$slug}/links")({
   loader: async ({ params }) => {
@@ -36,11 +37,11 @@ function PublicMultilink() {
   const { ml, items } = Route.useLoaderData();
 
   useEffect(() => {
-    supabase.rpc("increment_multilink_view", { _id: ml.id });
+    trackEvent("page_view", { type: "multilink", id: ml.id });
   }, [ml.id]);
 
   const onClick = (id: string) => {
-    supabase.rpc("increment_multilink_click", { _id: id });
+    trackEvent("link_click", { type: "multilink", id: ml.id, itemId: id });
   };
 
   const isDark = ml.theme_mode === "dark";

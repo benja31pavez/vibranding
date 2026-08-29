@@ -1071,6 +1071,7 @@ export type Database = {
           landing_id: string
           message: string
           name: string
+          phone: string | null
         }
         Insert: {
           client_id: string
@@ -1080,6 +1081,7 @@ export type Database = {
           landing_id: string
           message: string
           name: string
+          phone?: string | null
         }
         Update: {
           client_id?: string
@@ -1089,6 +1091,7 @@ export type Database = {
           landing_id?: string
           message?: string
           name?: string
+          phone?: string | null
         }
         Relationships: [
           {
@@ -1102,33 +1105,62 @@ export type Database = {
       }
       landing_events: {
         Row: {
+          client_id: string | null
           created_at: string
           event_name: string
           id: string
+          item_id: string | null
           lang: string | null
           path: string | null
           referrer: string | null
+          source_id: string | null
+          source_type: string
           user_agent: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
         }
         Insert: {
+          client_id?: string | null
           created_at?: string
           event_name: string
           id?: string
+          item_id?: string | null
           lang?: string | null
           path?: string | null
           referrer?: string | null
+          source_id?: string | null
+          source_type: string
           user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
         }
         Update: {
+          client_id?: string | null
           created_at?: string
           event_name?: string
           id?: string
+          item_id?: string | null
           lang?: string | null
           path?: string | null
           referrer?: string | null
+          source_id?: string | null
+          source_type?: string
           user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "landing_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       landing_pages: {
         Row: {
@@ -1148,6 +1180,10 @@ export type Database = {
           theme_color: string
           updated_at: string
           view_count: number
+          whatsapp_cta_text: string | null
+          whatsapp_enabled: boolean
+          whatsapp_message: string | null
+          whatsapp_number: string | null
         }
         Insert: {
           client_id: string
@@ -1166,6 +1202,10 @@ export type Database = {
           theme_color?: string
           updated_at?: string
           view_count?: number
+          whatsapp_cta_text?: string | null
+          whatsapp_enabled?: boolean
+          whatsapp_message?: string | null
+          whatsapp_number?: string | null
         }
         Update: {
           client_id?: string
@@ -1184,6 +1224,10 @@ export type Database = {
           theme_color?: string
           updated_at?: string
           view_count?: number
+          whatsapp_cta_text?: string | null
+          whatsapp_enabled?: boolean
+          whatsapp_message?: string | null
+          whatsapp_number?: string | null
         }
         Relationships: []
       }
@@ -2303,6 +2347,9 @@ export type Database = {
           last_bot_at: string | null
           last_message_at: string | null
           last_message_preview: string | null
+          lead_source_detail: string | null
+          lead_source_id: string | null
+          lead_source_type: string | null
           needs_human_followup: boolean
           pending_response_at: string | null
           status: string
@@ -2323,6 +2370,9 @@ export type Database = {
           last_bot_at?: string | null
           last_message_at?: string | null
           last_message_preview?: string | null
+          lead_source_detail?: string | null
+          lead_source_id?: string | null
+          lead_source_type?: string | null
           needs_human_followup?: boolean
           pending_response_at?: string | null
           status?: string
@@ -2343,6 +2393,9 @@ export type Database = {
           last_bot_at?: string | null
           last_message_at?: string | null
           last_message_preview?: string | null
+          lead_source_detail?: string | null
+          lead_source_id?: string | null
+          lead_source_type?: string | null
           needs_human_followup?: boolean
           pending_response_at?: string | null
           status?: string
@@ -2551,6 +2604,22 @@ export type Database = {
           duration_minutes: number
           scheduled_at: string
         }[]
+      }
+      log_landing_event: {
+        Args: {
+          _event_name: string
+          _item_id?: string
+          _lang?: string
+          _path?: string
+          _referrer?: string
+          _source_id?: string
+          _source_type?: string
+          _user_agent?: string
+          _utm_campaign?: string
+          _utm_medium?: string
+          _utm_source?: string
+        }
+        Returns: undefined
       }
       manages_client: { Args: { _client_id: string }; Returns: boolean }
       meta_get_secret: { Args: { _account_id: string }; Returns: string }

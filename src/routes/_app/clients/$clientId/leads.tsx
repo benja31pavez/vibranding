@@ -67,7 +67,7 @@ function LeadsPage() {
         .order("last_message_at", { ascending: false, nullsFirst: false }),
       supabase
         .from("landing_contact_submissions")
-        .select("id,name,email,message,created_at")
+        .select("id,name,email,phone,message,created_at")
         .eq("client_id", clientId)
         .order("created_at", { ascending: false }),
       (supabase.from("client_leads" as any) as any)
@@ -102,7 +102,7 @@ function LeadsPage() {
         source: "landing" as Source,
         source_id: s.id,
         name: s.name,
-        contact: s.email,
+        contact: [s.email, s.phone].filter(Boolean).join(" · "),
         message: s.message,
         created_at: s.created_at,
         ...get("landing", s.id),

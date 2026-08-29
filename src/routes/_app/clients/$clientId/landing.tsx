@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail, Smartphone, Monitor } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail, Smartphone, Monitor, MessageCircle } from "lucide-react";
+import { EventsPanel } from "@/components/landing/EventsPanel";
+import { landingWhatsappText } from "@/lib/landingWhatsapp";
 
 export const Route = createFileRoute("/_app/clients/$clientId/landing")({
   component: LandingEditor,
@@ -34,9 +36,13 @@ type Landing = {
   gallery: GalleryItem[];
   contact_enabled: boolean;
   view_count: number;
+  whatsapp_enabled: boolean;
+  whatsapp_number: string | null;
+  whatsapp_cta_text: string | null;
+  whatsapp_message: string | null;
 };
 
-type Submission = { id: string; name: string; email: string; message: string; created_at: string };
+type Submission = { id: string; name: string; email: string; phone: string | null; message: string; created_at: string };
 
 function LandingEditor() {
   const { clientId } = Route.useParams();
@@ -53,7 +59,7 @@ function LandingEditor() {
     setLp(data as unknown as Landing | null);
     if (data) {
       const { data: s } = await supabase.from("landing_contact_submissions")
-        .select("id,name,email,message,created_at")
+        .select("id,name,email,phone,message,created_at")
         .eq("client_id", clientId).order("created_at", { ascending: false });
       setSubs((s ?? []) as Submission[]);
     }
@@ -91,6 +97,10 @@ function LandingEditor() {
       services: lp.services,
       gallery: lp.gallery,
       contact_enabled: lp.contact_enabled,
+      whatsapp_enabled: lp.whatsapp_enabled,
+      whatsapp_number: lp.whatsapp_number,
+      whatsapp_cta_text: lp.whatsapp_cta_text,
+      whatsapp_message: lp.whatsapp_message,
     }).eq("id", lp.id);
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -188,7 +198,9 @@ function LandingEditor() {
             Abrir <ExternalLink className="w-3 h-3" />
           </a>
         )}
-        <div className="ml-auto text-xs text-muted-foreground">{lp.view_count} visitas</div>
+        <div className="ml-auto text-xs text-muted-foreground">
+          {lp.view_count} visitas acumuladas
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-[1fr_420px] gap-6 items-start">
@@ -265,6 +277,58 @@ function LandingEditor() {
             </div>
           </section>
 
+          {/* WhatsApp CTA */}
+          <section className="rounded-2xl border bg-surface p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium flex items-center gap-2">
+                <MessageCircle className="w-4 h-4" /> Bloque de WhatsApp
+              </h3>
+              <Switch
+                checked={lp.whatsapp_enabled}
+                onCheckedChange={v => update({ whatsapp_enabled: v })}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Abre wa.me con el mensaje ya escrito. Se añade una referencia automática para saber
+              qué conversación de WhatsApp vino de esta landing.
+            </p>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Número (con código de país)</Label>
+                <Input
+                  placeholder="+56 9 1234 5678"
+                  value={lp.whatsapp_number ?? ""}
+                  onChange={e => update({ whatsapp_number: e.target.value })}
+                  maxLength={30}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Texto del botón</Label>
+                <Input
+                  placeholder="Escríbenos por WhatsApp"
+                  value={lp.whatsapp_cta_text ?? ""}
+                  onChange={e => update({ whatsapp_cta_text: e.target.value })}
+                  maxLength={60}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Mensaje prellenado</Label>
+              <Textarea
+                rows={2}
+                placeholder="Hola, vengo desde su página web y quiero más información."
+                value={lp.whatsapp_message ?? ""}
+                onChange={e => update({ whatsapp_message: e.target.value })}
+                maxLength={400}
+              />
+            </div>
+            <div className="rounded-lg border bg-background p-3 text-xs text-muted-foreground whitespace-pre-line">
+              {landingWhatsappText(lp as any)}
+            </div>
+          </section>
+
+          <EventsPanel clientId={clientId} sourceType="landing" sourceId={lp.id} />
+
           {/* Contact */}
           <section className="rounded-2xl border bg-surface p-5 space-y-3">
             <div className="flex items-center justify-between">
@@ -279,7 +343,7 @@ function LandingEditor() {
                 <li key={s.id} className="rounded-lg border bg-background p-3 text-sm">
                   <div className="flex justify-between items-start gap-2">
                     <div className="min-w-0">
-                      <div className="font-medium">{s.name} <span className="text-muted-foreground font-normal">· {s.email}</span></div>
+                      <div className="font-medium">{s.name} <span className="text-muted-foreground font-normal">· {s.email}{s.phone ? ` · ${s.phone}` : ""}</span></div>
                       <div className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString()}</div>
                       <p className="mt-1 whitespace-pre-line">{s.message}</p>
                     </div>
