@@ -82,22 +82,23 @@ export function ConnectWhatsAppCard({
       setSaving(false);
       return;
     }
-    const updates: {
-      phone_number_id: string | null;
-      waba_id: string | null;
-      display_phone_number: string | null;
-      connected: boolean;
-      access_token?: string;
-    } = {
-      phone_number_id: phoneNumberId || null,
-      waba_id: wabaId || null,
-      display_phone_number: displayPhone || null,
-      connected: !!(phoneNumberId && (accessToken || a.has_access_token)),
-    };
-    if (accessToken) updates.access_token = accessToken;
+    // The token itself is stored encrypted server-side, never in the table.
+    if (accessToken) {
+      try {
+        await storeAccessToken({ data: { accountId: a.id, token: accessToken } });
+      } catch (e: any) {
+        setSaving(false);
+        return toast.error(e?.message ?? "No se pudo guardar el token");
+      }
+    }
     const { error } = await supabase
       .from("whatsapp_accounts")
-      .update(updates)
+      .update({
+        phone_number_id: phoneNumberId || null,
+        waba_id: wabaId || null,
+        display_phone_number: displayPhone || null,
+        connected: !!(phoneNumberId && (accessToken || a.has_access_token)),
+      })
       .eq("id", a.id);
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -110,9 +111,14 @@ export function ConnectWhatsAppCard({
   const disconnect = async () => {
     if (!account) return;
     if (!confirm("¿Desconectar WhatsApp? Los mensajes históricos se conservan.")) return;
+    try {
+      await storeAccessToken({ data: { accountId: account.id, token: null } });
+    } catch (e: any) {
+      return toast.error(e?.message ?? "No se pudo desconectar");
+    }
     const { error } = await supabase
       .from("whatsapp_accounts")
-      .update({ connected: false, access_token: null })
+      .update({ connected: false })
       .eq("id", account.id);
     if (error) return toast.error(error.message);
     onChange();
