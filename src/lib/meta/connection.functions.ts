@@ -44,7 +44,7 @@ export const startMetaOAuth = createServerFn({ method: "POST" })
       response_type: "code",
       scope: META_SCOPES.join(","),
     });
-    return { url: `https://www.facebook.com/v21.0/dialog/oauth?${params.toString()}` };
+    return { url: `https://www.facebook.com/${metaGraphVersion()}/dialog/oauth?${params.toString()}` };
   });
 
 export const getMetaConnection = createServerFn({ method: "POST" })
