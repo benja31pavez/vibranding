@@ -99,6 +99,10 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
       avatar_url: ml.avatar_url,
       theme_color: ml.theme_color,
       theme_mode: ml.theme_mode,
+      button_style: ml.button_style,
+      button_shape: ml.button_shape,
+      font_family: ml.font_family,
+      background: ml.background as any,
       slug: slugify(ml.slug) || ml.slug,
     }).eq("id", ml.id);
     setSaving(false);
