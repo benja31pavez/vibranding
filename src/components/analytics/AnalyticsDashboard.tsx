@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -99,7 +100,7 @@ function KpiCard({
   hint?: string;
   deltaValue: number | null;
   lowerIsBetter?: boolean;
-  empty?: string | null;
+  empty?: React.ReactNode | null;
 }) {
   return (
     <Card>
@@ -118,6 +119,18 @@ function KpiCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function BackfillLink({ clientId }: { clientId: string }) {
+  return (
+    <Link
+      to="/clients/$clientId/backfill"
+      params={{ clientId }}
+      className="font-medium underline underline-offset-2 hover:text-foreground"
+    >
+      marcar resultados ahora
+    </Link>
   );
 }
 
@@ -144,6 +157,15 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
   const fp = data?.funnel_prev;
   const answered = f?.answered ?? 0;
   const outcomesMissing = !!f && f.marked === 0;
+  const unmarkedInPeriod = f ? Math.max(f.started - f.marked, 0) : 0;
+  /** Specific, actionable empty state: never render a 0 as a measurement. */
+  const unmarkedNote =
+    unmarkedInPeriod > 0 ? (
+      <>
+        {num(unmarkedInPeriod)} conversación{unmarkedInPeriod === 1 ? "" : "es"} sin marcar en este
+        periodo, así que esta métrica no es medible todavía · <BackfillLink clientId={clientId} />
+      </>
+    ) : null;
 
   const costPerQualified = safeRatio(data?.spend, f?.qualified || null);
   const costPerQualifiedPrev = safeRatio(data?.spend_prev, fp?.qualified || null);
@@ -327,11 +349,12 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
                       );
                     })}
                   </div>
-                  {outcomesMissing && (
+                  {unmarkedInPeriod > 0 && (
                     <Empty>
-                      Ninguna conversación de este periodo tiene resultado marcado (Respondida /
-                      Calificada / Cerrada). Marca los resultados en la bandeja de WhatsApp para
-                      ver los pasos siguientes del embudo.
+                      {num(unmarkedInPeriod)} conversación{unmarkedInPeriod === 1 ? "" : "es"} sin
+                      marcar en este periodo (de {num(f!.started)} iniciadas), así que los pasos
+                      Respondida / Calificada / Cerrada están incompletos ·{" "}
+                      <BackfillLink clientId={clientId} />
                     </Empty>
                   )}
                 </>
@@ -351,7 +374,8 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
                 !data.has_spend_data
                   ? "Sin datos de inversión de Meta en este periodo."
                   : outcomesMissing || f!.qualified === 0
-                    ? "Ninguna conversación fue marcada como calificada, así que este costo no se puede calcular."
+                    ? (unmarkedNote ??
+                      "Ninguna conversación fue marcada como calificada, así que este costo no se puede calcular.")
                     : null
               }
             />
@@ -365,7 +389,7 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
                 !data.has_spend_data
                   ? "Sin datos de inversión de Meta en este periodo."
                   : f!.closed === 0
-                    ? "Todavía no hay conversaciones marcadas como cerradas."
+                    ? (unmarkedNote ?? "Todavía no hay conversaciones marcadas como cerradas.")
                     : null
               }
             />
@@ -378,7 +402,8 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
                 !data.has_spend_data
                   ? "Sin datos de inversión de Meta en este periodo."
                   : (f!.closed_with_value ?? 0) === 0
-                    ? "Ningún cierre tiene valor en CLP registrado, así que el ROAS no es medible."
+                    ? (unmarkedNote ??
+                      "Ningún cierre tiene valor en CLP registrado, así que el ROAS no es medible.")
                     : null
               }
             />
