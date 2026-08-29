@@ -13,7 +13,125 @@ export type MetaConnection = {
   token_expires_at: string | null;
   last_synced_at: string | null;
   last_sync_error: string | null;
+  auth_type?: string | null;
 };
+
+/** Inspects a pasted System User token and lists the assets it can reach. */
+export const discoverSystemUserToken = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clientId: string; token: string }) => input)
+  .handler(async ({ data, context }) => {
+    const token = data.token.trim();
+    if (token.length < 20) throw new Error("El token pegado no parece válido");
+
+    const { data: owned } = await context.supabase
+      .from("clients")
+      .select("id")
+      .eq("id", data.clientId)
+      .maybeSingle();
+    if (!owned) throw new Error("No tienes acceso a este cliente");
+
+    const { discoverSystemUserAssets } = await import("@/lib/meta/systemUser.server");
+    return await discoverSystemUserAssets(token);
+  });
+
+/** Warns when an ad account is already assigned to a different client. */
+export const checkAdAccountConflict = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clientId: string; adAccountId: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { normalizeAdAccountId } = await import("@/lib/meta/systemUser.server");
+    const adAccountId = normalizeAdAccountId(data.adAccountId);
+    const bare = adAccountId.replace(/^act_/, "");
+
+    const { data: rows } = await (context.supabase.from("meta_accounts" as any) as any)
+      .select("client_id,ad_account_id,clients(name)")
+      .in("ad_account_id", [adAccountId, bare])
+      .neq("client_id", data.clientId);
+
+    const conflicts = ((rows ?? []) as any[]).map((r) => ({
+      clientId: r.client_id as string,
+      clientName: (r.clients?.name as string | null) ?? null,
+    }));
+    return { adAccountId, conflicts };
+  });
+
+/**
+ * Connects using a permanent System User token. The token is stored in Vault
+ * exactly like the OAuth path; the table only keeps a reference.
+ */
+export const connectSystemUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: {
+      clientId: string;
+      token: string;
+      adAccountId: string | null;
+      igAccountId: string | null;
+      pageId: string | null;
+      businessName: string | null;
+      timezoneName: string | null;
+      scopes: string[];
+      tokenExpiresAt: string | null;
+    }) => input,
+  )
+  .handler(async ({ data, context }) => {
+    const token = data.token.trim();
+    if (!token) throw new Error("Falta el token");
+    if (!data.adAccountId && !data.igAccountId) {
+      throw new Error("Selecciona al menos una cuenta publicitaria o de Instagram");
+    }
+
+    const { data: owned } = await context.supabase
+      .from("clients")
+      .select("id")
+      .eq("id", data.clientId)
+      .maybeSingle();
+    if (!owned) throw new Error("No tienes acceso a este cliente");
+
+    const { normalizeAdAccountId } = await import("@/lib/meta/systemUser.server");
+    const adAccountId = data.adAccountId ? normalizeAdAccountId(data.adAccountId) : null;
+
+    // Uniqueness guard: never block, but report so spend is not double-counted.
+    let conflicts: { clientId: string; clientName: string | null }[] = [];
+    if (adAccountId) {
+      const bare = adAccountId.replace(/^act_/, "");
+      const { data: rows } = await (context.supabase.from("meta_accounts" as any) as any)
+        .select("client_id,clients(name)")
+        .in("ad_account_id", [adAccountId, bare])
+        .neq("client_id", data.clientId);
+      conflicts = ((rows ?? []) as any[]).map((r) => ({
+        clientId: r.client_id as string,
+        clientName: (r.clients?.name as string | null) ?? null,
+      }));
+    }
+
+    const { data: saved, error } = await (context.supabase.from("meta_accounts" as any) as any)
+      .upsert(
+        {
+          client_id: data.clientId,
+          ad_account_id: adAccountId,
+          page_id: data.pageId,
+          ig_account_id: data.igAccountId,
+          business_name: data.businessName,
+          timezone_name: data.timezoneName,
+          scopes: data.scopes ?? [],
+          connected: true,
+          auth_type: "system_user",
+          token_expires_at: data.tokenExpiresAt,
+          last_sync_error: null,
+        },
+        { onConflict: "client_id" },
+      )
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+
+    const { setMetaToken } = await import("@/lib/meta/tokens.server");
+    await setMetaToken(saved.id, token);
+
+    return { ok: true, accountId: saved.id as string, conflicts };
+  });
 
 /** Builds the Meta login URL with a signed state carrying the tenant. */
 export const startMetaOAuth = createServerFn({ method: "POST" })
