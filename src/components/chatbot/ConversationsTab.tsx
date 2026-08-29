@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock, AlertTriangle, Check, Megaphone } from "lucide-react";
 import { toast } from "sonner";
+import { isStale } from "@/hooks/use-unmarked-outcomes";
+import { Link } from "@tanstack/react-router";
 import {
   OutcomeSelector,
   type Outcome,
@@ -198,19 +200,25 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
     loadConvs();
   };
 
-  const filtered = convs.filter((c) => {
-    if (filterLead && !c.is_lead) return false;
-    if (filterFollowup && !c.needs_human_followup) return false;
-    if (search) {
-      const s = search.toLowerCase();
-      return (
-        (c.contact_name ?? "").toLowerCase().includes(s) ||
-        c.contact_wa_id.includes(s) ||
-        (c.last_message_preview ?? "").toLowerCase().includes(s)
-      );
-    }
-    return true;
-  });
+  /** Unmarked and idle for more than 24h → needs an outcome, floats to the top. */
+  const needsOutcome = (c: Conv) => !outcomes[c.id] && isStale(c.last_message_at);
+  const pendingOutcomeCount = convs.filter(needsOutcome).length;
+
+  const filtered = convs
+    .filter((c) => {
+      if (filterLead && !c.is_lead) return false;
+      if (filterFollowup && !c.needs_human_followup) return false;
+      if (search) {
+        const s = search.toLowerCase();
+        return (
+          (c.contact_name ?? "").toLowerCase().includes(s) ||
+          c.contact_wa_id.includes(s) ||
+          (c.last_message_preview ?? "").toLowerCase().includes(s)
+        );
+      }
+      return true;
+    })
+    .sort((a, b) => Number(needsOutcome(b)) - Number(needsOutcome(a)));
 
   return (
     <Card className="h-[640px] grid grid-cols-1 md:grid-cols-[320px_1fr] overflow-hidden">
@@ -250,6 +258,16 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
             </Button>
           </div>
         </div>
+        {pendingOutcomeCount > 0 && (
+          <Link
+            to="/clients/$clientId/backfill"
+            params={{ clientId }}
+            className="block border-b bg-destructive/10 px-3 py-2 text-xs text-destructive hover:bg-destructive/15"
+          >
+            {pendingOutcomeCount} conversación{pendingOutcomeCount === 1 ? "" : "es"} sin marcar ·
+            marcar en lote →
+          </Link>
+        )}
         <ScrollArea className="flex-1">
           {filtered.length === 0 && (
             <div className="p-6 text-sm text-muted-foreground text-center">
@@ -283,6 +301,11 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
 
                 {c.needs_human_followup && (
                   <AlertTriangle className="w-3 h-3 text-destructive" />
+                )}
+                {needsOutcome(c) && (
+                  <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
+                    Sin marcar
+                  </Badge>
                 )}
                 {c.is_lead && <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />}
                 {c.unread_count > 0 && (
