@@ -110,6 +110,9 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
               Conectar con Meta
             </Button>
           )}
+          <Button asChild size="sm" variant="ghost">
+            <Link to="/admin/meta-diagnostics">Diagnóstico</Link>
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="text-sm text-muted-foreground space-y-2">
