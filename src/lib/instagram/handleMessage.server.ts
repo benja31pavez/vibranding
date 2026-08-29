@@ -5,6 +5,7 @@ import {
   resolveIgAccount,
   upsertIgConversation,
 } from "@/lib/instagram/automation.server";
+import { runDmAutomation } from "@/lib/instagram/dmAutomation.server";
 
 type MessagingEvent = {
   sender?: { id?: string };
@@ -61,6 +62,17 @@ export async function handleIgMessage(igAccountId: string, event: MessagingEvent
     body,
     at,
   });
+
+  if (!isEcho) {
+    await runDmAutomation({
+      clientId: resolved.clientId,
+      igAccountId: resolved.igAccountId,
+      token: resolved.token,
+      conversationId,
+      contactId,
+      text: msg.text ?? null,
+    });
+  }
 
   return { ok: true as const, conversationId };
 }
