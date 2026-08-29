@@ -106,7 +106,7 @@ export function surfaceTheme(mode: string, bg: Background): SurfaceTheme {
   const base = { color: isDark ? "#fafafa" : "#0a0a0a", isDark, overlay: null as string | null, imageUrl: null as string | null };
   switch (bg.type) {
     case "solid":
-      return { ...base, background: bg.color, color: isLight(bg.color) ? "#0a0a0a" : "#fafafa", isDark: !isLight(bg.color), background_: undefined } as SurfaceTheme;
+      return { ...base, background: bg.color, color: isLight(bg.color) ? "#0a0a0a" : "#fafafa", isDark: !isLight(bg.color) };
     case "gradient":
       return { ...base, background: `linear-gradient(${bg.angle}deg, ${bg.from}, ${bg.to})`, color: "#fafafa", isDark: true };
     case "image":
