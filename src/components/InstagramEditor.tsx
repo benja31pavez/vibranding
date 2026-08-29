@@ -48,6 +48,7 @@ export interface IGProfile {
   current_show_contact_button: boolean;
   current_contact_phone: string | null;
   current_contact_email: string | null;
+  current_synced_at: string | null;
   proposed_username: string | null;
   proposed_display_name: string | null;
   proposed_followers: number | null;
