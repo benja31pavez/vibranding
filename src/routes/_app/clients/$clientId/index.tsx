@@ -8,6 +8,7 @@ import { PricingSummary, ProposedCostsBreakdown, loadPricing, type PricingSettin
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { ClientAccessCard } from "@/components/clients/ClientAccessCard";
 
 export const Route = createFileRoute("/_app/clients/$clientId/")({
   component: SummaryPage,
@@ -197,6 +198,8 @@ function SummaryPage() {
           )}
         </div>
       </div>
+
+      <ClientAccessCard clientId={clientId} />
 
       <ProposedCostsBreakdown pricing={pricing} posts={ig.posts} />
     </div>

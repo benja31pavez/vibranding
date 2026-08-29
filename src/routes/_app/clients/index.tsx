@@ -49,10 +49,13 @@ function ClientsList() {
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    const { data: orgId, error: orgError } = await supabase.rpc("ensure_org");
+    if (orgError || !orgId) return toast.error(orgError?.message ?? "No se pudo obtener la organización");
     const { error } = await supabase.from("clients").insert({
       name: name.trim(),
       instagram_handle: handle.trim() || null,
       user_id: user!.id,
+      org_id: orgId as string,
     });
     if (error) return toast.error(error.message);
     setName(""); setHandle(""); setOpen(false);
