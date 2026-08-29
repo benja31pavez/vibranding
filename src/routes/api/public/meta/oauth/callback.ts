@@ -56,22 +56,48 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
           const expiresIn = Number(long.expires_in ?? short.expires_in ?? 0);
 
           // 2. Discover the first ad account, page and linked IG account.
-          const [adAccounts, pages] = await Promise.all([
+          // Errors are captured, never swallowed: without them the flow fails silently.
+          const [adAccountsRes, pagesRes] = await Promise.all([
             graph<any>("me/adaccounts", {
               access_token: token,
               fields: "id,account_id,name,timezone_name",
               limit: "25",
-            }).catch(() => ({ data: [] })),
+            }).then(
+              (data) => ({ data, error: null as string | null }),
+              (e: any) => ({ data: { data: [] }, error: `adaccounts: ${e?.message ?? "error"}` }),
+            ),
             graph<any>("me/accounts", {
               access_token: token,
               fields: "id,name,instagram_business_account{id,username}",
               limit: "25",
-            }).catch(() => ({ data: [] })),
+            }).then(
+              (data) => ({ data, error: null as string | null }),
+              (e: any) => ({ data: { data: [] }, error: `accounts: ${e?.message ?? "error"}` }),
+            ),
           ]);
+          const adAccounts = adAccountsRes.data;
+          const pages = pagesRes.data;
+          const discoveryErrors = [adAccountsRes.error, pagesRes.error].filter(Boolean).join(" · ");
           const adAccount = (adAccounts.data ?? [])[0] ?? null;
           const page = (pages.data ?? []).find((p: any) => p.instagram_business_account)
             ?? (pages.data ?? [])[0]
             ?? null;
+          const igAccount = page?.instagram_business_account ?? null;
+
+          // Only mark as connected if something usable was discovered.
+          const connected = Boolean(adAccount || igAccount);
+          if (!connected) {
+            const msg = discoveryErrors
+              || "No se descubrió ninguna cuenta publicitaria ni de Instagram con este token. Revisa permisos y roles en la app de Meta.";
+            console.error("[meta oauth] discovery empty", { clientId: state.clientId, msg });
+            // Persist the failure so the diagnostics page can show it.
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            await (supabaseAdmin.from("meta_accounts" as any) as any).upsert(
+              { client_id: state.clientId, connected: false, last_sync_error: msg },
+              { onConflict: "client_id" },
+            );
+            return back("error", msg);
+          }
 
           // 3. Persist the connection (one per client) and vault the token.
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
