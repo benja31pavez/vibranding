@@ -494,32 +494,28 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                           <table className="w-full text-xs">
                             <thead className="text-muted-foreground">
                               <tr className="text-left border-b">
-                                <th className="py-1 pr-2">Desde</th>
-                                <th className="py-1 pr-2">Hasta</th>
+                                <th className="py-1 pr-2">Fecha</th>
                                 <th className="py-1 pr-2">Impr.</th>
                                 <th className="py-1 pr-2">Alcance</th>
                                 <th className="py-1 pr-2">Clics</th>
                                 <th className="py-1 pr-2">CTR %</th>
                                 <th className="py-1 pr-2">Gasto</th>
-                                <th className="py-1 pr-2">CPC</th>
-                                <th className="py-1 pr-2">Conv.</th>
-                                <th className="py-1 pr-2">ROAS</th>
+                                <th className="py-1 pr-2">CPM</th>
+                                <th className="py-1 pr-2">Conversaciones</th>
                                 <th></th>
                               </tr>
                             </thead>
                             <tbody>
                               {myInsights.map((i) => (
                                 <tr key={i.id} className="border-b">
-                                  <td className="py-1 pr-2">{i.date_start ?? "—"}</td>
-                                  <td className="py-1 pr-2">{i.date_stop ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.date}</td>
                                   <td className="py-1 pr-2">{i.impressions}</td>
                                   <td className="py-1 pr-2">{i.reach}</td>
                                   <td className="py-1 pr-2">{i.clicks}</td>
                                   <td className="py-1 pr-2">{i.ctr ?? "—"}</td>
                                   <td className="py-1 pr-2">{i.spend}</td>
-                                  <td className="py-1 pr-2">{i.cpc ?? "—"}</td>
-                                  <td className="py-1 pr-2">{i.conversions}</td>
-                                  <td className="py-1 pr-2">{i.roas ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.cpm ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.messaging_conversations_started}</td>
                                   <td></td>
                                 </tr>
                               ))}
