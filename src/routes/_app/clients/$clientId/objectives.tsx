@@ -1,11 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ObjectivesList } from "@/components/ObjectivesList";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+/** Legacy path — kept alive so old links never 404. */
 export const Route = createFileRoute("/_app/clients/$clientId/objectives")({
-  component: ObjectivesPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/clients/$clientId/plan",
+      params,
+      search: { tab: "objetivos" } as any,
+    });
+  },
 });
-
-function ObjectivesPage() {
-  const { clientId } = Route.useParams();
-  return <ObjectivesList clientId={clientId} />;
-}

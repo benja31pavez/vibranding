@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnmarkedOutcomes } from "@/hooks/use-unmarked-outcomes";
-import { Badge } from "@/components/ui/badge";
+import { ClientSidebarNav } from "@/components/clients/ClientSidebarNav";
+
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -180,50 +181,8 @@ function AppLayout() {
                       <X className="w-3 h-3" />
                     </button>
                   </div>
-                  <div className="space-y-1.5 pt-2">
-                    <Link to="/clients/$clientId/contracts" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/contracts`)}>
-                      <FileText className="w-4 h-4 shrink-0" /> Contratos
-                    </Link>
-                    <Link to="/clients/$clientId/deliverables" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/deliverables`)}>
-                      <CheckSquare className="w-4 h-4 shrink-0" /> Etapas
-                    </Link>
-                    <Link to="/clients/$clientId/objectives" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/objectives`)}>
-                      <Target className="w-4 h-4 shrink-0" /> Objetivos
-                    </Link>
-                    <Link to="/clients/$clientId/instagram" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/instagram`)}>
-                      <Instagram className="w-4 h-4 shrink-0" /> Instagram
-                    </Link>
-                    <Link to="/clients/$clientId/content" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/content`)}>
-                      <CalendarDays className="w-4 h-4 shrink-0" /> Contenido
-                    </Link>
-                    <Link to="/clients/$clientId/meta-ads" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/meta-ads`)}>
-                      <Megaphone className="w-4 h-4 shrink-0" /> Meta Ads
-                    </Link>
-                    <Link to="/clients/$clientId/multilink" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/multilink`)}>
-                      <Link2 className="w-4 h-4 shrink-0" /> Multienlace
-                    </Link>
-                    <Link to="/clients/$clientId/landing" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/landing`)}>
-                      <Globe className="w-4 h-4 shrink-0" /> Landing page
-                    </Link>
-                    <Link to="/clients/$clientId/chatbot" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/chatbot`)}>
-                      <MessageCircle className="w-4 h-4 shrink-0" /> WhatsApp
-                      {unmarkedStale > 0 && (
-                        <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-[10px]">
-                          {unmarkedStale}
-                        </Badge>
-                      )}
-                    </Link>
-                    <Link to="/clients/$clientId/leads" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/leads`)}>
-                      <Inbox className="w-4 h-4 shrink-0" /> Leads
-                    </Link>
-                    <Link to="/clients/$clientId/analytics" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/analytics`)}>
-                      <BarChart3 className="w-4 h-4 shrink-0" /> Analítica
-                    </Link>
+                  <ClientSidebarNav clientId={activeClient.id} path={path} staleOutcomes={unmarkedStale} />
 
-                    <Link to="/clients/$clientId/payments" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/payments`)}>
-                      <Wallet className="w-4 h-4 shrink-0" /> Pagos
-                    </Link>
-                  </div>
                 </>
               ) : (
                 <div className="mx-1 px-3 py-3 rounded-lg border border-dashed border-border text-xs text-muted-foreground">
