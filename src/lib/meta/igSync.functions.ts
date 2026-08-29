@@ -22,14 +22,26 @@ export const syncInstagramAccount = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!owned) throw new Error("No tienes acceso a este cliente");
 
-    const { requireClientMetaToken } = await import("@/lib/meta/clientToken.server");
-    const { token, account } = await requireClientMetaToken(data.clientId);
+    const { resolveClientMetaToken } = await import("@/lib/meta/clientToken.server");
+    const resolved = await resolveClientMetaToken(data.clientId);
+    if (!resolved) {
+      return {
+        ok: false as const,
+        reason:
+          "Este cliente no tiene una cuenta de Meta conectada. Conéctala con OAuth o con un token de System User.",
+      };
+    }
+    const { token, account } = resolved;
     if (!account.ig_account_id) {
-      throw new Error("Este cliente no tiene una cuenta de Instagram vinculada en Meta");
+      return {
+        ok: false as const,
+        reason: "Este cliente no tiene una cuenta de Instagram vinculada en Meta.",
+      };
     }
 
     const { syncInstagramAccountData } = await import("@/lib/meta/igSync.server");
-    return await syncInstagramAccountData(data.clientId, account.ig_account_id, token);
+    const result = await syncInstagramAccountData(data.clientId, account.ig_account_id, token);
+    return { ok: true as const, ...result };
   });
 
 /** Recent published media not yet linked to any post of this client. */
