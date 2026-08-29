@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { z } from "zod";
+import { trackEvent } from "@/lib/track";
+import { landingWhatsappUrl } from "@/lib/landingWhatsapp";
+import { MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/@{$slug}")({
   loader: async ({ params }) => {
@@ -37,6 +40,7 @@ export const Route = createFileRoute("/@{$slug}")({
 const ContactSchema = z.object({
   name: z.string().trim().min(1, "Ingresa tu nombre").max(100),
   email: z.string().trim().email("Email inválido").max(255),
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
   message: z.string().trim().min(1, "Escribe un mensaje").max(2000),
 });
 
@@ -44,7 +48,11 @@ function PublicLanding() {
   const { lp } = Route.useLoaderData();
   const color = lp.theme_color || "#6366f1";
 
-  useEffect(() => { supabase.rpc("increment_landing_view", { _id: lp.id }); }, [lp.id]);
+  useEffect(() => {
+    trackEvent("page_view", { type: "landing", id: lp.id });
+  }, [lp.id]);
+
+  const waUrl = landingWhatsappUrl(lp as any);
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -63,6 +71,7 @@ function PublicLanding() {
                 href={lp.cta_url || "#contacto"}
                 className="inline-flex items-center mt-8 rounded-full px-7 py-3 font-medium text-white transition hover:opacity-90"
                 style={{ background: color }}
+                onClick={() => trackEvent("contact_click", { type: "landing", id: lp.id })}
                 {...(lp.cta_url ? { target: "_blank", rel: "noreferrer" } : {})}
               >
                 {lp.cta_text}
@@ -107,6 +116,29 @@ function PublicLanding() {
         </section>
       )}
 
+      {/* WhatsApp CTA */}
+      {waUrl && (
+        <section className="py-16">
+          <div className="max-w-2xl mx-auto px-6 text-center">
+            <h2 className="text-3xl font-bold">{(lp as any).whatsapp_cta_text || "Escríbenos por WhatsApp"}</h2>
+            <p className="mt-3 text-gray-600">
+              Te respondemos por WhatsApp con el mensaje ya listo para enviar.
+            </p>
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => trackEvent("whatsapp_click", { type: "landing", id: lp.id })}
+              className="inline-flex items-center gap-2 mt-7 rounded-full px-7 py-3 font-medium text-white transition hover:opacity-90"
+              style={{ background: "#25D366" }}
+            >
+              <MessageCircle className="w-5 h-5" />
+              {(lp as any).whatsapp_cta_text || "Escríbenos por WhatsApp"}
+            </a>
+          </div>
+        </section>
+      )}
+
       {/* Contact */}
       {lp.contact_enabled && (
         <section id="contacto" className="bg-gray-50 py-20">
@@ -126,7 +158,7 @@ function PublicLanding() {
 }
 
 function ContactForm({ landingId, clientId, color }: { landingId: string; clientId: string; color: string }) {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -140,12 +172,14 @@ function ContactForm({ landingId, clientId, color }: { landingId: string; client
       client_id: clientId,
       name: parsed.data.name,
       email: parsed.data.email,
+      phone: parsed.data.phone || null,
       message: parsed.data.message,
     });
     setSending(false);
     if (error) { toast.error("No se pudo enviar"); return; }
+    trackEvent("contact_submit", { type: "landing", id: landingId });
     setSent(true);
-    setForm({ name: "", email: "", message: "" });
+    setForm({ name: "", email: "", phone: "", message: "" });
   };
 
   if (sent) {
@@ -161,6 +195,7 @@ function ContactForm({ landingId, clientId, color }: { landingId: string; client
     <form onSubmit={submit} className="rounded-2xl bg-white p-6 border space-y-3">
       <Input placeholder="Tu nombre" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} maxLength={100} required />
       <Input type="email" placeholder="Tu email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} maxLength={255} required />
+      <Input type="tel" placeholder="Tu teléfono (opcional)" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} maxLength={40} />
       <Textarea placeholder="Tu mensaje" rows={5} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} maxLength={2000} required />
       <Button type="submit" disabled={sending} className="w-full text-white" style={{ background: color }}>
         {sending ? "Enviando…" : "Enviar mensaje"}
