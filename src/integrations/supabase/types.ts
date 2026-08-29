@@ -2558,6 +2558,7 @@ export type Database = {
         Returns: Json
       }
       client_analytics_guard: { Args: { _client_id: string }; Returns: boolean }
+      ensure_org: { Args: never; Returns: string }
       get_booking_settings_by_slug: {
         Args: { _slug: string }
         Returns: {
