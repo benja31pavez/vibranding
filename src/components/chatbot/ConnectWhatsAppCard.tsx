@@ -32,6 +32,7 @@ export function ConnectWhatsAppCard({
   const [detailsOpen, setDetailsOpen] = useState(!account?.connected);
   const [verifyToken, setVerifyToken] = useState("");
   const getVerifyToken = useServerFn(getWhatsAppVerifyToken);
+  const storeAccessToken = useServerFn(setWhatsAppAccessToken);
 
   const revealVerifyToken = async (): Promise<string | null> => {
     if (!account) return null;
