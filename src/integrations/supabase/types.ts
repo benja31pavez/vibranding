@@ -808,6 +808,7 @@ export type Database = {
       }
       instagram_posts: {
         Row: {
+          archived_at: string | null
           caption: string | null
           carousel_urls: string[]
           client_id: string
@@ -830,6 +831,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           caption?: string | null
           carousel_urls?: string[]
           client_id: string
@@ -852,6 +854,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           caption?: string | null
           carousel_urls?: string[]
           client_id?: string
