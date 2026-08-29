@@ -22,8 +22,8 @@ export const syncInstagramAccount = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!owned) throw new Error("No tienes acceso a este cliente");
 
-    const { resolveClientMetaToken } = await import("@/lib/meta/clientToken.server");
-    const resolved = await resolveClientMetaToken(data.clientId);
+    const { getClientMetaToken } = await import("@/lib/meta/clientToken.server");
+    const resolved = await getClientMetaToken(data.clientId);
     if (!resolved) {
       return {
         ok: false as const,
