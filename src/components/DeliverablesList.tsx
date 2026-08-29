@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical, Upload, Paperclip, Download, Loader2, Sparkles, MessageSquare, ThumbsUp, RotateCcw, Send, Eye } from "lucide-react";
+import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical, Upload, Paperclip, Download, Loader2, Sparkles, MessageSquare, ThumbsUp, RotateCcw, Send, Eye, Link2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { uploadClientMedia } from "@/lib/uploadMedia";
 import { toast } from "sonner";
@@ -1111,8 +1111,14 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
         >
           <MessageSquare className="w-3.5 h-3.5" />
           {count > 0 ? `${count} comentario${count === 1 ? "" : "s"}` : "Comentarios"}
+          {unreadCount > 0 && (
+            <span className="ml-1 rounded-full bg-warning/20 text-warning px-1.5 text-[10px] font-semibold">{unreadCount} nuevo{unreadCount === 1 ? "" : "s"}</span>
+          )}
           {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         </button>
+        <Button size="sm" variant="ghost" className="h-7 rounded-full text-xs" disabled={sharing} onClick={createShareLink}>
+          <Link2 className="w-3 h-3 mr-1" /> Enlace de revisión
+        </Button>
         {it.status !== "in_review" && it.status !== "done" && (
           <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={sendToReview}>
             <Send className="w-3 h-3 mr-1" /> Enviar a revisión
@@ -1148,7 +1154,7 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
               <div key={c.id} className={`rounded-xl border ${tone} px-3 py-2 group/cm`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                    {label} · {new Date(c.created_at).toLocaleString()}
+                    {label} · {c.author_name || (c.author_role === "client" ? "Cliente" : c.author_role === "guest" ? "Invitado" : "Agencia")} · {new Date(c.created_at).toLocaleString()}
                   </div>
                   <button onClick={() => remove(c.id)} className="opacity-0 group-hover/cm:opacity-100 text-muted-foreground hover:text-destructive">
                     <X className="w-3 h-3" />
