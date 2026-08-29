@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock, AlertTriangle, Check, Megaphone } from "lucide-react";
 import { toast } from "sonner";
+import { isStale } from "@/hooks/use-unmarked-outcomes";
+import { Link } from "@tanstack/react-router";
 import {
   OutcomeSelector,
   type Outcome,
@@ -256,6 +258,16 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
             </Button>
           </div>
         </div>
+        {pendingOutcomeCount > 0 && (
+          <Link
+            to="/clients/$clientId/backfill"
+            params={{ clientId }}
+            className="block border-b bg-destructive/10 px-3 py-2 text-xs text-destructive hover:bg-destructive/15"
+          >
+            {pendingOutcomeCount} conversación{pendingOutcomeCount === 1 ? "" : "es"} sin marcar ·
+            marcar en lote →
+          </Link>
+        )}
         <ScrollArea className="flex-1">
           {filtered.length === 0 && (
             <div className="p-6 text-sm text-muted-foreground text-center">
@@ -289,6 +301,11 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
 
                 {c.needs_human_followup && (
                   <AlertTriangle className="w-3 h-3 text-destructive" />
+                )}
+                {needsOutcome(c) && (
+                  <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
+                    Sin marcar
+                  </Badge>
                 )}
                 {c.is_lead && <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />}
                 {c.unread_count > 0 && (
