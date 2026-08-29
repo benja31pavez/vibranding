@@ -212,29 +212,6 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     load();
   };
 
-  const createDivider = async () => {
-    const maxOrder = Math.max(0, ...folders.map((f) => f.sort_order), ...dividers.map((d) => d.sort_order));
-    const { error } = await supabase.from("deliverable_dividers").insert({
-      client_id: clientId,
-      label: "Nueva fase",
-      sort_order: maxOrder + 1,
-    });
-    if (error) return toast.error(error.message);
-    load();
-  };
-
-  const renameDivider = async (id: string, label: string) => {
-    const { error } = await supabase.from("deliverable_dividers").update({ label }).eq("id", id);
-    if (error) return toast.error(error.message);
-    load();
-  };
-
-  const removeDivider = async (id: string) => {
-    const { error } = await supabase.from("deliverable_dividers").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    load();
-  };
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -245,9 +222,8 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     if (!over || active.id === over.id) return;
     const rootItems = items.filter((it) => !it.folder_id || !folders.find((f) => f.id === it.folder_id));
     const entries = [
-      ...folders.map((f) => ({ kind: "folder" as const, id: `f-${f.id}`, raw: f })),
-      ...dividers.map((d) => ({ kind: "divider" as const, id: `d-${d.id}`, raw: d })),
-      ...rootItems.map((it) => ({ kind: "item" as const, id: `i-${it.id}`, raw: it })),
+      ...folders.map((f) => ({ kind: "folder" as const, id: `f-${f.id}`, raw: f as { id: string; sort_order: number } })),
+      ...rootItems.map((it) => ({ kind: "item" as const, id: `i-${it.id}`, raw: it as { id: string; sort_order: number } })),
     ].sort((a, b) => a.raw.sort_order - b.raw.sort_order);
     const oldIdx = entries.findIndex((x) => x.id === active.id);
     const newIdx = entries.findIndex((x) => x.id === over.id);
@@ -256,16 +232,16 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
 
     // Optimistic update
     setFolders(folders.map((f) => ({ ...f, sort_order: reordered.findIndex((x) => x.kind === "folder" && x.raw.id === f.id) })).sort((a, b) => a.sort_order - b.sort_order));
-    setDividers(dividers.map((d) => ({ ...d, sort_order: reordered.findIndex((x) => x.kind === "divider" && x.raw.id === d.id) })).sort((a, b) => a.sort_order - b.sort_order));
     setItems((prev) => prev.map((it) => {
       const idx = reordered.findIndex((x) => x.kind === "item" && x.raw.id === it.id);
       return idx >= 0 ? { ...it, sort_order: idx } : it;
     }));
 
-    const updates = reordered.map((entry, idx) => {
-      const table = entry.kind === "folder" ? "deliverable_folders" : entry.kind === "divider" ? "deliverable_dividers" : "deliverables";
-      return supabase.from(table).update({ sort_order: idx }).eq("id", entry.raw.id);
-    });
+    const updates = reordered.map((entry, idx) =>
+      entry.kind === "folder"
+        ? supabase.from("deliverable_folders").update({ sort_order: idx }).eq("id", entry.raw.id)
+        : supabase.from("deliverables").update({ sort_order: idx }).eq("id", entry.raw.id),
+    );
     const results = await Promise.all(updates);
     const err = results.find((r) => r.error);
     if (err?.error) { toast.error(err.error.message); load(); }
