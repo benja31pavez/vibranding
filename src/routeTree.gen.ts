@@ -48,15 +48,9 @@ import { Route as ApiPublicMetaIngestDailyRouteImport } from './routes/api/publi
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/clients/$clientId/payments'
 import { Route as AppClientsClientIdObjectivesRouteImport } from './routes/_app/clients/$clientId/objectives'
-import { Route as AppClientsClientIdMultilinkRouteImport } from './routes/_app/clients/$clientId/multilink'
 import { Route as AppClientsClientIdMetaAdsRouteImport } from './routes/_app/clients/$clientId/meta-ads'
-import { Route as AppClientsClientIdLeadsRouteImport } from './routes/_app/clients/$clientId/leads'
-import { Route as AppClientsClientIdLandingRouteImport } from './routes/_app/clients/$clientId/landing'
-import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
 import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
-import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
 import { Route as AppClientsClientIdContentRouteImport } from './routes/_app/clients/$clientId/content'
-import { Route as AppClientsClientIdChatbotRouteImport } from './routes/_app/clients/$clientId/chatbot'
 import { Route as AppClientsClientIdBackfillRouteImport } from './routes/_app/clients/$clientId/backfill'
 import { Route as AppClientsClientIdAnalyticsRouteImport } from './routes/_app/clients/$clientId/analytics'
 import { Route as ApiPublicWhatsappWebhookAccountIdRouteImport } from './routes/api/public/whatsapp/webhook/$accountId'
@@ -263,33 +257,10 @@ const AppClientsClientIdObjectivesRoute =
     path: '/objectives',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
-const AppClientsClientIdMultilinkRoute =
-  AppClientsClientIdMultilinkRouteImport.update({
-    id: '/multilink',
-    path: '/multilink',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
 const AppClientsClientIdMetaAdsRoute =
   AppClientsClientIdMetaAdsRouteImport.update({
     id: '/meta-ads',
     path: '/meta-ads',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdLeadsRoute = AppClientsClientIdLeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
-  getParentRoute: () => AppClientsClientIdRoute,
-} as any)
-const AppClientsClientIdLandingRoute =
-  AppClientsClientIdLandingRouteImport.update({
-    id: '/landing',
-    path: '/landing',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdInstagramRoute =
-  AppClientsClientIdInstagramRouteImport.update({
-    id: '/instagram',
-    path: '/instagram',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
 const AppClientsClientIdDeliverablesRoute =
@@ -298,22 +269,10 @@ const AppClientsClientIdDeliverablesRoute =
     path: '/deliverables',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
-const AppClientsClientIdContractsRoute =
-  AppClientsClientIdContractsRouteImport.update({
-    id: '/contracts',
-    path: '/contracts',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
 const AppClientsClientIdContentRoute =
   AppClientsClientIdContentRouteImport.update({
     id: '/content',
     path: '/content',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdChatbotRoute =
-  AppClientsClientIdChatbotRouteImport.update({
-    id: '/chatbot',
-    path: '/chatbot',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
 const AppClientsClientIdBackfillRoute =
@@ -376,15 +335,9 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof AppClientsIndexRoute
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
-  '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/clients/$clientId/content': typeof AppClientsClientIdContentRoute
-  '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
-  '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
-  '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
-  '/clients/$clientId/leads': typeof AppClientsClientIdLeadsRoute
   '/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
-  '/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
@@ -428,15 +381,9 @@ export interface FileRoutesByTo {
   '/clients': typeof AppClientsIndexRoute
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
-  '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/clients/$clientId/content': typeof AppClientsClientIdContentRoute
-  '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
-  '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
-  '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
-  '/clients/$clientId/leads': typeof AppClientsClientIdLeadsRoute
   '/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
-  '/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
@@ -483,15 +430,9 @@ export interface FileRoutesById {
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/_app/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
-  '/_app/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/_app/clients/$clientId/content': typeof AppClientsClientIdContentRoute
-  '/_app/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
-  '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
-  '/_app/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
-  '/_app/clients/$clientId/leads': typeof AppClientsClientIdLeadsRoute
   '/_app/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
-  '/_app/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/_app/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/_app/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
@@ -538,15 +479,9 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/clients/$clientId/analytics'
     | '/clients/$clientId/backfill'
-    | '/clients/$clientId/chatbot'
     | '/clients/$clientId/content'
-    | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
-    | '/clients/$clientId/instagram'
-    | '/clients/$clientId/landing'
-    | '/clients/$clientId/leads'
     | '/clients/$clientId/meta-ads'
-    | '/clients/$clientId/multilink'
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
     | '/api/public/instagram/webhook'
@@ -590,15 +525,9 @@ export interface FileRouteTypes {
     | '/clients'
     | '/clients/$clientId/analytics'
     | '/clients/$clientId/backfill'
-    | '/clients/$clientId/chatbot'
     | '/clients/$clientId/content'
-    | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
-    | '/clients/$clientId/instagram'
-    | '/clients/$clientId/landing'
-    | '/clients/$clientId/leads'
     | '/clients/$clientId/meta-ads'
-    | '/clients/$clientId/multilink'
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
     | '/api/public/instagram/webhook'
@@ -644,15 +573,9 @@ export interface FileRouteTypes {
     | '/_app/clients/'
     | '/_app/clients/$clientId/analytics'
     | '/_app/clients/$clientId/backfill'
-    | '/_app/clients/$clientId/chatbot'
     | '/_app/clients/$clientId/content'
-    | '/_app/clients/$clientId/contracts'
     | '/_app/clients/$clientId/deliverables'
-    | '/_app/clients/$clientId/instagram'
-    | '/_app/clients/$clientId/landing'
-    | '/_app/clients/$clientId/leads'
     | '/_app/clients/$clientId/meta-ads'
-    | '/_app/clients/$clientId/multilink'
     | '/_app/clients/$clientId/objectives'
     | '/_app/clients/$clientId/payments'
     | '/api/public/instagram/webhook'
@@ -967,39 +890,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdObjectivesRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
-    '/_app/clients/$clientId/multilink': {
-      id: '/_app/clients/$clientId/multilink'
-      path: '/multilink'
-      fullPath: '/clients/$clientId/multilink'
-      preLoaderRoute: typeof AppClientsClientIdMultilinkRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
     '/_app/clients/$clientId/meta-ads': {
       id: '/_app/clients/$clientId/meta-ads'
       path: '/meta-ads'
       fullPath: '/clients/$clientId/meta-ads'
       preLoaderRoute: typeof AppClientsClientIdMetaAdsRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/leads': {
-      id: '/_app/clients/$clientId/leads'
-      path: '/leads'
-      fullPath: '/clients/$clientId/leads'
-      preLoaderRoute: typeof AppClientsClientIdLeadsRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/landing': {
-      id: '/_app/clients/$clientId/landing'
-      path: '/landing'
-      fullPath: '/clients/$clientId/landing'
-      preLoaderRoute: typeof AppClientsClientIdLandingRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/instagram': {
-      id: '/_app/clients/$clientId/instagram'
-      path: '/instagram'
-      fullPath: '/clients/$clientId/instagram'
-      preLoaderRoute: typeof AppClientsClientIdInstagramRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
     '/_app/clients/$clientId/deliverables': {
@@ -1009,25 +904,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdDeliverablesRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
-    '/_app/clients/$clientId/contracts': {
-      id: '/_app/clients/$clientId/contracts'
-      path: '/contracts'
-      fullPath: '/clients/$clientId/contracts'
-      preLoaderRoute: typeof AppClientsClientIdContractsRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
     '/_app/clients/$clientId/content': {
       id: '/_app/clients/$clientId/content'
       path: '/content'
       fullPath: '/clients/$clientId/content'
       preLoaderRoute: typeof AppClientsClientIdContentRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/chatbot': {
-      id: '/_app/clients/$clientId/chatbot'
-      path: '/chatbot'
-      fullPath: '/clients/$clientId/chatbot'
-      preLoaderRoute: typeof AppClientsClientIdChatbotRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
     '/_app/clients/$clientId/backfill': {
@@ -1075,15 +956,9 @@ const AtChar123slugChar125RouteWithChildren =
 interface AppClientsClientIdRouteChildren {
   AppClientsClientIdAnalyticsRoute: typeof AppClientsClientIdAnalyticsRoute
   AppClientsClientIdBackfillRoute: typeof AppClientsClientIdBackfillRoute
-  AppClientsClientIdChatbotRoute: typeof AppClientsClientIdChatbotRoute
   AppClientsClientIdContentRoute: typeof AppClientsClientIdContentRoute
-  AppClientsClientIdContractsRoute: typeof AppClientsClientIdContractsRoute
   AppClientsClientIdDeliverablesRoute: typeof AppClientsClientIdDeliverablesRoute
-  AppClientsClientIdInstagramRoute: typeof AppClientsClientIdInstagramRoute
-  AppClientsClientIdLandingRoute: typeof AppClientsClientIdLandingRoute
-  AppClientsClientIdLeadsRoute: typeof AppClientsClientIdLeadsRoute
   AppClientsClientIdMetaAdsRoute: typeof AppClientsClientIdMetaAdsRoute
-  AppClientsClientIdMultilinkRoute: typeof AppClientsClientIdMultilinkRoute
   AppClientsClientIdObjectivesRoute: typeof AppClientsClientIdObjectivesRoute
   AppClientsClientIdPaymentsRoute: typeof AppClientsClientIdPaymentsRoute
   AppClientsClientIdIndexRoute: typeof AppClientsClientIdIndexRoute
@@ -1092,15 +967,9 @@ interface AppClientsClientIdRouteChildren {
 const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdAnalyticsRoute: AppClientsClientIdAnalyticsRoute,
   AppClientsClientIdBackfillRoute: AppClientsClientIdBackfillRoute,
-  AppClientsClientIdChatbotRoute: AppClientsClientIdChatbotRoute,
   AppClientsClientIdContentRoute: AppClientsClientIdContentRoute,
-  AppClientsClientIdContractsRoute: AppClientsClientIdContractsRoute,
   AppClientsClientIdDeliverablesRoute: AppClientsClientIdDeliverablesRoute,
-  AppClientsClientIdInstagramRoute: AppClientsClientIdInstagramRoute,
-  AppClientsClientIdLandingRoute: AppClientsClientIdLandingRoute,
-  AppClientsClientIdLeadsRoute: AppClientsClientIdLeadsRoute,
   AppClientsClientIdMetaAdsRoute: AppClientsClientIdMetaAdsRoute,
-  AppClientsClientIdMultilinkRoute: AppClientsClientIdMultilinkRoute,
   AppClientsClientIdObjectivesRoute: AppClientsClientIdObjectivesRoute,
   AppClientsClientIdPaymentsRoute: AppClientsClientIdPaymentsRoute,
   AppClientsClientIdIndexRoute: AppClientsClientIdIndexRoute,
