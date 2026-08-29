@@ -193,6 +193,9 @@ function AppLayout() {
                     <Link to="/clients/$clientId/instagram" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/instagram`)}>
                       <Instagram className="w-4 h-4 shrink-0" /> Instagram
                     </Link>
+                    <Link to="/clients/$clientId/content" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/content`)}>
+                      <CalendarDays className="w-4 h-4 shrink-0" /> Contenido
+                    </Link>
                     <Link to="/clients/$clientId/meta-ads" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/meta-ads`)}>
                       <Megaphone className="w-4 h-4 shrink-0" /> Meta Ads
                     </Link>
