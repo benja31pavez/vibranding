@@ -183,7 +183,7 @@ function ClientPortal() {
                     deliverable={d}
                     comments={threads[d.id] ?? []}
                     busy={busy}
-                    onSubmit={(kind, body) => submitReview(d, kind, body)}
+                    onSubmit={async (kind, body) => { await submitReview(d, kind, body); }}
                   />
                 ))
               )}
