@@ -87,7 +87,10 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     if (discoverData) return;
     setDiscovering(true);
     try {
-      const res = await fetch("/api/meta-ads/discover");
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/meta-ads/discover?clientId=${clientId}`, {
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Error al detectar");
       setDiscoverData(json);

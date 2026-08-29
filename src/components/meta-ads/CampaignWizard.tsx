@@ -63,14 +63,19 @@ export function CampaignWizard({
   // load discover for page/ig select
   useEffect(() => {
     if (!open) return;
-    fetch("/api/meta-ads/discover").then(r => r.json()).then((d) => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      return fetch(`/api/meta-ads/discover?clientId=${clientId}`, {
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      });
+    })().then(r => r.json()).then((d) => {
       if (d?.pages) setPages(d.pages.map((p: any) => ({ id: p.id, name: p.name })));
       const igMap = new Map<string, IgOpt>();
       for (const p of d?.pages ?? []) if (p.instagram) igMap.set(p.instagram.id, { id: p.instagram.id, username: p.instagram.username ?? "" });
       for (const ig of d?.instagramAccounts ?? []) if (!igMap.has(ig.id)) igMap.set(ig.id, { id: ig.id, username: ig.username ?? "" });
       setIgs(Array.from(igMap.values()));
     }).catch(() => {});
-  }, [open]);
+  }, [open, clientId]);
 
   const v1 = useMemo(() => safeValidate(campaignSchema, campaign), [campaign]);
   const v2 = useMemo(() => safeValidate(adsetSchema, adset), [adset]);
