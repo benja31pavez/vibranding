@@ -135,3 +135,42 @@ export const testMetaIngest = createServerFn({ method: "POST" })
     const { ingestAccountDay } = await import("@/lib/meta/insights.server");
     return await ingestAccountDay(owned as any, token, data.date ?? undefined, 1);
   });
+
+/**
+ * Full connection probe: returns every raw Meta payload of the async insights
+ * job (report_run_id, async_status polls, error objects) with no friendly
+ * message in between, so a silent ingestion failure can be diagnosed.
+ */
+export const debugMetaConnection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { accountId: string; date?: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: owned } = await (context.supabase.from("meta_accounts" as any) as any)
+      .select("id,client_id,ad_account_id,ig_account_id,connected,timezone_name")
+      .eq("id", data.accountId)
+      .maybeSingle();
+    if (!owned) throw new Error("No tienes acceso a esta conexión");
+
+    const { getMetaToken } = await import("@/lib/meta/tokens.server");
+    const token = await getMetaToken(data.accountId);
+    if (!token) throw new Error("No hay token de Meta guardado");
+
+    if (!owned.ad_account_id) {
+      return {
+        account: owned,
+        insights: null,
+        note: "La conexión no tiene cuenta publicitaria asignada, por eso nunca escribe filas en ad_insights_daily.",
+      };
+    }
+
+    const { yesterdayISO } = await import("@/lib/meta/insights.server");
+    const { debugAdInsightsRun } = await import("@/lib/meta/insightsDebug.server");
+    const insights = await debugAdInsightsRun({
+      adAccountId: owned.ad_account_id,
+      token,
+      until: data.date ?? yesterdayISO(owned.timezone_name),
+      windowDays: 7,
+    });
+
+    return { account: owned, insights, note: null };
+  });
