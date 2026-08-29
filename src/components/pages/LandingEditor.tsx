@@ -160,6 +160,7 @@ export function LandingEditor({ clientId }: { clientId: string }) {
   const updService = (i: number, patch: Partial<Service>) => lp && update({
     services: lp.services.map((s, k) => k === i ? { ...s, ...patch } : s),
   });
+  const rmService = (i: number) => lp && update({ services: lp.services.filter((_, k) => k !== i) });
 
   const updTestimonial = (i: number, patch: Partial<Testimonial>) => lp && update({
     testimonials: lp.testimonials.map((t, k) => k === i ? { ...t, ...patch } : t),
