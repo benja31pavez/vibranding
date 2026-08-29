@@ -1662,37 +1662,64 @@ export type Database = {
           click_count: number
           client_id: string
           created_at: string
+          end_at: string | null
+          featured: boolean
           icon: string | null
           id: string
           is_active: boolean
+          kind: string
           multilink_id: string
           sort_order: number
+          start_at: string | null
+          subtitle: string | null
+          thumbnail_url: string | null
           title: string
           url: string
+          video_url: string | null
+          wa_message: string | null
+          wa_number: string | null
         }
         Insert: {
           click_count?: number
           client_id: string
           created_at?: string
+          end_at?: string | null
+          featured?: boolean
           icon?: string | null
           id?: string
           is_active?: boolean
+          kind?: string
           multilink_id: string
           sort_order?: number
+          start_at?: string | null
+          subtitle?: string | null
+          thumbnail_url?: string | null
           title?: string
           url?: string
+          video_url?: string | null
+          wa_message?: string | null
+          wa_number?: string | null
         }
         Update: {
           click_count?: number
           client_id?: string
           created_at?: string
+          end_at?: string | null
+          featured?: boolean
           icon?: string | null
           id?: string
           is_active?: boolean
+          kind?: string
           multilink_id?: string
           sort_order?: number
+          start_at?: string | null
+          subtitle?: string | null
+          thumbnail_url?: string | null
           title?: string
           url?: string
+          video_url?: string | null
+          wa_message?: string | null
+          wa_number?: string | null
         }
         Relationships: [
           {
@@ -1710,6 +1737,8 @@ export type Database = {
           bio: string | null
           client_id: string
           created_at: string
+          custom_domain: string | null
+          custom_domain_verified: boolean
           id: string
           published: boolean
           slug: string
@@ -1724,6 +1753,8 @@ export type Database = {
           bio?: string | null
           client_id: string
           created_at?: string
+          custom_domain?: string | null
+          custom_domain_verified?: boolean
           id?: string
           published?: boolean
           slug: string
@@ -1738,6 +1769,8 @@ export type Database = {
           bio?: string | null
           client_id?: string
           created_at?: string
+          custom_domain?: string | null
+          custom_domain_verified?: boolean
           id?: string
           published?: boolean
           slug?: string
