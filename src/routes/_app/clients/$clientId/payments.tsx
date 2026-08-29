@@ -1,11 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PaymentsPanel } from "@/components/PaymentsPanel";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+/** Legacy path — kept alive so old links never 404. */
 export const Route = createFileRoute("/_app/clients/$clientId/payments")({
-  component: PaymentsPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/clients/$clientId/facturacion",
+      params,
+      search: { tab: "pagos" } as any,
+    });
+  },
 });
-
-function PaymentsPage() {
-  const { clientId } = Route.useParams();
-  return <PaymentsPanel clientId={clientId} />;
-}
