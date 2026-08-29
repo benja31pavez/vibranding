@@ -22,6 +22,9 @@ type CommentRow = {
   id: string;
   deliverable_id: string;
   author: string;
+  author_role: "agency" | "client" | "guest";
+  author_name: string | null;
+  read_by_agency: boolean;
   kind: "comment" | "approval" | "change_request";
   body: string;
   created_at: string;
