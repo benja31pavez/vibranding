@@ -612,6 +612,10 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
               </CardContent>
             )}
           </Card>
+
+          {/* 6 — Qué funciona */}
+          <WhatWorks clientId={clientId} from={r.from} to={r.to} />
+
         </>
       )}
     </div>
