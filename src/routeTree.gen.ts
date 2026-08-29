@@ -44,7 +44,6 @@ import { Route as AppAdminHealthRouteImport } from './routes/_app/admin/health'
 import { Route as AppClientsClientIdIndexRouteImport } from './routes/_app/clients/$clientId/index'
 import { Route as ApiPublicWhatsappDispatchRouteImport } from './routes/api/public/whatsapp/dispatch'
 import { Route as ApiPublicMetaIngestDailyRouteImport } from './routes/api/public/meta/ingest-daily'
-import { Route as ApiPublicMetaAdsDiscoverRouteImport } from './routes/api/public/meta-ads/discover'
 import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/clients/$clientId/payments'
 import { Route as AppClientsClientIdObjectivesRouteImport } from './routes/_app/clients/$clientId/objectives'
 import { Route as AppClientsClientIdMultilinkRouteImport } from './routes/_app/clients/$clientId/multilink'
@@ -238,12 +237,6 @@ const ApiPublicMetaIngestDailyRoute =
     path: '/api/public/meta/ingest-daily',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicMetaAdsDiscoverRoute =
-  ApiPublicMetaAdsDiscoverRouteImport.update({
-    id: '/api/public/meta-ads/discover',
-    path: '/api/public/meta-ads/discover',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AppClientsClientIdPaymentsRoute =
   AppClientsClientIdPaymentsRouteImport.update({
     id: '/payments',
@@ -372,7 +365,6 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
-  '/api/public/meta-ads/discover': typeof ApiPublicMetaAdsDiscoverRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/clients/$clientId/': typeof AppClientsClientIdIndexRoute
@@ -422,7 +414,6 @@ export interface FileRoutesByTo {
   '/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
-  '/api/public/meta-ads/discover': typeof ApiPublicMetaAdsDiscoverRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/clients/$clientId': typeof AppClientsClientIdIndexRoute
@@ -475,7 +466,6 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/_app/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/_app/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
-  '/api/public/meta-ads/discover': typeof ApiPublicMetaAdsDiscoverRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/_app/clients/$clientId/': typeof AppClientsClientIdIndexRoute
@@ -528,7 +518,6 @@ export interface FileRouteTypes {
     | '/clients/$clientId/multilink'
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
-    | '/api/public/meta-ads/discover'
     | '/api/public/meta/ingest-daily'
     | '/api/public/whatsapp/dispatch'
     | '/clients/$clientId/'
@@ -578,7 +567,6 @@ export interface FileRouteTypes {
     | '/clients/$clientId/multilink'
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
-    | '/api/public/meta-ads/discover'
     | '/api/public/meta/ingest-daily'
     | '/api/public/whatsapp/dispatch'
     | '/clients/$clientId'
@@ -630,7 +618,6 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/multilink'
     | '/_app/clients/$clientId/objectives'
     | '/_app/clients/$clientId/payments'
-    | '/api/public/meta-ads/discover'
     | '/api/public/meta/ingest-daily'
     | '/api/public/whatsapp/dispatch'
     | '/_app/clients/$clientId/'
@@ -659,7 +646,6 @@ export interface RootRouteChildren {
   ApiMetaAdsPublishFullRoute: typeof ApiMetaAdsPublishFullRoute
   ApiMetaAdsSyncRoute: typeof ApiMetaAdsSyncRoute
   ApiMetaAdsUpdateRoute: typeof ApiMetaAdsUpdateRoute
-  ApiPublicMetaAdsDiscoverRoute: typeof ApiPublicMetaAdsDiscoverRoute
   ApiPublicMetaIngestDailyRoute: typeof ApiPublicMetaIngestDailyRoute
   ApiPublicWhatsappDispatchRoute: typeof ApiPublicWhatsappDispatchRoute
   ApiPublicMetaOauthCallbackRoute: typeof ApiPublicMetaOauthCallbackRoute
@@ -913,13 +899,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMetaIngestDailyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/meta-ads/discover': {
-      id: '/api/public/meta-ads/discover'
-      path: '/api/public/meta-ads/discover'
-      fullPath: '/api/public/meta-ads/discover'
-      preLoaderRoute: typeof ApiPublicMetaAdsDiscoverRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_app/clients/$clientId/payments': {
       id: '/_app/clients/$clientId/payments'
       path: '/payments'
@@ -1118,7 +1097,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMetaAdsPublishFullRoute: ApiMetaAdsPublishFullRoute,
   ApiMetaAdsSyncRoute: ApiMetaAdsSyncRoute,
   ApiMetaAdsUpdateRoute: ApiMetaAdsUpdateRoute,
-  ApiPublicMetaAdsDiscoverRoute: ApiPublicMetaAdsDiscoverRoute,
   ApiPublicMetaIngestDailyRoute: ApiPublicMetaIngestDailyRoute,
   ApiPublicWhatsappDispatchRoute: ApiPublicWhatsappDispatchRoute,
   ApiPublicMetaOauthCallbackRoute: ApiPublicMetaOauthCallbackRoute,

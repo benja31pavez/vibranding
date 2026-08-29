@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, Plug, RefreshCw, AlertTriangle } from "lucide-react";
+import { CheckCircle2, AlertCircle, Plug, RefreshCw, AlertTriangle, KeyRound } from "lucide-react";
+import { MetaSystemUserDialog } from "@/components/meta-ads/MetaSystemUserDialog";
 import {
   getMetaConnection,
   startMetaOAuth,
@@ -17,6 +18,7 @@ import {
 export function MetaConnectCard({ clientId }: { clientId: string }) {
   const [conn, setConn] = useState<MetaConnection | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sysOpen, setSysOpen] = useState(false);
   const fetchConn = useServerFn(getMetaConnection);
   const startOAuth = useServerFn(startMetaOAuth);
   const disconnect = useServerFn(disconnectMeta);
@@ -114,6 +116,10 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
               Conectar con Meta
             </Button>
           )}
+          <Button size="sm" variant="outline" onClick={() => setSysOpen(true)}>
+            <KeyRound className="w-3 h-3 mr-1" />
+            Conectar con token de System User
+          </Button>
           <Button asChild size="sm" variant="ghost">
             <Link to="/admin/meta-diagnostics">Diagnóstico</Link>
           </Button>
@@ -152,10 +158,17 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
         ) : (
           <p>
             Autoriza el acceso de lectura a métricas de anuncios, páginas e Instagram. El token
-            queda cifrado en el servidor y nunca se expone al navegador.
+            queda cifrado en el servidor y nunca se expone al navegador. Si la revisión de Meta aún
+            no está aprobada, usa un token permanente de System User.
           </p>
         )}
       </CardContent>
+      <MetaSystemUserDialog
+        clientId={clientId}
+        open={sysOpen}
+        onOpenChange={setSysOpen}
+        onConnected={load}
+      />
     </Card>
   );
 }

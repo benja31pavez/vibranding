@@ -7,8 +7,6 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const token = process.env.META_ADS_ACCESS_TOKEN;
-          if (!token) return j({ error: "Falta META_ADS_ACCESS_TOKEN" }, 400);
           const authHeader = request.headers.get("Authorization");
           if (!authHeader) return j({ error: "No autenticado" }, 401);
 
@@ -19,11 +17,16 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
           const { clientId, campaign, adset, ad } = (await request.json()) as any;
           if (!clientId || !campaign || !adset || !ad) return j({ error: "Datos incompletos" }, 400);
 
+          // RLS check: the caller must be able to see this client's connection.
           const { data: acc } = await supa.from("meta_accounts").select("*").eq("client_id", clientId).maybeSingle();
           if (!acc?.ad_account_id) return j({ error: "Configura la cuenta publicitaria" }, 400);
+
+          // Token comes from the Vault for this client (OAuth or System User).
+          const { requireClientMetaToken } = await import("@/lib/meta/clientToken.server");
+          const { token } = await requireClientMetaToken(clientId);
+
           const adAcc = acc.ad_account_id.startsWith("act_") ? acc.ad_account_id : `act_${acc.ad_account_id}`;
           const base = graphBase();
-          const t = encodeURIComponent(token);
 
           // 1) Image upload (if URL present)
           let imageHash: string | undefined;
