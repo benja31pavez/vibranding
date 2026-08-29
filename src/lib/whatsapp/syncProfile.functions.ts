@@ -9,6 +9,7 @@ import {
   type HourRow,
   type Social,
 } from "./profileSync.server";
+import { getWaSecret } from "./tokens.server";
 
 const META = "https://graph.facebook.com/v21.0";
 
@@ -29,13 +30,14 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
     const { data: acc } = await supabaseAdmin
       .from("whatsapp_accounts")
       .select(
-        "id,client_id,phone_number_id,access_token,profile_photo_url,website_url,social_links,catalog,business_name,business_hours",
+        "id,client_id,phone_number_id,profile_photo_url,website_url,social_links,catalog,business_name,business_hours",
       )
       .eq("id", data.accountId)
       .maybeSingle();
 
     if (!acc) throw new Error("Cuenta no encontrada");
-    if (!acc.phone_number_id || !acc.access_token) {
+    const accessToken = await getWaSecret(data.accountId, "access_token");
+    if (!acc.phone_number_id || !accessToken) {
       throw new Error("La cuenta de WhatsApp aún no está conectada");
     }
 
@@ -106,7 +108,7 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
       } else {
         const handle = await uploadProfilePhotoHandle(
           appId,
-          acc.access_token,
+          accessToken,
           acc.profile_photo_url,
         );
         if (handle) {
@@ -127,7 +129,7 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${acc.access_token}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
@@ -148,7 +150,7 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
     } | null = null;
     try {
       const verifyRes = await fetch(
-        `${META}/${acc.phone_number_id}/whatsapp_business_profile?fields=about,description,websites,profile_picture_url&access_token=${acc.access_token}`,
+        `${META}/${acc.phone_number_id}/whatsapp_business_profile?fields=about,description,websites,profile_picture_url&access_token=${accessToken}`,
       );
       const verifyJson: any = await verifyRes.json().catch(() => ({}));
       const row = verifyJson?.data?.[0];

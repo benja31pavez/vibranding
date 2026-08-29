@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { ruleToActions, sendBotActions } from "@/lib/whatsapp/sendActions";
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
+import { getWaSecret } from "@/lib/whatsapp/tokens.server";
 
 function normalize(s: string): string {
   return (s ?? "").toLowerCase().trim();
@@ -35,13 +36,9 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
         const token = url.searchParams.get("hub.verify_token");
         const challenge = url.searchParams.get("hub.challenge");
 
-        const { data: acc } = await supabaseAdmin
-          .from("whatsapp_accounts")
-          .select("verify_token")
-          .eq("id", params.accountId)
-          .maybeSingle();
+        const expectedToken = await getWaSecret(params.accountId, "verify_token");
 
-        if (mode === "subscribe" && acc?.verify_token && token === acc.verify_token) {
+        if (mode === "subscribe" && expectedToken && token === expectedToken) {
           return new Response(challenge ?? "", { status: 200 });
         }
         return new Response("Forbidden", { status: 403 });
@@ -203,10 +200,14 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
               const matched = !aiPaused ? ruleCandidates.find((r) => matchRule(body, r)) : undefined;
 
               const matchedActions = matched ? ruleToActions(matched) : [];
-              if (matched && matchedActions.length > 0 && acc.phone_number_id && acc.access_token) {
+              const accessToken =
+                matched && matchedActions.length > 0 && acc.phone_number_id
+                  ? await getWaSecret(acc.id, "access_token")
+                  : null;
+              if (matched && matchedActions.length > 0 && acc.phone_number_id && accessToken) {
                 const results = await sendBotActions(
                   acc.phone_number_id,
-                  acc.access_token,
+                  accessToken,
                   from,
                   matchedActions,
                 );
