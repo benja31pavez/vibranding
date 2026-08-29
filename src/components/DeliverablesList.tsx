@@ -540,6 +540,7 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
   const overdue = it.due_date && it.status !== "done" && it.due_date < new Date().toISOString().slice(0, 10);
   const checklist: Checklist = it.checklist ?? [];
   const doneCount = checklist.filter((c) => c.done).length;
+  const checklistOn = it.checklist_enabled ?? false;
   const [newItem, setNewItem] = useState("");
   const [showCheck, setShowCheck] = useState(false);
 
