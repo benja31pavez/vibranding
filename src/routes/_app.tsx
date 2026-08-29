@@ -14,6 +14,8 @@ import {
   DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnmarkedOutcomes } from "@/hooks/use-unmarked-outcomes";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -28,6 +30,7 @@ function AppLayout() {
   const [activeClient, setActiveClient] = useState<ActiveC | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [profile, setProfile] = useState<{ full_name: string | null; phone: string | null; avatar_url: string | null } | null>(null);
+  const { stale: unmarkedStale } = useUnmarkedOutcomes(activeClient?.id ?? null);
 
   useEffect(() => {
     if (!session?.user) return;
@@ -193,6 +196,11 @@ function AppLayout() {
                     </Link>
                     <Link to="/clients/$clientId/chatbot" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/chatbot`)}>
                       <MessageCircle className="w-4 h-4 shrink-0" /> WhatsApp
+                      {unmarkedStale > 0 && (
+                        <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-[10px]">
+                          {unmarkedStale}
+                        </Badge>
+                      )}
                     </Link>
                     <Link to="/clients/$clientId/leads" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/leads`)}>
                       <Inbox className="w-4 h-4 shrink-0" /> Leads
