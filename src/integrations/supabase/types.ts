@@ -2165,6 +2165,18 @@ export type Database = {
       increment_landing_view: { Args: { _id: string }; Returns: undefined }
       increment_multilink_click: { Args: { _id: string }; Returns: undefined }
       increment_multilink_view: { Args: { _id: string }; Returns: undefined }
+      job_health: {
+        Args: never
+        Returns: {
+          active: boolean
+          failed_24h: number
+          job_name: string
+          last_run: string
+          last_success: string
+          schedule: string
+          total_24h: number
+        }[]
+      }
       list_taken_slots: {
         Args: { _from: string; _settings_id: string; _to: string }
         Returns: {
