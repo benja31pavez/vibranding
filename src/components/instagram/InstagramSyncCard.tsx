@@ -21,6 +21,10 @@ export function InstagramSyncCard({
     setBusy(true);
     try {
       const res = await sync({ data: { clientId } });
+      if (!res.ok) {
+        toast.error(res.reason);
+        return;
+      }
       toast.success(
         res.mediaCount > 0
           ? `Sincronizadas ${res.mediaCount} publicaciones reales`
