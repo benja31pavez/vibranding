@@ -73,6 +73,14 @@ function HealthPage() {
   const staleJobs = jobs.filter(isStale);
   const failed24h = jobs.reduce((acc, j) => acc + Number(j.failed_24h ?? 0), 0);
 
+  // Connected but empty: a connection that produces no data is not healthy.
+  const connections = data?.connections ?? [];
+  const emptyConnections = connections.filter(
+    (c) =>
+      (c.adAccountId && c.adInsightRows === 0) ||
+      (c.igAccountId && c.syncedInstagramPosts === 0),
+  );
+
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
       <header className="flex items-center justify-between gap-3">
