@@ -28,7 +28,7 @@ export const Route = createFileRoute("/api/meta-ads/create-campaign")({
           if (c.fb_campaign_id) return json({ error: "Esta campaña ya existe en Meta", fb_campaign_id: c.fb_campaign_id }, 400);
 
           const { data: acc } = await userClient
-            .from("meta_ads_accounts").select("ad_account_id").eq("client_id", c.client_id).maybeSingle();
+            .from("meta_accounts").select("ad_account_id").eq("client_id", c.client_id).maybeSingle();
           if (!acc?.ad_account_id) return json({ error: "Configura el ID de cuenta publicitaria" }, 400);
 
           const adAcc = acc.ad_account_id.startsWith("act_") ? acc.ad_account_id : `act_${acc.ad_account_id}`;

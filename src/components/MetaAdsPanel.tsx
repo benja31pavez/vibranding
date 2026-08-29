@@ -101,14 +101,14 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
 
   const load = async () => {
     const [{ data: ac }, { data: cs }, { data: as }, { data: ads_ }, { data: ins }] = await Promise.all([
-      supabase.from("meta_ads_accounts").select("*").eq("client_id", clientId).maybeSingle(),
+      supabase.from("meta_accounts").select("*").eq("client_id", clientId).maybeSingle(),
       supabase.from("meta_ads_campaigns").select("*").eq("client_id", clientId).order("position"),
       supabase.from("meta_ads_adsets").select("*").eq("client_id", clientId).order("position"),
       supabase.from("meta_ads_ads").select("*").eq("client_id", clientId).order("position"),
       supabase.from("meta_ads_insights").select("*").eq("client_id", clientId),
     ]);
     if (!ac) {
-      const { data: created } = await supabase.from("meta_ads_accounts").insert({ client_id: clientId }).select().single();
+      const { data: created } = await supabase.from("meta_accounts").insert({ client_id: clientId }).select().single();
       setAccount(created as Account);
     } else setAccount(ac as Account);
     setCampaigns((cs ?? []) as Campaign[]);
@@ -122,7 +122,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   const updateAccount = async (patch: Partial<Account>) => {
     if (!account) return;
     setAccount({ ...account, ...patch });
-    await supabase.from("meta_ads_accounts").update(patch).eq("id", account.id);
+    await supabase.from("meta_accounts").update(patch).eq("id", account.id);
   };
 
   const updateCampaign = async (id: string, patch: Partial<Campaign>) => {
@@ -547,7 +547,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
           clientId={clientId}
           accountId={account.ad_account_id}
           defaultPageId={account.page_id}
-          defaultIgId={account.instagram_actor_id}
+          defaultIgId={account.ig_account_id}
           open={wizardOpen}
           onOpenChange={setWizardOpen}
           onComplete={() => { setWizardOpen(false); load(); }}

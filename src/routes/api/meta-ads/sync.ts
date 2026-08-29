@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
           if (!clientId) return json({ error: "clientId requerido" }, 400);
 
           const { data: account, error: aerr } = await userClient
-            .from("meta_ads_accounts").select("*").eq("client_id", clientId).maybeSingle();
+            .from("meta_accounts").select("*").eq("client_id", clientId).maybeSingle();
           if (aerr || !account) return json({ error: "Cuenta no encontrada o sin permisos" }, 403);
           if (!account.ad_account_id) return json({ error: "Configura la cuenta publicitaria" }, 400);
 
@@ -170,7 +170,7 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
             }
           }
 
-          await userClient.from("meta_ads_accounts").update({ last_synced_at: new Date().toISOString() }).eq("id", account.id);
+          await userClient.from("meta_accounts").update({ last_synced_at: new Date().toISOString() }).eq("id", account.id);
           return json({ campaigns: campaignsCount, adsets: adsetsCount, ads: adsCount, insights: insightsCount });
         } catch (e: any) {
           return json({ error: e?.message ?? "Error inesperado" }, 500);

@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
           const { clientId, campaign, adset, ad } = (await request.json()) as any;
           if (!clientId || !campaign || !adset || !ad) return j({ error: "Datos incompletos" }, 400);
 
-          const { data: acc } = await supa.from("meta_ads_accounts").select("*").eq("client_id", clientId).maybeSingle();
+          const { data: acc } = await supa.from("meta_accounts").select("*").eq("client_id", clientId).maybeSingle();
           if (!acc?.ad_account_id) return j({ error: "Configura la cuenta publicitaria" }, 400);
           const adAcc = acc.ad_account_id.startsWith("act_") ? acc.ad_account_id : `act_${acc.ad_account_id}`;
           const base = graphBase();
