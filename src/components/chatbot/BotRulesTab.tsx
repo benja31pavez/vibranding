@@ -317,7 +317,7 @@ function RuleEditor({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs">Acciones que enviará el bot</Label>
+            <Label className="text-xs">Respuesta simple (un solo paso)</Label>
             <div className="flex flex-wrap gap-1">
               {(Object.keys(ACTION_META) as ActionKind[]).map((k) => {
                 const Icon = ACTION_META[k].icon;
