@@ -7,8 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { z } from "zod";
 import { trackEvent } from "@/lib/track";
-import { landingWhatsappUrl } from "@/lib/landingWhatsapp";
-import { MessageCircle } from "lucide-react";
+import { PublicLandingView } from "@/components/landing/PublicLandingView";
+
 
 export const Route = createFileRoute("/@{$slug}")({
   loader: async ({ params }) => {
