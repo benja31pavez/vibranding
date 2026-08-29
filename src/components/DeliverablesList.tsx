@@ -321,15 +321,11 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           <Tabs value={view} onValueChange={(v) => setView(v as any)}>
             <TabsList className="h-8">
               <TabsTrigger value="list" className="text-xs">Lista</TabsTrigger>
-              <TabsTrigger value="kanban" className="text-xs">Kanban</TabsTrigger>
               <TabsTrigger value="timeline" className="text-xs">Timeline</TabsTrigger>
             </TabsList>
           </Tabs>
           <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAddingFolder(true)}>
             <FolderPlus className="w-4 h-4 mr-1" /> Carpeta
-          </Button>
-          <Button size="sm" variant="outline" className="rounded-full" onClick={createDivider}>
-            <Minus className="w-4 h-4 mr-1" /> Divisor
           </Button>
           <Button size="sm" variant="outline" className="rounded-full" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
             {uploading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
