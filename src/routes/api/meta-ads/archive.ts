@@ -9,8 +9,6 @@ export const Route = createFileRoute("/api/meta-ads/archive")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const token = process.env.META_ADS_ACCESS_TOKEN;
-          if (!token) return j({ error: "Falta META_ADS_ACCESS_TOKEN" }, 400);
           const authHeader = request.headers.get("Authorization");
           if (!authHeader) return j({ error: "No autenticado" }, 401);
 
@@ -34,6 +32,8 @@ export const Route = createFileRoute("/api/meta-ads/archive")({
           const fbId = (row as any)[cfg.fk];
 
           if (fbId) {
+            const { requireClientMetaToken } = await import("@/lib/meta/clientToken.server");
+            const { token } = await requireClientMetaToken((row as any).client_id);
             const params = new URLSearchParams({ status: "DELETED", access_token: token });
             const res = await fetch(`${graphBase()}/${fbId}`, { method: "POST", body: params });
             const body = await res.json();

@@ -7,9 +7,6 @@ export const Route = createFileRoute("/api/meta-ads/create-campaign")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const token = process.env.META_ADS_ACCESS_TOKEN;
-          if (!token) return json({ error: "Falta META_ADS_ACCESS_TOKEN" }, 400);
-
           const authHeader = request.headers.get("Authorization");
           if (!authHeader) return json({ error: "No autenticado" }, 401);
 
@@ -30,6 +27,9 @@ export const Route = createFileRoute("/api/meta-ads/create-campaign")({
           const { data: acc } = await userClient
             .from("meta_accounts").select("ad_account_id").eq("client_id", c.client_id).maybeSingle();
           if (!acc?.ad_account_id) return json({ error: "Configura el ID de cuenta publicitaria" }, 400);
+
+          const { requireClientMetaToken } = await import("@/lib/meta/clientToken.server");
+          const { token } = await requireClientMetaToken(c.client_id);
 
           const adAcc = acc.ad_account_id.startsWith("act_") ? acc.ad_account_id : `act_${acc.ad_account_id}`;
 

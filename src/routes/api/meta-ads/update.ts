@@ -9,8 +9,6 @@ export const Route = createFileRoute("/api/meta-ads/update")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const token = process.env.META_ADS_ACCESS_TOKEN;
-          if (!token) return j({ error: "Falta META_ADS_ACCESS_TOKEN" }, 400);
           const authHeader = request.headers.get("Authorization");
           if (!authHeader) return j({ error: "No autenticado" }, 401);
 

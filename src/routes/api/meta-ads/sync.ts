@@ -7,8 +7,6 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const token = process.env.META_ADS_ACCESS_TOKEN;
-          if (!token) return json({ error: "Falta META_ADS_ACCESS_TOKEN" }, 400);
           const authHeader = request.headers.get("Authorization");
           if (!authHeader) return json({ error: "No autenticado" }, 401);
 
@@ -23,6 +21,9 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
             .from("meta_accounts").select("*").eq("client_id", clientId).maybeSingle();
           if (aerr || !account) return json({ error: "Cuenta no encontrada o sin permisos" }, 403);
           if (!account.ad_account_id) return json({ error: "Configura la cuenta publicitaria" }, 400);
+
+          const { requireClientMetaToken } = await import("@/lib/meta/clientToken.server");
+          const { token } = await requireClientMetaToken(clientId);
 
           const adAcc = account.ad_account_id.startsWith("act_") ? account.ad_account_id : `act_${account.ad_account_id}`;
           const tok = encodeURIComponent(token);
