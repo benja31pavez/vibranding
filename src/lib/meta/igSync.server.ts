@@ -19,9 +19,11 @@ export type IgMedia = {
 export type IgSyncResult = {
   profile: boolean;
   mediaCount: number;
-  removedManual: number;
+  archivedManual: number;
   syncedAt: string;
+  warning?: string;
 };
+
 
 function formatOf(media: IgMedia): "photo" | "carousel" | "reel" {
   if (media.media_product_type === "REELS" || media.media_type === "VIDEO") return "reel";
