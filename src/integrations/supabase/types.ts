@@ -1222,6 +1222,7 @@ export type Database = {
       meta_accounts: {
         Row: {
           ad_account_id: string | null
+          auth_type: string
           business_name: string | null
           client_id: string
           connected: boolean
@@ -1239,6 +1240,7 @@ export type Database = {
         }
         Insert: {
           ad_account_id?: string | null
+          auth_type?: string
           business_name?: string | null
           client_id: string
           connected?: boolean
@@ -1256,6 +1258,7 @@ export type Database = {
         }
         Update: {
           ad_account_id?: string | null
+          auth_type?: string
           business_name?: string | null
           client_id?: string
           connected?: boolean
