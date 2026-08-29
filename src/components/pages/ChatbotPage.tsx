@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,9 +9,6 @@ import { MetricsTab } from "@/components/chatbot/MetricsTab";
 import { BusinessProfileTab } from "@/components/chatbot/BusinessProfileTab";
 import { MessageCircle } from "lucide-react";
 
-export const Route = createFileRoute("/_app/clients/$clientId/chatbot")({
-  component: ChatbotPage,
-});
 
 export type WAAccount = {
   id: string;
@@ -40,8 +36,7 @@ export type WAAccount = {
     | null;
 };
 
-function ChatbotPage() {
-  const { clientId } = Route.useParams();
+export function ChatbotPage({ clientId }: { clientId: string }) {
   const [acc, setAcc] = useState<WAAccount | null>(null);
   const [loading, setLoading] = useState(true);
 

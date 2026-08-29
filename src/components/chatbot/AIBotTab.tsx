@@ -10,7 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sparkles, Info } from "lucide-react";
 import { toast } from "sonner";
-import type { WAAccount } from "@/routes/_app/clients/$clientId/chatbot";
+import type { WAAccount } from "@/components/pages/ChatbotPage";
 
 const MODELS = [
   { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash · rápido y barato (default)" },

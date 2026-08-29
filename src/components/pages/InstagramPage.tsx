@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,12 +7,8 @@ import { IphonePreview } from "@/components/IphonePreview";
 import { InstagramSyncCard } from "@/components/instagram/InstagramSyncCard";
 import { CommentAutomationPanel } from "@/components/instagram/CommentAutomationPanel";
 
-export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
-  component: InstagramPage,
-});
 
-function InstagramPage() {
-  const { clientId } = Route.useParams();
+export function InstagramPage({ clientId }: { clientId: string }) {
   const { client, ig, setProfile, setPosts, setHighlights, setComments, reloadIG } = useActiveClient();
   const [view, setView] = useState<"current" | "proposed">("proposed");
   const profile = ig.profile;

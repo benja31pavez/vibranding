@@ -13,7 +13,7 @@ import {
   getWhatsAppVerifyToken,
   setWhatsAppAccessToken,
 } from "@/lib/whatsapp/account.functions";
-import type { WAAccount } from "@/routes/_app/clients/$clientId/chatbot";
+import type { WAAccount } from "@/components/pages/ChatbotPage";
 
 export function ConnectWhatsAppCard({
   clientId,

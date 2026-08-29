@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,9 +14,6 @@ import {
 import { ContractDocument } from "@/components/contracts/ContractDocument";
 import { exportElementToPdf } from "@/lib/exportPdf";
 
-export const Route = createFileRoute("/_app/clients/$clientId/contracts")({
-  component: ContractsPage,
-});
 
 interface ClientContract {
   id: string;
@@ -46,8 +42,7 @@ interface ClientRow {
   business_description: string | null;
 }
 
-function ContractsPage() {
-  const { clientId } = Route.useParams();
+export function ContractsPage({ clientId }: { clientId: string }) {
   const { user } = useAuth();
   const [client, setClient] = useState<ClientRow | null>(null);
   const [pricing, setPricing] = useState<PricingSettings | null>(null);

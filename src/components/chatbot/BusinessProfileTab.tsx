@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 import { MediaUpload } from "@/components/MediaUpload";
 import { syncWhatsAppProfile } from "@/lib/whatsapp/syncProfile.functions";
-import type { WAAccount } from "@/routes/_app/clients/$clientId/chatbot";
+import type { WAAccount } from "@/components/pages/ChatbotPage";
 
 type Social = { label: string; url: string };
 type CatalogItem = { name: string; price?: string; url?: string; image_url?: string };

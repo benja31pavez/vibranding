@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,9 +17,6 @@ import { DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/clients/$clientId/leads")({
-  component: LeadsPage,
-});
 
 type Source = "whatsapp" | "landing" | "meta_ads" | "multilink";
 type Status = "new" | "contacted" | "won" | "lost";
@@ -47,8 +43,7 @@ const STATUS_COLOR: Record<Status, string> = {
   lost: "bg-rose-500/15 text-rose-600 border-rose-500/30",
 };
 
-function LeadsPage() {
-  const { clientId } = Route.useParams();
+export function LeadsPage({ clientId }: { clientId: string }) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
@@ -14,9 +14,6 @@ import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail, Smartphone, Monitor
 import { EventsPanel } from "@/components/landing/EventsPanel";
 import { landingWhatsappText } from "@/lib/landingWhatsapp";
 
-export const Route = createFileRoute("/_app/clients/$clientId/landing")({
-  component: LandingEditor,
-});
 
 type Service = { title: string; description: string; icon?: string };
 type GalleryItem = { url: string; caption?: string };
@@ -44,8 +41,7 @@ type Landing = {
 
 type Submission = { id: string; name: string; email: string; phone: string | null; message: string; created_at: string };
 
-function LandingEditor() {
-  const { clientId } = Route.useParams();
+export function LandingEditor({ clientId }: { clientId: string }) {
   const { client } = useActiveClient();
   const [lp, setLp] = useState<Landing | null>(null);
   const [subs, setSubs] = useState<Submission[]>([]);

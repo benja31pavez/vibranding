@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { EventsPanel } from "@/components/landing/EventsPanel";
@@ -20,12 +20,8 @@ import {
 } from "@/lib/multilink";
 import type { IGProfile } from "@/components/InstagramEditor";
 
-export const Route = createFileRoute("/_app/clients/$clientId/multilink")({
-  component: MultilinkPage,
-});
 
-function MultilinkPage() {
-  const { clientId } = Route.useParams();
+export function MultilinkPage({ clientId }: { clientId: string }) {
   const { client } = useActiveClient();
   const [ml, setMl] = useState<Multilink | null>(null);
   const [items, setItems] = useState<Item[]>([]);
