@@ -5,8 +5,12 @@ export { metaGraphVersion, graphUrl, graphBase } from "@/lib/meta/version";
 import { graphUrl } from "@/lib/meta/version";
 export const META_SCOPES = [
   "ads_read",
+  "ads_management",
+  "pages_show_list",
   "pages_read_engagement",
+  "instagram_basic",
   "instagram_manage_insights",
+  "business_management",
 ] as const;
 
 /**

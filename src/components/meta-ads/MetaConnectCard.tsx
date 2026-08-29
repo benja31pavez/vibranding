@@ -32,10 +32,13 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
 
   useEffect(() => {
     load();
-    const status = new URLSearchParams(window.location.search).get("meta");
-    if (status === "conectado") toast.success("Cuenta de Meta conectada");
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("meta");
+    const detail = params.get("meta_error");
+    if (status === "conectado")
+      detail ? toast.warning(detail) : toast.success("Cuenta de Meta conectada");
     if (status === "cancelado") toast.info("Conexión con Meta cancelada");
-    if (status === "error") toast.error("No se pudo conectar con Meta");
+    if (status === "error") toast.error(detail ?? "No se pudo conectar con Meta");
   }, [clientId]);
 
   const connect = async () => {

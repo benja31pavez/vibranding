@@ -29,11 +29,12 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
           console.error("[meta oauth] invalid or expired state");
           return new Response("Forbidden", { status: 403 });
         }
-        const back = (status: string) =>
-          Response.redirect(
-            `${url.origin}/clients/${state.clientId}/meta-ads?meta=${status}`,
-            302,
-          );
+        const back = (status: string, errorMsg?: string) => {
+          const target = new URL(`${url.origin}/clients/${state.clientId}/meta-ads`);
+          target.searchParams.set("meta", status);
+          if (errorMsg) target.searchParams.set("meta_error", errorMsg.slice(0, 300));
+          return Response.redirect(target.toString(), 302);
+        };
 
         if (denied || !code) return back("cancelado");
 
@@ -55,22 +56,48 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
           const expiresIn = Number(long.expires_in ?? short.expires_in ?? 0);
 
           // 2. Discover the first ad account, page and linked IG account.
-          const [adAccounts, pages] = await Promise.all([
+          // Errors are captured, never swallowed: without them the flow fails silently.
+          const [adAccountsRes, pagesRes] = await Promise.all([
             graph<any>("me/adaccounts", {
               access_token: token,
               fields: "id,account_id,name,timezone_name",
               limit: "25",
-            }).catch(() => ({ data: [] })),
+            }).then(
+              (data) => ({ data, error: null as string | null }),
+              (e: any) => ({ data: { data: [] }, error: `adaccounts: ${e?.message ?? "error"}` }),
+            ),
             graph<any>("me/accounts", {
               access_token: token,
               fields: "id,name,instagram_business_account{id,username}",
               limit: "25",
-            }).catch(() => ({ data: [] })),
+            }).then(
+              (data) => ({ data, error: null as string | null }),
+              (e: any) => ({ data: { data: [] }, error: `accounts: ${e?.message ?? "error"}` }),
+            ),
           ]);
+          const adAccounts = adAccountsRes.data;
+          const pages = pagesRes.data;
+          const discoveryErrors = [adAccountsRes.error, pagesRes.error].filter(Boolean).join(" · ");
           const adAccount = (adAccounts.data ?? [])[0] ?? null;
           const page = (pages.data ?? []).find((p: any) => p.instagram_business_account)
             ?? (pages.data ?? [])[0]
             ?? null;
+          const igAccount = page?.instagram_business_account ?? null;
+
+          // Only mark as connected if something usable was discovered.
+          const connected = Boolean(adAccount || igAccount);
+          if (!connected) {
+            const msg = discoveryErrors
+              || "No se descubrió ninguna cuenta publicitaria ni de Instagram con este token. Revisa permisos y roles en la app de Meta.";
+            console.error("[meta oauth] discovery empty", { clientId: state.clientId, msg });
+            // Persist the failure so the diagnostics page can show it.
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            await (supabaseAdmin.from("meta_accounts" as any) as any).upsert(
+              { client_id: state.clientId, connected: false, last_sync_error: msg },
+              { onConflict: "client_id" },
+            );
+            return back("error", msg);
+          }
 
           // 3. Persist the connection (one per client) and vault the token.
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -82,14 +109,14 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
                 client_id: state.clientId,
                 ad_account_id: adAccount?.id ?? null,
                 page_id: page?.id ?? null,
-                ig_account_id: page?.instagram_business_account?.id ?? null,
+                ig_account_id: igAccount?.id ?? null,
                 business_name: page?.name ?? adAccount?.name ?? null,
                 timezone_name: adAccount?.timezone_name ?? null,
                 scopes: [...META_SCOPES],
-                connected: true,
+                connected,
                 token_expires_at:
                   expiresIn > 0 ? new Date(Date.now() + expiresIn * 1000).toISOString() : null,
-                last_sync_error: null,
+                last_sync_error: discoveryErrors || null,
               },
               { onConflict: "client_id" },
             )
@@ -100,10 +127,13 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
           const { setMetaToken } = await import("@/lib/meta/tokens.server");
           await setMetaToken(saved.id, token);
 
-          return back("conectado");
+          return back(
+            "conectado",
+            discoveryErrors ? `Conectado con advertencias: ${discoveryErrors}` : undefined,
+          );
         } catch (e: any) {
           console.error("[meta oauth] exchange failed", e?.message);
-          return back("error");
+          return back("error", e?.message ?? "Error al intercambiar el token con Meta");
         }
       },
     },
