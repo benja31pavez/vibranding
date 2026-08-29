@@ -816,6 +816,7 @@ export type Database = {
           created_at: string
           format: Database["public"]["Enums"]["post_format"]
           id: string
+          ig_media_id: string | null
           image_url: string | null
           is_trial_reel: boolean
           likes_count: number
@@ -823,6 +824,7 @@ export type Database = {
           music: string | null
           objective: string | null
           position: number
+          published_at: string | null
           scheduled_at: string | null
           type: Database["public"]["Enums"]["ig_post_type"]
           updated_at: string
@@ -836,6 +838,7 @@ export type Database = {
           created_at?: string
           format?: Database["public"]["Enums"]["post_format"]
           id?: string
+          ig_media_id?: string | null
           image_url?: string | null
           is_trial_reel?: boolean
           likes_count?: number
@@ -843,6 +846,7 @@ export type Database = {
           music?: string | null
           objective?: string | null
           position?: number
+          published_at?: string | null
           scheduled_at?: string | null
           type: Database["public"]["Enums"]["ig_post_type"]
           updated_at?: string
@@ -856,6 +860,7 @@ export type Database = {
           created_at?: string
           format?: Database["public"]["Enums"]["post_format"]
           id?: string
+          ig_media_id?: string | null
           image_url?: string | null
           is_trial_reel?: boolean
           likes_count?: number
@@ -863,6 +868,7 @@ export type Database = {
           music?: string | null
           objective?: string | null
           position?: number
+          published_at?: string | null
           scheduled_at?: string | null
           type?: Database["public"]["Enums"]["ig_post_type"]
           updated_at?: string
@@ -895,6 +901,7 @@ export type Database = {
           current_show_contact_button: boolean
           current_song: string | null
           current_song_enabled: boolean
+          current_synced_at: string | null
           current_threads_enabled: boolean
           current_threads_handle: string | null
           current_username: string | null
@@ -937,6 +944,7 @@ export type Database = {
           current_show_contact_button?: boolean
           current_song?: string | null
           current_song_enabled?: boolean
+          current_synced_at?: string | null
           current_threads_enabled?: boolean
           current_threads_handle?: string | null
           current_username?: string | null
@@ -979,6 +987,7 @@ export type Database = {
           current_show_contact_button?: boolean
           current_song?: string | null
           current_song_enabled?: boolean
+          current_synced_at?: string | null
           current_threads_enabled?: boolean
           current_threads_handle?: string | null
           current_username?: string | null

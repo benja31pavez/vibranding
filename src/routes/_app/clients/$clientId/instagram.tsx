@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { IdentityEditor, ConfigEditor, PostsEditor, HighlightsEditor } from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
+import { InstagramSyncCard } from "@/components/instagram/InstagramSyncCard";
 
 export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
   component: InstagramPage,
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
 
 function InstagramPage() {
   const { clientId } = Route.useParams();
-  const { client, ig, setProfile, setPosts, setHighlights, setComments } = useActiveClient();
+  const { client, ig, setProfile, setPosts, setHighlights, setComments, reloadIG } = useActiveClient();
   const [view, setView] = useState<"current" | "proposed">("proposed");
   const profile = ig.profile;
 
@@ -33,6 +34,11 @@ function InstagramPage() {
   return (
     <div className="grid lg:grid-cols-[1fr_360px] gap-10">
       <div className="space-y-4">
+        <InstagramSyncCard
+          clientId={clientId}
+          syncedAt={profile?.current_synced_at ?? null}
+          onSynced={reloadIG}
+        />
         <p className="text-xs text-muted-foreground">
           Editando vista <strong className={view === "proposed" ? "text-accent" : ""}>{view === "proposed" ? "Propuesta" : "Actual"}</strong>. Cambia con el selector del iPhone.
         </p>
