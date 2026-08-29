@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [sent, setSent] = useState(false);
 
   useEffect(() => {
     if (session) navigate({ to: "/clients" });
@@ -35,10 +38,33 @@ function LoginPage() {
     e.preventDefault();
     setBusy(true);
     try {
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        setSent(true);
+        toast.success("Te enviamos un correo de recuperación");
+        return;
+      }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (err: any) {
       toast.error(err.message ?? "Error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const google = async () => {
+    setBusy(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result?.error) throw result.error;
+    } catch (err: any) {
+      toast.error(err.message ?? "No se pudo iniciar con Google");
     } finally {
       setBusy(false);
     }
