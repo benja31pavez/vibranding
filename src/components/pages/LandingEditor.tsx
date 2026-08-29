@@ -10,9 +10,16 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail, Smartphone, Monitor, MessageCircle } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail, Smartphone, Monitor, MessageCircle, AlertTriangle, Moon, MapPin, HelpCircle, Quote } from "lucide-react";
 import { EventsPanel } from "@/components/landing/EventsPanel";
 import { landingWhatsappText } from "@/lib/landingWhatsapp";
+import { PublicLandingView } from "@/components/landing/PublicLandingView";
+import {
+  TEMPLATE_LABEL, HERO_ASPECT_LABEL, SERVICE_ICON_KEYS, SERVICE_ICONS,
+  landingPalette, defaultHours, WEEKDAYS, asArray, asObject,
+  type LandingTemplate, type HeroAspect, type Testimonial, type FaqItem,
+  type LandingLocation, type LandingFooter,
+} from "@/lib/landingTheme";
 
 
 type Service = { title: string; description: string; icon?: string };
@@ -37,7 +44,18 @@ type Landing = {
   whatsapp_number: string | null;
   whatsapp_cta_text: string | null;
   whatsapp_message: string | null;
+  template: LandingTemplate;
+  dark_mode: boolean;
+  hero_aspect: HeroAspect;
+  testimonials_enabled: boolean;
+  testimonials: Testimonial[];
+  location_enabled: boolean;
+  location: LandingLocation;
+  faq_enabled: boolean;
+  faq: FaqItem[];
+  footer: LandingFooter;
 };
+
 
 type Submission = { id: string; name: string; email: string; phone: string | null; message: string; created_at: string };
 
@@ -52,7 +70,7 @@ export function LandingEditor({ clientId }: { clientId: string }) {
   const load = async () => {
     setLoading(true);
     const { data } = await supabase.from("landing_pages").select("*").eq("client_id", clientId).maybeSingle();
-    setLp(data as unknown as Landing | null);
+    setLp(data ? normalize(data) : null);
     if (data) {
       const { data: s } = await supabase.from("landing_contact_submissions")
         .select("id,name,email,phone,message,created_at")
@@ -73,7 +91,7 @@ export function LandingEditor({ clientId }: { clientId: string }) {
       hero_subtitle: "Descripción breve y atractiva", cta_text: "Contáctanos",
     }).select("*").single();
     if (error) return toast.error(error.message);
-    setLp(data as unknown as Landing);
+    setLp(normalize(data));
     toast.success("Landing creada");
   };
 
@@ -97,6 +115,17 @@ export function LandingEditor({ clientId }: { clientId: string }) {
       whatsapp_number: lp.whatsapp_number,
       whatsapp_cta_text: lp.whatsapp_cta_text,
       whatsapp_message: lp.whatsapp_message,
+      template: lp.template,
+      dark_mode: lp.dark_mode,
+      hero_aspect: lp.hero_aspect,
+      testimonials_enabled: lp.testimonials_enabled,
+      testimonials: lp.testimonials as any,
+      location_enabled: lp.location_enabled,
+      location: lp.location as any,
+      faq_enabled: lp.faq_enabled,
+      faq: lp.faq as any,
+      footer: lp.footer as any,
+
     }).eq("id", lp.id);
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -132,6 +161,33 @@ export function LandingEditor({ clientId }: { clientId: string }) {
     services: lp.services.map((s, k) => k === i ? { ...s, ...patch } : s),
   });
   const rmService = (i: number) => lp && update({ services: lp.services.filter((_, k) => k !== i) });
+
+  const updTestimonial = (i: number, patch: Partial<Testimonial>) => lp && update({
+    testimonials: lp.testimonials.map((t, k) => k === i ? { ...t, ...patch } : t),
+  });
+  const uploadTestimonialPhoto = async (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    try {
+      const url = await uploadClientMedia(f, clientId);
+      updTestimonial(i, { photo_url: url });
+    } catch (err: any) { toast.error(err.message); }
+  };
+  const updFaq = (i: number, patch: Partial<FaqItem>) => lp && update({
+    faq: lp.faq.map((f, k) => k === i ? { ...f, ...patch } : f),
+  });
+  const updHour = (i: number, patch: Partial<{ closed: boolean; from: string; to: string }>) => {
+    if (!lp) return;
+    const hours = (lp.location.hours ?? defaultHours()).map((h, k) => k === i ? { ...h, ...patch } : h);
+    update({ location: { ...lp.location, hours } });
+  };
+  const updFooter = (patch: Partial<LandingFooter>) => lp && update({ footer: { ...lp.footer, ...patch } });
+  const updLegal = (i: number, patch: Partial<{ label: string; url: string }>) => {
+    if (!lp) return;
+    const legal = (lp.footer.legal ?? []).map((l, k) => k === i ? { ...l, ...patch } : l);
+    updFooter({ legal });
+  };
+
+
 
   const deleteSub = async (id: string) => {
     const { error } = await supabase.from("landing_contact_submissions").delete().eq("id", id);
@@ -201,16 +257,51 @@ export function LandingEditor({ clientId }: { clientId: string }) {
 
       <div className="grid lg:grid-cols-[1fr_420px] gap-6 items-start">
         <div className="space-y-6 min-w-0">
-          <div className="grid md:grid-cols-3 gap-3">
-            <div>
-              <Label className="text-xs">Slug</Label>
-              <Input value={lp.slug} onChange={e => update({ slug: e.target.value })} />
+          <section className="rounded-2xl border bg-surface p-5 space-y-4">
+            <h3 className="font-medium">Diseño</h3>
+            <div className="grid md:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Slug</Label>
+                <Input value={lp.slug} onChange={e => update({ slug: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Color principal</Label>
+                <Input type="color" value={lp.theme_color} onChange={e => update({ theme_color: e.target.value })} className="h-9 p-1" />
+              </div>
+              <div>
+                <Label className="text-xs">Plantilla</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={lp.template}
+                  onChange={e => update({ template: e.target.value as LandingTemplate })}
+                >
+                  {Object.entries(TEMPLATE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">Proporción de la imagen</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={lp.hero_aspect}
+                  onChange={e => update({ hero_aspect: e.target.value as HeroAspect })}
+                >
+                  {Object.entries(HERO_ASPECT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <Label className="flex items-center gap-2 text-sm mt-5">
+                <Switch checked={lp.dark_mode} onCheckedChange={v => update({ dark_mode: v })} />
+                <Moon className="w-4 h-4" /> Modo oscuro
+              </Label>
             </div>
-            <div>
-              <Label className="text-xs">Color principal</Label>
-              <Input type="color" value={lp.theme_color} onChange={e => update({ theme_color: e.target.value })} className="h-9 p-1" />
-            </div>
-          </div>
+            {landingPalette(lp.theme_color, lp.dark_mode).lowContrast && (
+              <p className="text-xs flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                Este color tiene poco contraste sobre el fondo ({landingPalette(lp.theme_color, lp.dark_mode).contrast.toFixed(1)}:1).
+                Los textos usarán una versión más legible del color; el color original se mantiene en el botón.
+              </p>
+            )}
+          </section>
+
 
           {/* Hero */}
           <section className="rounded-2xl border bg-surface p-5 space-y-3">
@@ -246,6 +337,34 @@ export function LandingEditor({ clientId }: { clientId: string }) {
                     <Button size="icon" variant="ghost" onClick={() => rmService(i)}><Trash2 className="w-4 h-4" /></Button>
                   </div>
                   <Textarea placeholder="Descripción" value={s.description} onChange={e => updService(i, { description: e.target.value })} rows={2} maxLength={300} />
+                  <div>
+                    <Label className="text-xs">Icono</Label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => updService(i, { icon: undefined })}
+                        className={`w-8 h-8 rounded-md border grid place-items-center text-[10px] ${!s.icon ? "border-primary bg-primary/10" : ""}`}
+                        title="Sin icono (número)"
+                      >
+                        {i + 1}
+                      </button>
+                      {SERVICE_ICON_KEYS.map(k => {
+                        const Icon = SERVICE_ICONS[k];
+                        return (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => updService(i, { icon: k })}
+                            className={`w-8 h-8 rounded-md border grid place-items-center ${s.icon === k ? "border-primary bg-primary/10" : ""}`}
+                            title={k}
+                          >
+                            <Icon className="w-4 h-4" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                 </li>
               ))}
             </ul>
@@ -323,7 +442,125 @@ export function LandingEditor({ clientId }: { clientId: string }) {
             </div>
           </section>
 
+          {/* Testimonials */}
+          <section className="rounded-2xl border bg-surface p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium flex items-center gap-2"><Quote className="w-4 h-4" /> Testimonios</h3>
+              <Switch checked={lp.testimonials_enabled} onCheckedChange={v => update({ testimonials_enabled: v })} />
+            </div>
+            {lp.testimonials.length === 0 && <p className="text-sm text-muted-foreground">Sin testimonios.</p>}
+            <ul className="space-y-2">
+              {lp.testimonials.map((t, i) => (
+                <li key={i} className="rounded-xl border bg-background p-3 space-y-2">
+                  <div className="flex gap-2">
+                    <Input placeholder="Nombre" value={t.name} onChange={e => updTestimonial(i, { name: e.target.value })} maxLength={80} />
+                    <Input placeholder="Cargo (opcional)" value={t.role ?? ""} onChange={e => updTestimonial(i, { role: e.target.value })} maxLength={80} />
+                    <Button size="icon" variant="ghost" onClick={() => update({ testimonials: lp.testimonials.filter((_, k) => k !== i) })}><Trash2 className="w-4 h-4" /></Button>
+                  </div>
+                  <Textarea placeholder="Testimonio" rows={2} value={t.quote} onChange={e => updTestimonial(i, { quote: e.target.value })} maxLength={400} />
+                  <div className="flex items-center gap-3">
+                    {t.photo_url && <img src={t.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />}
+                    <label className="text-sm text-primary cursor-pointer hover:underline">
+                      {t.photo_url ? "Cambiar foto" : "Subir foto (opcional)"}
+                      <input type="file" accept="image/*" className="hidden" onChange={e => uploadTestimonialPhoto(i, e)} />
+                    </label>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <Button size="sm" variant="outline" onClick={() => update({ testimonials: [...lp.testimonials, { name: "", quote: "" }] })}>
+              <Plus className="w-4 h-4 mr-1" /> Añadir testimonio
+            </Button>
+          </section>
+
+          {/* Location & hours */}
+          <section className="rounded-2xl border bg-surface p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium flex items-center gap-2"><MapPin className="w-4 h-4" /> Ubicación y horarios</h3>
+              <Switch checked={lp.location_enabled} onCheckedChange={v => update({ location_enabled: v })} />
+            </div>
+            <Input placeholder="Dirección" value={lp.location.address ?? ""} onChange={e => update({ location: { ...lp.location, address: e.target.value } })} maxLength={200} />
+            <div>
+              <Label className="text-xs">URL de mapa incrustado (Google Maps → Compartir → Insertar)</Label>
+              <Input
+                placeholder="https://www.google.com/maps/embed?..."
+                value={lp.location.map_embed_url ?? ""}
+                onChange={e => update({ location: { ...lp.location, map_embed_url: e.target.value } })}
+                maxLength={800}
+              />
+            </div>
+            <ul className="space-y-2">
+              {(lp.location.hours ?? defaultHours()).map((h, i) => (
+                <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] sm:flex sm:items-center gap-2 text-sm">
+                  <span className="w-24 shrink-0">{WEEKDAYS[h.day]}</span>
+                  <Label className="flex items-center gap-2 text-xs">
+                    <Switch checked={!h.closed} onCheckedChange={v => updHour(i, { closed: !v })} />
+                    {h.closed ? "Cerrado" : "Abierto"}
+                  </Label>
+                  {!h.closed && (
+                    <div className="flex items-center gap-2">
+                      <Input type="time" step={1800} value={h.from ?? "09:00"} onChange={e => updHour(i, { from: e.target.value })} className="h-8 w-28" />
+                      <span className="text-muted-foreground">–</span>
+                      <Input type="time" step={1800} value={h.to ?? "18:00"} onChange={e => updHour(i, { to: e.target.value })} className="h-8 w-28" />
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* FAQ */}
+          <section className="rounded-2xl border bg-surface p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium flex items-center gap-2"><HelpCircle className="w-4 h-4" /> Preguntas frecuentes</h3>
+              <Switch checked={lp.faq_enabled} onCheckedChange={v => update({ faq_enabled: v })} />
+            </div>
+            {lp.faq.length === 0 && <p className="text-sm text-muted-foreground">Sin preguntas.</p>}
+            <ul className="space-y-2">
+              {lp.faq.map((f, i) => (
+                <li key={i} className="rounded-xl border bg-background p-3 space-y-2">
+                  <div className="flex gap-2">
+                    <Input placeholder="Pregunta" value={f.question} onChange={e => updFaq(i, { question: e.target.value })} maxLength={160} />
+                    <Button size="icon" variant="ghost" onClick={() => update({ faq: lp.faq.filter((_, k) => k !== i) })}><Trash2 className="w-4 h-4" /></Button>
+                  </div>
+                  <Textarea placeholder="Respuesta" rows={2} value={f.answer} onChange={e => updFaq(i, { answer: e.target.value })} maxLength={800} />
+                </li>
+              ))}
+            </ul>
+            <Button size="sm" variant="outline" onClick={() => update({ faq: [...lp.faq, { question: "", answer: "" }] })}>
+              <Plus className="w-4 h-4 mr-1" /> Añadir pregunta
+            </Button>
+          </section>
+
+          {/* Footer */}
+          <section className="rounded-2xl border bg-surface p-5 space-y-3">
+            <h3 className="font-medium">Pie de página</h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              <Input placeholder="Email de contacto" value={lp.footer.email ?? ""} onChange={e => updFooter({ email: e.target.value })} maxLength={160} />
+              <Input placeholder="Teléfono" value={lp.footer.phone ?? ""} onChange={e => updFooter({ phone: e.target.value })} maxLength={40} />
+              <Input placeholder="Dirección" value={lp.footer.address ?? ""} onChange={e => updFooter({ address: e.target.value })} maxLength={200} />
+              <Input placeholder="WhatsApp (+56...)" value={lp.footer.whatsapp ?? ""} onChange={e => updFooter({ whatsapp: e.target.value })} maxLength={40} />
+              <Input placeholder="URL Instagram" value={lp.footer.instagram ?? ""} onChange={e => updFooter({ instagram: e.target.value })} maxLength={300} />
+              <Input placeholder="URL Facebook" value={lp.footer.facebook ?? ""} onChange={e => updFooter({ facebook: e.target.value })} maxLength={300} />
+              <Input placeholder="URL TikTok" value={lp.footer.tiktok ?? ""} onChange={e => updFooter({ tiktok: e.target.value })} maxLength={300} />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Enlaces legales (opcional)</Label>
+              {(lp.footer.legal ?? []).map((l, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input placeholder="Etiqueta" value={l.label} onChange={e => updLegal(i, { label: e.target.value })} maxLength={60} />
+                  <Input placeholder="URL" value={l.url} onChange={e => updLegal(i, { url: e.target.value })} maxLength={300} />
+                  <Button size="icon" variant="ghost" onClick={() => updFooter({ legal: (lp.footer.legal ?? []).filter((_, k) => k !== i) })}><Trash2 className="w-4 h-4" /></Button>
+                </div>
+              ))}
+              <Button size="sm" variant="outline" onClick={() => updFooter({ legal: [...(lp.footer.legal ?? []), { label: "", url: "" }] })}>
+                <Plus className="w-4 h-4 mr-1" /> Añadir enlace
+              </Button>
+            </div>
+          </section>
+
           <EventsPanel clientId={clientId} sourceType="landing" sourceId={lp.id} />
+
 
           {/* Contact */}
           <section className="rounded-2xl border bg-surface p-5 space-y-3">
@@ -402,84 +639,28 @@ export function LandingEditor({ clientId }: { clientId: string }) {
   );
 }
 
-function LandingPreview({ lp, compact }: { lp: Landing; compact: boolean }) {
-  const color = lp.theme_color || "#6366f1";
-  return (
-    <div className="bg-white text-gray-900">
-      {/* Hero */}
-      <section className={compact ? "px-4 py-6" : "px-6 py-10"}>
-        <div className={compact ? "" : "grid grid-cols-2 gap-6 items-center"}>
-          <div>
-            <h1 className={compact ? "text-lg font-bold leading-tight" : "text-2xl font-bold leading-tight"} style={{ color }}>
-              {lp.hero_title || "Título"}
-            </h1>
-            {lp.hero_subtitle && (
-              <p className={compact ? "mt-2 text-[11px] text-gray-600 whitespace-pre-line" : "mt-2 text-xs text-gray-600 whitespace-pre-line"}>
-                {lp.hero_subtitle}
-              </p>
-            )}
-            {lp.cta_text && (
-              <div
-                className={compact ? "inline-block mt-3 rounded-full px-3 py-1.5 text-[10px] font-medium text-white" : "inline-block mt-3 rounded-full px-4 py-2 text-xs font-medium text-white"}
-                style={{ background: color }}
-              >
-                {lp.cta_text}
-              </div>
-            )}
-          </div>
-          {lp.hero_image_url && !compact && (
-            <img src={lp.hero_image_url} alt="" className="w-full rounded-xl object-cover aspect-square" />
-          )}
-        </div>
-        {lp.hero_image_url && compact && (
-          <img src={lp.hero_image_url} alt="" className="w-full rounded-xl object-cover aspect-square mt-4" />
-        )}
-      </section>
-
-      {/* Services */}
-      {lp.services?.length > 0 && (
-        <section className={compact ? "bg-gray-50 px-4 py-6" : "bg-gray-50 px-6 py-8"}>
-          <h2 className={compact ? "text-sm font-bold text-center mb-3" : "text-lg font-bold text-center mb-4"}>Servicios</h2>
-          <div className={compact ? "space-y-2" : "grid grid-cols-3 gap-3"}>
-            {lp.services.map((s, i) => (
-              <div key={i} className="rounded-xl bg-white p-3 shadow-sm border">
-                <div className="w-6 h-6 rounded-md mb-2" style={{ background: `${color}22` }} />
-                <h3 className="font-semibold text-xs" style={{ color }}>{s.title}</h3>
-                <p className="mt-1 text-[10px] text-gray-600 line-clamp-3 whitespace-pre-line">{s.description}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Gallery */}
-      {lp.gallery?.length > 0 && (
-        <section className={compact ? "px-4 py-6" : "px-6 py-8"}>
-          <h2 className={compact ? "text-sm font-bold text-center mb-3" : "text-lg font-bold text-center mb-4"}>Galería</h2>
-          <div className={compact ? "grid grid-cols-2 gap-2" : "grid grid-cols-3 gap-2"}>
-            {lp.gallery.map((g, i) => (
-              <img key={i} src={g.url} alt="" className="w-full aspect-square object-cover rounded-lg" />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Contact */}
-      {lp.contact_enabled && (
-        <section className={compact ? "bg-gray-50 px-4 py-6" : "bg-gray-50 px-6 py-8"}>
-          <h2 className={compact ? "text-sm font-bold text-center mb-2" : "text-lg font-bold text-center mb-2"}>Contáctanos</h2>
-          <div className="rounded-xl bg-white p-3 border space-y-2">
-            <div className="h-6 rounded border bg-gray-50" />
-            <div className="h-6 rounded border bg-gray-50" />
-            <div className="h-12 rounded border bg-gray-50" />
-            <div className="h-7 rounded text-white text-[10px] grid place-items-center" style={{ background: color }}>Enviar mensaje</div>
-          </div>
-        </section>
-      )}
-
-      <footer className="py-3 text-center text-[9px] text-gray-500">
-        © {new Date().getFullYear()} {lp.hero_title}
-      </footer>
-    </div>
-  );
+/** Applies defaults so landings created before the new fields keep rendering. */
+function normalize(row: any): Landing {
+  const location = asObject<LandingLocation>(row.location);
+  return {
+    ...row,
+    services: asArray<Service>(row.services),
+    gallery: asArray<GalleryItem>(row.gallery),
+    template: (row.template ?? "classic") as LandingTemplate,
+    dark_mode: !!row.dark_mode,
+    hero_aspect: (row.hero_aspect ?? "square") as HeroAspect,
+    testimonials_enabled: !!row.testimonials_enabled,
+    testimonials: asArray<Testimonial>(row.testimonials),
+    location_enabled: !!row.location_enabled,
+    location: { ...location, hours: location.hours?.length ? location.hours : defaultHours() },
+    faq_enabled: !!row.faq_enabled,
+    faq: asArray<FaqItem>(row.faq),
+    footer: asObject<LandingFooter>(row.footer),
+  } as Landing;
 }
+
+function LandingPreview({ lp, compact }: { lp: Landing; compact: boolean }) {
+
+  return <PublicLandingView lp={lp as any} preview compact={compact} />;
+}
+

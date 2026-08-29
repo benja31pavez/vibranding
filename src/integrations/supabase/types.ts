@@ -1326,14 +1326,24 @@ export type Database = {
           created_at: string
           cta_text: string | null
           cta_url: string | null
+          dark_mode: boolean
+          faq: Json
+          faq_enabled: boolean
+          footer: Json
           gallery: Json
+          hero_aspect: string
           hero_image_url: string | null
           hero_subtitle: string | null
           hero_title: string
           id: string
+          location: Json
+          location_enabled: boolean
           published: boolean
           services: Json
           slug: string
+          template: string
+          testimonials: Json
+          testimonials_enabled: boolean
           theme_color: string
           updated_at: string
           view_count: number
@@ -1348,14 +1358,24 @@ export type Database = {
           created_at?: string
           cta_text?: string | null
           cta_url?: string | null
+          dark_mode?: boolean
+          faq?: Json
+          faq_enabled?: boolean
+          footer?: Json
           gallery?: Json
+          hero_aspect?: string
           hero_image_url?: string | null
           hero_subtitle?: string | null
           hero_title?: string
           id?: string
+          location?: Json
+          location_enabled?: boolean
           published?: boolean
           services?: Json
           slug: string
+          template?: string
+          testimonials?: Json
+          testimonials_enabled?: boolean
           theme_color?: string
           updated_at?: string
           view_count?: number
@@ -1370,14 +1390,24 @@ export type Database = {
           created_at?: string
           cta_text?: string | null
           cta_url?: string | null
+          dark_mode?: boolean
+          faq?: Json
+          faq_enabled?: boolean
+          footer?: Json
           gallery?: Json
+          hero_aspect?: string
           hero_image_url?: string | null
           hero_subtitle?: string | null
           hero_title?: string
           id?: string
+          location?: Json
+          location_enabled?: boolean
           published?: boolean
           services?: Json
           slug?: string
+          template?: string
+          testimonials?: Json
+          testimonials_enabled?: boolean
           theme_color?: string
           updated_at?: string
           view_count?: number
