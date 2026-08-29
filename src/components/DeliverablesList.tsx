@@ -595,7 +595,7 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
               className="border-0 px-0 py-1 min-h-0 text-sm text-muted-foreground shadow-none focus-visible:ring-0 resize-none" rows={1} />
           )}
 
-          {checklist.length > 0 && (
+          {checklistOn && checklist.length > 0 && (
             <div className="mt-2 space-y-1">
               {checklist.map((c, i) => (
                 <div key={i} className="flex items-center gap-2 group/c">
@@ -613,7 +613,7 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
             </div>
           )}
 
-          {showCheck && (
+          {checklistOn && showCheck && (
             <div className="flex items-center gap-2 mt-2">
               <Input autoFocus value={newItem} onChange={(e) => setNewItem(e.target.value)}
                 onKeyDown={(e) => {
