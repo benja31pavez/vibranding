@@ -498,6 +498,20 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
                         maxLength={300}
                       />
                     </div>
+                  ) : i.kind === "social" ? (
+                    <div className="flex gap-2">
+                      <SocialSelect
+                        value={(i.icon ?? "instagram")}
+                        onChange={(v) => { updateItem(i.id, { icon: v }); persistItem({ ...i, icon: v }); }}
+                      />
+                      <Input
+                        placeholder="@usuario, URL, email o teléfono"
+                        value={i.url}
+                        onChange={e => updateItem(i.id, { url: e.target.value })}
+                        onBlur={() => persistItem(i)}
+                        maxLength={500}
+                      />
+                    </div>
                   ) : i.kind === "video" ? (
                     <Input
                       placeholder="URL de YouTube, Vimeo o .mp4"
