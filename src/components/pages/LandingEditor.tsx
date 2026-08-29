@@ -310,6 +310,34 @@ export function LandingEditor({ clientId }: { clientId: string }) {
                     <Button size="icon" variant="ghost" onClick={() => rmService(i)}><Trash2 className="w-4 h-4" /></Button>
                   </div>
                   <Textarea placeholder="Descripción" value={s.description} onChange={e => updService(i, { description: e.target.value })} rows={2} maxLength={300} />
+                  <div>
+                    <Label className="text-xs">Icono</Label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => updService(i, { icon: undefined })}
+                        className={`w-8 h-8 rounded-md border grid place-items-center text-[10px] ${!s.icon ? "border-primary bg-primary/10" : ""}`}
+                        title="Sin icono (número)"
+                      >
+                        {i + 1}
+                      </button>
+                      {SERVICE_ICON_KEYS.map(k => {
+                        const Icon = SERVICE_ICONS[k];
+                        return (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => updService(i, { icon: k })}
+                            className={`w-8 h-8 rounded-md border grid place-items-center ${s.icon === k ? "border-primary bg-primary/10" : ""}`}
+                            title={k}
+                          >
+                            <Icon className="w-4 h-4" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                 </li>
               ))}
             </ul>
