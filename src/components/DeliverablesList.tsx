@@ -38,6 +38,7 @@ type Row = {
   due_date: string | null;
   type: DType;
   checklist: Checklist;
+  checklist_enabled: boolean;
   sort_order: number;
   folder_id: string | null;
   file_url: string | null;
@@ -45,10 +46,20 @@ type Row = {
   file_size: number | null;
   mime_type: string | null;
   created_at?: string;
+  client_id?: string;
 };
 
 type FolderRow = { id: string; name: string; sort_order: number };
-type DividerRow = { id: string; label: string; sort_order: number };
+
+/** Default set built from the six service stages, offered when a client has none. */
+const STARTER_STAGES: { title: string; type: DType; description: string }[] = [
+  { title: "Branding", type: "design", description: "Identidad visual, paleta y aplicaciones." },
+  { title: "Optimización", type: "report", description: "Optimización del perfil y de la presencia actual." },
+  { title: "Contenido", type: "post", description: "Plan de contenido y primeras piezas." },
+  { title: "Ads", type: "report", description: "Estructura de campañas y creativos." },
+  { title: "Landing Page", type: "design", description: "Página de captación y textos." },
+  { title: "Chatbot", type: "other", description: "Flujos de respuesta automática en WhatsApp." },
+];
 
 const statusMeta: Record<Status, { label: string; icon: any; cls: string }> = {
   pending: { label: "Pendiente", icon: Circle, cls: "text-muted-foreground" },
