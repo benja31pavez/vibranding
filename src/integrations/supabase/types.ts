@@ -1186,6 +1186,7 @@ export type Database = {
           last_synced_at: string | null
           page_id: string | null
           scopes: string[]
+          timezone_name: string | null
           token_expires_at: string | null
           token_secret_id: string | null
           updated_at: string
@@ -1202,6 +1203,7 @@ export type Database = {
           last_synced_at?: string | null
           page_id?: string | null
           scopes?: string[]
+          timezone_name?: string | null
           token_expires_at?: string | null
           token_secret_id?: string | null
           updated_at?: string
@@ -1218,6 +1220,7 @@ export type Database = {
           last_synced_at?: string | null
           page_id?: string | null
           scopes?: string[]
+          timezone_name?: string | null
           token_expires_at?: string | null
           token_secret_id?: string | null
           updated_at?: string
