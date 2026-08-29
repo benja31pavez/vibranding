@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { PublicMultilinkView } from "@/components/multilink/PublicMultilinkView";
 import type { Multilink, MultilinkItem } from "@/lib/multilink";
+import { fontHref, fontKey } from "@/lib/multilinkTheme";
 
 export const Route = createFileRoute("/l/$slug")({
   loader: async ({ params }) => {
