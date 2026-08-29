@@ -9,7 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { Copy, CheckCircle2, Plug, AlertCircle, ChevronDown } from "lucide-react";
-import { getWhatsAppVerifyToken } from "@/lib/whatsapp/account.functions";
+import {
+  getWhatsAppVerifyToken,
+  setWhatsAppAccessToken,
+} from "@/lib/whatsapp/account.functions";
 import type { WAAccount } from "@/routes/_app/clients/$clientId/chatbot";
 
 export function ConnectWhatsAppCard({
