@@ -144,7 +144,8 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       setCampaigns(campaigns.filter((c) => c.id !== id));
       setAdsets(adsets.filter((a) => a.campaign_id !== id));
       setAds(ads.filter((ad) => !adsets.find((a) => a.id === ad.adset_id && a.campaign_id === id)));
-      setInsights(insights.filter((i) => i.campaign_id !== id));
+      const gone = campaigns.find((c) => c.id === id)?.fb_campaign_id ?? null;
+      setInsights(insights.filter((i) => !gone || i.campaign_id !== gone));
       toast.success("Eliminada en Meta");
     } catch (e: any) { toast.error(e.message); }
   };
@@ -275,7 +276,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
           <Accordion type="multiple" className="space-y-2">
             {campaigns.map((c) => {
               const myAdsets = adsets.filter((a) => a.campaign_id === c.id);
-              const myInsights = insights.filter((i) => i.campaign_id === c.id);
+              const myInsights = c.fb_campaign_id ? insights.filter((i) => i.campaign_id === c.fb_campaign_id) : [];
               return (
                 <AccordionItem key={c.id} value={c.id} className="border rounded-xl bg-surface px-4">
                   <AccordionTrigger className="hover:no-underline">
