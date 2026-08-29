@@ -398,27 +398,36 @@ export type Database = {
         Row: {
           client_id: string
           contact: string | null
+          conversation_id: string | null
           created_at: string
+          email: string | null
           id: string
           message: string | null
+          metadata: Json
           name: string
           source: string
         }
         Insert: {
           client_id: string
           contact?: string | null
+          conversation_id?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           message?: string | null
+          metadata?: Json
           name: string
           source: string
         }
         Update: {
           client_id?: string
           contact?: string | null
+          conversation_id?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           message?: string | null
+          metadata?: Json
           name?: string
           source?: string
         }
@@ -428,6 +437,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_leads_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -2466,6 +2482,7 @@ export type Database = {
           actions: Json
           client_id: string
           created_at: string
+          flow_steps: Json
           id: string
           is_active: boolean
           keywords: string[]
@@ -2480,6 +2497,7 @@ export type Database = {
           actions?: Json
           client_id: string
           created_at?: string
+          flow_steps?: Json
           id?: string
           is_active?: boolean
           keywords?: string[]
@@ -2494,6 +2512,7 @@ export type Database = {
           actions?: Json
           client_id?: string
           created_at?: string
+          flow_steps?: Json
           id?: string
           is_active?: boolean
           keywords?: string[]
@@ -2530,6 +2549,7 @@ export type Database = {
           needs_human_followup: boolean
           pending_response_at: string | null
           status: string
+          tags: string[]
           unread_count: number
           updated_at: string
         }
@@ -2556,6 +2576,7 @@ export type Database = {
           needs_human_followup?: boolean
           pending_response_at?: string | null
           status?: string
+          tags?: string[]
           unread_count?: number
           updated_at?: string
         }
@@ -2582,6 +2603,7 @@ export type Database = {
           needs_human_followup?: boolean
           pending_response_at?: string | null
           status?: string
+          tags?: string[]
           unread_count?: number
           updated_at?: string
         }
@@ -2598,6 +2620,82 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_accounts_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_flow_runs: {
+        Row: {
+          awaiting_input: boolean
+          client_id: string
+          conversation_id: string
+          created_at: string
+          current_step_id: string | null
+          finished_at: string | null
+          id: string
+          last_error: string | null
+          next_run_at: string | null
+          retry_count: number
+          rule_id: string | null
+          started_at: string
+          status: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          awaiting_input?: boolean
+          client_id: string
+          conversation_id: string
+          created_at?: string
+          current_step_id?: string | null
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          next_run_at?: string | null
+          retry_count?: number
+          rule_id?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          awaiting_input?: boolean
+          client_id?: string
+          conversation_id?: string
+          created_at?: string
+          current_step_id?: string | null
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          next_run_at?: string | null
+          retry_count?: number
+          rule_id?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_flow_runs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_flow_runs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_flow_runs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_bot_rules"
             referencedColumns: ["id"]
           },
         ]

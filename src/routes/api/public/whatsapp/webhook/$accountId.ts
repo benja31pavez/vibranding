@@ -4,6 +4,7 @@ import { ruleToActions, sendBotActions } from "@/lib/whatsapp/sendActions";
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
 import { getWaSecret } from "@/lib/whatsapp/tokens.server";
 import { parseLandingRef } from "@/lib/landingWhatsapp";
+import { getActiveRun, handleFlowReply, hasFlow, startFlow } from "@/lib/whatsapp/flow.server";
 
 function normalize(s: string): string {
   return (s ?? "").toLowerCase().trim();
@@ -118,11 +119,17 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
               let mediaUrl: string | null = null;
               if (type === "text") body = msg.text?.body ?? "";
               else if (type === "button") body = msg.button?.text ?? "";
-              else if (type === "interactive")
+              let interactiveId: string | null = null;
+              if (type === "interactive") {
                 body =
                   msg.interactive?.button_reply?.title ??
                   msg.interactive?.list_reply?.title ??
                   "";
+                interactiveId =
+                  msg.interactive?.button_reply?.id ??
+                  msg.interactive?.list_reply?.id ??
+                  null;
+              }
               else body = `[${type}]`;
 
               // Landing attribution: the CTA prefills "(Ref: LP-xxxxxxxx)", so a
@@ -232,6 +239,30 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
                 status: "received",
               });
 
+              // 0) An in-progress multi-step flow owns the conversation: the reply
+              //    feeds the flow instead of re-matching rules or waking the AI.
+              const activeRun = !aiPaused ? await getActiveRun(conversationId) : null;
+              if (activeRun && activeRun.awaiting_input && acc.phone_number_id) {
+                const token = await getWaSecret(acc.id, "access_token");
+                if (token) {
+                  const consumed = await handleFlowReply(
+                    activeRun,
+                    {
+                      phoneNumberId: acc.phone_number_id,
+                      accessToken: token,
+                      to: from,
+                      clientId: acc.client_id,
+                      conversationId,
+                      contactName: contactName ?? null,
+                      contactWaId: from,
+                    },
+                    body,
+                    interactiveId,
+                  );
+                  if (consumed) continue;
+                }
+              }
+
               // 1) Try keyword rules first (instant response)
               const { data: rules } = await supabaseAdmin
                 .from("whatsapp_bot_rules")
@@ -251,6 +282,32 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
                 : sorted;
 
               const matched = !aiPaused ? ruleCandidates.find((r) => matchRule(body, r)) : undefined;
+
+              // A matched rule that defines steps starts the flow; a plain rule keeps
+              // firing its actions exactly as before.
+              if (matched && hasFlow(matched as any) && acc.phone_number_id) {
+                const token = await getWaSecret(acc.id, "access_token");
+                if (token) {
+                  const started = await startFlow(matched as any, {
+                    phoneNumberId: acc.phone_number_id,
+                    accessToken: token,
+                    to: from,
+                    clientId: acc.client_id,
+                    conversationId,
+                    contactName: contactName ?? null,
+                    contactWaId: from,
+                  });
+                  if (started) {
+                    if (matched.mark_as_lead) {
+                      await supabaseAdmin
+                        .from("whatsapp_conversations")
+                        .update({ is_lead: true, pending_response_at: null })
+                        .eq("id", conversationId);
+                    }
+                    continue;
+                  }
+                }
+              }
 
               const matchedActions = matched ? ruleToActions(matched) : [];
               const accessToken =
