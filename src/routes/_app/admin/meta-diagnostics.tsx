@@ -61,6 +61,7 @@ function MetaDiagnosticsPage() {
 
   const fetchDiag = useServerFn(getMetaDiagnostics);
   const runIngest = useServerFn(testMetaIngest);
+  const runDebug = useServerFn(debugMetaConnection);
 
   useEffect(() => {
     (async () => {
@@ -86,6 +87,19 @@ function MetaDiagnosticsPage() {
     setResult(null);
     try {
       setResult(await runIngest({ data: { accountId, date } }));
+    } catch (e: any) {
+      setResult({ error: e?.message ?? "Error inesperado" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // Raw probe: no friendly messages, every Meta payload as returned.
+  const fullTest = async (accountId: string) => {
+    setBusy(`${accountId}:debug`);
+    setResult(null);
+    try {
+      setResult(await runDebug({ data: { accountId, date } }));
     } catch (e: any) {
       setResult({ error: e?.message ?? "Error inesperado" });
     } finally {
