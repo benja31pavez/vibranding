@@ -38,6 +38,7 @@ import { Route as ApiMetaAdsCreateCampaignRouteImport } from './routes/api/meta-
 import { Route as ApiMetaAdsArchiveRouteImport } from './routes/api/meta-ads/archive'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
+import { Route as AppAdminHealthRouteImport } from './routes/_app/admin/health'
 import { Route as AppClientsClientIdIndexRouteImport } from './routes/_app/clients/$clientId/index'
 import { Route as ApiPublicWhatsappDispatchRouteImport } from './routes/api/public/whatsapp/dispatch'
 import { Route as ApiPublicMetaAdsDiscoverRouteImport } from './routes/api/public/meta-ads/discover'
@@ -199,6 +200,11 @@ const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
   path: '/clients/$clientId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminHealthRoute = AppAdminHealthRouteImport.update({
+  id: '/admin/health',
+  path: '/admin/health',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppClientsClientIdIndexRoute = AppClientsClientIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -302,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
+  '/admin/health': typeof AppAdminHealthRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -346,6 +353,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
+  '/admin/health': typeof AppAdminHealthRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
@@ -391,6 +399,7 @@ export interface FileRoutesById {
   '/_app/reports': typeof AppReportsRoute
   '/_app/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
+  '/_app/admin/health': typeof AppAdminHealthRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -437,6 +446,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/stats'
     | '/book/$slug'
+    | '/admin/health'
     | '/clients/$clientId'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
@@ -481,6 +491,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/stats'
     | '/book/$slug'
+    | '/admin/health'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
     | '/api/meta-ads/create-campaign'
@@ -525,6 +536,7 @@ export interface FileRouteTypes {
     | '/_app/reports'
     | '/_app/stats'
     | '/book/$slug'
+    | '/_app/admin/health'
     | '/_app/clients/$clientId'
     | '/_app/settings/pricing'
     | '/api/meta-ads/archive'
@@ -780,6 +792,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/health': {
+      id: '/_app/admin/health'
+      path: '/admin/health'
+      fullPath: '/admin/health'
+      preLoaderRoute: typeof AppAdminHealthRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/clients/$clientId/': {
       id: '/_app/clients/$clientId/'
       path: '/'
@@ -930,6 +949,7 @@ interface AppRouteChildren {
   AppPortfolioRoute: typeof AppPortfolioRoute
   AppReportsRoute: typeof AppReportsRoute
   AppStatsRoute: typeof AppStatsRoute
+  AppAdminHealthRoute: typeof AppAdminHealthRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRouteWithChildren
   AppSettingsPricingRoute: typeof AppSettingsPricingRoute
   AppClientsIndexRoute: typeof AppClientsIndexRoute
@@ -942,6 +962,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPortfolioRoute: AppPortfolioRoute,
   AppReportsRoute: AppReportsRoute,
   AppStatsRoute: AppStatsRoute,
+  AppAdminHealthRoute: AppAdminHealthRoute,
   AppClientsClientIdRoute: AppClientsClientIdRouteWithChildren,
   AppSettingsPricingRoute: AppSettingsPricingRoute,
   AppClientsIndexRoute: AppClientsIndexRoute,

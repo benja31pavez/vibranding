@@ -783,6 +783,42 @@ export type Database = {
           },
         ]
       }
+      job_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          http_status: number | null
+          id: string
+          job_name: string
+          request_id: number | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          http_status?: number | null
+          id?: string
+          job_name: string
+          request_id?: number | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          http_status?: number | null
+          id?: string
+          job_name?: string
+          request_id?: number | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       landing_contact_submissions: {
         Row: {
           client_id: string
@@ -2129,6 +2165,18 @@ export type Database = {
       increment_landing_view: { Args: { _id: string }; Returns: undefined }
       increment_multilink_click: { Args: { _id: string }; Returns: undefined }
       increment_multilink_view: { Args: { _id: string }; Returns: undefined }
+      job_health: {
+        Args: never
+        Returns: {
+          active: boolean
+          failed_24h: number
+          job_name: string
+          last_run: string
+          last_success: string
+          schedule: string
+          total_24h: number
+        }[]
+      }
       list_taken_slots: {
         Args: { _from: string; _settings_id: string; _to: string }
         Returns: {
@@ -2137,6 +2185,11 @@ export type Database = {
         }[]
       }
       owns_client: { Args: { _client_id: string }; Returns: boolean }
+      reconcile_job_runs: { Args: never; Returns: undefined }
+      run_http_cron_job: {
+        Args: { _job_name: string; _url: string }
+        Returns: undefined
+      }
       wa_get_secret: {
         Args: { _account_id: string; _kind: string }
         Returns: string
