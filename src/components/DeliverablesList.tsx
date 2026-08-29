@@ -981,10 +981,12 @@ function SortableDeliverable({ it, folders, update, remove }: { it: Row; folders
 // ───────────────────────── Review thread ─────────────────────────
 
 function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any) => void }) {
+  const { user } = useAuth();
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const load = async () => {
     const { data } = await supabase
@@ -992,8 +994,13 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
       .select("*")
       .eq("deliverable_id", it.id)
       .order("created_at", { ascending: true });
-    setComments((data ?? []) as CommentRow[]);
+    const rows = (data ?? []) as CommentRow[];
+    setComments(rows);
     setLoaded(true);
+    const unread = rows.filter((c) => c.author_role !== "agency" && !c.read_by_agency).map((c) => c.id);
+    if (unread.length) {
+      await supabase.from("deliverable_comments").update({ read_by_agency: true }).in("id", unread);
+    }
   };
 
   useEffect(() => {
@@ -1009,35 +1016,57 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
       .eq("deliverable_id", it.id)
       .then(({ count }) => {
         if (alive && count != null && !loaded) {
-          // store stub array of length=count for badge display
-          setComments(Array.from({ length: count }, (_, i) => ({ id: `stub-${i}`, deliverable_id: it.id, author: "", kind: "comment", body: "", created_at: "" })));
+          setComments(Array.from({ length: count }, (_, i) => ({
+            id: `stub-${i}`, deliverable_id: it.id, author: "", author_role: "agency" as const,
+            author_name: null, read_by_agency: true, kind: "comment" as const, body: "", created_at: "",
+          })));
         }
       });
     return () => { alive = false; };
   }, [it.id]);
 
+  const resolveClientId = async () => {
+    if (it.client_id) return it.client_id;
+    const { data } = await supabase.from("deliverables").select("client_id").eq("id", it.id).single();
+    return data?.client_id as string | undefined;
+  };
+
   const addComment = async (kind: CommentRow["kind"], text: string) => {
     if (!text.trim()) return;
-    const payload = {
-      deliverable_id: it.id,
-      client_id: (it as any).client_id ?? undefined,
-    };
-    // client_id is required — fetch it from the deliverable row if not present
-    let clientId = (it as any).client_id;
-    if (!clientId) {
-      const { data } = await supabase.from("deliverables").select("client_id").eq("id", it.id).single();
-      clientId = data?.client_id;
-    }
+    const clientId = await resolveClientId();
     const { error } = await supabase.from("deliverable_comments").insert({
       deliverable_id: it.id,
       client_id: clientId,
       author: "agency",
+      author_role: "agency",
+      author_user_id: user?.id ?? null,
+      author_name: (user?.user_metadata?.full_name as string | undefined) || user?.email || "Agencia",
+      read_by_agency: true,
       kind,
       body: text.trim(),
     });
     if (error) { toast.error(error.message); return; }
     setBody("");
     load();
+  };
+
+  const createShareLink = async () => {
+    setSharing(true);
+    const clientId = await resolveClientId();
+    const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+    const expires = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
+    const { error } = await supabase.from("deliverable_review_links").insert({
+      deliverable_id: it.id,
+      client_id: clientId,
+      token,
+      expires_at: expires,
+      created_by: user?.id ?? null,
+    });
+    setSharing(false);
+    if (error) return toast.error(error.message);
+    const url = `${window.location.origin}/review/${token}`;
+    try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
+    toast.success("Enlace de revisión copiado (14 días)");
   };
 
   const sendToReview = async () => {
@@ -1067,6 +1096,8 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
   };
 
   const count = comments.length;
+  const unreadCount = comments.filter((c) => c.author_role !== "agency" && !c.read_by_agency).length;
+
 
   return (
     <div className="mt-3 pt-3 border-t border-border/60">
