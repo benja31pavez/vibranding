@@ -555,6 +555,8 @@ export function PostsEditor({
   comments: IGComment[];
   setComments: (updater: (prev: IGComment[]) => IGComment[]) => void;
 }) {
+  const { metrics } = usePostInsights(clientId);
+
   const desiredCount = Math.max(
     0,
     Math.min(
@@ -1063,6 +1065,45 @@ export function PostsEditor({
                         </Popover>
                       );
                     })()}
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="flex items-center gap-1">
+                      {(() => {
+                        const m = p.ig_media_id ? metrics[p.ig_media_id] : undefined;
+                        if (!p.ig_media_id) {
+                          return (
+                            <span className="text-[10px] text-muted-foreground italic">
+                              Sin vincular
+                            </span>
+                          );
+                        }
+                        if (!m) {
+                          return (
+                            <span className="text-[10px] text-muted-foreground italic">
+                              Sin métricas aún
+                            </span>
+                          );
+                        }
+                        return (
+                          <span
+                            className="text-[10px] tabular-nums leading-tight"
+                            title={`Métricas del ${m.date}`}
+                          >
+                            <span className="block">Alcance {m.reach.toLocaleString("es-CL")}</span>
+                            <span className="block">Interac. {m.engagement.toLocaleString("es-CL")}</span>
+                            <span className="block">Guardados {m.saves.toLocaleString("es-CL")}</span>
+                          </span>
+                        );
+                      })()}
+                      <MediaMatchPopover
+                        clientId={clientId}
+                        postId={p.id}
+                        igMediaId={p.ig_media_id ?? null}
+                        onMatched={(igMediaId, publishedAt) =>
+                          setLocal(p.id, { ig_media_id: igMediaId, published_at: publishedAt })
+                        }
+                      />
+                    </div>
                   </td>
                   <td className="px-2 py-2">
                     {(() => {
