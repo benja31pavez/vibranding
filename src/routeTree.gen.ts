@@ -22,6 +22,7 @@ import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AtChar123slugChar125RouteImport } from './routes/@{$slug}'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as AppStatsRouteImport } from './routes/_app/stats'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
@@ -122,6 +123,11 @@ const AtChar123slugChar125Route = AtChar123slugChar125RouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LSlugRoute = LSlugRouteImport.update({
+  id: '/l/$slug',
+  path: '/l/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookSlugRoute = BookSlugRouteImport.update({
@@ -349,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
+  '/l/$slug': typeof LSlugRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
@@ -400,6 +407,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
+  '/l/$slug': typeof LSlugRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
@@ -452,6 +460,7 @@ export interface FileRoutesById {
   '/_app/reports': typeof AppReportsRoute
   '/_app/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
+  '/l/$slug': typeof LSlugRoute
   '/_app/admin/health': typeof AppAdminHealthRoute
   '/_app/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
@@ -505,6 +514,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/stats'
     | '/book/$slug'
+    | '/l/$slug'
     | '/admin/health'
     | '/admin/meta-diagnostics'
     | '/clients/$clientId'
@@ -556,6 +566,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/stats'
     | '/book/$slug'
+    | '/l/$slug'
     | '/admin/health'
     | '/admin/meta-diagnostics'
     | '/settings/pricing'
@@ -607,6 +618,7 @@ export interface FileRouteTypes {
     | '/_app/reports'
     | '/_app/stats'
     | '/book/$slug'
+    | '/l/$slug'
     | '/_app/admin/health'
     | '/_app/admin/meta-diagnostics'
     | '/_app/clients/$clientId'
@@ -653,6 +665,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   BookSlugRoute: typeof BookSlugRoute
+  LSlugRoute: typeof LSlugRoute
   ApiMetaAdsArchiveRoute: typeof ApiMetaAdsArchiveRoute
   ApiMetaAdsCreateCampaignRoute: typeof ApiMetaAdsCreateCampaignRoute
   ApiMetaAdsDiscoverRoute: typeof ApiMetaAdsDiscoverRoute
@@ -756,6 +769,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/l/$slug': {
+      id: '/l/$slug'
+      path: '/l/$slug'
+      fullPath: '/l/$slug'
+      preLoaderRoute: typeof LSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/book/$slug': {
@@ -1113,6 +1133,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   BookSlugRoute: BookSlugRoute,
+  LSlugRoute: LSlugRoute,
   ApiMetaAdsArchiveRoute: ApiMetaAdsArchiveRoute,
   ApiMetaAdsCreateCampaignRoute: ApiMetaAdsCreateCampaignRoute,
   ApiMetaAdsDiscoverRoute: ApiMetaAdsDiscoverRoute,
