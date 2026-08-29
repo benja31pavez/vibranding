@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { PublicMultilinkView } from "@/components/multilink/PublicMultilinkView";
 import type { Multilink, MultilinkItem } from "@/lib/multilink";
+import { fontHref, fontKey } from "@/lib/multilinkTheme";
 
 export const Route = createFileRoute("/l/$slug")({
   loader: async ({ params }) => {
@@ -21,6 +22,9 @@ export const Route = createFileRoute("/l/$slug")({
     return { ml: ml as unknown as Multilink, items: (items ?? []) as unknown as MultilinkItem[] };
   },
   head: ({ loaderData }) => ({
+    links: loaderData
+      ? [{ rel: "stylesheet", href: fontHref(fontKey(loaderData.ml.font_family)) }]
+      : [],
     meta: loaderData
       ? [
           { title: `${loaderData.ml.title} — Enlaces` },

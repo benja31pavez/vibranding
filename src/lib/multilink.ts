@@ -1,4 +1,4 @@
-export type MultilinkItemKind = "link" | "whatsapp" | "video";
+export type MultilinkItemKind = "link" | "whatsapp" | "video" | "social";
 
 export type MultilinkItem = {
   id: string;
@@ -34,13 +34,66 @@ export type Multilink = {
   view_count: number;
   custom_domain: string | null;
   custom_domain_verified: boolean;
+  button_style: string;
+  button_shape: string;
+  font_family: string;
+  background: unknown;
 };
 
 export const KIND_LABEL: Record<MultilinkItemKind, string> = {
   link: "Enlace",
   whatsapp: "WhatsApp",
   video: "Video",
+  social: "Red social",
 };
+
+export type SocialNetwork =
+  | "instagram" | "tiktok" | "youtube" | "spotify"
+  | "facebook" | "x" | "linkedin" | "email" | "phone";
+
+export const SOCIAL_LABEL: Record<SocialNetwork, string> = {
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+  spotify: "Spotify",
+  facebook: "Facebook",
+  x: "X",
+  linkedin: "LinkedIn",
+  email: "Email",
+  phone: "Teléfono",
+};
+
+export function socialNetwork(i: MultilinkItem): SocialNetwork {
+  const key = (i.icon ?? "").toLowerCase();
+  return key in SOCIAL_LABEL ? (key as SocialNetwork) : "instagram";
+}
+
+/** Social items accept a bare handle, email or phone as well as a full URL. */
+export function socialHref(i: MultilinkItem): string | null {
+  const net = socialNetwork(i);
+  const raw = (i.url ?? "").trim();
+  if (!raw || raw === "https://") return null;
+  if (net === "email") return raw.startsWith("mailto:") ? raw : `mailto:${raw}`;
+  if (net === "phone") {
+    const digits = raw.replace(/[^\d+]/g, "");
+    return digits ? `tel:${digits}` : null;
+  }
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const handle = raw.replace(/^@/, "");
+  const bases: Record<SocialNetwork, string> = {
+    instagram: "https://instagram.com/",
+    tiktok: "https://tiktok.com/@",
+    youtube: "https://youtube.com/@",
+    spotify: "https://open.spotify.com/",
+    facebook: "https://facebook.com/",
+    x: "https://x.com/",
+    linkedin: "https://linkedin.com/in/",
+    email: "mailto:",
+    phone: "tel:",
+  };
+  return `${bases[net]}${handle}`;
+}
+
 
 /** A scheduled item is only visible inside its window. */
 export function itemIsLive(i: MultilinkItem, now: Date = new Date()): boolean {
@@ -72,6 +125,7 @@ export function waHref(i: MultilinkItem): string | null {
 /** Destination for a clickable item; null for items rendered inline (video). */
 export function itemHref(i: MultilinkItem): string | null {
   if (i.kind === "whatsapp") return waHref(i);
+  if (i.kind === "social") return socialHref(i);
   if (i.kind === "video") return null;
   return i.url && i.url !== "https://" ? i.url : null;
 }

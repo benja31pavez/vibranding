@@ -11,13 +11,18 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Plus, Trash2, ExternalLink, Copy, Eye, GripVertical, Link2, Globe, Star, MessageCircle, Play, CalendarClock } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Copy, Eye, GripVertical, Link2, Globe, Star, CalendarClock, Palette, Upload } from "lucide-react";
 import { MultilinkAnalytics } from "@/components/multilink/MultilinkAnalytics";
 import { QrCodeCard } from "@/components/multilink/QrCodeCard";
+import { PublicMultilinkView } from "@/components/multilink/PublicMultilinkView";
 import {
-  KIND_LABEL, itemIsLive, multilinkPath, multilinkPublicUrl, scheduleState,
-  type Multilink, type MultilinkItem as Item, type MultilinkItemKind,
+  KIND_LABEL, multilinkPath, multilinkPublicUrl, scheduleState, SOCIAL_LABEL,
+  type Multilink, type MultilinkItem as Item, type MultilinkItemKind, type SocialNetwork,
 } from "@/lib/multilink";
+import {
+  BUTTON_SHAPE_LABEL, BUTTON_STYLE_LABEL, FONTS, parseBackground,
+  type Background, type ButtonShape, type ButtonStyle, type FontKey,
+} from "@/lib/multilinkTheme";
 import type { IGProfile } from "@/components/InstagramEditor";
 
 
@@ -94,6 +99,10 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
       avatar_url: ml.avatar_url,
       theme_color: ml.theme_color,
       theme_mode: ml.theme_mode,
+      button_style: ml.button_style,
+      button_shape: ml.button_shape,
+      font_family: ml.font_family,
+      background: ml.background as any,
       slug: slugify(ml.slug) || ml.slug,
     }).eq("id", ml.id);
     setSaving(false);
@@ -182,6 +191,19 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const publicUrl = multilinkPublicUrl(ml, origin);
   const appUrl = `${origin}${multilinkPath(ml.slug)}`;
+  const bg = parseBackground(ml.background);
+  const setBg = (next: Background) => updateMl({ background: next });
+  // The preview renders the real public page, so it can never drift from it.
+  const previewMl: Multilink = { ...ml, avatar_url: effectiveAvatarUrl };
+
+  const onBackgroundImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      const url = await uploadClientMedia(f, clientId);
+      setBg({ type: "image", url, overlay: bg.type === "image" ? bg.overlay : 0.45 });
+    } catch (err: any) { toast.error(err.message); }
+  };
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -297,6 +319,119 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
             <Button onClick={persistMl} disabled={saving}>Guardar cambios</Button>
           </div>
 
+          <div className="rounded-2xl border bg-surface p-5 space-y-4">
+            <h3 className="font-medium text-sm flex items-center gap-2"><Palette className="w-4 h-4" /> Estilo</h3>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Estilo de botón</Label>
+                <select
+                  className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={ml.button_style}
+                  onChange={e => updateMl({ button_style: e.target.value as ButtonStyle })}
+                >
+                  {(Object.keys(BUTTON_STYLE_LABEL) as ButtonStyle[]).map(k => (
+                    <option key={k} value={k}>{BUTTON_STYLE_LABEL[k]}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">Forma</Label>
+                <select
+                  className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={ml.button_shape}
+                  onChange={e => updateMl({ button_shape: e.target.value as ButtonShape })}
+                >
+                  {(Object.keys(BUTTON_SHAPE_LABEL) as ButtonShape[]).map(k => (
+                    <option key={k} value={k}>{BUTTON_SHAPE_LABEL[k]}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Tipografía</Label>
+              <select
+                className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
+                value={ml.font_family}
+                onChange={e => updateMl({ font_family: e.target.value as FontKey })}
+              >
+                {(Object.keys(FONTS) as FontKey[]).map(k => (
+                  <option key={k} value={k}>{FONTS[k].label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-xs">Fondo</Label>
+              <select
+                className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
+                value={bg.type}
+                onChange={e => {
+                  const t = e.target.value as Background["type"];
+                  if (t === "flat") setBg({ type: "flat" });
+                  else if (t === "solid") setBg({ type: "solid", color: "#111827" });
+                  else if (t === "gradient") setBg({ type: "gradient", from: "#6d28d9", to: "#db2777", angle: 160 });
+                  else setBg({ type: "image", url: null, overlay: 0.45 });
+                }}
+              >
+                <option value="flat">Según modo claro/oscuro</option>
+                <option value="solid">Color sólido</option>
+                <option value="gradient">Degradado</option>
+                <option value="image">Imagen</option>
+              </select>
+
+              {bg.type === "solid" && (
+                <Input type="color" value={bg.color} onChange={e => setBg({ ...bg, color: e.target.value })} className="w-20 h-9 p-1" />
+              )}
+
+              {bg.type === "gradient" && (
+                <div className="flex flex-wrap items-end gap-3">
+                  <div>
+                    <Label className="text-[11px] text-muted-foreground">Desde</Label>
+                    <Input type="color" value={bg.from} onChange={e => setBg({ ...bg, from: e.target.value })} className="w-16 h-9 p-1" />
+                  </div>
+                  <div>
+                    <Label className="text-[11px] text-muted-foreground">Hasta</Label>
+                    <Input type="color" value={bg.to} onChange={e => setBg({ ...bg, to: e.target.value })} className="w-16 h-9 p-1" />
+                  </div>
+                  <div className="flex-1 min-w-[140px]">
+                    <Label className="text-[11px] text-muted-foreground">Ángulo: {bg.angle}°</Label>
+                    <input
+                      type="range" min={0} max={360} step={5} value={bg.angle}
+                      onChange={e => setBg({ ...bg, angle: Number(e.target.value) })}
+                      className="w-full accent-primary"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {bg.type === "image" && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-20 h-14 rounded-lg bg-secondary overflow-hidden grid place-items-center">
+                      {bg.url ? <img src={bg.url} alt="" className="w-full h-full object-cover" /> : <Upload className="w-4 h-4 text-muted-foreground" />}
+                    </div>
+                    <label className="text-sm text-primary cursor-pointer hover:underline">
+                      Subir imagen
+                      <input type="file" accept="image/*" className="hidden" onChange={onBackgroundImage} />
+                    </label>
+                  </div>
+                  <Label className="text-[11px] text-muted-foreground">
+                    Oscurecer para legibilidad: {Math.round(bg.overlay * 100)}%
+                  </Label>
+                  <input
+                    type="range" min={0} max={90} step={5} value={Math.round(bg.overlay * 100)}
+                    onChange={e => setBg({ ...bg, overlay: Number(e.target.value) / 100 })}
+                    className="w-full accent-primary"
+                  />
+                </div>
+              )}
+            </div>
+
+            <Button onClick={persistMl} disabled={saving}>Guardar estilo</Button>
+          </div>
+
           <div className="rounded-2xl border bg-surface p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-medium text-sm">Enlaces</h3>
@@ -361,6 +496,20 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
                         onChange={e => updateItem(i.id, { wa_message: e.target.value })}
                         onBlur={() => persistItem(i)}
                         maxLength={300}
+                      />
+                    </div>
+                  ) : i.kind === "social" ? (
+                    <div className="flex gap-2">
+                      <SocialSelect
+                        value={(i.icon ?? "instagram")}
+                        onChange={(v) => { updateItem(i.id, { icon: v }); persistItem({ ...i, icon: v }); }}
+                      />
+                      <Input
+                        placeholder="@usuario, URL, email o teléfono"
+                        value={i.url}
+                        onChange={e => updateItem(i.id, { url: e.target.value })}
+                        onBlur={() => persistItem(i)}
+                        maxLength={500}
                       />
                     </div>
                   ) : i.kind === "video" ? (
@@ -441,30 +590,10 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
           {previewMode === "mobile" ? (
             <div className="mx-auto" style={{ width: 320 }}>
               <div className="relative rounded-[3rem] bg-black p-2 shadow-2xl">
-                <div
-                  className="relative rounded-[2.5rem] overflow-hidden"
-                  style={{
-                    aspectRatio: "9/19.5",
-                    background: ml.theme_mode === "dark" ? "#0a0a0a" : "#fafafa",
-                    color: ml.theme_mode === "dark" ? "#fafafa" : "#0a0a0a",
-                  }}
-                >
+                <div className="relative rounded-[2.5rem] overflow-hidden" style={{ aspectRatio: "9/19.5" }}>
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-30" />
-                  <div className="absolute inset-0 flex flex-col pt-10 px-5 pb-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <div className="text-center">
-                      <div className="w-20 h-20 rounded-full bg-black/10 mx-auto overflow-hidden grid place-items-center text-2xl font-semibold">
-                        {effectiveAvatarUrl
-                          ? <img src={effectiveAvatarUrl} alt="" className="w-full h-full object-cover" />
-                          : (ml.title[0] || "?")}
-                      </div>
-                      <h2 className="mt-3 font-semibold text-lg">{ml.title || "Título"}</h2>
-                      {ml.bio && <p className="mt-1 text-sm opacity-80 whitespace-pre-line">{ml.bio}</p>}
-                    </div>
-                    <div className="mt-6 space-y-3">
-                      {items.filter(i => itemIsLive(i)).map(i => (
-                        <PreviewItem key={i.id} item={i} color={ml.theme_color} />
-                      ))}
-                    </div>
+                  <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <PublicMultilinkView ml={previewMl} items={items} preview />
                   </div>
                 </div>
               </div>
@@ -473,29 +602,9 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
             <div className="mx-auto w-full max-w-[560px]">
               <div className="relative rounded-t-xl bg-black p-3 pb-2 shadow-2xl">
                 <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-zinc-700 rounded-full" />
-                <div
-                  className="relative rounded-md overflow-hidden mt-2"
-                  style={{
-                    aspectRatio: "16/10",
-                    background: ml.theme_mode === "dark" ? "#0a0a0a" : "#fafafa",
-                    color: ml.theme_mode === "dark" ? "#fafafa" : "#0a0a0a",
-                  }}
-                >
+                <div className="relative rounded-md overflow-hidden mt-2" style={{ aspectRatio: "16/10" }}>
                   <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <div className="max-w-sm mx-auto px-6 py-8 text-center">
-                      <div className="w-20 h-20 rounded-full bg-black/10 mx-auto overflow-hidden grid place-items-center text-2xl font-semibold">
-                        {effectiveAvatarUrl
-                          ? <img src={effectiveAvatarUrl} alt="" className="w-full h-full object-cover" />
-                          : (ml.title[0] || "?")}
-                      </div>
-                      <h2 className="mt-3 font-semibold text-xl">{ml.title || "Título"}</h2>
-                      {ml.bio && <p className="mt-1 text-sm opacity-80 whitespace-pre-line">{ml.bio}</p>}
-                      <div className="mt-6 space-y-3">
-                        {items.filter(i => itemIsLive(i)).map(i => (
-                          <PreviewItem key={i.id} item={i} color={ml.theme_color} />
-                        ))}
-                      </div>
-                    </div>
+                    <PublicMultilinkView ml={previewMl} items={items} preview />
                   </div>
                 </div>
               </div>
@@ -535,28 +644,16 @@ function ScheduleBadge({ item }: { item: Item }) {
   return <span className={`text-[11px] px-2 py-1 rounded-full border ${s.className}`}>{s.label}</span>;
 }
 
-function PreviewItem({ item, color }: { item: Item; color: string }) {
-  if (item.kind === "video") {
-    return (
-      <div className="rounded-xl border border-black/10 overflow-hidden text-left">
-        <div className="aspect-video bg-black/10 grid place-items-center">
-          <Play className="w-5 h-5 opacity-60" />
-        </div>
-        <div className="px-3 py-2 text-sm font-medium">{item.title || "Video"}</div>
-      </div>
-    );
-  }
-  const bg = item.kind === "whatsapp" ? "#25D366" : color;
+function SocialSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <div
-      className={`rounded-xl px-4 text-center font-medium ${item.featured ? "py-6 text-base shadow-md" : "py-3 text-sm"}`}
-      style={{ background: bg, color: "#fff" }}
+    <select
+      className="h-9 rounded-md border bg-background px-2 text-sm"
+      value={value}
+      onChange={e => onChange(e.target.value)}
     >
-      <span className="inline-flex items-center gap-1.5">
-        {item.kind === "whatsapp" && <MessageCircle className="w-4 h-4" />}
-        {item.title || "Enlace"}
-      </span>
-      {item.subtitle && <span className="block text-xs opacity-90">{item.subtitle}</span>}
-    </div>
+      {(Object.keys(SOCIAL_LABEL) as SocialNetwork[]).map(k => (
+        <option key={k} value={k}>{SOCIAL_LABEL[k]}</option>
+      ))}
+    </select>
   );
 }
