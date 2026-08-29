@@ -53,6 +53,7 @@ import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/c
 import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
 import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
 import { Route as AppClientsClientIdChatbotRouteImport } from './routes/_app/clients/$clientId/chatbot'
+import { Route as AppClientsClientIdAnalyticsRouteImport } from './routes/_app/clients/$clientId/analytics'
 import { Route as ApiPublicWhatsappWebhookAccountIdRouteImport } from './routes/api/public/whatsapp/webhook/$accountId'
 import { Route as ApiPublicMetaOauthCallbackRouteImport } from './routes/api/public/meta/oauth/callback'
 
@@ -289,6 +290,12 @@ const AppClientsClientIdChatbotRoute =
     path: '/chatbot',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdAnalyticsRoute =
+  AppClientsClientIdAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const ApiPublicWhatsappWebhookAccountIdRoute =
   ApiPublicWhatsappWebhookAccountIdRouteImport.update({
     id: '/api/public/whatsapp/webhook/$accountId',
@@ -332,6 +339,7 @@ export interface FileRoutesByFullPath {
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients/': typeof AppClientsIndexRoute
+  '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
@@ -378,6 +386,7 @@ export interface FileRoutesByTo {
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients': typeof AppClientsIndexRoute
+  '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
@@ -427,6 +436,7 @@ export interface FileRoutesById {
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/_app/clients/': typeof AppClientsIndexRoute
+  '/_app/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/_app/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/_app/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
@@ -476,6 +486,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/sync'
     | '/api/meta-ads/update'
     | '/clients/'
+    | '/clients/$clientId/analytics'
     | '/clients/$clientId/chatbot'
     | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
@@ -522,6 +533,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/sync'
     | '/api/meta-ads/update'
     | '/clients'
+    | '/clients/$clientId/analytics'
     | '/clients/$clientId/chatbot'
     | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
@@ -570,6 +582,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/sync'
     | '/api/meta-ads/update'
     | '/_app/clients/'
+    | '/_app/clients/$clientId/analytics'
     | '/_app/clients/$clientId/chatbot'
     | '/_app/clients/$clientId/contracts'
     | '/_app/clients/$clientId/deliverables'
@@ -925,6 +938,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdChatbotRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/analytics': {
+      id: '/_app/clients/$clientId/analytics'
+      path: '/analytics'
+      fullPath: '/clients/$clientId/analytics'
+      preLoaderRoute: typeof AppClientsClientIdAnalyticsRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/api/public/whatsapp/webhook/$accountId': {
       id: '/api/public/whatsapp/webhook/$accountId'
       path: '/api/public/whatsapp/webhook/$accountId'
@@ -954,6 +974,7 @@ const AtChar123slugChar125RouteWithChildren =
   AtChar123slugChar125Route._addFileChildren(AtChar123slugChar125RouteChildren)
 
 interface AppClientsClientIdRouteChildren {
+  AppClientsClientIdAnalyticsRoute: typeof AppClientsClientIdAnalyticsRoute
   AppClientsClientIdChatbotRoute: typeof AppClientsClientIdChatbotRoute
   AppClientsClientIdContractsRoute: typeof AppClientsClientIdContractsRoute
   AppClientsClientIdDeliverablesRoute: typeof AppClientsClientIdDeliverablesRoute
@@ -968,6 +989,7 @@ interface AppClientsClientIdRouteChildren {
 }
 
 const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
+  AppClientsClientIdAnalyticsRoute: AppClientsClientIdAnalyticsRoute,
   AppClientsClientIdChatbotRoute: AppClientsClientIdChatbotRoute,
   AppClientsClientIdContractsRoute: AppClientsClientIdContractsRoute,
   AppClientsClientIdDeliverablesRoute: AppClientsClientIdDeliverablesRoute,
