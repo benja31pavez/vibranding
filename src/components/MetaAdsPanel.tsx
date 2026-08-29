@@ -105,7 +105,12 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       supabase.from("meta_ads_campaigns").select("*").eq("client_id", clientId).order("position"),
       supabase.from("meta_ads_adsets").select("*").eq("client_id", clientId).order("position"),
       supabase.from("meta_ads_ads").select("*").eq("client_id", clientId).order("position"),
-      supabase.from("meta_ads_insights").select("*").eq("client_id", clientId),
+      supabase
+        .from("ad_insights_daily")
+        .select("id,campaign_id,date,impressions,reach,clicks,ctr,spend,cpm,messaging_conversations_started")
+        .eq("client_id", clientId)
+        .eq("level", "campaign")
+        .order("date", { ascending: false }),
     ]);
     if (!ac) {
       const { data: created } = await supabase.from("meta_accounts").insert({ client_id: clientId }).select().single();
