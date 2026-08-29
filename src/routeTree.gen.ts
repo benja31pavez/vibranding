@@ -53,6 +53,7 @@ import { Route as AppClientsClientIdMultilinkRouteImport } from './routes/_app/c
 import { Route as AppClientsClientIdMetaAdsRouteImport } from './routes/_app/clients/$clientId/meta-ads'
 import { Route as AppClientsClientIdLeadsRouteImport } from './routes/_app/clients/$clientId/leads'
 import { Route as AppClientsClientIdLandingRouteImport } from './routes/_app/clients/$clientId/landing'
+import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
 import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
 import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
 import { Route as AppClientsClientIdContentRouteImport } from './routes/_app/clients/$clientId/content'
@@ -291,6 +292,12 @@ const AppClientsClientIdLandingRoute =
     path: '/landing',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdInstagramRoute =
+  AppClientsClientIdInstagramRouteImport.update({
+    id: '/instagram',
+    path: '/instagram',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdDeliverablesRoute =
   AppClientsClientIdDeliverablesRouteImport.update({
     id: '/deliverables',
@@ -379,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
+  '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
   '/clients/$clientId/leads': typeof AppClientsClientIdLeadsRoute
   '/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
@@ -431,6 +439,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
+  '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
   '/clients/$clientId/leads': typeof AppClientsClientIdLeadsRoute
   '/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
@@ -486,6 +495,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/_app/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
+  '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/_app/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
   '/_app/clients/$clientId/leads': typeof AppClientsClientIdLeadsRoute
   '/_app/clients/$clientId/meta-ads': typeof AppClientsClientIdMetaAdsRoute
@@ -541,6 +551,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/content'
     | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
+    | '/clients/$clientId/instagram'
     | '/clients/$clientId/landing'
     | '/clients/$clientId/leads'
     | '/clients/$clientId/meta-ads'
@@ -593,6 +604,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/content'
     | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
+    | '/clients/$clientId/instagram'
     | '/clients/$clientId/landing'
     | '/clients/$clientId/leads'
     | '/clients/$clientId/meta-ads'
@@ -647,6 +659,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/content'
     | '/_app/clients/$clientId/contracts'
     | '/_app/clients/$clientId/deliverables'
+    | '/_app/clients/$clientId/instagram'
     | '/_app/clients/$clientId/landing'
     | '/_app/clients/$clientId/leads'
     | '/_app/clients/$clientId/meta-ads'
@@ -1001,6 +1014,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdLandingRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/instagram': {
+      id: '/_app/clients/$clientId/instagram'
+      path: '/instagram'
+      fullPath: '/clients/$clientId/instagram'
+      preLoaderRoute: typeof AppClientsClientIdInstagramRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/deliverables': {
       id: '/_app/clients/$clientId/deliverables'
       path: '/deliverables'
@@ -1078,6 +1098,7 @@ interface AppClientsClientIdRouteChildren {
   AppClientsClientIdContentRoute: typeof AppClientsClientIdContentRoute
   AppClientsClientIdContractsRoute: typeof AppClientsClientIdContractsRoute
   AppClientsClientIdDeliverablesRoute: typeof AppClientsClientIdDeliverablesRoute
+  AppClientsClientIdInstagramRoute: typeof AppClientsClientIdInstagramRoute
   AppClientsClientIdLandingRoute: typeof AppClientsClientIdLandingRoute
   AppClientsClientIdLeadsRoute: typeof AppClientsClientIdLeadsRoute
   AppClientsClientIdMetaAdsRoute: typeof AppClientsClientIdMetaAdsRoute
@@ -1095,6 +1116,7 @@ const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdContentRoute: AppClientsClientIdContentRoute,
   AppClientsClientIdContractsRoute: AppClientsClientIdContractsRoute,
   AppClientsClientIdDeliverablesRoute: AppClientsClientIdDeliverablesRoute,
+  AppClientsClientIdInstagramRoute: AppClientsClientIdInstagramRoute,
   AppClientsClientIdLandingRoute: AppClientsClientIdLandingRoute,
   AppClientsClientIdLeadsRoute: AppClientsClientIdLeadsRoute,
   AppClientsClientIdMetaAdsRoute: AppClientsClientIdMetaAdsRoute,

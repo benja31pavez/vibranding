@@ -4,8 +4,8 @@ import { DeliverablesList } from "@/components/DeliverablesList";
 import { ObjectivesList } from "@/components/ObjectivesList";
 
 export const Route = createFileRoute("/_app/clients/$clientId/plan")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    tab: s.tab === "objetivos" ? "objetivos" : "etapas",
+  validateSearch: (s: Record<string, unknown>): { tab?: "etapas" | "objetivos" } => ({
+    tab: s.tab === "objetivos" ? "objetivos" : s.tab === "etapas" ? "etapas" : undefined,
   }),
   head: () => ({
     meta: [
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_app/clients/$clientId/plan")({
 
 function PlanPage() {
   const { clientId } = Route.useParams();
-  const { tab } = Route.useSearch();
+  const { tab = "etapas" } = Route.useSearch();
   const navigate = Route.useNavigate();
 
   return (

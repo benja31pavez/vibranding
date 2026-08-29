@@ -4,8 +4,8 @@ import { InstagramPage } from "@/components/pages/InstagramPage";
 import { ContentCalendar } from "@/components/instagram/ContentCalendar";
 
 export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    tab: s.tab === "calendario" ? "calendario" : "grid",
+  validateSearch: (s: Record<string, unknown>): { tab?: "grid" | "calendario" } => ({
+    tab: s.tab === "calendario" ? "calendario" : s.tab === "grid" ? "grid" : undefined,
   }),
   head: () => ({
     meta: [
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
 
 function InstagramTabsPage() {
   const { clientId } = Route.useParams();
-  const { tab } = Route.useSearch();
+  const { tab = "grid" } = Route.useSearch();
   const navigate = Route.useNavigate();
 
   return (
