@@ -230,16 +230,51 @@ export function LandingEditor({ clientId }: { clientId: string }) {
 
       <div className="grid lg:grid-cols-[1fr_420px] gap-6 items-start">
         <div className="space-y-6 min-w-0">
-          <div className="grid md:grid-cols-3 gap-3">
-            <div>
-              <Label className="text-xs">Slug</Label>
-              <Input value={lp.slug} onChange={e => update({ slug: e.target.value })} />
+          <section className="rounded-2xl border bg-surface p-5 space-y-4">
+            <h3 className="font-medium">Diseño</h3>
+            <div className="grid md:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Slug</Label>
+                <Input value={lp.slug} onChange={e => update({ slug: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Color principal</Label>
+                <Input type="color" value={lp.theme_color} onChange={e => update({ theme_color: e.target.value })} className="h-9 p-1" />
+              </div>
+              <div>
+                <Label className="text-xs">Plantilla</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={lp.template}
+                  onChange={e => update({ template: e.target.value as LandingTemplate })}
+                >
+                  {Object.entries(TEMPLATE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">Proporción de la imagen</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={lp.hero_aspect}
+                  onChange={e => update({ hero_aspect: e.target.value as HeroAspect })}
+                >
+                  {Object.entries(HERO_ASPECT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <Label className="flex items-center gap-2 text-sm mt-5">
+                <Switch checked={lp.dark_mode} onCheckedChange={v => update({ dark_mode: v })} />
+                <Moon className="w-4 h-4" /> Modo oscuro
+              </Label>
             </div>
-            <div>
-              <Label className="text-xs">Color principal</Label>
-              <Input type="color" value={lp.theme_color} onChange={e => update({ theme_color: e.target.value })} className="h-9 p-1" />
-            </div>
-          </div>
+            {landingPalette(lp.theme_color, lp.dark_mode).lowContrast && (
+              <p className="text-xs flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                Este color tiene poco contraste sobre el fondo ({landingPalette(lp.theme_color, lp.dark_mode).contrast.toFixed(1)}:1).
+                Los textos usarán una versión más legible del color; el color original se mantiene en el botón.
+              </p>
+            )}
+          </section>
+
 
           {/* Hero */}
           <section className="rounded-2xl border bg-surface p-5 space-y-3">
