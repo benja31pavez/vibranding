@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Activity, AlertTriangle, RefreshCw } from "lucide-react";
 import { getJobHealth, type JobHealthRow } from "@/lib/admin/health.functions";
+import { getIgWebhookStatus } from "@/lib/instagram/webhook.functions";
 
 export const Route = createFileRoute("/_app/admin/health")({
   component: HealthPage,
@@ -55,6 +56,19 @@ function HealthPage() {
     refetchInterval: 60_000,
   });
 
+  const fetchIg = useServerFn(getIgWebhookStatus);
+  const ig = useQuery({
+    queryKey: ["ig-webhook-status"],
+    queryFn: () => fetchIg(),
+    refetchInterval: 300_000,
+  });
+  const igData = ig.data;
+  const igBlocked =
+    !!igData &&
+    (!igData.publicOriginConfigured ||
+      !igData.verifyTokenConfigured ||
+      igData.publicOriginReachable === false);
+
   const jobs = data?.jobs ?? [];
   const staleJobs = jobs.filter(isStale);
   const failed24h = jobs.reduce((acc, j) => acc + Number(j.failed_24h ?? 0), 0);
@@ -86,6 +100,20 @@ function HealthPage() {
           <AlertDescription>
             {staleJobs.map((j) => j.job_name).join(", ")} no registra una ejecución correcta en más
             de {STALE_HOURS} horas.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {igBlocked && (
+        <Alert variant="destructive">
+          <AlertTriangle className="w-4 h-4" />
+          <AlertTitle>Webhook de Instagram no operativo</AlertTitle>
+          <AlertDescription>
+            {!igData?.publicOriginConfigured
+              ? "Falta el origen público canónico (PUBLIC_SITE_URL)."
+              : igData?.publicOriginReachable === false
+                ? "La URL pública no responde: la app debe estar publicada para que Meta pueda entregar los comentarios."
+                : "Falta el token de verificación del webhook."}
           </AlertDescription>
         </Alert>
       )}
@@ -168,6 +196,80 @@ function HealthPage() {
               </div>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Automatización de Instagram</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          {ig.isLoading && <p className="text-muted-foreground">Cargando…</p>}
+          {ig.isError && (
+            <p className="text-destructive text-xs">
+              {(ig.error as Error)?.message ?? "No se pudo leer el estado de Instagram."}
+            </p>
+          )}
+          {igData && (
+            <>
+              <div className="rounded-lg border p-3 space-y-1 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-muted-foreground">URL del webhook:</span>
+                  <code className="bg-secondary px-1.5 py-0.5 rounded">
+                    {igData.callbackUrl ?? "sin configurar"}
+                  </code>
+                  {igData.publicOriginReachable === true ? (
+                    <Badge variant="default">Publicada y accesible</Badge>
+                  ) : igData.publicOriginReachable === false ? (
+                    <Badge variant="destructive">No accesible — publica la app</Badge>
+                  ) : (
+                    <Badge variant="secondary">Sin verificar</Badge>
+                  )}
+                </div>
+                <div>
+                  Token de verificación:{" "}
+                  {igData.verifyTokenConfigured ? "configurado" : "FALTA"}
+                </div>
+                <div>
+                  Comentarios procesados (24 h): {igData.eventsLast24h} · fallidos:{" "}
+                  <span className={igData.failedLast24h > 0 ? "text-destructive" : ""}>
+                    {igData.failedLast24h}
+                  </span>{" "}
+                  · último evento: {fmt(igData.lastCommentEventAt)}
+                </div>
+              </div>
+
+              {igData.clients.length === 0 && (
+                <p className="text-muted-foreground text-xs">No hay clientes visibles.</p>
+              )}
+              {igData.clients.map((c) => (
+                <div
+                  key={c.clientId}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+                >
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{c.clientName}</span>
+                      {!c.igAccountId ? (
+                        <Badge variant="secondary">Sin Instagram vinculado</Badge>
+                      ) : c.subscribed ? (
+                        <Badge variant="default">Suscrito a comentarios</Badge>
+                      ) : (
+                        <Badge variant="destructive">Sin suscripción</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {c.activeTriggers} automatización(es) activa(s)
+                      {c.subscribedFields.length > 0
+                        ? ` · campos: ${c.subscribedFields.join(", ")}`
+                        : ""}
+                      {c.error ? ` · ${c.error}` : ""}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
         </CardContent>
       </Card>
 

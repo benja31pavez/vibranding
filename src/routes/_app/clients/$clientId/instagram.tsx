@@ -6,6 +6,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { IdentityEditor, ConfigEditor, PostsEditor, HighlightsEditor } from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
 import { InstagramSyncCard } from "@/components/instagram/InstagramSyncCard";
+import { CommentAutomationPanel } from "@/components/instagram/CommentAutomationPanel";
 
 export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
   component: InstagramPage,
@@ -66,6 +67,12 @@ function InstagramPage() {
               <AccordionTrigger className="text-base font-semibold hover:no-underline">Publicaciones</AccordionTrigger>
               <AccordionContent className="pt-2">
                 <PostsEditor clientId={clientId} posts={ig.posts} setPosts={setPosts} type={view} profile={profile} setProfile={setProfile} comments={ig.comments} setComments={setComments} />
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="automation" className="border rounded-xl bg-surface px-4">
+              <AccordionTrigger className="text-base font-semibold hover:no-underline">Automatización de comentarios → DM</AccordionTrigger>
+              <AccordionContent className="pt-2">
+                <CommentAutomationPanel clientId={clientId} />
               </AccordionContent>
             </AccordionItem>
           </Accordion>

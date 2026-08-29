@@ -732,6 +732,147 @@ export type Database = {
           },
         ]
       }
+      ig_automation_events: {
+        Row: {
+          client_id: string
+          comment_id: string
+          comment_text: string | null
+          commenter_id: string | null
+          commenter_username: string | null
+          conversation_id: string | null
+          created_at: string
+          dm_error: string | null
+          dm_status: string
+          id: string
+          ig_media_id: string | null
+          matched: boolean
+          reply_error: string | null
+          reply_status: string
+          trigger_id: string | null
+        }
+        Insert: {
+          client_id: string
+          comment_id: string
+          comment_text?: string | null
+          commenter_id?: string | null
+          commenter_username?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          dm_error?: string | null
+          dm_status?: string
+          id?: string
+          ig_media_id?: string | null
+          matched?: boolean
+          reply_error?: string | null
+          reply_status?: string
+          trigger_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          comment_id?: string
+          comment_text?: string | null
+          commenter_id?: string | null
+          commenter_username?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          dm_error?: string | null
+          dm_status?: string
+          id?: string
+          ig_media_id?: string | null
+          matched?: boolean
+          reply_error?: string | null
+          reply_status?: string
+          trigger_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ig_automation_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ig_automation_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ig_automation_events_trigger_id_fkey"
+            columns: ["trigger_id"]
+            isOneToOne: false
+            referencedRelation: "ig_comment_triggers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ig_comment_triggers: {
+        Row: {
+          client_id: string
+          created_at: string
+          dm_message: string
+          failed_count: number
+          id: string
+          ig_media_id: string | null
+          is_active: boolean
+          keywords: string[]
+          last_triggered_at: string | null
+          match_type: string
+          name: string
+          priority: number
+          public_reply: string | null
+          sent_count: number
+          triggered_count: number
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          dm_message: string
+          failed_count?: number
+          id?: string
+          ig_media_id?: string | null
+          is_active?: boolean
+          keywords?: string[]
+          last_triggered_at?: string | null
+          match_type?: string
+          name?: string
+          priority?: number
+          public_reply?: string | null
+          sent_count?: number
+          triggered_count?: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          dm_message?: string
+          failed_count?: number
+          id?: string
+          ig_media_id?: string | null
+          is_active?: boolean
+          keywords?: string[]
+          last_triggered_at?: string | null
+          match_type?: string
+          name?: string
+          priority?: number
+          public_reply?: string | null
+          sent_count?: number
+          triggered_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ig_comment_triggers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_highlights: {
         Row: {
           client_id: string
@@ -2367,15 +2508,18 @@ export type Database = {
       }
       whatsapp_conversations: {
         Row: {
-          account_id: string
+          account_id: string | null
           ai_paused: boolean
+          channel: string
           client_id: string
           contact_name: string | null
+          contact_username: string | null
           contact_wa_id: string
           created_at: string
           human_followup_at: string | null
           human_followup_reason: string | null
           id: string
+          ig_account_id: string | null
           is_lead: boolean
           last_bot_at: string | null
           last_message_at: string | null
@@ -2390,15 +2534,18 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          account_id: string
+          account_id?: string | null
           ai_paused?: boolean
+          channel?: string
           client_id: string
           contact_name?: string | null
+          contact_username?: string | null
           contact_wa_id: string
           created_at?: string
           human_followup_at?: string | null
           human_followup_reason?: string | null
           id?: string
+          ig_account_id?: string | null
           is_lead?: boolean
           last_bot_at?: string | null
           last_message_at?: string | null
@@ -2413,15 +2560,18 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          account_id?: string
+          account_id?: string | null
           ai_paused?: boolean
+          channel?: string
           client_id?: string
           contact_name?: string | null
+          contact_username?: string | null
           contact_wa_id?: string
           created_at?: string
           human_followup_at?: string | null
           human_followup_reason?: string | null
           id?: string
+          ig_account_id?: string | null
           is_lead?: boolean
           last_bot_at?: string | null
           last_message_at?: string | null
@@ -2455,6 +2605,7 @@ export type Database = {
       whatsapp_messages: {
         Row: {
           body: string | null
+          channel: string
           client_id: string
           conversation_id: string
           created_at: string
@@ -2469,6 +2620,7 @@ export type Database = {
         }
         Insert: {
           body?: string | null
+          channel?: string
           client_id: string
           conversation_id: string
           created_at?: string
@@ -2483,6 +2635,7 @@ export type Database = {
         }
         Update: {
           body?: string | null
+          channel?: string
           client_id?: string
           conversation_id?: string
           created_at?: string
@@ -2613,6 +2766,15 @@ export type Database = {
           slot_minutes: number
           timezone: string
         }[]
+      }
+      ig_trigger_bump: {
+        Args: {
+          _failed: number
+          _sent: number
+          _trigger_id: string
+          _triggered: number
+        }
+        Returns: undefined
       }
       increment_landing_view: { Args: { _id: string }; Returns: undefined }
       increment_multilink_click: { Args: { _id: string }; Returns: undefined }
