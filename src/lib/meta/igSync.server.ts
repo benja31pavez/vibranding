@@ -89,23 +89,21 @@ export async function syncInstagramProfile(
 }
 
 /**
- * Replaces the manually uploaded `current` grid with the real published media.
+ * Writes the real published media first and only archives superseded manual
+ * rows afterwards, so a failed write can never destroy the manual grid.
  * Rows with `type = 'proposed'` are never read or written here.
  */
 export async function syncInstagramMedia(
   clientId: string,
   media: IgMedia[],
-): Promise<{ mediaCount: number; removedManual: number }> {
-  // Manually uploaded "actual" rows (no ig_media_id) are superseded by real data.
-  const { data: removed } = await (supabaseAdmin.from("instagram_posts" as any) as any)
-    .delete()
-    .eq("client_id", clientId)
-    .eq("type", "current")
-    .is("ig_media_id", null)
-    .select("id");
-
+): Promise<{ mediaCount: number; archivedManual: number; warning?: string }> {
   if (media.length === 0) {
-    return { mediaCount: 0, removedManual: (removed ?? []).length };
+    return {
+      mediaCount: 0,
+      archivedManual: 0,
+      warning:
+        "Meta no devolvió publicaciones. No se modificó nada de tu grilla manual.",
+    };
   }
 
   // Newest first, so position 0 matches the top-left cell of the real grid.
@@ -113,8 +111,8 @@ export async function syncInstagramMedia(
     (b.timestamp ?? "").localeCompare(a.timestamp ?? ""),
   );
 
-  // A media already matched to a proposed row keeps that row: move it to current
-  // is wrong (it would erase the plan), so we only claim ids not already used
+  // A media already matched to a proposed row keeps that row: moving it to
+  // current would erase the plan, so we only claim ids not already used
   // by a proposed row.
   const { data: claimed } = await (supabaseAdmin.from("instagram_posts" as any) as any)
     .select("ig_media_id")
@@ -139,17 +137,35 @@ export async function syncInstagramMedia(
       scheduled_at: m.timestamp,
       format: formatOf(m),
       likes_count: m.like_count,
+      archived_at: null,
     }));
 
-  if (payload.length > 0) {
-    const { error } = await (supabaseAdmin.from("instagram_posts" as any) as any).upsert(
-      payload,
-      { onConflict: "client_id,ig_media_id" },
-    );
-    if (error) throw new Error(error.message);
+  if (payload.length === 0) {
+    return {
+      mediaCount: 0,
+      archivedManual: 0,
+      warning:
+        "Todas las publicaciones reales ya están vinculadas a posts propuestos. No se archivó nada.",
+    };
   }
 
-  return { mediaCount: payload.length, removedManual: (removed ?? []).length };
+  // 1) Write first. If this fails we throw and the manual rows stay intact.
+  const { error } = await (supabaseAdmin.from("instagram_posts" as any) as any).upsert(
+    payload,
+    { onConflict: "client_id,ig_media_id" },
+  );
+  if (error) throw new Error(error.message);
+
+  // 2) Only now archive the manually uploaded "actual" rows (reversible).
+  const { data: archived } = await (supabaseAdmin.from("instagram_posts" as any) as any)
+    .update({ archived_at: new Date().toISOString() })
+    .eq("client_id", clientId)
+    .eq("type", "current")
+    .is("ig_media_id", null)
+    .is("archived_at", null)
+    .select("id");
+
+  return { mediaCount: payload.length, archivedManual: (archived ?? []).length };
 }
 
 /** Full sync for one client: real profile + real published grid. */
@@ -164,3 +180,4 @@ export async function syncInstagramAccountData(
   const profile = await syncInstagramProfile(clientId, igAccountId, token, syncedAt);
   return { profile, ...counts, syncedAt };
 }
+
