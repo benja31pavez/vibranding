@@ -34,8 +34,8 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
       if (next?.ad_account_id) {
         const res = (await checkConflict({
           data: { clientId, adAccountId: next.ad_account_id },
-        })) as { conflicts: { client_name: string }[] };
-        setDupe((res?.conflicts ?? []).map((c) => c.client_name));
+        })) as { conflicts: { clientName: string | null }[] };
+        setDupe((res?.conflicts ?? []).map((c) => c.clientName ?? "otro cliente"));
       } else setDupe([]);
     } catch (e: any) {
       toast.error(e?.message ?? "No se pudo leer la conexión");
