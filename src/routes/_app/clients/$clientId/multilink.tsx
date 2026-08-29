@@ -11,37 +11,18 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Plus, Trash2, ExternalLink, Copy, Eye, GripVertical, Link2 } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Copy, Eye, GripVertical, Link2, Globe, Star, MessageCircle, Play, CalendarClock } from "lucide-react";
+import { MultilinkAnalytics } from "@/components/multilink/MultilinkAnalytics";
+import { QrCodeCard } from "@/components/multilink/QrCodeCard";
+import {
+  KIND_LABEL, itemIsLive, multilinkPath, multilinkPublicUrl, scheduleState,
+  type Multilink, type MultilinkItem as Item, type MultilinkItemKind,
+} from "@/lib/multilink";
 import type { IGProfile } from "@/components/InstagramEditor";
 
 export const Route = createFileRoute("/_app/clients/$clientId/multilink")({
   component: MultilinkPage,
 });
-
-type Multilink = {
-  id: string;
-  client_id: string;
-  slug: string;
-  title: string;
-  bio: string | null;
-  avatar_url: string | null;
-  theme_color: string;
-  theme_mode: string;
-  published: boolean;
-  view_count: number;
-};
-
-type Item = {
-  id: string;
-  multilink_id: string;
-  client_id: string;
-  title: string;
-  url: string;
-  icon: string | null;
-  sort_order: number;
-  is_active: boolean;
-  click_count: number;
-};
 
 function MultilinkPage() {
   const { clientId } = Route.useParams();
@@ -111,6 +92,7 @@ function MultilinkPage() {
     if (!ml) return;
     setSaving(true);
     const { error } = await supabase.from("multilinks").update({
+      custom_domain: ml.custom_domain?.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "") || null,
       title: ml.title,
       bio: ml.bio,
       avatar_url: ml.avatar_url,
@@ -138,6 +120,7 @@ function MultilinkPage() {
       client_id: clientId,
       title: "Nuevo enlace",
       url: "https://",
+      kind: "link",
       sort_order: items.length,
     }).select("*").single();
     if (error) return toast.error(error.message);
@@ -151,6 +134,9 @@ function MultilinkPage() {
   const persistItem = async (i: Item) => {
     const { error } = await supabase.from("multilink_items").update({
       title: i.title, url: i.url, icon: i.icon, is_active: i.is_active,
+      kind: i.kind, featured: i.featured, subtitle: i.subtitle,
+      thumbnail_url: i.thumbnail_url, wa_number: i.wa_number, wa_message: i.wa_message,
+      video_url: i.video_url, start_at: i.start_at, end_at: i.end_at,
     }).eq("id", i.id);
     if (error) toast.error(error.message);
   };
@@ -197,7 +183,9 @@ function MultilinkPage() {
     );
   }
 
-  const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/@${ml.slug}/links`;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const publicUrl = multilinkPublicUrl(ml, origin);
+  const appUrl = `${origin}${multilinkPath(ml.slug)}`;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -212,7 +200,7 @@ function MultilinkPage() {
             {ml.published ? "Publicado" : "Borrador"}
           </Label>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/@{$slug}/links" params={{ slug: ml.slug }} target="_blank">
+            <Link to="/l/$slug" params={{ slug: ml.slug }} target="_blank">
               <Eye className="w-4 h-4 mr-1" /> Vista previa
             </Link>
           </Button>
@@ -232,6 +220,35 @@ function MultilinkPage() {
         )}
         <div className="ml-auto text-xs text-muted-foreground">{ml.view_count} visitas acumuladas</div>
       </div>
+
+      <section className="rounded-2xl border bg-surface p-5 space-y-3">
+        <h3 className="font-medium flex items-center gap-2"><Globe className="w-4 h-4" /> Dominio propio</h3>
+        <p className="text-xs text-muted-foreground">
+          Apunta el dominio del cliente a esta app con un registro CNAME hacia <code>{origin.replace(/^https?:\/\//, "")}</code> y
+          escríbelo aquí. Mientras no esté verificado, la URL pública sigue siendo {appUrl}.
+        </p>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[240px]">
+            <Label className="text-xs">Dominio (sin https://)</Label>
+            <Input
+              placeholder="enlaces.micliente.cl"
+              value={ml.custom_domain ?? ""}
+              onChange={e => updateMl({ custom_domain: e.target.value })}
+              onBlur={persistMl}
+            />
+          </div>
+          <div className="text-xs px-2 py-1 rounded-full border">
+            {!ml.custom_domain ? "Sin dominio" : ml.custom_domain_verified ? "Verificado" : "Pendiente de DNS"}
+          </div>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          URL pública actual: <code>{publicUrl}</code>
+        </div>
+      </section>
+
+      <MultilinkAnalytics clientId={clientId} multilinkId={ml.id} items={items} />
+
+      <QrCodeCard url={publicUrl} fileBase={ml.slug} />
 
       <EventsPanel
         clientId={clientId}
@@ -309,14 +326,97 @@ function MultilinkPage() {
                     <Switch checked={i.is_active} onCheckedChange={(v) => { updateItem(i.id, { is_active: v }); persistItem({ ...i, is_active: v }); }} />
                     <Button size="icon" variant="ghost" onClick={() => removeItem(i.id)}><Trash2 className="w-4 h-4" /></Button>
                   </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      className="h-9 rounded-md border bg-background px-2 text-sm"
+                      value={i.kind}
+                      onChange={e => {
+                        const kind = e.target.value as MultilinkItemKind;
+                        updateItem(i.id, { kind });
+                        persistItem({ ...i, kind });
+                      }}
+                    >
+                      {(Object.keys(KIND_LABEL) as MultilinkItemKind[]).map(k => (
+                        <option key={k} value={k}>{KIND_LABEL[k]}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => { updateItem(i.id, { featured: !i.featured }); persistItem({ ...i, featured: !i.featured }); }}
+                      className={`inline-flex items-center gap-1 text-xs px-2 py-1.5 rounded-full border transition ${i.featured ? "bg-foreground text-background border-foreground" : "text-muted-foreground"}`}
+                    >
+                      <Star className="w-3 h-3" /> Destacado
+                    </button>
+                    <ScheduleBadge item={i} />
+                  </div>
+
+                  {i.kind === "whatsapp" ? (
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <Input
+                        placeholder="+56 9 1234 5678"
+                        value={i.wa_number ?? ""}
+                        onChange={e => updateItem(i.id, { wa_number: e.target.value })}
+                        onBlur={() => persistItem(i)}
+                        maxLength={30}
+                      />
+                      <Input
+                        placeholder="Mensaje prellenado"
+                        value={i.wa_message ?? ""}
+                        onChange={e => updateItem(i.id, { wa_message: e.target.value })}
+                        onBlur={() => persistItem(i)}
+                        maxLength={300}
+                      />
+                    </div>
+                  ) : i.kind === "video" ? (
+                    <Input
+                      placeholder="URL de YouTube, Vimeo o .mp4"
+                      value={i.video_url ?? ""}
+                      onChange={e => updateItem(i.id, { video_url: e.target.value })}
+                      onBlur={() => persistItem(i)}
+                      maxLength={500}
+                    />
+                  ) : (
+                    <Input
+                      placeholder="https://..."
+                      value={i.url}
+                      onChange={e => updateItem(i.id, { url: e.target.value })}
+                      onBlur={() => persistItem(i)}
+                      maxLength={500}
+                    />
+                  )}
+
                   <Input
-                    placeholder="https://..."
-                    value={i.url}
-                    onChange={e => updateItem(i.id, { url: e.target.value })}
+                    placeholder="Subtítulo (opcional)"
+                    value={i.subtitle ?? ""}
+                    onChange={e => updateItem(i.id, { subtitle: e.target.value })}
                     onBlur={() => persistItem(i)}
-                    maxLength={500}
+                    maxLength={120}
                   />
-                  <div className="text-xs text-muted-foreground">{i.click_count} clics</div>
+
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <CalendarClock className="w-3 h-3" /> Aparece desde
+                      </Label>
+                      <Input
+                        type="datetime-local"
+                        value={toLocalInput(i.start_at)}
+                        onChange={e => updateItem(i.id, { start_at: fromLocalInput(e.target.value) })}
+                        onBlur={() => persistItem(i)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground">Desaparece el</Label>
+                      <Input
+                        type="datetime-local"
+                        value={toLocalInput(i.end_at)}
+                        onChange={e => updateItem(i.id, { end_at: fromLocalInput(e.target.value) })}
+                        onBlur={() => persistItem(i)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-muted-foreground">{i.click_count} clics acumulados</div>
                 </li>
               ))}
             </ul>
@@ -365,12 +465,8 @@ function MultilinkPage() {
                       {ml.bio && <p className="mt-1 text-sm opacity-80 whitespace-pre-line">{ml.bio}</p>}
                     </div>
                     <div className="mt-6 space-y-3">
-                      {items.filter(i => i.is_active).map(i => (
-                        <div key={i.id}
-                          className="rounded-xl py-3 px-4 text-center text-sm font-medium"
-                          style={{ background: ml.theme_color, color: "#fff" }}>
-                          {i.title || "Enlace"}
-                        </div>
+                      {items.filter(i => itemIsLive(i)).map(i => (
+                        <PreviewItem key={i.id} item={i} color={ml.theme_color} />
                       ))}
                     </div>
                   </div>
@@ -418,6 +514,57 @@ function MultilinkPage() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function toLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromLocalInput(v: string): string | null {
+  if (!v) return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function ScheduleBadge({ item }: { item: Item }) {
+  const state = scheduleState(item);
+  const map = {
+    live: { label: "Visible", className: "text-emerald-600 border-emerald-600/40" },
+    scheduled: { label: "Programado", className: "text-amber-600 border-amber-600/40" },
+    expired: { label: "Expirado", className: "text-muted-foreground" },
+    off: { label: "Desactivado", className: "text-muted-foreground" },
+  } as const;
+  const s = map[state];
+  return <span className={`text-[11px] px-2 py-1 rounded-full border ${s.className}`}>{s.label}</span>;
+}
+
+function PreviewItem({ item, color }: { item: Item; color: string }) {
+  if (item.kind === "video") {
+    return (
+      <div className="rounded-xl border border-black/10 overflow-hidden text-left">
+        <div className="aspect-video bg-black/10 grid place-items-center">
+          <Play className="w-5 h-5 opacity-60" />
+        </div>
+        <div className="px-3 py-2 text-sm font-medium">{item.title || "Video"}</div>
+      </div>
+    );
+  }
+  const bg = item.kind === "whatsapp" ? "#25D366" : color;
+  return (
+    <div
+      className={`rounded-xl px-4 text-center font-medium ${item.featured ? "py-6 text-base shadow-md" : "py-3 text-sm"}`}
+      style={{ background: bg, color: "#fff" }}
+    >
+      <span className="inline-flex items-center gap-1.5">
+        {item.kind === "whatsapp" && <MessageCircle className="w-4 h-4" />}
+        {item.title || "Enlace"}
+      </span>
+      {item.subtitle && <span className="block text-xs opacity-90">{item.subtitle}</span>}
     </div>
   );
 }
