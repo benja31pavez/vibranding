@@ -88,7 +88,7 @@ export const syncMetaInsights = createServerFn({ method: "POST" })
   .inputValidator((input: { accountId: string; date?: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: owned } = await (context.supabase.from("meta_accounts" as any) as any)
-      .select("id,client_id,ad_account_id,ig_account_id,connected")
+      .select("id,client_id,ad_account_id,ig_account_id,connected,timezone_name")
       .eq("id", data.accountId)
       .maybeSingle();
     if (!owned) throw new Error("No tienes acceso a esta conexión");
@@ -98,6 +98,6 @@ export const syncMetaInsights = createServerFn({ method: "POST" })
     const token = await getMetaToken(data.accountId);
     if (!token) throw new Error("No hay token de Meta guardado");
 
-    const { ingestAccountDay, yesterdayISO } = await import("@/lib/meta/insights.server");
-    return await ingestAccountDay(owned as any, token, data.date ?? yesterdayISO());
+    const { ingestAccountDay } = await import("@/lib/meta/insights.server");
+    return await ingestAccountDay(owned as any, token, data.date ?? undefined);
   });
