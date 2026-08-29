@@ -198,6 +198,8 @@ function SummaryPage() {
         </div>
       </div>
 
+      <ClientAccessCard clientId={clientId} />
+
       <ProposedCostsBreakdown pricing={pricing} posts={ig.posts} />
     </div>
   );

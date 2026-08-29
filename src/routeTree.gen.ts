@@ -13,6 +13,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LandingRouteImport } from './routes/landing'
 import { Route as FaqRouteImport } from './routes/faq'
@@ -77,6 +78,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -330,6 +336,7 @@ export interface FileRoutesByFullPath {
   '/faq': typeof FaqRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -380,6 +387,7 @@ export interface FileRoutesByTo {
   '/faq': typeof FaqRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -431,6 +439,7 @@ export interface FileRoutesById {
   '/faq': typeof FaqRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -483,6 +492,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/landing'
     | '/login'
+    | '/portal'
     | '/privacy'
     | '/reset-password'
     | '/sitemap.xml'
@@ -533,6 +543,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/landing'
     | '/login'
+    | '/portal'
     | '/privacy'
     | '/reset-password'
     | '/sitemap.xml'
@@ -583,6 +594,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/landing'
     | '/login'
+    | '/portal'
     | '/privacy'
     | '/reset-password'
     | '/sitemap.xml'
@@ -635,6 +647,7 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
+  PortalRoute: typeof PortalRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -681,6 +694,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -1086,6 +1106,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
+  PortalRoute: PortalRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
