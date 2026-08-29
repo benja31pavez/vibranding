@@ -14,6 +14,140 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_insights_daily: {
+        Row: {
+          ad_id: string | null
+          ad_name: string | null
+          adset_id: string | null
+          adset_name: string | null
+          campaign_id: string | null
+          campaign_name: string | null
+          clicks: number
+          client_id: string
+          cpm: number | null
+          created_at: string
+          ctr: number | null
+          currency: string | null
+          date: string
+          entity_id: string
+          id: string
+          impressions: number
+          level: string
+          messaging_conversations_started: number
+          reach: number
+          spend: number
+          updated_at: string
+        }
+        Insert: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          clicks?: number
+          client_id: string
+          cpm?: number | null
+          created_at?: string
+          ctr?: number | null
+          currency?: string | null
+          date: string
+          entity_id: string
+          id?: string
+          impressions?: number
+          level?: string
+          messaging_conversations_started?: number
+          reach?: number
+          spend?: number
+          updated_at?: string
+        }
+        Update: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          clicks?: number
+          client_id?: string
+          cpm?: number | null
+          created_at?: string
+          ctr?: number | null
+          currency?: string | null
+          date?: string
+          entity_id?: string
+          id?: string
+          impressions?: number
+          level?: string
+          messaging_conversations_started?: number
+          reach?: number
+          spend?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_insights_daily_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attributions: {
+        Row: {
+          ad_id: string | null
+          client_id: string
+          conversation_id: string | null
+          created_at: string
+          ctwa_clid: string
+          first_seen_at: string
+          headline: string | null
+          id: string
+          source_type: string | null
+          source_url: string | null
+        }
+        Insert: {
+          ad_id?: string | null
+          client_id: string
+          conversation_id?: string | null
+          created_at?: string
+          ctwa_clid: string
+          first_seen_at?: string
+          headline?: string | null
+          id?: string
+          source_type?: string | null
+          source_url?: string | null
+        }
+        Update: {
+          ad_id?: string | null
+          client_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          ctwa_clid?: string
+          first_seen_at?: string
+          headline?: string | null
+          id?: string
+          source_type?: string | null
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attributions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attributions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_settings: {
         Row: {
           client_id: string | null
@@ -330,6 +464,57 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      conversation_outcomes: {
+        Row: {
+          client_id: string
+          conversation_id: string
+          created_at: string
+          id: string
+          marked_at: string
+          marked_by: string | null
+          status: string
+          updated_at: string
+          value_clp: number | null
+        }
+        Insert: {
+          client_id: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          marked_at?: string
+          marked_by?: string | null
+          status?: string
+          updated_at?: string
+          value_clp?: number | null
+        }
+        Update: {
+          client_id?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          marked_at?: string
+          marked_by?: string | null
+          status?: string
+          updated_at?: string
+          value_clp?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_outcomes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_outcomes_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       deliverable_comments: {
         Row: {
@@ -983,6 +1168,65 @@ export type Database = {
             foreignKeyName: "lead_meta_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_accounts: {
+        Row: {
+          ad_account_id: string | null
+          business_name: string | null
+          client_id: string
+          connected: boolean
+          created_at: string
+          id: string
+          ig_account_id: string | null
+          last_sync_error: string | null
+          last_synced_at: string | null
+          page_id: string | null
+          scopes: string[]
+          token_expires_at: string | null
+          token_secret_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_account_id?: string | null
+          business_name?: string | null
+          client_id: string
+          connected?: boolean
+          created_at?: string
+          id?: string
+          ig_account_id?: string | null
+          last_sync_error?: string | null
+          last_synced_at?: string | null
+          page_id?: string | null
+          scopes?: string[]
+          token_expires_at?: string | null
+          token_secret_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_account_id?: string | null
+          business_name?: string | null
+          client_id?: string
+          connected?: boolean
+          created_at?: string
+          id?: string
+          ig_account_id?: string | null
+          last_sync_error?: string | null
+          last_synced_at?: string | null
+          page_id?: string | null
+          scopes?: string[]
+          token_expires_at?: string | null
+          token_secret_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_accounts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -1671,6 +1915,59 @@ export type Database = {
           },
         ]
       }
+      post_insights_daily: {
+        Row: {
+          client_id: string
+          created_at: string
+          date: string
+          engagement: number
+          id: string
+          media_type: string | null
+          permalink: string | null
+          platform: string
+          post_id: string
+          reach: number
+          saves: number
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          date: string
+          engagement?: number
+          id?: string
+          media_type?: string | null
+          permalink?: string | null
+          platform?: string
+          post_id: string
+          reach?: number
+          saves?: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          date?: string
+          engagement?: number
+          id?: string
+          media_type?: string | null
+          permalink?: string | null
+          platform?: string
+          post_id?: string
+          reach?: number
+          saves?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_insights_daily_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_settings: {
         Row: {
           agency_address: string | null
@@ -2148,6 +2445,10 @@ export type Database = {
       }
     }
     Functions: {
+      client_analytics: {
+        Args: { _client_id: string; _from: string; _to: string }
+        Returns: Json
+      }
       get_booking_settings_by_slug: {
         Args: { _slug: string }
         Returns: {
@@ -2183,6 +2484,11 @@ export type Database = {
           duration_minutes: number
           scheduled_at: string
         }[]
+      }
+      meta_get_secret: { Args: { _account_id: string }; Returns: string }
+      meta_set_secret: {
+        Args: { _account_id: string; _secret: string }
+        Returns: string
       }
       owns_client: { Args: { _client_id: string }; Returns: boolean }
       reconcile_job_runs: { Args: never; Returns: undefined }

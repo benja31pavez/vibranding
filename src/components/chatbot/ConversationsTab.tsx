@@ -5,8 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock, AlertTriangle, Check } from "lucide-react";
+import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock, AlertTriangle, Check, Megaphone } from "lucide-react";
 import { toast } from "sonner";
+import {
+  OutcomeSelector,
+  type Outcome,
+  type OutcomeStatus,
+} from "@/components/chatbot/OutcomeSelector";
+
 
 type Conv = {
   id: string;
@@ -47,6 +53,8 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
   const [search, setSearch] = useState("");
   const [filterLead, setFilterLead] = useState(false);
   const [filterFollowup, setFilterFollowup] = useState(false);
+  const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
+  const [attributions, setAttributions] = useState<Record<string, { ad_id: string | null; headline: string | null }>>({});
 
   const followupCount = convs.filter((c) => c.needs_human_followup).length;
 
@@ -59,6 +67,63 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
     setConvs((data ?? []) as Conv[]);
   };
 
+  const loadOutcomes = async () => {
+    const { data } = await (supabase.from("conversation_outcomes" as any) as any)
+      .select("conversation_id,status,value_clp")
+      .eq("client_id", clientId);
+    const map: Record<string, Outcome> = {};
+    for (const row of (data ?? []) as Outcome[]) map[row.conversation_id] = row;
+    setOutcomes(map);
+  };
+
+  const loadAttributions = async () => {
+    const { data } = await (supabase.from("attributions" as any) as any)
+      .select("conversation_id,ad_id,headline")
+      .eq("client_id", clientId);
+    const map: Record<string, { ad_id: string | null; headline: string | null }> = {};
+    for (const row of (data ?? []) as any[]) {
+      if (row.conversation_id) map[row.conversation_id] = { ad_id: row.ad_id, headline: row.headline };
+    }
+    setAttributions(map);
+  };
+
+  /** Single tap: upsert the outcome for this conversation. */
+  const setOutcome = async (
+    convId: string,
+    status: OutcomeStatus,
+    valueClp: number | null = null,
+  ) => {
+    const previous = outcomes[convId] ?? null;
+    const optimistic: Outcome = {
+      conversation_id: convId,
+      status,
+      value_clp: status === "closed" ? valueClp : null,
+    };
+    setOutcomes((prev) => ({ ...prev, [convId]: optimistic }));
+
+    const { data: auth } = await supabase.auth.getUser();
+    const { error } = await (supabase.from("conversation_outcomes" as any) as any).upsert(
+      {
+        client_id: clientId,
+        conversation_id: convId,
+        status,
+        value_clp: status === "closed" ? valueClp : null,
+        marked_by: auth.user?.id ?? null,
+        marked_at: new Date().toISOString(),
+      },
+      { onConflict: "conversation_id" },
+    );
+    if (error) {
+      setOutcomes((prev) => {
+        const next = { ...prev };
+        if (previous) next[convId] = previous;
+        else delete next[convId];
+        return next;
+      });
+      toast.error(error.message);
+    }
+  };
+
   const loadMessages = async (convId: string) => {
     const { data } = await supabase
       .from("whatsapp_messages")
@@ -66,6 +131,7 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
       .eq("conversation_id", convId)
       .order("timestamp", { ascending: true });
     setMessages((data ?? []) as Msg[]);
+
     // mark as read
     await supabase
       .from("whatsapp_conversations")
@@ -75,7 +141,10 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
 
   useEffect(() => {
     loadConvs();
+    loadOutcomes();
+    loadAttributions();
   }, [clientId]);
+
 
   useEffect(() => {
     if (active) loadMessages(active.id);
@@ -188,10 +257,15 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
             </div>
           )}
           {filtered.map((c) => (
-            <button
+            <div
               key={c.id}
+              role="button"
+              tabIndex={0}
               onClick={() => setActive(c)}
-              className={`w-full text-left p-3 border-b hover:bg-muted/50 transition ${
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") setActive(c);
+              }}
+              className={`w-full text-left p-3 border-b hover:bg-muted/50 transition cursor-pointer ${
                 active?.id === c.id ? "bg-muted" : ""
               } ${c.needs_human_followup ? "border-l-4 border-l-destructive" : ""}`}
             >
@@ -199,6 +273,14 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
                 <div className="font-medium text-sm truncate flex-1">
                   {c.contact_name || c.contact_wa_id}
                 </div>
+                {attributions[c.id] && (
+                  <span
+                    title={`Desde anuncio${attributions[c.id].headline ? `: ${attributions[c.id].headline}` : ""}`}
+                  >
+                    <Megaphone className="w-3 h-3 text-sky-500" />
+                  </span>
+                )}
+
                 {c.needs_human_followup && (
                   <AlertTriangle className="w-3 h-3 text-destructive" />
                 )}
@@ -210,13 +292,19 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
               <div className="text-xs text-muted-foreground truncate mt-0.5">
                 {c.last_message_preview ?? "—"}
               </div>
-              <div className="text-[10px] text-muted-foreground mt-0.5">
+              <div className="text-[10px] text-muted-foreground mt-0.5 mb-2">
                 {fmtTime(c.last_message_at)}
               </div>
-            </button>
+              <OutcomeSelector
+                outcome={outcomes[c.id] ?? null}
+                onSelect={(status) => setOutcome(c.id, status, outcomes[c.id]?.value_clp ?? null)}
+                onValue={(value) => setOutcome(c.id, "closed", value)}
+              />
+            </div>
           ))}
         </ScrollArea>
       </div>
+
 
       {/* Hilo */}
       <div className="flex flex-col min-h-0">

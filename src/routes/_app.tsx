@@ -197,6 +197,10 @@ function AppLayout() {
                     <Link to="/clients/$clientId/leads" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/leads`)}>
                       <Inbox className="w-4 h-4 shrink-0" /> Leads
                     </Link>
+                    <Link to="/clients/$clientId/analytics" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/analytics`)}>
+                      <BarChart3 className="w-4 h-4 shrink-0" /> Analítica
+                    </Link>
+
                     <Link to="/clients/$clientId/payments" params={{ clientId: activeClient.id }} className={subClass(path === `${clientBase}/payments`)}>
                       <Wallet className="w-4 h-4 shrink-0" /> Pagos
                     </Link>
