@@ -232,7 +232,20 @@ function MetaDiagnosticsPage() {
                     >
                       {busy === a.accountId ? "Probando…" : "Probar ingesta"}
                     </Button>
+                    <Button
+                      size="sm"
+                      disabled={busy === `${a.accountId}:debug`}
+                      onClick={() => fullTest(a.accountId)}
+                    >
+                      {busy === `${a.accountId}:debug`
+                        ? "Consultando Meta…"
+                        : "Probar conexión completa"}
+                    </Button>
                   </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    “Probar conexión completa” devuelve la respuesta cruda de Meta:
+                    report_run_id, cada async_status y el objeto de error completo.
+                  </p>
                 </div>
               ))}
               {result !== null && (
