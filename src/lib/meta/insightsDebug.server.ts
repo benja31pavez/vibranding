@@ -10,21 +10,21 @@ export type MetaInsightsDebug = {
   requestUrl: string;
   requestParams: Record<string, string>;
   startHttpStatus: number;
-  startBody: unknown;
+  startBody: any;
   reportRunId: string | null;
   polls: Array<{
     attempt: number;
     httpStatus: number;
     async_status: string | null;
     async_percent_completion: number | null;
-    body: unknown;
+    body: any;
   }>;
   finalAsyncStatus: string | null;
   resultHttpStatus: number | null;
-  resultBody: unknown;
+  resultBody: any;
   rowCount: number | null;
   upsertAttempted: boolean;
-  upsertError: unknown;
+  upsertError: any;
   upsertRows: number | null;
   fatalError: string | null;
 };
