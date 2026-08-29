@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Copy, XCircle } from "lucide-react";
 import {
+  debugMetaConnection,
   getMetaDiagnostics,
   testMetaIngest,
   type MetaAccountDiag,
@@ -60,6 +61,7 @@ function MetaDiagnosticsPage() {
 
   const fetchDiag = useServerFn(getMetaDiagnostics);
   const runIngest = useServerFn(testMetaIngest);
+  const runDebug = useServerFn(debugMetaConnection);
 
   useEffect(() => {
     (async () => {
@@ -85,6 +87,19 @@ function MetaDiagnosticsPage() {
     setResult(null);
     try {
       setResult(await runIngest({ data: { accountId, date } }));
+    } catch (e: any) {
+      setResult({ error: e?.message ?? "Error inesperado" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // Raw probe: no friendly messages, every Meta payload as returned.
+  const fullTest = async (accountId: string) => {
+    setBusy(`${accountId}:debug`);
+    setResult(null);
+    try {
+      setResult(await runDebug({ data: { accountId, date } }));
     } catch (e: any) {
       setResult({ error: e?.message ?? "Error inesperado" });
     } finally {
@@ -217,7 +232,20 @@ function MetaDiagnosticsPage() {
                     >
                       {busy === a.accountId ? "Probando…" : "Probar ingesta"}
                     </Button>
+                    <Button
+                      size="sm"
+                      disabled={busy === `${a.accountId}:debug`}
+                      onClick={() => fullTest(a.accountId)}
+                    >
+                      {busy === `${a.accountId}:debug`
+                        ? "Consultando Meta…"
+                        : "Probar conexión completa"}
+                    </Button>
                   </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    “Probar conexión completa” devuelve la respuesta cruda de Meta:
+                    report_run_id, cada async_status y el objeto de error completo.
+                  </p>
                 </div>
               ))}
               {result !== null && (

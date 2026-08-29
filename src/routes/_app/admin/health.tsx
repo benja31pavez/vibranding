@@ -73,6 +73,14 @@ function HealthPage() {
   const staleJobs = jobs.filter(isStale);
   const failed24h = jobs.reduce((acc, j) => acc + Number(j.failed_24h ?? 0), 0);
 
+  // Connected but empty: a connection that produces no data is not healthy.
+  const connections = data?.connections ?? [];
+  const emptyConnections = connections.filter(
+    (c) =>
+      (c.adAccountId && c.adInsightRows === 0) ||
+      (c.igAccountId && c.syncedInstagramPosts === 0),
+  );
+
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
       <header className="flex items-center justify-between gap-3">
@@ -103,6 +111,34 @@ function HealthPage() {
           </AlertDescription>
         </Alert>
       )}
+
+      {emptyConnections.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="w-4 h-4" />
+          <AlertTitle>Conexiones sin datos</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc pl-4 space-y-1">
+              {emptyConnections.map((c) => (
+                <li key={c.clientId}>
+                  <span className="font-medium">{c.clientName ?? c.clientId}</span>:{" "}
+                  {[
+                    c.adAccountId && c.adInsightRows === 0
+                      ? "cuenta publicitaria conectada sin ninguna fila en ad_insights_daily"
+                      : null,
+                    c.igAccountId && c.syncedInstagramPosts === 0
+                      ? "Instagram vinculado sin publicaciones sincronizadas (ig_media_id)"
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  {c.lastSyncError ? ` · último error: ${c.lastSyncError}` : ""}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
 
       {igBlocked && (
         <Alert variant="destructive">
