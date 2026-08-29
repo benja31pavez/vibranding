@@ -9,9 +9,18 @@ export const META_SCOPES = [
   "instagram_manage_insights",
 ] as const;
 
-/** Stable public origin: Meta only redirects to URIs registered in the app. */
+/**
+ * Único origen público canónico. Meta sólo redirige a URIs registradas en la app,
+ * así que no hay fallback: si falta la variable, fallamos de forma explícita.
+ */
 export function publicOrigin(): string {
-  return process.env.PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://vibranding.pro";
+  const raw = process.env.PUBLIC_SITE_URL?.trim();
+  if (!raw) {
+    throw new Error(
+      "PUBLIC_SITE_URL no está configurada. Define el origen público canónico (ej. https://vibranding.pro).",
+    );
+  }
+  return raw.replace(/\/$/, "");
 }
 
 export function redirectUri(): string {
