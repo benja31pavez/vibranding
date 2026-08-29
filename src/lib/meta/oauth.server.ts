@@ -1,22 +1,8 @@
 // Server-only helpers for the Meta OAuth flow.
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
 
-/**
- * Graph / Marketing API version. Overridable with the META_GRAPH_VERSION env var
- * so future bumps need no code change. Default is the newest live version
- * (v23.0 expired 2026-06-09; anything below v25.0 is unsupported).
- */
-const DEFAULT_META_GRAPH_VERSION = "v26.0";
-
-export function metaGraphVersion(): string {
-  const raw = process.env.META_GRAPH_VERSION?.trim();
-  if (!raw) return DEFAULT_META_GRAPH_VERSION;
-  return /^v\d+\.\d+$/.test(raw) ? raw : DEFAULT_META_GRAPH_VERSION;
-}
-
-export function graphUrl(path: string): string {
-  return `https://graph.facebook.com/${metaGraphVersion()}/${path}`;
-}
+export { metaGraphVersion, graphUrl, graphBase } from "@/lib/meta/version";
+import { graphUrl } from "@/lib/meta/version";
 export const META_SCOPES = [
   "ads_read",
   "pages_read_engagement",
