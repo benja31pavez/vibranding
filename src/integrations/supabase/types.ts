@@ -3058,6 +3058,11 @@ export type Database = {
       org_meta_token_status: { Args: never; Returns: Json }
       owns_client: { Args: { _client_id: string }; Returns: boolean }
       reconcile_job_runs: { Args: never; Returns: undefined }
+      review_link_comment: {
+        Args: { _body: string; _kind: string; _name?: string; _token: string }
+        Returns: Json
+      }
+      review_link_get: { Args: { _token: string }; Returns: Json }
       run_http_cron_job: {
         Args: { _job_name: string; _url: string }
         Returns: undefined
