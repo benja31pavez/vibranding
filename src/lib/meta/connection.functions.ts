@@ -56,6 +56,24 @@ export const checkAdAccountConflict = createServerFn({ method: "POST" })
     return { adAccountId, conflicts };
   });
 
+/** Ad accounts already linked to another client (id → client name). */
+export const listTakenAdAccounts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clientId: string }) => input)
+  .handler(
+    async ({ data, context }): Promise<{ adAccountId: string; clientName: string | null }[]> => {
+      const { data: rows } = await (context.supabase.from("meta_accounts" as any) as any)
+        .select("ad_account_id,clients(name)")
+        .not("ad_account_id", "is", null)
+        .neq("client_id", data.clientId);
+      return ((rows ?? []) as any[]).map((r) => ({
+        adAccountId: String(r.ad_account_id),
+        clientName: (r.clients?.name as string | null) ?? null,
+      }));
+    },
+  );
+
+
 /**
  * Connects using a permanent System User token. The token is stored in Vault
  * exactly like the OAuth path; the table only keeps a reference.
@@ -92,19 +110,28 @@ export const connectSystemUser = createServerFn({ method: "POST" })
     const { normalizeAdAccountId } = await import("@/lib/meta/systemUser.server");
     const adAccountId = data.adAccountId ? normalizeAdAccountId(data.adAccountId) : null;
 
-    // Uniqueness guard: never block, but report so spend is not double-counted.
-    let conflicts: { clientId: string; clientName: string | null }[] = [];
+    // Uniqueness guard: an ad account belongs to exactly one client, otherwise
+    // its spend would be double-counted.
+    const conflicts: { clientId: string; clientName: string | null }[] = [];
     if (adAccountId) {
       const bare = adAccountId.replace(/^act_/, "");
       const { data: rows } = await (context.supabase.from("meta_accounts" as any) as any)
         .select("client_id,clients(name)")
         .in("ad_account_id", [adAccountId, bare])
         .neq("client_id", data.clientId);
-      conflicts = ((rows ?? []) as any[]).map((r) => ({
+      const found = ((rows ?? []) as any[]).map((r) => ({
         clientId: r.client_id as string,
         clientName: (r.clients?.name as string | null) ?? null,
       }));
+      if (found.length > 0) {
+        throw new Error(
+          `La cuenta publicitaria ${adAccountId} ya está asignada a ${found
+            .map((c) => c.clientName ?? c.clientId)
+            .join(", ")}. Desvincúlala de ese cliente antes de asignarla aquí.`,
+        );
+      }
     }
+
 
     const { data: saved, error } = await (context.supabase.from("meta_accounts" as any) as any)
       .upsert(
