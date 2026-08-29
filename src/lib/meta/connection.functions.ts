@@ -83,7 +83,8 @@ export const connectSystemUser = createServerFn({ method: "POST" })
   .inputValidator(
     (input: {
       clientId: string;
-      token: string;
+      token?: string | null;
+      useOrgToken?: boolean;
       adAccountId: string | null;
       igAccountId: string | null;
       pageId: string | null;
@@ -94,11 +95,13 @@ export const connectSystemUser = createServerFn({ method: "POST" })
     }) => input,
   )
   .handler(async ({ data, context }) => {
-    const token = data.token.trim();
-    if (!token) throw new Error("Falta el token");
+    const token = (data.token ?? "").trim();
+    const useOrgToken = !!data.useOrgToken;
+    if (!useOrgToken && !token) throw new Error("Falta el token");
     if (!data.adAccountId && !data.igAccountId) {
       throw new Error("Selecciona al menos una cuenta publicitaria o de Instagram");
     }
+
 
     const { data: owned } = await context.supabase
       .from("clients")
