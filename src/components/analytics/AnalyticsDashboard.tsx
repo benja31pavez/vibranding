@@ -27,6 +27,7 @@ import {
   type Analytics,
   type Campaign,
 } from "./analytics-utils";
+import { WhatWorks } from "./WhatWorks";
 
 type Preset = "7d" | "30d" | "custom";
 
@@ -612,6 +613,10 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
               </CardContent>
             )}
           </Card>
+
+          {/* 6 — Qué funciona */}
+          <WhatWorks clientId={clientId} from={r.from} to={r.to} />
+
         </>
       )}
     </div>
