@@ -58,6 +58,7 @@ function CalendarPage() {
               .gte("scheduled_at", start)
               .lt("scheduled_at", end)
               .not("scheduled_at", "is", null)
+              .is("archived_at", null)
           : Promise.resolve({ data: [] as any[] }),
         supabase
           .from("bookings")

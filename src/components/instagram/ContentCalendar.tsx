@@ -314,6 +314,7 @@ export function ContentCalendar({ clientId }: { clientId: string }) {
           "id,client_id,type,format,image_url,cover_url,carousel_urls,caption,music,location,objective,scheduled_at,published_at,ig_media_id",
         )
         .eq("client_id", clientId)
+        .is("archived_at", null)
         .order("position", { ascending: true });
       if (cancelled) return;
       setPosts((data ?? []) as unknown as Post[]);
