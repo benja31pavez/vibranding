@@ -21,6 +21,9 @@ export const Route = createFileRoute("/l/$slug")({
     return { ml: ml as unknown as Multilink, items: (items ?? []) as unknown as MultilinkItem[] };
   },
   head: ({ loaderData }) => ({
+    links: loaderData
+      ? [{ rel: "stylesheet", href: fontHref(fontKey(loaderData.ml.font_family)) }]
+      : [],
     meta: loaderData
       ? [
           { title: `${loaderData.ml.title} — Enlaces` },
