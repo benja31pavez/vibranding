@@ -20,13 +20,15 @@ export const Route = createFileRoute("/api/meta-ads/update")({
           if (!entity || !id) return j({ error: "Datos incompletos" }, 400);
 
           const base = graphBase();
-          const params = new URLSearchParams({ access_token: token });
+          const params = new URLSearchParams();
           let fbId: string | null = null;
+          let rowClientId: string | null = null;
 
           if (entity === "campaign") {
             const { data: row } = await supa.from("meta_ads_campaigns").select("*").eq("id", id).maybeSingle();
             if (!row) return j({ error: "Campaña no encontrada" }, 404);
             fbId = row.fb_campaign_id;
+            rowClientId = (row as any).client_id;
             if (!fbId) return j({ ok: true, skipped: "local-only" });
             if (patch.name) params.set("name", patch.name);
             if (patch.status) params.set("status", patch.status);
@@ -39,6 +41,7 @@ export const Route = createFileRoute("/api/meta-ads/update")({
             const { data: row } = await supa.from("meta_ads_adsets").select("*").eq("id", id).maybeSingle();
             if (!row) return j({ error: "Conjunto no encontrado" }, 404);
             fbId = row.fb_adset_id;
+            rowClientId = (row as any).client_id;
             if (!fbId) return j({ ok: true, skipped: "local-only" });
             if (patch.name) params.set("name", patch.name);
             if (patch.status) params.set("status", patch.status);
@@ -87,6 +90,7 @@ export const Route = createFileRoute("/api/meta-ads/update")({
             const { data: row } = await supa.from("meta_ads_ads").select("*").eq("id", id).maybeSingle();
             if (!row) return j({ error: "Anuncio no encontrado" }, 404);
             fbId = row.fb_ad_id;
+            rowClientId = (row as any).client_id;
             if (!fbId) return j({ ok: true, skipped: "local-only" });
             if (patch.name) params.set("name", patch.name);
             if (patch.status) params.set("status", patch.status);
@@ -94,7 +98,12 @@ export const Route = createFileRoute("/api/meta-ads/update")({
             return j({ error: "Entidad inválida" }, 400);
           }
 
-          if ([...params.keys()].length <= 1) return j({ ok: true, skipped: "no-meta-fields" });
+          if ([...params.keys()].length === 0) return j({ ok: true, skipped: "no-meta-fields" });
+
+          // Token from the Vault for this client (OAuth or System User), never env.
+          const { requireClientMetaToken } = await import("@/lib/meta/clientToken.server");
+          const { token } = await requireClientMetaToken(rowClientId!);
+          params.set("access_token", token);
 
           const res = await fetch(`${base}/${fbId}`, { method: "POST", body: params });
           const body = await res.json();
