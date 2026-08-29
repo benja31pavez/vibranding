@@ -1348,6 +1348,7 @@ export type Database = {
           image_url: string | null
           instagram_actor_id: string | null
           link_url: string | null
+          meta_account_id: string | null
           multi_share_end_card: boolean
           name: string
           optimize_carousel_order: boolean
@@ -1378,6 +1379,7 @@ export type Database = {
           image_url?: string | null
           instagram_actor_id?: string | null
           link_url?: string | null
+          meta_account_id?: string | null
           multi_share_end_card?: boolean
           name?: string
           optimize_carousel_order?: boolean
@@ -1408,6 +1410,7 @@ export type Database = {
           image_url?: string | null
           instagram_actor_id?: string | null
           link_url?: string | null
+          meta_account_id?: string | null
           multi_share_end_card?: boolean
           name?: string
           optimize_carousel_order?: boolean
@@ -1426,6 +1429,13 @@ export type Database = {
             columns: ["adset_id"]
             isOneToOne: false
             referencedRelation: "meta_ads_adsets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_ads_ads_meta_account_id_fkey"
+            columns: ["meta_account_id"]
+            isOneToOne: false
+            referencedRelation: "meta_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -1456,6 +1466,7 @@ export type Database = {
           languages: string | null
           lifetime_budget: number | null
           lookalike_audiences: string[]
+          meta_account_id: string | null
           name: string
           optimization_goal: string | null
           placement_mode: string
@@ -1492,6 +1503,7 @@ export type Database = {
           languages?: string | null
           lifetime_budget?: number | null
           lookalike_audiences?: string[]
+          meta_account_id?: string | null
           name?: string
           optimization_goal?: string | null
           placement_mode?: string
@@ -1528,6 +1540,7 @@ export type Database = {
           languages?: string | null
           lifetime_budget?: number | null
           lookalike_audiences?: string[]
+          meta_account_id?: string | null
           name?: string
           optimization_goal?: string | null
           placement_mode?: string
@@ -1547,6 +1560,13 @@ export type Database = {
             referencedRelation: "meta_ads_campaigns"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "meta_ads_adsets_meta_account_id_fkey"
+            columns: ["meta_account_id"]
+            isOneToOne: false
+            referencedRelation: "meta_accounts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       meta_ads_campaigns: {
@@ -1561,6 +1581,7 @@ export type Database = {
           fb_campaign_id: string | null
           id: string
           lifetime_budget: number | null
+          meta_account_id: string | null
           name: string
           notes: string | null
           objective: Database["public"]["Enums"]["meta_campaign_objective"]
@@ -1582,6 +1603,7 @@ export type Database = {
           fb_campaign_id?: string | null
           id?: string
           lifetime_budget?: number | null
+          meta_account_id?: string | null
           name?: string
           notes?: string | null
           objective?: Database["public"]["Enums"]["meta_campaign_objective"]
@@ -1603,6 +1625,7 @@ export type Database = {
           fb_campaign_id?: string | null
           id?: string
           lifetime_budget?: number | null
+          meta_account_id?: string | null
           name?: string
           notes?: string | null
           objective?: Database["public"]["Enums"]["meta_campaign_objective"]
@@ -1613,7 +1636,15 @@ export type Database = {
           stop_time?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meta_ads_campaigns_meta_account_id_fkey"
+            columns: ["meta_account_id"]
+            isOneToOne: false
+            referencedRelation: "meta_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meta_ads_insights: {
         Row: {
