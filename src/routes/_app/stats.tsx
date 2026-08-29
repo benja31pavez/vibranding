@@ -17,6 +17,7 @@ function StatsPage() {
     supabase
       .from("landing_events")
       .select("event_name,lang,path,referrer,created_at")
+      .eq("source_type", "site")
       .order("created_at", { ascending: false })
       .limit(500)
       .then(({ data }) => {
