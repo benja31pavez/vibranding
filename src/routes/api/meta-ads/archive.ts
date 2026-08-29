@@ -1,3 +1,4 @@
+import { graphBase } from "@/lib/meta/version";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/api/meta-ads/archive")({
 
           if (fbId) {
             const params = new URLSearchParams({ status: "DELETED", access_token: token });
-            const res = await fetch(`https://graph.facebook.com/v21.0/${fbId}`, { method: "POST", body: params });
+            const res = await fetch(`${graphBase()}/${fbId}`, { method: "POST", body: params });
             const body = await res.json();
             if (!res.ok) {
               const msg = body?.error?.error_user_msg ?? body?.error?.message ?? "Error Meta API";

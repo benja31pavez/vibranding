@@ -1,3 +1,4 @@
+import { graphBase } from "@/lib/meta/version";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -11,7 +12,7 @@ import {
 } from "./profileSync.server";
 import { getWaSecret } from "./tokens.server";
 
-const META = "https://graph.facebook.com/v21.0";
+const META = graphBase();
 
 export const syncWhatsAppProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

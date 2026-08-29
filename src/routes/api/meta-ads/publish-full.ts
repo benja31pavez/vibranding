@@ -1,3 +1,4 @@
+import { graphBase } from "@/lib/meta/version";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
           const { data: acc } = await supa.from("meta_ads_accounts").select("*").eq("client_id", clientId).maybeSingle();
           if (!acc?.ad_account_id) return j({ error: "Configura la cuenta publicitaria" }, 400);
           const adAcc = acc.ad_account_id.startsWith("act_") ? acc.ad_account_id : `act_${acc.ad_account_id}`;
-          const base = "https://graph.facebook.com/v21.0";
+          const base = graphBase();
           const t = encodeURIComponent(token);
 
           // 1) Image upload (if URL present)

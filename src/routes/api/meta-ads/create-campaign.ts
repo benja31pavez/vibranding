@@ -1,3 +1,4 @@
+import { graphBase } from "@/lib/meta/version";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
@@ -42,7 +43,7 @@ export const Route = createFileRoute("/api/meta-ads/create-campaign")({
           if (c.daily_budget) params.set("daily_budget", String(Math.round(Number(c.daily_budget) * 100)));
           if (c.lifetime_budget) params.set("lifetime_budget", String(Math.round(Number(c.lifetime_budget) * 100)));
 
-          const res = await fetch(`https://graph.facebook.com/v21.0/${adAcc}/campaigns`, {
+          const res = await fetch(`${graphBase()}/${adAcc}/campaigns`, {
             method: "POST",
             body: params,
           });

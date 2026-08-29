@@ -1,3 +1,4 @@
+import { graphBase } from "@/lib/meta/version";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
 
           const adAcc = account.ad_account_id.startsWith("act_") ? account.ad_account_id : `act_${account.ad_account_id}`;
           const tok = encodeURIComponent(token);
-          const base = "https://graph.facebook.com/v21.0";
+          const base = graphBase();
 
           // 1) Campaigns
           const cFields = "id,name,objective,status,daily_budget,lifetime_budget,start_time,stop_time,bid_strategy,spend_cap,buying_type";
