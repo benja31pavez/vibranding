@@ -669,34 +669,6 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
   );
 }
 
-function DividerLine({ divider, onRename, onDelete, dragHandle }: { divider: DividerRow; onRename: (label: string) => void; onDelete: () => void; dragHandle?: DragHandle }) {
-  const [editing, setEditing] = useState(false);
-  const [label, setLabel] = useState(divider.label);
-  return (
-    <div className="flex items-center gap-2 group py-1">
-      {dragHandle && (
-        <button {...dragHandle.attributes} {...dragHandle.listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none opacity-0 group-hover:opacity-100" aria-label="Reordenar">
-          <GripVertical className="w-4 h-4" />
-        </button>
-      )}
-      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-border" />
-      {editing ? (
-        <Input autoFocus value={label} onChange={(e) => setLabel(e.target.value)}
-          onBlur={() => { setEditing(false); if (label.trim() && label !== divider.label) onRename(label.trim()); else setLabel(divider.label); }}
-          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") { setLabel(divider.label); setEditing(false); } }}
-          className="h-7 text-xs uppercase tracking-wider font-semibold max-w-[260px] text-center" />
-      ) : (
-        <button onClick={() => setEditing(true)} className="text-xs uppercase tracking-wider font-semibold text-muted-foreground hover:text-foreground px-2">
-          {divider.label || "Sin título"}
-        </button>
-      )}
-      <button onClick={onDelete} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive">
-        <Trash2 className="w-3.5 h-3.5" />
-      </button>
-      <div className="h-px flex-1 bg-gradient-to-l from-transparent via-border to-border" />
-    </div>
-  );
-}
 
 function FilePreview({ fileUrl, fileName, fileSize, mimeType, compact, onRename }: {
   fileUrl: string;
