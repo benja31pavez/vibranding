@@ -109,14 +109,14 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
                 client_id: state.clientId,
                 ad_account_id: adAccount?.id ?? null,
                 page_id: page?.id ?? null,
-                ig_account_id: page?.instagram_business_account?.id ?? null,
+                ig_account_id: igAccount?.id ?? null,
                 business_name: page?.name ?? adAccount?.name ?? null,
                 timezone_name: adAccount?.timezone_name ?? null,
                 scopes: [...META_SCOPES],
-                connected: true,
+                connected,
                 token_expires_at:
                   expiresIn > 0 ? new Date(Date.now() + expiresIn * 1000).toISOString() : null,
-                last_sync_error: null,
+                last_sync_error: discoveryErrors || null,
               },
               { onConflict: "client_id" },
             )
@@ -127,10 +127,13 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
           const { setMetaToken } = await import("@/lib/meta/tokens.server");
           await setMetaToken(saved.id, token);
 
-          return back("conectado");
+          return back(
+            "conectado",
+            discoveryErrors ? `Conectado con advertencias: ${discoveryErrors}` : undefined,
+          );
         } catch (e: any) {
           console.error("[meta oauth] exchange failed", e?.message);
-          return back("error");
+          return back("error", e?.message ?? "Error al intercambiar el token con Meta");
         }
       },
     },
