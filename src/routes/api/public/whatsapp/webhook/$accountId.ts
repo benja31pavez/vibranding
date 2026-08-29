@@ -165,7 +165,33 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
                 conversationId = created!.id;
               }
 
+              // Click-to-WhatsApp attribution: Meta sends the ad referral on the
+              // first message of a conversation started from an ad.
+              const referral = msg.referral ?? value.referral ?? null;
+              const ctwaClid = referral?.ctwa_clid ?? null;
+              if (ctwaClid) {
+                const { error: attrError } = await (
+                  supabaseAdmin.from("attributions" as any) as any
+                ).upsert(
+                  {
+                    client_id: acc.client_id,
+                    ctwa_clid: String(ctwaClid),
+                    conversation_id: conversationId,
+                    ad_id: referral?.source_id ? String(referral.source_id) : null,
+                    headline: referral?.headline ?? null,
+                    source_url: referral?.source_url ?? null,
+                    source_type: referral?.source_type ?? null,
+                    first_seen_at: ts,
+                  },
+                  { onConflict: "client_id,ctwa_clid", ignoreDuplicates: true },
+                );
+                if (attrError) {
+                  console.error("[whatsapp webhook] attribution insert failed", attrError.message);
+                }
+              }
+
               // Insert inbound message
+
               await supabaseAdmin.from("whatsapp_messages").insert({
                 conversation_id: conversationId,
                 client_id: acc.client_id,
