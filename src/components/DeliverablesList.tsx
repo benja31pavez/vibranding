@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical, Upload, Paperclip, Download, Loader2, MessageSquare, ThumbsUp, RotateCcw, Send, Eye } from "lucide-react";
+import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical, Upload, Paperclip, Download, Loader2, Sparkles, MessageSquare, ThumbsUp, RotateCcw, Send, Eye } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import { uploadClientMedia } from "@/lib/uploadMedia";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -1025,10 +1026,11 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
     return () => { alive = false; };
   }, [it.id]);
 
-  const resolveClientId = async () => {
+  const resolveClientId = async (): Promise<string> => {
     if (it.client_id) return it.client_id;
     const { data } = await supabase.from("deliverables").select("client_id").eq("id", it.id).single();
-    return data?.client_id as string | undefined;
+    if (!data?.client_id) throw new Error("No se pudo determinar el cliente");
+    return data.client_id as string;
   };
 
   const addComment = async (kind: CommentRow["kind"], text: string) => {
