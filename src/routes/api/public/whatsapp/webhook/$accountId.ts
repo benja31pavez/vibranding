@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { ruleToActions, sendBotActions } from "@/lib/whatsapp/sendActions";
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
 import { getWaSecret } from "@/lib/whatsapp/tokens.server";
+import { parseLandingRef } from "@/lib/landingWhatsapp";
 
 function normalize(s: string): string {
   return (s ?? "").toLowerCase().trim();
@@ -124,6 +125,29 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
                   "";
               else body = `[${type}]`;
 
+              // Landing attribution: the CTA prefills "(Ref: LP-xxxxxxxx)", so a
+              // conversation started from a landing page can be traced back.
+              let leadSource:
+                | { lead_source_type: string; lead_source_id: string; lead_source_detail: string | null }
+                | null = null;
+              const landingRef = parseLandingRef(body);
+              if (landingRef) {
+                const { data: pages } = await supabaseAdmin
+                  .from("landing_pages")
+                  .select("id,slug")
+                  .eq("client_id", acc.client_id);
+                const page = (pages ?? []).find(
+                  (l: any) => String(l.id).replace(/-/g, "").slice(0, 8) === landingRef,
+                );
+                if (page) {
+                  leadSource = {
+                    lead_source_type: "landing",
+                    lead_source_id: page.id,
+                    lead_source_detail: page.slug ?? null,
+                  };
+                }
+              }
+
               // Upsert conversation
               const { data: existing } = await supabaseAdmin
                 .from("whatsapp_conversations")
@@ -145,6 +169,7 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
                     last_message_preview: body.slice(0, 140),
                     unread_count: (existing.unread_count ?? 0) + 1,
                     status: "open",
+                    ...(leadSource && !(existing as any).lead_source_type ? leadSource : {}),
                   })
                   .eq("id", conversationId);
               } else {
@@ -159,6 +184,8 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
                     last_message_preview: body.slice(0, 140),
                     unread_count: 1,
                     status: "open",
+                    ...(leadSource ?? {}),
+                    is_lead: leadSource ? true : undefined,
                   })
                   .select("id")
                   .single();
