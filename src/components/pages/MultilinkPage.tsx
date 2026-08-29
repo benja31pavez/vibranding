@@ -11,13 +11,18 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Plus, Trash2, ExternalLink, Copy, Eye, GripVertical, Link2, Globe, Star, MessageCircle, Play, CalendarClock } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Copy, Eye, GripVertical, Link2, Globe, Star, CalendarClock, Palette, Upload } from "lucide-react";
 import { MultilinkAnalytics } from "@/components/multilink/MultilinkAnalytics";
 import { QrCodeCard } from "@/components/multilink/QrCodeCard";
+import { PublicMultilinkView } from "@/components/multilink/PublicMultilinkView";
 import {
-  KIND_LABEL, itemIsLive, multilinkPath, multilinkPublicUrl, scheduleState,
-  type Multilink, type MultilinkItem as Item, type MultilinkItemKind,
+  KIND_LABEL, multilinkPath, multilinkPublicUrl, scheduleState, SOCIAL_LABEL,
+  type Multilink, type MultilinkItem as Item, type MultilinkItemKind, type SocialNetwork,
 } from "@/lib/multilink";
+import {
+  BUTTON_SHAPE_LABEL, BUTTON_STYLE_LABEL, FONTS, parseBackground,
+  type Background, type ButtonShape, type ButtonStyle, type FontKey,
+} from "@/lib/multilinkTheme";
 import type { IGProfile } from "@/components/InstagramEditor";
 
 
