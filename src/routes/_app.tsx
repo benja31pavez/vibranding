@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnmarkedOutcomes } from "@/hooks/use-unmarked-outcomes";
-import { Badge } from "@/components/ui/badge";
+import { ClientSidebarNav } from "@/components/clients/ClientSidebarNav";
+
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
