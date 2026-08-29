@@ -12,6 +12,7 @@ import {
   startMetaOAuth,
   disconnectMeta,
   syncMetaInsights,
+  checkAdAccountConflict,
   type MetaConnection,
 } from "@/lib/meta/connection.functions";
 
@@ -19,14 +20,23 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
   const [conn, setConn] = useState<MetaConnection | null>(null);
   const [busy, setBusy] = useState(false);
   const [sysOpen, setSysOpen] = useState(false);
+  const [dupe, setDupe] = useState<string[]>([]);
   const fetchConn = useServerFn(getMetaConnection);
   const startOAuth = useServerFn(startMetaOAuth);
   const disconnect = useServerFn(disconnectMeta);
   const syncNow = useServerFn(syncMetaInsights);
+  const checkConflict = useServerFn(checkAdAccountConflict);
 
   const load = async () => {
     try {
-      setConn((await fetchConn({ data: { clientId } })) as MetaConnection | null);
+      const next = (await fetchConn({ data: { clientId } })) as MetaConnection | null;
+      setConn(next);
+      if (next?.ad_account_id) {
+        const res = (await checkConflict({
+          data: { clientId, adAccountId: next.ad_account_id },
+        })) as { conflicts: { client_name: string }[] };
+        setDupe((res?.conflicts ?? []).map((c) => c.client_name));
+      } else setDupe([]);
     } catch (e: any) {
       toast.error(e?.message ?? "No se pudo leer la conexión");
     }
@@ -89,7 +99,16 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-base">
           <Plug className="w-4 h-4" /> Conexión con Meta
-          {conn?.connected ? (
+          {dupe.length > 0 && (
+          <div className="flex gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-foreground">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <p>
+              La cuenta publicitaria <span className="font-mono">{conn?.ad_account_id}</span> también
+              está asignada a: <strong>{dupe.join(", ")}</strong>. El gasto se contaría dos veces.
+            </p>
+          </div>
+        )}
+        {conn?.connected ? (
             <Badge className="gap-1">
               <CheckCircle2 className="w-3 h-3" /> Conectada
             </Badge>
