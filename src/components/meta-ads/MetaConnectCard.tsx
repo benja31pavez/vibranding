@@ -18,6 +18,7 @@ import {
 export function MetaConnectCard({ clientId }: { clientId: string }) {
   const [conn, setConn] = useState<MetaConnection | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sysOpen, setSysOpen] = useState(false);
   const fetchConn = useServerFn(getMetaConnection);
   const startOAuth = useServerFn(startMetaOAuth);
   const disconnect = useServerFn(disconnectMeta);
