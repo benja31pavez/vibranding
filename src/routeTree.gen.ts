@@ -59,6 +59,7 @@ import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_ap
 import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
 import { Route as AppClientsClientIdContentRouteImport } from './routes/_app/clients/$clientId/content'
 import { Route as AppClientsClientIdChatbotRouteImport } from './routes/_app/clients/$clientId/chatbot'
+import { Route as AppClientsClientIdBandejaRouteImport } from './routes/_app/clients/$clientId/bandeja'
 import { Route as AppClientsClientIdBackfillRouteImport } from './routes/_app/clients/$clientId/backfill'
 import { Route as AppClientsClientIdAnalyticsRouteImport } from './routes/_app/clients/$clientId/analytics'
 import { Route as ApiPublicWhatsappWebhookAccountIdRouteImport } from './routes/api/public/whatsapp/webhook/$accountId'
@@ -328,6 +329,12 @@ const AppClientsClientIdChatbotRoute =
     path: '/chatbot',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdBandejaRoute =
+  AppClientsClientIdBandejaRouteImport.update({
+    id: '/bandeja',
+    path: '/bandeja',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdBackfillRoute =
   AppClientsClientIdBackfillRouteImport.update({
     id: '/backfill',
@@ -388,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof AppClientsIndexRoute
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
+  '/clients/$clientId/bandeja': typeof AppClientsClientIdBandejaRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
@@ -442,6 +450,7 @@ export interface FileRoutesByTo {
   '/clients': typeof AppClientsIndexRoute
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
+  '/clients/$clientId/bandeja': typeof AppClientsClientIdBandejaRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
@@ -499,6 +508,7 @@ export interface FileRoutesById {
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/_app/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
+  '/_app/clients/$clientId/bandeja': typeof AppClientsClientIdBandejaRoute
   '/_app/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/_app/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/_app/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
@@ -556,6 +566,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/clients/$clientId/analytics'
     | '/clients/$clientId/backfill'
+    | '/clients/$clientId/bandeja'
     | '/clients/$clientId/chatbot'
     | '/clients/$clientId/content'
     | '/clients/$clientId/contracts'
@@ -610,6 +621,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/clients/$clientId/analytics'
     | '/clients/$clientId/backfill'
+    | '/clients/$clientId/bandeja'
     | '/clients/$clientId/chatbot'
     | '/clients/$clientId/content'
     | '/clients/$clientId/contracts'
@@ -666,6 +678,7 @@ export interface FileRouteTypes {
     | '/_app/clients/'
     | '/_app/clients/$clientId/analytics'
     | '/_app/clients/$clientId/backfill'
+    | '/_app/clients/$clientId/bandeja'
     | '/_app/clients/$clientId/chatbot'
     | '/_app/clients/$clientId/content'
     | '/_app/clients/$clientId/contracts'
@@ -1068,6 +1081,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdChatbotRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/bandeja': {
+      id: '/_app/clients/$clientId/bandeja'
+      path: '/bandeja'
+      fullPath: '/clients/$clientId/bandeja'
+      preLoaderRoute: typeof AppClientsClientIdBandejaRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/backfill': {
       id: '/_app/clients/$clientId/backfill'
       path: '/backfill'
@@ -1113,6 +1133,7 @@ const AtChar123slugChar125RouteWithChildren =
 interface AppClientsClientIdRouteChildren {
   AppClientsClientIdAnalyticsRoute: typeof AppClientsClientIdAnalyticsRoute
   AppClientsClientIdBackfillRoute: typeof AppClientsClientIdBackfillRoute
+  AppClientsClientIdBandejaRoute: typeof AppClientsClientIdBandejaRoute
   AppClientsClientIdChatbotRoute: typeof AppClientsClientIdChatbotRoute
   AppClientsClientIdContentRoute: typeof AppClientsClientIdContentRoute
   AppClientsClientIdContractsRoute: typeof AppClientsClientIdContractsRoute
@@ -1132,6 +1153,7 @@ interface AppClientsClientIdRouteChildren {
 const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdAnalyticsRoute: AppClientsClientIdAnalyticsRoute,
   AppClientsClientIdBackfillRoute: AppClientsClientIdBackfillRoute,
+  AppClientsClientIdBandejaRoute: AppClientsClientIdBandejaRoute,
   AppClientsClientIdChatbotRoute: AppClientsClientIdChatbotRoute,
   AppClientsClientIdContentRoute: AppClientsClientIdContentRoute,
   AppClientsClientIdContractsRoute: AppClientsClientIdContractsRoute,
