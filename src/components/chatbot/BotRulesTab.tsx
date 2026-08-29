@@ -27,6 +27,19 @@ import {
 import { FlowEditor } from "@/components/chatbot/FlowEditor";
 import type { FlowStep } from "@/lib/whatsapp/flowTypes";
 
+type Rule = {
+  id: string;
+  name: string;
+  match_type: string;
+  keywords: string[];
+  response_text: string | null;
+  actions: Action[];
+  is_active: boolean;
+  priority: number;
+  mark_as_lead: boolean;
+  flow_steps: FlowStep[];
+};
+
 export function BotRulesTab({ clientId }: { clientId: string }) {
   const [rules, setRules] = useState<Rule[]>([]);
 
