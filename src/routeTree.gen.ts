@@ -53,6 +53,7 @@ import { Route as AppClientsClientIdLandingRouteImport } from './routes/_app/cli
 import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
 import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
 import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
+import { Route as AppClientsClientIdContentRouteImport } from './routes/_app/clients/$clientId/content'
 import { Route as AppClientsClientIdChatbotRouteImport } from './routes/_app/clients/$clientId/chatbot'
 import { Route as AppClientsClientIdBackfillRouteImport } from './routes/_app/clients/$clientId/backfill'
 import { Route as AppClientsClientIdAnalyticsRouteImport } from './routes/_app/clients/$clientId/analytics'
@@ -290,6 +291,12 @@ const AppClientsClientIdContractsRoute =
     path: '/contracts',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdContentRoute =
+  AppClientsClientIdContentRouteImport.update({
+    id: '/content',
+    path: '/content',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdChatbotRoute =
   AppClientsClientIdChatbotRouteImport.update({
     id: '/chatbot',
@@ -356,6 +363,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
+  '/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
@@ -405,6 +413,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
+  '/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
@@ -457,6 +466,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/_app/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/_app/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
+  '/_app/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/_app/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
@@ -509,6 +519,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/analytics'
     | '/clients/$clientId/backfill'
     | '/clients/$clientId/chatbot'
+    | '/clients/$clientId/content'
     | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/instagram'
@@ -558,6 +569,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/analytics'
     | '/clients/$clientId/backfill'
     | '/clients/$clientId/chatbot'
+    | '/clients/$clientId/content'
     | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/instagram'
@@ -609,6 +621,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/analytics'
     | '/_app/clients/$clientId/backfill'
     | '/_app/clients/$clientId/chatbot'
+    | '/_app/clients/$clientId/content'
     | '/_app/clients/$clientId/contracts'
     | '/_app/clients/$clientId/deliverables'
     | '/_app/clients/$clientId/instagram'
@@ -962,6 +975,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdContractsRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/content': {
+      id: '/_app/clients/$clientId/content'
+      path: '/content'
+      fullPath: '/clients/$clientId/content'
+      preLoaderRoute: typeof AppClientsClientIdContentRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/chatbot': {
       id: '/_app/clients/$clientId/chatbot'
       path: '/chatbot'
@@ -1015,6 +1035,7 @@ interface AppClientsClientIdRouteChildren {
   AppClientsClientIdAnalyticsRoute: typeof AppClientsClientIdAnalyticsRoute
   AppClientsClientIdBackfillRoute: typeof AppClientsClientIdBackfillRoute
   AppClientsClientIdChatbotRoute: typeof AppClientsClientIdChatbotRoute
+  AppClientsClientIdContentRoute: typeof AppClientsClientIdContentRoute
   AppClientsClientIdContractsRoute: typeof AppClientsClientIdContractsRoute
   AppClientsClientIdDeliverablesRoute: typeof AppClientsClientIdDeliverablesRoute
   AppClientsClientIdInstagramRoute: typeof AppClientsClientIdInstagramRoute
@@ -1031,6 +1052,7 @@ const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdAnalyticsRoute: AppClientsClientIdAnalyticsRoute,
   AppClientsClientIdBackfillRoute: AppClientsClientIdBackfillRoute,
   AppClientsClientIdChatbotRoute: AppClientsClientIdChatbotRoute,
+  AppClientsClientIdContentRoute: AppClientsClientIdContentRoute,
   AppClientsClientIdContractsRoute: AppClientsClientIdContractsRoute,
   AppClientsClientIdDeliverablesRoute: AppClientsClientIdDeliverablesRoute,
   AppClientsClientIdInstagramRoute: AppClientsClientIdInstagramRoute,
