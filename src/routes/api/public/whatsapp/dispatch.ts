@@ -5,6 +5,7 @@ import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
 
 import { zonedParts } from "@/lib/bookings/tz";
 import { getWaSecret } from "@/lib/whatsapp/tokens.server";
+import { getActiveRun, resumeFlowRun, type FlowRun } from "@/lib/whatsapp/flow.server";
 
 const META = graphBase();
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -418,6 +419,46 @@ export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
 
         const nowIso = new Date().toISOString();
 
+        // 1) Resume flows whose "espera" step is due.
+        const { data: dueRuns } = await (supabaseAdmin.from("whatsapp_flow_runs" as any) as any)
+          .select("*")
+          .eq("status", "running")
+          .not("next_run_at", "is", null)
+          .lte("next_run_at", nowIso)
+          .limit(25);
+
+        let flowsResumed = 0;
+        for (const run of (dueRuns ?? []) as FlowRun[]) {
+          try {
+            const { data: conv } = await supabaseAdmin
+              .from("whatsapp_conversations")
+              .select("id,account_id,contact_wa_id,contact_name,ai_paused")
+              .eq("id", run.conversation_id)
+              .maybeSingle();
+            if (!conv || conv.ai_paused || !conv.account_id) continue;
+            const { data: acc } = await supabaseAdmin
+              .from("whatsapp_accounts")
+              .select("id,phone_number_id,client_id")
+              .eq("id", conv.account_id)
+              .maybeSingle();
+            if (!acc?.phone_number_id) continue;
+            const token = await getWaSecret(acc.id, "access_token");
+            if (!token) continue;
+            await resumeFlowRun(run, {
+              phoneNumberId: acc.phone_number_id,
+              accessToken: token,
+              to: conv.contact_wa_id,
+              clientId: acc.client_id,
+              conversationId: conv.id,
+              contactName: conv.contact_name ?? null,
+              contactWaId: conv.contact_wa_id,
+            });
+            flowsResumed++;
+          } catch (e: any) {
+            console.error("[dispatch] flow resume failed", run.id, e?.message);
+          }
+        }
+
         const { data: due } = await supabaseAdmin
           .from("whatsapp_conversations")
           .select("id")
@@ -427,14 +468,25 @@ export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
           .limit(25);
 
         const ids = (due ?? []).map((r) => r.id);
+        let aiProcessed = 0;
         for (const id of ids) {
           try {
+            // A live flow owns the conversation: the AI must not talk over it.
+            const active = await getActiveRun(id);
+            if (active) {
+              await supabaseAdmin
+                .from("whatsapp_conversations")
+                .update({ pending_response_at: null })
+                .eq("id", id);
+              continue;
+            }
+            aiProcessed++;
             await processConversation(id);
           } catch (e: any) {
             console.error("[dispatch] error on", id, e?.message);
           }
         }
-        return Response.json({ processed: ids.length });
+        return Response.json({ processed: aiProcessed, flows_resumed: flowsResumed });
       },
       GET: async () => {
         return Response.json({ ok: true, hint: "POST to trigger dispatch" });
