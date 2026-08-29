@@ -84,6 +84,7 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
                 page_id: page?.id ?? null,
                 ig_account_id: page?.instagram_business_account?.id ?? null,
                 business_name: page?.name ?? adAccount?.name ?? null,
+                timezone_name: adAccount?.timezone_name ?? null,
                 scopes: [...META_SCOPES],
                 connected: true,
                 token_expires_at:
