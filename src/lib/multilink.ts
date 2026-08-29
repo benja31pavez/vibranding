@@ -125,6 +125,7 @@ export function waHref(i: MultilinkItem): string | null {
 /** Destination for a clickable item; null for items rendered inline (video). */
 export function itemHref(i: MultilinkItem): string | null {
   if (i.kind === "whatsapp") return waHref(i);
+  if (i.kind === "social") return socialHref(i);
   if (i.kind === "video") return null;
   return i.url && i.url !== "https://" ? i.url : null;
 }
