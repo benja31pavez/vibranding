@@ -91,7 +91,7 @@ export function LandingEditor({ clientId }: { clientId: string }) {
       hero_subtitle: "Descripción breve y atractiva", cta_text: "Contáctanos",
     }).select("*").single();
     if (error) return toast.error(error.message);
-    setLp(data as unknown as Landing);
+    setLp(normalize(data));
     toast.success("Landing creada");
   };
 
@@ -115,6 +115,17 @@ export function LandingEditor({ clientId }: { clientId: string }) {
       whatsapp_number: lp.whatsapp_number,
       whatsapp_cta_text: lp.whatsapp_cta_text,
       whatsapp_message: lp.whatsapp_message,
+      template: lp.template,
+      dark_mode: lp.dark_mode,
+      hero_aspect: lp.hero_aspect,
+      testimonials_enabled: lp.testimonials_enabled,
+      testimonials: lp.testimonials as any,
+      location_enabled: lp.location_enabled,
+      location: lp.location as any,
+      faq_enabled: lp.faq_enabled,
+      faq: lp.faq as any,
+      footer: lp.footer as any,
+
     }).eq("id", lp.id);
     setSaving(false);
     if (error) return toast.error(error.message);
