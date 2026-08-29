@@ -1440,6 +1440,8 @@ export type Database = {
           location: Json
           location_enabled: boolean
           published: boolean
+          seo_description: string | null
+          seo_title: string | null
           services: Json
           slug: string
           template: string
@@ -1472,6 +1474,8 @@ export type Database = {
           location?: Json
           location_enabled?: boolean
           published?: boolean
+          seo_description?: string | null
+          seo_title?: string | null
           services?: Json
           slug: string
           template?: string
@@ -1504,6 +1508,8 @@ export type Database = {
           location?: Json
           location_enabled?: boolean
           published?: boolean
+          seo_description?: string | null
+          seo_title?: string | null
           services?: Json
           slug?: string
           template?: string
