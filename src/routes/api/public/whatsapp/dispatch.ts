@@ -164,6 +164,9 @@ async function processConversation(convId: string) {
     return;
   }
 
+  // Instagram DM conversations have no WhatsApp account and no AI auto-reply.
+  if (!conv.account_id) return;
+
   const { data: acc } = await supabaseAdmin
     .from("whatsapp_accounts")
     .select(

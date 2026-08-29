@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock, AlertTriangle, Check, Megaphone } from "lucide-react";
+import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock, AlertTriangle, Check, Megaphone, Instagram, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { isStale } from "@/hooks/use-unmarked-outcomes";
 import { Link } from "@tanstack/react-router";
@@ -30,6 +30,8 @@ type Conv = {
   needs_human_followup: boolean;
   human_followup_reason: string | null;
   human_followup_at: string | null;
+  channel: "whatsapp" | "instagram";
+  contact_username: string | null;
 };
 
 type Msg = {
@@ -55,6 +57,7 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
   const [search, setSearch] = useState("");
   const [filterLead, setFilterLead] = useState(false);
   const [filterFollowup, setFilterFollowup] = useState(false);
+  const [filterChannel, setFilterChannel] = useState<"all" | "whatsapp" | "instagram">("all");
   const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
   const [attributions, setAttributions] = useState<Record<string, { ad_id: string | null; headline: string | null }>>({});
 
@@ -206,6 +209,7 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
 
   const filtered = convs
     .filter((c) => {
+      if (filterChannel !== "all" && (c.channel ?? "whatsapp") !== filterChannel) return false;
       if (filterLead && !c.is_lead) return false;
       if (filterFollowup && !c.needs_human_followup) return false;
       if (search) {
@@ -238,6 +242,22 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
             <Button size="icon" variant="ghost" onClick={loadConvs} title="Refrescar">
               <RefreshCw className="w-4 h-4" />
             </Button>
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {([
+              { key: "all", label: "Todos" },
+              { key: "whatsapp", label: "WhatsApp" },
+              { key: "instagram", label: "Instagram" },
+            ] as const).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setFilterChannel(tab.key)}
+                className={`text-[11px] py-1.5 rounded-md border transition ${filterChannel === tab.key ? "bg-foreground text-background border-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Button
@@ -288,8 +308,17 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
               } ${c.needs_human_followup ? "border-l-4 border-l-destructive" : ""}`}
             >
               <div className="flex items-center gap-2">
+                <span title={c.channel === "instagram" ? "Instagram DM" : "WhatsApp"} className="shrink-0">
+                  {c.channel === "instagram" ? (
+                    <Instagram className="w-3.5 h-3.5 text-pink-500" />
+                  ) : (
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  )}
+                </span>
                 <div className="font-medium text-sm truncate flex-1">
-                  {c.contact_name || c.contact_wa_id}
+                  {c.channel === "instagram" && c.contact_username
+                    ? `@${c.contact_username}`
+                    : c.contact_name || c.contact_wa_id}
                 </div>
                 {attributions[c.id] && (
                   <span
