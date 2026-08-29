@@ -639,7 +639,28 @@ export function LandingEditor({ clientId }: { clientId: string }) {
   );
 }
 
+/** Applies defaults so landings created before the new fields keep rendering. */
+function normalize(row: any): Landing {
+  const location = asObject<LandingLocation>(row.location);
+  return {
+    ...row,
+    services: asArray<Service>(row.services),
+    gallery: asArray<GalleryItem>(row.gallery),
+    template: (row.template ?? "classic") as LandingTemplate,
+    dark_mode: !!row.dark_mode,
+    hero_aspect: (row.hero_aspect ?? "square") as HeroAspect,
+    testimonials_enabled: !!row.testimonials_enabled,
+    testimonials: asArray<Testimonial>(row.testimonials),
+    location_enabled: !!row.location_enabled,
+    location: { ...location, hours: location.hours?.length ? location.hours : defaultHours() },
+    faq_enabled: !!row.faq_enabled,
+    faq: asArray<FaqItem>(row.faq),
+    footer: asObject<LandingFooter>(row.footer),
+  } as Landing;
+}
+
 function LandingPreview({ lp, compact }: { lp: Landing; compact: boolean }) {
+
   return <PublicLandingView lp={lp as any} preview compact={compact} />;
 }
 
