@@ -187,6 +187,19 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const publicUrl = multilinkPublicUrl(ml, origin);
   const appUrl = `${origin}${multilinkPath(ml.slug)}`;
+  const bg = parseBackground(ml.background);
+  const setBg = (next: Background) => updateMl({ background: next });
+  // The preview renders the real public page, so it can never drift from it.
+  const previewMl: Multilink = { ...ml, avatar_url: effectiveAvatarUrl };
+
+  const onBackgroundImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      const url = await uploadClientMedia(f, clientId);
+      setBg({ type: "image", url, overlay: bg.type === "image" ? bg.overlay : 0.45 });
+    } catch (err: any) { toast.error(err.message); }
+  };
 
   return (
     <div className="space-y-6 max-w-5xl">
