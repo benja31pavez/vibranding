@@ -1293,42 +1293,6 @@ export type Database = {
           },
         ]
       }
-      meta_ads_accounts: {
-        Row: {
-          ad_account_id: string | null
-          business_name: string | null
-          client_id: string
-          created_at: string
-          id: string
-          instagram_actor_id: string | null
-          last_synced_at: string | null
-          page_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          ad_account_id?: string | null
-          business_name?: string | null
-          client_id: string
-          created_at?: string
-          id?: string
-          instagram_actor_id?: string | null
-          last_synced_at?: string | null
-          page_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          ad_account_id?: string | null
-          business_name?: string | null
-          client_id?: string
-          created_at?: string
-          id?: string
-          instagram_actor_id?: string | null
-          last_synced_at?: string | null
-          page_id?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       meta_ads_ads: {
         Row: {
           adset_id: string
@@ -1642,77 +1606,6 @@ export type Database = {
             columns: ["meta_account_id"]
             isOneToOne: false
             referencedRelation: "meta_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      meta_ads_insights: {
-        Row: {
-          campaign_id: string
-          clicks: number
-          client_id: string
-          conversions: number
-          cpc: number | null
-          cpm: number | null
-          created_at: string
-          ctr: number | null
-          date_start: string | null
-          date_stop: string | null
-          id: string
-          impressions: number
-          notes: string | null
-          purchase_value: number | null
-          reach: number
-          roas: number | null
-          spend: number
-          updated_at: string
-        }
-        Insert: {
-          campaign_id: string
-          clicks?: number
-          client_id: string
-          conversions?: number
-          cpc?: number | null
-          cpm?: number | null
-          created_at?: string
-          ctr?: number | null
-          date_start?: string | null
-          date_stop?: string | null
-          id?: string
-          impressions?: number
-          notes?: string | null
-          purchase_value?: number | null
-          reach?: number
-          roas?: number | null
-          spend?: number
-          updated_at?: string
-        }
-        Update: {
-          campaign_id?: string
-          clicks?: number
-          client_id?: string
-          conversions?: number
-          cpc?: number | null
-          cpm?: number | null
-          created_at?: string
-          ctr?: number | null
-          date_start?: string | null
-          date_stop?: string | null
-          id?: string
-          impressions?: number
-          notes?: string | null
-          purchase_value?: number | null
-          reach?: number
-          roas?: number | null
-          spend?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meta_ads_insights_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "meta_ads_campaigns"
             referencedColumns: ["id"]
           },
         ]
