@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
           if (!clientId) return json({ error: "clientId requerido" }, 400);
 
           const { data: account, error: aerr } = await userClient
-            .from("meta_ads_accounts").select("*").eq("client_id", clientId).maybeSingle();
+            .from("meta_accounts").select("*").eq("client_id", clientId).maybeSingle();
           if (aerr || !account) return json({ error: "Cuenta no encontrada o sin permisos" }, 403);
           if (!account.ad_account_id) return json({ error: "Configura la cuenta publicitaria" }, 400);
 
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
           if (!cRes.ok) return json({ error: cBody?.error?.message ?? "Error Meta API" }, 502);
           const campaigns = (cBody.data ?? []) as any[];
 
-          let campaignsCount = 0, adsetsCount = 0, adsCount = 0, insightsCount = 0;
+          let campaignsCount = 0, adsetsCount = 0, adsCount = 0;
           const campaignIdByFb = new Map<string, string>();
 
           for (const c of campaigns) {
@@ -144,34 +144,8 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
             }
           }
 
-          // 4) Insights (últimos 30 días) por campaña
-          const inFields = "impressions,reach,clicks,ctr,spend,cpc,cpm,date_start,date_stop";
-          for (const c of campaigns) {
-            const localId = campaignIdByFb.get(c.id);
-            if (!localId) continue;
-            const iRes = await fetch(`${base}/${c.id}/insights?fields=${inFields}&date_preset=last_30d&access_token=${tok}`);
-            const iBody = await iRes.json();
-            if (!iRes.ok) continue;
-            for (const i of (iBody.data ?? []) as any[]) {
-              const payload = {
-                client_id: clientId, campaign_id: localId,
-                date_start: i.date_start ?? null, date_stop: i.date_stop ?? null,
-                impressions: Number(i.impressions ?? 0), reach: Number(i.reach ?? 0),
-                clicks: Number(i.clicks ?? 0), ctr: i.ctr ? Number(i.ctr) : null,
-                spend: Number(i.spend ?? 0), cpc: i.cpc ? Number(i.cpc) : null,
-                cpm: i.cpm ? Number(i.cpm) : null,
-              };
-              const { data: existing } = await userClient
-                .from("meta_ads_insights").select("id").eq("client_id", clientId).eq("campaign_id", localId)
-                .eq("date_start", payload.date_start).eq("date_stop", payload.date_stop).maybeSingle();
-              if (existing) await userClient.from("meta_ads_insights").update(payload).eq("id", existing.id);
-              else await userClient.from("meta_ads_insights").insert(payload);
-              insightsCount++;
-            }
-          }
-
-          await userClient.from("meta_ads_accounts").update({ last_synced_at: new Date().toISOString() }).eq("id", account.id);
-          return json({ campaigns: campaignsCount, adsets: adsetsCount, ads: adsCount, insights: insightsCount });
+          await userClient.from("meta_accounts").update({ last_synced_at: new Date().toISOString() }).eq("id", account.id);
+          return json({ campaigns: campaignsCount, adsets: adsetsCount, ads: adsCount });
         } catch (e: any) {
           return json({ error: e?.message ?? "Error inesperado" }, 500);
         }

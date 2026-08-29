@@ -32,11 +32,11 @@ type MetaObjective = "OUTCOME_AWARENESS" | "OUTCOME_TRAFFIC" | "OUTCOME_ENGAGEME
 type MetaPlacement = "feed" | "stories" | "reels" | "marketplace" | "search" | "audience_network";
 type MetaCTA = "LEARN_MORE" | "SHOP_NOW" | "SIGN_UP" | "SUBSCRIBE" | "CONTACT_US" | "BOOK_TRAVEL" | "DOWNLOAD" | "GET_OFFER" | "APPLY_NOW" | "SEND_MESSAGE" | "WATCH_MORE";
 
-interface Account { id: string; client_id: string; ad_account_id: string | null; business_name: string | null; page_id: string | null; instagram_actor_id: string | null; last_synced_at: string | null; }
+interface Account { id: string; client_id: string; ad_account_id: string | null; business_name: string | null; page_id: string | null; ig_account_id: string | null; last_synced_at: string | null; }
 interface Campaign { id: string; client_id: string; name: string; objective: MetaObjective; status: MetaStatus; daily_budget: number | null; lifetime_budget: number | null; currency: string | null; start_time: string | null; stop_time: string | null; notes: string | null; position: number; fb_campaign_id: string | null; }
 interface AdSet { id: string; client_id: string; campaign_id: string; name: string; status: MetaStatus; daily_budget: number | null; optimization_goal: string | null; audience_summary: string | null; age_min: number | null; age_max: number | null; genders: string | null; countries: string | null; interests: string | null; placements: string[]; position: number; }
 interface Ad { id: string; client_id: string; adset_id: string; name: string; status: MetaStatus; format: string; image_url: string | null; video_url: string | null; carousel_urls: string[]; primary_text: string | null; headline: string | null; description: string | null; cta: MetaCTA | null; link_url: string | null; placement: MetaPlacement; position: number; }
-interface Insight { id: string; campaign_id: string; date_start: string | null; date_stop: string | null; impressions: number; reach: number; clicks: number; ctr: number | null; spend: number; cpc: number | null; cpm: number | null; conversions: number; purchase_value: number | null; roas: number | null; notes: string | null; }
+interface Insight { id: string; campaign_id: string | null; date: string; impressions: number; reach: number; clicks: number; ctr: number | null; spend: number; cpm: number | null; messaging_conversations_started: number; }
 
 const OBJECTIVES: Record<MetaObjective, string> = {
   OUTCOME_AWARENESS: "Reconocimiento", OUTCOME_TRAFFIC: "Tráfico", OUTCOME_ENGAGEMENT: "Interacción",
@@ -101,14 +101,19 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
 
   const load = async () => {
     const [{ data: ac }, { data: cs }, { data: as }, { data: ads_ }, { data: ins }] = await Promise.all([
-      supabase.from("meta_ads_accounts").select("*").eq("client_id", clientId).maybeSingle(),
+      supabase.from("meta_accounts").select("*").eq("client_id", clientId).maybeSingle(),
       supabase.from("meta_ads_campaigns").select("*").eq("client_id", clientId).order("position"),
       supabase.from("meta_ads_adsets").select("*").eq("client_id", clientId).order("position"),
       supabase.from("meta_ads_ads").select("*").eq("client_id", clientId).order("position"),
-      supabase.from("meta_ads_insights").select("*").eq("client_id", clientId),
+      supabase
+        .from("ad_insights_daily")
+        .select("id,campaign_id,date,impressions,reach,clicks,ctr,spend,cpm,messaging_conversations_started")
+        .eq("client_id", clientId)
+        .eq("level", "campaign")
+        .order("date", { ascending: false }),
     ]);
     if (!ac) {
-      const { data: created } = await supabase.from("meta_ads_accounts").insert({ client_id: clientId }).select().single();
+      const { data: created } = await supabase.from("meta_accounts").insert({ client_id: clientId }).select().single();
       setAccount(created as Account);
     } else setAccount(ac as Account);
     setCampaigns((cs ?? []) as Campaign[]);
@@ -122,7 +127,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   const updateAccount = async (patch: Partial<Account>) => {
     if (!account) return;
     setAccount({ ...account, ...patch });
-    await supabase.from("meta_ads_accounts").update(patch).eq("id", account.id);
+    await supabase.from("meta_accounts").update(patch).eq("id", account.id);
   };
 
   const updateCampaign = async (id: string, patch: Partial<Campaign>) => {
@@ -139,7 +144,8 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       setCampaigns(campaigns.filter((c) => c.id !== id));
       setAdsets(adsets.filter((a) => a.campaign_id !== id));
       setAds(ads.filter((ad) => !adsets.find((a) => a.id === ad.adset_id && a.campaign_id === id)));
-      setInsights(insights.filter((i) => i.campaign_id !== id));
+      const gone = campaigns.find((c) => c.id === id)?.fb_campaign_id ?? null;
+      setInsights(insights.filter((i) => !gone || i.campaign_id !== gone));
       toast.success("Eliminada en Meta");
     } catch (e: any) { toast.error(e.message); }
   };
@@ -246,8 +252,8 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
           <Field label="ID de cuenta de Instagram">
             <Input
               placeholder="178414..."
-              defaultValue={account?.instagram_actor_id ?? ""}
-              onBlur={(e) => updateAccount({ instagram_actor_id: e.target.value || null })}
+              defaultValue={account?.ig_account_id ?? ""}
+              onBlur={(e) => updateAccount({ ig_account_id: e.target.value || null })}
             />
           </Field>
         </div>
@@ -270,7 +276,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
           <Accordion type="multiple" className="space-y-2">
             {campaigns.map((c) => {
               const myAdsets = adsets.filter((a) => a.campaign_id === c.id);
-              const myInsights = insights.filter((i) => i.campaign_id === c.id);
+              const myInsights = c.fb_campaign_id ? insights.filter((i) => i.campaign_id === c.fb_campaign_id) : [];
               return (
                 <AccordionItem key={c.id} value={c.id} className="border rounded-xl bg-surface px-4">
                   <AccordionTrigger className="hover:no-underline">
@@ -489,32 +495,28 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                           <table className="w-full text-xs">
                             <thead className="text-muted-foreground">
                               <tr className="text-left border-b">
-                                <th className="py-1 pr-2">Desde</th>
-                                <th className="py-1 pr-2">Hasta</th>
+                                <th className="py-1 pr-2">Fecha</th>
                                 <th className="py-1 pr-2">Impr.</th>
                                 <th className="py-1 pr-2">Alcance</th>
                                 <th className="py-1 pr-2">Clics</th>
                                 <th className="py-1 pr-2">CTR %</th>
                                 <th className="py-1 pr-2">Gasto</th>
-                                <th className="py-1 pr-2">CPC</th>
-                                <th className="py-1 pr-2">Conv.</th>
-                                <th className="py-1 pr-2">ROAS</th>
+                                <th className="py-1 pr-2">CPM</th>
+                                <th className="py-1 pr-2">Conversaciones</th>
                                 <th></th>
                               </tr>
                             </thead>
                             <tbody>
                               {myInsights.map((i) => (
                                 <tr key={i.id} className="border-b">
-                                  <td className="py-1 pr-2">{i.date_start ?? "—"}</td>
-                                  <td className="py-1 pr-2">{i.date_stop ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.date}</td>
                                   <td className="py-1 pr-2">{i.impressions}</td>
                                   <td className="py-1 pr-2">{i.reach}</td>
                                   <td className="py-1 pr-2">{i.clicks}</td>
                                   <td className="py-1 pr-2">{i.ctr ?? "—"}</td>
                                   <td className="py-1 pr-2">{i.spend}</td>
-                                  <td className="py-1 pr-2">{i.cpc ?? "—"}</td>
-                                  <td className="py-1 pr-2">{i.conversions}</td>
-                                  <td className="py-1 pr-2">{i.roas ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.cpm ?? "—"}</td>
+                                  <td className="py-1 pr-2">{i.messaging_conversations_started}</td>
                                   <td></td>
                                 </tr>
                               ))}
@@ -547,7 +549,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
           clientId={clientId}
           accountId={account.ad_account_id}
           defaultPageId={account.page_id}
-          defaultIgId={account.instagram_actor_id}
+          defaultIgId={account.ig_account_id}
           open={wizardOpen}
           onOpenChange={setWizardOpen}
           onComplete={() => { setWizardOpen(false); load(); }}
@@ -638,7 +640,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                   return (
                     <div className="space-y-1.5">
                       {list.map((ig) => {
-                        const selected = account?.instagram_actor_id === ig.id;
+                        const selected = account?.ig_account_id === ig.id;
                         return (
                           <div
                             key={ig.id}
@@ -657,7 +659,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                               size="sm"
                               variant={selected ? "default" : "outline"}
                               onClick={async () => {
-                                await updateAccount({ instagram_actor_id: ig.id });
+                                await updateAccount({ ig_account_id: ig.id });
                                 toast.success(`Anuncios saldrán desde @${ig.username || ig.id}`);
                               }}
                             >

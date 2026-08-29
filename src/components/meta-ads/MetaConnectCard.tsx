@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, Plug, RefreshCw } from "lucide-react";
+import { CheckCircle2, AlertCircle, Plug, RefreshCw, AlertTriangle } from "lucide-react";
 import {
   getMetaConnection,
   startMetaOAuth,
@@ -110,9 +111,23 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
               Conectar con Meta
             </Button>
           )}
+          <Button asChild size="sm" variant="ghost">
+            <Link to="/admin/meta-diagnostics">Diagnóstico</Link>
+          </Button>
         </div>
       </CardHeader>
-      <CardContent className="text-sm text-muted-foreground space-y-1">
+      <CardContent className="text-sm text-muted-foreground space-y-2">
+        <div className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-foreground">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <p>
+            Los permisos <span className="font-mono">ads_read</span>,{" "}
+            <span className="font-mono">pages_read_engagement</span> e{" "}
+            <span className="font-mono">instagram_manage_insights</span> requieren App Review y
+            verificación del negocio en Meta. Mientras la revisión no esté aprobada, solo pueden
+            conectarse las cuentas con rol de <strong>desarrollador</strong> o{" "}
+            <strong>tester</strong> en la app de Meta.
+          </p>
+        </div>
         {conn?.connected ? (
           <>
             <div>

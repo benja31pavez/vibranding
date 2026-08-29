@@ -35,7 +35,7 @@ function ReportsPage() {
 
       const [{ data: posts }, { data: ins }, { data: pays }] = await Promise.all([
         supabase.from("instagram_posts").select("client_id,likes_count").in("client_id", ids),
-        supabase.from("meta_ads_insights").select("client_id,spend,impressions,clicks,conversions").in("client_id", ids),
+        supabase.from("ad_insights_daily").select("client_id,spend,impressions,clicks,messaging_conversations_started").eq("level", "campaign").in("client_id", ids),
         supabase.from("payments").select("client_id,amount,status,currency").in("client_id", ids),
       ]);
 
@@ -51,7 +51,7 @@ function ReportsPage() {
           spend: i.reduce((s: number, x: any) => s + Number(x.spend || 0), 0),
           impressions: i.reduce((s: number, x: any) => s + Number(x.impressions || 0), 0),
           clicks: i.reduce((s: number, x: any) => s + Number(x.clicks || 0), 0),
-          conversions: i.reduce((s: number, x: any) => s + Number(x.conversions || 0), 0),
+          conversions: i.reduce((s: number, x: any) => s + Number(x.messaging_conversations_started || 0), 0),
           paid: pay.filter((x: any) => x.status === "paid").reduce((s: number, x: any) => s + Number(x.amount), 0),
           pending: pay.filter((x: any) => x.status !== "paid" && x.status !== "cancelled").reduce((s: number, x: any) => s + Number(x.amount), 0),
           currency: pay[0]?.currency ?? "USD",
