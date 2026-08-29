@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { EventsPanel } from "@/components/landing/EventsPanel";
@@ -11,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Plus, Trash2, ExternalLink, Copy, Eye, GripVertical, Link2, Globe, Star, CalendarClock, Palette, Upload } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Copy, Eye, GripVertical, Link2, Globe, Star, CalendarClock, Palette, Upload, Activity } from "lucide-react";
 import { MultilinkAnalytics } from "@/components/multilink/MultilinkAnalytics";
 import { QrCodeCard } from "@/components/multilink/QrCodeCard";
 import { PublicMultilinkView } from "@/components/multilink/PublicMultilinkView";
@@ -26,6 +27,8 @@ import {
 import type { IGProfile } from "@/components/InstagramEditor";
 
 
+type TabKey = "diseno" | "config" | "metricas";
+
 export function MultilinkPage({ clientId }: { clientId: string }) {
   const { client } = useActiveClient();
   const [ml, setMl] = useState<Multilink | null>(null);
@@ -34,6 +37,7 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">("mobile");
+  const [tab, setTab] = useState<TabKey>("diseno");
 
   const load = async () => {
     setLoading(true);
@@ -225,396 +229,456 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
         </div>
       </div>
 
-      <div className="rounded-2xl border bg-surface p-5 flex flex-wrap items-center gap-3">
-        <div className="text-sm text-muted-foreground">URL pública:</div>
-        <code className="text-sm bg-secondary px-2 py-1 rounded">{publicUrl}</code>
-        <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(publicUrl); toast.success("Copiado"); }}>
-          <Copy className="w-3.5 h-3.5" />
-        </Button>
-        {ml.published && (
-          <a href={publicUrl} target="_blank" rel="noreferrer" className="text-sm inline-flex items-center gap-1 text-primary hover:underline">
-            Abrir <ExternalLink className="w-3 h-3" />
-          </a>
-        )}
-        <div className="ml-auto text-xs text-muted-foreground">{ml.view_count} visitas acumuladas</div>
-      </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-5">
+        <TabsList>
+          <TabsTrigger value="diseno">Diseño</TabsTrigger>
+          <TabsTrigger value="config">Configuración</TabsTrigger>
+          <TabsTrigger value="metricas">Métricas</TabsTrigger>
+        </TabsList>
 
-      <section className="rounded-2xl border bg-surface p-5 space-y-3">
-        <h3 className="font-medium flex items-center gap-2"><Globe className="w-4 h-4" /> Dominio propio</h3>
-        <p className="text-xs text-muted-foreground">
-          Apunta el dominio del cliente a esta app con un registro CNAME hacia <code>{origin.replace(/^https?:\/\//, "")}</code> y
-          escríbelo aquí. Mientras no esté verificado, la URL pública sigue siendo {appUrl}.
-        </p>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[240px]">
-            <Label className="text-xs">Dominio (sin https://)</Label>
-            <Input
-              placeholder="enlaces.micliente.cl"
-              value={ml.custom_domain ?? ""}
-              onChange={e => updateMl({ custom_domain: e.target.value })}
-              onBlur={persistMl}
-            />
-          </div>
-          <div className="text-xs px-2 py-1 rounded-full border">
-            {!ml.custom_domain ? "Sin dominio" : ml.custom_domain_verified ? "Verificado" : "Pendiente de DNS"}
-          </div>
-        </div>
-        <div className="text-xs text-muted-foreground">
-          URL pública actual: <code>{publicUrl}</code>
-        </div>
-      </section>
-
-      <MultilinkAnalytics clientId={clientId} multilinkId={ml.id} items={items} />
-
-      <QrCodeCard url={publicUrl} fileBase={ml.slug} />
-
-      <EventsPanel
-        clientId={clientId}
-        sourceType="multilink"
-        sourceId={ml.id}
-        itemLabels={Object.fromEntries(items.map(i => [i.id, i.title]))}
-      />
-
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Editor */}
-        <div className="space-y-4">
-          <div className="rounded-2xl border bg-surface p-5 space-y-3">
-            <h3 className="font-medium text-sm">Perfil</h3>
-            <div className="flex items-center gap-3">
-              <div className="w-16 h-16 rounded-full bg-secondary overflow-hidden grid place-items-center text-xl font-semibold">
-                {effectiveAvatarUrl ? <img src={effectiveAvatarUrl} alt="" className="w-full h-full object-cover" /> : (ml.title[0] || "?")}
-              </div>
-              <label className="text-sm text-primary cursor-pointer hover:underline">
-                Cambiar avatar
-                <input type="file" accept="image/*" className="hidden" onChange={onAvatar} />
-              </label>
-            </div>
-            <div>
-              <Label className="text-xs">Título</Label>
-              <Input value={ml.title} onChange={e => updateMl({ title: e.target.value })} maxLength={80} />
-            </div>
-            <div>
-              <Label className="text-xs">Bio</Label>
-              <Textarea value={ml.bio ?? ""} onChange={e => updateMl({ bio: e.target.value })} rows={3} maxLength={200} />
-            </div>
-            <div>
-              <Label className="text-xs">Slug (URL)</Label>
-              <Input value={ml.slug} onChange={e => updateMl({ slug: e.target.value })} />
-            </div>
-            <div className="flex gap-3 items-center">
-              <div>
-                <Label className="text-xs">Color</Label>
-                <Input type="color" value={ml.theme_color} onChange={e => updateMl({ theme_color: e.target.value })} className="w-20 h-9 p-1" />
+        <TabsContent value="diseno" className="space-y-6">
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Editor */}
+          <div className="space-y-4">
+            <div className="rounded-2xl border bg-surface p-5 space-y-3">
+              <h3 className="font-medium text-sm">Perfil</h3>
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-16 rounded-full bg-secondary overflow-hidden grid place-items-center text-xl font-semibold">
+                  {effectiveAvatarUrl ? <img src={effectiveAvatarUrl} alt="" className="w-full h-full object-cover" /> : (ml.title[0] || "?")}
+                </div>
+                <label className="text-sm text-primary cursor-pointer hover:underline">
+                  Cambiar avatar
+                  <input type="file" accept="image/*" className="hidden" onChange={onAvatar} />
+                </label>
               </div>
               <div>
-                <Label className="text-xs">Modo</Label>
-                <select className="block h-9 rounded-md border bg-background px-3 text-sm"
-                  value={ml.theme_mode}
-                  onChange={e => updateMl({ theme_mode: e.target.value })}>
-                  <option value="light">Claro</option>
-                  <option value="dark">Oscuro</option>
-                </select>
+                <Label className="text-xs">Título</Label>
+                <Input value={ml.title} onChange={e => updateMl({ title: e.target.value })} maxLength={80} />
               </div>
-            </div>
-            <Button onClick={persistMl} disabled={saving}>Guardar cambios</Button>
-          </div>
-
-          <div className="rounded-2xl border bg-surface p-5 space-y-4">
-            <h3 className="font-medium text-sm flex items-center gap-2"><Palette className="w-4 h-4" /> Estilo</h3>
-
-            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Estilo de botón</Label>
+                <Label className="text-xs">Bio</Label>
+                <Textarea value={ml.bio ?? ""} onChange={e => updateMl({ bio: e.target.value })} rows={3} maxLength={200} />
+              </div>
+              <div>
+                <Label className="text-xs">Slug (URL)</Label>
+                <Input value={ml.slug} onChange={e => updateMl({ slug: e.target.value })} />
+              </div>
+              <div className="flex gap-3 items-center">
+                <div>
+                  <Label className="text-xs">Color</Label>
+                  <Input type="color" value={ml.theme_color} onChange={e => updateMl({ theme_color: e.target.value })} className="w-20 h-9 p-1" />
+                </div>
+                <div>
+                  <Label className="text-xs">Modo</Label>
+                  <select className="block h-9 rounded-md border bg-background px-3 text-sm"
+                    value={ml.theme_mode}
+                    onChange={e => updateMl({ theme_mode: e.target.value })}>
+                    <option value="light">Claro</option>
+                    <option value="dark">Oscuro</option>
+                  </select>
+                </div>
+              </div>
+              <Button onClick={persistMl} disabled={saving}>Guardar cambios</Button>
+            </div>
+
+            <div className="rounded-2xl border bg-surface p-5 space-y-4">
+              <h3 className="font-medium text-sm flex items-center gap-2"><Palette className="w-4 h-4" /> Estilo</h3>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Estilo de botón</Label>
+                  <select
+                    className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
+                    value={ml.button_style}
+                    onChange={e => updateMl({ button_style: e.target.value as ButtonStyle })}
+                  >
+                    {(Object.keys(BUTTON_STYLE_LABEL) as ButtonStyle[]).map(k => (
+                      <option key={k} value={k}>{BUTTON_STYLE_LABEL[k]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">Forma</Label>
+                  <select
+                    className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
+                    value={ml.button_shape}
+                    onChange={e => updateMl({ button_shape: e.target.value as ButtonShape })}
+                  >
+                    {(Object.keys(BUTTON_SHAPE_LABEL) as ButtonShape[]).map(k => (
+                      <option key={k} value={k}>{BUTTON_SHAPE_LABEL[k]}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs">Tipografía</Label>
                 <select
                   className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
-                  value={ml.button_style}
-                  onChange={e => updateMl({ button_style: e.target.value as ButtonStyle })}
+                  value={ml.font_family}
+                  onChange={e => updateMl({ font_family: e.target.value as FontKey })}
                 >
-                  {(Object.keys(BUTTON_STYLE_LABEL) as ButtonStyle[]).map(k => (
-                    <option key={k} value={k}>{BUTTON_STYLE_LABEL[k]}</option>
+                  {(Object.keys(FONTS) as FontKey[]).map(k => (
+                    <option key={k} value={k}>{FONTS[k].label}</option>
                   ))}
                 </select>
               </div>
-              <div>
-                <Label className="text-xs">Forma</Label>
+
+              <div className="space-y-3">
+                <Label className="text-xs">Fondo</Label>
                 <select
                   className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
-                  value={ml.button_shape}
-                  onChange={e => updateMl({ button_shape: e.target.value as ButtonShape })}
+                  value={bg.type}
+                  onChange={e => {
+                    const t = e.target.value as Background["type"];
+                    if (t === "flat") setBg({ type: "flat" });
+                    else if (t === "solid") setBg({ type: "solid", color: "#111827" });
+                    else if (t === "gradient") setBg({ type: "gradient", from: "#6d28d9", to: "#db2777", angle: 160 });
+                    else setBg({ type: "image", url: null, overlay: 0.45 });
+                  }}
                 >
-                  {(Object.keys(BUTTON_SHAPE_LABEL) as ButtonShape[]).map(k => (
-                    <option key={k} value={k}>{BUTTON_SHAPE_LABEL[k]}</option>
-                  ))}
+                  <option value="flat">Según modo claro/oscuro</option>
+                  <option value="solid">Color sólido</option>
+                  <option value="gradient">Degradado</option>
+                  <option value="image">Imagen</option>
                 </select>
-              </div>
-            </div>
 
-            <div>
-              <Label className="text-xs">Tipografía</Label>
-              <select
-                className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
-                value={ml.font_family}
-                onChange={e => updateMl({ font_family: e.target.value as FontKey })}
-              >
-                {(Object.keys(FONTS) as FontKey[]).map(k => (
-                  <option key={k} value={k}>{FONTS[k].label}</option>
-                ))}
-              </select>
-            </div>
+                {bg.type === "solid" && (
+                  <Input type="color" value={bg.color} onChange={e => setBg({ ...bg, color: e.target.value })} className="w-20 h-9 p-1" />
+                )}
 
-            <div className="space-y-3">
-              <Label className="text-xs">Fondo</Label>
-              <select
-                className="block w-full h-9 rounded-md border bg-background px-2 text-sm"
-                value={bg.type}
-                onChange={e => {
-                  const t = e.target.value as Background["type"];
-                  if (t === "flat") setBg({ type: "flat" });
-                  else if (t === "solid") setBg({ type: "solid", color: "#111827" });
-                  else if (t === "gradient") setBg({ type: "gradient", from: "#6d28d9", to: "#db2777", angle: 160 });
-                  else setBg({ type: "image", url: null, overlay: 0.45 });
-                }}
-              >
-                <option value="flat">Según modo claro/oscuro</option>
-                <option value="solid">Color sólido</option>
-                <option value="gradient">Degradado</option>
-                <option value="image">Imagen</option>
-              </select>
-
-              {bg.type === "solid" && (
-                <Input type="color" value={bg.color} onChange={e => setBg({ ...bg, color: e.target.value })} className="w-20 h-9 p-1" />
-              )}
-
-              {bg.type === "gradient" && (
-                <div className="flex flex-wrap items-end gap-3">
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground">Desde</Label>
-                    <Input type="color" value={bg.from} onChange={e => setBg({ ...bg, from: e.target.value })} className="w-16 h-9 p-1" />
+                {bg.type === "gradient" && (
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground">Desde</Label>
+                      <Input type="color" value={bg.from} onChange={e => setBg({ ...bg, from: e.target.value })} className="w-16 h-9 p-1" />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground">Hasta</Label>
+                      <Input type="color" value={bg.to} onChange={e => setBg({ ...bg, to: e.target.value })} className="w-16 h-9 p-1" />
+                    </div>
+                    <div className="flex-1 min-w-[140px]">
+                      <Label className="text-[11px] text-muted-foreground">Ángulo: {bg.angle}°</Label>
+                      <input
+                        type="range" min={0} max={360} step={5} value={bg.angle}
+                        onChange={e => setBg({ ...bg, angle: Number(e.target.value) })}
+                        className="w-full accent-primary"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground">Hasta</Label>
-                    <Input type="color" value={bg.to} onChange={e => setBg({ ...bg, to: e.target.value })} className="w-16 h-9 p-1" />
-                  </div>
-                  <div className="flex-1 min-w-[140px]">
-                    <Label className="text-[11px] text-muted-foreground">Ángulo: {bg.angle}°</Label>
+                )}
+
+                {bg.type === "image" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-20 h-14 rounded-lg bg-secondary overflow-hidden grid place-items-center">
+                        {bg.url ? <img src={bg.url} alt="" className="w-full h-full object-cover" /> : <Upload className="w-4 h-4 text-muted-foreground" />}
+                      </div>
+                      <label className="text-sm text-primary cursor-pointer hover:underline">
+                        Subir imagen
+                        <input type="file" accept="image/*" className="hidden" onChange={onBackgroundImage} />
+                      </label>
+                    </div>
+                    <Label className="text-[11px] text-muted-foreground">
+                      Oscurecer para legibilidad: {Math.round(bg.overlay * 100)}%
+                    </Label>
                     <input
-                      type="range" min={0} max={360} step={5} value={bg.angle}
-                      onChange={e => setBg({ ...bg, angle: Number(e.target.value) })}
+                      type="range" min={0} max={90} step={5} value={Math.round(bg.overlay * 100)}
+                      onChange={e => setBg({ ...bg, overlay: Number(e.target.value) / 100 })}
                       className="w-full accent-primary"
                     />
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              {bg.type === "image" && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-20 h-14 rounded-lg bg-secondary overflow-hidden grid place-items-center">
-                      {bg.url ? <img src={bg.url} alt="" className="w-full h-full object-cover" /> : <Upload className="w-4 h-4 text-muted-foreground" />}
-                    </div>
-                    <label className="text-sm text-primary cursor-pointer hover:underline">
-                      Subir imagen
-                      <input type="file" accept="image/*" className="hidden" onChange={onBackgroundImage} />
-                    </label>
-                  </div>
-                  <Label className="text-[11px] text-muted-foreground">
-                    Oscurecer para legibilidad: {Math.round(bg.overlay * 100)}%
-                  </Label>
-                  <input
-                    type="range" min={0} max={90} step={5} value={Math.round(bg.overlay * 100)}
-                    onChange={e => setBg({ ...bg, overlay: Number(e.target.value) / 100 })}
-                    className="w-full accent-primary"
-                  />
-                </div>
-              )}
+              <Button onClick={persistMl} disabled={saving}>Guardar estilo</Button>
             </div>
 
-            <Button onClick={persistMl} disabled={saving}>Guardar estilo</Button>
-          </div>
-
-          <div className="rounded-2xl border bg-surface p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-sm">Enlaces</h3>
-              <Button size="sm" variant="outline" onClick={addItem}><Plus className="w-4 h-4 mr-1" /> Añadir</Button>
-            </div>
-            {items.length === 0 && <p className="text-sm text-muted-foreground">Aún no hay enlaces.</p>}
-            <ul className="space-y-2">
-              {items.map((i, idx) => (
-                <li key={i.id} className="rounded-xl border p-3 space-y-2 bg-background">
-                  <div className="flex gap-2 items-center">
-                    <div className="flex flex-col">
-                      <button onClick={() => move(i.id, -1)} disabled={idx === 0} className="text-muted-foreground hover:text-foreground disabled:opacity-30">▲</button>
-                      <button onClick={() => move(i.id, 1)} disabled={idx === items.length - 1} className="text-muted-foreground hover:text-foreground disabled:opacity-30">▼</button>
-                    </div>
-                    <GripVertical className="w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Título"
-                      value={i.title}
-                      onChange={e => updateItem(i.id, { title: e.target.value })}
-                      onBlur={() => persistItem(i)}
-                      maxLength={80}
-                    />
-                    <Switch checked={i.is_active} onCheckedChange={(v) => { updateItem(i.id, { is_active: v }); persistItem({ ...i, is_active: v }); }} />
-                    <Button size="icon" variant="ghost" onClick={() => removeItem(i.id)}><Trash2 className="w-4 h-4" /></Button>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      className="h-9 rounded-md border bg-background px-2 text-sm"
-                      value={i.kind}
-                      onChange={e => {
-                        const kind = e.target.value as MultilinkItemKind;
-                        updateItem(i.id, { kind });
-                        persistItem({ ...i, kind });
-                      }}
-                    >
-                      {(Object.keys(KIND_LABEL) as MultilinkItemKind[]).map(k => (
-                        <option key={k} value={k}>{KIND_LABEL[k]}</option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => { updateItem(i.id, { featured: !i.featured }); persistItem({ ...i, featured: !i.featured }); }}
-                      className={`inline-flex items-center gap-1 text-xs px-2 py-1.5 rounded-full border transition ${i.featured ? "bg-foreground text-background border-foreground" : "text-muted-foreground"}`}
-                    >
-                      <Star className="w-3 h-3" /> Destacado
-                    </button>
-                    <ScheduleBadge item={i} />
-                  </div>
-
-                  {i.kind === "whatsapp" ? (
-                    <div className="grid sm:grid-cols-2 gap-2">
+            <div className="rounded-2xl border bg-surface p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm">Enlaces</h3>
+                <Button size="sm" variant="outline" onClick={addItem}><Plus className="w-4 h-4 mr-1" /> Añadir</Button>
+              </div>
+              {items.length === 0 && <p className="text-sm text-muted-foreground">Aún no hay enlaces.</p>}
+              <ul className="space-y-2">
+                {items.map((i, idx) => (
+                  <li key={i.id} className="rounded-xl border p-3 space-y-2 bg-background">
+                    <div className="flex gap-2 items-center">
+                      <div className="flex flex-col">
+                        <button onClick={() => move(i.id, -1)} disabled={idx === 0} className="text-muted-foreground hover:text-foreground disabled:opacity-30">▲</button>
+                        <button onClick={() => move(i.id, 1)} disabled={idx === items.length - 1} className="text-muted-foreground hover:text-foreground disabled:opacity-30">▼</button>
+                      </div>
+                      <GripVertical className="w-4 h-4 text-muted-foreground" />
                       <Input
-                        placeholder="+56 9 1234 5678"
-                        value={i.wa_number ?? ""}
-                        onChange={e => updateItem(i.id, { wa_number: e.target.value })}
+                        placeholder="Título"
+                        value={i.title}
+                        onChange={e => updateItem(i.id, { title: e.target.value })}
                         onBlur={() => persistItem(i)}
-                        maxLength={30}
+                        maxLength={80}
                       />
-                      <Input
-                        placeholder="Mensaje prellenado"
-                        value={i.wa_message ?? ""}
-                        onChange={e => updateItem(i.id, { wa_message: e.target.value })}
-                        onBlur={() => persistItem(i)}
-                        maxLength={300}
-                      />
+                      <Switch checked={i.is_active} onCheckedChange={(v) => { updateItem(i.id, { is_active: v }); persistItem({ ...i, is_active: v }); }} />
+                      <Button size="icon" variant="ghost" onClick={() => removeItem(i.id)}><Trash2 className="w-4 h-4" /></Button>
                     </div>
-                  ) : i.kind === "social" ? (
-                    <div className="flex gap-2">
-                      <SocialSelect
-                        value={(i.icon ?? "instagram")}
-                        onChange={(v) => { updateItem(i.id, { icon: v }); persistItem({ ...i, icon: v }); }}
-                      />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        className="h-9 rounded-md border bg-background px-2 text-sm"
+                        value={i.kind}
+                        onChange={e => {
+                          const kind = e.target.value as MultilinkItemKind;
+                          updateItem(i.id, { kind });
+                          persistItem({ ...i, kind });
+                        }}
+                      >
+                        {(Object.keys(KIND_LABEL) as MultilinkItemKind[]).map(k => (
+                          <option key={k} value={k}>{KIND_LABEL[k]}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => { updateItem(i.id, { featured: !i.featured }); persistItem({ ...i, featured: !i.featured }); }}
+                        className={`inline-flex items-center gap-1 text-xs px-2 py-1.5 rounded-full border transition ${i.featured ? "bg-foreground text-background border-foreground" : "text-muted-foreground"}`}
+                      >
+                        <Star className="w-3 h-3" /> Destacado
+                      </button>
+                      <ScheduleBadge item={i} />
+                    </div>
+
+                    {i.kind === "whatsapp" ? (
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        <Input
+                          placeholder="+56 9 1234 5678"
+                          value={i.wa_number ?? ""}
+                          onChange={e => updateItem(i.id, { wa_number: e.target.value })}
+                          onBlur={() => persistItem(i)}
+                          maxLength={30}
+                        />
+                        <Input
+                          placeholder="Mensaje prellenado"
+                          value={i.wa_message ?? ""}
+                          onChange={e => updateItem(i.id, { wa_message: e.target.value })}
+                          onBlur={() => persistItem(i)}
+                          maxLength={300}
+                        />
+                      </div>
+                    ) : i.kind === "social" ? (
+                      <div className="flex gap-2">
+                        <SocialSelect
+                          value={(i.icon ?? "instagram")}
+                          onChange={(v) => { updateItem(i.id, { icon: v }); persistItem({ ...i, icon: v }); }}
+                        />
+                        <Input
+                          placeholder="@usuario, URL, email o teléfono"
+                          value={i.url}
+                          onChange={e => updateItem(i.id, { url: e.target.value })}
+                          onBlur={() => persistItem(i)}
+                          maxLength={500}
+                        />
+                      </div>
+                    ) : i.kind === "video" ? (
                       <Input
-                        placeholder="@usuario, URL, email o teléfono"
+                        placeholder="URL de YouTube, Vimeo o .mp4"
+                        value={i.video_url ?? ""}
+                        onChange={e => updateItem(i.id, { video_url: e.target.value })}
+                        onBlur={() => persistItem(i)}
+                        maxLength={500}
+                      />
+                    ) : (
+                      <Input
+                        placeholder="https://..."
                         value={i.url}
                         onChange={e => updateItem(i.id, { url: e.target.value })}
                         onBlur={() => persistItem(i)}
                         maxLength={500}
                       />
-                    </div>
-                  ) : i.kind === "video" ? (
+                    )}
+
                     <Input
-                      placeholder="URL de YouTube, Vimeo o .mp4"
-                      value={i.video_url ?? ""}
-                      onChange={e => updateItem(i.id, { video_url: e.target.value })}
+                      placeholder="Subtítulo (opcional)"
+                      value={i.subtitle ?? ""}
+                      onChange={e => updateItem(i.id, { subtitle: e.target.value })}
                       onBlur={() => persistItem(i)}
-                      maxLength={500}
+                      maxLength={120}
                     />
-                  ) : (
-                    <Input
-                      placeholder="https://..."
-                      value={i.url}
-                      onChange={e => updateItem(i.id, { url: e.target.value })}
-                      onBlur={() => persistItem(i)}
-                      maxLength={500}
-                    />
-                  )}
 
-                  <Input
-                    placeholder="Subtítulo (opcional)"
-                    value={i.subtitle ?? ""}
-                    onChange={e => updateItem(i.id, { subtitle: e.target.value })}
-                    onBlur={() => persistItem(i)}
-                    maxLength={120}
-                  />
-
-                  <div className="grid sm:grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
-                        <CalendarClock className="w-3 h-3" /> Aparece desde
-                      </Label>
-                      <Input
-                        type="datetime-local"
-                        value={toLocalInput(i.start_at)}
-                        onChange={e => updateItem(i.id, { start_at: fromLocalInput(e.target.value) })}
-                        onBlur={() => persistItem(i)}
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[11px] text-muted-foreground">Desaparece el</Label>
-                      <Input
-                        type="datetime-local"
-                        value={toLocalInput(i.end_at)}
-                        onChange={e => updateItem(i.id, { end_at: fromLocalInput(e.target.value) })}
-                        onBlur={() => persistItem(i)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-muted-foreground">{i.click_count} clics acumulados</div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Preview */}
-        <div className="md:sticky md:top-20 h-fit space-y-3">
-          <div className="flex items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPreviewMode("mobile")}
-              className={`text-xs px-3 py-1.5 rounded-full border transition ${previewMode === "mobile" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
-            >
-              📱 Móvil
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreviewMode("desktop")}
-              className={`text-xs px-3 py-1.5 rounded-full border transition ${previewMode === "desktop" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
-            >
-              💻 Escritorio
-            </button>
+                    <div className="text-xs text-muted-foreground">{i.click_count} clics acumulados</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
-          {previewMode === "mobile" ? (
-            <div className="mx-auto" style={{ width: 320 }}>
-              <div className="relative rounded-[3rem] bg-black p-2 shadow-2xl">
-                <div className="relative rounded-[2.5rem] overflow-hidden" style={{ aspectRatio: "9/19.5" }}>
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-30" />
-                  <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <PublicMultilinkView ml={previewMl} items={items} preview />
+          {/* Preview */}
+          <div className="md:sticky md:top-20 h-fit space-y-3">
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPreviewMode("mobile")}
+                className={`text-xs px-3 py-1.5 rounded-full border transition ${previewMode === "mobile" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
+              >
+                📱 Móvil
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewMode("desktop")}
+                className={`text-xs px-3 py-1.5 rounded-full border transition ${previewMode === "desktop" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
+              >
+                💻 Escritorio
+              </button>
+            </div>
+
+            {previewMode === "mobile" ? (
+              <div className="mx-auto" style={{ width: 320 }}>
+                <div className="relative rounded-[3rem] bg-black p-2 shadow-2xl">
+                  <div className="relative rounded-[2.5rem] overflow-hidden" style={{ aspectRatio: "9/19.5" }}>
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-30" />
+                    <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      <PublicMultilinkView ml={previewMl} items={items} preview />
+                    </div>
                   </div>
                 </div>
               </div>
+            ) : (
+              <div className="mx-auto w-full max-w-[560px]">
+                <div className="relative rounded-t-xl bg-black p-3 pb-2 shadow-2xl">
+                  <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-zinc-700 rounded-full" />
+                  <div className="relative rounded-md overflow-hidden mt-2" style={{ aspectRatio: "16/10" }}>
+                    <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      <PublicMultilinkView ml={previewMl} items={items} preview />
+                    </div>
+                  </div>
+                </div>
+                <div className="relative mx-auto h-3 bg-zinc-800 rounded-b-xl" style={{ width: "115%", marginLeft: "-7.5%" }}>
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1.5 bg-zinc-700 rounded-b-md" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        </TabsContent>
+
+        <TabsContent value="config" className="space-y-6">
+          <div className="rounded-2xl border bg-surface p-5 space-y-3">
+            <h3 className="font-medium text-sm">Publicación</h3>
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex-1 min-w-[220px]">
+                <Label className="text-xs">Slug (URL)</Label>
+                <Input value={ml.slug} onChange={e => updateMl({ slug: e.target.value })} onBlur={persistMl} />
+              </div>
+              <Label className="flex items-center gap-2 text-sm h-9">
+                <Switch checked={ml.published} onCheckedChange={togglePublished} />
+                {ml.published ? "Publicado" : "Borrador"}
+              </Label>
+              <Button onClick={persistMl} disabled={saving}>Guardar</Button>
+            </div>
+          </div>
+
+        <div className="rounded-2xl border bg-surface p-5 flex flex-wrap items-center gap-3">
+          <div className="text-sm text-muted-foreground">URL pública:</div>
+          <code className="text-sm bg-secondary px-2 py-1 rounded">{publicUrl}</code>
+          <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(publicUrl); toast.success("Copiado"); }}>
+            <Copy className="w-3.5 h-3.5" />
+          </Button>
+          {ml.published && (
+            <a href={publicUrl} target="_blank" rel="noreferrer" className="text-sm inline-flex items-center gap-1 text-primary hover:underline">
+              Abrir <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+          <div className="ml-auto text-xs text-muted-foreground">{ml.view_count} visitas acumuladas</div>
+        </div>
+
+
+        <section className="rounded-2xl border bg-surface p-5 space-y-3">
+          <h3 className="font-medium flex items-center gap-2"><Globe className="w-4 h-4" /> Dominio propio</h3>
+          <p className="text-xs text-muted-foreground">
+            Apunta el dominio del cliente a esta app con un registro CNAME hacia <code>{origin.replace(/^https?:\/\//, "")}</code> y
+            escríbelo aquí. Mientras no esté verificado, la URL pública sigue siendo {appUrl}.
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[240px]">
+              <Label className="text-xs">Dominio (sin https://)</Label>
+              <Input
+                placeholder="enlaces.micliente.cl"
+                value={ml.custom_domain ?? ""}
+                onChange={e => updateMl({ custom_domain: e.target.value })}
+                onBlur={persistMl}
+              />
+            </div>
+            <div className="text-xs px-2 py-1 rounded-full border">
+              {!ml.custom_domain ? "Sin dominio" : ml.custom_domain_verified ? "Verificado" : "Pendiente de DNS"}
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            URL pública actual: <code>{publicUrl}</code>
+          </div>
+        </section>
+
+          <section className="rounded-2xl border bg-surface p-5 space-y-3">
+            <h3 className="font-medium flex items-center gap-2"><CalendarClock className="w-4 h-4" /> Programación de enlaces</h3>
+            <p className="text-xs text-muted-foreground">
+              Define desde y hasta cuándo se muestra cada enlace. Vacío significa siempre visible.
+            </p>
+            {items.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aún no hay enlaces que programar.</p>
+            ) : (
+              <ul className="space-y-3">
+                {items.map(i => (
+                  <li key={i.id} className="rounded-xl border p-3 space-y-2 bg-background">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium truncate">{i.title}</span>
+                      <ScheduleBadge item={i} />
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground">Aparece desde</Label>
+                        <Input
+                          type="datetime-local"
+                          value={toLocalInput(i.start_at)}
+                          onChange={e => updateItem(i.id, { start_at: fromLocalInput(e.target.value) })}
+                          onBlur={() => persistItem(i)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground">Desaparece el</Label>
+                        <Input
+                          type="datetime-local"
+                          value={toLocalInput(i.end_at)}
+                          onChange={e => updateItem(i.id, { end_at: fromLocalInput(e.target.value) })}
+                          onBlur={() => persistItem(i)}
+                        />
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+        <QrCodeCard url={publicUrl} fileBase={ml.slug} />
+        </TabsContent>
+
+        <TabsContent value="metricas" className="space-y-6">
+          {!ml.published ? (
+            <div className="rounded-2xl border border-dashed bg-surface p-8 text-center space-y-2">
+              <Activity className="w-8 h-8 mx-auto text-muted-foreground" />
+              <p className="font-medium">Este multienlace no está publicado</p>
+              <p className="text-sm text-muted-foreground">
+                Todavía no se registran visitas ni clics porque la página no es pública. Publícala en
+                Configuración para empezar a medir.
+              </p>
             </div>
           ) : (
-            <div className="mx-auto w-full max-w-[560px]">
-              <div className="relative rounded-t-xl bg-black p-3 pb-2 shadow-2xl">
-                <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-zinc-700 rounded-full" />
-                <div className="relative rounded-md overflow-hidden mt-2" style={{ aspectRatio: "16/10" }}>
-                  <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <PublicMultilinkView ml={previewMl} items={items} preview />
-                  </div>
-                </div>
-              </div>
-              <div className="relative mx-auto h-3 bg-zinc-800 rounded-b-xl" style={{ width: "115%", marginLeft: "-7.5%" }}>
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1.5 bg-zinc-700 rounded-b-md" />
-              </div>
-            </div>
+            <>
+              <MultilinkAnalytics clientId={clientId} multilinkId={ml.id} items={items} />
+              <EventsPanel
+                clientId={clientId}
+                sourceType="multilink"
+                sourceId={ml.id}
+                itemLabels={Object.fromEntries(items.map(i => [i.id, i.title]))}
+              />
+            </>
           )}
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
