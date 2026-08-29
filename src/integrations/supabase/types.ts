@@ -581,30 +581,42 @@ export type Database = {
       deliverable_comments: {
         Row: {
           author: string
+          author_name: string | null
+          author_role: string
+          author_user_id: string | null
           body: string
           client_id: string
           created_at: string
           deliverable_id: string
           id: string
           kind: string
+          read_by_agency: boolean
         }
         Insert: {
           author?: string
+          author_name?: string | null
+          author_role?: string
+          author_user_id?: string | null
           body?: string
           client_id: string
           created_at?: string
           deliverable_id: string
           id?: string
           kind?: string
+          read_by_agency?: boolean
         }
         Update: {
           author?: string
+          author_name?: string | null
+          author_role?: string
+          author_user_id?: string | null
           body?: string
           client_id?: string
           created_at?: string
           deliverable_id?: string
           id?: string
           kind?: string
+          read_by_agency?: boolean
         }
         Relationships: [
           {
@@ -615,33 +627,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      deliverable_dividers: {
-        Row: {
-          client_id: string
-          created_at: string
-          id: string
-          label: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          client_id: string
-          created_at?: string
-          id?: string
-          label?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          client_id?: string
-          created_at?: string
-          id?: string
-          label?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: []
       }
       deliverable_folders: {
         Row: {
@@ -670,10 +655,62 @@ export type Database = {
         }
         Relationships: []
       }
+      deliverable_review_links: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          deliverable_id: string
+          expires_at: string
+          id: string
+          revoked: boolean
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          deliverable_id: string
+          expires_at: string
+          id?: string
+          revoked?: boolean
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          deliverable_id?: string
+          expires_at?: string
+          id?: string
+          revoked?: boolean
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliverable_review_links_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliverable_review_links_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "deliverables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deliverables: {
         Row: {
           attachments: Json
           checklist: Json
+          checklist_enabled: boolean
           client_id: string
           created_at: string
           description: string | null
@@ -694,6 +731,7 @@ export type Database = {
         Insert: {
           attachments?: Json
           checklist?: Json
+          checklist_enabled?: boolean
           client_id: string
           created_at?: string
           description?: string | null
@@ -714,6 +752,7 @@ export type Database = {
         Update: {
           attachments?: Json
           checklist?: Json
+          checklist_enabled?: boolean
           client_id?: string
           created_at?: string
           description?: string | null
@@ -1981,6 +2020,44 @@ export type Database = {
         }
         Relationships: []
       }
+      objective_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          items: Json
+          name: string
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          items?: Json
+          name: string
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          items?: Json
+          name?: string
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objectives: {
         Row: {
           category: Database["public"]["Enums"]["objective_category"]
@@ -1990,6 +2067,8 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          metric_source: string
+          metric_synced_at: string | null
           priority: Database["public"]["Enums"]["objective_priority"]
           sort_order: number
           status: Database["public"]["Enums"]["task_status"]
@@ -2006,6 +2085,8 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          metric_source?: string
+          metric_synced_at?: string | null
           priority?: Database["public"]["Enums"]["objective_priority"]
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
@@ -2022,6 +2103,8 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          metric_source?: string
+          metric_synced_at?: string | null
           priority?: Database["public"]["Enums"]["objective_priority"]
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
@@ -2975,6 +3058,11 @@ export type Database = {
       org_meta_token_status: { Args: never; Returns: Json }
       owns_client: { Args: { _client_id: string }; Returns: boolean }
       reconcile_job_runs: { Args: never; Returns: undefined }
+      review_link_comment: {
+        Args: { _body: string; _kind: string; _name?: string; _token: string }
+        Returns: Json
+      }
+      review_link_get: { Args: { _token: string }; Returns: Json }
       run_http_cron_job: {
         Args: { _job_name: string; _url: string }
         Returns: undefined

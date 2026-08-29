@@ -5,6 +5,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClientCapabilities } from "@/hooks/use-client-capabilities";
+import { useReviewAlerts } from "@/hooks/use-review-alerts";
 import { CLIENT_SECTIONS, activeSectionCount, type SectionKey } from "@/lib/clientSections";
 
 const ICONS: Record<SectionKey, typeof CheckSquare> = {
@@ -54,6 +55,7 @@ export function ClientSidebarNav({
   staleOutcomes: number;
 }) {
   const { caps } = useClientCapabilities(clientId);
+  const { count: reviewCount } = useReviewAlerts(clientId);
   const base = `/clients/${clientId}`;
   const active = activeSectionCount(caps);
 
@@ -112,6 +114,11 @@ export function ClientSidebarNav({
               className={itemClass(isActive)}
             >
               <Icon className="w-4 h-4 shrink-0" /> {s.label}
+              {s.key === "plan" && reviewCount > 0 && (
+                <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-[10px]">
+                  {reviewCount}
+                </Badge>
+              )}
               {s.key === "bandeja" && staleOutcomes > 0 && (
                 <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-[10px]">
                   {staleOutcomes}

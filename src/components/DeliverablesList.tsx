@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical, Upload, Paperclip, Download, Loader2, MessageSquare, ThumbsUp, RotateCcw, Send, Eye } from "lucide-react";
+import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical, Upload, Paperclip, Download, Loader2, Sparkles, MessageSquare, ThumbsUp, RotateCcw, Send, Eye, Link2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import { uploadClientMedia } from "@/lib/uploadMedia";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,6 +23,9 @@ type CommentRow = {
   id: string;
   deliverable_id: string;
   author: string;
+  author_role: "agency" | "client" | "guest";
+  author_name: string | null;
+  read_by_agency: boolean;
   kind: "comment" | "approval" | "change_request";
   body: string;
   created_at: string;
@@ -35,6 +39,7 @@ type Row = {
   due_date: string | null;
   type: DType;
   checklist: Checklist;
+  checklist_enabled: boolean;
   sort_order: number;
   folder_id: string | null;
   file_url: string | null;
@@ -42,10 +47,20 @@ type Row = {
   file_size: number | null;
   mime_type: string | null;
   created_at?: string;
+  client_id?: string;
 };
 
 type FolderRow = { id: string; name: string; sort_order: number };
-type DividerRow = { id: string; label: string; sort_order: number };
+
+/** Default set built from the six service stages, offered when a client has none. */
+const STARTER_STAGES: { title: string; type: DType; description: string }[] = [
+  { title: "Branding", type: "design", description: "Identidad visual, paleta y aplicaciones." },
+  { title: "Optimización", type: "report", description: "Optimización del perfil y de la presencia actual." },
+  { title: "Contenido", type: "post", description: "Plan de contenido y primeras piezas." },
+  { title: "Ads", type: "report", description: "Estructura de campañas y creativos." },
+  { title: "Landing Page", type: "design", description: "Página de captación y textos." },
+  { title: "Chatbot", type: "other", description: "Flujos de respuesta automática en WhatsApp." },
+];
 
 const statusMeta: Record<Status, { label: string; icon: any; cls: string }> = {
   pending: { label: "Pendiente", icon: Circle, cls: "text-muted-foreground" },
@@ -74,30 +89,46 @@ const typeMeta: Record<DType, { label: string; icon: any }> = {
 export function DeliverablesList({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Row[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
-  const [dividers, setDividers] = useState<DividerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [addingFolder, setAddingFolder] = useState(false);
   const [folderDraft, setFolderDraft] = useState("");
-  const [view, setView] = useState<"list" | "kanban" | "timeline">("list");
+  const [view, setView] = useState<"list" | "timeline">("list");
   const [filterType, setFilterType] = useState<"all" | DType>("all");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [seeding, setSeeding] = useState(false);
   const [draft, setDraft] = useState({ title: "", description: "", due_date: "", type: "post" as DType, folder_id: "" as string });
 
   const load = async () => {
     setLoading(true);
-    const [{ data: dItems, error }, { data: dFolders }, { data: dDividers }] = await Promise.all([
+    const [{ data: dItems, error }, { data: dFolders }] = await Promise.all([
       supabase.from("deliverables").select("*").eq("client_id", clientId).order("sort_order").order("created_at"),
       supabase.from("deliverable_folders").select("*").eq("client_id", clientId).order("sort_order").order("created_at"),
-      supabase.from("deliverable_dividers").select("*").eq("client_id", clientId).order("sort_order").order("created_at"),
     ]);
     if (error) toast.error(error.message);
     setItems((dItems ?? []).map((r: any) => ({ ...r, checklist: r.checklist ?? [] })) as Row[]);
     setFolders((dFolders ?? []) as FolderRow[]);
-    setDividers((dDividers ?? []) as DividerRow[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, [clientId]);
+
+  const seedStarter = async () => {
+    setSeeding(true);
+    const { error } = await supabase.from("deliverables").insert(
+      STARTER_STAGES.map((s, i) => ({
+        client_id: clientId,
+        title: s.title,
+        description: s.description,
+        type: s.type,
+        sort_order: i,
+      })),
+    );
+    setSeeding(false);
+    if (error) return toast.error(error.message);
+    toast.success("Etapas iniciales creadas");
+    load();
+  };
+
 
   const create = async () => {
     if (!draft.title.trim()) return;
@@ -182,29 +213,6 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     load();
   };
 
-  const createDivider = async () => {
-    const maxOrder = Math.max(0, ...folders.map((f) => f.sort_order), ...dividers.map((d) => d.sort_order));
-    const { error } = await supabase.from("deliverable_dividers").insert({
-      client_id: clientId,
-      label: "Nueva fase",
-      sort_order: maxOrder + 1,
-    });
-    if (error) return toast.error(error.message);
-    load();
-  };
-
-  const renameDivider = async (id: string, label: string) => {
-    const { error } = await supabase.from("deliverable_dividers").update({ label }).eq("id", id);
-    if (error) return toast.error(error.message);
-    load();
-  };
-
-  const removeDivider = async (id: string) => {
-    const { error } = await supabase.from("deliverable_dividers").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    load();
-  };
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -215,9 +223,8 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     if (!over || active.id === over.id) return;
     const rootItems = items.filter((it) => !it.folder_id || !folders.find((f) => f.id === it.folder_id));
     const entries = [
-      ...folders.map((f) => ({ kind: "folder" as const, id: `f-${f.id}`, raw: f })),
-      ...dividers.map((d) => ({ kind: "divider" as const, id: `d-${d.id}`, raw: d })),
-      ...rootItems.map((it) => ({ kind: "item" as const, id: `i-${it.id}`, raw: it })),
+      ...folders.map((f) => ({ kind: "folder" as const, id: `f-${f.id}`, raw: f as { id: string; sort_order: number } })),
+      ...rootItems.map((it) => ({ kind: "item" as const, id: `i-${it.id}`, raw: it as { id: string; sort_order: number } })),
     ].sort((a, b) => a.raw.sort_order - b.raw.sort_order);
     const oldIdx = entries.findIndex((x) => x.id === active.id);
     const newIdx = entries.findIndex((x) => x.id === over.id);
@@ -226,16 +233,16 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
 
     // Optimistic update
     setFolders(folders.map((f) => ({ ...f, sort_order: reordered.findIndex((x) => x.kind === "folder" && x.raw.id === f.id) })).sort((a, b) => a.sort_order - b.sort_order));
-    setDividers(dividers.map((d) => ({ ...d, sort_order: reordered.findIndex((x) => x.kind === "divider" && x.raw.id === d.id) })).sort((a, b) => a.sort_order - b.sort_order));
     setItems((prev) => prev.map((it) => {
       const idx = reordered.findIndex((x) => x.kind === "item" && x.raw.id === it.id);
       return idx >= 0 ? { ...it, sort_order: idx } : it;
     }));
 
-    const updates = reordered.map((entry, idx) => {
-      const table = entry.kind === "folder" ? "deliverable_folders" : entry.kind === "divider" ? "deliverable_dividers" : "deliverables";
-      return supabase.from(table).update({ sort_order: idx }).eq("id", entry.raw.id);
-    });
+    const updates = reordered.map((entry, idx) =>
+      entry.kind === "folder"
+        ? supabase.from("deliverable_folders").update({ sort_order: idx }).eq("id", entry.raw.id)
+        : supabase.from("deliverables").update({ sort_order: idx }).eq("id", entry.raw.id),
+    );
     const results = await Promise.all(updates);
     const err = results.find((r) => r.error);
     if (err?.error) { toast.error(err.error.message); load(); }
@@ -315,15 +322,11 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           <Tabs value={view} onValueChange={(v) => setView(v as any)}>
             <TabsList className="h-8">
               <TabsTrigger value="list" className="text-xs">Lista</TabsTrigger>
-              <TabsTrigger value="kanban" className="text-xs">Kanban</TabsTrigger>
               <TabsTrigger value="timeline" className="text-xs">Timeline</TabsTrigger>
             </TabsList>
           </Tabs>
           <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAddingFolder(true)}>
             <FolderPlus className="w-4 h-4 mr-1" /> Carpeta
-          </Button>
-          <Button size="sm" variant="outline" className="rounded-full" onClick={createDivider}>
-            <Minus className="w-4 h-4 mr-1" /> Divisor
           </Button>
           <Button size="sm" variant="outline" className="rounded-full" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
             {uploading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
@@ -384,23 +387,18 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
       )}
 
       {loading ? <div className="text-sm text-muted-foreground">Cargando…</div>
-        : filtered.length === 0 && folders.length === 0 && dividers.length === 0 ? (
-          <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Aún no hay etapas.
-          </div>
-        ) : view === "kanban" ? (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            {(["pending", "in_progress", "in_review", "done"] as Status[]).map((col) => (
-              <div key={col} className="rounded-2xl bg-secondary/40 p-3 space-y-2 min-h-[200px]">
-                <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground px-1">
-                  <span>{statusMeta[col].label}</span>
-                  <span>{filtered.filter((x) => x.status === col).length}</span>
-                </div>
-                {filtered.filter((x) => x.status === col).map((it) => (
-                  <DeliverableCard key={it.id} it={it} folders={folders} update={update} remove={remove} compact />
-                ))}
-              </div>
-            ))}
+        : filtered.length === 0 && folders.length === 0 ? (
+          <div className="rounded-2xl border border-dashed p-8 text-center space-y-3">
+            <div className="text-sm text-muted-foreground">
+              Aún no hay etapas. Puedes empezar con el set por defecto de tus seis servicios.
+            </div>
+            <Button size="sm" className="rounded-full" disabled={seeding} onClick={seedStarter}>
+              {seeding ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+              Crear etapas iniciales
+            </Button>
+            <div className="text-[11px] text-muted-foreground">
+              {STARTER_STAGES.map((s) => s.title).join(" · ")}
+            </div>
           </div>
         ) : view === "timeline" ? (
           <TimelineView items={filtered} update={update} />
@@ -408,7 +406,6 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           const rootItems = (grouped.get(null) ?? []);
           const sortedEntries = [
             ...folders.map((f) => ({ kind: "folder" as const, sort_order: f.sort_order, data: f, sortId: `f-${f.id}` })),
-            ...dividers.map((d) => ({ kind: "divider" as const, sort_order: d.sort_order, data: d, sortId: `d-${d.id}` })),
             ...rootItems.map((it) => ({ kind: "item" as const, sort_order: it.sort_order, data: it, sortId: `i-${it.id}` })),
           ].sort((a, b) => a.sort_order - b.sort_order);
           return (
@@ -416,14 +413,6 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={sortedEntries.map((e) => e.sortId)} strategy={verticalListSortingStrategy}>
                 {sortedEntries.map((entry) => {
-                  if (entry.kind === "divider") {
-                    const d = entry.data;
-                    return (
-                      <SortableWrapper key={entry.sortId} id={entry.sortId}>
-                        {(handle) => <DividerLine divider={d} onRename={(label) => renameDivider(d.id, label)} onDelete={() => removeDivider(d.id)} dragHandle={handle} />}
-                      </SortableWrapper>
-                    );
-                  }
                   if (entry.kind === "item") {
                     const it = entry.data;
                     return (
@@ -552,6 +541,7 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
   const overdue = it.due_date && it.status !== "done" && it.due_date < new Date().toISOString().slice(0, 10);
   const checklist: Checklist = it.checklist ?? [];
   const doneCount = checklist.filter((c) => c.done).length;
+  const checklistOn = it.checklist_enabled ?? false;
   const [newItem, setNewItem] = useState("");
   const [showCheck, setShowCheck] = useState(false);
 
@@ -607,7 +597,7 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
               className="border-0 px-0 py-1 min-h-0 text-sm text-muted-foreground shadow-none focus-visible:ring-0 resize-none" rows={1} />
           )}
 
-          {checklist.length > 0 && (
+          {checklistOn && checklist.length > 0 && (
             <div className="mt-2 space-y-1">
               {checklist.map((c, i) => (
                 <div key={i} className="flex items-center gap-2 group/c">
@@ -625,7 +615,7 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
             </div>
           )}
 
-          {showCheck && (
+          {checklistOn && showCheck && (
             <div className="flex items-center gap-2 mt-2">
               <Input autoFocus value={newItem} onChange={(e) => setNewItem(e.target.value)}
                 onKeyDown={(e) => {
@@ -665,9 +655,28 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
                 {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            {!showCheck && (
-              <button onClick={() => setShowCheck(true)} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-                <Check className="w-3 h-3" /> Subtarea {checklist.length > 0 && `(${doneCount}/${checklist.length})`}
+            {checklistOn ? (
+              !showCheck && (
+                <button onClick={() => setShowCheck(true)} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Subtarea {checklist.length > 0 && `(${doneCount}/${checklist.length})`}
+                </button>
+              )
+            ) : (
+              <button
+                onClick={() => update(it.id, { checklist_enabled: true })}
+                className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                title="Activar checklist en este entregable"
+              >
+                <Check className="w-3 h-3" /> Usar checklist
+              </button>
+            )}
+            {checklistOn && (
+              <button
+                onClick={() => update(it.id, { checklist_enabled: false })}
+                className="text-xs text-muted-foreground/70 hover:text-foreground"
+                title="Ocultar checklist"
+              >
+                Ocultar checklist
               </button>
             )}
           </div>
@@ -681,34 +690,6 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
   );
 }
 
-function DividerLine({ divider, onRename, onDelete, dragHandle }: { divider: DividerRow; onRename: (label: string) => void; onDelete: () => void; dragHandle?: DragHandle }) {
-  const [editing, setEditing] = useState(false);
-  const [label, setLabel] = useState(divider.label);
-  return (
-    <div className="flex items-center gap-2 group py-1">
-      {dragHandle && (
-        <button {...dragHandle.attributes} {...dragHandle.listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none opacity-0 group-hover:opacity-100" aria-label="Reordenar">
-          <GripVertical className="w-4 h-4" />
-        </button>
-      )}
-      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-border" />
-      {editing ? (
-        <Input autoFocus value={label} onChange={(e) => setLabel(e.target.value)}
-          onBlur={() => { setEditing(false); if (label.trim() && label !== divider.label) onRename(label.trim()); else setLabel(divider.label); }}
-          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") { setLabel(divider.label); setEditing(false); } }}
-          className="h-7 text-xs uppercase tracking-wider font-semibold max-w-[260px] text-center" />
-      ) : (
-        <button onClick={() => setEditing(true)} className="text-xs uppercase tracking-wider font-semibold text-muted-foreground hover:text-foreground px-2">
-          {divider.label || "Sin título"}
-        </button>
-      )}
-      <button onClick={onDelete} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive">
-        <Trash2 className="w-3.5 h-3.5" />
-      </button>
-      <div className="h-px flex-1 bg-gradient-to-l from-transparent via-border to-border" />
-    </div>
-  );
-}
 
 function FilePreview({ fileUrl, fileName, fileSize, mimeType, compact, onRename }: {
   fileUrl: string;
@@ -1001,10 +982,12 @@ function SortableDeliverable({ it, folders, update, remove }: { it: Row; folders
 // ───────────────────────── Review thread ─────────────────────────
 
 function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any) => void }) {
+  const { user } = useAuth();
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const load = async () => {
     const { data } = await supabase
@@ -1012,8 +995,13 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
       .select("*")
       .eq("deliverable_id", it.id)
       .order("created_at", { ascending: true });
-    setComments((data ?? []) as CommentRow[]);
+    const rows = (data ?? []) as CommentRow[];
+    setComments(rows);
     setLoaded(true);
+    const unread = rows.filter((c) => c.author_role !== "agency" && !c.read_by_agency).map((c) => c.id);
+    if (unread.length) {
+      await supabase.from("deliverable_comments").update({ read_by_agency: true }).in("id", unread);
+    }
   };
 
   useEffect(() => {
@@ -1029,35 +1017,58 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
       .eq("deliverable_id", it.id)
       .then(({ count }) => {
         if (alive && count != null && !loaded) {
-          // store stub array of length=count for badge display
-          setComments(Array.from({ length: count }, (_, i) => ({ id: `stub-${i}`, deliverable_id: it.id, author: "", kind: "comment", body: "", created_at: "" })));
+          setComments(Array.from({ length: count }, (_, i) => ({
+            id: `stub-${i}`, deliverable_id: it.id, author: "", author_role: "agency" as const,
+            author_name: null, read_by_agency: true, kind: "comment" as const, body: "", created_at: "",
+          })));
         }
       });
     return () => { alive = false; };
   }, [it.id]);
 
+  const resolveClientId = async (): Promise<string> => {
+    if (it.client_id) return it.client_id;
+    const { data } = await supabase.from("deliverables").select("client_id").eq("id", it.id).single();
+    if (!data?.client_id) throw new Error("No se pudo determinar el cliente");
+    return data.client_id as string;
+  };
+
   const addComment = async (kind: CommentRow["kind"], text: string) => {
     if (!text.trim()) return;
-    const payload = {
-      deliverable_id: it.id,
-      client_id: (it as any).client_id ?? undefined,
-    };
-    // client_id is required — fetch it from the deliverable row if not present
-    let clientId = (it as any).client_id;
-    if (!clientId) {
-      const { data } = await supabase.from("deliverables").select("client_id").eq("id", it.id).single();
-      clientId = data?.client_id;
-    }
+    const clientId = await resolveClientId();
     const { error } = await supabase.from("deliverable_comments").insert({
       deliverable_id: it.id,
       client_id: clientId,
       author: "agency",
+      author_role: "agency",
+      author_user_id: user?.id ?? null,
+      author_name: (user?.user_metadata?.full_name as string | undefined) || user?.email || "Agencia",
+      read_by_agency: true,
       kind,
       body: text.trim(),
     });
     if (error) { toast.error(error.message); return; }
     setBody("");
     load();
+  };
+
+  const createShareLink = async () => {
+    setSharing(true);
+    const clientId = await resolveClientId();
+    const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+    const expires = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
+    const { error } = await supabase.from("deliverable_review_links").insert({
+      deliverable_id: it.id,
+      client_id: clientId,
+      token,
+      expires_at: expires,
+      created_by: user?.id ?? null,
+    });
+    setSharing(false);
+    if (error) return toast.error(error.message);
+    const url = `${window.location.origin}/review/${token}`;
+    try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
+    toast.success("Enlace de revisión copiado (14 días)");
   };
 
   const sendToReview = async () => {
@@ -1087,6 +1098,8 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
   };
 
   const count = comments.length;
+  const unreadCount = comments.filter((c) => c.author_role !== "agency" && !c.read_by_agency).length;
+
 
   return (
     <div className="mt-3 pt-3 border-t border-border/60">
@@ -1098,8 +1111,14 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
         >
           <MessageSquare className="w-3.5 h-3.5" />
           {count > 0 ? `${count} comentario${count === 1 ? "" : "s"}` : "Comentarios"}
+          {unreadCount > 0 && (
+            <span className="ml-1 rounded-full bg-warning/20 text-warning px-1.5 text-[10px] font-semibold">{unreadCount} nuevo{unreadCount === 1 ? "" : "s"}</span>
+          )}
           {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         </button>
+        <Button size="sm" variant="ghost" className="h-7 rounded-full text-xs" disabled={sharing} onClick={createShareLink}>
+          <Link2 className="w-3 h-3 mr-1" /> Enlace de revisión
+        </Button>
         {it.status !== "in_review" && it.status !== "done" && (
           <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={sendToReview}>
             <Send className="w-3 h-3 mr-1" /> Enviar a revisión
@@ -1135,7 +1154,7 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
               <div key={c.id} className={`rounded-xl border ${tone} px-3 py-2 group/cm`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                    {label} · {new Date(c.created_at).toLocaleString()}
+                    {label} · {c.author_name || (c.author_role === "client" ? "Cliente" : c.author_role === "guest" ? "Invitado" : "Agencia")} · {new Date(c.created_at).toLocaleString()}
                   </div>
                   <button onClick={() => remove(c.id)} className="opacity-0 group-hover/cm:opacity-100 text-muted-foreground hover:text-destructive">
                     <X className="w-3 h-3" />
