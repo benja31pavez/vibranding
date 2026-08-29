@@ -415,7 +415,125 @@ export function LandingEditor({ clientId }: { clientId: string }) {
             </div>
           </section>
 
+          {/* Testimonials */}
+          <section className="rounded-2xl border bg-surface p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium flex items-center gap-2"><Quote className="w-4 h-4" /> Testimonios</h3>
+              <Switch checked={lp.testimonials_enabled} onCheckedChange={v => update({ testimonials_enabled: v })} />
+            </div>
+            {lp.testimonials.length === 0 && <p className="text-sm text-muted-foreground">Sin testimonios.</p>}
+            <ul className="space-y-2">
+              {lp.testimonials.map((t, i) => (
+                <li key={i} className="rounded-xl border bg-background p-3 space-y-2">
+                  <div className="flex gap-2">
+                    <Input placeholder="Nombre" value={t.name} onChange={e => updTestimonial(i, { name: e.target.value })} maxLength={80} />
+                    <Input placeholder="Cargo (opcional)" value={t.role ?? ""} onChange={e => updTestimonial(i, { role: e.target.value })} maxLength={80} />
+                    <Button size="icon" variant="ghost" onClick={() => update({ testimonials: lp.testimonials.filter((_, k) => k !== i) })}><Trash2 className="w-4 h-4" /></Button>
+                  </div>
+                  <Textarea placeholder="Testimonio" rows={2} value={t.quote} onChange={e => updTestimonial(i, { quote: e.target.value })} maxLength={400} />
+                  <div className="flex items-center gap-3">
+                    {t.photo_url && <img src={t.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />}
+                    <label className="text-sm text-primary cursor-pointer hover:underline">
+                      {t.photo_url ? "Cambiar foto" : "Subir foto (opcional)"}
+                      <input type="file" accept="image/*" className="hidden" onChange={e => uploadTestimonialPhoto(i, e)} />
+                    </label>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <Button size="sm" variant="outline" onClick={() => update({ testimonials: [...lp.testimonials, { name: "", quote: "" }] })}>
+              <Plus className="w-4 h-4 mr-1" /> Añadir testimonio
+            </Button>
+          </section>
+
+          {/* Location & hours */}
+          <section className="rounded-2xl border bg-surface p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium flex items-center gap-2"><MapPin className="w-4 h-4" /> Ubicación y horarios</h3>
+              <Switch checked={lp.location_enabled} onCheckedChange={v => update({ location_enabled: v })} />
+            </div>
+            <Input placeholder="Dirección" value={lp.location.address ?? ""} onChange={e => update({ location: { ...lp.location, address: e.target.value } })} maxLength={200} />
+            <div>
+              <Label className="text-xs">URL de mapa incrustado (Google Maps → Compartir → Insertar)</Label>
+              <Input
+                placeholder="https://www.google.com/maps/embed?..."
+                value={lp.location.map_embed_url ?? ""}
+                onChange={e => update({ location: { ...lp.location, map_embed_url: e.target.value } })}
+                maxLength={800}
+              />
+            </div>
+            <ul className="space-y-2">
+              {(lp.location.hours ?? defaultHours()).map((h, i) => (
+                <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] sm:flex sm:items-center gap-2 text-sm">
+                  <span className="w-24 shrink-0">{WEEKDAYS[h.day]}</span>
+                  <Label className="flex items-center gap-2 text-xs">
+                    <Switch checked={!h.closed} onCheckedChange={v => updHour(i, { closed: !v })} />
+                    {h.closed ? "Cerrado" : "Abierto"}
+                  </Label>
+                  {!h.closed && (
+                    <div className="flex items-center gap-2">
+                      <Input type="time" step={1800} value={h.from ?? "09:00"} onChange={e => updHour(i, { from: e.target.value })} className="h-8 w-28" />
+                      <span className="text-muted-foreground">–</span>
+                      <Input type="time" step={1800} value={h.to ?? "18:00"} onChange={e => updHour(i, { to: e.target.value })} className="h-8 w-28" />
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* FAQ */}
+          <section className="rounded-2xl border bg-surface p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium flex items-center gap-2"><HelpCircle className="w-4 h-4" /> Preguntas frecuentes</h3>
+              <Switch checked={lp.faq_enabled} onCheckedChange={v => update({ faq_enabled: v })} />
+            </div>
+            {lp.faq.length === 0 && <p className="text-sm text-muted-foreground">Sin preguntas.</p>}
+            <ul className="space-y-2">
+              {lp.faq.map((f, i) => (
+                <li key={i} className="rounded-xl border bg-background p-3 space-y-2">
+                  <div className="flex gap-2">
+                    <Input placeholder="Pregunta" value={f.question} onChange={e => updFaq(i, { question: e.target.value })} maxLength={160} />
+                    <Button size="icon" variant="ghost" onClick={() => update({ faq: lp.faq.filter((_, k) => k !== i) })}><Trash2 className="w-4 h-4" /></Button>
+                  </div>
+                  <Textarea placeholder="Respuesta" rows={2} value={f.answer} onChange={e => updFaq(i, { answer: e.target.value })} maxLength={800} />
+                </li>
+              ))}
+            </ul>
+            <Button size="sm" variant="outline" onClick={() => update({ faq: [...lp.faq, { question: "", answer: "" }] })}>
+              <Plus className="w-4 h-4 mr-1" /> Añadir pregunta
+            </Button>
+          </section>
+
+          {/* Footer */}
+          <section className="rounded-2xl border bg-surface p-5 space-y-3">
+            <h3 className="font-medium">Pie de página</h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              <Input placeholder="Email de contacto" value={lp.footer.email ?? ""} onChange={e => updFooter({ email: e.target.value })} maxLength={160} />
+              <Input placeholder="Teléfono" value={lp.footer.phone ?? ""} onChange={e => updFooter({ phone: e.target.value })} maxLength={40} />
+              <Input placeholder="Dirección" value={lp.footer.address ?? ""} onChange={e => updFooter({ address: e.target.value })} maxLength={200} />
+              <Input placeholder="WhatsApp (+56...)" value={lp.footer.whatsapp ?? ""} onChange={e => updFooter({ whatsapp: e.target.value })} maxLength={40} />
+              <Input placeholder="URL Instagram" value={lp.footer.instagram ?? ""} onChange={e => updFooter({ instagram: e.target.value })} maxLength={300} />
+              <Input placeholder="URL Facebook" value={lp.footer.facebook ?? ""} onChange={e => updFooter({ facebook: e.target.value })} maxLength={300} />
+              <Input placeholder="URL TikTok" value={lp.footer.tiktok ?? ""} onChange={e => updFooter({ tiktok: e.target.value })} maxLength={300} />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Enlaces legales (opcional)</Label>
+              {(lp.footer.legal ?? []).map((l, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input placeholder="Etiqueta" value={l.label} onChange={e => updLegal(i, { label: e.target.value })} maxLength={60} />
+                  <Input placeholder="URL" value={l.url} onChange={e => updLegal(i, { url: e.target.value })} maxLength={300} />
+                  <Button size="icon" variant="ghost" onClick={() => updFooter({ legal: (lp.footer.legal ?? []).filter((_, k) => k !== i) })}><Trash2 className="w-4 h-4" /></Button>
+                </div>
+              ))}
+              <Button size="sm" variant="outline" onClick={() => updFooter({ legal: [...(lp.footer.legal ?? []), { label: "", url: "" }] })}>
+                <Plus className="w-4 h-4 mr-1" /> Añadir enlace
+              </Button>
+            </div>
+          </section>
+
           <EventsPanel clientId={clientId} sourceType="landing" sourceId={lp.id} />
+
 
           {/* Contact */}
           <section className="rounded-2xl border bg-surface p-5 space-y-3">
