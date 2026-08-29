@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
 
 import { zonedParts } from "@/lib/bookings/tz";
+import { getWaSecret } from "@/lib/whatsapp/tokens.server";
 
 const META = "https://graph.facebook.com/v21.0";
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -11,7 +12,6 @@ type WAAccount = {
   id: string;
   client_id: string;
   phone_number_id: string | null;
-  access_token: string | null;
   ai_enabled: boolean;
   ai_system_prompt: string;
   ai_model: string;
@@ -166,11 +166,12 @@ async function processConversation(convId: string) {
   const { data: acc } = await supabaseAdmin
     .from("whatsapp_accounts")
     .select(
-      "id,client_id,phone_number_id,access_token,ai_enabled,ai_system_prompt,ai_model,ai_max_history,ai_business_context,website_url,social_links,catalog,business_name,business_hours,timezone",
+      "id,client_id,phone_number_id,ai_enabled,ai_system_prompt,ai_model,ai_max_history,ai_business_context,website_url,social_links,catalog,business_name,business_hours,timezone",
     )
     .eq("id", conv.account_id)
     .maybeSingle<WAAccount>();
-  if (!acc || !acc.ai_enabled || !acc.phone_number_id || !acc.access_token) {
+  const accessToken = acc?.phone_number_id ? await getWaSecret(acc.id, "access_token") : null;
+  if (!acc || !acc.ai_enabled || !acc.phone_number_id || !accessToken) {
     await supabaseAdmin
       .from("whatsapp_conversations")
       .update({ pending_response_at: null })
@@ -322,7 +323,7 @@ async function processConversation(convId: string) {
   }
 
   const text = ai.text.slice(0, 3500);
-  const sent = await sendWhatsApp(acc.phone_number_id, acc.access_token, conv.contact_wa_id, text);
+  const sent = await sendWhatsApp(acc.phone_number_id, accessToken, conv.contact_wa_id, text);
 
   await supabaseAdmin.from("whatsapp_messages").insert({
     conversation_id: convId,

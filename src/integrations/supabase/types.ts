@@ -185,6 +185,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bot_knowledge_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_accounts_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bot_knowledge_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -1765,7 +1772,7 @@ export type Database = {
       }
       whatsapp_accounts: {
         Row: {
-          access_token: string | null
+          access_token_secret_id: string | null
           ai_business_context: string | null
           ai_debounce_seconds: number
           ai_enabled: boolean
@@ -1784,13 +1791,14 @@ export type Database = {
           phone_number_id: string | null
           profile_photo_url: string | null
           social_links: Json
+          timezone: string | null
           updated_at: string
-          verify_token: string
+          verify_token_secret_id: string | null
           waba_id: string | null
           website_url: string | null
         }
         Insert: {
-          access_token?: string | null
+          access_token_secret_id?: string | null
           ai_business_context?: string | null
           ai_debounce_seconds?: number
           ai_enabled?: boolean
@@ -1809,13 +1817,14 @@ export type Database = {
           phone_number_id?: string | null
           profile_photo_url?: string | null
           social_links?: Json
+          timezone?: string | null
           updated_at?: string
-          verify_token?: string
+          verify_token_secret_id?: string | null
           waba_id?: string | null
           website_url?: string | null
         }
         Update: {
-          access_token?: string | null
+          access_token_secret_id?: string | null
           ai_business_context?: string | null
           ai_debounce_seconds?: number
           ai_enabled?: boolean
@@ -1834,8 +1843,9 @@ export type Database = {
           phone_number_id?: string | null
           profile_photo_url?: string | null
           social_links?: Json
+          timezone?: string | null
           updated_at?: string
-          verify_token?: string
+          verify_token_secret_id?: string | null
           waba_id?: string | null
           website_url?: string | null
         }
@@ -1955,6 +1965,13 @@ export type Database = {
             referencedRelation: "whatsapp_accounts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "whatsapp_conversations_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_accounts_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       whatsapp_messages: {
@@ -2012,7 +2029,87 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      whatsapp_accounts_safe: {
+        Row: {
+          ai_business_context: string | null
+          ai_debounce_seconds: number | null
+          ai_enabled: boolean | null
+          ai_max_history: number | null
+          ai_model: string | null
+          ai_system_prompt: string | null
+          business_hours: Json | null
+          business_name: string | null
+          catalog: Json | null
+          client_id: string | null
+          connected: boolean | null
+          created_at: string | null
+          display_phone_number: string | null
+          has_access_token: boolean | null
+          has_verify_token: boolean | null
+          id: string | null
+          last_synced_at: string | null
+          phone_number_id: string | null
+          profile_photo_url: string | null
+          social_links: Json | null
+          timezone: string | null
+          updated_at: string | null
+          waba_id: string | null
+          website_url: string | null
+        }
+        Insert: {
+          ai_business_context?: string | null
+          ai_debounce_seconds?: number | null
+          ai_enabled?: boolean | null
+          ai_max_history?: number | null
+          ai_model?: string | null
+          ai_system_prompt?: string | null
+          business_hours?: Json | null
+          business_name?: string | null
+          catalog?: Json | null
+          client_id?: string | null
+          connected?: boolean | null
+          created_at?: string | null
+          display_phone_number?: string | null
+          has_access_token?: never
+          has_verify_token?: never
+          id?: string | null
+          last_synced_at?: string | null
+          phone_number_id?: string | null
+          profile_photo_url?: string | null
+          social_links?: Json | null
+          timezone?: string | null
+          updated_at?: string | null
+          waba_id?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          ai_business_context?: string | null
+          ai_debounce_seconds?: number | null
+          ai_enabled?: boolean | null
+          ai_max_history?: number | null
+          ai_model?: string | null
+          ai_system_prompt?: string | null
+          business_hours?: Json | null
+          business_name?: string | null
+          catalog?: Json | null
+          client_id?: string | null
+          connected?: boolean | null
+          created_at?: string | null
+          display_phone_number?: string | null
+          has_access_token?: never
+          has_verify_token?: never
+          id?: string | null
+          last_synced_at?: string | null
+          phone_number_id?: string | null
+          profile_photo_url?: string | null
+          social_links?: Json | null
+          timezone?: string | null
+          updated_at?: string | null
+          waba_id?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_booking_settings_by_slug: {
@@ -2040,6 +2137,14 @@ export type Database = {
         }[]
       }
       owns_client: { Args: { _client_id: string }; Returns: boolean }
+      wa_get_secret: {
+        Args: { _account_id: string; _kind: string }
+        Returns: string
+      }
+      wa_set_secret: {
+        Args: { _account_id: string; _kind: string; _secret: string }
+        Returns: string
+      }
     }
     Enums: {
       account_type: "personal" | "business"
