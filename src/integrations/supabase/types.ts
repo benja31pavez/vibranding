@@ -1891,11 +1891,15 @@ export type Database = {
       multilinks: {
         Row: {
           avatar_url: string | null
+          background: Json
           bio: string | null
+          button_shape: string
+          button_style: string
           client_id: string
           created_at: string
           custom_domain: string | null
           custom_domain_verified: boolean
+          font_family: string
           id: string
           published: boolean
           slug: string
@@ -1907,11 +1911,15 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          background?: Json
           bio?: string | null
+          button_shape?: string
+          button_style?: string
           client_id: string
           created_at?: string
           custom_domain?: string | null
           custom_domain_verified?: boolean
+          font_family?: string
           id?: string
           published?: boolean
           slug: string
@@ -1923,11 +1931,15 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          background?: Json
           bio?: string | null
+          button_shape?: string
+          button_style?: string
           client_id?: string
           created_at?: string
           custom_domain?: string | null
           custom_domain_verified?: boolean
+          font_family?: string
           id?: string
           published?: boolean
           slug?: string
