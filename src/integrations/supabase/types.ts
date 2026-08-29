@@ -783,6 +783,42 @@ export type Database = {
           },
         ]
       }
+      job_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          http_status: number | null
+          id: string
+          job_name: string
+          request_id: number | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          http_status?: number | null
+          id?: string
+          job_name: string
+          request_id?: number | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          http_status?: number | null
+          id?: string
+          job_name?: string
+          request_id?: number | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       landing_contact_submissions: {
         Row: {
           client_id: string
@@ -2137,6 +2173,11 @@ export type Database = {
         }[]
       }
       owns_client: { Args: { _client_id: string }; Returns: boolean }
+      reconcile_job_runs: { Args: never; Returns: undefined }
+      run_http_cron_job: {
+        Args: { _job_name: string; _url: string }
+        Returns: undefined
+      }
       wa_get_secret: {
         Args: { _account_id: string; _kind: string }
         Returns: string
