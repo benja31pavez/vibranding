@@ -32,6 +32,7 @@ type Conv = {
   human_followup_at: string | null;
   channel: "whatsapp" | "instagram";
   contact_username: string | null;
+  tags: string[] | null;
 };
 
 type Msg = {
@@ -58,6 +59,7 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
   const [filterLead, setFilterLead] = useState(false);
   const [filterFollowup, setFilterFollowup] = useState(false);
   const [filterChannel, setFilterChannel] = useState<"all" | "whatsapp" | "instagram">("all");
+  const [filterTag, setFilterTag] = useState<string | null>(null);
   const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
   const [attributions, setAttributions] = useState<Record<string, { ad_id: string | null; headline: string | null }>>({});
 
@@ -207,8 +209,14 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
   const needsOutcome = (c: Conv) => !outcomes[c.id] && isStale(c.last_message_at);
   const pendingOutcomeCount = convs.filter(needsOutcome).length;
 
+  /** Tags come from the bot flows; the inbox lets you slice by any of them. */
+  const allTags = Array.from(
+    new Set(convs.flatMap((c) => c.tags ?? [])),
+  ).sort();
+
   const filtered = convs
     .filter((c) => {
+      if (filterTag && !(c.tags ?? []).includes(filterTag)) return false;
       if (filterChannel !== "all" && (c.channel ?? "whatsapp") !== filterChannel) return false;
       if (filterLead && !c.is_lead) return false;
       if (filterFollowup && !c.needs_human_followup) return false;
@@ -277,6 +285,24 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
               Pendientes{followupCount > 0 ? ` (${followupCount})` : ""}
             </Button>
           </div>
+          {allTags.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-1">
+              {allTags.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setFilterTag(filterTag === t ? null : t)}
+                  className={`text-[10px] px-2 py-0.5 rounded-full border transition ${
+                    filterTag === t
+                      ? "bg-foreground text-background border-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         {pendingOutcomeCount > 0 && (
           <Link
@@ -344,6 +370,15 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
               <div className="text-xs text-muted-foreground truncate mt-0.5">
                 {c.last_message_preview ?? "—"}
               </div>
+              {(c.tags ?? []).length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {(c.tags ?? []).slice(0, 4).map((t) => (
+                    <Badge key={t} variant="secondary" className="h-4 px-1.5 text-[9px]">
+                      {t}
+                    </Badge>
+                  ))}
+                </div>
+              )}
               <div className="text-[10px] text-muted-foreground mt-0.5 mb-2">
                 {fmtTime(c.last_message_at)}
               </div>
