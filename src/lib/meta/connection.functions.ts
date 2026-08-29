@@ -56,6 +56,24 @@ export const checkAdAccountConflict = createServerFn({ method: "POST" })
     return { adAccountId, conflicts };
   });
 
+/** Ad accounts already linked to another client (id → client name). */
+export const listTakenAdAccounts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clientId: string }) => input)
+  .handler(
+    async ({ data, context }): Promise<{ adAccountId: string; clientName: string | null }[]> => {
+      const { data: rows } = await (context.supabase.from("meta_accounts" as any) as any)
+        .select("ad_account_id,clients(name)")
+        .not("ad_account_id", "is", null)
+        .neq("client_id", data.clientId);
+      return ((rows ?? []) as any[]).map((r) => ({
+        adAccountId: String(r.ad_account_id),
+        clientName: (r.clients?.name as string | null) ?? null,
+      }));
+    },
+  );
+
+
 /**
  * Connects using a permanent System User token. The token is stored in Vault
  * exactly like the OAuth path; the table only keeps a reference.
