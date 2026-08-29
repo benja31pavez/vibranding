@@ -495,12 +495,8 @@ function MultilinkPage() {
                       <h2 className="mt-3 font-semibold text-xl">{ml.title || "Título"}</h2>
                       {ml.bio && <p className="mt-1 text-sm opacity-80 whitespace-pre-line">{ml.bio}</p>}
                       <div className="mt-6 space-y-3">
-                        {items.filter(i => i.is_active).map(i => (
-                          <div key={i.id}
-                            className="rounded-xl py-3 px-4 text-center text-sm font-medium"
-                            style={{ background: ml.theme_color, color: "#fff" }}>
-                            {i.title || "Enlace"}
-                          </div>
+                        {items.filter(i => itemIsLive(i)).map(i => (
+                          <PreviewItem key={i.id} item={i} color={ml.theme_color} />
                         ))}
                       </div>
                     </div>
