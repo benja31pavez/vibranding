@@ -83,7 +83,7 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
                 for (const p of t.messenger_positions ?? []) placements.push(`messenger_${p}`);
                 const gender = t.genders?.length === 1 ? (t.genders[0] === 1 ? "male" : "female") : "all";
                 const payload = {
-                  client_id: clientId, campaign_id: campLocal, fb_adset_id: a.id,
+                  client_id: clientId, meta_account_id: account.id, campaign_id: campLocal, fb_adset_id: a.id,
                   name: a.name ?? "Conjunto", status: a.status ?? "DRAFT",
                   daily_budget: a.daily_budget ? Number(a.daily_budget) / 100 : null,
                   lifetime_budget: a.lifetime_budget ? Number(a.lifetime_budget) / 100 : null,
@@ -123,7 +123,7 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
                 const story = cr.object_story_spec ?? {};
                 const link = story.link_data ?? story.video_data ?? {};
                 const payload = {
-                  client_id: clientId, adset_id: local, fb_ad_id: ad.id,
+                  client_id: clientId, meta_account_id: account.id, adset_id: local, fb_ad_id: ad.id,
                   fb_creative_id: cr.id ?? null,
                   name: ad.name ?? "Anuncio", status: ad.status ?? "DRAFT",
                   format: story.video_data ? "video" : story.link_data?.child_attachments ? "carousel" : "image",
