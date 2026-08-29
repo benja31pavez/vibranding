@@ -229,7 +229,7 @@ function MultilinkPage() {
             Abrir <ExternalLink className="w-3 h-3" />
           </a>
         )}
-        <div className="ml-auto text-xs text-muted-foreground">{ml.view_count} visitas</div>
+        <div className="ml-auto text-xs text-muted-foreground">{ml.view_count} visitas acumuladas</div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
