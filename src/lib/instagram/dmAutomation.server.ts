@@ -68,12 +68,13 @@ export async function runDmAutomation(args: {
 }) {
   const { data: conv } = await supabaseAdmin
     .from("whatsapp_conversations")
-    .select("welcome_sent_at,handoff_at")
+    .select("welcome_sent_at,ai_paused,needs_human_followup")
     .eq("id", args.conversationId)
     .maybeSingle();
 
   // A human took over: never talk on top of them.
-  if ((conv as any)?.handoff_at) return { skipped: "handoff" as const };
+  if ((conv as any)?.ai_paused || (conv as any)?.needs_human_followup)
+    return { skipped: "handoff" as const };
 
   const isFirstMessage = !(conv as any)?.welcome_sent_at;
   const trigger = await pickTrigger(args.clientId, args.text, isFirstMessage);
