@@ -653,9 +653,28 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
                 {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            {!showCheck && (
-              <button onClick={() => setShowCheck(true)} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-                <Check className="w-3 h-3" /> Subtarea {checklist.length > 0 && `(${doneCount}/${checklist.length})`}
+            {checklistOn ? (
+              !showCheck && (
+                <button onClick={() => setShowCheck(true)} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Subtarea {checklist.length > 0 && `(${doneCount}/${checklist.length})`}
+                </button>
+              )
+            ) : (
+              <button
+                onClick={() => update(it.id, { checklist_enabled: true })}
+                className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                title="Activar checklist en este entregable"
+              >
+                <Check className="w-3 h-3" /> Usar checklist
+              </button>
+            )}
+            {checklistOn && (
+              <button
+                onClick={() => update(it.id, { checklist_enabled: false })}
+                className="text-xs text-muted-foreground/70 hover:text-foreground"
+                title="Ocultar checklist"
+              >
+                Ocultar checklist
               </button>
             )}
           </div>
