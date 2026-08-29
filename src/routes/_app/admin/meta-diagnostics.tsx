@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Copy, XCircle } from "lucide-react";
 import {
+  debugMetaConnection,
   getMetaDiagnostics,
   testMetaIngest,
   type MetaAccountDiag,
