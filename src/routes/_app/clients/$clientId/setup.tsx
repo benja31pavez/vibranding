@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { getSetupStatus, runSetupIngest, type SetupIngestResult } from "@/lib/meta/setup.functions";
 import { META_SCOPES } from "@/lib/meta/scopes";
 import { useClientCapabilities } from "@/hooks/use-client-capabilities";
+import { captureInstagramGridVersion } from "@/lib/meta/igSync.functions";
+import { monthLabel } from "@/lib/instagram/gridVersions";
 
 export const Route = createFileRoute("/_app/clients/$clientId/setup")({
   head: () => ({
@@ -432,6 +434,50 @@ function SetupPage() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Step 5: pulls the real published grid into the "Actual" track. */
+function InstagramSyncStep({ clientId }: { clientId: string }) {
+  const capture = useServerFn(captureInstagramGridVersion);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const run = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await capture({ data: { clientId, label: monthLabel() } });
+      setMsg(
+        res.ok
+          ? `Versión "${res.label}" creada con ${res.mediaCount} publicaciones reales.`
+          : res.reason,
+      );
+    } catch (e: any) {
+      setMsg(e?.message ?? "No se pudo sincronizar");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3 text-sm text-muted-foreground">
+      <p>
+        Trae las publicaciones reales de la cuenta al grid Actual. No modifica tu propuesta ni el
+        estado inicial.
+      </p>
+      <Button size="sm" onClick={run} disabled={busy}>
+        {busy && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+        {busy ? "Sincronizando…" : "Sincronizar Instagram"}
+      </Button>
+      {msg && <p className="text-foreground">{msg}</p>}
+      <HowTo>
+        <p>
+          Cada sincronización guarda una versión del grid Actual con la fecha de captura. Las
+          versiones anteriores quedan como registro histórico y no se editan.
+        </p>
+      </HowTo>
     </div>
   );
 }
