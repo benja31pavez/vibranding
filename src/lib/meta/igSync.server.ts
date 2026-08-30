@@ -19,10 +19,11 @@ export type IgMedia = {
 export type IgSyncResult = {
   profile: boolean;
   mediaCount: number;
-  archivedManual: number;
   syncedAt: string;
-  warning?: string;
+  /** Informational note (e.g. the account has no published media). */
+  note?: string;
 };
+
 
 
 function formatOf(media: IgMedia): "photo" | "carousel" | "reel" {
@@ -90,8 +91,10 @@ export async function syncInstagramProfile(
 
 /**
  * Full sync for one client: refreshes the live profile snapshot and stores the
- * published grid as the current month's version. Never edits or archives rows
- * of past versions — those are a historical record.
+ * real published grid as the current month's version of the "Actual" track.
+ * It only ever reads and writes `type = 'current'` rows that carry an
+ * `ig_media_id`, scoped to the version it creates. Manual uploads (the
+ * "Propuesta" plan) and the historical baseline are never read or modified.
  */
 export async function syncInstagramAccountData(
   clientId: string,
@@ -102,7 +105,7 @@ export async function syncInstagramAccountData(
   const syncedAt = new Date().toISOString();
   const label = monthLabel(new Date());
 
-  // Re-capturing the same month replaces that month's snapshot only.
+  // Re-syncing the same month refreshes that month's synced snapshot only.
   const { data: existing } = await (
     supabaseAdmin.from("instagram_grid_versions" as any) as any
   )
@@ -114,7 +117,9 @@ export async function syncInstagramAccountData(
   if (existing?.id) {
     await (supabaseAdmin.from("instagram_posts" as any) as any)
       .delete()
-      .eq("version_id", existing.id);
+      .eq("version_id", existing.id)
+      .eq("type", "current")
+      .not("ig_media_id", "is", null);
     await (supabaseAdmin.from("instagram_grid_versions" as any) as any)
       .delete()
       .eq("id", existing.id);
@@ -125,19 +130,20 @@ export async function syncInstagramAccountData(
     return {
       profile: await syncInstagramProfile(clientId, igAccountId, token, syncedAt),
       mediaCount: 0,
-      archivedManual: 0,
       syncedAt,
-      warning: res.reason,
+      note: res.reason,
     };
   }
-  return { profile: true, mediaCount: res.mediaCount, archivedManual: 0, syncedAt };
+  return { profile: true, mediaCount: res.mediaCount, syncedAt };
 }
 
 
 
+
 /**
- * Captures the account state as a NEW immutable grid version. Never touches
- * existing rows: past versions are a historical record.
+ * Captures the real account state as a NEW locked grid version of the "Actual"
+ * track. Never touches existing rows: past versions are a historical record,
+ * and the manual "Propuesta" plan lives on a separate track.
  */
 export async function captureInstagramVersion(
   clientId: string,
@@ -145,17 +151,18 @@ export async function captureInstagramVersion(
   token: string,
   label: string,
 ): Promise<
-  | { ok: false; reason: string }
+  | { ok: false; reason: string; empty?: boolean }
   | { ok: true; versionId: string; label: string; mediaCount: number }
 > {
   const media = await fetchInstagramMedia(igAccountId, token, 50);
   if (media.length === 0) {
     return {
       ok: false,
-      reason:
-        "Meta no devolvió publicaciones para esta cuenta, así que no se creó ninguna versión.",
+      empty: true,
+      reason: "La cuenta no tiene publicaciones. No se modificó nada.",
     };
   }
+
 
   const me = await graph<any>(igAccountId, {
     access_token: token,
