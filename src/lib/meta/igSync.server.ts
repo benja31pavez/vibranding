@@ -105,7 +105,6 @@ export async function syncInstagramAccountData(
   const syncedAt = new Date().toISOString();
   const label = monthLabel(new Date());
 
-  // Re-syncing the same month refreshes that month's synced snapshot only.
   const { data: existing } = await (
     supabaseAdmin.from("instagram_grid_versions" as any) as any
   )
@@ -114,6 +113,22 @@ export async function syncInstagramAccountData(
     .eq("label", label)
     .eq("source", "sync")
     .maybeSingle();
+
+  // Write first: capture into a temporary label so the existing snapshot for
+  // this month survives an empty response or a Meta error untouched.
+  const stagingLabel = existing?.id ? `${label} · sincronizando ${syncedAt}` : label;
+  const res = await captureInstagramVersion(clientId, igAccountId, token, stagingLabel);
+  if (!res.ok) {
+    return {
+      profile: await syncInstagramProfile(clientId, igAccountId, token, syncedAt),
+      mediaCount: 0,
+      syncedAt,
+      note: res.reason,
+    };
+  }
+
+  // The new snapshot is stored; only now retire the superseded one and take
+  // over its label.
   if (existing?.id) {
     await (supabaseAdmin.from("instagram_posts" as any) as any)
       .delete()
@@ -123,19 +138,14 @@ export async function syncInstagramAccountData(
     await (supabaseAdmin.from("instagram_grid_versions" as any) as any)
       .delete()
       .eq("id", existing.id);
+    await (supabaseAdmin.from("instagram_grid_versions" as any) as any)
+      .update({ label })
+      .eq("id", res.versionId);
   }
 
-  const res = await captureInstagramVersion(clientId, igAccountId, token, label);
-  if (!res.ok) {
-    return {
-      profile: await syncInstagramProfile(clientId, igAccountId, token, syncedAt),
-      mediaCount: 0,
-      syncedAt,
-      note: res.reason,
-    };
-  }
   return { profile: true, mediaCount: res.mediaCount, syncedAt };
 }
+
 
 
 
