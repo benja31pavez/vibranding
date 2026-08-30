@@ -17,15 +17,27 @@ export const Route = createFileRoute("/@{$slug}")({
     if (!data) throw notFound();
     return { lp: data };
   },
-  head: ({ loaderData }) => ({
+  head: ({ loaderData }) => {
+    const lp: any = loaderData?.lp;
+    const title = (lp?.seo_title || lp?.hero_title || "").trim();
+    const description = (lp?.seo_description || lp?.hero_subtitle || lp?.hero_title || "").trim();
+    return {
     meta: loaderData ? [
-      { title: loaderData.lp.hero_title },
-      { name: "description", content: loaderData.lp.hero_subtitle ?? loaderData.lp.hero_title },
-      { property: "og:title", content: loaderData.lp.hero_title },
-      { property: "og:description", content: loaderData.lp.hero_subtitle ?? "" },
-      ...(loaderData.lp.hero_image_url ? [{ property: "og:image", content: loaderData.lp.hero_image_url }] : []),
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      ...(loaderData.lp.hero_image_url
+        ? [
+            { property: "og:image", content: loaderData.lp.hero_image_url },
+            { name: "twitter:image", content: loaderData.lp.hero_image_url },
+          ]
+        : []),
     ] : [],
-  }),
+    };
+  },
   notFoundComponent: () => (
     <div className="min-h-screen grid place-items-center text-center p-6">
       <div>
