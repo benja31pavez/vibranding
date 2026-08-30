@@ -1040,6 +1040,50 @@ export type Database = {
           },
         ]
       }
+      instagram_grid_versions: {
+        Row: {
+          captured_at: string
+          client_id: string
+          created_at: string
+          id: string
+          is_baseline: boolean
+          label: string
+          notes: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          captured_at?: string
+          client_id: string
+          created_at?: string
+          id?: string
+          is_baseline?: boolean
+          label: string
+          notes?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          captured_at?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          is_baseline?: boolean
+          label?: string
+          notes?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_grid_versions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_highlights: {
         Row: {
           client_id: string
@@ -1137,6 +1181,7 @@ export type Database = {
           scheduled_at: string | null
           type: Database["public"]["Enums"]["ig_post_type"]
           updated_at: string
+          version_id: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -1160,6 +1205,7 @@ export type Database = {
           scheduled_at?: string | null
           type: Database["public"]["Enums"]["ig_post_type"]
           updated_at?: string
+          version_id?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -1183,6 +1229,7 @@ export type Database = {
           scheduled_at?: string | null
           type?: Database["public"]["Enums"]["ig_post_type"]
           updated_at?: string
+          version_id?: string | null
         }
         Relationships: [
           {
@@ -1190,6 +1237,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_posts_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_grid_versions"
             referencedColumns: ["id"]
           },
         ]
