@@ -89,3 +89,27 @@ export const getJobHealth = createServerFn({ method: "POST" })
       checkedAt: new Date().toISOString(),
     };
   });
+
+/**
+ * Lets the operator change how often a scheduled job runs.
+ * More frequency = lower response latency for the WhatsApp bot, but more
+ * database wake-ups (and therefore more compute cost) per hour.
+ */
+export const setJobSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { jobName: string; schedule: string }) => {
+    const schedule = String(input.schedule ?? "").trim();
+    if (!/^[\d*/,\-\s]+$/.test(schedule) && !/^\d+\s+seconds?$/.test(schedule)) {
+      throw new Error("Frecuencia inválida");
+    }
+    return { jobName: String(input.jobName), schedule };
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: ok, error } = await (supabaseAdmin.rpc as any)("set_job_schedule", {
+      _job_name: data.jobName,
+      _schedule: data.schedule,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: ok === true, schedule: data.schedule };
+  });
