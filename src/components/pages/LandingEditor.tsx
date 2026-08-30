@@ -659,8 +659,7 @@ export function LandingEditor({ clientId }: { clientId: string }) {
     switch (k) {
       case "servicios": return (
         <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">Servicios</h3>
+            <div className="flex items-center justify-end">
               <Button size="sm" variant="outline" onClick={addService}><Plus className="w-4 h-4 mr-1" /> Añadir</Button>
             </div>
             {lp.services.length === 0 && <p className="text-sm text-muted-foreground">Sin servicios.</p>}
@@ -707,8 +706,7 @@ export function LandingEditor({ clientId }: { clientId: string }) {
       );
       case "galeria": return (
         <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">Galería</h3>
+            <div className="flex items-center justify-end">
               <label className="text-sm text-primary cursor-pointer hover:underline">
                 <Plus className="w-4 h-4 inline mr-1" /> Subir imágenes
                 <input type="file" accept="image/*" multiple className="hidden" onChange={addGallery} />
