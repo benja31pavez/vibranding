@@ -317,34 +317,41 @@ function HealthPage() {
           {(data?.recent ?? []).length === 0 && (
             <p className="text-sm text-muted-foreground">Sin registros todavía.</p>
           )}
-          {(data?.recent ?? []).map((r) => (
-            <div
-              key={r.id}
-              className="flex flex-wrap items-center justify-between gap-2 border-b pb-2 last:border-0 text-sm"
-            >
-              <span className="font-mono text-xs">{r.job_name}</span>
-              <span className="text-xs text-muted-foreground">{fmt(r.started_at)}</span>
-              <div className="flex items-center gap-2">
-                {r.http_status != null && (
-                  <span className="text-xs text-muted-foreground">HTTP {r.http_status}</span>
+          {(data?.recent ?? []).map((r) => {
+            const noData = r.status === "no_data" || (r.rows_written != null && r.rows_written === 0);
+            return (
+              <div
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-b pb-2 last:border-0 text-sm"
+              >
+                <span className="font-mono text-xs">{r.job_name}</span>
+                <span className="text-xs text-muted-foreground">{fmt(r.started_at)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {r.rows_written == null ? "filas: —" : `${r.rows_written} filas`}
+                  </span>
+                  {r.http_status != null && (
+                    <span className="text-xs text-muted-foreground">HTTP {r.http_status}</span>
+                  )}
+                  {r.status === "failed" ? (
+                    <Badge variant="destructive">failed</Badge>
+                  ) : noData ? (
+                    <Badge className="bg-amber-500 text-white hover:bg-amber-500">sin datos</Badge>
+                  ) : (
+                    <Badge variant={r.status === "succeeded" ? "default" : "secondary"}>
+                      {r.status}
+                    </Badge>
+                  )}
+                </div>
+                {r.error && <p className="w-full text-xs text-destructive break-all">{r.error}</p>}
+                {(r.status === "failed" || noData) && r.response_body && (
+                  <pre className="w-full max-h-48 overflow-auto rounded bg-secondary p-2 text-[11px] leading-snug whitespace-pre-wrap break-all">
+                    {r.response_body}
+                  </pre>
                 )}
-                <Badge
-                  variant={
-                    r.status === "succeeded"
-                      ? "default"
-                      : r.status === "failed"
-                        ? "destructive"
-                        : "secondary"
-                  }
-                >
-                  {r.status}
-                </Badge>
               </div>
-              {r.error && (
-                <p className="w-full text-xs text-destructive break-all">{r.error}</p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
     </div>
