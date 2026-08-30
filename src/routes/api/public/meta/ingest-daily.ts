@@ -55,7 +55,29 @@ export const Route = createFileRoute("/api/public/meta/ingest-daily")({
         }
 
         const failed = results.filter((r: any) => r.error).length;
-        return Response.json({ date: date ?? null, windowDays, accounts: results.length, failed, results });
+        const succeeded = results.length - failed;
+        const rowsWritten = results.reduce(
+          (acc: number, r: any) => acc + Number(r.adRows ?? 0) + Number(r.postRows ?? 0),
+          0,
+        );
+
+        // A run that wrote nothing must never look like a success to the cron logger.
+        const status = failed === 0 ? 200 : succeeded > 0 ? 207 : 500;
+
+        return Response.json(
+          {
+            date: date ?? null,
+            windowDays,
+            accounts: results.length,
+            succeeded,
+            failed,
+            rowsWritten,
+            adRows: results.reduce((a: number, r: any) => a + Number(r.adRows ?? 0), 0),
+            postRows: results.reduce((a: number, r: any) => a + Number(r.postRows ?? 0), 0),
+            results,
+          },
+          { status },
+        );
       },
     },
   },
