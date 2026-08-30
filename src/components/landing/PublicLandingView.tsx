@@ -229,7 +229,7 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
     <div style={{ background: p.background, color: p.text }} className="min-h-full">
       {/* Hero */}
       {template === "fullbleed" && lp.hero_image_url ? (
-        <section className="relative overflow-hidden">
+        <section data-section="hero" className="relative overflow-hidden">
           <img src={lp.hero_image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.55)" }} />
           <div className={`relative max-w-4xl mx-auto text-center ${compact ? "px-4 py-12" : "px-6 py-28 md:py-36"}`}>
@@ -245,7 +245,7 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
           </div>
         </section>
       ) : template === "centered" ? (
-        <section className={`${pad} max-w-3xl mx-auto text-center`}>
+        <section data-section="hero" className={`${pad} max-w-3xl mx-auto text-center`}>
           {heroText}
           {lp.hero_image_url && (
             <img
@@ -257,7 +257,7 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
           )}
         </section>
       ) : (
-        <section className={`${pad} max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center`}>
+        <section data-section="hero" className={`${pad} max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center`}>
           {heroText}
           {lp.hero_image_url && (
             <img
@@ -275,7 +275,7 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
 
       {/* Contact */}
       {lp.contact_enabled && (
-        <section id="contacto" className={pad}>
+        <section id="contacto" data-section="contacto" className={pad}>
           <div className="max-w-xl mx-auto">
             <h2 className={`${h2} font-bold text-center mb-2`}>Contáctanos</h2>
             <p className={`text-center ${small} mb-6`} style={{ color: p.muted }}>Te responderemos lo antes posible.</p>
