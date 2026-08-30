@@ -1442,6 +1442,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          ip_hash: string | null
           landing_id: string
           message: string
           name: string
@@ -1452,6 +1453,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          ip_hash?: string | null
           landing_id: string
           message: string
           name: string
@@ -1462,6 +1464,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          ip_hash?: string | null
           landing_id?: string
           message?: string
           name?: string
@@ -1699,6 +1702,7 @@ export type Database = {
           currency: string | null
           id: string
           ig_account_id: string | null
+          last_ig_sync_at: string | null
           last_ingest_at: string | null
           last_ingest_reason: string | null
           last_ingest_rows: number | null
@@ -1723,6 +1727,7 @@ export type Database = {
           currency?: string | null
           id?: string
           ig_account_id?: string | null
+          last_ig_sync_at?: string | null
           last_ingest_at?: string | null
           last_ingest_reason?: string | null
           last_ingest_rows?: number | null
@@ -1747,6 +1752,7 @@ export type Database = {
           currency?: string | null
           id?: string
           ig_account_id?: string | null
+          last_ig_sync_at?: string | null
           last_ingest_at?: string | null
           last_ingest_reason?: string | null
           last_ingest_rows?: number | null
@@ -3207,6 +3213,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      ig_swap_sync_version: {
+        Args: { _label: string; _new_id: string; _old_id: string }
+        Returns: string
+      }
       ig_trigger_bump: {
         Args: {
           _failed: number
@@ -3233,6 +3243,7 @@ export type Database = {
           total_24h: number
         }[]
       }
+      job_rows_written: { Args: { _body: Json }; Returns: number }
       list_taken_slots: {
         Args: { _from: string; _settings_id: string; _to: string }
         Returns: {
@@ -3284,10 +3295,26 @@ export type Database = {
         Args: { _job_name: string; _url: string }
         Returns: undefined
       }
+      run_whatsapp_ai_dispatch: {
+        Args: { _job_name: string; _url: string }
+        Returns: undefined
+      }
       safe_jsonb: { Args: { _text: string }; Returns: Json }
       set_job_schedule: {
         Args: { _job_name: string; _schedule: string }
         Returns: boolean
+      }
+      submit_landing_contact: {
+        Args: {
+          _email: string
+          _honeypot?: string
+          _ip_hash: string
+          _landing_id: string
+          _message: string
+          _name: string
+          _phone: string
+        }
+        Returns: Json
       }
       user_client_id: { Args: never; Returns: string }
       user_orgs: {
