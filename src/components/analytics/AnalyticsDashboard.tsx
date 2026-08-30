@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { useZeroCause } from "@/hooks/use-zero-cause";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -140,6 +141,7 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
   const [sortKey, setSortKey] = useState<keyof Campaign | "cost_per_qualified">("spend");
   const [sortAsc, setSortAsc] = useState(false);
   const [postsOpen, setPostsOpen] = useState(false);
+  const { spendReason } = useZeroCause(clientId);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["client-analytics", clientId, r.from, r.to],
@@ -373,7 +375,7 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
               lowerIsBetter
               empty={
                 !data.has_spend_data
-                  ? "Sin datos de inversión de Meta en este periodo."
+                  ? spendReason
                   : outcomesMissing || f!.qualified === 0
                     ? (unmarkedNote ??
                       "Ninguna conversación fue marcada como calificada, así que este costo no se puede calcular.")
@@ -388,7 +390,7 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
               lowerIsBetter
               empty={
                 !data.has_spend_data
-                  ? "Sin datos de inversión de Meta en este periodo."
+                  ? spendReason
                   : f!.closed === 0
                     ? (unmarkedNote ?? "Todavía no hay conversaciones marcadas como cerradas.")
                     : null
@@ -401,7 +403,7 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
               deltaValue={delta(roas, roasPrev)}
               empty={
                 !data.has_spend_data
-                  ? "Sin datos de inversión de Meta en este periodo."
+                  ? spendReason
                   : (f!.closed_with_value ?? 0) === 0
                     ? (unmarkedNote ??
                       "Ningún cierre tiene valor en CLP registrado, así que el ROAS no es medible.")
@@ -429,10 +431,7 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
             </CardHeader>
             <CardContent>
               {campaigns.length === 0 ? (
-                <Empty>
-                  Sin datos de campañas para este rango. Conecta la cuenta de Meta o espera la
-                  descarga diaria de métricas.
-                </Empty>
+                <Empty>{spendReason}</Empty>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">

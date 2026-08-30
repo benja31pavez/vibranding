@@ -8,6 +8,8 @@ export interface ClientCapabilities {
   has_whatsapp: boolean;
   has_ad_data: boolean;
   has_outcomes: boolean;
+  /** The ingestion completed at least once, regardless of rows written. */
+  ingest_ran: boolean;
 }
 
 export const EMPTY_CAPABILITIES: ClientCapabilities = {
@@ -17,13 +19,14 @@ export const EMPTY_CAPABILITIES: ClientCapabilities = {
   has_whatsapp: false,
   has_ad_data: false,
   has_outcomes: false,
+  ingest_ran: false,
 };
 
 /** Everything the sidebar and the setup wizard derive from the database. */
 export async function loadClientCapabilities(clientId: string): Promise<ClientCapabilities> {
   const [meta, wa, ads, outcomes] = await Promise.all([
     (supabase.from("meta_accounts" as any) as any)
-      .select("connected,token_secret_id,ad_account_id,ig_account_id")
+      .select("connected,token_secret_id,ad_account_id,ig_account_id,last_ingest_at")
       .eq("client_id", clientId)
       .maybeSingle(),
     (supabase.from("whatsapp_accounts_safe" as any) as any)
@@ -48,6 +51,7 @@ export async function loadClientCapabilities(clientId: string): Promise<ClientCa
     has_whatsapp: Boolean(wa.data?.connected),
     has_ad_data: (ads.count ?? 0) > 0,
     has_outcomes: (outcomes.count ?? 0) > 0,
+    ingest_ran: Boolean(m?.last_ingest_at),
   };
 }
 
