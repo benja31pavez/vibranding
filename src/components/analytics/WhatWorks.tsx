@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, ExternalLink, Info, Loader2 } from "lucide-react";
 import { num, pct, DOW_LABELS } from "./analytics-utils";
+import { useZeroCause } from "@/hooks/use-zero-cause";
 
 type Bucket = { median_engagement: number | null; sample: number };
 type HourRow = Bucket & { hour: number };
@@ -78,15 +79,28 @@ const formatLabel = (f: string | null) =>
  * Returns the blocking empty state for a panel, or null when it has enough data.
  * Never render zeros or a flat line when the cause is missing data.
  */
-function blocker(d: ContentPerformance, needMinPosts = true): React.ReactNode | null {
+function blocker(
+  d: ContentPerformance,
+  needMinPosts = true,
+  mediaReason?: string,
+): React.ReactNode | null {
   if (!d.has_meta_account) {
-    return "No hay una cuenta de Meta/Instagram conectada para este cliente, así que no existen métricas reales que analizar.";
+    return (
+      mediaReason ??
+      "No hay una cuenta de Meta/Instagram conectada para este cliente, así que no existen métricas reales que analizar."
+    );
   }
   if (d.synced_media_count === 0) {
-    return "La cuenta está conectada pero todavía no se han sincronizado publicaciones reales de Instagram (sin ig_media_id).";
+    return (
+      mediaReason ??
+      "La cuenta está conectada pero todavía no se han sincronizado publicaciones reales de Instagram (sin ig_media_id)."
+    );
   }
   if (d.insight_post_count === 0) {
-    return "No hay publicaciones con métricas en este periodo. Amplía el rango de fechas o sincroniza Instagram.";
+    return (
+      mediaReason ??
+      "No hay publicaciones con métricas en este periodo. Amplía el rango de fechas o sincroniza Instagram."
+    );
   }
   if (needMinPosts && d.insight_post_count < MIN_POSTS) {
     return `Solo ${d.insight_post_count} publicación${d.insight_post_count === 1 ? "" : "es"} con métricas en este periodo: se necesitan al menos ${MIN_POSTS} para que la mediana sea confiable.`;
@@ -284,8 +298,8 @@ export function WhatWorks({
               {/* Best hour / weekday */}
               <div className="space-y-3 rounded-lg border p-3">
                 <div className="text-sm font-medium">Mejor horario y día para publicar</div>
-                {blocker(data) ? (
-                  <Empty>{blocker(data)}</Empty>
+                {blocker(data, true, mediaReason) ? (
+                  <Empty>{blocker(data, true, mediaReason)}</Empty>
                 ) : (
                   <>
                     <div className="grid grid-cols-2 gap-3">
@@ -337,8 +351,8 @@ export function WhatWorks({
               {/* Format & objective */}
               <div className="space-y-3 rounded-lg border p-3">
                 <div className="text-sm font-medium">Rendimiento por formato y objetivo</div>
-                {blocker(data, false) ? (
-                  <Empty>{blocker(data, false)}</Empty>
+                {blocker(data, false, mediaReason) ? (
+                  <Empty>{blocker(data, false, mediaReason)}</Empty>
                 ) : (
                   <>
                     <div>
@@ -389,8 +403,8 @@ export function WhatWorks({
               {/* Top / bottom posts */}
               <div className="space-y-3 rounded-lg border p-3">
                 <div className="text-sm font-medium">Top 5 y peores 5 del periodo</div>
-                {blocker(data, false) ? (
-                  <Empty>{blocker(data, false)}</Empty>
+                {blocker(data, false, mediaReason) ? (
+                  <Empty>{blocker(data, false, mediaReason)}</Empty>
                 ) : data.insight_post_count < 2 ? (
                   <Empty>
                     Solo hay {data.insight_post_count} publicación con métricas: no hay ranking
@@ -417,7 +431,7 @@ export function WhatWorks({
                 <div className="text-sm font-medium">
                   Tasa de interacción sobre seguidores en el tiempo
                 </div>
-                {blocker(data, false) ? <Empty>{blocker(data, false)}</Empty> : <RateChart d={data} />}
+                {blocker(data, false, mediaReason) ? <Empty>{blocker(data, false, mediaReason)}</Empty> : <RateChart d={data} />}
               </div>
             </div>
           )}
