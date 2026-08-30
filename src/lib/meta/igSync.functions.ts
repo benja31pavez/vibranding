@@ -124,8 +124,8 @@ export const captureInstagramGridVersion = createServerFn({ method: "POST" })
       };
     }
 
-    const { captureInstagramVersion } = await import("@/lib/meta/igSync.server");
-    return await captureInstagramVersion(
+    const { captureOrRefreshSyncVersion } = await import("@/lib/meta/igSync.server");
+    return await captureOrRefreshSyncVersion(
       data.clientId,
       resolved.account.ig_account_id,
       resolved.token,
