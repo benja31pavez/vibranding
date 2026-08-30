@@ -51,7 +51,12 @@ export function GridVersionBar({
         else toast.error(res.reason);
         return;
       }
-      toast.success(`Versión "${res.label}" creada con ${res.mediaCount} publicaciones`);
+      if (res.mediaCount === 0) {
+        toast.info("Sincronizado · la cuenta no tiene publicaciones");
+      } else {
+        toast.success(`Versión "${res.label}" creada con ${res.mediaCount} publicaciones`);
+        if (res.note) toast.info(res.note);
+      }
       onChanged(res.versionId);
     } catch (e: any) {
       toast.error(e?.message ?? "No se pudo capturar el estado actual");
