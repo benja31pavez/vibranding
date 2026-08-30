@@ -41,6 +41,7 @@ import { Route as ApiMetaAdsCreateCampaignRouteImport } from './routes/api/meta-
 import { Route as ApiMetaAdsArchiveRouteImport } from './routes/api/meta-ads/archive'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
 import { Route as AppSettingsMetaRouteImport } from './routes/_app/settings/meta'
+import { Route as AppClientsConnectRouteImport } from './routes/_app/clients/connect'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
 import { Route as AppAdminMetaDiagnosticsRouteImport } from './routes/_app/admin/meta-diagnostics'
 import { Route as AppAdminHealthRouteImport } from './routes/_app/admin/health'
@@ -231,6 +232,11 @@ const AppSettingsMetaRoute = AppSettingsMetaRouteImport.update({
   path: '/settings/meta',
   getParentRoute: () => AppRoute,
 } as any)
+const AppClientsConnectRoute = AppClientsConnectRouteImport.update({
+  id: '/clients/connect',
+  path: '/clients/connect',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
   id: '/clients/$clientId',
   path: '/clients/$clientId',
@@ -418,6 +424,7 @@ export interface FileRoutesByFullPath {
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
+  '/clients/connect': typeof AppClientsConnectRoute
   '/settings/meta': typeof AppSettingsMetaRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -478,6 +485,7 @@ export interface FileRoutesByTo {
   '/review/$token': typeof ReviewTokenRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
+  '/clients/connect': typeof AppClientsConnectRoute
   '/settings/meta': typeof AppSettingsMetaRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -541,6 +549,7 @@ export interface FileRoutesById {
   '/_app/admin/health': typeof AppAdminHealthRoute
   '/_app/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
+  '/_app/clients/connect': typeof AppClientsConnectRoute
   '/_app/settings/meta': typeof AppSettingsMetaRoute
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -604,6 +613,7 @@ export interface FileRouteTypes {
     | '/admin/health'
     | '/admin/meta-diagnostics'
     | '/clients/$clientId'
+    | '/clients/connect'
     | '/settings/meta'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
@@ -664,6 +674,7 @@ export interface FileRouteTypes {
     | '/review/$token'
     | '/admin/health'
     | '/admin/meta-diagnostics'
+    | '/clients/connect'
     | '/settings/meta'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
@@ -726,6 +737,7 @@ export interface FileRouteTypes {
     | '/_app/admin/health'
     | '/_app/admin/meta-diagnostics'
     | '/_app/clients/$clientId'
+    | '/_app/clients/connect'
     | '/_app/settings/meta'
     | '/_app/settings/pricing'
     | '/api/meta-ads/archive'
@@ -1018,6 +1030,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsMetaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/clients/connect': {
+      id: '/_app/clients/connect'
+      path: '/clients/connect'
+      fullPath: '/clients/connect'
+      preLoaderRoute: typeof AppClientsConnectRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/clients/$clientId': {
       id: '/_app/clients/$clientId'
       path: '/clients/$clientId'
@@ -1287,6 +1306,7 @@ interface AppRouteChildren {
   AppAdminHealthRoute: typeof AppAdminHealthRoute
   AppAdminMetaDiagnosticsRoute: typeof AppAdminMetaDiagnosticsRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRouteWithChildren
+  AppClientsConnectRoute: typeof AppClientsConnectRoute
   AppSettingsMetaRoute: typeof AppSettingsMetaRoute
   AppSettingsPricingRoute: typeof AppSettingsPricingRoute
   AppClientsIndexRoute: typeof AppClientsIndexRoute
@@ -1302,6 +1322,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminHealthRoute: AppAdminHealthRoute,
   AppAdminMetaDiagnosticsRoute: AppAdminMetaDiagnosticsRoute,
   AppClientsClientIdRoute: AppClientsClientIdRouteWithChildren,
+  AppClientsConnectRoute: AppClientsConnectRoute,
   AppSettingsMetaRoute: AppSettingsMetaRoute,
   AppSettingsPricingRoute: AppSettingsPricingRoute,
   AppClientsIndexRoute: AppClientsIndexRoute,
