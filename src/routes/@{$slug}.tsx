@@ -78,7 +78,9 @@ function PublicLanding() {
 
 
 function ContactForm({ landingId, clientId, color }: { landingId: string; clientId: string; color: string }) {
+  const send = useServerFn(submitLandingContact);
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+  const [trap, setTrap] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -87,16 +89,30 @@ function ContactForm({ landingId, clientId, color }: { landingId: string; client
     const parsed = ContactSchema.safeParse(form);
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setSending(true);
-    const { error } = await supabase.from("landing_contact_submissions").insert({
-      landing_id: landingId,
-      client_id: clientId,
-      name: parsed.data.name,
-      email: parsed.data.email,
-      phone: parsed.data.phone || null,
-      message: parsed.data.message,
-    });
+    let res: { ok: boolean; reason?: string };
+    try {
+      res = await send({
+        data: {
+          landingId,
+          name: parsed.data.name,
+          email: parsed.data.email,
+          phone: parsed.data.phone || "",
+          message: parsed.data.message,
+          honeypot: trap,
+        },
+      });
+    } catch {
+      res = { ok: false };
+    }
     setSending(false);
-    if (error) { toast.error("No se pudo enviar"); return; }
+    if (!res.ok) {
+      toast.error(
+        res.reason === "rate_limited"
+          ? "Demasiados mensajes seguidos. Intenta de nuevo en un rato."
+          : "No se pudo enviar",
+      );
+      return;
+    }
     trackEvent("contact_submit", { type: "landing", id: landingId });
     setSent(true);
     setForm({ name: "", email: "", phone: "", message: "" });
@@ -113,6 +129,16 @@ function ContactForm({ landingId, clientId, color }: { landingId: string; client
 
   return (
     <form onSubmit={submit} className="rounded-2xl bg-white p-6 border space-y-3">
+      <input
+        type="text"
+        name="company_website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        value={trap}
+        onChange={e => setTrap(e.target.value)}
+        className="absolute left-[-9999px] h-0 w-0 opacity-0"
+      />
       <Input placeholder="Tu nombre" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} maxLength={100} required />
       <Input type="email" placeholder="Tu email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} maxLength={255} required />
       <Input type="tel" placeholder="Tu teléfono (opcional)" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} maxLength={40} />
