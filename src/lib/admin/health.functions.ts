@@ -20,7 +20,7 @@ export type JobRunRow = {
   started_at: string;
   finished_at: string | null;
   rows_written: number | null;
-  response_body: unknown;
+  response_body: Record<string, unknown> | null;
 };
 
 /** A connected Meta account that is not actually producing any data. */
@@ -48,7 +48,7 @@ export const getJobHealth = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const { data: recent } = await (supabaseAdmin.from("job_runs" as any) as any)
-      .select("id,job_name,status,http_status,error,started_at,finished_at")
+      .select("id,job_name,status,http_status,error,started_at,finished_at,rows_written,response_body")
       .order("started_at", { ascending: false })
       .limit(25);
 
