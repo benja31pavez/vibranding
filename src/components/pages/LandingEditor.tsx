@@ -533,7 +533,6 @@ export function LandingEditor({ clientId }: { clientId: string }) {
 
             <section className="rounded-2xl border bg-surface p-5 space-y-3">
               <h3 className="font-medium">Pie de página</h3>
-            <h3 className="font-medium">Pie de página</h3>
             <div className="grid md:grid-cols-2 gap-3">
               <Input placeholder="Email de contacto" value={lp.footer.email ?? ""} onChange={e => updFooter({ email: e.target.value })} maxLength={160} />
               <Input placeholder="Teléfono" value={lp.footer.phone ?? ""} onChange={e => updFooter({ phone: e.target.value })} maxLength={40} />
