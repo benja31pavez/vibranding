@@ -181,3 +181,94 @@ export async function syncInstagramAccountData(
   return { profile, ...counts, syncedAt };
 }
 
+
+/**
+ * Captures the account state as a NEW immutable grid version. Never touches
+ * existing rows: past versions are a historical record.
+ */
+export async function captureInstagramVersion(
+  clientId: string,
+  igAccountId: string,
+  token: string,
+  label: string,
+): Promise<
+  | { ok: false; reason: string }
+  | { ok: true; versionId: string; label: string; mediaCount: number }
+> {
+  const media = await fetchInstagramMedia(igAccountId, token, 50);
+  if (media.length === 0) {
+    return {
+      ok: false,
+      reason:
+        "Meta no devolvió publicaciones para esta cuenta, así que no se creó ninguna versión.",
+    };
+  }
+
+  const me = await graph<any>(igAccountId, {
+    access_token: token,
+    fields: "followers_count,follows_count",
+  });
+
+  const capturedAt = new Date().toISOString();
+  const { data: version, error: vErr } = await (
+    supabaseAdmin.from("instagram_grid_versions" as any) as any
+  )
+    .insert({
+      client_id: clientId,
+      label: label.trim(),
+      captured_at: capturedAt,
+      source: "sync",
+      followers: me?.followers_count != null ? Number(me.followers_count) : null,
+      following: me?.follows_count != null ? Number(me.follows_count) : null,
+    })
+    .select("id,label")
+    .single();
+  if (vErr) {
+    if (vErr.code === "23505" || /duplicate|unique/i.test(vErr.message)) {
+      return {
+        ok: false,
+        reason: `Ya existe una versión llamada "${label.trim()}" para este cliente. Cámbiale el nombre.`,
+      };
+    }
+    return { ok: false, reason: vErr.message };
+  }
+
+  const ordered = [...media].sort((a, b) =>
+    (b.timestamp ?? "").localeCompare(a.timestamp ?? ""),
+  );
+  const payload = ordered.map((m, i) => ({
+    client_id: clientId,
+    type: "current" as const,
+    version_id: version.id as string,
+    position: i,
+    ig_media_id: m.id,
+    published_at: m.timestamp,
+    image_url: m.thumbnail,
+    cover_url: formatOf(m) === "reel" ? m.thumbnail : null,
+    caption: m.caption,
+    scheduled_at: m.timestamp,
+    format: formatOf(m),
+    likes_count: m.like_count,
+    archived_at: null,
+  }));
+
+  const { error } = await (supabaseAdmin.from("instagram_posts" as any) as any).insert(
+    payload,
+  );
+  if (error) {
+    await (supabaseAdmin.from("instagram_grid_versions" as any) as any)
+      .delete()
+      .eq("id", version.id);
+    return { ok: false, reason: error.message };
+  }
+
+  // Keep the live profile snapshot fresh too (current_* columns only).
+  await syncInstagramProfile(clientId, igAccountId, token, capturedAt);
+
+  return {
+    ok: true,
+    versionId: version.id as string,
+    label: version.label as string,
+    mediaCount: payload.length,
+  };
+}
