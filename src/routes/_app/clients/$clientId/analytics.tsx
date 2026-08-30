@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnalyticsDashboard } from "@/components/analytics/AnalyticsDashboard";
+import { AudiencePanel } from "@/components/analytics/AudiencePanel";
 
 export const Route = createFileRoute("/_app/clients/$clientId/analytics")({
   head: () => ({
