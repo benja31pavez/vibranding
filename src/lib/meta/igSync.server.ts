@@ -89,95 +89,139 @@ export async function syncInstagramProfile(
 }
 
 /**
- * Writes the real published media first and only archives superseded manual
- * rows afterwards, so a failed write can never destroy the manual grid.
- * Rows with `type = 'proposed'` are never read or written here.
+ * Full sync for one client: refreshes the live profile snapshot and stores the
+ * published grid as the current month's version. Never edits or archives rows
+ * of past versions — those are a historical record.
  */
-export async function syncInstagramMedia(
-  clientId: string,
-  media: IgMedia[],
-): Promise<{ mediaCount: number; archivedManual: number; warning?: string }> {
-  if (media.length === 0) {
-    return {
-      mediaCount: 0,
-      archivedManual: 0,
-      warning:
-        "Meta no devolvió publicaciones. No se modificó nada de tu grilla manual.",
-    };
-  }
-
-  // Newest first, so position 0 matches the top-left cell of the real grid.
-  const ordered = [...media].sort((a, b) =>
-    (b.timestamp ?? "").localeCompare(a.timestamp ?? ""),
-  );
-
-  // A media already matched to a proposed row keeps that row: moving it to
-  // current would erase the plan, so we only claim ids not already used
-  // by a proposed row.
-  const { data: claimed } = await (supabaseAdmin.from("instagram_posts" as any) as any)
-    .select("ig_media_id")
-    .eq("client_id", clientId)
-    .eq("type", "proposed")
-    .not("ig_media_id", "is", null);
-  const claimedIds = new Set(
-    ((claimed ?? []) as any[]).map((r) => String(r.ig_media_id)),
-  );
-
-  const payload = ordered
-    .filter((m) => !claimedIds.has(m.id))
-    .map((m, i) => ({
-      client_id: clientId,
-      type: "current" as const,
-      position: i,
-      ig_media_id: m.id,
-      published_at: m.timestamp,
-      image_url: m.thumbnail,
-      cover_url: formatOf(m) === "reel" ? m.thumbnail : null,
-      caption: m.caption,
-      scheduled_at: m.timestamp,
-      format: formatOf(m),
-      likes_count: m.like_count,
-      archived_at: null,
-    }));
-
-  if (payload.length === 0) {
-    return {
-      mediaCount: 0,
-      archivedManual: 0,
-      warning:
-        "Todas las publicaciones reales ya están vinculadas a posts propuestos. No se archivó nada.",
-    };
-  }
-
-  // 1) Write first. If this fails we throw and the manual rows stay intact.
-  const { error } = await (supabaseAdmin.from("instagram_posts" as any) as any).upsert(
-    payload,
-    { onConflict: "client_id,ig_media_id" },
-  );
-  if (error) throw new Error(error.message);
-
-  // 2) Only now archive the manually uploaded "actual" rows (reversible).
-  const { data: archived } = await (supabaseAdmin.from("instagram_posts" as any) as any)
-    .update({ archived_at: new Date().toISOString() })
-    .eq("client_id", clientId)
-    .eq("type", "current")
-    .is("ig_media_id", null)
-    .is("archived_at", null)
-    .select("id");
-
-  return { mediaCount: payload.length, archivedManual: (archived ?? []).length };
-}
-
-/** Full sync for one client: real profile + real published grid. */
 export async function syncInstagramAccountData(
   clientId: string,
   igAccountId: string,
   token: string,
 ): Promise<IgSyncResult> {
+  const { monthLabel } = await import("@/lib/instagram/gridVersions");
   const syncedAt = new Date().toISOString();
-  const media = await fetchInstagramMedia(igAccountId, token);
-  const counts = await syncInstagramMedia(clientId, media);
-  const profile = await syncInstagramProfile(clientId, igAccountId, token, syncedAt);
-  return { profile, ...counts, syncedAt };
+  const label = monthLabel(new Date());
+
+  // Re-capturing the same month replaces that month's snapshot only.
+  const { data: existing } = await (
+    supabaseAdmin.from("instagram_grid_versions" as any) as any
+  )
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("label", label)
+    .eq("source", "sync")
+    .maybeSingle();
+  if (existing?.id) {
+    await (supabaseAdmin.from("instagram_posts" as any) as any)
+      .delete()
+      .eq("version_id", existing.id);
+    await (supabaseAdmin.from("instagram_grid_versions" as any) as any)
+      .delete()
+      .eq("id", existing.id);
+  }
+
+  const res = await captureInstagramVersion(clientId, igAccountId, token, label);
+  if (!res.ok) {
+    return {
+      profile: await syncInstagramProfile(clientId, igAccountId, token, syncedAt),
+      mediaCount: 0,
+      archivedManual: 0,
+      syncedAt,
+      warning: res.reason,
+    };
+  }
+  return { profile: true, mediaCount: res.mediaCount, archivedManual: 0, syncedAt };
 }
 
+
+
+/**
+ * Captures the account state as a NEW immutable grid version. Never touches
+ * existing rows: past versions are a historical record.
+ */
+export async function captureInstagramVersion(
+  clientId: string,
+  igAccountId: string,
+  token: string,
+  label: string,
+): Promise<
+  | { ok: false; reason: string }
+  | { ok: true; versionId: string; label: string; mediaCount: number }
+> {
+  const media = await fetchInstagramMedia(igAccountId, token, 50);
+  if (media.length === 0) {
+    return {
+      ok: false,
+      reason:
+        "Meta no devolvió publicaciones para esta cuenta, así que no se creó ninguna versión.",
+    };
+  }
+
+  const me = await graph<any>(igAccountId, {
+    access_token: token,
+    fields: "followers_count,follows_count",
+  });
+
+  const capturedAt = new Date().toISOString();
+  const { data: version, error: vErr } = await (
+    supabaseAdmin.from("instagram_grid_versions" as any) as any
+  )
+    .insert({
+      client_id: clientId,
+      label: label.trim(),
+      captured_at: capturedAt,
+      source: "sync",
+      followers: me?.followers_count != null ? Number(me.followers_count) : null,
+      following: me?.follows_count != null ? Number(me.follows_count) : null,
+    })
+    .select("id,label")
+    .single();
+  if (vErr) {
+    if (vErr.code === "23505" || /duplicate|unique/i.test(vErr.message)) {
+      return {
+        ok: false,
+        reason: `Ya existe una versión llamada "${label.trim()}" para este cliente. Cámbiale el nombre.`,
+      };
+    }
+    return { ok: false, reason: vErr.message };
+  }
+
+  const ordered = [...media].sort((a, b) =>
+    (b.timestamp ?? "").localeCompare(a.timestamp ?? ""),
+  );
+  const payload = ordered.map((m, i) => ({
+    client_id: clientId,
+    type: "current" as const,
+    version_id: version.id as string,
+    position: i,
+    ig_media_id: m.id,
+    published_at: m.timestamp,
+    image_url: m.thumbnail,
+    cover_url: formatOf(m) === "reel" ? m.thumbnail : null,
+    caption: m.caption,
+    scheduled_at: m.timestamp,
+    format: formatOf(m),
+    likes_count: m.like_count,
+    archived_at: null,
+  }));
+
+  const { error } = await (supabaseAdmin.from("instagram_posts" as any) as any).insert(
+    payload,
+  );
+  if (error) {
+    await (supabaseAdmin.from("instagram_grid_versions" as any) as any)
+      .delete()
+      .eq("id", version.id);
+    return { ok: false, reason: error.message };
+  }
+
+  // Keep the live profile snapshot fresh too (current_* columns only).
+  await syncInstagramProfile(clientId, igAccountId, token, capturedAt);
+
+  return {
+    ok: true,
+    versionId: version.id as string,
+    label: version.label as string,
+    mediaCount: payload.length,
+  };
+}

@@ -10,40 +10,6 @@ export type UnmatchedMedia = {
   thumbnail: string | null;
 };
 
-/** Pulls the real profile + published media of the connected IG account. */
-export const syncInstagramAccount = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { clientId: string }) => input)
-  .handler(async ({ data, context }) => {
-    const { data: owned } = await context.supabase
-      .from("clients")
-      .select("id")
-      .eq("id", data.clientId)
-      .maybeSingle();
-    if (!owned) throw new Error("No tienes acceso a este cliente");
-
-    const { getClientMetaToken } = await import("@/lib/meta/clientToken.server");
-    const resolved = await getClientMetaToken(data.clientId);
-    if (!resolved) {
-      return {
-        ok: false as const,
-        reason:
-          "Este cliente no tiene una cuenta de Meta conectada. Conéctala con OAuth o con un token de System User.",
-      };
-    }
-    const { token, account } = resolved;
-    if (!account.ig_account_id) {
-      return {
-        ok: false as const,
-        reason: "Este cliente no tiene una cuenta de Instagram vinculada en Meta.",
-      };
-    }
-
-    const { syncInstagramAccountData } = await import("@/lib/meta/igSync.server");
-    const result = await syncInstagramAccountData(data.clientId, account.ig_account_id, token);
-    return { ok: true as const, ...result };
-  });
-
 /** Recent published media not yet linked to any post of this client. */
 export const listUnmatchedMedia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -128,4 +94,41 @@ export const matchPostToMedia = createServerFn({ method: "POST" })
       .eq("client_id", data.clientId);
     if (error) throw new Error(error.message);
     return { ok: true, publishedAt };
+  });
+
+/** Captures the real account state as a new locked grid version. */
+export const captureInstagramGridVersion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clientId: string; label: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: owned } = await context.supabase
+      .from("clients")
+      .select("id")
+      .eq("id", data.clientId)
+      .maybeSingle();
+    if (!owned) throw new Error("No tienes acceso a este cliente");
+
+    const { getClientMetaToken } = await import("@/lib/meta/clientToken.server");
+    const resolved = await getClientMetaToken(data.clientId);
+    if (!resolved) {
+      return {
+        ok: false as const,
+        reason:
+          "Este cliente no tiene una cuenta de Meta conectada. Usa \"Subir manualmente\" o conecta la cuenta.",
+      };
+    }
+    if (!resolved.account.ig_account_id) {
+      return {
+        ok: false as const,
+        reason: "Este cliente no tiene una cuenta de Instagram vinculada en Meta.",
+      };
+    }
+
+    const { captureInstagramVersion } = await import("@/lib/meta/igSync.server");
+    return await captureInstagramVersion(
+      data.clientId,
+      resolved.account.ig_account_id,
+      resolved.token,
+      data.label,
+    );
   });

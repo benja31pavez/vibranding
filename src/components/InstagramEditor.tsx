@@ -88,6 +88,7 @@ export interface IGPost {
   likes_count: number;
   ig_media_id: string | null;
   published_at: string | null;
+  version_id: string | null;
 }
 
 export interface IGComment {
@@ -545,7 +546,7 @@ const FORMATS: { value: PostFormat; label: string; Icon: typeof ImageIcon }[] = 
 ];
 
 export function PostsEditor({
-  clientId, posts, setPosts, type, profile, setProfile, comments, setComments,
+  clientId, posts, setPosts, type, profile, setProfile, comments, setComments, versionId = null,
 }: {
   clientId: string;
   posts: IGPost[];
@@ -555,8 +556,12 @@ export function PostsEditor({
   setProfile?: (p: IGProfile | null) => void;
   comments: IGComment[];
   setComments: (updater: (prev: IGComment[]) => IGComment[]) => void;
+  /** When editing a "current" grid version, rows are scoped to that version. */
+  versionId?: string | null;
 }) {
   const { metrics } = usePostInsights(clientId);
+  const inScope = (p: IGPost) =>
+    p.type === type && (type === "proposed" ? !p.version_id : p.version_id === versionId);
 
   const desiredCount = Math.max(
     0,
@@ -570,11 +575,11 @@ export function PostsEditor({
 
   useEffect(() => {
     (async () => {
-      const existing = posts.filter((p) => p.type === type);
-      const missing: { client_id: string; type: "current" | "proposed"; position: number }[] = [];
+      const existing = posts.filter(inScope);
+      const missing: { client_id: string; type: "current" | "proposed"; position: number; version_id: string | null }[] = [];
       for (let i = 0; i < desiredCount; i++) {
         if (!existing.find((p) => p.position === i)) {
-          missing.push({ client_id: clientId, type, position: i });
+          missing.push({ client_id: clientId, type, position: i, version_id: versionId });
         }
       }
       if (missing.length) {
@@ -583,7 +588,7 @@ export function PostsEditor({
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, type, desiredCount]);
+  }, [clientId, type, desiredCount, versionId]);
 
 
   const setLocal = (id: string, patch: Partial<IGPost>) => {
@@ -616,12 +621,12 @@ export function PostsEditor({
   const countKey = (type === "proposed" ? "proposed_posts_count" : "current_posts_count") as keyof IGProfile;
 
   const addPost = async () => {
-    const existing = posts.filter((p) => p.type === type);
+    const existing = posts.filter(inScope);
     const position = existing.length;
     if (position >= 30) return;
     const { data } = await supabase
       .from("instagram_posts")
-      .insert({ client_id: clientId, type, position })
+      .insert({ client_id: clientId, type, position, version_id: versionId })
       .select("*")
       .single();
     if (data) setPosts((prev) => [...prev, data as IGPost]);
@@ -634,7 +639,7 @@ export function PostsEditor({
 
   const removePost = async (id: string) => {
     const remaining = posts
-      .filter((p) => p.type === type && p.id !== id)
+      .filter((p) => inScope(p) && p.id !== id)
       .sort((a, b) => a.position - b.position);
     setPosts((prev) => prev.filter((p) => p.id !== id));
     await supabase.from("instagram_posts").delete().eq("id", id);
@@ -659,7 +664,7 @@ export function PostsEditor({
   };
 
   const sorted = [...posts]
-    .filter((p) => p.type === type)
+    .filter(inScope)
     .sort((a, b) => a.position - b.position);
 
   const [dragId, setDragId] = useState<string | null>(null);
