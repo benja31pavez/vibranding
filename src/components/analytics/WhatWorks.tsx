@@ -246,6 +246,7 @@ export function WhatWorks({
   to: string;
 }) {
   const [open, setOpen] = useState(true);
+  const { mediaReason } = useZeroCause(clientId);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["content-performance", clientId, from, to],
