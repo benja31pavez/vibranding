@@ -990,6 +990,56 @@ export type Database = {
           },
         ]
       }
+      instagram_audience_snapshots: {
+        Row: {
+          breakdown: string
+          breakdown_total: number | null
+          client_id: string
+          coverage: number | null
+          created_at: string
+          date: string
+          followers_total: number | null
+          id: string
+          key: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          breakdown: string
+          breakdown_total?: number | null
+          client_id: string
+          coverage?: number | null
+          created_at?: string
+          date: string
+          followers_total?: number | null
+          id?: string
+          key: string
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          breakdown?: string
+          breakdown_total?: number | null
+          client_id?: string
+          coverage?: number | null
+          created_at?: string
+          date?: string
+          followers_total?: number | null
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_audience_snapshots_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_highlights: {
         Row: {
           client_id: string

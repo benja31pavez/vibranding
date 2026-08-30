@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnalyticsDashboard } from "@/components/analytics/AnalyticsDashboard";
+import { AudiencePanel } from "@/components/analytics/AudiencePanel";
 
 export const Route = createFileRoute("/_app/clients/$clientId/analytics")({
   head: () => ({
@@ -25,5 +27,18 @@ export const Route = createFileRoute("/_app/clients/$clientId/analytics")({
 
 function AnalyticsPage() {
   const { clientId } = Route.useParams();
-  return <AnalyticsDashboard clientId={clientId} />;
+  return (
+    <Tabs defaultValue="rendimiento" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="rendimiento">Rendimiento</TabsTrigger>
+        <TabsTrigger value="audiencia">Audiencia</TabsTrigger>
+      </TabsList>
+      <TabsContent value="rendimiento">
+        <AnalyticsDashboard clientId={clientId} />
+      </TabsContent>
+      <TabsContent value="audiencia">
+        <AudiencePanel clientId={clientId} />
+      </TabsContent>
+    </Tabs>
+  );
 }
