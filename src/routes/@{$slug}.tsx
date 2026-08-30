@@ -1,5 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { submitLandingContact } from "@/lib/landing/contact.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,14 +72,14 @@ function PublicLanding() {
         lp={lp as any}
         onCtaClick={() => trackEvent("contact_click", { type: "landing", id: lp.id })}
         onWhatsappClick={() => trackEvent("whatsapp_click", { type: "landing", id: lp.id })}
-        contactForm={<ContactForm landingId={lp.id} clientId={lp.client_id} color={color} />}
+        contactForm={<ContactForm landingId={lp.id} color={color} />}
       />
     </div>
   );
 }
 
 
-function ContactForm({ landingId, clientId, color }: { landingId: string; clientId: string; color: string }) {
+function ContactForm({ landingId, color }: { landingId: string; color: string }) {
   const send = useServerFn(submitLandingContact);
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
   const [trap, setTrap] = useState("");
