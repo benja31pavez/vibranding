@@ -20,7 +20,8 @@ export type JobRunRow = {
   started_at: string;
   finished_at: string | null;
   rows_written: number | null;
-  response_body: Record<string, unknown> | null;
+  /** Pretty-printed response body, so the page can show it inline. */
+  response_body: string | null;
 };
 
 /** A connected Meta account that is not actually producing any data. */
@@ -84,7 +85,12 @@ export const getJobHealth = createServerFn({ method: "POST" })
 
     return {
       jobs: (health ?? []) as JobHealthRow[],
-      recent: (recent ?? []) as JobRunRow[],
+      recent: ((recent ?? []) as any[]).map((r) => ({
+        ...r,
+        rows_written: r.rows_written ?? null,
+        response_body:
+          r.response_body == null ? null : JSON.stringify(r.response_body, null, 2).slice(0, 4000),
+      })) as JobRunRow[],
       connections,
       checkedAt: new Date().toISOString(),
     };
