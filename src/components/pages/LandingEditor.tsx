@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail, Smartphone, Monitor, MessageCircle, AlertTriangle, Moon, MapPin, HelpCircle, Quote, Activity, Search } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail, Smartphone, Monitor, MessageCircle, AlertTriangle, Moon, MapPin, HelpCircle, Quote, Activity, Search, GripVertical, ChevronDown } from "lucide-react";
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { EventsPanel } from "@/components/landing/EventsPanel";
 import { LandingAnalytics } from "@/components/landing/LandingAnalytics";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +24,7 @@ import {
   landingPalette, defaultHours, WEEKDAYS, asArray, asObject,
   type LandingTemplate, type HeroAspect, type Testimonial, type FaqItem,
   type LandingLocation, type LandingFooter,
+  LANDING_SECTION_LABEL, LANDING_SECTION_KEYS, resolveSectionOrder, type LandingSectionKey,
 } from "@/lib/landingTheme";
 
 
@@ -58,6 +62,7 @@ type Landing = {
   footer: LandingFooter;
   seo_title: string | null;
   seo_description: string | null;
+  section_order: LandingSectionKey[];
 };
 
 
@@ -71,11 +76,57 @@ export function LandingEditor({ clientId }: { clientId: string }) {
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">("mobile");
   const [tab, setTab] = useState<"diseno" | "config" | "metricas">("diseno");
+  const [openSection, setOpenSection] = useState<string | null>("estilo");
+  const [baseline, setBaseline] = useState<string>("");
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  const dirty = !!lp && baseline !== JSON.stringify(lp);
+  const order = lp ? lp.section_order : [...LANDING_SECTION_KEYS];
+
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
+  const discard = () => { if (baseline) setLp(JSON.parse(baseline)); };
+
+  const onDragEnd = (e: DragEndEvent) => {
+    if (!lp || !e.over || e.active.id === e.over.id) return;
+    const from = order.indexOf(e.active.id as LandingSectionKey);
+    const to = order.indexOf(e.over.id as LandingSectionKey);
+    if (from < 0 || to < 0) return;
+    update({ section_order: arrayMove(order, from, to) });
+  };
+
+  /** Scrolls the rendered preview to the matching section, or the nearest visible one. */
+  const scrollPreviewTo = (key: string) => {
+    requestAnimationFrame(() => {
+      const root = previewRef.current;
+      if (!root) return;
+      const candidates = [key, ...order, "hero"];
+      let el: HTMLElement | null = null;
+      for (const c of candidates) {
+        el = root.querySelector<HTMLElement>(`[data-section="${c}"]`);
+        if (el) break;
+      }
+      if (!el) return;
+      root.scrollTo({ top: Math.max(0, el.offsetTop - 8), behavior: "smooth" });
+      el.style.transition = "outline-color 400ms ease";
+      el.style.outline = "2px solid rgba(59,130,246,0.9)";
+      el.style.outlineOffset = "-2px";
+      setTimeout(() => { if (el) el.style.outline = "none"; }, 1200);
+    });
+  };
 
   const load = async () => {
     setLoading(true);
     const { data } = await supabase.from("landing_pages").select("*").eq("client_id", clientId).maybeSingle();
-    setLp(data ? normalize(data) : null);
+    const normalized = data ? normalize(data) : null;
+    setLp(normalized);
+    setBaseline(normalized ? JSON.stringify(normalized) : "");
     if (data) {
       const { data: s } = await supabase.from("landing_contact_submissions")
         .select("id,name,email,phone,message,created_at")
@@ -96,7 +147,9 @@ export function LandingEditor({ clientId }: { clientId: string }) {
       hero_subtitle: "Descripción breve y atractiva", cta_text: "Contáctanos",
     }).select("*").single();
     if (error) return toast.error(error.message);
-    setLp(normalize(data));
+    const created = normalize(data);
+    setLp(created);
+    setBaseline(JSON.stringify(created));
     toast.success("Landing creada");
   };
 
@@ -132,10 +185,12 @@ export function LandingEditor({ clientId }: { clientId: string }) {
       footer: lp.footer as any,
       seo_title: lp.seo_title,
       seo_description: lp.seo_description,
+      section_order: lp.section_order,
 
     }).eq("id", lp.id);
     setSaving(false);
     if (error) return toast.error(error.message);
+    setBaseline(JSON.stringify(lp));
     toast.success("Guardado");
   };
 
@@ -143,7 +198,9 @@ export function LandingEditor({ clientId }: { clientId: string }) {
     if (!lp) return;
     const { error } = await supabase.from("landing_pages").update({ published: !lp.published }).eq("id", lp.id);
     if (error) return toast.error(error.message);
-    setLp({ ...lp, published: !lp.published });
+    const next = { ...lp, published: !lp.published };
+    setLp(next);
+    setBaseline(b => b ? JSON.stringify({ ...JSON.parse(b), published: next.published }) : b);
   };
 
   const uploadHero = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -242,7 +299,6 @@ export function LandingEditor({ clientId }: { clientId: string }) {
               <Eye className="w-4 h-4 mr-1" /> Vista previa
             </Button>
           )}
-          <Button onClick={save} disabled={saving}>Guardar</Button>
         </div>
       </div>
 
@@ -255,9 +311,16 @@ export function LandingEditor({ clientId }: { clientId: string }) {
 
         <TabsContent value="diseno">
       <div className="grid lg:grid-cols-[1fr_420px] gap-6 items-start">
-        <div className="space-y-6 min-w-0">
-          <section className="rounded-2xl border bg-surface p-5 space-y-4">
-            <h3 className="font-medium">Diseño</h3>
+        <div className="space-y-3 min-w-0">
+          <EditorRow
+            id="estilo"
+            title="Estilo"
+            summary={`${lp.template} · ${lp.dark_mode ? "oscuro" : "claro"}`}
+            active
+            open={openSection === "estilo"}
+            onToggle={() => toggleSection("estilo")}
+          >
+            <div className="space-y-4">
             <div className="grid md:grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs">Color principal</Label>
@@ -295,12 +358,18 @@ export function LandingEditor({ clientId }: { clientId: string }) {
                 Los textos usarán una versión más legible del color; el color original se mantiene en el botón.
               </p>
             )}
-          </section>
+            </div>
+          </EditorRow>
 
-
-          {/* Hero */}
-          <section className="rounded-2xl border bg-surface p-5 space-y-3">
-            <h3 className="font-medium">Hero</h3>
+          <EditorRow
+            id="hero"
+            title="Hero"
+            summary={lp.hero_title || "Sin título"}
+            active
+            open={openSection === "hero"}
+            onToggle={() => toggleSection("hero")}
+          >
+            <div className="space-y-3">
             <Input placeholder="Título" value={lp.hero_title} onChange={e => update({ hero_title: e.target.value })} maxLength={120} />
             <Textarea placeholder="Subtítulo" value={lp.hero_subtitle ?? ""} onChange={e => update({ hero_subtitle: e.target.value })} rows={2} maxLength={300} />
             <div className="flex items-center gap-3">
@@ -315,245 +384,42 @@ export function LandingEditor({ clientId }: { clientId: string }) {
               <Input placeholder="Texto del botón CTA" value={lp.cta_text ?? ""} onChange={e => update({ cta_text: e.target.value })} maxLength={40} />
               <Input placeholder="URL del CTA (opcional)" value={lp.cta_url ?? ""} onChange={e => update({ cta_url: e.target.value })} maxLength={500} />
             </div>
-          </section>
-
-          {/* Services */}
-          <section className="rounded-2xl border bg-surface p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">Servicios</h3>
-              <Button size="sm" variant="outline" onClick={addService}><Plus className="w-4 h-4 mr-1" /> Añadir</Button>
             </div>
-            {lp.services.length === 0 && <p className="text-sm text-muted-foreground">Sin servicios.</p>}
-            <ul className="space-y-2">
-              {lp.services.map((s, i) => (
-                <li key={i} className="rounded-xl border bg-background p-3 space-y-2">
-                  <div className="flex gap-2">
-                    <Input placeholder="Título" value={s.title} onChange={e => updService(i, { title: e.target.value })} maxLength={80} />
-                    <Button size="icon" variant="ghost" onClick={() => rmService(i)}><Trash2 className="w-4 h-4" /></Button>
-                  </div>
-                  <Textarea placeholder="Descripción" value={s.description} onChange={e => updService(i, { description: e.target.value })} rows={2} maxLength={300} />
-                  <div>
-                    <Label className="text-xs">Icono</Label>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      <button
-                        type="button"
-                        onClick={() => updService(i, { icon: undefined })}
-                        className={`w-8 h-8 rounded-md border grid place-items-center text-[10px] ${!s.icon ? "border-primary bg-primary/10" : ""}`}
-                        title="Sin icono (número)"
-                      >
-                        {i + 1}
-                      </button>
-                      {SERVICE_ICON_KEYS.map(k => {
-                        const Icon = SERVICE_ICONS[k];
-                        return (
-                          <button
-                            key={k}
-                            type="button"
-                            onClick={() => updService(i, { icon: k })}
-                            className={`w-8 h-8 rounded-md border grid place-items-center ${s.icon === k ? "border-primary bg-primary/10" : ""}`}
-                            title={k}
-                          >
-                            <Icon className="w-4 h-4" />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+          </EditorRow>
 
-                </li>
-              ))}
-            </ul>
-          </section>
+          <h3 className="text-xs uppercase tracking-widest text-muted-foreground pt-3">Secciones de la página</h3>
 
-          {/* Gallery */}
-          <section className="rounded-2xl border bg-surface p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">Galería</h3>
-              <label className="text-sm text-primary cursor-pointer hover:underline">
-                <Plus className="w-4 h-4 inline mr-1" /> Subir imágenes
-                <input type="file" accept="image/*" multiple className="hidden" onChange={addGallery} />
-              </label>
-            </div>
-            {lp.gallery.length === 0 && <p className="text-sm text-muted-foreground">Sin imágenes.</p>}
-            <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
-              {lp.gallery.map((g, i) => (
-                <div key={i} className="relative group">
-                  <img src={g.url} alt="" className="w-full aspect-square object-cover rounded-lg" />
-                  <button onClick={() => removeGallery(i)} className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded opacity-0 group-hover:opacity-100">
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* WhatsApp CTA */}
-          <section className="rounded-2xl border bg-surface p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium flex items-center gap-2">
-                <MessageCircle className="w-4 h-4" /> Bloque de WhatsApp
-              </h3>
-              <Switch
-                checked={lp.whatsapp_enabled}
-                onCheckedChange={v => update({ whatsapp_enabled: v })}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Abre wa.me con el mensaje ya escrito. Se añade una referencia automática para saber
-              qué conversación de WhatsApp vino de esta landing.
-            </p>
-            <div className="grid md:grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Número (con código de país)</Label>
-                <Input
-                  placeholder="+56 9 1234 5678"
-                  value={lp.whatsapp_number ?? ""}
-                  onChange={e => update({ whatsapp_number: e.target.value })}
-                  maxLength={30}
-                />
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={order} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {order.map(k => (
+                  <SortableRow
+                    key={k}
+                    id={k}
+                    title={LANDING_SECTION_LABEL[k]}
+                    summary={sectionSummary(k)}
+                    active={sectionActive(k)}
+                    disabled={!sectionActive(k) && sectionToggleable(k)}
+                    open={openSection === k}
+                    onToggle={() => toggleSection(k)}
+                    switchEl={sectionSwitch(k)}
+                  >
+                    {sectionContent(k)}
+                  </SortableRow>
+                ))}
               </div>
-              <div>
-                <Label className="text-xs">Texto del botón</Label>
-                <Input
-                  placeholder="Escríbenos por WhatsApp"
-                  value={lp.whatsapp_cta_text ?? ""}
-                  onChange={e => update({ whatsapp_cta_text: e.target.value })}
-                  maxLength={60}
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs">Mensaje prellenado</Label>
-              <Textarea
-                rows={2}
-                placeholder="Hola, vengo desde su página web y quiero más información."
-                value={lp.whatsapp_message ?? ""}
-                onChange={e => update({ whatsapp_message: e.target.value })}
-                maxLength={400}
-              />
-            </div>
-            <div className="rounded-lg border bg-background p-3 text-xs text-muted-foreground whitespace-pre-line">
-              {landingWhatsappText(lp as any)}
-            </div>
-          </section>
+            </SortableContext>
+          </DndContext>
 
-          {/* Testimonials */}
-          <section className="rounded-2xl border bg-surface p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium flex items-center gap-2"><Quote className="w-4 h-4" /> Testimonios</h3>
-              <Switch checked={lp.testimonials_enabled} onCheckedChange={v => update({ testimonials_enabled: v })} />
+          <div className="sticky bottom-0 z-20 -mx-1 mt-4 rounded-xl border bg-surface/95 backdrop-blur px-4 py-3 flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              {dirty ? "Cambios sin guardar" : "Todo guardado"}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={discard} disabled={!dirty || saving}>Descartar</Button>
+              <Button size="sm" onClick={save} disabled={!dirty || saving}>Guardar</Button>
             </div>
-            {lp.testimonials.length === 0 && <p className="text-sm text-muted-foreground">Sin testimonios.</p>}
-            <ul className="space-y-2">
-              {lp.testimonials.map((t, i) => (
-                <li key={i} className="rounded-xl border bg-background p-3 space-y-2">
-                  <div className="flex gap-2">
-                    <Input placeholder="Nombre" value={t.name} onChange={e => updTestimonial(i, { name: e.target.value })} maxLength={80} />
-                    <Input placeholder="Cargo (opcional)" value={t.role ?? ""} onChange={e => updTestimonial(i, { role: e.target.value })} maxLength={80} />
-                    <Button size="icon" variant="ghost" onClick={() => update({ testimonials: lp.testimonials.filter((_, k) => k !== i) })}><Trash2 className="w-4 h-4" /></Button>
-                  </div>
-                  <Textarea placeholder="Testimonio" rows={2} value={t.quote} onChange={e => updTestimonial(i, { quote: e.target.value })} maxLength={400} />
-                  <div className="flex items-center gap-3">
-                    {t.photo_url && <img src={t.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />}
-                    <label className="text-sm text-primary cursor-pointer hover:underline">
-                      {t.photo_url ? "Cambiar foto" : "Subir foto (opcional)"}
-                      <input type="file" accept="image/*" className="hidden" onChange={e => uploadTestimonialPhoto(i, e)} />
-                    </label>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <Button size="sm" variant="outline" onClick={() => update({ testimonials: [...lp.testimonials, { name: "", quote: "" }] })}>
-              <Plus className="w-4 h-4 mr-1" /> Añadir testimonio
-            </Button>
-          </section>
-
-          {/* Location & hours */}
-          <section className="rounded-2xl border bg-surface p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium flex items-center gap-2"><MapPin className="w-4 h-4" /> Ubicación y horarios</h3>
-              <Switch checked={lp.location_enabled} onCheckedChange={v => update({ location_enabled: v })} />
-            </div>
-            <Input placeholder="Dirección" value={lp.location.address ?? ""} onChange={e => update({ location: { ...lp.location, address: e.target.value } })} maxLength={200} />
-            <div>
-              <Label className="text-xs">URL de mapa incrustado (Google Maps → Compartir → Insertar)</Label>
-              <Input
-                placeholder="https://www.google.com/maps/embed?..."
-                value={lp.location.map_embed_url ?? ""}
-                onChange={e => update({ location: { ...lp.location, map_embed_url: e.target.value } })}
-                maxLength={800}
-              />
-            </div>
-            <ul className="space-y-2">
-              {(lp.location.hours ?? defaultHours()).map((h, i) => (
-                <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] sm:flex sm:items-center gap-2 text-sm">
-                  <span className="w-24 shrink-0">{WEEKDAYS[h.day]}</span>
-                  <Label className="flex items-center gap-2 text-xs">
-                    <Switch checked={!h.closed} onCheckedChange={v => updHour(i, { closed: !v })} />
-                    {h.closed ? "Cerrado" : "Abierto"}
-                  </Label>
-                  {!h.closed && (
-                    <div className="flex items-center gap-2">
-                      <Input type="time" step={1800} value={h.from ?? "09:00"} onChange={e => updHour(i, { from: e.target.value })} className="h-8 w-28" />
-                      <span className="text-muted-foreground">–</span>
-                      <Input type="time" step={1800} value={h.to ?? "18:00"} onChange={e => updHour(i, { to: e.target.value })} className="h-8 w-28" />
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* FAQ */}
-          <section className="rounded-2xl border bg-surface p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium flex items-center gap-2"><HelpCircle className="w-4 h-4" /> Preguntas frecuentes</h3>
-              <Switch checked={lp.faq_enabled} onCheckedChange={v => update({ faq_enabled: v })} />
-            </div>
-            {lp.faq.length === 0 && <p className="text-sm text-muted-foreground">Sin preguntas.</p>}
-            <ul className="space-y-2">
-              {lp.faq.map((f, i) => (
-                <li key={i} className="rounded-xl border bg-background p-3 space-y-2">
-                  <div className="flex gap-2">
-                    <Input placeholder="Pregunta" value={f.question} onChange={e => updFaq(i, { question: e.target.value })} maxLength={160} />
-                    <Button size="icon" variant="ghost" onClick={() => update({ faq: lp.faq.filter((_, k) => k !== i) })}><Trash2 className="w-4 h-4" /></Button>
-                  </div>
-                  <Textarea placeholder="Respuesta" rows={2} value={f.answer} onChange={e => updFaq(i, { answer: e.target.value })} maxLength={800} />
-                </li>
-              ))}
-            </ul>
-            <Button size="sm" variant="outline" onClick={() => update({ faq: [...lp.faq, { question: "", answer: "" }] })}>
-              <Plus className="w-4 h-4 mr-1" /> Añadir pregunta
-            </Button>
-          </section>
-
-          {/* Footer */}
-          <section className="rounded-2xl border bg-surface p-5 space-y-3">
-            <h3 className="font-medium">Pie de página</h3>
-            <div className="grid md:grid-cols-2 gap-3">
-              <Input placeholder="Email de contacto" value={lp.footer.email ?? ""} onChange={e => updFooter({ email: e.target.value })} maxLength={160} />
-              <Input placeholder="Teléfono" value={lp.footer.phone ?? ""} onChange={e => updFooter({ phone: e.target.value })} maxLength={40} />
-              <Input placeholder="Dirección" value={lp.footer.address ?? ""} onChange={e => updFooter({ address: e.target.value })} maxLength={200} />
-              <Input placeholder="WhatsApp (+56...)" value={lp.footer.whatsapp ?? ""} onChange={e => updFooter({ whatsapp: e.target.value })} maxLength={40} />
-              <Input placeholder="URL Instagram" value={lp.footer.instagram ?? ""} onChange={e => updFooter({ instagram: e.target.value })} maxLength={300} />
-              <Input placeholder="URL Facebook" value={lp.footer.facebook ?? ""} onChange={e => updFooter({ facebook: e.target.value })} maxLength={300} />
-              <Input placeholder="URL TikTok" value={lp.footer.tiktok ?? ""} onChange={e => updFooter({ tiktok: e.target.value })} maxLength={300} />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Enlaces legales (opcional)</Label>
-              {(lp.footer.legal ?? []).map((l, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input placeholder="Etiqueta" value={l.label} onChange={e => updLegal(i, { label: e.target.value })} maxLength={60} />
-                  <Input placeholder="URL" value={l.url} onChange={e => updLegal(i, { url: e.target.value })} maxLength={300} />
-                  <Button size="icon" variant="ghost" onClick={() => updFooter({ legal: (lp.footer.legal ?? []).filter((_, k) => k !== i) })}><Trash2 className="w-4 h-4" /></Button>
-                </div>
-              ))}
-              <Button size="sm" variant="outline" onClick={() => updFooter({ legal: [...(lp.footer.legal ?? []), { label: "", url: "" }] })}>
-                <Plus className="w-4 h-4 mr-1" /> Añadir enlace
-              </Button>
-            </div>
-          </section>
-
+          </div>
         </div>
 
         {/* Preview panel */}
@@ -580,7 +446,7 @@ export function LandingEditor({ clientId }: { clientId: string }) {
               <div className="relative rounded-[3rem] bg-black p-2 shadow-2xl">
                 <div className="relative rounded-[2.5rem] overflow-hidden bg-white text-gray-900" style={{ aspectRatio: "9/19.5" }}>
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-6 bg-black rounded-full z-30" />
-                  <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div ref={previewRef} className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     <LandingPreview lp={lp} compact />
                   </div>
                 </div>
@@ -591,7 +457,7 @@ export function LandingEditor({ clientId }: { clientId: string }) {
               <div className="relative rounded-t-xl bg-black p-2 shadow-2xl">
                 <div className="absolute top-1 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-zinc-700 rounded-full" />
                 <div className="relative rounded-md overflow-hidden bg-white text-gray-900 mt-1.5" style={{ aspectRatio: "16/10" }}>
-                  <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div ref={previewRef} className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     <LandingPreview lp={lp} compact={false} />
                   </div>
                 </div>
@@ -666,6 +532,32 @@ export function LandingEditor({ clientId }: { clientId: string }) {
           </section>
 
             <section className="rounded-2xl border bg-surface p-5 space-y-3">
+              <h3 className="font-medium">Pie de página</h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              <Input placeholder="Email de contacto" value={lp.footer.email ?? ""} onChange={e => updFooter({ email: e.target.value })} maxLength={160} />
+              <Input placeholder="Teléfono" value={lp.footer.phone ?? ""} onChange={e => updFooter({ phone: e.target.value })} maxLength={40} />
+              <Input placeholder="Dirección" value={lp.footer.address ?? ""} onChange={e => updFooter({ address: e.target.value })} maxLength={200} />
+              <Input placeholder="WhatsApp (+56...)" value={lp.footer.whatsapp ?? ""} onChange={e => updFooter({ whatsapp: e.target.value })} maxLength={40} />
+              <Input placeholder="URL Instagram" value={lp.footer.instagram ?? ""} onChange={e => updFooter({ instagram: e.target.value })} maxLength={300} />
+              <Input placeholder="URL Facebook" value={lp.footer.facebook ?? ""} onChange={e => updFooter({ facebook: e.target.value })} maxLength={300} />
+              <Input placeholder="URL TikTok" value={lp.footer.tiktok ?? ""} onChange={e => updFooter({ tiktok: e.target.value })} maxLength={300} />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Enlaces legales (opcional)</Label>
+              {(lp.footer.legal ?? []).map((l, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input placeholder="Etiqueta" value={l.label} onChange={e => updLegal(i, { label: e.target.value })} maxLength={60} />
+                  <Input placeholder="URL" value={l.url} onChange={e => updLegal(i, { url: e.target.value })} maxLength={300} />
+                  <Button size="icon" variant="ghost" onClick={() => updFooter({ legal: (lp.footer.legal ?? []).filter((_, k) => k !== i) })}><Trash2 className="w-4 h-4" /></Button>
+                </div>
+              ))}
+              <Button size="sm" variant="outline" onClick={() => updFooter({ legal: [...(lp.footer.legal ?? []), { label: "", url: "" }] })}>
+                <Plus className="w-4 h-4 mr-1" /> Añadir enlace
+              </Button>
+            </div>
+            </section>
+
+            <section className="rounded-2xl border bg-surface p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium flex items-center gap-2"><Mail className="w-4 h-4" /> Formulario de contacto</h3>
                 <Switch checked={lp.contact_enabled} onCheckedChange={v => update({ contact_enabled: v })} />
@@ -710,6 +602,251 @@ export function LandingEditor({ clientId }: { clientId: string }) {
       </Tabs>
     </div>
   );
+
+  /* ---- accordion / ordering helpers (hoisted declarations used by the JSX above) ---- */
+
+  function toggleSection(k: string) {
+    setOpenSection(prev => {
+      const next = prev === k ? null : k;
+      if (next) scrollPreviewTo(next);
+      return next;
+    });
+  }
+
+  function sectionToggleable(k: LandingSectionKey) {
+    return k === "whatsapp" || k === "testimonios" || k === "ubicacion" || k === "faq";
+  }
+
+  function sectionActive(k: LandingSectionKey): boolean {
+    if (!lp) return false;
+    switch (k) {
+      case "servicios": return lp.services.length > 0;
+      case "galeria": return lp.gallery.length > 0;
+      case "whatsapp": return !!lp.whatsapp_enabled;
+      case "testimonios": return !!lp.testimonials_enabled;
+      case "ubicacion": return !!lp.location_enabled;
+      case "faq": return !!lp.faq_enabled;
+    }
+  }
+
+  function sectionSummary(k: LandingSectionKey): string {
+    if (!lp) return "";
+    if (sectionToggleable(k) && !sectionActive(k)) return "Desactivado";
+    switch (k) {
+      case "servicios": return lp.services.length ? `${lp.services.length} servicio${lp.services.length !== 1 ? "s" : ""}` : "Sin servicios";
+      case "galeria": return lp.gallery.length ? `${lp.gallery.length} imagen${lp.gallery.length !== 1 ? "es" : ""}` : "Sin imágenes";
+      case "whatsapp": return lp.whatsapp_number || "Sin número";
+      case "testimonios": return lp.testimonials.length ? `${lp.testimonials.length} testimonio${lp.testimonials.length !== 1 ? "s" : ""}` : "Sin testimonios";
+      case "ubicacion": return lp.location.address || "Sin dirección";
+      case "faq": return lp.faq.length ? `${lp.faq.length} pregunta${lp.faq.length !== 1 ? "s" : ""}` : "Sin preguntas";
+    }
+  }
+
+  function sectionSwitch(k: LandingSectionKey) {
+    if (!lp || !sectionToggleable(k)) return null;
+    const map = {
+      whatsapp: [lp.whatsapp_enabled, (v: boolean) => update({ whatsapp_enabled: v })],
+      testimonios: [lp.testimonials_enabled, (v: boolean) => update({ testimonials_enabled: v })],
+      ubicacion: [lp.location_enabled, (v: boolean) => update({ location_enabled: v })],
+      faq: [lp.faq_enabled, (v: boolean) => update({ faq_enabled: v })],
+    } as Record<string, [boolean, (v: boolean) => void]>;
+    const [checked, onChange] = map[k]!;
+    return <Switch checked={checked} onCheckedChange={onChange} />;
+  }
+
+  function sectionContent(k: LandingSectionKey) {
+    if (!lp) return null;
+    switch (k) {
+      case "servicios": return (
+        <div className="space-y-3">
+            <div className="flex items-center justify-end">
+              <Button size="sm" variant="outline" onClick={addService}><Plus className="w-4 h-4 mr-1" /> Añadir</Button>
+            </div>
+            {lp.services.length === 0 && <p className="text-sm text-muted-foreground">Sin servicios.</p>}
+            <ul className="space-y-2">
+              {lp.services.map((s, i) => (
+                <li key={i} className="rounded-xl border bg-background p-3 space-y-2">
+                  <div className="flex gap-2">
+                    <Input placeholder="Título" value={s.title} onChange={e => updService(i, { title: e.target.value })} maxLength={80} />
+                    <Button size="icon" variant="ghost" onClick={() => rmService(i)}><Trash2 className="w-4 h-4" /></Button>
+                  </div>
+                  <Textarea placeholder="Descripción" value={s.description} onChange={e => updService(i, { description: e.target.value })} rows={2} maxLength={300} />
+                  <div>
+                    <Label className="text-xs">Icono</Label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => updService(i, { icon: undefined })}
+                        className={`w-8 h-8 rounded-md border grid place-items-center text-[10px] ${!s.icon ? "border-primary bg-primary/10" : ""}`}
+                        title="Sin icono (número)"
+                      >
+                        {i + 1}
+                      </button>
+                      {SERVICE_ICON_KEYS.map(k => {
+                        const Icon = SERVICE_ICONS[k];
+                        return (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => updService(i, { icon: k })}
+                            className={`w-8 h-8 rounded-md border grid place-items-center ${s.icon === k ? "border-primary bg-primary/10" : ""}`}
+                            title={k}
+                          >
+                            <Icon className="w-4 h-4" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                </li>
+              ))}
+            </ul>
+        </div>
+      );
+      case "galeria": return (
+        <div className="space-y-3">
+            <div className="flex items-center justify-end">
+              <label className="text-sm text-primary cursor-pointer hover:underline">
+                <Plus className="w-4 h-4 inline mr-1" /> Subir imágenes
+                <input type="file" accept="image/*" multiple className="hidden" onChange={addGallery} />
+              </label>
+            </div>
+            {lp.gallery.length === 0 && <p className="text-sm text-muted-foreground">Sin imágenes.</p>}
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+              {lp.gallery.map((g, i) => (
+                <div key={i} className="relative group">
+                  <img src={g.url} alt="" className="w-full aspect-square object-cover rounded-lg" />
+                  <button onClick={() => removeGallery(i)} className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded opacity-0 group-hover:opacity-100">
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+        </div>
+      );
+      case "whatsapp": return (
+        <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Abre wa.me con el mensaje ya escrito. Se añade una referencia automática para saber
+              qué conversación de WhatsApp vino de esta landing.
+            </p>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Número (con código de país)</Label>
+                <Input
+                  placeholder="+56 9 1234 5678"
+                  value={lp.whatsapp_number ?? ""}
+                  onChange={e => update({ whatsapp_number: e.target.value })}
+                  maxLength={30}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Texto del botón</Label>
+                <Input
+                  placeholder="Escríbenos por WhatsApp"
+                  value={lp.whatsapp_cta_text ?? ""}
+                  onChange={e => update({ whatsapp_cta_text: e.target.value })}
+                  maxLength={60}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Mensaje prellenado</Label>
+              <Textarea
+                rows={2}
+                placeholder="Hola, vengo desde su página web y quiero más información."
+                value={lp.whatsapp_message ?? ""}
+                onChange={e => update({ whatsapp_message: e.target.value })}
+                maxLength={400}
+              />
+            </div>
+            <div className="rounded-lg border bg-background p-3 text-xs text-muted-foreground whitespace-pre-line">
+              {landingWhatsappText(lp as any)}
+            </div>
+        </div>
+      );
+      case "testimonios": return (
+        <div className="space-y-3">
+            {lp.testimonials.length === 0 && <p className="text-sm text-muted-foreground">Sin testimonios.</p>}
+            <ul className="space-y-2">
+              {lp.testimonials.map((t, i) => (
+                <li key={i} className="rounded-xl border bg-background p-3 space-y-2">
+                  <div className="flex gap-2">
+                    <Input placeholder="Nombre" value={t.name} onChange={e => updTestimonial(i, { name: e.target.value })} maxLength={80} />
+                    <Input placeholder="Cargo (opcional)" value={t.role ?? ""} onChange={e => updTestimonial(i, { role: e.target.value })} maxLength={80} />
+                    <Button size="icon" variant="ghost" onClick={() => update({ testimonials: lp.testimonials.filter((_, k) => k !== i) })}><Trash2 className="w-4 h-4" /></Button>
+                  </div>
+                  <Textarea placeholder="Testimonio" rows={2} value={t.quote} onChange={e => updTestimonial(i, { quote: e.target.value })} maxLength={400} />
+                  <div className="flex items-center gap-3">
+                    {t.photo_url && <img src={t.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />}
+                    <label className="text-sm text-primary cursor-pointer hover:underline">
+                      {t.photo_url ? "Cambiar foto" : "Subir foto (opcional)"}
+                      <input type="file" accept="image/*" className="hidden" onChange={e => uploadTestimonialPhoto(i, e)} />
+                    </label>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <Button size="sm" variant="outline" onClick={() => update({ testimonials: [...lp.testimonials, { name: "", quote: "" }] })}>
+              <Plus className="w-4 h-4 mr-1" /> Añadir testimonio
+            </Button>
+        </div>
+      );
+      case "ubicacion": return (
+        <div className="space-y-3">
+            <Input placeholder="Dirección" value={lp.location.address ?? ""} onChange={e => update({ location: { ...lp.location, address: e.target.value } })} maxLength={200} />
+            <div>
+              <Label className="text-xs">URL de mapa incrustado (Google Maps → Compartir → Insertar)</Label>
+              <Input
+                placeholder="https://www.google.com/maps/embed?..."
+                value={lp.location.map_embed_url ?? ""}
+                onChange={e => update({ location: { ...lp.location, map_embed_url: e.target.value } })}
+                maxLength={800}
+              />
+            </div>
+            <ul className="space-y-2">
+              {(lp.location.hours ?? defaultHours()).map((h, i) => (
+                <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] sm:flex sm:items-center gap-2 text-sm">
+                  <span className="w-24 shrink-0">{WEEKDAYS[h.day]}</span>
+                  <Label className="flex items-center gap-2 text-xs">
+                    <Switch checked={!h.closed} onCheckedChange={v => updHour(i, { closed: !v })} />
+                    {h.closed ? "Cerrado" : "Abierto"}
+                  </Label>
+                  {!h.closed && (
+                    <div className="flex items-center gap-2">
+                      <Input type="time" step={1800} value={h.from ?? "09:00"} onChange={e => updHour(i, { from: e.target.value })} className="h-8 w-28" />
+                      <span className="text-muted-foreground">–</span>
+                      <Input type="time" step={1800} value={h.to ?? "18:00"} onChange={e => updHour(i, { to: e.target.value })} className="h-8 w-28" />
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+        </div>
+      );
+      case "faq": return (
+        <div className="space-y-3">
+            {lp.faq.length === 0 && <p className="text-sm text-muted-foreground">Sin preguntas.</p>}
+            <ul className="space-y-2">
+              {lp.faq.map((f, i) => (
+                <li key={i} className="rounded-xl border bg-background p-3 space-y-2">
+                  <div className="flex gap-2">
+                    <Input placeholder="Pregunta" value={f.question} onChange={e => updFaq(i, { question: e.target.value })} maxLength={160} />
+                    <Button size="icon" variant="ghost" onClick={() => update({ faq: lp.faq.filter((_, k) => k !== i) })}><Trash2 className="w-4 h-4" /></Button>
+                  </div>
+                  <Textarea placeholder="Respuesta" rows={2} value={f.answer} onChange={e => updFaq(i, { answer: e.target.value })} maxLength={800} />
+                </li>
+              ))}
+            </ul>
+            <Button size="sm" variant="outline" onClick={() => update({ faq: [...lp.faq, { question: "", answer: "" }] })}>
+              <Plus className="w-4 h-4 mr-1" /> Añadir pregunta
+            </Button>
+        </div>
+      );
+    }
+  }
+
 }
 
 /** Applies defaults so landings created before the new fields keep rendering. */
@@ -729,6 +866,7 @@ function normalize(row: any): Landing {
     faq_enabled: !!row.faq_enabled,
     faq: asArray<FaqItem>(row.faq),
     footer: asObject<LandingFooter>(row.footer),
+    section_order: resolveSectionOrder(row.section_order),
   } as Landing;
 }
 
@@ -737,3 +875,50 @@ function LandingPreview({ lp, compact }: { lp: Landing; compact: boolean }) {
   return <PublicLandingView lp={lp as any} preview compact={compact} />;
 }
 
+
+function RowShell({ title, summary, active, disabled, open, onToggle, switchEl, dragHandle, children, style, innerRef }: {
+  title: string; summary: string; active: boolean; disabled?: boolean; open: boolean;
+  onToggle: () => void; switchEl?: React.ReactNode; dragHandle?: React.ReactNode;
+  children: React.ReactNode; style?: React.CSSProperties; innerRef?: (el: HTMLElement | null) => void;
+}) {
+  return (
+    <section ref={innerRef} style={style} className={`rounded-2xl border bg-surface ${disabled ? "opacity-60" : ""}`}>
+      <div className="flex items-center gap-2 px-4 py-3">
+        {dragHandle}
+        <button
+          type="button"
+          onClick={() => { if (!disabled) onToggle(); }}
+          className="flex-1 min-w-0 flex items-center gap-2 text-left"
+        >
+          <span className={`w-2 h-2 rounded-full shrink-0 ${active ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+          <span className="font-medium truncate">{title}</span>
+          <span className="text-xs text-muted-foreground truncate">{summary}</span>
+          {!disabled && <ChevronDown className={`w-4 h-4 ml-auto shrink-0 transition ${open ? "rotate-180" : ""}`} />}
+        </button>
+        {switchEl}
+      </div>
+      {open && !disabled && <div className="px-4 pb-4">{children}</div>}
+    </section>
+  );
+}
+
+function EditorRow(props: { id: string } & React.ComponentProps<typeof RowShell>) {
+  const { id, ...rest } = props;
+  return <RowShell {...rest} />;
+}
+
+function SortableRow({ id, ...rest }: { id: string } & React.ComponentProps<typeof RowShell>) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <RowShell
+      {...rest}
+      innerRef={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : undefined }}
+      dragHandle={
+        <button type="button" {...attributes} {...listeners} className="text-muted-foreground hover:text-foreground cursor-grab" aria-label="Reordenar">
+          <GripVertical className="w-4 h-4" />
+        </button>
+      }
+    />
+  );
+}
