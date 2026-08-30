@@ -327,9 +327,17 @@ function SetupPage() {
       n: 5,
       title: "Sincronizar Instagram",
       unlocks: "Llena el grid Actual con las publicaciones reales",
-      state: caps.has_instagram ? "available" : "blocked",
+      state: account?.last_ig_sync_at ? "done" : caps.has_instagram ? "available" : "blocked",
       blockedBy: "Primero vincula Instagram (paso 3)",
-      body: <InstagramSyncStep clientId={clientId} />,
+      body: (
+        <InstagramSyncStep
+          clientId={clientId}
+          lastSyncAt={account?.last_ig_sync_at ?? null}
+          onDone={async () => {
+            await Promise.all([reload(), refetch()]);
+          }}
+        />
+      ),
     },
 
     {
@@ -439,7 +447,15 @@ function SetupPage() {
 }
 
 /** Step 5: pulls the real published grid into the "Actual" track. */
-function InstagramSyncStep({ clientId }: { clientId: string }) {
+function InstagramSyncStep({
+  clientId,
+  lastSyncAt,
+  onDone,
+}: {
+  clientId: string;
+  lastSyncAt: string | null;
+  onDone: () => Promise<void> | void;
+}) {
   const capture = useServerFn(captureInstagramGridVersion);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -449,11 +465,17 @@ function InstagramSyncStep({ clientId }: { clientId: string }) {
     setMsg(null);
     try {
       const res = await capture({ data: { clientId, label: monthLabel() } });
-      setMsg(
-        res.ok
-          ? `Versión "${res.label}" creada con ${res.mediaCount} publicaciones reales.`
-          : res.reason,
-      );
+      if (res.ok) {
+        setMsg(
+          res.mediaCount === 0
+            ? "Sincronizado · la cuenta no tiene publicaciones"
+            : `Versión "${res.label}" creada con ${res.mediaCount} publicaciones reales.` +
+              (res.note ? ` ${res.note}` : ""),
+        );
+        await onDone();
+      } else {
+        setMsg(res.reason);
+      }
     } catch (e: any) {
       setMsg(e?.message ?? "No se pudo sincronizar");
     } finally {
@@ -463,13 +485,16 @@ function InstagramSyncStep({ clientId }: { clientId: string }) {
 
   return (
     <div className="space-y-3 text-sm text-muted-foreground">
+      {lastSyncAt && (
+        <Facts lines={[`Última sincronización: ${fmtDate(lastSyncAt)}`]} />
+      )}
       <p>
         Trae las publicaciones reales de la cuenta al grid Actual. No modifica tu propuesta ni el
         estado inicial.
       </p>
-      <Button size="sm" onClick={run} disabled={busy}>
+      <Button size="sm" variant={lastSyncAt ? "secondary" : "default"} onClick={run} disabled={busy}>
         {busy && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-        {busy ? "Sincronizando…" : "Sincronizar Instagram"}
+        {busy ? "Sincronizando…" : lastSyncAt ? "Volver a sincronizar" : "Sincronizar Instagram"}
       </Button>
       {msg && <p className="text-foreground">{msg}</p>}
       <HowTo>

@@ -19,6 +19,7 @@ export type SetupAccount = {
   last_ingest_at: string | null;
   last_ingest_rows: number | null;
   last_ingest_reason: string | null;
+  last_ig_sync_at: string | null;
 };
 
 export type SetupStatus = {
@@ -27,7 +28,7 @@ export type SetupStatus = {
 };
 
 const SELECT =
-  "id,ad_account_id,ig_account_id,business_name,auth_type,connected,scopes,currency,timezone_name,token_valid,token_expires_at,last_validated_at,last_synced_at,last_sync_error,last_ingest_at,last_ingest_rows,last_ingest_reason";
+  "id,ad_account_id,ig_account_id,business_name,auth_type,connected,scopes,currency,timezone_name,token_valid,token_expires_at,last_validated_at,last_synced_at,last_sync_error,last_ingest_at,last_ingest_rows,last_ingest_reason,last_ig_sync_at";
 
 /** Everything the "Listo" states of the checklist display, read from the DB. */
 export const getSetupStatus = createServerFn({ method: "POST" })
