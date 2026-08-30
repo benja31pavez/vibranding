@@ -10,8 +10,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail, Smartphone, Monitor, MessageCircle, AlertTriangle, Moon, MapPin, HelpCircle, Quote } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Copy, Eye, Globe, Mail, Smartphone, Monitor, MessageCircle, AlertTriangle, Moon, MapPin, HelpCircle, Quote, Activity, Search } from "lucide-react";
 import { EventsPanel } from "@/components/landing/EventsPanel";
+import { LandingAnalytics } from "@/components/landing/LandingAnalytics";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { landingWhatsappText } from "@/lib/landingWhatsapp";
 import { PublicLandingView } from "@/components/landing/PublicLandingView";
 import {
@@ -54,6 +56,8 @@ type Landing = {
   faq_enabled: boolean;
   faq: FaqItem[];
   footer: LandingFooter;
+  seo_title: string | null;
+  seo_description: string | null;
 };
 
 
@@ -66,6 +70,7 @@ export function LandingEditor({ clientId }: { clientId: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">("mobile");
+  const [tab, setTab] = useState<"diseno" | "config" | "metricas">("diseno");
 
   const load = async () => {
     setLoading(true);
@@ -125,6 +130,8 @@ export function LandingEditor({ clientId }: { clientId: string }) {
       faq_enabled: lp.faq_enabled,
       faq: lp.faq as any,
       footer: lp.footer as any,
+      seo_title: lp.seo_title,
+      seo_description: lp.seo_description,
 
     }).eq("id", lp.id);
     setSaving(false);
@@ -239,31 +246,19 @@ export function LandingEditor({ clientId }: { clientId: string }) {
         </div>
       </div>
 
-      <div className="rounded-2xl border bg-surface p-5 flex flex-wrap items-center gap-3">
-        <div className="text-sm text-muted-foreground">URL pública:</div>
-        <code className="text-sm bg-secondary px-2 py-1 rounded break-all">{publicUrl}</code>
-        <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(publicUrl); toast.success("Copiado"); }}>
-          <Copy className="w-3.5 h-3.5" />
-        </Button>
-        {lp.published && (
-          <a href={publicUrl} target="_blank" rel="noreferrer" className="text-sm inline-flex items-center gap-1 text-primary hover:underline">
-            Abrir <ExternalLink className="w-3 h-3" />
-          </a>
-        )}
-        <div className="ml-auto text-xs text-muted-foreground">
-          {lp.view_count} visitas acumuladas
-        </div>
-      </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="space-y-5">
+        <TabsList>
+          <TabsTrigger value="diseno">Diseño</TabsTrigger>
+          <TabsTrigger value="config">Configuración</TabsTrigger>
+          <TabsTrigger value="metricas">Métricas</TabsTrigger>
+        </TabsList>
 
+        <TabsContent value="diseno">
       <div className="grid lg:grid-cols-[1fr_420px] gap-6 items-start">
         <div className="space-y-6 min-w-0">
           <section className="rounded-2xl border bg-surface p-5 space-y-4">
             <h3 className="font-medium">Diseño</h3>
             <div className="grid md:grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs">Slug</Label>
-                <Input value={lp.slug} onChange={e => update({ slug: e.target.value })} />
-              </div>
               <div>
                 <Label className="text-xs">Color principal</Label>
                 <Input type="color" value={lp.theme_color} onChange={e => update({ theme_color: e.target.value })} className="h-9 p-1" />
@@ -559,33 +554,6 @@ export function LandingEditor({ clientId }: { clientId: string }) {
             </div>
           </section>
 
-          <EventsPanel clientId={clientId} sourceType="landing" sourceId={lp.id} />
-
-
-          {/* Contact */}
-          <section className="rounded-2xl border bg-surface p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium flex items-center gap-2"><Mail className="w-4 h-4" /> Formulario de contacto</h3>
-              <Switch checked={lp.contact_enabled} onCheckedChange={v => update({ contact_enabled: v })} />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {subs.length} mensaje{subs.length !== 1 ? "s" : ""} recibido{subs.length !== 1 ? "s" : ""}.
-            </div>
-            <ul className="space-y-2">
-              {subs.map(s => (
-                <li key={s.id} className="rounded-lg border bg-background p-3 text-sm">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="min-w-0">
-                      <div className="font-medium">{s.name} <span className="text-muted-foreground font-normal">· {s.email}{s.phone ? ` · ${s.phone}` : ""}</span></div>
-                      <div className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString()}</div>
-                      <p className="mt-1 whitespace-pre-line">{s.message}</p>
-                    </div>
-                    <Button size="icon" variant="ghost" onClick={() => deleteSub(s.id)}><Trash2 className="w-4 h-4" /></Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
         </div>
 
         {/* Preview panel */}
@@ -635,6 +603,111 @@ export function LandingEditor({ clientId }: { clientId: string }) {
           )}
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="config" className="space-y-6">
+          <div className="rounded-2xl border bg-surface p-5 space-y-3">
+            <h3 className="font-medium text-sm">Publicación</h3>
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex-1 min-w-[220px]">
+                <Label className="text-xs">Slug (URL)</Label>
+                <Input value={lp.slug} onChange={e => update({ slug: e.target.value })} />
+              </div>
+              <Label className="flex items-center gap-2 text-sm h-9">
+                <Switch checked={lp.published} onCheckedChange={togglePub} />
+                {lp.published ? "Publicado" : "Borrador"}
+              </Label>
+              <Button onClick={save} disabled={saving}>Guardar</Button>
+            </div>
+          </div>
+
+        <div className="rounded-2xl border bg-surface p-5 flex flex-wrap items-center gap-3">
+          <div className="text-sm text-muted-foreground">URL pública:</div>
+          <code className="text-sm bg-secondary px-2 py-1 rounded break-all">{publicUrl}</code>
+          <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(publicUrl); toast.success("Copiado"); }}>
+            <Copy className="w-3.5 h-3.5" />
+          </Button>
+          {lp.published && (
+            <a href={publicUrl} target="_blank" rel="noreferrer" className="text-sm inline-flex items-center gap-1 text-primary hover:underline">
+              Abrir <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+          <div className="ml-auto text-xs text-muted-foreground">
+            {lp.view_count} visitas acumuladas
+          </div>
+        </div>
+
+          <section className="rounded-2xl border bg-surface p-5 space-y-3">
+            <h3 className="font-medium flex items-center gap-2"><Search className="w-4 h-4" /> SEO</h3>
+            <p className="text-xs text-muted-foreground">
+              Si lo dejas vacío se usa el título y subtítulo del hero.
+            </p>
+            <div>
+              <Label className="text-xs">Título SEO</Label>
+              <Input
+                placeholder={lp.hero_title}
+                value={lp.seo_title ?? ""}
+                onChange={e => update({ seo_title: e.target.value })}
+                maxLength={60}
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">{(lp.seo_title ?? "").length}/60 caracteres</p>
+            </div>
+            <div>
+              <Label className="text-xs">Descripción SEO</Label>
+              <Textarea
+                rows={2}
+                placeholder={lp.hero_subtitle ?? lp.hero_title}
+                value={lp.seo_description ?? ""}
+                onChange={e => update({ seo_description: e.target.value })}
+                maxLength={160}
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">{(lp.seo_description ?? "").length}/160 caracteres</p>
+            </div>
+          </section>
+
+            <section className="rounded-2xl border bg-surface p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium flex items-center gap-2"><Mail className="w-4 h-4" /> Formulario de contacto</h3>
+                <Switch checked={lp.contact_enabled} onCheckedChange={v => update({ contact_enabled: v })} />
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {subs.length} mensaje{subs.length !== 1 ? "s" : ""} recibido{subs.length !== 1 ? "s" : ""}.
+              </div>
+              <ul className="space-y-2">
+                {subs.map(s => (
+                  <li key={s.id} className="rounded-lg border bg-background p-3 text-sm">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
+                        <div className="font-medium">{s.name} <span className="text-muted-foreground font-normal">· {s.email}{s.phone ? ` · ${s.phone}` : ""}</span></div>
+                        <div className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString()}</div>
+                        <p className="mt-1 whitespace-pre-line">{s.message}</p>
+                      </div>
+                      <Button size="icon" variant="ghost" onClick={() => deleteSub(s.id)}><Trash2 className="w-4 h-4" /></Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+        </TabsContent>
+
+        <TabsContent value="metricas" className="space-y-6">
+          {!lp.published ? (
+            <div className="rounded-2xl border border-dashed bg-surface p-8 text-center space-y-2">
+              <Activity className="w-8 h-8 mx-auto text-muted-foreground" />
+              <p className="font-medium">Esta landing no está publicada</p>
+              <p className="text-sm text-muted-foreground">
+                Todavía no se registran visitas ni conversiones porque la página no es pública.
+                Publícala en Configuración para empezar a medir.
+              </p>
+            </div>
+          ) : (
+            <>
+              <LandingAnalytics clientId={clientId} landingId={lp.id} />
+                <EventsPanel clientId={clientId} sourceType="landing" sourceId={lp.id} />
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
