@@ -68,6 +68,12 @@ export function InstagramPage({ clientId }: { clientId: string }) {
     <div className="grid lg:grid-cols-[1fr_360px] gap-10">
       <div className="space-y-4">
         {view !== "proposed" && (
+          <p className="text-xs text-muted-foreground">
+            <strong className="text-foreground">Actual · sincronizado desde Instagram</strong> — el
+            estado real de la cuenta, guardado por fecha. Es una pista aparte de la propuesta.
+          </p>
+        )}
+        {view !== "proposed" && (
           <GridVersionBar
             clientId={clientId}
             versions={versions}
@@ -91,8 +97,8 @@ export function InstagramPage({ clientId }: { clientId: string }) {
         ) : view === "current" ? (
           versions.length === 0 ? (
             <p className="text-sm text-muted-foreground rounded-xl border bg-surface px-4 py-6 text-center">
-              Todavía no hay versiones de la grilla. Crea la primera con "Capturar estado actual" o
-              "Subir manualmente".
+              Todavía no hay versiones del grid Actual. Crea la primera con "Capturar estado actual"
+              o "Subir manualmente".
             </p>
           ) : versionEditable ? (
             <div className="border rounded-xl bg-surface px-4 py-3">
@@ -115,8 +121,8 @@ export function InstagramPage({ clientId }: { clientId: string }) {
           profile && (
             <>
               <p className="text-xs text-muted-foreground">
-                Editando la vista <strong className="text-accent">Propuesta</strong>. Las versiones
-                "Actual" son registros históricos y no se modifican.
+                <strong className="text-accent">Propuesta · plan editable</strong> — tu plan de
+                contenido. Vive en una pista aparte del grid Actual sincronizado.
               </p>
               <Accordion type="single" collapsible defaultValue="identity" className="w-full space-y-2">
                 <AccordionItem value="identity" className="border rounded-xl bg-surface px-4">

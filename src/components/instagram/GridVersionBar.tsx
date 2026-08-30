@@ -47,7 +47,8 @@ export function GridVersionBar({
     try {
       const res = await capture({ data: { clientId, label: monthLabel() } });
       if (!res.ok) {
-        toast.error(res.reason);
+        if (res.empty) toast.info(res.reason);
+        else toast.error(res.reason);
         return;
       }
       toast.success(`Versión "${res.label}" creada con ${res.mediaCount} publicaciones`);
@@ -98,7 +99,8 @@ export function GridVersionBar({
                 <span className="text-xs font-medium text-accent">Versión en curso</span>
               </TooltipTrigger>
               <TooltipContent>
-                Es la versión manual más reciente: puedes subir publicaciones aquí.
+                Es la versión manual más reciente: puedes subir publicaciones aquí. La
+              sincronización con Instagram no las modifica.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -176,7 +178,8 @@ export function GridVersionBar({
             <DialogTitle>Nueva versión manual</DialogTitle>
             <DialogDescription>
               Para cuentas sin conexión a Meta. Podrás subir las publicaciones de esta versión;
-              al crear la siguiente, esta queda como registro histórico.
+              al crear la siguiente, esta queda como registro histórico. La sincronización con
+              Instagram no toca estas publicaciones.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">
