@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Activity, AlertTriangle, RefreshCw } from "lucide-react";
-import { getJobHealth, type JobHealthRow } from "@/lib/admin/health.functions";
+import { getJobHealth, setJobSchedule, type JobHealthRow } from "@/lib/admin/health.functions";
 import { getIgWebhookStatus } from "@/lib/instagram/webhook.functions";
 
 export const Route = createFileRoute("/_app/admin/health")({
@@ -32,6 +32,14 @@ export const Route = createFileRoute("/_app/admin/health")({
 });
 
 const STALE_HOURS = 25;
+
+/** Frecuencias disponibles para el despachador del bot de WhatsApp. */
+const DISPATCH_SCHEDULES: Array<{ label: string; value: string }> = [
+  { label: "Cada 30 segundos", value: "30 seconds" },
+  { label: "Cada minuto", value: "* * * * *" },
+  { label: "Cada 2 minutos (recomendado)", value: "*/2 * * * *" },
+  { label: "Cada 5 minutos", value: "*/5 * * * *" },
+];
 
 function hoursSince(iso: string | null): number | null {
   if (!iso) return null;
@@ -63,6 +71,12 @@ function HealthPage() {
     refetchInterval: 300_000,
   });
   const igData = ig.data;
+
+  const saveSchedule = useServerFn(setJobSchedule);
+  const schedule = useMutation({
+    mutationFn: saveSchedule,
+    onSuccess: () => void refetch(),
+  });
   const igBlocked =
     !!igData &&
     (!igData.publicOriginConfigured ||
