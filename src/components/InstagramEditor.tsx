@@ -88,6 +88,7 @@ export interface IGPost {
   likes_count: number;
   ig_media_id: string | null;
   published_at: string | null;
+  version_id: string | null;
 }
 
 export interface IGComment {

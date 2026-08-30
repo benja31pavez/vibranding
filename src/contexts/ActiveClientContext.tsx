@@ -48,7 +48,12 @@ export function ClientProvider({ clientId, children }: { clientId: string; child
   const reloadIG = async () => {
     const [{ data: pr }, { data: ps }, { data: hi }, { data: cm }] = await Promise.all([
       supabase.from("instagram_profiles").select("*").eq("client_id", clientId).maybeSingle(),
-      supabase.from("instagram_posts").select("*").eq("client_id", clientId).is("archived_at", null),
+      supabase
+        .from("instagram_posts")
+        .select("*")
+        .eq("client_id", clientId)
+        // Versioned rows are a historical record: keep them even if a past sync archived them.
+        .or("archived_at.is.null,version_id.not.is.null"),
       supabase.from("instagram_highlights").select("*").eq("client_id", clientId),
       supabase.from("instagram_post_comments").select("*").eq("client_id", clientId),
     ]);
