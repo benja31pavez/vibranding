@@ -1045,6 +1045,8 @@ export type Database = {
           captured_at: string
           client_id: string
           created_at: string
+          followers: number | null
+          following: number | null
           id: string
           is_baseline: boolean
           label: string
@@ -1056,6 +1058,8 @@ export type Database = {
           captured_at?: string
           client_id: string
           created_at?: string
+          followers?: number | null
+          following?: number | null
           id?: string
           is_baseline?: boolean
           label: string
@@ -1067,6 +1071,8 @@ export type Database = {
           captured_at?: string
           client_id?: string
           created_at?: string
+          followers?: number | null
+          following?: number | null
           id?: string
           is_baseline?: boolean
           label?: string
