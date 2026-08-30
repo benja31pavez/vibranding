@@ -141,8 +141,9 @@ export async function syncInstagramAccountData(
 
 
 /**
- * Captures the account state as a NEW immutable grid version. Never touches
- * existing rows: past versions are a historical record.
+ * Captures the real account state as a NEW locked grid version of the "Actual"
+ * track. Never touches existing rows: past versions are a historical record,
+ * and the manual "Propuesta" plan lives on a separate track.
  */
 export async function captureInstagramVersion(
   clientId: string,
@@ -150,17 +151,18 @@ export async function captureInstagramVersion(
   token: string,
   label: string,
 ): Promise<
-  | { ok: false; reason: string }
+  | { ok: false; reason: string; empty?: boolean }
   | { ok: true; versionId: string; label: string; mediaCount: number }
 > {
   const media = await fetchInstagramMedia(igAccountId, token, 50);
   if (media.length === 0) {
     return {
       ok: false,
-      reason:
-        "Meta no devolvió publicaciones para esta cuenta, así que no se creó ninguna versión.",
+      empty: true,
+      reason: "La cuenta no tiene publicaciones. No se modificó nada.",
     };
   }
+
 
   const me = await graph<any>(igAccountId, {
     access_token: token,
