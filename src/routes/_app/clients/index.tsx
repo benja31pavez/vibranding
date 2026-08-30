@@ -72,6 +72,10 @@ function ClientsList() {
           </h1>
           <p className="text-muted-foreground mt-1">Gestiona las asesorías de cada uno.</p>
         </div>
+        <div className="flex items-center gap-2">
+        <Button asChild variant="outline" className="rounded-full h-11 px-5">
+          <Link to="/clients/connect">Conectar con Meta</Link>
+        </Button>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="rounded-full h-11 px-5 bg-gradient-brand bg-gradient-brand-animated text-white border-0 hover:opacity-90"><Plus className="w-4 h-4 mr-1" /> Nuevo cliente</Button>
