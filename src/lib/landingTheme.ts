@@ -190,3 +190,33 @@ export function asArray<T>(raw: unknown): T[] {
 export function asObject<T extends object>(raw: unknown): T {
   return raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as T) : ({} as T);
 }
+
+/* ---------------- section ordering ---------------- */
+
+export const LANDING_SECTION_KEYS = [
+  "servicios",
+  "galeria",
+  "whatsapp",
+  "testimonios",
+  "ubicacion",
+  "faq",
+] as const;
+
+export type LandingSectionKey = (typeof LANDING_SECTION_KEYS)[number];
+
+export const LANDING_SECTION_LABEL: Record<LandingSectionKey, string> = {
+  servicios: "Servicios",
+  galeria: "Galería",
+  whatsapp: "WhatsApp",
+  testimonios: "Testimonios",
+  ubicacion: "Ubicación y horarios",
+  faq: "Preguntas frecuentes",
+};
+
+/** Keeps existing landings on the hardcoded order when section_order is null. */
+export function resolveSectionOrder(raw: unknown): LandingSectionKey[] {
+  const list = Array.isArray(raw) ? raw.filter((k): k is LandingSectionKey =>
+    (LANDING_SECTION_KEYS as readonly string[]).includes(k as string)) : [];
+  const seen = new Set(list);
+  return [...list, ...LANDING_SECTION_KEYS.filter(k => !seen.has(k))];
+}
