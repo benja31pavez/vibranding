@@ -1293,6 +1293,8 @@ export type Database = {
           id: string
           job_name: string
           request_id: number | null
+          response_body: Json | null
+          rows_written: number | null
           started_at: string
           status: string
         }
@@ -1304,6 +1306,8 @@ export type Database = {
           id?: string
           job_name: string
           request_id?: number | null
+          response_body?: Json | null
+          rows_written?: number | null
           started_at?: string
           status?: string
         }
@@ -1315,6 +1319,8 @@ export type Database = {
           id?: string
           job_name?: string
           request_id?: number | null
+          response_body?: Json | null
+          rows_written?: number | null
           started_at?: string
           status?: string
         }
@@ -3149,6 +3155,11 @@ export type Database = {
       run_http_cron_job: {
         Args: { _job_name: string; _url: string }
         Returns: undefined
+      }
+      safe_jsonb: { Args: { _text: string }; Returns: Json }
+      set_job_schedule: {
+        Args: { _job_name: string; _schedule: string }
+        Returns: boolean
       }
       user_client_id: { Args: never; Returns: string }
       user_orgs: {

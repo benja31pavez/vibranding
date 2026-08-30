@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Activity, AlertTriangle, RefreshCw } from "lucide-react";
-import { getJobHealth, type JobHealthRow } from "@/lib/admin/health.functions";
+import { getJobHealth, setJobSchedule, type JobHealthRow } from "@/lib/admin/health.functions";
 import { getIgWebhookStatus } from "@/lib/instagram/webhook.functions";
 
 export const Route = createFileRoute("/_app/admin/health")({
@@ -32,6 +32,14 @@ export const Route = createFileRoute("/_app/admin/health")({
 });
 
 const STALE_HOURS = 25;
+
+/** Frecuencias disponibles para el despachador del bot de WhatsApp. */
+const DISPATCH_SCHEDULES: Array<{ label: string; value: string }> = [
+  { label: "Cada 30 segundos", value: "30 seconds" },
+  { label: "Cada minuto", value: "* * * * *" },
+  { label: "Cada 2 minutos (recomendado)", value: "*/2 * * * *" },
+  { label: "Cada 5 minutos", value: "*/5 * * * *" },
+];
 
 function hoursSince(iso: string | null): number | null {
   if (!iso) return null;
@@ -63,6 +71,12 @@ function HealthPage() {
     refetchInterval: 300_000,
   });
   const igData = ig.data;
+
+  const saveSchedule = useServerFn(setJobSchedule);
+  const schedule = useMutation({
+    mutationFn: saveSchedule,
+    onSuccess: () => void refetch(),
+  });
   const igBlocked =
     !!igData &&
     (!igData.publicOriginConfigured ||
@@ -311,40 +325,83 @@ function HealthPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Frecuencia del bot de WhatsApp</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-xs text-muted-foreground">
+            Actual:{" "}
+            <code className="bg-secondary px-1.5 py-0.5 rounded">
+              {(data?.jobs ?? []).find((j) => j.job_name === "whatsapp_ai_dispatch")?.schedule ??
+                "—"}
+            </code>{" "}
+            · Más frecuencia = respuestas más rápidas, pero más despertares de la base de datos y
+            por lo tanto mayor costo de cómputo. Menos frecuencia = más latencia en la respuesta al
+            cliente y menor costo.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {DISPATCH_SCHEDULES.map((s) => (
+              <Button
+                key={s.value}
+                size="sm"
+                variant="outline"
+                disabled={schedule.isPending}
+                onClick={() =>
+                  schedule.mutate({
+                    data: { jobName: "whatsapp_ai_dispatch", schedule: s.value },
+                  })
+                }
+              >
+                {s.label}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Últimas ejecuciones</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {(data?.recent ?? []).length === 0 && (
             <p className="text-sm text-muted-foreground">Sin registros todavía.</p>
           )}
-          {(data?.recent ?? []).map((r) => (
-            <div
-              key={r.id}
-              className="flex flex-wrap items-center justify-between gap-2 border-b pb-2 last:border-0 text-sm"
-            >
-              <span className="font-mono text-xs">{r.job_name}</span>
-              <span className="text-xs text-muted-foreground">{fmt(r.started_at)}</span>
-              <div className="flex items-center gap-2">
-                {r.http_status != null && (
-                  <span className="text-xs text-muted-foreground">HTTP {r.http_status}</span>
+          {(data?.recent ?? []).map((r) => {
+            const noData = r.status === "no_data" || (r.rows_written != null && r.rows_written === 0);
+            return (
+              <div
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-b pb-2 last:border-0 text-sm"
+              >
+                <span className="font-mono text-xs">{r.job_name}</span>
+                <span className="text-xs text-muted-foreground">{fmt(r.started_at)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {r.rows_written == null ? "filas: —" : `${r.rows_written} filas`}
+                  </span>
+                  {r.http_status != null && (
+                    <span className="text-xs text-muted-foreground">HTTP {r.http_status}</span>
+                  )}
+                  {r.status === "failed" ? (
+                    <Badge variant="destructive">failed</Badge>
+                  ) : noData ? (
+                    <Badge className="bg-amber-500 text-white hover:bg-amber-500">sin datos</Badge>
+                  ) : (
+                    <Badge variant={r.status === "succeeded" ? "default" : "secondary"}>
+                      {r.status}
+                    </Badge>
+                  )}
+                </div>
+                {r.error && <p className="w-full text-xs text-destructive break-all">{r.error}</p>}
+                {(r.status === "failed" || noData) && r.response_body && (
+                  <pre className="w-full max-h-48 overflow-auto rounded bg-secondary p-2 text-[11px] leading-snug whitespace-pre-wrap break-all">
+                    {r.response_body}
+                  </pre>
                 )}
-                <Badge
-                  variant={
-                    r.status === "succeeded"
-                      ? "default"
-                      : r.status === "failed"
-                        ? "destructive"
-                        : "secondary"
-                  }
-                >
-                  {r.status}
-                </Badge>
               </div>
-              {r.error && (
-                <p className="w-full text-xs text-destructive break-all">{r.error}</p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
     </div>

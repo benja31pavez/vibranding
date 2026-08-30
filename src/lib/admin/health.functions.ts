@@ -19,6 +19,9 @@ export type JobRunRow = {
   error: string | null;
   started_at: string;
   finished_at: string | null;
+  rows_written: number | null;
+  /** Pretty-printed response body, so the page can show it inline. */
+  response_body: string | null;
 };
 
 /** A connected Meta account that is not actually producing any data. */
@@ -46,7 +49,7 @@ export const getJobHealth = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const { data: recent } = await (supabaseAdmin.from("job_runs" as any) as any)
-      .select("id,job_name,status,http_status,error,started_at,finished_at")
+      .select("id,job_name,status,http_status,error,started_at,finished_at,rows_written,response_body")
       .order("started_at", { ascending: false })
       .limit(25);
 
@@ -82,8 +85,37 @@ export const getJobHealth = createServerFn({ method: "POST" })
 
     return {
       jobs: (health ?? []) as JobHealthRow[],
-      recent: (recent ?? []) as JobRunRow[],
+      recent: ((recent ?? []) as any[]).map((r) => ({
+        ...r,
+        rows_written: r.rows_written ?? null,
+        response_body:
+          r.response_body == null ? null : JSON.stringify(r.response_body, null, 2).slice(0, 4000),
+      })) as JobRunRow[],
       connections,
       checkedAt: new Date().toISOString(),
     };
+  });
+
+/**
+ * Lets the operator change how often a scheduled job runs.
+ * More frequency = lower response latency for the WhatsApp bot, but more
+ * database wake-ups (and therefore more compute cost) per hour.
+ */
+export const setJobSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { jobName: string; schedule: string }) => {
+    const schedule = String(input.schedule ?? "").trim();
+    if (!/^[\d*/,\-\s]+$/.test(schedule) && !/^\d+\s+seconds?$/.test(schedule)) {
+      throw new Error("Frecuencia inválida");
+    }
+    return { jobName: String(input.jobName), schedule };
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: ok, error } = await (supabaseAdmin.rpc as any)("set_job_schedule", {
+      _job_name: data.jobName,
+      _schedule: data.schedule,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: ok === true, schedule: data.schedule };
   });
