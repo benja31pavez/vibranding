@@ -3156,6 +3156,7 @@ export type Database = {
         Args: { _job_name: string; _url: string }
         Returns: undefined
       }
+      safe_jsonb: { Args: { _text: string }; Returns: Json }
       set_job_schedule: {
         Args: { _job_name: string; _schedule: string }
         Returns: boolean
