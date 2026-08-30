@@ -324,22 +324,12 @@ function SetupPage() {
     {
       n: 5,
       title: "Sincronizar Instagram",
-      unlocks: "Llena el grid con las publicaciones reales",
+      unlocks: "Llena el grid Actual con las publicaciones reales",
       state: caps.has_instagram ? "available" : "blocked",
       blockedBy: "Primero vincula Instagram (paso 3)",
-      body: (
-        <div className="space-y-3 text-sm">
-          <div className="flex gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-destructive">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>
-              Deshabilitado a propósito: la sincronización actual elimina las publicaciones subidas
-              a mano sin reemplazarlas. Se habilitará cuando ese error esté corregido.
-            </p>
-          </div>
-          <Button size="sm" disabled>Sincronizar Instagram</Button>
-        </div>
-      ),
+      body: <InstagramSyncStep clientId={clientId} />,
     },
+
     {
       n: 6,
       title: "Conectar WhatsApp",
