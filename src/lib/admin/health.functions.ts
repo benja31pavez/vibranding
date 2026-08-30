@@ -19,6 +19,8 @@ export type JobRunRow = {
   error: string | null;
   started_at: string;
   finished_at: string | null;
+  rows_written: number | null;
+  response_body: unknown;
 };
 
 /** A connected Meta account that is not actually producing any data. */
