@@ -19,10 +19,11 @@ export type IgMedia = {
 export type IgSyncResult = {
   profile: boolean;
   mediaCount: number;
-  archivedManual: number;
   syncedAt: string;
-  warning?: string;
+  /** Informational note (e.g. the account has no published media). */
+  note?: string;
 };
+
 
 
 function formatOf(media: IgMedia): "photo" | "carousel" | "reel" {
