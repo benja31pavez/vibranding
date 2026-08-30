@@ -1636,15 +1636,21 @@ export type Database = {
           client_id: string
           connected: boolean
           created_at: string
+          currency: string | null
           id: string
           ig_account_id: string | null
+          last_ingest_at: string | null
+          last_ingest_reason: string | null
+          last_ingest_rows: number | null
           last_sync_error: string | null
           last_synced_at: string | null
+          last_validated_at: string | null
           page_id: string | null
           scopes: string[]
           timezone_name: string | null
           token_expires_at: string | null
           token_secret_id: string | null
+          token_valid: boolean | null
           updated_at: string
         }
         Insert: {
@@ -1654,15 +1660,21 @@ export type Database = {
           client_id: string
           connected?: boolean
           created_at?: string
+          currency?: string | null
           id?: string
           ig_account_id?: string | null
+          last_ingest_at?: string | null
+          last_ingest_reason?: string | null
+          last_ingest_rows?: number | null
           last_sync_error?: string | null
           last_synced_at?: string | null
+          last_validated_at?: string | null
           page_id?: string | null
           scopes?: string[]
           timezone_name?: string | null
           token_expires_at?: string | null
           token_secret_id?: string | null
+          token_valid?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -1672,15 +1684,21 @@ export type Database = {
           client_id?: string
           connected?: boolean
           created_at?: string
+          currency?: string | null
           id?: string
           ig_account_id?: string | null
+          last_ingest_at?: string | null
+          last_ingest_reason?: string | null
+          last_ingest_rows?: number | null
           last_sync_error?: string | null
           last_synced_at?: string | null
+          last_validated_at?: string | null
           page_id?: string | null
           scopes?: string[]
           timezone_name?: string | null
           token_expires_at?: string | null
           token_secret_id?: string | null
+          token_valid?: boolean | null
           updated_at?: string
         }
         Relationships: [
