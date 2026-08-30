@@ -311,6 +311,42 @@ function HealthPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Frecuencia del bot de WhatsApp</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-xs text-muted-foreground">
+            Actual:{" "}
+            <code className="bg-secondary px-1.5 py-0.5 rounded">
+              {(data?.jobs ?? []).find((j) => j.job_name === "whatsapp_ai_dispatch")?.schedule ??
+                "—"}
+            </code>{" "}
+            · Más frecuencia = respuestas más rápidas, pero más despertares de la base de datos y
+            por lo tanto mayor costo de cómputo. Menos frecuencia = más latencia en la respuesta al
+            cliente y menor costo.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {DISPATCH_SCHEDULES.map((s) => (
+              <Button
+                key={s.value}
+                size="sm"
+                variant="outline"
+                disabled={schedule.isPending}
+                onClick={() =>
+                  schedule.mutate({
+                    data: { jobName: "whatsapp_ai_dispatch", schedule: s.value },
+                  })
+                }
+              >
+                {s.label}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Últimas ejecuciones</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
