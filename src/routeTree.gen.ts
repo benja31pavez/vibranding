@@ -40,6 +40,7 @@ import { Route as ApiMetaAdsDiscoverRouteImport } from './routes/api/meta-ads/di
 import { Route as ApiMetaAdsCreateCampaignRouteImport } from './routes/api/meta-ads/create-campaign'
 import { Route as ApiMetaAdsArchiveRouteImport } from './routes/api/meta-ads/archive'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
+import { Route as AppSettingsMetaRouteImport } from './routes/_app/settings/meta'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
 import { Route as AppAdminMetaDiagnosticsRouteImport } from './routes/_app/admin/meta-diagnostics'
 import { Route as AppAdminHealthRouteImport } from './routes/_app/admin/health'
@@ -223,6 +224,11 @@ const ApiMetaAdsArchiveRoute = ApiMetaAdsArchiveRouteImport.update({
 const AppSettingsPricingRoute = AppSettingsPricingRouteImport.update({
   id: '/settings/pricing',
   path: '/settings/pricing',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsMetaRoute = AppSettingsMetaRouteImport.update({
+  id: '/settings/meta',
+  path: '/settings/meta',
   getParentRoute: () => AppRoute,
 } as any)
 const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
@@ -412,6 +418,7 @@ export interface FileRoutesByFullPath {
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
+  '/settings/meta': typeof AppSettingsMetaRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
@@ -471,6 +478,7 @@ export interface FileRoutesByTo {
   '/review/$token': typeof ReviewTokenRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
+  '/settings/meta': typeof AppSettingsMetaRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
@@ -533,6 +541,7 @@ export interface FileRoutesById {
   '/_app/admin/health': typeof AppAdminHealthRoute
   '/_app/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
+  '/_app/settings/meta': typeof AppSettingsMetaRoute
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
   '/api/meta-ads/create-campaign': typeof ApiMetaAdsCreateCampaignRoute
@@ -595,6 +604,7 @@ export interface FileRouteTypes {
     | '/admin/health'
     | '/admin/meta-diagnostics'
     | '/clients/$clientId'
+    | '/settings/meta'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
     | '/api/meta-ads/create-campaign'
@@ -654,6 +664,7 @@ export interface FileRouteTypes {
     | '/review/$token'
     | '/admin/health'
     | '/admin/meta-diagnostics'
+    | '/settings/meta'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
     | '/api/meta-ads/create-campaign'
@@ -715,6 +726,7 @@ export interface FileRouteTypes {
     | '/_app/admin/health'
     | '/_app/admin/meta-diagnostics'
     | '/_app/clients/$clientId'
+    | '/_app/settings/meta'
     | '/_app/settings/pricing'
     | '/api/meta-ads/archive'
     | '/api/meta-ads/create-campaign'
@@ -999,6 +1011,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsPricingRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/meta': {
+      id: '/_app/settings/meta'
+      path: '/settings/meta'
+      fullPath: '/settings/meta'
+      preLoaderRoute: typeof AppSettingsMetaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/clients/$clientId': {
       id: '/_app/clients/$clientId'
       path: '/clients/$clientId'
@@ -1268,6 +1287,7 @@ interface AppRouteChildren {
   AppAdminHealthRoute: typeof AppAdminHealthRoute
   AppAdminMetaDiagnosticsRoute: typeof AppAdminMetaDiagnosticsRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRouteWithChildren
+  AppSettingsMetaRoute: typeof AppSettingsMetaRoute
   AppSettingsPricingRoute: typeof AppSettingsPricingRoute
   AppClientsIndexRoute: typeof AppClientsIndexRoute
 }
@@ -1282,6 +1302,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminHealthRoute: AppAdminHealthRoute,
   AppAdminMetaDiagnosticsRoute: AppAdminMetaDiagnosticsRoute,
   AppClientsClientIdRoute: AppClientsClientIdRouteWithChildren,
+  AppSettingsMetaRoute: AppSettingsMetaRoute,
   AppSettingsPricingRoute: AppSettingsPricingRoute,
   AppClientsIndexRoute: AppClientsIndexRoute,
 }
