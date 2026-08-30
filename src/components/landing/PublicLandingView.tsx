@@ -1,9 +1,10 @@
 import { MessageCircle, Mail, Phone, MapPin, Instagram, Facebook, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   landingPalette, templateKey, heroAspectKey, HERO_ASPECT_CSS, serviceIcon,
-  asArray, asObject, WEEKDAYS, withAlpha,
+  asArray, asObject, WEEKDAYS, withAlpha, resolveSectionOrder,
   type Testimonial, type FaqItem, type LandingLocation, type LandingFooter, type OpeningHour,
+  type LandingSectionKey,
 } from "@/lib/landingTheme";
 import { landingWhatsappUrl } from "@/lib/landingWhatsapp";
 
