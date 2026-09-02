@@ -16,6 +16,7 @@ import {
   MessageCircle,
   FileSignature,
   Building2,
+  ChevronDown,
 } from "lucide-react";
 
 const CURRENCY_OPTIONS = [
@@ -407,13 +408,11 @@ export function PricingPanel() {
       </div>
 
       {/* Agency / contract template */}
-      <div className="rounded-2xl border bg-card p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <Building2 className="w-5 h-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Datos de tu agencia</h2>
-        </div>
-        <p className="text-xs text-muted-foreground -mt-2">Se usan para autorellenar el contrato de cada cliente.</p>
-
+      <SettingsSection
+        title="Datos de tu agencia"
+        icon={<Building2 className="w-5 h-5 text-muted-foreground" />}
+        summary="Se autorellenan en cada contrato"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <TextLine
             label="Nombre legal / razón social"
@@ -466,16 +465,16 @@ export function PricingPanel() {
             </p>
           </div>
         </div>
-      </div>
+      </SettingsSection>
 
       {/* Contract clauses */}
-      <div className="rounded-2xl border bg-card p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <FileSignature className="w-5 h-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Cláusulas del contrato</h2>
-        </div>
-        <p className="text-xs text-muted-foreground -mt-2">
-          Cada cláusula aparece en todos los contratos. Puedes editarlas; déjalas en blanco para omitirlas.
+      <SettingsSection
+        title="Cláusulas del contrato"
+        icon={<FileSignature className="w-5 h-5 text-muted-foreground" />}
+        summary="Aparecen en todos los contratos"
+      >
+        <p className="text-xs text-muted-foreground">
+          Cada cláusula aparece en todos los contratos. Puedes editar su texto.
         </p>
 
         <ClauseField
@@ -506,11 +505,10 @@ export function PricingPanel() {
           onChange={(v) => setP_({ clause_extra: v })}
           onSave={(v) => saveP({ clause_extra: v })}
         />
-      </div>
+      </SettingsSection>
 
       {/* Notes */}
-      <div className="rounded-2xl border bg-card p-5 space-y-2">
-        <Label className="text-xs text-muted-foreground">Notas internas (no aparecen en contrato)</Label>
+      <SettingsSection title="Notas internas" summary="No aparecen en el contrato">
         <Textarea
           rows={3}
           value={p.notes ?? ""}
@@ -518,7 +516,7 @@ export function PricingPanel() {
           onBlur={(e) => saveP({ notes: e.target.value || null })}
           placeholder="Términos internos, descuentos por volumen, recordatorios…"
         />
-      </div>
+      </SettingsSection>
     </div>
   );
 }
@@ -563,6 +561,45 @@ function ServiceTotals({ services, currency }: { services: Record<ServiceKey, Se
           Todavía sin precio: {unpriced.map((s) => s.label).join(", ")}.
         </p>
       )}
+    </div>
+  );
+}
+
+// NOTE: duplicated in LandingEditor.tsx and MultilinkPage.tsx. Extract to a shared
+// component (e.g. components/ui/settings-section.tsx) when adding files is possible.
+function SettingsSection({
+  title,
+  icon,
+  summary,
+  action,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  summary?: string;
+  action?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  return (
+    <div className="rounded-2xl border bg-card">
+      <div className="flex items-center gap-2 px-4 py-3">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          className="flex-1 min-w-0 flex items-center gap-2 text-left"
+        >
+          {icon}
+          <span className="font-semibold truncate">{title}</span>
+          {summary && <span className="text-xs text-muted-foreground truncate">{summary}</span>}
+          <ChevronDown className={`w-4 h-4 shrink-0 ml-auto transition ${open ? "rotate-180" : ""}`} />
+        </button>
+        {action}
+      </div>
+      {open && <div className="px-5 pb-5 space-y-4">{children}</div>}
     </div>
   );
 }
