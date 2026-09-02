@@ -153,12 +153,14 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
 
   const structuredData = preview ? [] : buildStructuredData({ name: realTitle, lp, services, location, footer, faq });
 
-  const pad = compact ? "px-4 py-7" : "px-6 py-16 md:py-20";
-  const padTight = compact ? "px-4 py-5" : "px-6 py-10 md:py-12";
-  const h1 = compact ? "text-xl" : "text-4xl md:text-6xl";
-  const h2 = compact ? "text-sm" : "text-2xl md:text-3xl";
-  const body = compact ? "text-[11px]" : "text-base md:text-lg";
+  const pad = compact ? "px-4 py-7" : "px-6 py-20 md:py-28";
+  const padTight = compact ? "px-4 py-5" : "px-6 py-16 md:py-20";
+  const h1 = compact ? "text-xl" : "text-4xl md:text-6xl lg:text-7xl";
+  const h2 = compact ? "text-sm" : "text-3xl md:text-4xl";
+  const body = compact ? "text-[11px]" : "text-lg md:text-xl";
   const small = compact ? "text-[10px]" : "text-sm";
+  const eyebrowSize = compact ? "text-[8px]" : "text-xs";
+  const quote = compact ? "text-[11px]" : "text-lg";
 
   /* The CTA used to default to "#contacto" even when the contact section was
      disabled, producing a dead primary button. Resolve a real destination. */
@@ -202,14 +204,21 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
       services.length > 0 ? (
         <section data-section="servicios" className={pad} style={{ background: p.tint }}>
           <div className="max-w-6xl mx-auto">
-            <h2 className={`${h2} font-bold text-center ${compact ? "mb-3" : "mb-12"}`}>Servicios</h2>
+            <SectionHeading
+              eyebrow="Lo que hacemos"
+              title="Servicios"
+              palette={p}
+              compact={compact}
+              sizeClass={h2}
+              eyebrowClass={eyebrowSize}
+            />
             <div className={compact ? "space-y-2" : "grid md:grid-cols-3 gap-6"}>
               {services.map((s, i) => {
                 const Icon = serviceIcon(s.icon);
                 return (
                   <div
                     key={i}
-                    className={`${compact ? "rounded-xl p-3" : "rounded-2xl p-6"} border`}
+                    className={`${compact ? "rounded-xl p-3" : "rounded-2xl p-7"} border transition duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
                     style={{ background: p.surface, borderColor: p.border }}
                   >
                     <div
@@ -242,7 +251,14 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
       gallery.length > 0 ? (
         <section data-section="galeria" className={pad}>
           <div className="max-w-6xl mx-auto">
-            <h2 className={`${h2} font-bold text-center ${compact ? "mb-3" : "mb-12"}`}>Galería</h2>
+            <SectionHeading
+              eyebrow="Nuestro trabajo"
+              title="Galería"
+              palette={p}
+              compact={compact}
+              sizeClass={h2}
+              eyebrowClass={eyebrowSize}
+            />
             <ul className={compact ? "grid grid-cols-2 gap-2" : "grid grid-cols-2 md:grid-cols-3 gap-3"}>
               {gallery.map((g, i) => (
                 <li key={i}>
@@ -307,7 +323,14 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
       lp.testimonials_enabled && testimonials.length > 0 ? (
         <section data-section="testimonios" className={padTight} style={{ background: p.tint }}>
           <div className="max-w-5xl mx-auto">
-            <h2 className={`${h2} font-bold text-center ${compact ? "mb-3" : "mb-8"}`}>Lo que dicen</h2>
+            <SectionHeading
+              eyebrow="Testimonios"
+              title="Lo que dicen"
+              palette={p}
+              compact={compact}
+              sizeClass={h2}
+              eyebrowClass={eyebrowSize}
+            />
             <div className={compact ? "space-y-2" : "grid md:grid-cols-3 gap-5"}>
               {testimonials.map((t, i) => (
                 <figure
@@ -315,7 +338,7 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
                   className={`${compact ? "rounded-xl p-3" : "rounded-2xl p-5"} border`}
                   style={{ background: p.surface, borderColor: p.border }}
                 >
-                  <blockquote className={`${small} italic`} style={{ color: p.text }}>
+                  <blockquote className={`${quote} leading-relaxed`} style={{ color: p.text }}>
                     “{t.quote}”
                   </blockquote>
                   <figcaption className="mt-3 flex items-center gap-2">
@@ -353,7 +376,14 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
       lp.location_enabled && (location.address || location.map_embed_url || (location.hours ?? []).length > 0) ? (
         <section data-section="ubicacion" className={padTight}>
           <div className="max-w-5xl mx-auto">
-            <h2 className={`${h2} font-bold text-center ${compact ? "mb-3" : "mb-8"}`}>Dónde y cuándo</h2>
+            <SectionHeading
+              eyebrow="Visítanos"
+              title="Dónde y cuándo"
+              palette={p}
+              compact={compact}
+              sizeClass={h2}
+              eyebrowClass={eyebrowSize}
+            />
             <div className={compact ? "space-y-3" : "grid md:grid-cols-2 gap-6 items-start"}>
               <div
                 className={`${compact ? "rounded-xl p-3" : "rounded-2xl p-5"} border`}
@@ -404,7 +434,14 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
       lp.faq_enabled && faq.length > 0 ? (
         <section data-section="faq" className={padTight} style={{ background: p.tint }}>
           <div className="max-w-3xl mx-auto">
-            <h2 className={`${h2} font-bold text-center ${compact ? "mb-3" : "mb-8"}`}>Preguntas frecuentes</h2>
+            <SectionHeading
+              eyebrow="Resolvemos dudas"
+              title="Preguntas frecuentes"
+              palette={p}
+              compact={compact}
+              sizeClass={h2}
+              eyebrowClass={eyebrowSize}
+            />
             <div className="space-y-2">
               {faq.map((f, i) => (
                 <FaqRow key={i} item={f} palette={p} small={small} />
@@ -492,7 +529,15 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
       {lp.contact_enabled && (
         <section id="contacto" data-section="contacto" className={pad}>
           <div className="max-w-xl mx-auto">
-            <h2 className={`${h2} font-bold text-center mb-2`}>Contáctanos</h2>
+            <SectionHeading
+              eyebrow="Hablemos"
+              title="Contáctanos"
+              palette={p}
+              compact={compact}
+              sizeClass={h2}
+              eyebrowClass={eyebrowSize}
+              tight
+            />
             <p className={`text-center ${small} mb-6`} style={{ color: p.muted }}>
               Te responderemos lo antes posible.
             </p>
@@ -596,6 +641,39 @@ export function PublicLandingView({ lp, contactForm, preview, compact, onCtaClic
       {lightbox !== null && gallery[lightbox] && (
         <GalleryLightbox items={gallery} index={lightbox} onClose={() => setLightbox(null)} onIndex={setLightbox} />
       )}
+    </div>
+  );
+}
+
+function SectionHeading({
+  eyebrow,
+  title,
+  palette,
+  compact,
+  sizeClass,
+  eyebrowClass,
+  tight,
+}: {
+  eyebrow: string;
+  title: string;
+  palette: ReturnType<typeof landingPalette>;
+  compact?: boolean;
+  sizeClass: string;
+  eyebrowClass: string;
+  tight?: boolean;
+}) {
+  const gap = compact ? (tight ? "mb-2" : "mb-4") : tight ? "mb-4" : "mb-14";
+  return (
+    <div className={`text-center ${gap}`}>
+      <div className={`${eyebrowClass} font-semibold uppercase tracking-[0.18em]`} style={{ color: palette.brandText }}>
+        {eyebrow}
+      </div>
+      <h2 className={`${sizeClass} font-bold tracking-tight ${compact ? "mt-1" : "mt-3"}`}>{title}</h2>
+      <div
+        className={`mx-auto rounded-full ${compact ? "mt-2 h-0.5 w-6" : "mt-5 h-1 w-12"}`}
+        style={{ background: palette.brand }}
+        aria-hidden="true"
+      />
     </div>
   );
 }
