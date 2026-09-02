@@ -29,10 +29,9 @@ export const inviteClientUser = createServerFn({ method: "POST" })
   .inputValidator((d: { clientId: string; email: string }) => InviteInput.parse(d))
   .handler(async ({ data, context }) => {
     // Only owners/admins of the client's org may invite.
-    const { data: allowed, error: guardError } = await context.supabase.rpc(
-      "manages_client",
-      { _client_id: data.clientId },
-    );
+    const { data: allowed, error: guardError } = await context.supabase.rpc("manages_client", {
+      _client_id: data.clientId,
+    });
     if (guardError) throw new Error(guardError.message);
     if (!allowed) throw new Error("No tienes permisos para invitar en este cliente");
 
@@ -43,24 +42,32 @@ export const inviteClientUser = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const email = data.email.toLowerCase();
 
+    /** Find an existing auth user by email without minting a recovery link. */
+    const findExistingUserId = async (target: string): Promise<string | null> => {
+      const perPage = 200;
+      for (let page = 1; page <= 25; page++) {
+        const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+        if (error) throw new Error(error.message);
+        const match = list.users.find((u) => (u.email ?? "").toLowerCase() === target);
+        if (match) return match.id;
+        if (list.users.length < perPage) return null;
+      }
+      return null;
+    };
+
     let userId: string | null = null;
-    let inviteLink: string | null = null;
+    let alreadyRegistered = false;
 
     const invited = await supabaseAdmin.auth.admin.inviteUserByEmail(email, { redirectTo });
     if (invited.data?.user) {
       userId = invited.data.user.id;
     } else {
-      // Already registered or email delivery unavailable: fall back to a link.
-      const link = await supabaseAdmin.auth.admin.generateLink({
-        type: "recovery",
-        email,
-        options: { redirectTo },
-      });
-      if (link.error || !link.data?.user) {
-        throw new Error(invited.error?.message ?? link.error?.message ?? "No se pudo invitar");
-      }
-      userId = link.data.user.id;
-      inviteLink = link.data.properties?.action_link ?? null;
+      // The invite fails when the address already has an account. Grant access to that
+      // account instead of minting a recovery link: returning such a link to the caller
+      // would let any org admin take over any existing user's account.
+      userId = await findExistingUserId(email);
+      alreadyRegistered = true;
+      if (!userId) throw new Error(invited.error?.message ?? "No se pudo invitar");
     }
 
     const { error } = await supabaseAdmin
@@ -68,7 +75,7 @@ export const inviteClientUser = createServerFn({ method: "POST" })
       .upsert({ user_id: userId!, client_id: data.clientId, email }, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
 
-    return { ok: true, email, inviteLink };
+    return { ok: true, email, alreadyRegistered };
   });
 
 export const revokeClientUser = createServerFn({ method: "POST" })
