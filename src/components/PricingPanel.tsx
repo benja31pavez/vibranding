@@ -5,9 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
-  Sparkles, Search, Camera, Megaphone, MonitorSmartphone, MessageCircle, FileSignature, Building2,
+  Sparkles,
+  Search,
+  Camera,
+  Megaphone,
+  MonitorSmartphone,
+  MessageCircle,
+  FileSignature,
+  Building2,
 } from "lucide-react";
 
 const CURRENCY_OPTIONS = [
@@ -25,14 +33,51 @@ const CURRENCY_OPTIONS = [
 
 export type ServiceKey = "branding" | "optimization" | "content" | "ads" | "landing" | "chatbot";
 
-export const SERVICE_CATALOG: Array<{ key: ServiceKey; label: string; description: string; icon: any; tone: string }> = [
-  { key: "branding",     label: "Branding",     description: "Identidad visual, tono y estrategia clara.",                icon: Sparkles,         tone: "var(--brand-1)" },
-  { key: "optimization", label: "Optimización", description: "Perfil de Instagram y presencia digital optimizados.",      icon: Search,           tone: "var(--brand-2)" },
-  { key: "content",      label: "Contenido",    description: "Calendario, fotografía y copy semanal.",                    icon: Camera,           tone: "var(--brand-3)" },
-  { key: "ads",          label: "Anuncios",     description: "Campañas Meta Ads para captar nuevas audiencias.",          icon: Megaphone,        tone: "var(--brand-1)" },
-  { key: "landing",      label: "Landing Page", description: "Página clara que convierte curiosidad en interés real.",    icon: MonitorSmartphone,tone: "var(--brand-2)" },
-  { key: "chatbot",      label: "Chatbot",      description: "WhatsApp dedicado con chatbot que califica y cierra.",      icon: MessageCircle,    tone: "var(--brand-3)" },
-];
+export const SERVICE_CATALOG: Array<{ key: ServiceKey; label: string; description: string; icon: any; tone: string }> =
+  [
+    {
+      key: "branding",
+      label: "Branding",
+      description: "Identidad visual, tono y estrategia clara.",
+      icon: Sparkles,
+      tone: "var(--brand-1)",
+    },
+    {
+      key: "optimization",
+      label: "Optimización",
+      description: "Perfil de Instagram y presencia digital optimizados.",
+      icon: Search,
+      tone: "var(--brand-2)",
+    },
+    {
+      key: "content",
+      label: "Contenido",
+      description: "Calendario, fotografía y copy semanal.",
+      icon: Camera,
+      tone: "var(--brand-3)",
+    },
+    {
+      key: "ads",
+      label: "Anuncios",
+      description: "Campañas Meta Ads para captar nuevas audiencias.",
+      icon: Megaphone,
+      tone: "var(--brand-1)",
+    },
+    {
+      key: "landing",
+      label: "Landing Page",
+      description: "Página clara que convierte curiosidad en interés real.",
+      icon: MonitorSmartphone,
+      tone: "var(--brand-2)",
+    },
+    {
+      key: "chatbot",
+      label: "Chatbot",
+      description: "WhatsApp dedicado con chatbot que califica y cierra.",
+      icon: MessageCircle,
+      tone: "var(--brand-3)",
+    },
+  ];
 
 // ───────── Types ─────────
 
@@ -73,37 +118,37 @@ export interface ServicePricing {
 // ───────── Loaders ─────────
 
 export async function loadPricing(userId: string): Promise<PricingSettings | null> {
-  const { data } = await supabase
-    .from("pricing_settings")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
+  const { data, error } = await supabase.from("pricing_settings").select("*").eq("user_id", userId).maybeSingle();
+  if (error) throw new Error(error.message);
   if (data) return data as PricingSettings;
-  const { data: created } = await supabase
+  const { data: created, error: insertError } = await supabase
     .from("pricing_settings")
     .insert({ user_id: userId })
     .select("*")
     .single();
+  if (insertError) throw new Error(insertError.message);
   return (created as PricingSettings) ?? null;
 }
 
 export async function loadServicePricing(userId: string): Promise<Record<ServiceKey, ServicePricing>> {
-  const { data } = await supabase
-    .from("service_pricing")
-    .select("*")
-    .eq("user_id", userId);
+  const { data, error } = await supabase.from("service_pricing").select("*").eq("user_id", userId);
+  if (error) throw new Error(error.message);
   const byKey: Partial<Record<ServiceKey, ServicePricing>> = {};
-  (data ?? []).forEach((row: any) => { byKey[row.service_key as ServiceKey] = row as ServicePricing; });
-  // Ensure every catalog service has a row
-  for (const s of SERVICE_CATALOG) {
-    if (!byKey[s.key]) {
-      const { data: created } = await supabase
-        .from("service_pricing")
-        .insert({ user_id: userId, service_key: s.key })
-        .select("*")
-        .single();
-      if (created) byKey[s.key] = created as ServicePricing;
-    }
+  (data ?? []).forEach((row: any) => {
+    byKey[row.service_key as ServiceKey] = row as ServicePricing;
+  });
+
+  // Seed any missing catalog rows in a single round trip instead of six.
+  const missing = SERVICE_CATALOG.filter((s) => !byKey[s.key]);
+  if (missing.length > 0) {
+    const { data: created, error: seedError } = await supabase
+      .from("service_pricing")
+      .insert(missing.map((s) => ({ user_id: userId, service_key: s.key })))
+      .select("*");
+    if (seedError) throw new Error(seedError.message);
+    (created ?? []).forEach((row: any) => {
+      byKey[row.service_key as ServiceKey] = row as ServicePricing;
+    });
   }
   return byKey as Record<ServiceKey, ServicePricing>;
 }
@@ -111,7 +156,11 @@ export async function loadServicePricing(userId: string): Promise<Record<Service
 // ───────── UI helpers ─────────
 
 function MoneyInput({
-  label, value, onChange, onBlur, placeholder,
+  label,
+  value,
+  onChange,
+  onBlur,
+  placeholder,
 }: {
   label: string;
   value: number;
@@ -129,15 +178,20 @@ function MoneyInput({
         inputMode="decimal"
         value={Number.isFinite(value) ? String(value) : ""}
         placeholder={placeholder ?? "0"}
-        onChange={(e) => onChange(Number(e.target.value || 0))}
-        onBlur={(e) => onBlur(Number(e.target.value || 0))}
+        onChange={(e) => onChange(Math.max(0, Number(e.target.value || 0)))}
+        onBlur={(e) => onBlur(Math.max(0, Number(e.target.value || 0)))}
       />
     </div>
   );
 }
 
 function TextLine({
-  label, value, onChange, onBlur, type = "text", placeholder,
+  label,
+  value,
+  onChange,
+  onBlur,
+  type = "text",
+  placeholder,
 }: {
   label: string;
   value: string | number | null;
@@ -166,37 +220,91 @@ export function PricingPanel() {
   const { user } = useAuth();
   const [p, setP] = useState<PricingSettings | null>(null);
   const [services, setServices] = useState<Record<ServiceKey, ServicePricing> | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
   useEffect(() => {
     if (!user) return;
-    loadPricing(user.id).then(setP);
-    loadServicePricing(user.id).then(setServices);
+    let cancelled = false;
+    setLoadError(null);
+    Promise.all([loadPricing(user.id), loadServicePricing(user.id)])
+      .then(([pricing, svc]) => {
+        if (cancelled) return;
+        setP(pricing);
+        setServices(svc);
+      })
+      .catch((e: any) => {
+        if (!cancelled) setLoadError(e?.message ?? "Error desconocido");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
+  if (loadError) {
+    return (
+      <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-5 max-w-lg">
+        <div className="font-semibold text-sm">No se pudieron cargar tus servicios</div>
+        <p className="text-xs text-muted-foreground mt-1">{loadError}</p>
+      </div>
+    );
+  }
   if (!p || !services) return <div className="text-muted-foreground">Cargando…</div>;
+
+  const flashSaved = () => {
+    setSaveState("saved");
+    window.setTimeout(() => setSaveState("idle"), 1600);
+  };
 
   const setP_ = (patch: Partial<PricingSettings>) => setP({ ...p, ...patch });
   const saveP = async (patch: Partial<PricingSettings>) => {
-    const { error } = await supabase.from("pricing_settings").update(patch).eq("id", p.id);
-    if (error) toast.error(error.message);
+    setSaveState("saving");
+    const { data, error } = await supabase.from("pricing_settings").update(patch).eq("id", p.id).select("id");
+    if (error) {
+      setSaveState("idle");
+      toast.error(error.message);
+      return;
+    }
+    // No error but no row means RLS silently refused the write.
+    if (!data || data.length === 0) {
+      setSaveState("idle");
+      toast.error("No se guardó: no tienes permiso sobre este registro.");
+      return;
+    }
+    flashSaved();
   };
 
   const updateService = (key: ServiceKey, patch: Partial<ServicePricing>) => {
     setServices({ ...services, [key]: { ...services[key], ...patch } });
   };
   const saveService = async (id: string, patch: Partial<ServicePricing>) => {
-    const { error } = await supabase.from("service_pricing").update(patch).eq("id", id);
-    if (error) toast.error(error.message);
+    setSaveState("saving");
+    const { data, error } = await supabase.from("service_pricing").update(patch).eq("id", id).select("id");
+    if (error) {
+      setSaveState("idle");
+      toast.error(error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      setSaveState("idle");
+      toast.error("No se guardó: no tienes permiso sobre este registro.");
+      return;
+    }
+    flashSaved();
   };
 
   return (
     <div className="space-y-8 max-w-4xl">
       <div>
-        <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-          <span className="font-brand text-gradient-brand bg-gradient-brand-animated">Servicios</span>
-        </h1>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+            <span className="font-brand text-gradient-brand bg-gradient-brand-animated">Servicios</span>
+          </h1>
+          <SaveIndicator state={saveState} />
+        </div>
         <p className="text-muted-foreground text-sm mt-1">
-          Define el precio estándar de cada uno de los 6 servicios. Estos valores son los mismos para todos tus clientes y se usan al generar contratos.
+          Define el precio estándar de cada uno de los 6 servicios. Estos valores son los mismos para todos tus clientes
+          y se usan al generar contratos.
         </p>
       </div>
 
@@ -206,12 +314,19 @@ export function PricingPanel() {
           <Label className="text-xs text-muted-foreground">Moneda por defecto</Label>
           <Select
             value={p.currency}
-            onValueChange={(v) => { setP_({ currency: v }); saveP({ currency: v }); }}
+            onValueChange={(v) => {
+              setP_({ currency: v });
+              saveP({ currency: v });
+            }}
           >
-            <SelectTrigger><SelectValue placeholder="Selecciona una moneda" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecciona una moneda" />
+            </SelectTrigger>
             <SelectContent>
               {CURRENCY_OPTIONS.map((c) => (
-                <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                <SelectItem key={c.code} value={c.code}>
+                  {c.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -231,20 +346,30 @@ export function PricingPanel() {
             return (
               <div
                 key={svc.key}
-                className="rounded-2xl border bg-card p-5 space-y-4 transition-shadow hover:shadow-md"
+                className={`rounded-2xl border bg-card p-5 space-y-4 transition-shadow hover:shadow-md ${row.is_active ? "" : "opacity-55"}`}
                 style={{ borderColor: `color-mix(in oklab, ${svc.tone} 25%, hsl(var(--border)))` }}
               >
                 <div className="flex items-start gap-3">
                   <div
                     className="w-10 h-10 rounded-xl grid place-items-center shrink-0"
-                    style={{ background: `linear-gradient(135deg, ${svc.tone}, color-mix(in oklab, ${svc.tone} 55%, white))` }}
+                    style={{
+                      background: `linear-gradient(135deg, ${svc.tone}, color-mix(in oklab, ${svc.tone} 55%, white))`,
+                    }}
                   >
                     <Icon className="w-5 h-5 text-white" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="font-semibold leading-tight">{svc.label}</div>
                     <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{svc.description}</p>
                   </div>
+                  <Switch
+                    checked={row.is_active}
+                    onCheckedChange={(v) => {
+                      updateService(svc.key, { is_active: v });
+                      saveService(row.id, { is_active: v });
+                    }}
+                    aria-label={`Ofrecer ${svc.label}`}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -263,7 +388,9 @@ export function PricingPanel() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Qué incluye</Label>
+                  <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                    Qué incluye
+                  </Label>
                   <Textarea
                     rows={2}
                     value={row.included_text ?? ""}
@@ -276,6 +403,7 @@ export function PricingPanel() {
             );
           })}
         </div>
+        <ServiceTotals services={services} currency={p.currency} />
       </div>
 
       {/* Agency / contract template */}
@@ -330,10 +458,12 @@ export function PricingPanel() {
               min={1}
               max={120}
               value={p.payment_due_days}
-              onChange={(e) => setP_({ payment_due_days: Math.max(1, Number(e.target.value || 30)) })}
-              onBlur={(e) => saveP({ payment_due_days: Math.max(1, Number(e.target.value || 30)) })}
+              onChange={(e) => setP_({ payment_due_days: clampDays(e.target.value) })}
+              onBlur={(e) => saveP({ payment_due_days: clampDays(e.target.value) })}
             />
-            <p className="text-[11px] text-muted-foreground">Plazo máximo desde la entrega de cada etapa. Por defecto 30 días.</p>
+            <p className="text-[11px] text-muted-foreground">
+              Plazo máximo desde la entrega de cada etapa. Por defecto 30 días.
+            </p>
           </div>
         </div>
       </div>
@@ -393,8 +523,56 @@ export function PricingPanel() {
   );
 }
 
+function clampDays(raw: string): number {
+  return Math.min(120, Math.max(1, Number(raw || 30)));
+}
+
+function SaveIndicator({ state }: { state: "idle" | "saving" | "saved" }) {
+  if (state === "idle") return null;
+  return (
+    <span className="text-xs text-muted-foreground" role="status" aria-live="polite">
+      {state === "saving" ? "Guardando…" : "Guardado"}
+    </span>
+  );
+}
+
+function ServiceTotals({ services, currency }: { services: Record<ServiceKey, ServicePricing>; currency: string }) {
+  const active = SERVICE_CATALOG.filter((s) => services[s.key]?.is_active);
+  const setup = active.reduce((n, s) => n + Number(services[s.key].one_time_price || 0), 0);
+  const monthly = active.reduce((n, s) => n + Number(services[s.key].monthly_price || 0), 0);
+  const unpriced = active.filter(
+    (s) => Number(services[s.key].one_time_price) === 0 && Number(services[s.key].monthly_price) === 0,
+  );
+
+  return (
+    <div className="rounded-2xl border bg-card p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <div className="font-semibold">Si un cliente contrata todo</div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Suma de los {active.length} servicios activos · primer mes {fmtMoney(currency, setup + monthly)}
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold tabular-nums">{fmtMoney(currency, setup)}</div>
+          <div className="text-xs text-muted-foreground tabular-nums">+ {fmtMoney(currency, monthly)}/mes</div>
+        </div>
+      </div>
+      {unpriced.length > 0 && (
+        <p className="text-[11px] text-muted-foreground mt-3 border-t pt-3">
+          Todavía sin precio: {unpriced.map((s) => s.label).join(", ")}.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ClauseField({
-  label, value, fallback, onChange, onSave,
+  label,
+  value,
+  fallback,
+  onChange,
+  onSave,
 }: {
   label: string;
   value: string | null;
@@ -411,7 +589,10 @@ function ClauseField({
           <button
             type="button"
             className="text-[11px] text-muted-foreground underline hover:text-foreground"
-            onClick={() => { onChange(fallback); onSave(fallback); }}
+            onClick={() => {
+              onChange(fallback);
+              onSave(fallback);
+            }}
           >
             Restablecer
           </button>
@@ -434,7 +615,13 @@ function fmtMoney(currency: string, n: number) {
   return `${currency} ${Number(n).toLocaleString("es", { maximumFractionDigits: 2 })}`;
 }
 
-export function PricingSummary({ pricing, services }: { pricing: PricingSettings | null; services?: Record<ServiceKey, ServicePricing> | null }) {
+export function PricingSummary({
+  pricing,
+  services,
+}: {
+  pricing: PricingSettings | null;
+  services?: Record<ServiceKey, ServicePricing> | null;
+}) {
   if (!pricing) return null;
   const fmt = (n: number) => fmtMoney(pricing.currency, n);
   return (
@@ -452,11 +639,17 @@ export function PricingSummary({ pricing, services }: { pricing: PricingSettings
                 <div key={s.key} className="flex justify-between border-b last:border-0 py-1.5">
                   <div className="min-w-0">
                     <div className="font-medium">{s.label}</div>
-                    {row.included_text && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{row.included_text}</div>}
+                    {row.included_text && (
+                      <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{row.included_text}</div>
+                    )}
                   </div>
                   <div className="text-right shrink-0 ml-3">
-                    {Number(row.one_time_price) > 0 && <div className="font-semibold">{fmt(Number(row.one_time_price))}</div>}
-                    {Number(row.monthly_price) > 0 && <div className="text-xs text-muted-foreground">{fmt(Number(row.monthly_price))}/mes</div>}
+                    {Number(row.one_time_price) > 0 && (
+                      <div className="font-semibold">{fmt(Number(row.one_time_price))}</div>
+                    )}
+                    {Number(row.monthly_price) > 0 && (
+                      <div className="text-xs text-muted-foreground">{fmt(Number(row.monthly_price))}/mes</div>
+                    )}
                   </div>
                 </div>
               );
@@ -473,21 +666,14 @@ export function priceForFormat(pricing: PricingSettings, f: PostFormat): number 
   return f === "reel" ? pricing.reel_price : f === "carousel" ? pricing.carousel_price : pricing.photo_price;
 }
 
-export function ProposedCostsBreakdown({
-  pricing, posts,
-}: {
-  pricing: PricingSettings | null;
-  posts: IGPost[];
-}) {
+export function ProposedCostsBreakdown({ pricing, posts }: { pricing: PricingSettings | null; posts: IGPost[] }) {
   if (!pricing) return null;
-  const proposed = posts
-    .filter((p) => p.type === "proposed")
-    .sort((a, b) => a.position - b.position);
+  const proposed = posts.filter((p) => p.type === "proposed").sort((a, b) => a.position - b.position);
   if (!proposed.length) return null;
   const fmt = (n: number) => fmtMoney(pricing.currency, n);
   const subtotal = proposed.reduce((s, p) => s + priceForFormat(pricing, p.format), 0);
 
-  const label = (f: PostFormat) => f === "reel" ? "Reel" : f === "carousel" ? "Carrusel" : "Foto";
+  const label = (f: PostFormat) => (f === "reel" ? "Reel" : f === "carousel" ? "Carrusel" : "Foto");
 
   return (
     <div className="rounded-2xl border bg-card p-5">
