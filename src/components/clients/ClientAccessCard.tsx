@@ -1,14 +1,10 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, Trash2, Copy } from "lucide-react";
+import { Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  listClientUsers,
-  inviteClientUser,
-  revokeClientUser,
-} from "@/lib/clients/clientAccess.functions";
+import { listClientUsers, inviteClientUser, revokeClientUser } from "@/lib/clients/clientAccess.functions";
 
 interface Row {
   id: string;
@@ -25,7 +21,6 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
-  const [link, setLink] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -44,14 +39,12 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
     e.preventDefault();
     if (!email.trim()) return;
     setBusy(true);
-    setLink(null);
     try {
       const res = await invite({ data: { clientId, email: email.trim() } });
       setEmail("");
-      setLink(res.inviteLink ?? null);
       toast.success(
-        res.inviteLink
-          ? "Acceso creado. Comparte el enlace de invitación."
+        res.alreadyRegistered
+          ? "Ya tenía cuenta. Le dimos acceso; entra con su contraseña de siempre."
           : "Invitación enviada por correo",
       );
       load();
@@ -68,8 +61,8 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
         <Users className="w-4 h-4" /> Acceso del cliente
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        El cliente invitado solo puede ver su analítica, etapas y objetivos. No ve pagos,
-        contratos, otros clientes ni la bandeja de WhatsApp.
+        El cliente invitado solo puede ver su analítica, etapas y objetivos. No ve pagos, contratos, otros clientes ni
+        la bandeja de WhatsApp.
       </p>
 
       <form onSubmit={send} className="flex flex-wrap gap-2 mb-4">
@@ -84,24 +77,6 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
           {busy ? "Invitando…" : "Invitar"}
         </Button>
       </form>
-
-      {link && (
-        <div className="mb-4 rounded-xl border border-dashed p-3 text-xs break-all">
-          <div className="font-medium mb-1">Enlace de invitación</div>
-          {link}
-          <Button
-            size="sm"
-            variant="ghost"
-            className="mt-1"
-            onClick={() => {
-              navigator.clipboard.writeText(link);
-              toast.success("Enlace copiado");
-            }}
-          >
-            <Copy className="w-3.5 h-3.5 mr-1" /> Copiar
-          </Button>
-        </div>
-      )}
 
       {rows.length === 0 ? (
         <div className="text-sm text-muted-foreground">Todavía no has dado acceso a nadie.</div>
