@@ -94,6 +94,24 @@ export function PublicMultilinkView({
   const style = buttonStyleKey(ml.button_style);
   const shape = buttonShapeKey(ml.button_shape);
 
+  // A link-in-bio page is a profile: declare it so search engines can connect
+  // the account to its social presence.
+  const structuredData = useMemo(() => {
+    if (preview || !ml.title) return null;
+    const sameAs = socials.map((i) => itemHref(i)).filter((h): h is string => !!h && h.startsWith("http"));
+    return {
+      "@context": "https://schema.org",
+      "@type": "ProfilePage",
+      mainEntity: {
+        "@type": "Organization",
+        name: ml.title,
+        ...(ml.bio ? { description: ml.bio } : {}),
+        ...(ml.avatar_url ? { image: ml.avatar_url } : {}),
+        ...(sameAs.length > 0 ? { sameAs } : {}),
+      },
+    };
+  }, [preview, ml.title, ml.bio, ml.avatar_url, socials]);
+
   return (
     <div
       className={`relative ${preview ? "min-h-full" : "min-h-screen"}`}
@@ -110,8 +128,13 @@ export function PublicMultilinkView({
           : null),
       }}
     >
-      {theme.overlay && (
-        <div className="absolute inset-0 pointer-events-none" style={{ background: theme.overlay }} />
+      {theme.overlay && <div className="absolute inset-0 pointer-events-none" style={{ background: theme.overlay }} />}
+
+      {structuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
+        />
       )}
 
       <div className={`relative px-4 ${preview ? "py-8" : "py-12"}`}>
@@ -121,7 +144,7 @@ export function PublicMultilinkView({
             style={ml.avatar_url ? undefined : avatarFallbackStyle(theme, ml.theme_color)}
           >
             {ml.avatar_url ? (
-              <img src={ml.avatar_url} alt={ml.title} className="w-full h-full object-cover" />
+              <img src={ml.avatar_url} alt="" className="w-full h-full object-cover" />
             ) : (
               ml.title[0] || "?"
             )}
@@ -173,11 +196,14 @@ function SocialIcon({
   const net = socialNetwork(item);
   const Icon = SOCIAL_ICON[net];
   const href = itemHref(item);
+  // Nothing to link to: rendering "#" in a new tab just opened a blank copy.
+  if (!href) return null;
+  const external = href.startsWith("http");
   return (
     <a
-      href={href ?? "#"}
-      target={href?.startsWith("http") ? "_blank" : undefined}
-      rel="noreferrer noopener"
+      href={href}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noreferrer noopener" : undefined}
       aria-label={item.title || SOCIAL_LABEL[net]}
       title={item.title || SOCIAL_LABEL[net]}
       onClick={() => onClick(item)}
@@ -222,11 +248,12 @@ function PublicItem({
         {embed ? (
           <div className="aspect-video">
             {/\.(mp4|webm|mov)(\?|$)/i.test(embed) ? (
-              <video src={embed} controls className="w-full h-full object-cover" />
+              <video src={embed} controls preload="metadata" className="w-full h-full object-cover" />
             ) : (
               <iframe
                 src={embed}
                 title={item.title}
+                loading="lazy"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
                 allowFullScreen
                 className="w-full h-full"
@@ -249,19 +276,22 @@ function PublicItem({
   const href = itemHref(item);
   const isWa = item.kind === "whatsapp";
   const accent = isWa ? "#25D366" : color;
+  // Only http(s) destinations belong in a new tab — mailto:/tel: used to leave an
+  // orphan blank tab. Without an href we render plain content instead of a dead link.
+  const external = !!href && href.startsWith("http");
 
   if (item.featured) {
     return (
       <a
-        href={href ?? "#"}
-        target="_blank"
-        rel="noreferrer noopener"
-        onClick={() => onClick(item)}
+        href={href ?? undefined}
+        target={external ? "_blank" : undefined}
+        rel={external ? "noreferrer noopener" : undefined}
+        onClick={href ? () => onClick(item) : undefined}
         className="block overflow-hidden shadow-lg transition hover:scale-[1.01]"
         style={{ background: accent, color: "#fff", borderRadius: SHAPE_RADIUS[shape] }}
       >
         {item.thumbnail_url && (
-          <img src={item.thumbnail_url} alt="" className="w-full h-40 object-cover" />
+          <img src={item.thumbnail_url} alt="" loading="lazy" decoding="async" className="w-full h-40 object-cover" />
         )}
         <div className="px-5 py-5">
           <div className="text-lg font-semibold flex items-center gap-2">
@@ -280,10 +310,10 @@ function PublicItem({
   // thumbnail is absolutely positioned so it never pushes the text sideways.
   return (
     <a
-      href={href ?? "#"}
-      target="_blank"
-      rel="noreferrer noopener"
-      onClick={() => onClick(item)}
+      href={href ?? undefined}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noreferrer noopener" : undefined}
+      onClick={href ? () => onClick(item) : undefined}
       className={`relative flex items-center justify-center py-4 px-14 font-medium text-center ${visual.className}`}
       style={visual.style}
     >
@@ -291,6 +321,8 @@ function PublicItem({
         <img
           src={item.thumbnail_url}
           alt=""
+          loading="lazy"
+          decoding="async"
           className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg object-cover"
         />
       ) : isWa ? (
