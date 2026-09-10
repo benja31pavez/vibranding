@@ -326,7 +326,7 @@ async function runCaptureOrRefresh(
 
   await markSynced(clientId);
   // Report the label that is actually stored, not the one we intended.
-  return { ...res, label: String(persisted ?? clean) };
+  return { ...res, label: String(persisted ?? clean), replaced: true };
 }
 
 /** Drives the setup step state from a timestamp, never from row counts. */
