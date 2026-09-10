@@ -681,10 +681,11 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
                                   maxLength={300}
                                 />
                               </div>
-                            ) : i.kind === "social" ? (
+                            ) : i.kind === "social" || i.kind === "platform" ? (
                               <div className="flex gap-2">
                                 <SocialSelect
                                   value={i.icon ?? "instagram"}
+                                  kind={i.kind}
                                   onChange={(v) => {
                                     updateItem(i.id, { icon: v });
                                     persistItem({ ...i, icon: v });
