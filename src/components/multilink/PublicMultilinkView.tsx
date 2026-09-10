@@ -317,12 +317,12 @@ function PublicItem({
         {item.thumbnail_url && (
           <img src={item.thumbnail_url} alt="" loading="lazy" decoding="async" className="w-full h-40 object-cover" />
         )}
-        <div className="px-5 py-4 relative">
-          <div className="text-base font-semibold flex items-center gap-2 pr-8">
-            {isWa && <MessageCircle className="w-5 h-5" />}
+        <div className="px-4 py-3.5 relative text-left">
+          <div className="text-[0.95rem] font-semibold tracking-tight flex items-center gap-2 pr-8">
+            {isWa && <MessageCircle className="w-[18px] h-[18px] shrink-0" />}
             {item.title}
           </div>
-          {item.subtitle && <div className="text-sm opacity-90 mt-1">{item.subtitle}</div>}
+          {item.subtitle && <div className="text-[0.72rem] opacity-90 mt-0.5">{item.subtitle}</div>}
           <ArrowUpRight className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-65 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />
         </div>
       </a>
