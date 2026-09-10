@@ -81,6 +81,19 @@ function stageIcon(title: string) {
   return Package;
 }
 
+/** Un color propio por etapa, para que el plan no se vea gris. */
+function stageAccent(title: string) {
+  const normalized = title.trim().toLocaleLowerCase("es");
+  if (normalized === "branding") return { chip: "bg-chart-5/15 text-chart-5", bar: "bg-chart-5" };
+  if (normalized === "optimización" || normalized === "optimizacion") return { chip: "bg-chart-2/15 text-chart-2", bar: "bg-chart-2" };
+  if (normalized === "contenido") return { chip: "bg-chart-1/15 text-chart-1", bar: "bg-chart-1" };
+  if (normalized === "ads") return { chip: "bg-chart-3/20 text-chart-3", bar: "bg-chart-3" };
+  if (normalized === "landing page") return { chip: "bg-chart-4/15 text-chart-4", bar: "bg-chart-4" };
+  if (normalized === "chatbot") return { chip: "bg-success/15 text-success", bar: "bg-success" };
+  return { chip: "bg-secondary text-secondary-foreground", bar: "bg-primary" };
+}
+
+
 const statusMeta: Record<Status, { label: string; icon: any; cls: string }> = {
   pending: { label: "Pendiente", icon: Circle, cls: "text-muted-foreground" },
   in_progress: { label: "En curso", icon: Clock, cls: "text-warning" },
