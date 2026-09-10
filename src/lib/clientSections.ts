@@ -7,6 +7,7 @@ export type SectionKey =
   | "automatizacion"
   | "sitio"
   | "bandeja"
+  | "leads"
   | "facturacion"
   | "analytics";
 
@@ -39,9 +40,10 @@ export const CLIENT_SECTIONS: SectionDef[] = [
   { key: "sitio", label: "Sitio", lockedReason: () => null },
   {
     key: "bandeja",
-    label: "Bandeja",
+    label: "WhatsApp",
     lockedReason: (c) => (c.has_whatsapp ? null : "Falta conectar WhatsApp"),
   },
+  { key: "leads", label: "Leads", lockedReason: () => null },
   { key: "facturacion", label: "Facturación", lockedReason: () => null },
   {
     key: "analytics",
