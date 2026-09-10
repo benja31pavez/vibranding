@@ -945,14 +945,30 @@ function ScheduleBadge({ item }: { item: Item }) {
   return <span className={`text-[11px] px-2 py-1 rounded-full border ${s.className}`}>{s.label}</span>;
 }
 
-function SocialSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+const SOCIAL_NETWORKS: SocialNetwork[] = [
+  "instagram", "tiktok", "youtube", "facebook", "x", "linkedin", "email", "phone", "whatsapp",
+];
+const PLATFORM_NETWORKS: SocialNetwork[] = [
+  "spotify", "apple_music", "deezer", "tidal", "amazon_music",
+];
+
+function SocialSelect({
+  value,
+  kind,
+  onChange,
+}: {
+  value: string;
+  kind: "social" | "platform";
+  onChange: (v: string) => void;
+}) {
+  const networks = kind === "platform" ? PLATFORM_NETWORKS : SOCIAL_NETWORKS;
   return (
     <select
       className="h-9 rounded-md border bg-background px-2 text-sm"
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
-      {(Object.keys(SOCIAL_LABEL) as SocialNetwork[]).map((k) => (
+      {networks.map((k) => (
         <option key={k} value={k}>
           {SOCIAL_LABEL[k]}
         </option>
