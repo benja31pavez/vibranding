@@ -551,14 +551,14 @@ export function LandingEditor({ clientId }: { clientId: string }) {
                   onClick={() => setPreviewMode("mobile")}
                   className={`text-xs px-3 py-1.5 rounded-full border inline-flex items-center gap-1 transition ${previewMode === "mobile" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
                 >
-                  <Smartphone className="w-3.5 h-3.5" /> Móvil
+                  Móvil
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreviewMode("desktop")}
                   className={`text-xs px-3 py-1.5 rounded-full border inline-flex items-center gap-1 transition ${previewMode === "desktop" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
                 >
-                  <Monitor className="w-3.5 h-3.5" /> Escritorio
+                  Escritorio
                 </button>
               </div>
 

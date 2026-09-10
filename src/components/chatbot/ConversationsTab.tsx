@@ -367,9 +367,6 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
                   <Badge className="h-5 px-1.5 text-[10px]">{c.unread_count}</Badge>
                 )}
               </div>
-              <div className="text-xs text-muted-foreground truncate mt-0.5">
-                {c.last_message_preview ?? "—"}
-              </div>
               {(c.tags ?? []).length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {(c.tags ?? []).slice(0, 4).map((t) => (
