@@ -243,6 +243,17 @@ export async function captureOrRefreshSyncVersion(
   token: string,
   label: string,
 ): Promise<CaptureResult> {
+  const res = await runCaptureOrRefresh(clientId, igAccountId, token, label);
+  await logSyncRun(clientId, label.trim(), res);
+  return res;
+}
+
+async function runCaptureOrRefresh(
+  clientId: string,
+  igAccountId: string,
+  token: string,
+  label: string,
+): Promise<CaptureResult> {
   const clean = label.trim();
   await dropStaleStagingVersions(clientId);
 
