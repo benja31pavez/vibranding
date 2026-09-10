@@ -1,23 +1,25 @@
 import { Link } from "@tanstack/react-router";
 import {
-  BarChart3, CheckSquare, Facebook, Globe, Instagram, Lock, MessageCircle, Settings2, Zap,
+  BarChart3, CheckSquare, Globe, Instagram, Lock, MessageCircle, Settings2, Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { MetaIcon } from "@/components/icons/MetaIcon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { useReviewAlerts } from "@/hooks/use-review-alerts";
 import { CLIENT_SECTIONS, activeSectionCount, type SectionKey } from "@/lib/clientSections";
 
-const ICONS: Record<SectionKey, typeof CheckSquare> = {
+const ICONS: Record<SectionKey, React.ComponentType<{ className?: string }>> = {
   plan: CheckSquare,
   instagram: Instagram,
-  "meta-ads": Facebook,
+  "meta-ads": MetaIcon,
   automatizacion: Zap,
   sitio: Globe,
   bandeja: MessageCircle,
   facturacion: BarChart3,
   analytics: BarChart3,
 };
+
 
 const ROUTES: Record<SectionKey, string> = {
   plan: "/clients/$clientId/plan",

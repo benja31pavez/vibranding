@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Activity, AlertTriangle, RefreshCw } from "lucide-react";
+import { Activity, AlertTriangle, Instagram, RefreshCw } from "lucide-react";
 import { getJobHealth, setJobSchedule, type JobHealthRow } from "@/lib/admin/health.functions";
 import { getIgWebhookStatus } from "@/lib/instagram/webhook.functions";
+import { listIgSyncRuns } from "@/lib/admin/igSyncLog.functions";
 
 export const Route = createFileRoute("/_app/admin/health")({
   component: HealthPage,
@@ -404,6 +405,62 @@ function HealthPage() {
           })}
         </CardContent>
       </Card>
+
+      <IgSyncLogCard />
     </div>
+
+  );
+}
+
+/** Audit trail of Instagram sync runs: label swapped, media count and errors. */
+function IgSyncLogCard() {
+  const fetchRuns = useServerFn(listIgSyncRuns);
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ["ig-sync-runs"],
+    queryFn: () => fetchRuns(),
+    refetchInterval: 120_000,
+  });
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Instagram className="h-4 w-4" /> Sincronizaciones de Instagram
+        </CardTitle>
+        <Button size="sm" variant="ghost" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
+        {!isLoading && (data ?? []).length === 0 && (
+          <p className="text-sm text-muted-foreground">Todavía no hay sincronizaciones registradas.</p>
+        )}
+        {(data ?? []).map((r) => (
+          <div
+            key={r.id}
+            className="flex flex-wrap items-center gap-2 border-b pb-2 text-sm last:border-0"
+          >
+            <span className="font-medium">{r.client_name ?? "—"}</span>
+            <span className="text-xs text-muted-foreground">{fmt(r.created_at)}</span>
+            <span className="text-xs text-muted-foreground">
+              versión: {r.persisted_label ?? r.requested_label ?? "—"}
+              {r.swapped && " (reemplazada)"}
+              {r.is_baseline && " (estado inicial)"}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {r.media_count == null ? "publicaciones: —" : `${r.media_count} publicaciones`}
+            </span>
+            {r.status === "error" ? (
+              <Badge variant="destructive">error</Badge>
+            ) : (
+              <Badge variant="default">ok</Badge>
+            )}
+            {r.note && <p className="w-full text-xs text-muted-foreground">{r.note}</p>}
+            {r.error && <p className="w-full text-xs text-destructive break-all">{r.error}</p>}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
