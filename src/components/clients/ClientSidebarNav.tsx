@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
-  BarChart3, CheckSquare, Globe, Inbox, Instagram, Lock, Megaphone, Settings2, Zap,
+  BarChart3, CheckSquare, Facebook, Globe, Instagram, Lock, MessageCircle, Settings2, Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -11,10 +11,10 @@ import { CLIENT_SECTIONS, activeSectionCount, type SectionKey } from "@/lib/clie
 const ICONS: Record<SectionKey, typeof CheckSquare> = {
   plan: CheckSquare,
   instagram: Instagram,
-  "meta-ads": Megaphone,
+  "meta-ads": Facebook,
   automatizacion: Zap,
   sitio: Globe,
-  bandeja: Inbox,
+  bandeja: MessageCircle,
   facturacion: BarChart3,
   analytics: BarChart3,
 };
