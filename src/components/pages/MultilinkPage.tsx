@@ -637,14 +637,20 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
                                 onChange={(e) => {
                                   const kind = e.target.value as MultilinkItemKind;
                                   updateItem(i.id, { kind });
-                                  persistItem({ ...i, kind });
+                                persistItem({ ...i, kind });
                                 }}
                               >
-                                {(Object.keys(KIND_LABEL) as MultilinkItemKind[]).map((k) => (
-                                  <option key={k} value={k}>
-                                    {KIND_LABEL[k]}
-                                  </option>
-                                ))}
+                                <optgroup label="Enlaces">
+                                  <option value="link">{KIND_LABEL.link}</option>
+                                  <option value="whatsapp">{KIND_LABEL.whatsapp}</option>
+                                  <option value="video">{KIND_LABEL.video}</option>
+                                </optgroup>
+                                <optgroup label="Redes sociales">
+                                  <option value="social">{KIND_LABEL.social}</option>
+                                </optgroup>
+                                <optgroup label="Plataformas de música">
+                                  <option value="platform">{KIND_LABEL.platform}</option>
+                                </optgroup>
                               </select>
                               <button
                                 type="button"
