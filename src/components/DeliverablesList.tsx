@@ -522,6 +522,7 @@ function StageGridView({ items, selectedId, onSelect }: {
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => {
           const Icon = stageIcon(item.title);
+          const accent = stageAccent(item.title);
           const checklist = item.checklist ?? [];
           const done = checklist.filter((entry) => entry.done).length;
           const active = selectedId === item.id;
