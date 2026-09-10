@@ -166,7 +166,7 @@ export function PublicMultilinkView({
                 )}
               </div>
             </div>
-            <h1 className="mt-4 text-[1.7rem] leading-tight font-bold">{ml.title}</h1>
+            <h1 className="mt-4 text-[1.35rem] sm:text-[1.7rem] leading-tight font-bold tracking-tight">{ml.title}</h1>
             {ml.bio && <p className="mt-2 mx-auto max-w-xs text-sm leading-relaxed opacity-70 whitespace-pre-line">{ml.bio}</p>}
 
             {socials.length > 0 && (
