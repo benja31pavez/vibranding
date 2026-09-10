@@ -448,6 +448,53 @@ export type Database = {
           },
         ]
       }
+      client_tasks: {
+        Row: {
+          assignee: string | null
+          client_id: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          sort_order: number
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee?: string | null
+          client_id: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee?: string | null
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_users: {
         Row: {
           client_id: string
