@@ -112,17 +112,13 @@ function SetupPage() {
   const metaInstructions = (
     <>
       <p>
-        En Business Manager crea un System User con rol de administrador, asígnale la cuenta
-        publicitaria y la página/Instagram, y genera un token permanente con estos permisos:
+        Da acceso de lectura a la cuenta publicitaria y a la cuenta de Instagram del cliente, y
+        pega la clave de acceso en la tarjeta de conexión de Meta Ads.
       </p>
-      <p className="flex flex-wrap gap-1">
-        {META_SCOPES.map((s) => (
-          <code key={s} className="rounded bg-background px-1.5 py-0.5 text-xs">
-            {s}
-          </code>
-        ))}
+      <p className="flex items-center gap-1.5">
+        <ScopesInfo />
+        <span className="text-xs">Ver los permisos que se solicitan</span>
       </p>
-      <p>Luego pégalo en la tarjeta de conexión de Meta Ads.</p>
     </>
   );
 
