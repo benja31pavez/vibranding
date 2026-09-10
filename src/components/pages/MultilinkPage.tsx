@@ -539,31 +539,15 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
               </div>
 
               {previewMode === "mobile" ? (
-                <div className="mx-auto" style={{ width: 320 }}>
-                  <div className="relative rounded-[3rem] bg-black p-2 shadow-2xl">
-                    <div className="relative rounded-[2.5rem] overflow-hidden" style={{ aspectRatio: "9/19.5" }}>
-                      <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-30" />
-                      <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        <PublicMultilinkView ml={previewMl} items={items} preview />
-                      </div>
-                    </div>
+                <div className="mx-auto max-w-[375px] h-[640px] rounded-2xl border shadow-lg overflow-hidden bg-background">
+                  <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <PublicMultilinkView ml={previewMl} items={items} preview />
                   </div>
                 </div>
               ) : (
-                <div className="mx-auto w-full max-w-[560px]">
-                  <div className="relative rounded-t-xl bg-black p-3 pb-2 shadow-2xl">
-                    <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-zinc-700 rounded-full" />
-                    <div className="relative rounded-md overflow-hidden mt-2" style={{ aspectRatio: "16/10" }}>
-                      <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        <PublicMultilinkView ml={previewMl} items={items} preview />
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className="relative mx-auto h-3 bg-zinc-800 rounded-b-xl"
-                    style={{ width: "115%", marginLeft: "-7.5%" }}
-                  >
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1.5 bg-zinc-700 rounded-b-md" />
+                <div className="mx-auto max-w-[560px] h-[480px] rounded-2xl border shadow-lg overflow-hidden bg-background">
+                  <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <PublicMultilinkView ml={previewMl} items={items} preview />
                   </div>
                 </div>
               )}
@@ -653,14 +637,20 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
                                 onChange={(e) => {
                                   const kind = e.target.value as MultilinkItemKind;
                                   updateItem(i.id, { kind });
-                                  persistItem({ ...i, kind });
+                                persistItem({ ...i, kind });
                                 }}
                               >
-                                {(Object.keys(KIND_LABEL) as MultilinkItemKind[]).map((k) => (
-                                  <option key={k} value={k}>
-                                    {KIND_LABEL[k]}
-                                  </option>
-                                ))}
+                                <optgroup label="Enlaces">
+                                  <option value="link">{KIND_LABEL.link}</option>
+                                  <option value="whatsapp">{KIND_LABEL.whatsapp}</option>
+                                  <option value="video">{KIND_LABEL.video}</option>
+                                </optgroup>
+                                <optgroup label="Redes sociales">
+                                  <option value="social">{KIND_LABEL.social}</option>
+                                </optgroup>
+                                <optgroup label="Plataformas de música">
+                                  <option value="platform">{KIND_LABEL.platform}</option>
+                                </optgroup>
                               </select>
                               <button
                                 type="button"
@@ -691,10 +681,11 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
                                   maxLength={300}
                                 />
                               </div>
-                            ) : i.kind === "social" ? (
+                            ) : i.kind === "social" || i.kind === "platform" ? (
                               <div className="flex gap-2">
                                 <SocialSelect
                                   value={i.icon ?? "instagram"}
+                                  kind={i.kind}
                                   onChange={(v) => {
                                     updateItem(i.id, { icon: v });
                                     persistItem({ ...i, icon: v });
@@ -954,14 +945,30 @@ function ScheduleBadge({ item }: { item: Item }) {
   return <span className={`text-[11px] px-2 py-1 rounded-full border ${s.className}`}>{s.label}</span>;
 }
 
-function SocialSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+const SOCIAL_NETWORKS: SocialNetwork[] = [
+  "instagram", "tiktok", "youtube", "facebook", "x", "linkedin", "email", "phone", "whatsapp",
+];
+const PLATFORM_NETWORKS: SocialNetwork[] = [
+  "spotify", "apple_music", "deezer", "tidal", "amazon_music",
+];
+
+function SocialSelect({
+  value,
+  kind,
+  onChange,
+}: {
+  value: string;
+  kind: "social" | "platform";
+  onChange: (v: string) => void;
+}) {
+  const networks = kind === "platform" ? PLATFORM_NETWORKS : SOCIAL_NETWORKS;
   return (
     <select
       className="h-9 rounded-md border bg-background px-2 text-sm"
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
-      {(Object.keys(SOCIAL_LABEL) as SocialNetwork[]).map((k) => (
+      {networks.map((k) => (
         <option key={k} value={k}>
           {SOCIAL_LABEL[k]}
         </option>

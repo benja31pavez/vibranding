@@ -1,4 +1,4 @@
-export type MultilinkItemKind = "link" | "whatsapp" | "video" | "social";
+export type MultilinkItemKind = "link" | "whatsapp" | "video" | "social" | "platform";
 
 export type MultilinkItem = {
   id: string;
@@ -45,11 +45,13 @@ export const KIND_LABEL: Record<MultilinkItemKind, string> = {
   whatsapp: "WhatsApp",
   video: "Video",
   social: "Red social",
+  platform: "Plataforma",
 };
 
 export type SocialNetwork =
   | "instagram" | "tiktok" | "youtube" | "spotify"
-  | "facebook" | "x" | "linkedin" | "email" | "phone";
+  | "facebook" | "x" | "linkedin" | "email" | "phone" | "whatsapp"
+  | "apple_music" | "deezer" | "tidal" | "amazon_music";
 
 export const SOCIAL_LABEL: Record<SocialNetwork, string> = {
   instagram: "Instagram",
@@ -61,6 +63,11 @@ export const SOCIAL_LABEL: Record<SocialNetwork, string> = {
   linkedin: "LinkedIn",
   email: "Email",
   phone: "Teléfono",
+  whatsapp: "WhatsApp",
+  apple_music: "Apple Music",
+  deezer: "Deezer",
+  tidal: "Tidal",
+  amazon_music: "Amazon Music",
 };
 
 export function socialNetwork(i: MultilinkItem): SocialNetwork {
@@ -78,6 +85,10 @@ export function socialHref(i: MultilinkItem): string | null {
     const digits = raw.replace(/[^\d+]/g, "");
     return digits ? `tel:${digits}` : null;
   }
+  if (net === "whatsapp") {
+    const digits = raw.replace(/\D/g, "");
+    return digits.length < 8 ? null : `https://wa.me/${digits}`;
+  }
   if (/^https?:\/\//i.test(raw)) return raw;
   const handle = raw.replace(/^@/, "");
   const bases: Record<SocialNetwork, string> = {
@@ -90,6 +101,11 @@ export function socialHref(i: MultilinkItem): string | null {
     linkedin: "https://linkedin.com/in/",
     email: "mailto:",
     phone: "tel:",
+    whatsapp: "https://wa.me/",
+    apple_music: "https://music.apple.com/",
+    deezer: "https://deezer.com/",
+    tidal: "https://tidal.com/",
+    amazon_music: "https://music.amazon.com/",
   };
   return `${bases[net]}${handle}`;
 }
@@ -125,7 +141,7 @@ export function waHref(i: MultilinkItem): string | null {
 /** Destination for a clickable item; null for items rendered inline (video). */
 export function itemHref(i: MultilinkItem): string | null {
   if (i.kind === "whatsapp") return waHref(i);
-  if (i.kind === "social") return socialHref(i);
+  if (i.kind === "social" || i.kind === "platform") return socialHref(i);
   if (i.kind === "video") return null;
   return i.url && i.url !== "https://" ? i.url : null;
 }
