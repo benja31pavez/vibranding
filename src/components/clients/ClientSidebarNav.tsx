@@ -9,7 +9,7 @@ import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { useReviewAlerts } from "@/hooks/use-review-alerts";
 import { CLIENT_SECTIONS, activeSectionCount, type SectionKey } from "@/lib/clientSections";
 
-const ICONS: Record<SectionKey, (p: { className?: string }) => JSX.Element> = {
+const ICONS: Record<SectionKey, React.ComponentType<{ className?: string }>> = {
   plan: CheckSquare,
   instagram: Instagram,
   "meta-ads": MetaIcon,
