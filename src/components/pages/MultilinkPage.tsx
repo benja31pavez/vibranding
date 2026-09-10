@@ -65,6 +65,7 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">("mobile");
   const [tab, setTab] = useState<TabKey>("diseno");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
