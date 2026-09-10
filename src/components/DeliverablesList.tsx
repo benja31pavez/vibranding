@@ -536,7 +536,7 @@ function StageGridView({ items, selectedId, onSelect }: {
               className={`group min-h-28 rounded-lg border bg-surface p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none ${active ? "border-accent ring-2 ring-accent/15" : "border-border"}`}
             >
               <div className="flex items-start gap-3">
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground group-hover:text-foreground"}`}>
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${active ? "bg-primary text-primary-foreground" : accent.chip}`}>
                   <Icon className="h-5 w-5" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -549,7 +549,7 @@ function StageGridView({ items, selectedId, onSelect }: {
               {item.checklist_enabled && checklist.length > 0 && (
                 <div className="mt-3 flex items-center gap-2 pl-13 text-xs text-muted-foreground">
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-success transition-all" style={{ width: `${(done / checklist.length) * 100}%` }} />
+                    <div className={`h-full ${accent.bar} transition-all`} style={{ width: `${(done / checklist.length) * 100}%` }} />
                   </div>
                   <span>{done}/{checklist.length}</span>
                 </div>
