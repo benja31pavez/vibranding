@@ -117,6 +117,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [seeding, setSeeding] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(true);
   const [draft, setDraft] = useState({ title: "", description: "", due_date: "", type: "post" as DType, folder_id: "" as string });
 
   const load = async () => {
@@ -345,6 +346,17 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     return map;
   }, [filtered, folders]);
 
+  const orderedStages = useMemo(
+    () => [...items].sort((a, b) => stageRank(a.title) - stageRank(b.title) || a.sort_order - b.sort_order),
+    [items],
+  );
+  const selectedStage = orderedStages.find((item) => item.id === selectedId) ?? orderedStages[0];
+
+  const selectStage = (id: string) => {
+    setSelectedId(id);
+    setDetailOpen(true);
+  };
+
   return (
     <div
       className={`space-y-3 rounded-2xl transition-colors ${dragOver === "root" ? "outline-dashed outline-2 outline-primary/60 bg-primary/5 p-2 -m-2" : ""}`}
@@ -358,9 +370,32 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
         }
       }}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-lg font-semibold">Etapas</h3>
-        <div className="flex items-center gap-2">
+      <h3 className="text-lg font-semibold">Etapas</h3>
+
+      {loading ? <div className="text-sm text-muted-foreground">Cargando…</div>
+        : items.length === 0 && folders.length === 0 ? (
+          <div className="rounded-2xl border border-dashed p-8 text-center space-y-3">
+            <div className="text-sm text-muted-foreground">
+              Aún no hay etapas. Puedes empezar con el set por defecto de tus seis servicios.
+            </div>
+            <Button size="sm" className="rounded-full" disabled={seeding} onClick={seedStarter}>
+              {seeding ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+              Crear etapas iniciales
+            </Button>
+            <div className="text-[11px] text-muted-foreground">
+              {STARTER_STAGES.map((s) => s.title).join(" · ")}
+            </div>
+          </div>
+        ) : (
+          <StageGridView
+            items={orderedStages}
+            selectedId={selectedStage?.id ?? null}
+            onSelect={selectStage}
+          />
+        )}
+
+      {!loading && items.length > 0 && (
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
           {view === "timeline" && <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
             <SelectTrigger className="h-8 text-xs w-auto gap-1 rounded-full"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -398,7 +433,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
             </Button>
           )}
         </div>
-      </div>
+      )}
 
       {addingFolder && (
         <div className="rounded-2xl border bg-surface p-3 flex items-center gap-2">
@@ -435,57 +470,48 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
         </div>
       )}
 
-      {loading ? <div className="text-sm text-muted-foreground">Cargando…</div>
-        : items.length === 0 && folders.length === 0 ? (
-          <div className="rounded-2xl border border-dashed p-8 text-center space-y-3">
-            <div className="text-sm text-muted-foreground">
-              Aún no hay etapas. Puedes empezar con el set por defecto de tus seis servicios.
+      {!loading && items.length > 0 && (view === "timeline" ? (
+        <TimelineView items={filtered} update={update} />
+      ) : selectedStage ? (
+        <section id={`stage-detail-${selectedStage.id}`} aria-label={`Detalle de ${selectedStage.title}`} className="border-t pt-6">
+          <button
+            type="button"
+            aria-expanded={detailOpen}
+            aria-controls={`stage-detail-content-${selectedStage.id}`}
+            onClick={() => setDetailOpen((open) => !open)}
+            className="flex w-full items-center justify-between gap-4 rounded-md py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <div>
+              <p className="text-xs font-medium uppercase text-muted-foreground">Detalle de etapa</p>
+              <h3 className="mt-1 text-xl font-semibold">{selectedStage.title}</h3>
             </div>
-            <Button size="sm" className="rounded-full" disabled={seeding} onClick={seedStarter}>
-              {seeding ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
-              Crear etapas iniciales
-            </Button>
-            <div className="text-[11px] text-muted-foreground">
-              {STARTER_STAGES.map((s) => s.title).join(" · ")}
+            <ChevronDown className={`h-4 w-4 transition-transform ${detailOpen ? "rotate-180" : ""}`} />
+          </button>
+          {detailOpen && (
+            <div id={`stage-detail-content-${selectedStage.id}`} className="mt-4">
+              {selectedStage.file_url
+                ? <MediaTile it={selectedStage} update={update} remove={remove} />
+                : <DeliverableCard it={selectedStage} folders={folders} update={update} remove={remove} />}
             </div>
-          </div>
-        ) : view === "timeline" ? (
-          <TimelineView items={filtered} update={update} />
-        ) : (
-          <StageGridView
-            items={items}
-            folders={folders}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            update={update}
-            remove={remove}
-          />
-        )}
+          )}
+        </section>
+      ) : null)}
     </div>
   );
 }
 
-function StageGridView({ items, folders, selectedId, onSelect, update, remove }: {
+function StageGridView({ items, selectedId, onSelect }: {
   items: Row[];
-  folders: FolderRow[];
   selectedId: string | null;
   onSelect: (id: string) => void;
-  update: (id: string, patch: any) => void;
-  remove: (id: string) => void;
 }) {
-  const ordered = [...items].sort((a, b) => stageRank(a.title) - stageRank(b.title) || a.sort_order - b.sort_order);
-  const selected = ordered.find((item) => item.id === selectedId) ?? ordered[0];
-
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {ordered.map((item) => {
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((item) => {
           const Icon = stageIcon(item.title);
-          const meta = statusMeta[item.status];
-          const StatusIcon = meta.icon;
           const checklist = item.checklist ?? [];
           const done = checklist.filter((entry) => entry.done).length;
-          const active = selected?.id === item.id;
+          const active = selectedId === item.id;
           return (
             <button
               key={item.id}
@@ -493,22 +519,21 @@ function StageGridView({ items, folders, selectedId, onSelect, update, remove }:
               aria-expanded={active}
               aria-controls={`stage-detail-${item.id}`}
               onClick={() => onSelect(item.id)}
-              className={`group min-h-44 rounded-lg border bg-surface p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none ${active ? "border-accent ring-2 ring-accent/15" : "border-border"}`}
+              className={`group min-h-28 rounded-lg border bg-surface p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none ${active ? "border-accent ring-2 ring-accent/15" : "border-border"}`}
             >
-              <div className="mb-5 flex items-start justify-between gap-3">
-                <span className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground group-hover:text-foreground"}`}>
+              <div className="flex items-start gap-3">
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground group-hover:text-foreground"}`}>
                   <Icon className="h-5 w-5" />
                 </span>
-                <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${meta.cls}`}>
-                  <StatusIcon className="h-3.5 w-3.5" /> {meta.label}
-                </span>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-base font-semibold">{item.title}</h4>
+                  <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                    {item.description || "Sin descripción todavía."}
+                  </p>
+                </div>
               </div>
-              <h4 className="text-base font-semibold">{item.title}</h4>
-              <p className="mt-1 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
-                {item.description || "Sin descripción todavía."}
-              </p>
               {item.checklist_enabled && checklist.length > 0 && (
-                <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="mt-3 flex items-center gap-2 pl-13 text-xs text-muted-foreground">
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                     <div className="h-full bg-success transition-all" style={{ width: `${(done / checklist.length) * 100}%` }} />
                   </div>
@@ -518,24 +543,6 @@ function StageGridView({ items, folders, selectedId, onSelect, update, remove }:
             </button>
           );
         })}
-      </div>
-
-      {selected && (
-        <section id={`stage-detail-${selected.id}`} aria-label={`Detalle de ${selected.title}`} className="border-t pt-6">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-medium uppercase text-muted-foreground">Detalle de etapa</p>
-              <h3 className="mt-1 text-xl font-semibold">{selected.title}</h3>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => onSelect(selected.id)} aria-label="Etapa seleccionada">
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </div>
-          {selected.file_url
-            ? <MediaTile it={selected} update={update} remove={remove} />
-            : <DeliverableCard it={selected} folders={folders} update={update} remove={remove} />}
-        </section>
-      )}
     </div>
   );
 }
