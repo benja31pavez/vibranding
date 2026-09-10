@@ -330,16 +330,16 @@ function PublicItem({
   }
 
   const visual = itemVisual(style, shape, accent, theme);
+  const hasLead = !!item.thumbnail_url || isWa;
 
-  // The label is centred against the full button width; the leading icon or
-  // thumbnail is absolutely positioned so it never pushes the text sideways.
+  // Editorial row: leading media/icon, left-aligned label, trailing arrow.
   return (
     <a
       href={href ?? undefined}
       target={external ? "_blank" : undefined}
       rel={external ? "noreferrer noopener" : undefined}
       onClick={href ? () => onClick(item) : undefined}
-      className={`group relative flex min-h-16 items-center justify-center py-3.5 px-14 font-medium text-center shadow-sm ${visual.className}`}
+      className={`group relative flex min-h-14 items-center gap-3 py-3 pr-10 ${hasLead ? "pl-3" : "pl-4"} text-left shadow-sm ${visual.className}`}
       style={visual.style}
     >
       {item.thumbnail_url ? (
@@ -348,16 +348,16 @@ function PublicItem({
           alt=""
           loading="lazy"
           decoding="async"
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg object-cover"
+          className="shrink-0 w-9 h-9 rounded-lg object-cover"
         />
       ) : isWa ? (
-        <MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" />
+        <MessageCircle className="shrink-0 w-5 h-5" />
       ) : null}
-      <span className="min-w-0">
-        {item.title}
-        {item.subtitle && <span className="block text-xs opacity-80">{item.subtitle}</span>}
+      <span className="min-w-0 flex-1">
+        <span className="block text-[0.95rem] font-semibold leading-snug tracking-tight">{item.title}</span>
+        {item.subtitle && <span className="block text-[0.7rem] leading-snug opacity-75">{item.subtitle}</span>}
       </span>
-      <ArrowUpRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-45 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />
+      <ArrowUpRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-45 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />
     </a>
   );
 }
