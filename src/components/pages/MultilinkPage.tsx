@@ -54,7 +54,7 @@ import {
 } from "@/lib/multilinkTheme";
 import type { IGProfile } from "@/components/InstagramEditor";
 
-type TabKey = "diseno" | "config" | "metricas";
+type TabKey = "diseno" | "enlaces" | "config" | "metricas";
 
 export function MultilinkPage({ clientId }: { clientId: string }) {
   const { client } = useActiveClient();
@@ -299,6 +299,7 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-5">
         <TabsList>
           <TabsTrigger value="diseno">Diseño</TabsTrigger>
+          <TabsTrigger value="enlaces">Enlaces</TabsTrigger>
           <TabsTrigger value="config">Configuración</TabsTrigger>
           <TabsTrigger value="metricas">Métricas</TabsTrigger>
         </TabsList>
@@ -516,6 +517,62 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
                 </Button>
               </SettingsSection>
 
+            </div>
+
+            {/* Preview */}
+            <div className="md:sticky md:top-20 h-fit space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode("mobile")}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition ${previewMode === "mobile" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
+                >
+                  📱 Móvil
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode("desktop")}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition ${previewMode === "desktop" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
+                >
+                  💻 Escritorio
+                </button>
+              </div>
+
+              {previewMode === "mobile" ? (
+                <div className="mx-auto" style={{ width: 320 }}>
+                  <div className="relative rounded-[3rem] bg-black p-2 shadow-2xl">
+                    <div className="relative rounded-[2.5rem] overflow-hidden" style={{ aspectRatio: "9/19.5" }}>
+                      <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-30" />
+                      <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <PublicMultilinkView ml={previewMl} items={items} preview />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mx-auto w-full max-w-[560px]">
+                  <div className="relative rounded-t-xl bg-black p-3 pb-2 shadow-2xl">
+                    <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-zinc-700 rounded-full" />
+                    <div className="relative rounded-md overflow-hidden mt-2" style={{ aspectRatio: "16/10" }}>
+                      <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <PublicMultilinkView ml={previewMl} items={items} preview />
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="relative mx-auto h-3 bg-zinc-800 rounded-b-xl"
+                    style={{ width: "115%", marginLeft: "-7.5%" }}
+                  >
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1.5 bg-zinc-700 rounded-b-md" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="enlaces" className="space-y-6">
+          <div className="max-w-3xl">
               <SettingsSection
                 title="Enlaces"
                 defaultOpen
@@ -685,59 +742,9 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
                   })}
                 </ul>
               </SettingsSection>
-            </div>
-
-            {/* Preview */}
-            <div className="md:sticky md:top-20 h-fit space-y-3">
-              <div className="flex items-center justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPreviewMode("mobile")}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition ${previewMode === "mobile" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
-                >
-                  📱 Móvil
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewMode("desktop")}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition ${previewMode === "desktop" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
-                >
-                  💻 Escritorio
-                </button>
-              </div>
-
-              {previewMode === "mobile" ? (
-                <div className="mx-auto" style={{ width: 320 }}>
-                  <div className="relative rounded-[3rem] bg-black p-2 shadow-2xl">
-                    <div className="relative rounded-[2.5rem] overflow-hidden" style={{ aspectRatio: "9/19.5" }}>
-                      <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-30" />
-                      <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        <PublicMultilinkView ml={previewMl} items={items} preview />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="mx-auto w-full max-w-[560px]">
-                  <div className="relative rounded-t-xl bg-black p-3 pb-2 shadow-2xl">
-                    <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-zinc-700 rounded-full" />
-                    <div className="relative rounded-md overflow-hidden mt-2" style={{ aspectRatio: "16/10" }}>
-                      <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        <PublicMultilinkView ml={previewMl} items={items} preview />
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className="relative mx-auto h-3 bg-zinc-800 rounded-b-xl"
-                    style={{ width: "115%", marginLeft: "-7.5%" }}
-                  >
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1.5 bg-zinc-700 rounded-b-md" />
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </TabsContent>
+
 
         <TabsContent value="config" className="space-y-6">
           <SettingsSection title="Publicación" defaultOpen>
