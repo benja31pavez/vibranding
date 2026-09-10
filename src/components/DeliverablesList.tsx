@@ -81,6 +81,19 @@ function stageIcon(title: string) {
   return Package;
 }
 
+/** Un color propio por etapa, para que el plan no se vea gris. */
+function stageAccent(title: string) {
+  const normalized = title.trim().toLocaleLowerCase("es");
+  if (normalized === "branding") return { chip: "bg-chart-5/15 text-chart-5", bar: "bg-chart-5" };
+  if (normalized === "optimización" || normalized === "optimizacion") return { chip: "bg-chart-2/15 text-chart-2", bar: "bg-chart-2" };
+  if (normalized === "contenido") return { chip: "bg-chart-1/15 text-chart-1", bar: "bg-chart-1" };
+  if (normalized === "ads") return { chip: "bg-chart-3/20 text-chart-3", bar: "bg-chart-3" };
+  if (normalized === "landing page") return { chip: "bg-chart-4/15 text-chart-4", bar: "bg-chart-4" };
+  if (normalized === "chatbot") return { chip: "bg-success/15 text-success", bar: "bg-success" };
+  return { chip: "bg-secondary text-secondary-foreground", bar: "bg-primary" };
+}
+
+
 const statusMeta: Record<Status, { label: string; icon: any; cls: string }> = {
   pending: { label: "Pendiente", icon: Circle, cls: "text-muted-foreground" },
   in_progress: { label: "En curso", icon: Clock, cls: "text-warning" },
@@ -509,6 +522,7 @@ function StageGridView({ items, selectedId, onSelect }: {
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => {
           const Icon = stageIcon(item.title);
+          const accent = stageAccent(item.title);
           const checklist = item.checklist ?? [];
           const done = checklist.filter((entry) => entry.done).length;
           const active = selectedId === item.id;
@@ -522,7 +536,7 @@ function StageGridView({ items, selectedId, onSelect }: {
               className={`group min-h-28 rounded-lg border bg-surface p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none ${active ? "border-accent ring-2 ring-accent/15" : "border-border"}`}
             >
               <div className="flex items-start gap-3">
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground group-hover:text-foreground"}`}>
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${active ? "bg-primary text-primary-foreground" : accent.chip}`}>
                   <Icon className="h-5 w-5" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -535,7 +549,7 @@ function StageGridView({ items, selectedId, onSelect }: {
               {item.checklist_enabled && checklist.length > 0 && (
                 <div className="mt-3 flex items-center gap-2 pl-13 text-xs text-muted-foreground">
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-success transition-all" style={{ width: `${(done / checklist.length) * 100}%` }} />
+                    <div className={`h-full ${accent.bar} transition-all`} style={{ width: `${(done / checklist.length) * 100}%` }} />
                   </div>
                   <span>{done}/{checklist.length}</span>
                 </div>

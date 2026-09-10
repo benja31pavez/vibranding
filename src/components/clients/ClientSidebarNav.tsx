@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
-  BarChart3, CheckSquare, Globe, Instagram, Lock, MessageCircle, Settings2, UserPlus, Zap,
+  BarChart3, Flag, Globe, Instagram, Lock, MessageCircle, Settings2, UserPlus, Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MetaIcon } from "@/components/icons/MetaIcon";
@@ -10,7 +10,7 @@ import { useReviewAlerts } from "@/hooks/use-review-alerts";
 import { CLIENT_SECTIONS, activeSectionCount, type SectionKey } from "@/lib/clientSections";
 
 const ICONS: Record<SectionKey, React.ComponentType<{ className?: string }>> = {
-  plan: CheckSquare,
+  plan: Flag,
   instagram: Instagram,
   "meta-ads": MetaIcon,
   automatizacion: Zap,
