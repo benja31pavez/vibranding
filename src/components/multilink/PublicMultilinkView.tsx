@@ -104,8 +104,8 @@ export function PublicMultilinkView({
 
   // Scheduled items appear and disappear on their own.
   const visible = useMemo(() => items.filter((i) => itemIsLive(i)), [items]);
-  const socials = visible.filter((i) => i.kind === "social");
-  const rest = visible.filter((i) => i.kind !== "social");
+  const socials = visible.filter((i) => i.kind === "social" || i.kind === "platform");
+  const rest = visible.filter((i) => i.kind !== "social" && i.kind !== "platform");
 
   const bg = parseBackground(ml.background);
   const theme = surfaceTheme(ml.theme_mode, bg);
