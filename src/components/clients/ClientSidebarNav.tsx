@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
-  BarChart3, CheckSquare, Globe, Instagram, Lock, MessageCircle, Settings2, Zap,
+  BarChart3, CheckSquare, Globe, Instagram, Lock, MessageCircle, Settings2, UserPlus, Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MetaIcon } from "@/components/icons/MetaIcon";
@@ -16,6 +16,7 @@ const ICONS: Record<SectionKey, React.ComponentType<{ className?: string }>> = {
   automatizacion: Zap,
   sitio: Globe,
   bandeja: MessageCircle,
+  leads: UserPlus,
   facturacion: BarChart3,
   analytics: BarChart3,
 };
@@ -28,6 +29,7 @@ const ROUTES: Record<SectionKey, string> = {
   automatizacion: "/clients/$clientId/automatizacion",
   sitio: "/clients/$clientId/sitio",
   bandeja: "/clients/$clientId/bandeja",
+  leads: "/clients/$clientId/leads",
   facturacion: "/clients/$clientId/facturacion",
   analytics: "/clients/$clientId/analytics",
 };
