@@ -27,8 +27,13 @@ export function UpcomingBookings() {
 
   const load = async () => {
     if (!user) return;
-    const s = await ensure({ data: { clientId: null } });
-    setTimezone((s as any).timezone ?? "UTC");
+    try {
+      const s = await ensure({ data: { clientId: null } });
+      setTimezone((s as any).timezone ?? "UTC");
+    } catch {
+      toast.error("No se pudo cargar la configuración de la agenda");
+      return;
+    }
     const { data } = await supabase
       .from("bookings")
       .select("*")

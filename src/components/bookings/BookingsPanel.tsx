@@ -99,9 +99,13 @@ export function BookingsPanel() {
 
   const load = async () => {
     if (!user) return;
-    const s = await ensure({ data: { clientId: null } });
-    setSettings(s as unknown as Settings);
-    setDraftHours((s as unknown as Settings).hours);
+    try {
+      const s = await ensure({ data: { clientId: null } });
+      setSettings(s as unknown as Settings);
+      setDraftHours((s as unknown as Settings).hours);
+    } catch {
+      toast.error("No se pudo cargar la agenda. Inténtalo de nuevo.");
+    }
   };
 
   useEffect(() => {
