@@ -539,31 +539,15 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
               </div>
 
               {previewMode === "mobile" ? (
-                <div className="mx-auto" style={{ width: 320 }}>
-                  <div className="relative rounded-[3rem] bg-black p-2 shadow-2xl">
-                    <div className="relative rounded-[2.5rem] overflow-hidden" style={{ aspectRatio: "9/19.5" }}>
-                      <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-30" />
-                      <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        <PublicMultilinkView ml={previewMl} items={items} preview />
-                      </div>
-                    </div>
+                <div className="mx-auto max-w-[375px] h-[640px] rounded-2xl border shadow-lg overflow-hidden bg-background">
+                  <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <PublicMultilinkView ml={previewMl} items={items} preview />
                   </div>
                 </div>
               ) : (
-                <div className="mx-auto w-full max-w-[560px]">
-                  <div className="relative rounded-t-xl bg-black p-3 pb-2 shadow-2xl">
-                    <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-zinc-700 rounded-full" />
-                    <div className="relative rounded-md overflow-hidden mt-2" style={{ aspectRatio: "16/10" }}>
-                      <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        <PublicMultilinkView ml={previewMl} items={items} preview />
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className="relative mx-auto h-3 bg-zinc-800 rounded-b-xl"
-                    style={{ width: "115%", marginLeft: "-7.5%" }}
-                  >
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1.5 bg-zinc-700 rounded-b-md" />
+                <div className="mx-auto max-w-[560px] h-[480px] rounded-2xl border shadow-lg overflow-hidden bg-background">
+                  <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <PublicMultilinkView ml={previewMl} items={items} preview />
                   </div>
                 </div>
               )}
