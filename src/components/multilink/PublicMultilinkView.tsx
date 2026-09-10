@@ -94,7 +94,7 @@ export function PublicMultilinkView({
   const theme = surfaceTheme(ml.theme_mode, bg);
   const style = buttonStyleKey(ml.button_style);
   const shape = buttonShapeKey(ml.button_shape);
-  const panelBackground = theme.isDark ? "rgba(13,13,15,0.96)" : "rgba(255,255,255,0.97)";
+  const panelBackground = theme.isDark ? "rgba(13,13,15,0.96)" : "rgba(250,248,245,0.98)";
   const subtleBorder = theme.isDark ? "rgba(255,255,255,0.1)" : "rgba(10,10,10,0.09)";
   const coverBackground =
     bg.type === "image" && bg.url
@@ -166,7 +166,7 @@ export function PublicMultilinkView({
                 )}
               </div>
             </div>
-            <h1 className="mt-4 text-[1.7rem] leading-tight font-bold">{ml.title}</h1>
+            <h1 className="mt-4 text-[1.35rem] sm:text-[1.7rem] leading-tight font-bold tracking-tight">{ml.title}</h1>
             {ml.bio && <p className="mt-2 mx-auto max-w-xs text-sm leading-relaxed opacity-70 whitespace-pre-line">{ml.bio}</p>}
 
             {socials.length > 0 && (
@@ -317,12 +317,12 @@ function PublicItem({
         {item.thumbnail_url && (
           <img src={item.thumbnail_url} alt="" loading="lazy" decoding="async" className="w-full h-40 object-cover" />
         )}
-        <div className="px-5 py-4 relative">
-          <div className="text-base font-semibold flex items-center gap-2 pr-8">
-            {isWa && <MessageCircle className="w-5 h-5" />}
+        <div className="px-4 py-3.5 relative text-left">
+          <div className="text-[0.95rem] font-semibold tracking-tight flex items-center gap-2 pr-8">
+            {isWa && <MessageCircle className="w-[18px] h-[18px] shrink-0" />}
             {item.title}
           </div>
-          {item.subtitle && <div className="text-sm opacity-90 mt-1">{item.subtitle}</div>}
+          {item.subtitle && <div className="text-[0.72rem] opacity-90 mt-0.5">{item.subtitle}</div>}
           <ArrowUpRight className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-65 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />
         </div>
       </a>
@@ -330,16 +330,16 @@ function PublicItem({
   }
 
   const visual = itemVisual(style, shape, accent, theme);
+  const hasLead = !!item.thumbnail_url || isWa;
 
-  // The label is centred against the full button width; the leading icon or
-  // thumbnail is absolutely positioned so it never pushes the text sideways.
+  // Editorial row: leading media/icon, left-aligned label, trailing arrow.
   return (
     <a
       href={href ?? undefined}
       target={external ? "_blank" : undefined}
       rel={external ? "noreferrer noopener" : undefined}
       onClick={href ? () => onClick(item) : undefined}
-      className={`group relative flex min-h-16 items-center justify-center py-3.5 px-14 font-medium text-center shadow-sm ${visual.className}`}
+      className={`group relative flex min-h-14 items-center gap-3 py-3 pr-10 ${hasLead ? "pl-3" : "pl-4"} text-left shadow-sm ${visual.className}`}
       style={visual.style}
     >
       {item.thumbnail_url ? (
@@ -348,16 +348,16 @@ function PublicItem({
           alt=""
           loading="lazy"
           decoding="async"
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg object-cover"
+          className="shrink-0 w-9 h-9 rounded-lg object-cover"
         />
       ) : isWa ? (
-        <MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" />
+        <MessageCircle className="shrink-0 w-5 h-5" />
       ) : null}
-      <span className="min-w-0">
-        {item.title}
-        {item.subtitle && <span className="block text-xs opacity-80">{item.subtitle}</span>}
+      <span className="min-w-0 flex-1">
+        <span className="block text-[0.95rem] font-semibold leading-snug tracking-tight">{item.title}</span>
+        {item.subtitle && <span className="block text-[0.7rem] leading-snug opacity-75">{item.subtitle}</span>}
       </span>
-      <ArrowUpRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-45 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />
+      <ArrowUpRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-45 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />
     </a>
   );
 }
