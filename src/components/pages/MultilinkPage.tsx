@@ -527,14 +527,14 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
                   onClick={() => setPreviewMode("mobile")}
                   className={`text-xs px-3 py-1.5 rounded-full border transition ${previewMode === "mobile" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
                 >
-                  📱 Móvil
+                  Móvil
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreviewMode("desktop")}
                   className={`text-xs px-3 py-1.5 rounded-full border transition ${previewMode === "desktop" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
                 >
-                  💻 Escritorio
+                  Escritorio
                 </button>
               </div>
 
