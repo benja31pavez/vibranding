@@ -539,16 +539,28 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
               </div>
 
               {previewMode === "mobile" ? (
-                <div className="mx-auto max-w-[375px] h-[640px] rounded-2xl border shadow-lg overflow-hidden bg-background">
-                  <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <PublicMultilinkView ml={previewMl} items={items} preview />
+                <div className="mx-auto w-[320px] sm:w-[360px] h-[640px] rounded-[3rem] bg-foreground p-2 shadow-2xl overflow-hidden">
+                  <div className="relative h-full rounded-[2.5rem] bg-background overflow-hidden">
+                    <div className="absolute top-0 inset-x-0 h-6 flex justify-center items-end pb-1 z-10 pointer-events-none">
+                      <div className="w-24 h-4 rounded-full bg-foreground" />
+                    </div>
+                    <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-6">
+                      <PublicMultilinkView ml={previewMl} items={items} preview />
+                    </div>
                   </div>
                 </div>
               ) : (
-                <div className="mx-auto max-w-[560px] h-[480px] rounded-2xl border shadow-lg overflow-hidden bg-background">
-                  <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <PublicMultilinkView ml={previewMl} items={items} preview />
+                <div className="mx-auto w-full max-w-[640px]">
+                  <div className="rounded-t-2xl bg-foreground p-2 pb-0 shadow-xl">
+                    <div className="rounded-t-xl bg-background h-[420px] overflow-hidden">
+                      <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <PublicMultilinkView ml={previewMl} items={items} preview />
+                      </div>
+                    </div>
                   </div>
+                  <div className="mx-auto w-24 h-3 bg-foreground/80 rounded-b-sm" />
+                  <div className="mx-auto w-40 h-5 bg-foreground rounded-b-xl shadow-lg" />
+                  <div className="mx-auto mt-1 w-56 h-1.5 bg-foreground/60 rounded-full" />
                 </div>
               )}
             </div>
