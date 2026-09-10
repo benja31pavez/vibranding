@@ -527,136 +527,162 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
               >
                 {items.length === 0 && <p className="text-sm text-muted-foreground">Aún no hay enlaces.</p>}
                 <ul className="space-y-2">
-                  {items.map((i, idx) => (
-                    <li key={i.id} className="rounded-xl border p-3 space-y-2 bg-background">
-                      <div className="flex gap-2 items-center">
-                        <div className="flex flex-col">
+                  {items.map((i, idx) => {
+                    const expanded = expandedId === i.id;
+                    return (
+                      <li key={i.id} className="rounded-xl border bg-background overflow-hidden">
+                        <div className="flex items-center gap-2 px-3 py-2.5">
+                          <div className="flex flex-col">
+                            <button
+                              onClick={() => move(i.id, -1)}
+                              disabled={idx === 0}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-30 leading-none"
+                            >
+                              ▲
+                            </button>
+                            <button
+                              onClick={() => move(i.id, 1)}
+                              disabled={idx === items.length - 1}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-30 leading-none"
+                            >
+                              ▼
+                            </button>
+                          </div>
+                          <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
                           <button
-                            onClick={() => move(i.id, -1)}
-                            disabled={idx === 0}
-                            className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                            type="button"
+                            onClick={() => setExpandedId(expanded ? null : i.id)}
+                            aria-expanded={expanded}
+                            className="flex-1 min-w-0 flex items-center gap-2 text-left"
                           >
-                            ▲
+                            <span className="font-medium text-sm truncate">
+                              {i.title.trim() || "Nuevo enlace"}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground shrink-0">
+                              {KIND_LABEL[i.kind]}
+                            </span>
+                            <ScheduleBadge item={i} />
+                            <ChevronDown
+                              className={`w-4 h-4 shrink-0 ml-auto transition-transform ${expanded ? "rotate-180" : ""}`}
+                            />
                           </button>
-                          <button
-                            onClick={() => move(i.id, 1)}
-                            disabled={idx === items.length - 1}
-                            className="text-muted-foreground hover:text-foreground disabled:opacity-30"
-                          >
-                            ▼
-                          </button>
-                        </div>
-                        <GripVertical className="w-4 h-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Título"
-                          value={i.title}
-                          onChange={(e) => updateItem(i.id, { title: e.target.value })}
-                          onBlur={() => persistItem(i)}
-                          maxLength={80}
-                        />
-                        <Switch
-                          checked={i.is_active}
-                          onCheckedChange={(v) => {
-                            updateItem(i.id, { is_active: v });
-                            persistItem({ ...i, is_active: v });
-                          }}
-                        />
-                        <Button size="icon" variant="ghost" onClick={() => removeItem(i.id)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <select
-                          className="h-9 rounded-md border bg-background px-2 text-sm"
-                          value={i.kind}
-                          onChange={(e) => {
-                            const kind = e.target.value as MultilinkItemKind;
-                            updateItem(i.id, { kind });
-                            persistItem({ ...i, kind });
-                          }}
-                        >
-                          {(Object.keys(KIND_LABEL) as MultilinkItemKind[]).map((k) => (
-                            <option key={k} value={k}>
-                              {KIND_LABEL[k]}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateItem(i.id, { featured: !i.featured });
-                            persistItem({ ...i, featured: !i.featured });
-                          }}
-                          className={`inline-flex items-center gap-1 text-xs px-2 py-1.5 rounded-full border transition ${i.featured ? "bg-foreground text-background border-foreground" : "text-muted-foreground"}`}
-                        >
-                          <Star className="w-3 h-3" /> Destacado
-                        </button>
-                        <ScheduleBadge item={i} />
-                      </div>
-
-                      {i.kind === "whatsapp" ? (
-                        <div className="grid sm:grid-cols-2 gap-2">
-                          <Input
-                            placeholder="+56 9 1234 5678"
-                            value={i.wa_number ?? ""}
-                            onChange={(e) => updateItem(i.id, { wa_number: e.target.value })}
-                            onBlur={() => persistItem(i)}
-                            maxLength={30}
-                          />
-                          <Input
-                            placeholder="Mensaje prellenado"
-                            value={i.wa_message ?? ""}
-                            onChange={(e) => updateItem(i.id, { wa_message: e.target.value })}
-                            onBlur={() => persistItem(i)}
-                            maxLength={300}
-                          />
-                        </div>
-                      ) : i.kind === "social" ? (
-                        <div className="flex gap-2">
-                          <SocialSelect
-                            value={i.icon ?? "instagram"}
-                            onChange={(v) => {
-                              updateItem(i.id, { icon: v });
-                              persistItem({ ...i, icon: v });
+                          <Switch
+                            checked={i.is_active}
+                            onCheckedChange={(v) => {
+                              updateItem(i.id, { is_active: v });
+                              persistItem({ ...i, is_active: v });
                             }}
                           />
-                          <Input
-                            placeholder="@usuario, URL, email o teléfono"
-                            value={i.url}
-                            onChange={(e) => updateItem(i.id, { url: e.target.value })}
-                            onBlur={() => persistItem(i)}
-                            maxLength={500}
-                          />
+                          <Button size="icon" variant="ghost" onClick={() => removeItem(i.id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
-                      ) : i.kind === "video" ? (
-                        <Input
-                          placeholder="URL de YouTube, Vimeo o .mp4"
-                          value={i.video_url ?? ""}
-                          onChange={(e) => updateItem(i.id, { video_url: e.target.value })}
-                          onBlur={() => persistItem(i)}
-                          maxLength={500}
-                        />
-                      ) : (
-                        <Input
-                          placeholder="https://..."
-                          value={i.url}
-                          onChange={(e) => updateItem(i.id, { url: e.target.value })}
-                          onBlur={() => persistItem(i)}
-                          maxLength={500}
-                        />
-                      )}
 
-                      <Input
-                        placeholder="Subtítulo (opcional)"
-                        value={i.subtitle ?? ""}
-                        onChange={(e) => updateItem(i.id, { subtitle: e.target.value })}
-                        onBlur={() => persistItem(i)}
-                        maxLength={120}
-                      />
+                        {expanded && (
+                          <div className="px-3 pb-3 space-y-2 border-t bg-surface/30">
+                            <div className="pt-2">
+                              <Input
+                                placeholder="Título"
+                                value={i.title}
+                                onChange={(e) => updateItem(i.id, { title: e.target.value })}
+                                onBlur={() => persistItem(i)}
+                                maxLength={80}
+                              />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <select
+                                className="h-9 rounded-md border bg-background px-2 text-sm"
+                                value={i.kind}
+                                onChange={(e) => {
+                                  const kind = e.target.value as MultilinkItemKind;
+                                  updateItem(i.id, { kind });
+                                  persistItem({ ...i, kind });
+                                }}
+                              >
+                                {(Object.keys(KIND_LABEL) as MultilinkItemKind[]).map((k) => (
+                                  <option key={k} value={k}>
+                                    {KIND_LABEL[k]}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  updateItem(i.id, { featured: !i.featured });
+                                  persistItem({ ...i, featured: !i.featured });
+                                }}
+                                className={`inline-flex items-center gap-1 text-xs px-2 py-1.5 rounded-full border transition ${i.featured ? "bg-foreground text-background border-foreground" : "text-muted-foreground"}`}
+                              >
+                                <Star className="w-3 h-3" /> Destacado
+                              </button>
+                            </div>
 
-                      <div className="text-xs text-muted-foreground">{i.click_count} clics acumulados</div>
-                    </li>
-                  ))}
+                            {i.kind === "whatsapp" ? (
+                              <div className="grid sm:grid-cols-2 gap-2">
+                                <Input
+                                  placeholder="+56 9 1234 5678"
+                                  value={i.wa_number ?? ""}
+                                  onChange={(e) => updateItem(i.id, { wa_number: e.target.value })}
+                                  onBlur={() => persistItem(i)}
+                                  maxLength={30}
+                                />
+                                <Input
+                                  placeholder="Mensaje prellenado"
+                                  value={i.wa_message ?? ""}
+                                  onChange={(e) => updateItem(i.id, { wa_message: e.target.value })}
+                                  onBlur={() => persistItem(i)}
+                                  maxLength={300}
+                                />
+                              </div>
+                            ) : i.kind === "social" ? (
+                              <div className="flex gap-2">
+                                <SocialSelect
+                                  value={i.icon ?? "instagram"}
+                                  onChange={(v) => {
+                                    updateItem(i.id, { icon: v });
+                                    persistItem({ ...i, icon: v });
+                                  }}
+                                />
+                                <Input
+                                  placeholder="@usuario, URL, email o teléfono"
+                                  value={i.url}
+                                  onChange={(e) => updateItem(i.id, { url: e.target.value })}
+                                  onBlur={() => persistItem(i)}
+                                  maxLength={500}
+                                />
+                              </div>
+                            ) : i.kind === "video" ? (
+                              <Input
+                                placeholder="URL de YouTube, Vimeo o .mp4"
+                                value={i.video_url ?? ""}
+                                onChange={(e) => updateItem(i.id, { video_url: e.target.value })}
+                                onBlur={() => persistItem(i)}
+                                maxLength={500}
+                              />
+                            ) : (
+                              <Input
+                                placeholder="https://..."
+                                value={i.url}
+                                onChange={(e) => updateItem(i.id, { url: e.target.value })}
+                                onBlur={() => persistItem(i)}
+                                maxLength={500}
+                              />
+                            )}
+
+                            <Input
+                              placeholder="Subtítulo (opcional)"
+                              value={i.subtitle ?? ""}
+                              onChange={(e) => updateItem(i.id, { subtitle: e.target.value })}
+                              onBlur={() => persistItem(i)}
+                              maxLength={120}
+                            />
+
+                            <div className="text-xs text-muted-foreground">{i.click_count} clics acumulados</div>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </SettingsSection>
             </div>
