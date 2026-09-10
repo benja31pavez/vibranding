@@ -346,25 +346,37 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
                     ? `@${c.contact_username}`
                     : c.contact_name || c.contact_wa_id}
                 </div>
-                {attributions[c.id] && (
-                  <span
-                    title={`Desde anuncio${attributions[c.id].headline ? `: ${attributions[c.id].headline}` : ""}`}
-                  >
-                    <Megaphone className="w-3 h-3 text-sky-500" />
+                {/* Zona de estado con posiciones fijas: nada se mueve entre filas */}
+                <div className="shrink-0 flex items-center justify-end gap-1">
+                  <span className="w-3.5 flex justify-center">
+                    {attributions[c.id] && (
+                      <span
+                        title={`Desde anuncio${attributions[c.id].headline ? `: ${attributions[c.id].headline}` : ""}`}
+                      >
+                        <Megaphone className="w-3 h-3 text-sky-500" />
+                      </span>
+                    )}
                   </span>
-                )}
-
-                {c.needs_human_followup && (
-                  <AlertTriangle className="w-3 h-3 text-destructive" />
-                )}
+                  <span className="w-3.5 flex justify-center">
+                    {c.needs_human_followup && (
+                      <AlertTriangle className="w-3 h-3 text-destructive" />
+                    )}
+                  </span>
+                  <span className="w-4 flex justify-center">
+                    {c.is_lead && <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />}
+                  </span>
+                  <span className="w-5 flex justify-center">
+                    {c.unread_count > 0 && (
+                      <Badge className="h-5 min-w-5 justify-center px-1 text-[10px]">{c.unread_count}</Badge>
+                    )}
+                  </span>
+                </div>
+              </div>
+              <div className="h-5 mt-1 flex items-center">
                 {needsOutcome(c) && (
                   <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
                     Sin marcar
                   </Badge>
-                )}
-                {c.is_lead && <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />}
-                {c.unread_count > 0 && (
-                  <Badge className="h-5 px-1.5 text-[10px]">{c.unread_count}</Badge>
                 )}
               </div>
               {(c.tags ?? []).length > 0 && (
