@@ -404,6 +404,9 @@ function HealthPage() {
           })}
         </CardContent>
       </Card>
+
+      <IgSyncLogCard />
     </div>
+
   );
 }
