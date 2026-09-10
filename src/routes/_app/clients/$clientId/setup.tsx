@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronDown, Loader2, Lock } from "lucide-react";
+import { Check, ChevronDown, Info, Loader2, Lock } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,37 @@ function HowTo({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Technical permission names stay out of the way, one click behind an info icon. */
+function ScopesInfo() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="Ver permisos requeridos"
+          className="text-muted-foreground transition hover:text-foreground"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 space-y-2 text-xs">
+        <p className="font-medium text-foreground">Permisos requeridos en Meta</p>
+        <div className="flex flex-wrap gap-1">
+          {META_SCOPES.map((s) => (
+            <code key={s} className="rounded bg-muted px-1.5 py-0.5">
+              {s}
+            </code>
+          ))}
+        </div>
+        <p className="text-muted-foreground">
+          Solo lectura de métricas de anuncios, página e Instagram. Nada se publica sin tu
+          confirmación.
+        </p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function Facts({ lines }: { lines: string[] }) {
   return (
     <ul className="space-y-1 text-sm">
@@ -92,7 +124,7 @@ function SetupPage() {
   const [to, setTo] = useState(() => iso(new Date(Date.now() - 86400000)));
   const [from, setFrom] = useState(() => iso(new Date(Date.now() - 7 * 86400000)));
 
-  const scopeList = META_SCOPES.join(", ");
+  
 
   const doIngest = async () => {
     if (!account?.id) return;
@@ -396,7 +428,10 @@ function SetupPage() {
           Cada paso indica qué secciones del panel desbloquea. El estado se calcula siempre desde la
           base de datos, igual que el panel lateral.
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Permisos requeridos: {scopeList}</p>
+        <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <ScopesInfo />
+          Permisos que Meta debe autorizar
+        </p>
       </div>
 
       <div className="space-y-2">
