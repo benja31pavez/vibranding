@@ -94,7 +94,7 @@ export function PublicMultilinkView({
   const theme = surfaceTheme(ml.theme_mode, bg);
   const style = buttonStyleKey(ml.button_style);
   const shape = buttonShapeKey(ml.button_shape);
-  const panelBackground = theme.isDark ? "rgba(13,13,15,0.96)" : "rgba(255,255,255,0.97)";
+  const panelBackground = theme.isDark ? "rgba(13,13,15,0.96)" : "rgba(250,248,245,0.98)";
   const subtleBorder = theme.isDark ? "rgba(255,255,255,0.1)" : "rgba(10,10,10,0.09)";
   const coverBackground =
     bg.type === "image" && bg.url
