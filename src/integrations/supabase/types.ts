@@ -990,6 +990,62 @@ export type Database = {
           },
         ]
       }
+      ig_sync_runs: {
+        Row: {
+          client_id: string
+          created_at: string
+          error: string | null
+          id: string
+          is_baseline: boolean
+          media_count: number | null
+          note: string | null
+          persisted_label: string | null
+          requested_label: string | null
+          status: string
+          swapped: boolean
+          triggered_by: string | null
+          version_id: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          is_baseline?: boolean
+          media_count?: number | null
+          note?: string | null
+          persisted_label?: string | null
+          requested_label?: string | null
+          status: string
+          swapped?: boolean
+          triggered_by?: string | null
+          version_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          is_baseline?: boolean
+          media_count?: number | null
+          note?: string | null
+          persisted_label?: string | null
+          requested_label?: string | null
+          status?: string
+          swapped?: boolean
+          triggered_by?: string | null
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ig_sync_runs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_audience_snapshots: {
         Row: {
           breakdown: string
