@@ -85,6 +85,10 @@ export function socialHref(i: MultilinkItem): string | null {
     const digits = raw.replace(/[^\d+]/g, "");
     return digits ? `tel:${digits}` : null;
   }
+  if (net === "whatsapp") {
+    const digits = raw.replace(/\D/g, "");
+    return digits.length < 8 ? null : `https://wa.me/${digits}`;
+  }
   if (/^https?:\/\//i.test(raw)) return raw;
   const handle = raw.replace(/^@/, "");
   const bases: Record<SocialNetwork, string> = {
@@ -97,6 +101,11 @@ export function socialHref(i: MultilinkItem): string | null {
     linkedin: "https://linkedin.com/in/",
     email: "mailto:",
     phone: "tel:",
+    whatsapp: "https://wa.me/",
+    apple_music: "https://music.apple.com/",
+    deezer: "https://deezer.com/",
+    tidal: "https://tidal.com/",
+    amazon_music: "https://music.amazon.com/",
   };
   return `${bases[net]}${handle}`;
 }
