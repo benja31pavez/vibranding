@@ -170,8 +170,45 @@ export type CaptureResult =
       label: string;
       mediaCount: number;
       isBaseline: boolean;
+      replaced?: boolean;
       note?: string;
     };
+
+/**
+ * Audit trail: one row per sync attempt, readable from /admin/health. Never
+ * throws — logging must not break a sync.
+ */
+async function logSyncRun(
+  clientId: string,
+  requestedLabel: string,
+  res: CaptureResult,
+) {
+  try {
+    await (supabaseAdmin.from("ig_sync_runs" as any) as any).insert(
+      res.ok
+        ? {
+            client_id: clientId,
+            status: "ok",
+            requested_label: requestedLabel,
+            persisted_label: res.label,
+            version_id: res.versionId,
+            media_count: res.mediaCount,
+            swapped: res.replaced === true,
+            is_baseline: res.isBaseline,
+            note: res.note ?? null,
+          }
+        : {
+            client_id: clientId,
+            status: "error",
+            requested_label: requestedLabel,
+            error: res.reason,
+          },
+    );
+  } catch {
+    // ignored on purpose
+  }
+}
+
 
 /** Staged versions left behind by an interrupted sync are never user content. */
 async function dropStaleStagingVersions(clientId: string) {
