@@ -1,4 +1,4 @@
-export type MultilinkItemKind = "link" | "whatsapp" | "video" | "social";
+export type MultilinkItemKind = "link" | "whatsapp" | "video" | "social" | "platform";
 
 export type MultilinkItem = {
   id: string;
@@ -45,11 +45,13 @@ export const KIND_LABEL: Record<MultilinkItemKind, string> = {
   whatsapp: "WhatsApp",
   video: "Video",
   social: "Red social",
+  platform: "Plataforma",
 };
 
 export type SocialNetwork =
   | "instagram" | "tiktok" | "youtube" | "spotify"
-  | "facebook" | "x" | "linkedin" | "email" | "phone";
+  | "facebook" | "x" | "linkedin" | "email" | "phone" | "whatsapp"
+  | "apple_music" | "deezer" | "tidal" | "amazon_music";
 
 export const SOCIAL_LABEL: Record<SocialNetwork, string> = {
   instagram: "Instagram",
@@ -61,6 +63,11 @@ export const SOCIAL_LABEL: Record<SocialNetwork, string> = {
   linkedin: "LinkedIn",
   email: "Email",
   phone: "Teléfono",
+  whatsapp: "WhatsApp",
+  apple_music: "Apple Music",
+  deezer: "Deezer",
+  tidal: "Tidal",
+  amazon_music: "Amazon Music",
 };
 
 export function socialNetwork(i: MultilinkItem): SocialNetwork {
