@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical, Upload, Paperclip, Download, Loader2, Sparkles, MessageSquare, ThumbsUp, RotateCcw, Send, Eye, Link2 } from "lucide-react";
+import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical, Upload, Paperclip, Download, Loader2, Sparkles, MessageSquare, ThumbsUp, RotateCcw, Send, Eye, Link2, Gauge, Megaphone, Globe } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { uploadClientMedia } from "@/lib/uploadMedia";
 import { toast } from "sonner";
@@ -62,6 +62,25 @@ const STARTER_STAGES: { title: string; type: DType; description: string }[] = [
   { title: "Chatbot", type: "other", description: "Flujos de respuesta automática en WhatsApp." },
 ];
 
+const STAGE_ORDER = STARTER_STAGES.map((stage) => stage.title.toLocaleLowerCase("es"));
+
+function stageRank(title: string) {
+  const normalized = title.trim().toLocaleLowerCase("es");
+  const index = STAGE_ORDER.indexOf(normalized);
+  return index === -1 ? STAGE_ORDER.length : index;
+}
+
+function stageIcon(title: string) {
+  const normalized = title.trim().toLocaleLowerCase("es");
+  if (normalized === "branding") return Palette;
+  if (normalized === "optimización" || normalized === "optimizacion") return Gauge;
+  if (normalized === "contenido") return ImageIcon;
+  if (normalized === "ads") return Megaphone;
+  if (normalized === "landing page") return Globe;
+  if (normalized === "chatbot") return MessageSquare;
+  return Package;
+}
+
 const statusMeta: Record<Status, { label: string; icon: any; cls: string }> = {
   pending: { label: "Pendiente", icon: Circle, cls: "text-muted-foreground" },
   in_progress: { label: "En curso", icon: Clock, cls: "text-warning" },
@@ -97,6 +116,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   const [filterType, setFilterType] = useState<"all" | DType>("all");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [seeding, setSeeding] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState({ title: "", description: "", due_date: "", type: "post" as DType, folder_id: "" as string });
 
   const load = async () => {
@@ -106,11 +126,40 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
       supabase.from("deliverable_folders").select("*").eq("client_id", clientId).order("sort_order").order("created_at"),
     ]);
     if (error) toast.error(error.message);
-    setItems((dItems ?? []).map((r: any) => ({ ...r, checklist: r.checklist ?? [] })) as Row[]);
+    let nextItems = dItems ?? [];
+    if (!error) {
+      const existingNames = new Set(nextItems.map((row) => row.title.trim().toLocaleLowerCase("es")));
+      const missing = STARTER_STAGES.filter((stage) => !existingNames.has(stage.title.toLocaleLowerCase("es")));
+      if (missing.length > 0) {
+        const { data: created, error: createError } = await supabase.from("deliverables").insert(
+          missing.map((stage, index) => ({
+            client_id: clientId,
+            title: stage.title,
+            description: stage.description,
+            type: stage.type,
+            sort_order: nextItems.length + index,
+          })),
+        ).select("*");
+        if (createError) toast.error(createError.message);
+        else nextItems = [...nextItems, ...(created ?? [])];
+      }
+    }
+    setItems(nextItems.map((r: any) => ({ ...r, checklist: r.checklist ?? [] })) as Row[]);
     setFolders((dFolders ?? []) as FolderRow[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, [clientId]);
+
+  useEffect(() => {
+    if (items.length === 0) {
+      setSelectedId(null);
+      return;
+    }
+    if (!selectedId || !items.some((item) => item.id === selectedId)) {
+      const first = [...items].sort((a, b) => stageRank(a.title) - stageRank(b.title) || a.sort_order - b.sort_order)[0];
+      setSelectedId(first?.id ?? null);
+    }
+  }, [items, selectedId]);
 
   const seedStarter = async () => {
     setSeeding(true);
@@ -312,13 +361,13 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-lg font-semibold">Etapas</h3>
         <div className="flex items-center gap-2">
-          <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+          {view === "timeline" && <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
             <SelectTrigger className="h-8 text-xs w-auto gap-1 rounded-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los tipos</SelectItem>
               {(Object.keys(typeMeta) as DType[]).map((k) => <SelectItem key={k} value={k}>{typeMeta[k].label}</SelectItem>)}
             </SelectContent>
-          </Select>
+          </Select>}
           <Tabs value={view} onValueChange={(v) => setView(v as any)}>
             <TabsList className="h-8">
               <TabsTrigger value="list" className="text-xs">Lista</TabsTrigger>
@@ -387,7 +436,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
       )}
 
       {loading ? <div className="text-sm text-muted-foreground">Cargando…</div>
-        : filtered.length === 0 && folders.length === 0 ? (
+        : items.length === 0 && folders.length === 0 ? (
           <div className="rounded-2xl border border-dashed p-8 text-center space-y-3">
             <div className="text-sm text-muted-foreground">
               Aún no hay etapas. Puedes empezar con el set por defecto de tus seis servicios.
@@ -402,70 +451,91 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           </div>
         ) : view === "timeline" ? (
           <TimelineView items={filtered} update={update} />
-        ) : (() => {
-          const rootItems = (grouped.get(null) ?? []);
-          const sortedEntries = [
-            ...folders.map((f) => ({ kind: "folder" as const, sort_order: f.sort_order, data: f, sortId: `f-${f.id}` })),
-            ...rootItems.map((it) => ({ kind: "item" as const, sort_order: it.sort_order, data: it, sortId: `i-${it.id}` })),
-          ].sort((a, b) => a.sort_order - b.sort_order);
+        ) : (
+          <StageGridView
+            items={items}
+            folders={folders}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            update={update}
+            remove={remove}
+          />
+        )}
+    </div>
+  );
+}
+
+function StageGridView({ items, folders, selectedId, onSelect, update, remove }: {
+  items: Row[];
+  folders: FolderRow[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  update: (id: string, patch: any) => void;
+  remove: (id: string) => void;
+}) {
+  const ordered = [...items].sort((a, b) => stageRank(a.title) - stageRank(b.title) || a.sort_order - b.sort_order);
+  const selected = ordered.find((item) => item.id === selectedId) ?? ordered[0];
+
+  return (
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {ordered.map((item) => {
+          const Icon = stageIcon(item.title);
+          const meta = statusMeta[item.status];
+          const StatusIcon = meta.icon;
+          const checklist = item.checklist ?? [];
+          const done = checklist.filter((entry) => entry.done).length;
+          const active = selected?.id === item.id;
           return (
-          <div className="space-y-3">
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={sortedEntries.map((e) => e.sortId)} strategy={verticalListSortingStrategy}>
-                {sortedEntries.map((entry) => {
-                  if (entry.kind === "item") {
-                    const it = entry.data;
-                    return (
-                      <SortableWrapper key={entry.sortId} id={entry.sortId}>
-                        {(handle) => (
-                          it.file_url
-                            ? <MediaTile it={it} update={update} remove={remove} dragHandle={handle} />
-                            : <DeliverableCard it={it} folders={folders} update={update} remove={remove} dragHandle={handle} />
-                        )}
-                      </SortableWrapper>
-                    );
-                  }
-                  const f = entry.data;
-                  const list = grouped.get(f.id) ?? [];
-                  const isCollapsed = collapsed[f.id];
-                  return (
-                    <SortableWrapper key={entry.sortId} id={entry.sortId}>
-                      {(handle) => (
-                        <FolderSection
-                          folder={f}
-                          count={list.length}
-                          collapsed={!!isCollapsed}
-                          onToggle={() => setCollapsed((s) => ({ ...s, [f.id]: !s[f.id] }))}
-                          onRename={(name) => renameFolder(f.id, name)}
-                          onDelete={() => removeFolder(f.id)}
-                          onDropFiles={(files) => uploadFiles(files, f.id)}
-                          isDragOver={dragOver === f.id}
-                          onDragOver={() => setDragOver(f.id)}
-                          onDragLeave={() => setDragOver((d) => (d === f.id ? null : d))}
-                          dragHandle={handle}
-                        >
-                          {list.length === 0 ? (
-                            <div className="text-xs text-muted-foreground px-1 py-2">Vacía — arrastra archivos aquí</div>
-                          ) : (
-                            <SortableItemsList
-                              items={list}
-                              folders={folders}
-                              update={update}
-                              remove={remove}
-                              sensors={sensors}
-                              onReorder={(a, o) => reorderItems(f.id, a, o)}
-                            />
-                          )}
-                        </FolderSection>
-                      )}
-                    </SortableWrapper>
-                  );
-                })}
-              </SortableContext>
-            </DndContext>
-          </div>
+            <button
+              key={item.id}
+              type="button"
+              aria-expanded={active}
+              aria-controls={`stage-detail-${item.id}`}
+              onClick={() => onSelect(item.id)}
+              className={`group min-h-44 rounded-lg border bg-surface p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none ${active ? "border-accent ring-2 ring-accent/15" : "border-border"}`}
+            >
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <span className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground group-hover:text-foreground"}`}>
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${meta.cls}`}>
+                  <StatusIcon className="h-3.5 w-3.5" /> {meta.label}
+                </span>
+              </div>
+              <h4 className="text-base font-semibold">{item.title}</h4>
+              <p className="mt-1 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
+                {item.description || "Sin descripción todavía."}
+              </p>
+              {item.checklist_enabled && checklist.length > 0 && (
+                <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full bg-success transition-all" style={{ width: `${(done / checklist.length) * 100}%` }} />
+                  </div>
+                  <span>{done}/{checklist.length}</span>
+                </div>
+              )}
+            </button>
           );
-        })()}
+        })}
+      </div>
+
+      {selected && (
+        <section id={`stage-detail-${selected.id}`} aria-label={`Detalle de ${selected.title}`} className="border-t pt-6">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium uppercase text-muted-foreground">Detalle de etapa</p>
+              <h3 className="mt-1 text-xl font-semibold">{selected.title}</h3>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => onSelect(selected.id)} aria-label="Etapa seleccionada">
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </div>
+          {selected.file_url
+            ? <MediaTile it={selected} update={update} remove={remove} />
+            : <DeliverableCard it={selected} folders={folders} update={update} remove={remove} />}
+        </section>
+      )}
     </div>
   );
 }
