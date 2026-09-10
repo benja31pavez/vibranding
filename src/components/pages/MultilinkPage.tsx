@@ -539,28 +539,32 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
               </div>
 
               {previewMode === "mobile" ? (
-                <div className="mx-auto w-[320px] sm:w-[360px] h-[640px] rounded-[3rem] bg-foreground p-2 shadow-2xl overflow-hidden">
-                  <div className="relative h-full rounded-[2.5rem] bg-background overflow-hidden">
-                    <div className="absolute top-0 inset-x-0 h-6 flex justify-center items-end pb-1 z-10 pointer-events-none">
-                      <div className="w-24 h-4 rounded-full bg-foreground" />
-                    </div>
-                    <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-6">
-                      <PublicMultilinkView ml={previewMl} items={items} preview />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="mx-auto w-full max-w-[640px]">
-                  <div className="rounded-t-2xl bg-foreground p-2 pb-0 shadow-xl">
-                    <div className="rounded-t-xl bg-background h-[420px] overflow-hidden">
-                      <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="mx-auto" style={{ width: 320 }}>
+                  <div className="relative rounded-[3rem] bg-black p-2 shadow-2xl">
+                    <div className="relative rounded-[2.5rem] overflow-hidden" style={{ aspectRatio: "9/19.5" }}>
+                      <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full z-30" />
+                      <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         <PublicMultilinkView ml={previewMl} items={items} preview />
                       </div>
                     </div>
                   </div>
-                  <div className="mx-auto w-24 h-3 bg-foreground/80 rounded-b-sm" />
-                  <div className="mx-auto w-40 h-5 bg-foreground rounded-b-xl shadow-lg" />
-                  <div className="mx-auto mt-1 w-56 h-1.5 bg-foreground/60 rounded-full" />
+                </div>
+              ) : (
+                <div className="mx-auto w-full max-w-[560px]">
+                  <div className="relative rounded-t-xl bg-black p-3 pb-2 shadow-2xl">
+                    <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-zinc-700 rounded-full" />
+                    <div className="relative rounded-md overflow-hidden mt-2" style={{ aspectRatio: "16/10" }}>
+                      <div className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <PublicMultilinkView ml={previewMl} items={items} preview />
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="relative mx-auto h-3 bg-zinc-800 rounded-b-xl"
+                    style={{ width: "115%", marginLeft: "-7.5%" }}
+                  >
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1.5 bg-zinc-700 rounded-b-md" />
+                  </div>
                 </div>
               )}
             </div>
@@ -649,20 +653,14 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
                                 onChange={(e) => {
                                   const kind = e.target.value as MultilinkItemKind;
                                   updateItem(i.id, { kind });
-                                persistItem({ ...i, kind });
+                                  persistItem({ ...i, kind });
                                 }}
                               >
-                                <optgroup label="Enlaces">
-                                  <option value="link">{KIND_LABEL.link}</option>
-                                  <option value="whatsapp">{KIND_LABEL.whatsapp}</option>
-                                  <option value="video">{KIND_LABEL.video}</option>
-                                </optgroup>
-                                <optgroup label="Redes sociales">
-                                  <option value="social">{KIND_LABEL.social}</option>
-                                </optgroup>
-                                <optgroup label="Plataformas de música">
-                                  <option value="platform">{KIND_LABEL.platform}</option>
-                                </optgroup>
+                                {(Object.keys(KIND_LABEL) as MultilinkItemKind[]).map((k) => (
+                                  <option key={k} value={k}>
+                                    {KIND_LABEL[k]}
+                                  </option>
+                                ))}
                               </select>
                               <button
                                 type="button"
@@ -693,11 +691,10 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
                                   maxLength={300}
                                 />
                               </div>
-                            ) : i.kind === "social" || i.kind === "platform" ? (
+                            ) : i.kind === "social" ? (
                               <div className="flex gap-2">
                                 <SocialSelect
                                   value={i.icon ?? "instagram"}
-                                  kind={i.kind}
                                   onChange={(v) => {
                                     updateItem(i.id, { icon: v });
                                     persistItem({ ...i, icon: v });
@@ -957,30 +954,14 @@ function ScheduleBadge({ item }: { item: Item }) {
   return <span className={`text-[11px] px-2 py-1 rounded-full border ${s.className}`}>{s.label}</span>;
 }
 
-const SOCIAL_NETWORKS: SocialNetwork[] = [
-  "instagram", "tiktok", "youtube", "facebook", "x", "linkedin", "email", "phone", "whatsapp",
-];
-const PLATFORM_NETWORKS: SocialNetwork[] = [
-  "spotify", "apple_music", "deezer", "tidal", "amazon_music",
-];
-
-function SocialSelect({
-  value,
-  kind,
-  onChange,
-}: {
-  value: string;
-  kind: "social" | "platform";
-  onChange: (v: string) => void;
-}) {
-  const networks = kind === "platform" ? PLATFORM_NETWORKS : SOCIAL_NETWORKS;
+function SocialSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <select
       className="h-9 rounded-md border bg-background px-2 text-sm"
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
-      {networks.map((k) => (
+      {(Object.keys(SOCIAL_LABEL) as SocialNetwork[]).map((k) => (
         <option key={k} value={k}>
           {SOCIAL_LABEL[k]}
         </option>
