@@ -26,6 +26,7 @@ import {
 } from "@/lib/multilinkTheme";
 import {
   Facebook,
+  ArrowUpRight,
   Instagram,
   Linkedin,
   Mail,
@@ -93,6 +94,17 @@ export function PublicMultilinkView({
   const theme = surfaceTheme(ml.theme_mode, bg);
   const style = buttonStyleKey(ml.button_style);
   const shape = buttonShapeKey(ml.button_shape);
+  const panelBackground = theme.isDark ? "rgba(13,13,15,0.96)" : "rgba(255,255,255,0.97)";
+  const subtleSurface = theme.isDark ? "rgba(255,255,255,0.055)" : "rgba(10,10,10,0.045)";
+  const subtleBorder = theme.isDark ? "rgba(255,255,255,0.1)" : "rgba(10,10,10,0.09)";
+  const coverBackground =
+    bg.type === "image" && bg.url
+      ? `url(${bg.url}) center / cover`
+      : bg.type === "gradient"
+        ? `linear-gradient(${bg.angle}deg, ${bg.from}, ${bg.to})`
+        : bg.type === "solid"
+          ? `linear-gradient(135deg, ${bg.color}, ${withAlpha(ml.theme_color, 0.72)})`
+          : `linear-gradient(135deg, ${withAlpha(ml.theme_color, 0.92)}, ${withAlpha(ml.theme_color, 0.3)})`;
 
   // A link-in-bio page is a profile: declare it so search engines can connect
   // the account to its social presence.
@@ -114,21 +126,13 @@ export function PublicMultilinkView({
 
   return (
     <div
-      className={`relative ${preview ? "min-h-full" : "min-h-screen"}`}
-      style={{
-        background: theme.background,
-        color: theme.color,
-        fontFamily: FONTS[font].family,
-        ...(theme.imageUrl
-          ? {
-              backgroundImage: `url(${theme.imageUrl})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }
-          : null),
-      }}
+      className={`relative overflow-hidden ${preview ? "min-h-full" : "min-h-screen"}`}
+      style={{ background: theme.isDark ? "#070709" : "#eef0f4", color: theme.color, fontFamily: FONTS[font].family }}
     >
-      {theme.overlay && <div className="absolute inset-0 pointer-events-none" style={{ background: theme.overlay }} />}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-35 blur-3xl scale-110"
+        style={{ background: coverBackground }}
+      />
 
       {structuredData && (
         <script
@@ -137,46 +141,67 @@ export function PublicMultilinkView({
         />
       )}
 
-      <div className={`relative px-4 ${preview ? "py-8" : "py-12"}`}>
-        <div className="max-w-md mx-auto text-center">
-          <div
-            className="w-24 h-24 rounded-full mx-auto overflow-hidden grid place-items-center text-3xl font-semibold"
-            style={ml.avatar_url ? undefined : avatarFallbackStyle(theme, ml.theme_color)}
-          >
-            {ml.avatar_url ? (
-              <img src={ml.avatar_url} alt="" className="w-full h-full object-cover" />
-            ) : (
-              ml.title[0] || "?"
-            )}
+      <div className={`relative px-3 sm:px-5 ${preview ? "py-4" : "py-5 sm:py-10"}`}>
+        <main
+          className="max-w-[440px] mx-auto overflow-hidden text-center shadow-2xl sm:rounded-[2rem]"
+          style={{ background: panelBackground, border: `1px solid ${subtleBorder}` }}
+        >
+          <div className="relative h-40 sm:h-44 overflow-hidden" style={{ background: coverBackground }}>
+            {bg.type === "image" && <div className="absolute inset-0" style={{ background: theme.overlay ?? "transparent" }} />}
+            <div
+              className="absolute inset-x-0 bottom-0 h-24"
+              style={{ background: `linear-gradient(to top, ${panelBackground}, transparent)` }}
+            />
           </div>
-          <h1 className="mt-4 text-2xl font-semibold">{ml.title}</h1>
-          {ml.bio && <p className="mt-2 opacity-80 whitespace-pre-line">{ml.bio}</p>}
 
-          {socials.length > 0 && (
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-              {socials.map((i) => (
-                <SocialIcon key={i.id} item={i} theme={theme} accent={ml.theme_color} onClick={onClick} />
-              ))}
+          <div className="relative -mt-14 px-5 sm:px-7 pb-9">
+            <div className="inline-grid rounded-full p-1.5 shadow-xl" style={{ background: panelBackground }}>
+              <div
+                className="w-24 h-24 rounded-full overflow-hidden grid place-items-center text-3xl font-semibold"
+                style={ml.avatar_url ? { border: `2px solid ${subtleBorder}` } : avatarFallbackStyle(theme, ml.theme_color)}
+              >
+                {ml.avatar_url ? (
+                  <img src={ml.avatar_url} alt={`Foto de ${ml.title}`} className="w-full h-full object-cover" />
+                ) : (
+                  ml.title[0] || "?"
+                )}
+              </div>
             </div>
-          )}
+            <h1 className="mt-4 text-[1.7rem] leading-tight font-bold">{ml.title}</h1>
+            {ml.bio && <p className="mt-2 mx-auto max-w-xs text-sm leading-relaxed opacity-70 whitespace-pre-line">{ml.bio}</p>}
 
-          <div className="mt-8 space-y-3 text-left">
-            {rest.map((i) => (
-              <PublicItem
-                key={i.id}
-                item={i}
-                color={ml.theme_color}
-                theme={theme}
-                style={style}
-                shape={shape}
-                onClick={onClick}
-              />
-            ))}
-            {rest.length === 0 && socials.length === 0 && (
-              <p className="opacity-60 text-sm text-center">Sin enlaces todavía.</p>
+            {socials.length > 0 && (
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+                {socials.map((i) => (
+                  <SocialIcon key={i.id} item={i} theme={theme} accent={ml.theme_color} onClick={onClick} />
+                ))}
+              </div>
             )}
+
+            <div className="mt-7 space-y-3 text-left">
+              {rest.map((i) => (
+                <PublicItem
+                  key={i.id}
+                  item={i}
+                  color={ml.theme_color}
+                  theme={theme}
+                  style={style}
+                  shape={shape}
+                  onClick={onClick}
+                />
+              ))}
+              {rest.length === 0 && socials.length === 0 && (
+                <p className="opacity-60 text-sm text-center py-5">Sin enlaces todavía.</p>
+              )}
+            </div>
+
+            <div className="mt-9 flex items-center justify-center gap-2 opacity-35">
+              <span className="h-px w-6" style={{ background: theme.color }} />
+              <span className="text-[9px] font-semibold uppercase">Multienlace</span>
+              <span className="h-px w-6" style={{ background: theme.color }} />
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
@@ -207,14 +232,14 @@ function SocialIcon({
       aria-label={item.title || SOCIAL_LABEL[net]}
       title={item.title || SOCIAL_LABEL[net]}
       onClick={() => onClick(item)}
-      className="grid place-items-center w-11 h-11 rounded-full transition hover:scale-110"
+      className="grid place-items-center w-10 h-10 rounded-full transition duration-300 hover:-translate-y-0.5 hover:scale-105"
       style={{
-        background: theme.isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.06)",
-        border: `1px solid ${withAlpha(accent, 0.4)}`,
+        background: theme.isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.045)",
+        border: `1px solid ${withAlpha(accent, 0.32)}`,
         color: theme.color,
       }}
     >
-      <Icon className="w-5 h-5" />
+      <Icon className="w-[18px] h-[18px]" />
     </a>
   );
 }
@@ -287,18 +312,19 @@ function PublicItem({
         target={external ? "_blank" : undefined}
         rel={external ? "noreferrer noopener" : undefined}
         onClick={href ? () => onClick(item) : undefined}
-        className="block overflow-hidden shadow-lg transition hover:scale-[1.01]"
+        className="group block overflow-hidden shadow-xl transition duration-300 hover:-translate-y-0.5"
         style={{ background: accent, color: "#fff", borderRadius: SHAPE_RADIUS[shape] }}
       >
         {item.thumbnail_url && (
           <img src={item.thumbnail_url} alt="" loading="lazy" decoding="async" className="w-full h-40 object-cover" />
         )}
-        <div className="px-5 py-5">
-          <div className="text-lg font-semibold flex items-center gap-2">
+        <div className="px-5 py-4 relative">
+          <div className="text-base font-semibold flex items-center gap-2 pr-8">
             {isWa && <MessageCircle className="w-5 h-5" />}
             {item.title}
           </div>
           {item.subtitle && <div className="text-sm opacity-90 mt-1">{item.subtitle}</div>}
+          <ArrowUpRight className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-65 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />
         </div>
       </a>
     );
@@ -314,7 +340,7 @@ function PublicItem({
       target={external ? "_blank" : undefined}
       rel={external ? "noreferrer noopener" : undefined}
       onClick={href ? () => onClick(item) : undefined}
-      className={`relative flex items-center justify-center py-4 px-14 font-medium text-center ${visual.className}`}
+      className={`group relative flex min-h-16 items-center justify-center py-3.5 px-14 font-medium text-center shadow-sm ${visual.className}`}
       style={visual.style}
     >
       {item.thumbnail_url ? (
@@ -332,6 +358,7 @@ function PublicItem({
         {item.title}
         {item.subtitle && <span className="block text-xs opacity-80">{item.subtitle}</span>}
       </span>
+      <ArrowUpRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-45 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />
     </a>
   );
 }
