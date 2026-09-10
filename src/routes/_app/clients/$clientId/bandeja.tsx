@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ChatbotPage } from "@/components/pages/ChatbotPage";
 
 export const Route = createFileRoute("/_app/clients/$clientId/bandeja")({
