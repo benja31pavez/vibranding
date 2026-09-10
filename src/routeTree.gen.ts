@@ -27,6 +27,7 @@ import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as AppStatsRouteImport } from './routes/_app/stats'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
+import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPortfolioRouteImport } from './routes/_app/portfolio'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
@@ -158,6 +159,11 @@ const AppStatsRoute = AppStatsRouteImport.update({
 const AppReportsRoute = AppReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPortfolioRoute = AppPortfolioRouteImport.update({
@@ -416,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/portfolio': typeof AppPortfolioRoute
+  '/profile': typeof AppProfileRoute
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
@@ -478,6 +485,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/portfolio': typeof AppPortfolioRoute
+  '/profile': typeof AppProfileRoute
   '/reports': typeof AppReportsRoute
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
@@ -541,6 +549,7 @@ export interface FileRoutesById {
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/portfolio': typeof AppPortfolioRoute
+  '/_app/profile': typeof AppProfileRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
@@ -605,6 +614,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/dashboard'
     | '/portfolio'
+    | '/profile'
     | '/reports'
     | '/stats'
     | '/book/$slug'
@@ -667,6 +677,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/dashboard'
     | '/portfolio'
+    | '/profile'
     | '/reports'
     | '/stats'
     | '/book/$slug'
@@ -729,6 +740,7 @@ export interface FileRouteTypes {
     | '/_app/calendar'
     | '/_app/dashboard'
     | '/_app/portfolio'
+    | '/_app/profile'
     | '/_app/reports'
     | '/_app/stats'
     | '/book/$slug'
@@ -930,6 +942,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/portfolio': {
@@ -1301,6 +1320,7 @@ interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppPortfolioRoute: typeof AppPortfolioRoute
+  AppProfileRoute: typeof AppProfileRoute
   AppReportsRoute: typeof AppReportsRoute
   AppStatsRoute: typeof AppStatsRoute
   AppAdminHealthRoute: typeof AppAdminHealthRoute
@@ -1317,6 +1337,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppPortfolioRoute: AppPortfolioRoute,
+  AppProfileRoute: AppProfileRoute,
   AppReportsRoute: AppReportsRoute,
   AppStatsRoute: AppStatsRoute,
   AppAdminHealthRoute: AppAdminHealthRoute,

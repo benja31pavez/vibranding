@@ -7,7 +7,6 @@ import {
   Eye, Instagram, Megaphone, Target, CheckSquare, Wallet,
   Link2, Globe, MessageCircle, FileText, Inbox,
 } from "lucide-react";
-import { ProfileDialog } from "@/components/profile/ProfileDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -29,14 +28,18 @@ function AppLayout() {
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [activeClient, setActiveClient] = useState<ActiveC | null>(null);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [profile, setProfile] = useState<{ full_name: string | null; phone: string | null; avatar_url: string | null } | null>(null);
   const { stale: unmarkedStale } = useUnmarkedOutcomes(activeClient?.id ?? null);
 
   useEffect(() => {
     if (!session?.user) return;
-    supabase.from("user_profiles").select("full_name,phone,avatar_url").eq("user_id", session.user.id).maybeSingle()
-      .then(({ data }) => setProfile(data ?? { full_name: null, phone: null, avatar_url: null }));
+    const loadProfile = () => {
+      supabase.from("user_profiles").select("full_name,phone,avatar_url").eq("user_id", session.user.id).maybeSingle()
+        .then(({ data }) => setProfile(data ?? { full_name: null, phone: null, avatar_url: null }));
+    };
+    loadProfile();
+    window.addEventListener("profile-updated", loadProfile);
+    return () => window.removeEventListener("profile-updated", loadProfile);
   }, [session?.user?.id]);
 
   useEffect(() => {
@@ -136,8 +139,8 @@ function AppLayout() {
                   })()}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer">
-                  <UserCog className="w-4 h-4 mr-2" /> Editar perfil
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link to="/profile"><UserCog className="w-4 h-4 mr-2" /> Editar perfil</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
                   <Link to="/portfolio"><Sparkles className="w-4 h-4 mr-2" /> Portafolio público</Link>
@@ -196,7 +199,6 @@ function AppLayout() {
           <Outlet />
         </main>
       </div>
-      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} onSaved={(p) => setProfile(p)} />
     </div>
   );
 }
