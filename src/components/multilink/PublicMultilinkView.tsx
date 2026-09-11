@@ -126,12 +126,18 @@ export function PublicMultilinkView({
   return (
     <div
       className={`relative overflow-hidden ${preview ? "min-h-full" : "min-h-screen"}`}
-      style={{ background: theme.isDark ? "#070709" : "#eef0f4", color: theme.color, fontFamily: FONTS[font].family }}
+      style={{
+        background: preview ? panelBackground : theme.isDark ? "#070709" : "#eef0f4",
+        color: theme.color,
+        fontFamily: FONTS[font].family,
+      }}
     >
-      <div
-        className="absolute inset-0 pointer-events-none opacity-35 blur-3xl scale-110"
-        style={{ background: coverBackground }}
-      />
+      {!preview && (
+        <div
+          className="absolute inset-0 pointer-events-none opacity-35 blur-3xl scale-110"
+          style={{ background: coverBackground }}
+        />
+      )}
 
       {structuredData && (
         <script
@@ -140,10 +146,10 @@ export function PublicMultilinkView({
         />
       )}
 
-      <div className={`relative px-3 sm:px-5 ${preview ? "py-4" : "py-5 sm:py-10"}`}>
+      <div className={`relative ${preview ? "" : "px-3 sm:px-5 py-5 sm:py-10"}`}>
         <main
-          className="max-w-[440px] mx-auto overflow-hidden text-center shadow-2xl sm:rounded-[2rem]"
-          style={{ background: panelBackground, border: `1px solid ${subtleBorder}` }}
+          className={`mx-auto overflow-hidden text-center ${preview ? "w-full" : "max-w-[440px] shadow-2xl sm:rounded-[2rem]"}`}
+          style={preview ? { background: panelBackground } : { background: panelBackground, border: `1px solid ${subtleBorder}` }}
         >
           <div className="relative h-40 sm:h-44 overflow-hidden" style={{ background: coverBackground }}>
             {bg.type === "image" && <div className="absolute inset-0" style={{ background: theme.overlay ?? "transparent" }} />}
