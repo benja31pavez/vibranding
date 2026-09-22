@@ -141,22 +141,20 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     ]);
     if (error) toast.error(error.message);
     let nextItems = dItems ?? [];
-    if (!error) {
-      const existingNames = new Set(nextItems.map((row) => row.title.trim().toLocaleLowerCase("es")));
-      const missing = STARTER_STAGES.filter((stage) => !existingNames.has(stage.title.toLocaleLowerCase("es")));
-      if (missing.length > 0) {
-        const { data: created, error: createError } = await supabase.from("deliverables").insert(
-          missing.map((stage, index) => ({
-            client_id: clientId,
-            title: stage.title,
-            description: stage.description,
-            type: stage.type,
-            sort_order: nextItems.length + index,
-          })),
-        ).select("*");
-        if (createError) toast.error(createError.message);
-        else nextItems = [...nextItems, ...(created ?? [])];
-      }
+    // Solo se crean las etapas iniciales cuando el cliente aún no tiene ninguna.
+    // Nunca se re-crean etapas eliminadas o renombradas por el usuario.
+    if (!error && nextItems.length === 0) {
+      const { data: created, error: createError } = await supabase.from("deliverables").insert(
+        STARTER_STAGES.map((stage, index) => ({
+          client_id: clientId,
+          title: stage.title,
+          description: stage.description,
+          type: stage.type,
+          sort_order: index,
+        })),
+      ).select("*");
+      if (createError) toast.error(createError.message);
+      else nextItems = created ?? [];
     }
     setItems(nextItems.map((r: any) => ({ ...r, checklist: r.checklist ?? [] })) as Row[]);
     setFolders((dFolders ?? []) as FolderRow[]);
