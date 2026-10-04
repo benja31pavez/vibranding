@@ -107,7 +107,7 @@ export function ConvertDialog({ prospect, onClose }: { prospect: Prospect | null
           <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={confirm}
-            disabled={busy || checking || duplicates.length > 0 || Boolean(lookupError) || prospect?.estado !== "ganado" || Boolean(convertedClientId(prospect?.notas))}
+            disabled={busy || checking || duplicates.length > 0 || Boolean(lookupError) || prospect?.estado !== "ganado" || Boolean(convertedClientId(prospect))}
           >
             {busy ? "Creando…" : "Crear cliente"}
           </AlertDialogAction>

@@ -4,12 +4,19 @@ import { PLANS, type PlanKey } from "@/lib/pricing/plans";
 
 /** Estados de `prospects.estado` (CHECK prospects_estado_chk). */
 export const PROSPECT_STATES = [
-  "nuevo", "contactado", "respondio", "demo", "propuesta", "ganado", "perdido", "baja",
+  "nuevo", "contactado", "respondio", "demo", "propuesta", "ganado", "frio", "perdido", "baja",
 ] as const;
 export type ProspectState = (typeof PROSPECT_STATES)[number];
 
 /** Columnas abiertas del kanban, en orden del embudo. */
 export const OPEN_STATES = ["nuevo", "contactado", "respondio", "demo", "propuesta", "ganado"] as const;
+/**
+ * "Frío": se guarda, no se insiste automáticamente y no tiene fecha de "no contactar".
+ * Retomarlo es manual (moverlo a "nuevo" o "contactado"). Columna propia y visible.
+ */
+export const COLD_STATE = "frio" as const;
+/** Estados a los que se "retoma" un prospecto frío. */
+export const RESUME_STATES = ["nuevo", "contactado"] as const;
 /** Estados que viven en la columna colapsada "Cerrados". */
 export const CLOSED_STATES = ["perdido", "baja"] as const;
 
@@ -20,6 +27,7 @@ export const STATE_META: Readonly<Record<ProspectState, { label: string; tone: S
   demo: { label: "Demo", tone: "warning" },
   propuesta: { label: "Propuesta", tone: "warning" },
   ganado: { label: "Ganado", tone: "success" },
+  frio: { label: "Frío", tone: "info" },
   perdido: { label: "Perdido", tone: "neutral" },
   baja: { label: "Baja", tone: "danger" },
 };
@@ -160,17 +168,29 @@ export function dedupeKey(nombre: string, comuna: string | null | undefined): st
   return `${normalizeName(nombre)}|${normalizeName(comuna)}`;
 }
 
-/** Marca que deja "Convertir en cliente" en las notas del prospecto. */
+/**
+ * Marca que dejaba "Convertir en cliente" en las notas del prospecto antes de la v3
+ * (ahora el vínculo es prospects.client_id). Se sigue leyendo para prospectos antiguos.
+ */
 const CLIENT_MARK_RE = /\[Cliente: ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/i;
 
 export function clientMark(clientId: string): string {
   return `[Cliente: ${clientId}]`;
 }
 
-/** Id del cliente creado desde este prospecto (si ya se convirtió). */
-export function convertedClientId(notas: string | null | undefined): string | null {
-  return notas?.match(CLIENT_MARK_RE)?.[1] ?? null;
+/** Id del cliente creado desde este prospecto: prospects.client_id (v3) o la marca en notas. */
+export function convertedClientId(
+  prospect: { client_id?: string | null; notas?: string | null } | null | undefined,
+): string | null {
+  return prospect?.client_id ?? prospect?.notas?.match(CLIENT_MARK_RE)?.[1] ?? null;
 }
+
+/** Motivo para revocar una baja (mismos límites que revoke_prospect_baja). */
+export const REVOKE_MOTIVO_MIN = 5;
+export const REVOKE_MOTIVO_MAX = 300;
+/** Estados a los que puede volver un prospecto que sale de baja (revoke_prospect_baja). */
+export const REVOKE_TARGET_STATES = ["nuevo", "contactado", "respondio", "demo", "propuesta", "perdido", "frio"] as const;
+export type RevokeTargetState = (typeof REVOKE_TARGET_STATES)[number];
 
 const NO_CONTACT_RE = /No contactar antes de (\d{4}-\d{2}-\d{2})/;
 export const NO_CONTACT_MONTHS = 6;
