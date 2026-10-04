@@ -11,6 +11,7 @@ import { ClientAccessCard } from "@/components/clients/ClientAccessCard";
 import { ClientHeader } from "@/components/clients/ficha/ClientHeader";
 import { BillingCard } from "@/components/clients/ficha/BillingCard";
 import { OnboardingLinkPanel } from "@/components/clients/ficha/OnboardingLinkPanel";
+import { OnboardingIntakePanel } from "@/components/clients/ficha/OnboardingIntakePanel";
 import { HealthCards } from "@/components/clients/ficha/HealthCards";
 import { PendingApprovalPanel, UpcomingContentPanel } from "@/components/clients/ficha/MainPanels";
 import { ContractPanel } from "@/components/clients/ficha/ContractPanel";
@@ -48,6 +49,7 @@ function ClientFichaPage() {
             onRetry={() => void health.refetch()}
           />
           <ProposalsPanel clientId={clientId} canEdit={Boolean(overview.data?.canEdit)} />
+          {overview.data && <OnboardingIntakePanel clientId={clientId} canEdit={overview.data.canEdit} />}
           <UpcomingContentPanel clientId={clientId} />
           <ReportsPanel clientId={clientId} clientName={client?.name ?? ""} canEdit={overview.data?.canEdit ?? false} />
           <BusinessDescription

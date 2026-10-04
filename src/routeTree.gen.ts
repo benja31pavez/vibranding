@@ -35,6 +35,7 @@ import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppStatsRouteImport } from './routes/_app/stats'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as LSlugRouteImport } from './routes/l.$slug'
+import { Route as OnboardingTokenRouteImport } from './routes/onboarding.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PagoResultadoRouteImport } from './routes/pago.resultado'
 import { Route as RTokenRouteImport } from './routes/r.$token'
@@ -79,6 +80,7 @@ import { Route as ApiPublicFlowConfirmRouteImport } from './routes/api/public/fl
 import { Route as ApiPublicFlowReturnRouteImport } from './routes/api/public/flow/return'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as ApiPublicMetaIngestDailyRouteImport } from './routes/api/public/meta/ingest-daily'
+import { Route as ApiPublicOnboardingCleanupRouteImport } from './routes/api/public/onboarding/cleanup'
 import { Route as ApiPublicReportsMonthlyRouteImport } from './routes/api/public/reports/monthly'
 import { Route as ApiPublicWhatsappDispatchRouteImport } from './routes/api/public/whatsapp/dispatch'
 import { Route as ApiPublicMetaOauthCallbackRouteImport } from './routes/api/public/meta/oauth/callback'
@@ -212,6 +214,11 @@ const BookSlugRoute = BookSlugRouteImport.update({
 const LSlugRoute = LSlugRouteImport.update({
   id: '/l/$slug',
   path: '/l/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingTokenRoute = OnboardingTokenRouteImport.update({
+  id: '/onboarding/$token',
+  path: '/onboarding/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PTokenRoute = PTokenRouteImport.update({
@@ -453,6 +460,12 @@ const ApiPublicMetaIngestDailyRoute =
     path: '/api/public/meta/ingest-daily',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicOnboardingCleanupRoute =
+  ApiPublicOnboardingCleanupRouteImport.update({
+    id: '/api/public/onboarding/cleanup',
+    path: '/api/public/onboarding/cleanup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicReportsMonthlyRoute = ApiPublicReportsMonthlyRouteImport.update({
   id: '/api/public/reports/monthly',
   path: '/api/public/reports/monthly',
@@ -503,6 +516,7 @@ export interface FileRoutesByFullPath {
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
@@ -546,6 +560,7 @@ export interface FileRoutesByFullPath {
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
+  '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/clients/$clientId/': typeof AppClientsClientIdIndexRoute
@@ -578,6 +593,7 @@ export interface FileRoutesByTo {
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
@@ -620,6 +636,7 @@ export interface FileRoutesByTo {
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
+  '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/clients/$clientId': typeof AppClientsClientIdIndexRoute
@@ -654,6 +671,7 @@ export interface FileRoutesById {
   '/_app/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
@@ -697,6 +715,7 @@ export interface FileRoutesById {
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
+  '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/_app/clients/$clientId/': typeof AppClientsClientIdIndexRoute
@@ -731,6 +750,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
     | '/r/$token'
@@ -774,6 +794,7 @@ export interface FileRouteTypes {
     | '/api/public/flow/return'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
+    | '/api/public/onboarding/cleanup'
     | '/api/public/reports/monthly'
     | '/api/public/whatsapp/dispatch'
     | '/clients/$clientId/'
@@ -806,6 +827,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
     | '/r/$token'
@@ -848,6 +870,7 @@ export interface FileRouteTypes {
     | '/api/public/flow/return'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
+    | '/api/public/onboarding/cleanup'
     | '/api/public/reports/monthly'
     | '/api/public/whatsapp/dispatch'
     | '/clients/$clientId'
@@ -881,6 +904,7 @@ export interface FileRouteTypes {
     | '/_app/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
     | '/r/$token'
@@ -924,6 +948,7 @@ export interface FileRouteTypes {
     | '/api/public/flow/return'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
+    | '/api/public/onboarding/cleanup'
     | '/api/public/reports/monthly'
     | '/api/public/whatsapp/dispatch'
     | '/_app/clients/$clientId/'
@@ -947,6 +972,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   BookSlugRoute: typeof BookSlugRoute
   LSlugRoute: typeof LSlugRoute
+  OnboardingTokenRoute: typeof OnboardingTokenRoute
   PTokenRoute: typeof PTokenRoute
   PagoResultadoRoute: typeof PagoResultadoRoute
   RTokenRoute: typeof RTokenRoute
@@ -962,6 +988,7 @@ export interface RootRouteChildren {
   ApiPublicFlowReturnRoute: typeof ApiPublicFlowReturnRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicMetaIngestDailyRoute: typeof ApiPublicMetaIngestDailyRoute
+  ApiPublicOnboardingCleanupRoute: typeof ApiPublicOnboardingCleanupRoute
   ApiPublicReportsMonthlyRoute: typeof ApiPublicReportsMonthlyRoute
   ApiPublicWhatsappDispatchRoute: typeof ApiPublicWhatsappDispatchRoute
   ApiPublicMetaOauthCallbackRoute: typeof ApiPublicMetaOauthCallbackRoute
@@ -1150,6 +1177,13 @@ declare module '@tanstack/react-router' {
       path: '/l/$slug'
       fullPath: '/l/$slug'
       preLoaderRoute: typeof LSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding/$token': {
+      id: '/onboarding/$token'
+      path: '/onboarding/$token'
+      fullPath: '/onboarding/$token'
+      preLoaderRoute: typeof OnboardingTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$token': {
@@ -1460,6 +1494,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMetaIngestDailyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/onboarding/cleanup': {
+      id: '/api/public/onboarding/cleanup'
+      path: '/api/public/onboarding/cleanup'
+      fullPath: '/api/public/onboarding/cleanup'
+      preLoaderRoute: typeof ApiPublicOnboardingCleanupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/reports/monthly': {
       id: '/api/public/reports/monthly'
       path: '/api/public/reports/monthly'
@@ -1613,6 +1654,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   BookSlugRoute: BookSlugRoute,
   LSlugRoute: LSlugRoute,
+  OnboardingTokenRoute: OnboardingTokenRoute,
   PTokenRoute: PTokenRoute,
   PagoResultadoRoute: PagoResultadoRoute,
   RTokenRoute: RTokenRoute,
@@ -1628,6 +1670,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicFlowReturnRoute: ApiPublicFlowReturnRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicMetaIngestDailyRoute: ApiPublicMetaIngestDailyRoute,
+  ApiPublicOnboardingCleanupRoute: ApiPublicOnboardingCleanupRoute,
   ApiPublicReportsMonthlyRoute: ApiPublicReportsMonthlyRoute,
   ApiPublicWhatsappDispatchRoute: ApiPublicWhatsappDispatchRoute,
   ApiPublicMetaOauthCallbackRoute: ApiPublicMetaOauthCallbackRoute,
