@@ -23,75 +23,98 @@ interface Stats {
   monthRevenue: MoneyByCurrency;
 }
 
+const DAY_MS = 86_400_000;
+const LIST_LIMIT = 10;
+
+/** Mensaje legible para errores de Supabase (PostgrestError no es `Error`) u otros. */
+function errorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === "object" && "message" in e && typeof e.message === "string") return e.message;
+  return "Error desconocido";
+}
+
+const EMPTY_STATS: Stats = {
+  clients: 0,
+  upcomingDeliverables: [],
+  pendingPayments: [],
+  scheduledPosts: [],
+  monthRevenue: {},
+};
+
+/** Carga los datos del inicio. Lanza el primer error real de Supabase. */
+async function loadStats(): Promise<Stats> {
+  const { data: clients, error: clientsError } = await supabase.from("clients").select("id,name");
+  if (clientsError) throw clientsError;
+  const ids = (clients ?? []).map((c) => c.id);
+  if (ids.length === 0) return EMPTY_STATS;
+  const nameById = new Map((clients ?? []).map((c) => [c.id, c.name]));
+  const clientName = (id: string) => nameById.get(id) ?? "—";
+
+  const now = new Date();
+  const in7 = new Date(now.getTime() + 7 * DAY_MS).toISOString().slice(0, 10);
+  const today = now.toISOString().slice(0, 10);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+
+  const [dels, pays, posts, paid] = await Promise.all([
+    supabase.from("deliverables").select("id,title,due_date,client_id").in("client_id", ids).neq("status", "done").lte("due_date", in7).order("due_date", { ascending: true }).limit(LIST_LIMIT),
+    supabase.from("payments").select("id,amount,currency,description,due_date,client_id,status").in("client_id", ids).neq("status", "paid").neq("status", "cancelled").order("due_date", { ascending: true }).limit(LIST_LIMIT),
+    supabase.from("instagram_posts").select("id,scheduled_at,client_id,type").in("client_id", ids).gte("scheduled_at", today).order("scheduled_at", { ascending: true }).limit(LIST_LIMIT),
+    supabase.from("payments").select("amount,currency,paid_at").in("client_id", ids).eq("status", "paid").gte("paid_at", monthStart),
+  ]);
+  const firstError = dels.error ?? pays.error ?? posts.error ?? paid.error;
+  if (firstError) throw firstError;
+
+  return {
+    clients: clients?.length ?? 0,
+    upcomingDeliverables: (dels.data ?? []).map((d) => ({ ...d, client_name: clientName(d.client_id) })),
+    pendingPayments: (pays.data ?? []).map((p) => ({ ...p, client_name: clientName(p.client_id) })),
+    scheduledPosts: (posts.data ?? []).map((p) => ({ ...p, scheduled_at: p.scheduled_at ?? "", client_name: clientName(p.client_id) })),
+    monthRevenue: (paid.data ?? []).reduce<MoneyByCurrency>(
+      (acc, x) => addMoney(acc, x.currency, Number(x.amount)),
+      {},
+    ),
+  };
+}
+
 function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    setError(null);
-    (async () => {
-      const { data: clients, error: clientsError } = await supabase.from("clients").select("id,name");
-      if (clientsError) throw clientsError;
-      const ids = (clients ?? []).map((c) => c.id);
-      const nameById = new Map((clients ?? []).map((c) => [c.id, c.name]));
-
-      const now = new Date();
-      const in7 = new Date(now.getTime() + 7 * 86400000).toISOString().slice(0, 10);
-      const today = now.toISOString().slice(0, 10);
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-
-      const results = await Promise.all([
-        ids.length
-          ? supabase.from("deliverables").select("id,title,due_date,client_id").in("client_id", ids).neq("status", "done").lte("due_date", in7).order("due_date", { ascending: true }).limit(10)
-          : Promise.resolve({ data: [] as any[], error: null }),
-        ids.length
-          ? supabase.from("payments").select("id,amount,currency,description,due_date,client_id,status").in("client_id", ids).neq("status", "paid").neq("status", "cancelled").order("due_date", { ascending: true }).limit(10)
-          : Promise.resolve({ data: [] as any[], error: null }),
-        ids.length
-          ? supabase.from("instagram_posts").select("id,scheduled_at,client_id,type").in("client_id", ids).gte("scheduled_at", today).order("scheduled_at", { ascending: true }).limit(10)
-          : Promise.resolve({ data: [] as any[], error: null }),
-        ids.length
-          ? supabase.from("payments").select("amount,currency,paid_at").in("client_id", ids).eq("status", "paid").gte("paid_at", monthStart)
-          : Promise.resolve({ data: [] as any[], error: null }),
-      ]);
-      const firstError = results.find((r) => r.error)?.error;
-      if (firstError) throw firstError;
-      const [{ data: dels }, { data: pays }, { data: posts }, { data: paid }] = results;
-
-      const monthRevenue = (paid ?? []).reduce<MoneyByCurrency>(
-        (acc, x: any) => addMoney(acc, x.currency, Number(x.amount)),
-        {},
-      );
-
-      if (cancelled) return;
-      setStats({
-        clients: clients?.length ?? 0,
-        upcomingDeliverables: (dels ?? []).map((d: any) => ({ ...d, client_name: nameById.get(d.client_id) ?? "—" })),
-        pendingPayments: (pays ?? []).map((p: any) => ({ ...p, client_name: nameById.get(p.client_id) ?? "—" })),
-        scheduledPosts: (posts ?? []).map((p: any) => ({ ...p, client_name: nameById.get(p.client_id) ?? "—" })),
-        monthRevenue,
+    loadStats()
+      .then((next) => {
+        if (cancelled) return;
+        setStats(next);
+        setError(null);
+      })
+      .catch((e: unknown) => {
+        console.error("[dashboard] error al cargar", e);
+        if (!cancelled) setError(errorMessage(e));
+      })
+      .finally(() => {
+        if (!cancelled) setRetrying(false);
       });
-    })().catch((e: unknown) => {
-      console.error("[dashboard] error al cargar", e);
-      if (!cancelled) setError(e instanceof Error ? e.message : "Error desconocido");
-    });
     return () => {
       cancelled = true;
     };
   }, [user, reloadKey]);
 
   const loading = !stats && !error;
-  const retry = () => setReloadKey((k) => k + 1);
+  const retry = () => {
+    setRetrying(true);
+    setReloadKey((k) => k + 1);
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-6 py-8 md:px-10">
       <PageHeader title="Inicio" description="Resumen de tus clientes y actividad reciente." />
 
-      {error && !stats && <ErrorState message={error} onRetry={retry} />}
+      {error && !stats && <ErrorState message={error} onRetry={retry} retrying={retrying} />}
 
       {!error || stats ? (
         <>
@@ -159,7 +182,7 @@ function Dashboard() {
                       <Link to="/clients/$clientId/instagram" params={{ clientId: p.client_id }} className="min-w-0 truncate hover:underline">
                         <span className="font-medium">{p.client_name}</span> <span className="text-muted-foreground">· {p.type}</span>
                       </Link>
-                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{new Date(p.scheduled_at).toLocaleString()}</span>
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{new Date(p.scheduled_at).toLocaleString("es-CL")}</span>
                     </li>
                   ))}
                 </ul>
@@ -202,7 +225,7 @@ function ReviewActivity() {
               <Link to="/clients/$clientId/plan" params={{ clientId: a.client_id }} className="font-medium hover:underline">
                 {a.deliverable_title}
               </Link>
-              <span className="text-muted-foreground"> · {a.author_name ?? "Cliente"} · {new Date(a.created_at).toLocaleDateString()}</span>
+              <span className="text-muted-foreground"> · {a.author_name ?? "Cliente"} · {new Date(a.created_at).toLocaleDateString("es-CL")}</span>
               {a.body && <span className="block truncate text-muted-foreground">{a.body}</span>}
             </span>
           </li>

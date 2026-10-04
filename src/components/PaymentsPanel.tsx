@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,18 +64,24 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Contador de solicitudes: ignora respuestas viejas si llega una carga más nueva.
+  const requestId = useRef(0);
+
   const load = async () => {
-    setLoadError(null);
+    const id = ++requestId.current;
     const { data, error } = await supabase
       .from("payments")
       .select("*")
       .eq("client_id", clientId)
       .order("created_at", { ascending: false });
+    if (id !== requestId.current) return;
     if (error) {
       console.error("[payments] error al cargar", error);
       setLoadError(error.message);
+    } else {
+      setLoadError(null);
+      setItems((data ?? []) as Payment[]);
     }
-    setItems((data ?? []) as Payment[]);
     setLoading(false);
   };
 
@@ -84,7 +90,11 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
     load();
   };
 
-  useEffect(() => { load(); }, [clientId]);
+  useEffect(() => {
+    setLoading(true);
+    setItems([]);
+    load();
+  }, [clientId]);
 
   const create = async () => {
     const amount = parseFloat(draft.amount);
@@ -178,7 +188,7 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
               </div>
               <Money amount={Number(p.amount)} currency={p.currency} className="font-semibold" />
               <Select value={p.status} onValueChange={(v) => update(p.id, { status: v as Status })}>
-                <SelectTrigger aria-label="Estado del pago" className={`h-8 w-32 rounded-full border-0 text-xs font-medium ${statusCls(p.status)}`}>
+                <SelectTrigger aria-label="Estado del pago" className={`h-8 w-32 rounded-full border-0 text-xs font-medium focus:ring-2 focus:ring-ring focus:ring-offset-1 ${statusCls(p.status)}`}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -187,10 +197,10 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
                   ))}
                 </SelectContent>
               </Select>
-              <button type="button" onClick={() => setEditing(p)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-foreground" title="Editar" aria-label="Editar pago">
+              <button type="button" onClick={() => setEditing(p)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-foreground" aria-label="Editar pago">
                 <Pencil aria-hidden className="h-4 w-4" />
               </button>
-              <button type="button" onClick={() => remove(p.id)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-danger" title="Eliminar" aria-label="Eliminar pago">
+              <button type="button" onClick={() => remove(p.id)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-danger" aria-label="Eliminar pago">
                 <Trash2 aria-hidden className="h-4 w-4" />
               </button>
             </li>

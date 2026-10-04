@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, type LinkProps } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface BreadcrumbItem {
   label: string;
-  /** Ruta absoluta (p. ej. "/clients"). Sin `to`, el ítem se muestra como página actual. */
-  to?: string;
+  /** Ruta tipada del router sin parámetros (p. ej. "/clients"). Sin `to`, es la página actual. */
+  to?: LinkProps["to"];
 }
 
 export interface PageHeaderProps {
