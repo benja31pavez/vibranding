@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,16 +9,18 @@ import {
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import {
   DEFAULT_CURRENCY,
   addMoney,
   currencyDecimals,
-  formatMoney,
   normalizeCurrency,
   type MoneyByCurrency,
 } from "@/lib/pricing/plans";
+import {
+  EmptyState, ErrorState, Money, StatCard, TableSkeleton, TONE_CLASSES, getStatus,
+} from "@/components/app";
 
 /** RLS hides rows instead of erroring: 0 affected rows means "not allowed". */
 const NO_PERMISSION = "No tienes permisos para esta acción";
@@ -39,15 +41,9 @@ interface Payment {
   paid_at: string | null;
 }
 
-const statusCls: Record<Status, string> = {
-  pending: "bg-warning/15 text-warning",
-  paid: "bg-success/15 text-success",
-  overdue: "bg-destructive/15 text-destructive",
-  cancelled: "bg-muted text-muted-foreground",
-};
-const statusLabel: Record<Status, string> = {
-  pending: "Pendiente", paid: "Pagado", overdue: "Vencido", cancelled: "Cancelado",
-};
+const STATUSES: readonly Status[] = ["pending", "paid", "overdue", "cancelled"];
+const statusLabel = (s: Status) => getStatus(s).label;
+const statusCls = (s: Status) => TONE_CLASSES[getStatus(s).tone].badge;
 
 const amountStep = (currency: string) => (currencyDecimals(normalizeCurrency(currency)) === 0 ? 1 : 0.01);
 
@@ -56,11 +52,11 @@ const addTo = addMoney;
 
 function TotalsValue({ totals }: { totals: Totals }) {
   const entries = Object.entries(totals).filter(([, v]) => v !== 0);
-  if (entries.length === 0) return <div className="text-3xl font-semibold mt-1">{formatMoney(DEFAULT_CURRENCY, 0)}</div>;
+  if (entries.length === 0) return <Money amount={0} currency={DEFAULT_CURRENCY} />;
   return (
-    <div className="mt-1 space-y-0.5">
+    <div className="space-y-0.5">
       {entries.map(([cur, v]) => (
-        <div key={cur} className="text-3xl font-semibold tabular-nums">{formatMoney(cur, v)}</div>
+        <Money key={cur} amount={v} currency={cur} className="block" />
       ))}
     </div>
   );
@@ -71,18 +67,40 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ description: "", amount: "", currency: DEFAULT_CURRENCY, due_date: "" });
   const [editing, setEditing] = useState<Payment | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Contador de solicitudes: ignora respuestas viejas si llega una carga más nueva.
+  const requestId = useRef(0);
 
   const load = async () => {
+    const id = ++requestId.current;
     const { data, error } = await supabase
       .from("payments")
       .select("*")
       .eq("client_id", clientId)
       .order("created_at", { ascending: false });
-    if (error) toast.error(error.message);
-    setItems((data ?? []) as Payment[]);
+    if (id !== requestId.current) return;
+    if (error) {
+      console.error("[payments] error al cargar", error);
+      setLoadError(error.message);
+    } else {
+      setLoadError(null);
+      setItems((data ?? []) as Payment[]);
+    }
+    setLoading(false);
   };
 
-  useEffect(() => { load(); }, [clientId]);
+  const retry = () => {
+    setLoading(true);
+    load();
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    setItems([]);
+    load();
+  }, [clientId]);
 
   const create = async () => {
     const amount = parseFloat(draft.amount);
@@ -106,13 +124,15 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
         ? { ...patch, paid_at: new Date().toISOString().slice(0, 10) }
         : patch;
     const { data, error } = await supabase.from("payments").update(fullPatch).eq("id", id).select("id");
-    if (writeDenied(error, data)) toast.error(NO_PERMISSION);
+    if (error) toast.error(`No se pudo actualizar el pago: ${error.message}`);
+    else if (writeDenied(error, data)) toast.error(NO_PERMISSION);
     load();
   };
 
   const remove = async (id: string) => {
     const { data, error } = await supabase.from("payments").delete().eq("id", id).select("id");
-    if (writeDenied(error, data)) toast.error(NO_PERMISSION);
+    if (error) toast.error(`No se pudo eliminar el pago: ${error.message}`);
+    else if (writeDenied(error, data)) toast.error(NO_PERMISSION);
     load();
   };
 
@@ -130,48 +150,44 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border bg-surface p-5">
-          <div className="text-xs text-muted-foreground uppercase tracking-wider">Cobrado</div>
-          <TotalsValue totals={totals.paid} />
-        </div>
-        <div className="rounded-2xl border bg-surface p-5">
-          <div className="text-xs text-muted-foreground uppercase tracking-wider">Por cobrar</div>
-          <TotalsValue totals={totals.pending} />
-        </div>
+        <StatCard label="Cobrado" loading={loading} value={<TotalsValue totals={totals.paid} />} />
+        <StatCard label="Por cobrar" loading={loading} value={<TotalsValue totals={totals.pending} />} />
       </div>
 
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Movimientos</h3>
+        <h3 className="text-base font-semibold">Movimientos</h3>
         {!adding && (
-          <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAdding(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Nuevo cobro
+          <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
+            <Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo cobro
           </Button>
         )}
       </div>
 
       {adding && (
-        <div className="rounded-2xl border bg-surface p-4 space-y-3">
-          <Input placeholder="Concepto" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} autoFocus />
+        <div className="space-y-3 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs">
+          <Input placeholder="Concepto" aria-label="Concepto" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} autoFocus />
           <div className="flex gap-2">
-            <Input type="number" step={amountStep(draft.currency)} placeholder="Monto (IVA incluido)" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
+            <Input type="number" step={amountStep(draft.currency)} placeholder="Monto (IVA incluido)" aria-label="Monto (IVA incluido)" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
             <Input className="w-24" placeholder={DEFAULT_CURRENCY} aria-label="Moneda" value={draft.currency} onChange={(e) => setDraft({ ...draft, currency: e.target.value.toUpperCase() })} />
-            <Input type="date" value={draft.due_date} onChange={(e) => setDraft({ ...draft, due_date: e.target.value })} />
+            <Input type="date" aria-label="Fecha de vencimiento" value={draft.due_date} onChange={(e) => setDraft({ ...draft, due_date: e.target.value })} />
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>Cancelar</Button>
-            <Button size="sm" className="rounded-full" onClick={create}>Guardar</Button>
+            <Button size="sm" onClick={create}>Guardar</Button>
           </div>
         </div>
       )}
 
-      {items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          Sin movimientos por ahora.
-        </div>
+      {loading ? (
+        <TableSkeleton rows={3} columns={3} label="Cargando movimientos" />
+      ) : loadError ? (
+        <ErrorState message={loadError} onRetry={retry} />
+      ) : items.length === 0 ? (
+        <EmptyState icon={Receipt} title="Sin movimientos por ahora." description="Registra un cobro para empezar a llevar la cuenta." />
       ) : (
         <ul className="space-y-2">
           {items.map((p) => (
-            <li key={p.id} className="rounded-2xl border bg-surface p-4 flex items-center gap-4 group">
+            <li key={p.id} className="group flex items-center gap-4 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs">
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{p.description || "Cobro"}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">
@@ -179,24 +195,22 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
                   {p.paid_at && ` · Pagado ${new Date(p.paid_at).toLocaleDateString("es-CL")}`}
                 </div>
               </div>
-              <div className="font-semibold tabular-nums">
-                {formatMoney(p.currency, Number(p.amount))}
-              </div>
+              <Money amount={Number(p.amount)} currency={p.currency} className="font-semibold" />
               <Select value={p.status} onValueChange={(v) => update(p.id, { status: v as Status })}>
-                <SelectTrigger className={`h-8 w-32 rounded-full border-0 text-xs font-medium ${statusCls[p.status]}`}>
+                <SelectTrigger aria-label="Estado del pago" className={`h-8 w-32 rounded-full border-0 text-xs font-medium focus:ring-2 focus:ring-ring focus:ring-offset-1 ${statusCls(p.status)}`}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(statusLabel) as Status[]).map((k) => (
-                    <SelectItem key={k} value={k}>{statusLabel[k]}</SelectItem>
+                  {STATUSES.map((k) => (
+                    <SelectItem key={k} value={k}>{statusLabel(k)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <button onClick={() => setEditing(p)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground" title="Editar">
-                <Pencil className="w-4 h-4" />
+              <button type="button" onClick={() => setEditing(p)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-foreground" aria-label="Editar pago">
+                <Pencil aria-hidden className="h-4 w-4" />
               </button>
-              <button onClick={() => remove(p.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" title="Eliminar">
-                <Trash2 className="w-4 h-4" />
+              <button type="button" onClick={() => remove(p.id)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-danger" aria-label="Eliminar pago">
+                <Trash2 aria-hidden className="h-4 w-4" />
               </button>
             </li>
           ))}
@@ -281,8 +295,8 @@ function EditDialog({
             <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {(Object.keys(statusLabel) as Status[]).map((k) => (
-                  <SelectItem key={k} value={k}>{statusLabel[k]}</SelectItem>
+                {STATUSES.map((k) => (
+                  <SelectItem key={k} value={k}>{statusLabel(k)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
