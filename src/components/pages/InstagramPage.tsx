@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { IdentityEditor, ConfigEditor, PostsEditor, HighlightsEditor } from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
@@ -48,8 +49,24 @@ export function InstagramPage({ clientId }: { clientId: string }) {
     if (!profile.current_username) patch.current_username = handle;
     if (!profile.proposed_username) patch.proposed_username = handle;
     if (Object.keys(patch).length === 0) return;
+    const previous = profile;
     setProfile({ ...profile, ...patch });
-    supabase.from("instagram_profiles").update(patch).eq("client_id", clientId);
+    void (async () => {
+      // Sin await la petición de Supabase nunca se ejecuta (el builder es "lazy").
+      const { data, error } = await supabase
+        .from("instagram_profiles")
+        .update(patch)
+        .eq("client_id", clientId)
+        .select("id");
+      if (error || !data || data.length === 0) {
+        setProfile(previous);
+        toast.error(
+          error
+            ? `No se pudo guardar el usuario de Instagram: ${error.message}`
+            : "No se pudo guardar el usuario de Instagram (sin permisos)",
+        );
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client?.instagram_handle, profile?.id]);
 

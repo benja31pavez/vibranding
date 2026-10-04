@@ -82,6 +82,8 @@ export function UpcomingContentPanel({ clientId }: { clientId: string }) {
   const { ig } = useActiveClient();
   const now = Date.now();
   const upcoming = ig.posts
+    // Excluye archivados (el contexto los conserva si pertenecen a una versión del grid).
+    .filter((p) => !(p as { archived_at?: string | null }).archived_at)
     .filter((p) => p.scheduled_at && !p.published_at && new Date(p.scheduled_at).getTime() >= now)
     .sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime())
     .slice(0, MAX_UPCOMING);

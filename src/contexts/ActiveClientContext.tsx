@@ -25,6 +25,10 @@ interface ClientCtx {
   setComments: Dispatch<SetStateAction<IGComment[]>>;
   reloadClient: () => Promise<void>;
   reloadIG: () => Promise<void>;
+  /** Error al cargar el cliente (para mostrar reintentar en vez de "Cargando" infinito). */
+  clientError: string | null;
+  /** Error al cargar los datos de Instagram. */
+  igError: string | null;
 }
 
 const Ctx = createContext<ClientCtx | null>(null);
@@ -35,18 +39,25 @@ export function ClientProvider({ clientId, children }: { clientId: string; child
   const [posts, setPosts] = useState<IGPost[]>([]);
   const [highlights, setHighlights] = useState<IGHighlight[]>([]);
   const [comments, setComments] = useState<IGComment[]>([]);
+  const [clientError, setClientError] = useState<string | null>(null);
+  const [igError, setIgError] = useState<string | null>(null);
 
   const reloadClient = async () => {
-    const { data } = await supabase
+    setClientError(null);
+    const { data, error } = await supabase
       .from("clients")
       .select("id,name,instagram_handle,business_description")
       .eq("id", clientId)
       .maybeSingle();
+    if (error) {
+      setClientError(error.message);
+      return;
+    }
     setClient(data);
   };
 
   const reloadIG = async () => {
-    const [{ data: pr }, { data: ps }, { data: hi }, { data: cm }] = await Promise.all([
+    const [prRes, psRes, hiRes, cmRes] = await Promise.all([
       supabase.from("instagram_profiles").select("*").eq("client_id", clientId).maybeSingle(),
       supabase
         .from("instagram_posts")
@@ -57,6 +68,16 @@ export function ClientProvider({ clientId, children }: { clientId: string; child
       supabase.from("instagram_highlights").select("*").eq("client_id", clientId),
       supabase.from("instagram_post_comments").select("*").eq("client_id", clientId),
     ]);
+    const failed = [prRes, psRes, hiRes, cmRes].find((r) => r.error);
+    if (failed?.error) {
+      setIgError(failed.error.message);
+      return;
+    }
+    setIgError(null);
+    const { data: pr } = prRes;
+    const { data: ps } = psRes;
+    const { data: hi } = hiRes;
+    const { data: cm } = cmRes;
     setProfile(pr as IGProfile | null);
     setPosts((ps ?? []) as IGPost[]);
     setHighlights((hi ?? []) as IGHighlight[]);
@@ -80,11 +101,18 @@ export function ClientProvider({ clientId, children }: { clientId: string; child
         setComments,
         reloadClient,
         reloadIG,
+        clientError,
+        igError,
       }}
     >
       {children}
     </Ctx.Provider>
   );
+}
+
+/** Como useActiveClient, pero devuelve null fuera de ClientProvider (componentes reutilizables). */
+export function useOptionalActiveClient() {
+  return useContext(Ctx);
 }
 
 export function useActiveClient() {
