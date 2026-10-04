@@ -8,6 +8,7 @@ import {
   useSensor,
   useSensors,
   type Announcements,
+  type KeyboardCoordinateGetter,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
@@ -41,6 +42,35 @@ function makeAnnouncements(byId: Map<string, Prospect>): Announcements {
     onDragCancel: ({ active }) => `Se canceló el arrastre de ${name(active.id)}.`,
   };
 }
+
+const NEXT_KEYS = new Set(["ArrowRight", "ArrowDown"]);
+const PREV_KEYS = new Set(["ArrowLeft", "ArrowUp"]);
+const DROP_OFFSET_PX = 12;
+
+/**
+ * Con teclado, las flechas saltan de columna en columna (izq./arriba = anterior,
+ * der./abajo = siguiente) en vez de mover la tarjeta píxel a píxel.
+ */
+const columnCoordinateGetter: KeyboardCoordinateGetter = (event, { context, currentCoordinates }) => {
+  const forward = NEXT_KEYS.has(event.code);
+  if (!forward && !PREV_KEYS.has(event.code)) return undefined;
+  event.preventDefault();
+  const columns = context.droppableContainers
+    .getEnabled()
+    .map((c) => ({ id: String(c.id), rect: context.droppableRects.get(c.id) }))
+    .filter((c): c is { id: string; rect: NonNullable<typeof c.rect> } => Boolean(c.rect))
+    .sort((a, b) => a.rect.left - b.rect.left || a.rect.top - b.rect.top);
+  if (columns.length === 0) return currentCoordinates;
+  const currentIndex = columns.findIndex((c) => c.id === String(context.over?.id ?? ""));
+  const nextIndex =
+    currentIndex === -1 ? 0 : Math.min(columns.length - 1, Math.max(0, currentIndex + (forward ? 1 : -1)));
+  const target = columns[nextIndex].rect;
+  // Igual que sortableKeyboardCoordinates: compensar la distancia entre el puntero y la tarjeta.
+  const collision = context.collisionRect;
+  const offsetX = collision ? currentCoordinates.x - collision.left : 0;
+  const offsetY = collision ? currentCoordinates.y - collision.top : 0;
+  return { x: target.left + DROP_OFFSET_PX + offsetX, y: target.top + DROP_OFFSET_PX + offsetY };
+};
 
 const SCREEN_READER_INSTRUCTIONS =
   "Para mover una tarjeta, enfoca su asa y presiona espacio. Usa las flechas para cambiar de columna, " +
@@ -101,7 +131,7 @@ export function KanbanBoard({ prospects, actions }: { prospects: Prospect[]; act
   const [closedOpen, setClosedOpen] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: DRAG_DISTANCE_PX } }),
-    useSensor(KeyboardSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: columnCoordinateGetter }),
   );
 
   const byId = useMemo(() => new Map(prospects.map((p) => [p.id, p])), [prospects]);

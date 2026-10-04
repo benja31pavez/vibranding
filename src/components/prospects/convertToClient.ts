@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { findPlan, type Plan } from "@/lib/pricing/plans";
-import { normalizeInstagram } from "@/lib/prospects/schema";
+import { clientMark, convertedClientId, normalizeInstagram, normalizeName } from "@/lib/prospects/schema";
 import { NO_PERMISSION, writeError, type Prospect } from "./prospectsData";
 
 export type ConvertResult =
@@ -22,8 +22,6 @@ function clientNotes(p: Prospect): string {
     p.rubro && `Rubro: ${p.rubro}`,
     p.comuna && `Comuna: ${p.comuna}`,
     p.web && `Web: ${p.web}`,
-    p.email_publico && `Correo: ${p.email_publico}`,
-    p.telefono_publico && `Teléfono: ${p.telefono_publico}`,
   ];
   return lines.filter(Boolean).join("\n");
 }
@@ -44,6 +42,17 @@ async function assignPlan(clientId: string, plan: Plan): Promise<string | null> 
  * como ganado. Si el cliente se crea pero falla un paso posterior, devuelve ok con avisos.
  */
 export async function convertToClient(prospect: Prospect, userId: string): Promise<ConvertResult> {
+  if (prospect.estado === "baja") return { ok: false, error: "Un prospecto dado de baja no se puede convertir en cliente." };
+  if (prospect.estado !== "ganado") return { ok: false, error: "Solo se convierten prospectos en estado Ganado." };
+  const already = convertedClientId(prospect.notas);
+  if (already) return { ok: false, error: "Este prospecto ya se convirtió en cliente." };
+  try {
+    const sameName = await findClientsByName(prospect.org_id, prospect.nombre);
+    if (sameName.length > 0) return { ok: false, error: `Ya existe el cliente "${sameName[0].name}".` };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "No se pudo revisar si el cliente ya existe." };
+  }
+
   const { data, error } = await supabase
     .from("clients")
     .insert({
@@ -70,23 +79,32 @@ export async function convertToClient(prospect: Prospect, userId: string): Promi
     warnings.push("El prospecto no tenía plan sugerido: asígnalo en la ficha del cliente.");
   }
 
-  if (prospect.estado !== "ganado") {
-    const upd = await supabase.from("prospects").update({ estado: "ganado" }).eq("id", prospect.id).select("id");
-    const err = upd.error ? writeError(upd.error) : !upd.data?.length ? NO_PERMISSION : null;
-    if (err) warnings.push(`El cliente se creó, pero el prospecto no quedó como ganado: ${err}`);
-  }
+  // Marca de conversión en las notas (enlaza al cliente y evita convertir dos veces).
+  const notas = [prospect.notas?.trim(), clientMark(clientId)].filter(Boolean).join("\n");
+  const upd = await supabase
+    .from("prospects")
+    .update({ estado: "ganado", notas })
+    .eq("id", prospect.id)
+    .neq("estado", "baja")
+    .select("id");
+  const err = upd.error ? writeError(upd.error) : !upd.data?.length ? NO_PERMISSION : null;
+  if (err) warnings.push(`El cliente se creó, pero no se pudo enlazar al prospecto: ${err}. No lo conviertas de nuevo.`);
 
   return { ok: true, clientId, warnings };
 }
 
-/** Clientes de la org con el mismo nombre (para avisar antes de duplicar). */
+/** Clientes de la org con el mismo nombre normalizado (sin tildes, mayúsculas ni espacios extra). */
 export async function findClientsByName(orgId: string, name: string): Promise<{ id: string; name: string }[]> {
+  const target = normalizeName(name);
+  // Prefiltro en la BD por la primera palabra; la igualdad exacta normalizada se aplica aquí.
+  const firstWord = name.trim().split(/\s+/)[0] ?? "";
+  const pattern = `%${firstWord.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
   const { data, error } = await supabase
     .from("clients")
     .select("id,name")
     .eq("org_id", orgId)
-    .ilike("name", name.trim().replace(/[%_\\]/g, (c) => `\\${c}`))
-    .limit(5);
+    .ilike("name", pattern)
+    .limit(200);
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return (data ?? []).filter((c) => normalizeName(c.name) === target);
 }

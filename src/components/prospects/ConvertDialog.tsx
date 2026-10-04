@@ -3,12 +3,14 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Money } from "@/components/app";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { invalidateShellClients } from "@/components/shell/shellQueries";
 import { useAuth } from "@/hooks/use-auth";
+import { convertedClientId } from "@/lib/prospects/schema";
 import { convertToClient, findClientsByName, suggestedPlan } from "./convertToClient";
 import { useInvalidateProspects, type Prospect } from "./prospectsData";
 
@@ -20,17 +22,20 @@ export function ConvertDialog({ prospect, onClose }: { prospect: Prospect | null
   const [busy, setBusy] = useState(false);
   const [duplicates, setDuplicates] = useState<{ id: string; name: string }[]>([]);
   const [lookupError, setLookupError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     setDuplicates([]);
     setLookupError(null);
     if (!prospect) return;
     let cancelled = false;
+    setChecking(true);
     findClientsByName(prospect.org_id, prospect.nombre)
       .then((rows) => { if (!cancelled) setDuplicates(rows); })
       .catch((err: unknown) => {
         if (!cancelled) setLookupError(err instanceof Error ? err.message : "No se pudo revisar si ya existe el cliente.");
-      });
+      })
+      .finally(() => { if (!cancelled) setChecking(false); });
     return () => { cancelled = true; };
   }, [prospect]);
 
@@ -84,23 +89,26 @@ export function ConvertDialog({ prospect, onClose }: { prospect: Prospect | null
           </AlertDialogDescription>
         </AlertDialogHeader>
         {duplicates.length > 0 && (
-          <div role="alert" className="rounded-app-md border border-warning/40 bg-warning-subtle p-3 text-sm text-warning-strong">
-            Ya existe un cliente con este nombre:{" "}
-            {duplicates.map((c, i) => (
-              <span key={c.id}>
-                {i > 0 && ", "}
-                <Link to="/clients/$clientId" params={{ clientId: c.id }} className="font-medium underline" onClick={onClose}>
-                  {c.name}
-                </Link>
-              </span>
-            ))}
-            . Si continúas se creará otro.
+          <div role="alert" className="space-y-2 rounded-app-md border border-warning/40 bg-warning-subtle p-3 text-sm text-warning-strong">
+            <p>Ya existe un cliente con este nombre, así que no se creará otro.</p>
+            <div className="flex flex-wrap gap-2">
+              {duplicates.map((c) => (
+                <Button key={c.id} asChild size="sm" variant="outline">
+                  <Link to="/clients/$clientId" params={{ clientId: c.id }} onClick={onClose}>
+                    Abrir cliente existente{duplicates.length > 1 ? `: ${c.name}` : ""}
+                  </Link>
+                </Button>
+              ))}
+            </div>
           </div>
         )}
         {lookupError && <p role="alert" className="text-sm text-warning-strong">{lookupError}</p>}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={confirm} disabled={busy}>
+          <AlertDialogAction
+            onClick={confirm}
+            disabled={busy || checking || duplicates.length > 0 || Boolean(lookupError) || prospect?.estado !== "ganado" || Boolean(convertedClientId(prospect?.notas))}
+          >
             {busy ? "Creando…" : "Crear cliente"}
           </AlertDialogAction>
         </AlertDialogFooter>

@@ -1,10 +1,18 @@
 import { useDraggable } from "@dnd-kit/core";
-import { Ban, GripVertical, UserPlus } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Ban, ExternalLink, GripVertical, UserPlus } from "lucide-react";
 import { StatusBadge } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { findPlan } from "@/lib/pricing/plans";
-import { PROSPECT_STATES, STATE_META, isProspectState, type ProspectState } from "@/lib/prospects/schema";
-import { formatShortDate } from "./format";
+import {
+  PROSPECT_STATES,
+  STATE_META,
+  convertedClientId,
+  isProspectState,
+  noContactUntil,
+  type ProspectState,
+} from "@/lib/prospects/schema";
+import { formatShortDate, toDateInput } from "./format";
 import { cn } from "@/lib/utils";
 import type { Prospect } from "./prospectsData";
 
@@ -47,6 +55,38 @@ export function StageSelect({
   );
 }
 
+/** "Abrir cliente" si ya se convirtió; "Convertir" si está ganado; nada en otro caso. */
+export function ConvertAction({ prospect, onConvert, label = "Convertir" }: {
+  prospect: Prospect;
+  onConvert: CardActions["onConvert"];
+  label?: string;
+}) {
+  const clientId = convertedClientId(prospect.notas);
+  if (clientId) {
+    return (
+      <Button asChild size="sm" variant="outline" className="h-8 shrink-0 px-2 text-xs">
+        <Link to="/clients/$clientId" params={{ clientId }}>
+          <ExternalLink aria-hidden className="mr-1 h-3.5 w-3.5" /> Abrir cliente
+        </Link>
+      </Button>
+    );
+  }
+  if (prospect.estado !== "ganado") return null;
+  return (
+    <Button size="sm" variant="outline" className="h-8 shrink-0 px-2 text-xs" onClick={() => onConvert(prospect)}>
+      <UserPlus aria-hidden className="mr-1 h-3.5 w-3.5" /> {label}
+    </Button>
+  );
+}
+
+/** Aviso "No contactar hasta …" (perdido/frío con plazo vigente o baja). */
+export function NoContactBadge({ prospect }: { prospect: Prospect }) {
+  if (prospect.estado === "baja") return <StatusBadge status="baja" label="No contactar" tone="danger" />;
+  const until = noContactUntil(prospect.notas, toDateInput(new Date().toISOString()));
+  if (!until) return null;
+  return <StatusBadge status="no-contactar" label={`No contactar hasta ${formatShortDate(`${until}T12:00:00`)}`} tone="warning" />;
+}
+
 export function CardBody({ prospect }: { prospect: Prospect }) {
   const plan = findPlan(prospect.producto_sugerido);
   const meta = [prospect.rubro, prospect.comuna].filter(Boolean).join(" · ");
@@ -55,9 +95,7 @@ export function CardBody({ prospect }: { prospect: Prospect }) {
       <p className="truncate text-sm font-semibold text-foreground">{prospect.nombre}</p>
       {meta && <p className="truncate text-xs text-muted-foreground">{meta}</p>}
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-        {prospect.estado === "baja" && (
-          <StatusBadge status="baja" label="No contactar" tone="danger" />
-        )}
+        <NoContactBadge prospect={prospect} />
         {plan && <StatusBadge status={plan.key} label={plan.label} tone="info" />}
         <span className="text-xs tabular-nums text-muted-foreground">
           Últ. contacto: {formatShortDate(prospect.ultimo_contacto)}
@@ -101,11 +139,7 @@ export function ProspectCard({ prospect, actions }: { prospect: Prospect; action
       </div>
       <div className="mt-2 flex items-center gap-2">
         <StageSelect prospect={prospect} onMove={actions.onMove} className="min-w-0 flex-1" />
-        {prospect.estado === "ganado" && (
-          <Button size="sm" variant="outline" className="h-8 shrink-0 px-2 text-xs" onClick={() => actions.onConvert(prospect)}>
-            <UserPlus aria-hidden className="mr-1 h-3.5 w-3.5" /> Convertir
-          </Button>
-        )}
+        <ConvertAction prospect={prospect} onConvert={actions.onConvert} />
       </div>
     </li>
   );

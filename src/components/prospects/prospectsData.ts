@@ -2,11 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
+import type { ExistingProspect } from "@/lib/prospects/importOficina";
 import type { ProspectState, ProspectValues } from "@/lib/prospects/schema";
 
 export type Prospect = Tables<"prospects">;
 
 export const NO_PERMISSION = "No tienes permisos para esta acción";
+export const BAJA_LOCKED =
+  "No se guardó: el prospecto está dado de baja (no se puede volver a contactar) o no tienes permisos para esta acción.";
 
 const PROSPECT_COLUMNS =
   "id,org_id,nombre,rubro,comuna,web,instagram,email_publico,telefono_publico,fuente,estado," +
@@ -61,34 +64,43 @@ interface MoveVars {
   estado: ProspectState;
 }
 
-/** Cambia el estado con actualización optimista; revierte si falla o si no hay permisos. */
+const MOVE_KEY = ["prospects", "move"] as const;
+
+/**
+ * Cambia el estado con actualización optimista. La baja es inviolable: el UPDATE lleva
+ * `estado <> 'baja'`, así que 0 filas significa baja (o sin permisos).
+ */
 export function useMoveProspect() {
   const queryClient = useQueryClient();
   const key = prospectsKey(useUserId());
   return useMutation({
+    mutationKey: MOVE_KEY,
     // El parche se calcula con el prospecto previo (no con la caché ya actualizada en onMutate).
     mutationFn: async ({ prospect, estado }: MoveVars) => {
       const { data, error } = await supabase
         .from("prospects")
         .update(contactPatch(prospect, estado))
         .eq("id", prospect.id)
+        .neq("estado", "baja")
         .select("id");
       if (error) throw new Error(writeError(error));
-      if (!data || data.length === 0) throw new Error(NO_PERMISSION);
+      if (!data || data.length === 0) throw new Error(BAJA_LOCKED);
     },
     onMutate: async ({ prospect, estado }: MoveVars) => {
       await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<Prospect[]>(key);
       const patch = contactPatch(prospect, estado);
       queryClient.setQueryData<Prospect[]>(key, (list) =>
         list?.map((p) => (p.id === prospect.id ? { ...p, ...patch } : p)),
       );
-      return { previous };
     },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(key, ctx.previous);
+    // Revierte solo el prospecto afectado (no pisa otros movimientos en curso).
+    onError: (_err, { prospect }) => {
+      queryClient.setQueryData<Prospect[]>(key, (list) => list?.map((p) => (p.id === prospect.id ? prospect : p)));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSettled: () => {
+      // Refrescar solo cuando termina el último movimiento en curso, para no deshacer los optimistas.
+      if (queryClient.isMutating({ mutationKey: MOVE_KEY }) === 1) void queryClient.invalidateQueries({ queryKey: key });
+    },
   });
 }
 
@@ -98,11 +110,17 @@ export function useSaveProspect() {
   const { user } = useAuth();
   const key = prospectsKey(user?.id ?? "anon");
   return useMutation({
-    mutationFn: async ({ id, values }: { id?: string; values: ProspectValues }) => {
+    /**
+     * `allowLeaveBaja`: solo con la confirmación explícita del formulario se puede sacar un
+     * prospecto de baja; si no, el UPDATE que cambia el estado lleva `estado <> 'baja'`.
+     */
+    mutationFn: async ({ id, values, allowLeaveBaja = false }: { id?: string; values: ProspectValues; allowLeaveBaja?: boolean }) => {
       if (id) {
-        const { data, error } = await supabase.from("prospects").update(values).eq("id", id).select("id");
+        let query = supabase.from("prospects").update(values).eq("id", id);
+        if (values.estado !== "baja" && !allowLeaveBaja) query = query.neq("estado", "baja");
+        const { data, error } = await query.select("id");
         if (error) throw new Error(writeError(error));
-        if (!data || data.length === 0) throw new Error(NO_PERMISSION);
+        if (!data || data.length === 0) throw new Error(values.estado === "baja" ? NO_PERMISSION : BAJA_LOCKED);
         return id;
       }
       const orgId = await getOrgId();
@@ -141,4 +159,38 @@ export function useInvalidateProspects() {
   const queryClient = useQueryClient();
   const userId = useUserId();
   return () => queryClient.invalidateQueries({ queryKey: prospectsKey(userId) });
+}
+
+const LOOKUP_CHUNK = 50;
+
+function chunks<T>(list: readonly T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+  return out;
+}
+
+/** Valor entre comillas para un filtro `or` de PostgREST, con comodines de ILIKE escapados. */
+function quotedIlike(value: string): string {
+  const literal = value.replace(/[\\%_]/g, (c) => `\\${c}`);
+  return `"${literal.replace(/["\\]/g, (c) => `\\${c}`)}"`;
+}
+
+/**
+ * Prospectos ya guardados que coinciden por correo o por nombre (sin distinguir mayúsculas)
+ * con las filas a importar. Consulta la BD directamente: no depende de la lista cargada.
+ */
+export async function fetchExistingFor(rows: readonly ProspectValues[]): Promise<ExistingProspect[]> {
+  const cols = "nombre,comuna,email_publico";
+  const emails = [...new Set(rows.map((r) => r.email_publico).filter((e): e is string => Boolean(e)))];
+  const names = [...new Set(rows.map((r) => r.nombre.trim()).filter(Boolean))];
+  const queries = [
+    ...chunks(emails, LOOKUP_CHUNK).map((part) => supabase.from("prospects").select(cols).in("email_publico", part)),
+    ...chunks(names, LOOKUP_CHUNK).map((part) =>
+      supabase.from("prospects").select(cols).or(part.map((n) => `nombre.ilike.${quotedIlike(n)}`).join(",")),
+    ),
+  ];
+  const results = await Promise.all(queries);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw new Error(`No se pudo revisar duplicados: ${failed.error.message}`);
+  return results.flatMap((r) => (r.data ?? []) as ExistingProspect[]);
 }

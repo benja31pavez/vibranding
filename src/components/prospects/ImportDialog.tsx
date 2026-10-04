@@ -9,7 +9,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { parseOfficeFile, planImport, type ImportPlan } from "@/lib/prospects/importOficina";
 import { STATE_META, isProspectState } from "@/lib/prospects/schema";
-import { insertProspects, useInvalidateProspects, type Prospect } from "./prospectsData";
+import { fetchExistingFor, insertProspects, useInvalidateProspects, type Prospect } from "./prospectsData";
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const PREVIEW_ROWS = 50;
@@ -26,11 +26,14 @@ export function ImportDialog({
   const { user } = useAuth();
   const invalidate = useInvalidateProspects();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [rows, setRows] = useState<unknown[] | null>(null);
   const [plan, setPlan] = useState<ImportPlan | null>(null);
+  const [checking, setChecking] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const reset = () => {
+    setRows(null);
     setPlan(null);
     setFileError(null);
     if (fileRef.current) fileRef.current.value = "";
@@ -44,10 +47,24 @@ export function ImportDialog({
       return;
     }
     try {
-      const rows = parseOfficeFile(await file.text());
-      setPlan(planImport(rows, existing));
+      const parsed = parseOfficeFile(await file.text());
+      setRows(parsed);
+      await buildPlan(parsed);
     } catch (err) {
       setFileError(err instanceof Error ? err.message : "No se pudo leer el archivo.");
+    }
+  };
+
+  /** Plan contra la BD: busca coincidencias por correo y nombre de las filas del archivo. */
+  const buildPlan = async (source: unknown[]) => {
+    setChecking(true);
+    setPlan(null);
+    try {
+      const firstPass = planImport(source, existing);
+      const fromDb = await fetchExistingFor(firstPass.toInsert.map((c) => c.values));
+      setPlan(planImport(source, [...existing, ...fromDb]));
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -59,9 +76,18 @@ export function ImportDialog({
       if (error) {
         toast.error(
           inserted > 0
-            ? `Se importaron ${inserted} de ${plan.toInsert.length}; el resto falló: ${error}`
+            ? `Se importaron ${inserted} de ${plan.toInsert.length}; el resto falló: ${error}. Revisa la vista previa actualizada antes de reintentar.`
             : `No se importó ningún prospecto: ${error}`,
         );
+        // Recalcular contra la BD: las filas ya insertadas pasan a "duplicado" y no se reintentan.
+        if (inserted > 0 && rows) {
+          try {
+            await buildPlan(rows);
+          } catch (err) {
+            setPlan(null);
+            setFileError(err instanceof Error ? err.message : "No se pudo recalcular la importación; vuelve a cargar el archivo.");
+          }
+        }
       } else {
         toast.success(`Se importaron ${inserted} prospectos${plan.skipped.length ? ` (${plan.skipped.length} omitidos)` : ""}.`);
         onOpenChange(false);
@@ -100,11 +126,12 @@ export function ImportDialog({
 
         {fileError && <p role="alert" className="text-sm text-danger-strong">{fileError}</p>}
 
+        {checking && <p role="status" className="text-sm text-muted-foreground">Revisando duplicados…</p>}
         {plan && <ImportPreview plan={plan} />}
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={confirm} disabled={!plan || plan.toInsert.length === 0 || busy}>
+          <Button onClick={confirm} disabled={!plan || plan.toInsert.length === 0 || busy || checking}>
             <Upload aria-hidden className="mr-1 h-4 w-4" />
             {busy ? "Importando…" : `Importar ${plan?.toInsert.length ?? 0}`}
           </Button>

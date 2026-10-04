@@ -157,7 +157,35 @@ export function fieldErrors(error: z.ZodError): Partial<Record<keyof ProspectFor
 
 /** Clave de deduplicación nombre+comuna (sin tildes, mayúsculas ni espacios extra). */
 export function dedupeKey(nombre: string, comuna: string | null | undefined): string {
-  const norm = (s: string) =>
-    s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
-  return `${norm(nombre)}|${norm(comuna ?? "")}`;
+  return `${normalizeName(nombre)}|${normalizeName(comuna)}`;
+}
+
+/** Marca que deja "Convertir en cliente" en las notas del prospecto. */
+const CLIENT_MARK_RE = /\[Cliente: ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/i;
+
+export function clientMark(clientId: string): string {
+  return `[Cliente: ${clientId}]`;
+}
+
+/** Id del cliente creado desde este prospecto (si ya se convirtió). */
+export function convertedClientId(notas: string | null | undefined): string | null {
+  return notas?.match(CLIENT_MARK_RE)?.[1] ?? null;
+}
+
+const NO_CONTACT_RE = /No contactar antes de (\d{4}-\d{2}-\d{2})/;
+export const NO_CONTACT_MONTHS = 6;
+
+export function noContactNote(untilIso: string): string {
+  return `No contactar antes de ${untilIso}`;
+}
+
+/** Fecha (YYYY-MM-DD) hasta la que no se debe contactar, si sigue vigente respecto de `today`. */
+export function noContactUntil(notas: string | null | undefined, today: string): string | null {
+  const until = notas?.match(NO_CONTACT_RE)?.[1];
+  return until && until > today ? until : null;
+}
+
+/** Normaliza para comparar nombres (sin tildes, mayúsculas ni espacios extra). */
+export function normalizeName(s: string | null | undefined): string {
+  return (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 }

@@ -17,6 +17,7 @@ import {
   type ProspectFormInput,
 } from "@/lib/prospects/schema";
 import { toDateInput } from "./format";
+import { ConvertAction } from "./ProspectCard";
 import { useSaveProspect, type Prospect } from "./prospectsData";
 
 type Errors = Partial<Record<keyof ProspectFormInput, string>>;
@@ -96,7 +97,7 @@ export function ProspectSheet({
     }
     setErrors({});
     try {
-      await save.mutateAsync({ id: prospect?.id, values: parsed.data });
+      await save.mutateAsync({ id: prospect?.id, values: parsed.data, allowLeaveBaja: leavingBaja && confirmUnbaja });
       toast.success(prospect ? "Prospecto actualizado" : "Prospecto creado");
       onOpenChange(false);
     } catch (err) {
@@ -169,9 +170,7 @@ export function ProspectSheet({
             <Textarea id="pr-notas" rows={4} value={form.notas} onChange={(e) => set("notas")(e.target.value)} />
           </Field>
           <SheetFooter className="gap-2 sm:justify-between">
-            {prospect?.estado === "ganado" ? (
-              <Button type="button" variant="outline" onClick={() => onConvert(prospect)}>Convertir en cliente</Button>
-            ) : <span />}
+            <div>{prospect && <ConvertAction prospect={prospect} onConvert={onConvert} label="Convertir en cliente" />}</div>
             <Button type="submit" disabled={save.isPending}>{save.isPending ? "Guardando…" : "Guardar"}</Button>
           </SheetFooter>
         </form>

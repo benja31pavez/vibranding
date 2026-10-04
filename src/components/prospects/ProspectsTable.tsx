@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Search, UserPlus } from "lucide-react";
+import { ArrowDown, ArrowUp, Search } from "lucide-react";
 import { EmptyState } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { StageSelect, type CardActions } from "./ProspectCard";
+import { ConvertAction, NoContactBadge, StageSelect, type CardActions } from "./ProspectCard";
 import { formatShortDate } from "./format";
 import type { Prospect } from "./prospectsData";
 
@@ -22,7 +22,7 @@ interface Filters {
 const EMPTY_FILTERS: Filters = { rubro: ALL, comuna: ALL, fuente: ALL, q: "" };
 
 function normalize(s: string | null | undefined): string {
-  return (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 function distinct(list: Prospect[], field: "rubro" | "comuna" | "fuente"): string[] {
@@ -142,18 +142,14 @@ export function ProspectsTable({ prospects, actions }: { prospects: Prospect[]; 
                     <button type="button" onClick={() => actions.onOpen(p)} className="text-left font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       {p.nombre}
                     </button>
-                    {p.estado === "baja" && <span className="ml-2 text-xs font-medium text-danger-strong">No contactar</span>}
+                    <span className="ml-2 inline-block align-middle"><NoContactBadge prospect={p} /></span>
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">{[p.rubro, p.comuna].filter(Boolean).join(" · ") || "—"}</td>
                   <td className="max-w-[220px] truncate px-3 py-2 text-muted-foreground" title={p.fuente}>{p.fuente}</td>
                   <td className="px-3 py-2 tabular-nums">{formatShortDate(p.ultimo_contacto)}</td>
                   <td className="px-3 py-2"><StageSelect prospect={p} onMove={actions.onMove} /></td>
                   <td className="px-3 py-2 text-right">
-                    {p.estado === "ganado" && (
-                      <Button size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => actions.onConvert(p)}>
-                        <UserPlus aria-hidden className="mr-1 h-3.5 w-3.5" /> Convertir en cliente
-                      </Button>
-                    )}
+                    <ConvertAction prospect={p} onConvert={actions.onConvert} label="Convertir en cliente" />
                   </td>
                 </tr>
               ))}

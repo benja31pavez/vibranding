@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
+  NO_CONTACT_MONTHS,
   dedupeKey,
+  noContactNote,
   isEmail,
   isPhone,
   prospectSchema,
@@ -109,6 +111,25 @@ function lastContactDate(row: OfficeRow): string {
   return dates[dates.length - 1] ?? "";
 }
 
+function todayIso(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" });
+}
+
+/** Última fecha del historial (cualquier acción) o hoy. */
+function lastHistoryDate(row: OfficeRow): string {
+  const dates = (row.historial ?? [])
+    .map((h) => h.fecha?.slice(0, 10) ?? "")
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
+    .sort();
+  return dates[dates.length - 1] ?? todayIso();
+}
+
+export function addMonthsIso(dateIso: string, months: number): string {
+  const [y, m, d] = dateIso.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1 + months, d));
+  return date.toISOString().slice(0, 10);
+}
+
 function buildNotes(row: OfficeRow): string {
   const lines: string[] = [];
   if (row.senal) lines.push(`Señal: ${row.senal}`);
@@ -119,7 +140,10 @@ function buildNotes(row: OfficeRow): string {
   if (row.proximoPaso?.accion) {
     lines.push(`Próximo paso: ${row.proximoPaso.accion}${row.proximoPaso.fecha ? ` el ${row.proximoPaso.fecha}` : ""}`);
   }
-  if (row.estado === "frio") lines.push("En la oficina estaba \"frío\": no respondió; no volver a escribir.");
+  if (row.estado === "frio" || row.estado === "perdido") {
+    if (row.estado === "frio") lines.push("En la oficina estaba \"frío\": no respondió al correo ni al recordatorio.");
+    lines.push(noContactNote(addMonthsIso(lastHistoryDate(row), NO_CONTACT_MONTHS)));
+  }
   if (row.id) lines.push(`ID oficina: ${row.id}`);
   return lines.join("\n");
 }
