@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ClientProvider, useActiveClient } from "@/contexts/ActiveClientContext";
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/app";
 import { Button } from "@/components/ui/button";
+import { fichaKeys, useUserKey } from "@/components/clients/ficha/fichaQueries";
 
 export const Route = createFileRoute("/_app/clients/$clientId")({
   component: ClientLayout,
@@ -28,8 +29,9 @@ const SHELL_CLASS = "max-w-7xl mx-auto px-6 md:px-10 py-8";
 function ClientShell() {
   const { clientId } = Route.useParams();
   const { client, reloadClient } = useActiveClient();
+  const userKey = useUserKey();
   const existence = useQuery({
-    queryKey: ["client-exists", clientId],
+    queryKey: fichaKeys.exists(userKey, clientId),
     queryFn: async () => {
       const { data, error } = await supabase.from("clients").select("id").eq("id", clientId).maybeSingle();
       if (error) throw new Error(error.message);
@@ -70,7 +72,8 @@ function ClientShell() {
     );
   }
 
-  if (existence.isLoading || !client) {
+  // El contexto puede traer aún el cliente anterior al navegar entre clientes.
+  if (existence.isLoading || !client || client.id !== clientId) {
     return (
       <div className={SHELL_CLASS}>
         <ListSkeleton rows={4} label="Cargando cliente" />
@@ -80,7 +83,8 @@ function ClientShell() {
 
   return (
     <div className={SHELL_CLASS}>
-      <Outlet />
+      {/* key: remonta las pantallas al cambiar de cliente para no arrastrar estado local. */}
+      <Outlet key={clientId} />
     </div>
   );
 }

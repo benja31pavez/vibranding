@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PLANS, findPlan, formatMoney, type PlanKey } from "@/lib/pricing/plans";
 import { invalidateShellClients } from "@/components/shell/shellQueries";
 import {
-  CLIENT_STATUSES, CLIENT_STATUS_META, PERMISSION_DENIED_MSG, fichaKeys, isClientStatus,
+  CLIENT_STATUSES, CLIENT_STATUS_META, PERMISSION_DENIED_MSG, fichaKeys, isClientStatus, useUserKey,
+  writeErrorMessage,
   type ClientStatus, type FichaOverview,
 } from "./fichaQueries";
 
@@ -64,11 +65,11 @@ function parseDraft(d: Draft): Parsed {
 /** Escribe client_billing: actualiza la fila 1:1 y, si no existiera, la crea. */
 async function saveBilling(clientId: string, values: { plan_key: PlanKey | null; mrr: number; billing_day: number | null }) {
   const upd = await supabase.from("client_billing").update(values).eq("client_id", clientId).select("client_id");
-  if (upd.error) return upd.error.message;
+  if (upd.error) return writeErrorMessage(upd.error);
   if (upd.data && upd.data.length > 0) return null;
   // 0 filas: o falta la fila (cliente antiguo) o no hay permisos; el INSERT lo distingue vía RLS.
   const ins = await supabase.from("client_billing").insert({ client_id: clientId, ...values });
-  return ins.error ? PERMISSION_DENIED_MSG : null;
+  return ins.error ? writeErrorMessage(ins.error) : null;
 }
 
 export function BillingCard({ clientId, overview }: { clientId: string; overview: FichaOverview }) {
@@ -76,16 +77,25 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
   const [draft, setDraft] = useState<Draft>(() => toDraft(overview));
   const [saving, setSaving] = useState(false);
   const [mrrHint, setMrrHint] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const userKey = useUserKey();
 
+  // Un refetch (p. ej. al volver a la pestaña) no pisa cambios sin guardar.
   useEffect(() => {
+    if (dirty) return;
     setDraft(toDraft(overview));
     setMrrHint(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overview]);
 
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
+    setDirty(true);
+    setDraft((d) => ({ ...d, [key]: value }));
+  };
 
   const onPlanChange = (value: string) => {
     const plan = findPlan(value);
+    setDirty(true);
     if (plan?.billing === "monthly") {
       setDraft((d) => ({ ...d, planKey: plan.key, mrr: String(plan.price) }));
       setMrrHint(`Sugerido: ${formatMoney(null, plan.price)} al mes según ${plan.label}.`);
@@ -109,21 +119,34 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
         mrr: parsed.mrr,
         billing_day: parsed.billingDay,
       });
-      if (billingError) throw new Error(billingError);
+      if (billingError) {
+        toast.error(`No se guardó nada: ${billingError}`);
+        return;
+      }
       const cli = await supabase
         .from("clients")
         .update({ status: draft.status, started_at: draft.startedAt || null })
         .eq("id", clientId)
         .select("id");
-      if (cli.error) throw new Error(cli.error.message);
-      if (!cli.data || cli.data.length === 0) throw new Error(PERMISSION_DENIED_MSG);
+      const clientError = cli.error
+        ? writeErrorMessage(cli.error)
+        : !cli.data || cli.data.length === 0
+          ? PERMISSION_DENIED_MSG
+          : null;
+      if (clientError) {
+        toast.error(
+          `Se guardaron el plan, el MRR y el día de cobro, pero no el estado comercial ni la fecha de inicio: ${clientError}`,
+        );
+        return;
+      }
+      setDirty(false);
       toast.success("Plan y facturación guardados");
-      await queryClient.invalidateQueries({ queryKey: fichaKeys.all(clientId) });
-      void invalidateShellClients(queryClient);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo guardar");
     } finally {
       setSaving(false);
+      void queryClient.invalidateQueries({ queryKey: fichaKeys.all(userKey, clientId) });
+      void invalidateShellClients(queryClient);
     }
   };
 

@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateShellClients } from "@/components/shell/shellQueries";
-import { PERMISSION_DENIED_MSG } from "./fichaQueries";
+import { PERMISSION_DENIED_MSG, fichaKeys, useUserKey, writeErrorMessage } from "./fichaQueries";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -17,6 +17,7 @@ export function normalizeHandle(raw: string): string {
 export function useClientActions(clientId: string, reloadClient: () => Promise<void>) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const userKey = useUserKey();
 
   const renameClient = async (name: string, handle: string): Promise<Result> => {
     const cleanName = name.trim();
@@ -31,7 +32,7 @@ export function useClientActions(clientId: string, reloadClient: () => Promise<v
       .update({ name: cleanName, instagram_handle: cleanHandle || null })
       .eq("id", clientId)
       .select("id");
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: writeErrorMessage(error) };
     if (!data || data.length === 0) return { ok: false, error: PERMISSION_DENIED_MSG };
     await reloadClient();
     void invalidateShellClients(queryClient);
@@ -40,8 +41,10 @@ export function useClientActions(clientId: string, reloadClient: () => Promise<v
 
   const deleteClient = async (): Promise<Result> => {
     const { data, error } = await supabase.from("clients").delete().eq("id", clientId).select("id");
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: writeErrorMessage(error) };
     if (!data || data.length === 0) return { ok: false, error: "No tienes permisos para eliminar este cliente." };
+    queryClient.removeQueries({ queryKey: fichaKeys.all(userKey, clientId) });
+    queryClient.removeQueries({ queryKey: fichaKeys.exists(userKey, clientId) });
     try {
       localStorage.removeItem("activeClientId");
     } catch {
