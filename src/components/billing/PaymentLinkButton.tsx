@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, Link2, Loader2 } from "lucide-react";
+import { Copy, Info, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { generatePaymentLink } from "@/lib/flow/paymentLink.functions";
+import { useFlowConfigured } from "@/lib/flow/config.functions";
 
 export interface PaymentLinkTarget {
   id: string;
@@ -55,6 +57,7 @@ export function PaymentLinkButton({
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  const flow = useFlowConfigured();
 
   if (!canChargeOnline(payment)) return null;
 
@@ -91,6 +94,16 @@ export function PaymentLinkButton({
       </Button>
     );
   }
+
+  if (flow.isPending) {
+    return (
+      <Button type="button" size="sm" variant="outline" disabled aria-busy>
+        <Loader2 aria-hidden className="mr-1 h-3.5 w-3.5 animate-spin" /> Link de pago
+      </Button>
+    );
+  }
+  // Si no se pudo consultar, se deja el botón: el servidor responde con un error claro.
+  if (flow.data && !flow.data.configured) return <FlowNotConnectedNote missing={flow.data.missing} />;
 
   return (
     <>
@@ -133,5 +146,31 @@ export function PaymentLinkButton({
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/** Reemplaza "Generar link de pago" cuando Flow no está configurado. */
+export function FlowNotConnectedNote({ missing }: { missing: string[] | null }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button type="button" size="sm" variant="ghost" className="text-muted-foreground">
+          <Info aria-hidden className="mr-1 h-3.5 w-3.5" /> Conecta Flow para cobrar online
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 space-y-2 text-sm">
+        <p className="font-medium">Cobro online desactivado</p>
+        <p className="text-muted-foreground">
+          Flow no está conectado, así que no se pueden generar links de pago. Puedes registrar el
+          cobro, cobrarlo por transferencia y marcarlo como pagado. Un administrador de la
+          plataforma puede conectar Flow desde la configuración del servidor.
+        </p>
+        {missing && missing.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Detalle para administradores: falta {missing.join(", ")}.
+          </p>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }

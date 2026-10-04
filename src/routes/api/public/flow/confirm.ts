@@ -142,7 +142,7 @@ export const Route = createFileRoute("/api/public/flow/confirm")({
           return result === "mismatch" ? text("Mismatch", 500) : text("OK", 200);
         } catch (e) {
           if (e instanceof FlowNotConfiguredError) {
-            console.error("[flow confirm][ALERTA] Flow no está configurado");
+            console.error("[flow confirm][ALERTA] Flow no está configurado:", e.adminDetail);
           } else {
             console.error("[flow confirm][ALERTA] error al confirmar", (e as Error).message);
           }
