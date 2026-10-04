@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { BellRing, PartyPopper } from "lucide-react";
+import { BellRing, BellOff } from "lucide-react";
 import { EmptyState, Panel, StatusBadge, type StatusTone } from "@/components/app";
 import { BlockState } from "./block-state";
 import { formatShortDate, useClientIndex, useOpenCampaignAlerts } from "./queries";
@@ -14,26 +14,32 @@ const SEVERITY: Readonly<Record<string, { label: string; tone: StatusTone }>> = 
 
 const PLATFORM_LABEL: Readonly<Record<string, string>> = { meta: "Meta", google: "Google" };
 
-/** Alertas de campañas abiertas, de más a menos severa. */
+/**
+ * Alertas de campañas abiertas, de más a menos severa.
+ * Hoy ningún proceso automático escribe en campaign_alerts: si la tabla nunca
+ * tuvo filas el bloque se oculta, para no sugerir que algo está vigilando.
+ */
 export function CampaignAlerts() {
   const query = useOpenCampaignAlerts();
   const clients = useClientIndex();
-  const count = query.data?.length ?? 0;
+  const count = query.data?.open.length ?? 0;
+
+  if (query.data && query.data.everCount === 0) return null;
 
   return (
     <Panel
       icon={BellRing}
       title={count ? `Alertas de campañas (${count})` : "Alertas de campañas"}
-      tone={query.data?.some((a) => a.severity === "critical") ? "warning" : "default"}
+      tone={query.data?.open.some((a) => a.severity === "critical") ? "warning" : "default"}
     >
       <BlockState query={query} loadingLabel="Cargando alertas de campañas">
-        {(alerts) =>
+        {({ open: alerts }) =>
           alerts.length === 0 ? (
             <EmptyState
               size="compact"
-              icon={PartyPopper}
-              title="Campañas tranquilas."
-              description="No hay alertas abiertas en Meta ni Google."
+              icon={BellOff}
+              title="Sin alertas abiertas."
+              description="Las alertas automáticas de campañas aún no están activas: aquí solo aparecen las que se registren a mano o por integraciones."
             />
           ) : (
             <ul className="divide-y divide-border-subtle">

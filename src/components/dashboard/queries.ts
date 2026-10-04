@@ -4,18 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { addMoney, type MoneyByCurrency } from "@/lib/pricing/plans";
 import type { Database } from "@/integrations/supabase/types";
+import { fetchAllRows } from "@/lib/db/fetchAllRows";
+import { UPCOMING_DAYS, addIsoDays, upcomingUntil } from "@/lib/billing/openPayments";
+
+export { UPCOMING_DAYS };
+export { useMrr, type MrrSummary } from "@/lib/billing/mrr";
 
 /**
  * Consultas de la pantalla "Hoy". Cada bloque tiene su propia query para que
  * un error en uno no rompa el resto (cada Panel muestra su ErrorState).
  */
 
-/** Meta de MRR de la agencia (CLP, IVA incluido). */
-export const MRR_GOAL_CLP = 1_000_000;
-/** Ventana de "cobros próximos" en días. */
-export const UPCOMING_DAYS = 7;
 const CHILE_TZ = "America/Santiago";
-const PAGE_SIZE = 1000;
 const RECENT_APPROVALS = 5;
 const ALERTS_LIMIT = 50;
 
@@ -39,7 +39,6 @@ type PaymentStatus = Database["public"]["Enums"]["payment_status"];
 export const dashboardKeys = {
   all: (userId: string) => ["dashboard-hoy", userId] as const,
   clients: (userId: string) => [...dashboardKeys.all(userId), "clients"] as const,
-  mrr: (userId: string) => [...dashboardKeys.all(userId), "mrr"] as const,
   payments: (userId: string) => [...dashboardKeys.all(userId), "open-payments"] as const,
   approvals: (userId: string) => [...dashboardKeys.all(userId), "approvals"] as const,
   alerts: (userId: string) => [...dashboardKeys.all(userId), "campaign-alerts"] as const,
@@ -64,10 +63,7 @@ export function chileStartOfDayIso(): string {
 }
 
 /** Suma días a una fecha ISO (YYYY-MM-DD) sin depender de la zona local. */
-export function addDays(isoDate: string, days: number): string {
-  const base = Date.parse(`${isoDate}T12:00:00Z`);
-  return new Date(base + days * 86_400_000).toISOString().slice(0, 10);
-}
+export const addDays = addIsoDays;
 
 /** Formatea YYYY-MM-DD como "4 oct" (es-CL) sin corrimiento de zona horaria. */
 export function formatShortDate(isoDate: string | null): string {
@@ -92,20 +88,6 @@ function fail(error: { message: string } | null): void {
   if (error) throw new Error(error.message);
 }
 
-type PageResult<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
-
-/** Trae todas las filas paginando de a PAGE_SIZE (PostgREST corta en 1000 por defecto). */
-async function fetchAllRows<T>(page: (from: number, to: number) => PageResult<T>): Promise<T[]> {
-  const rows: T[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await page(from, from + PAGE_SIZE - 1);
-    fail(error);
-    const chunk = data ?? [];
-    rows.push(...chunk);
-    if (chunk.length < PAGE_SIZE) return rows;
-  }
-}
-
 // ---------------------------------------------------------------- clientes
 
 export interface ClientIndex {
@@ -125,58 +107,6 @@ export function useClientIndex() {
       return {
         nameById: new Map(rows.map((c) => [c.id, c.name])),
         activeCount: rows.filter((c) => c.status === "activo").length,
-      };
-    },
-  });
-}
-
-// ---------------------------------------------------------------- MRR
-
-export interface MrrSummary {
-  total: number;
-  /** Suma de suscripciones activas de clientes activos. */
-  fromSubscriptions: number;
-  subscriptionClients: number;
-  /** client_billing.mrr de clientes activos SIN suscripción activa. */
-  fromBilling: number;
-  billingClients: number;
-}
-
-/**
- * MRR actual en CLP (intervalo de suscripción siempre mensual por CHECK).
- * = Σ subscriptions.amount_clp (status 'activa', cliente con status 'activo')
- * + Σ client_billing.mrr de clientes 'activo' que no tienen suscripción activa.
- * Así un cliente nunca se cuenta dos veces.
- */
-export function useMrr() {
-  const userId = useUserId();
-  return useQuery({
-    queryKey: dashboardKeys.mrr(userId),
-    enabled: Boolean(userId),
-    queryFn: async (): Promise<MrrSummary> => {
-      const [active, subs, billing] = await Promise.all([
-        fetchAllRows((from, to) =>
-          supabase.from("clients").select("id").eq("status", "activo").order("id").range(from, to),
-        ),
-        fetchAllRows((from, to) =>
-          supabase.from("subscriptions").select("id,client_id,amount_clp").eq("status", "activa").order("id").range(from, to),
-        ),
-        fetchAllRows((from, to) =>
-          supabase.from("client_billing").select("client_id,mrr").order("client_id").range(from, to),
-        ),
-      ]);
-      const activeIds = new Set(active.map((c) => c.id));
-      const activeSubs = subs.filter((s) => activeIds.has(s.client_id));
-      const subscribed = new Set(activeSubs.map((s) => s.client_id));
-      const billed = billing.filter((b) => activeIds.has(b.client_id) && !subscribed.has(b.client_id));
-      const fromSubscriptions = activeSubs.reduce((acc, s) => acc + Number(s.amount_clp), 0);
-      const fromBilling = billed.reduce((acc, b) => acc + Number(b.mrr), 0);
-      return {
-        total: fromSubscriptions + fromBilling,
-        fromSubscriptions,
-        subscriptionClients: subscribed.size,
-        fromBilling,
-        billingClients: billed.length,
       };
     },
   });
@@ -224,7 +154,7 @@ export function useOpenPayments() {
     enabled: Boolean(userId),
     queryFn: async (): Promise<PaymentsSummary> => {
       const today = chileToday();
-      const limit = addDays(today, UPCOMING_DAYS);
+      const limit = upcomingUntil(today);
       const [overdueRows, upcomingRows] = await Promise.all([
         fetchAllRows((from, to) =>
           supabase
@@ -334,20 +264,30 @@ function bySeverity(a: CampaignAlert, b: CampaignAlert): number {
   return rank(a.severity) - rank(b.severity) || b.created_at.localeCompare(a.created_at);
 }
 
+export interface CampaignAlertsSummary {
+  /** Abiertas, de más a menos severa (máx. ALERTS_LIMIT). */
+  open: CampaignAlert[];
+  /** Filas históricas (abiertas o resueltas). 0 = nada genera alertas todavía. */
+  everCount: number;
+}
+
 export function useOpenCampaignAlerts() {
   const userId = useUserId();
   return useQuery({
     queryKey: dashboardKeys.alerts(userId),
     enabled: Boolean(userId),
-    queryFn: async (): Promise<CampaignAlert[]> => {
-      const { data, error } = await supabase
-        .from("campaign_alerts")
-        .select("id,client_id,platform,kind,severity,message,created_at")
-        .is("resolved_at", null)
-        .order("created_at", { ascending: false })
-        .limit(ALERTS_LIMIT);
-      fail(error);
-      return [...(data ?? [])].sort(bySeverity);
+    queryFn: async (): Promise<CampaignAlertsSummary> => {
+      const [open, ever] = await Promise.all([
+        supabase
+          .from("campaign_alerts")
+          .select("id,client_id,platform,kind,severity,message,created_at")
+          .is("resolved_at", null)
+          .order("created_at", { ascending: false })
+          .limit(ALERTS_LIMIT),
+        supabase.from("campaign_alerts").select("id", { count: "exact", head: true }),
+      ]);
+      fail(open.error ?? ever.error);
+      return { open: [...(open.data ?? [])].sort(bySeverity), everCount: ever.count ?? 0 };
     },
   });
 }

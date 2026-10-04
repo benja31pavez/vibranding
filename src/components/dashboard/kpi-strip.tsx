@@ -3,7 +3,8 @@ import type { UseQueryResult } from "@tanstack/react-query";
 import { Money, MoneyTotals, StatCard } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { MRR_GOAL_CLP, UPCOMING_DAYS, useClientIndex, useMrr, useOpenPayments, type MrrSummary } from "./queries";
+import { META_MRR_CLP } from "@/lib/pricing/plans";
+import { UPCOMING_DAYS, useClientIndex, useMrr, useOpenPayments, type MrrSummary } from "./queries";
 
 /** Valor de una tarjeta cuya query falló: aviso + reintento de esa query. */
 function RetryValue({ query }: { query: UseQueryResult<unknown> }) {
@@ -67,7 +68,7 @@ function MrrCard({ query }: { query: UseQueryResult<MrrSummary> }) {
   }
   const data = query.data;
   const total = data?.total ?? 0;
-  const pct = Math.round((total / MRR_GOAL_CLP) * 100);
+  const pct = Math.round((total / META_MRR_CLP) * 100);
   const width = Math.min(100, Math.max(0, pct));
   return (
     <StatCard
@@ -93,7 +94,7 @@ function MrrCard({ query }: { query: UseQueryResult<MrrSummary> }) {
             </span>
             <span>
               <span className="font-medium tabular-nums text-foreground">{pct}%</span> de la meta{" "}
-              <Money amount={MRR_GOAL_CLP} />
+              <Money amount={META_MRR_CLP} />
             </span>
             <span>
               Suscripciones <Money amount={data.fromSubscriptions} /> ({plural(data.subscriptionClients)}) ·
