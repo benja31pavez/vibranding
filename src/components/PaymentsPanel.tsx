@@ -33,7 +33,7 @@ type Status = "pending" | "paid" | "overdue" | "cancelled";
 
 /**
  * El estado (y paid_at/provider) solo se cambia vía la RPC set_payment_status:
- * valida permisos (can_edit_client) y transiciones en la BD.
+ * valida permisos (owner/admin: manages_client) y transiciones en la BD.
  * Devuelve un mensaje de error para mostrar, o null si salió bien.
  */
 async function setPaymentStatus(

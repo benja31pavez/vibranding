@@ -20,7 +20,7 @@
 --      7. payments: desde el navegador ya no se escriben status, paid_at,
 --         provider, provider_ref, flow_token, payment_url ni subscription_id
 --         (ni en UPDATE ni en INSERT). El cambio de estado manual pasa por
---         set_payment_status() (SECURITY DEFINER, can_edit_client, con
+--         set_payment_status() (SECURITY DEFINER, manages_client = owner/admin, con
 --         transiciones válidas). La app (PaymentsPanel, /billing) se adapta
 --         en el mismo PR.
 --
@@ -567,7 +567,8 @@ GRANT INSERT (client_id, description, amount, currency, due_date, document_type,
 GRANT UPDATE (description, amount, currency, due_date, document_type, kind, period)
   ON public.payments TO authenticated;
 
--- Cambio de estado manual. Transiciones válidas:
+-- Cambio de estado manual. Solo owner/admin (manages_client), igual que la
+-- policy de UPDATE de payments. Transiciones válidas:
 --   pending   -> paid | overdue | cancelled
 --   overdue   -> paid | pending | cancelled
 --   cancelled -> pending
@@ -595,7 +596,7 @@ BEGIN
   END IF;
 
   SELECT client_id INTO cid FROM public.payments WHERE id = _payment_id;
-  IF cid IS NULL OR NOT public.can_edit_client(cid) THEN
+  IF cid IS NULL OR NOT public.manages_client(cid) THEN
     RAISE EXCEPTION 'No tienes permisos para esta acción' USING ERRCODE = '42501';
   END IF;
 

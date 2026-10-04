@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { NavBadge } from "./NavBadge";
 import { PRIMARY_NAV, isPathActive, type NavItem } from "./navConfig";
 
 const linkClass = (active: boolean) =>
@@ -16,6 +17,7 @@ function HeaderNavItem({ item, active }: { item: NavItem; active: boolean }) {
     <Link to={item.to} aria-current={active ? "page" : undefined} className={linkClass(active)}>
       <item.icon className="hidden h-4 w-4 shrink-0 lg:block" aria-hidden="true" />
       <span>{item.label}</span>
+      <NavBadge to={item.to} />
     </Link>
   );
 }
@@ -51,6 +53,7 @@ export function VerticalNavList({ items, path, label }: { items: readonly NavIte
               >
                 <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>{item.label}</span>
+                <NavBadge to={item.to} />
               </Link>
             </li>
           );
