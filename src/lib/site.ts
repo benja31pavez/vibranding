@@ -5,6 +5,9 @@
 
 export const SITE_URL = "https://vibranding.pro";
 
+/** Shared JSON-LD @id for the agency (Organization + ProfessionalService). */
+export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
+
 /** WhatsApp number in international format, digits only (Chile +56). */
 export const WHATSAPP_NUMBER = "56989294014";
 export const WHATSAPP_DISPLAY = "+56 9 8929 4014";

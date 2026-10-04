@@ -11,9 +11,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/use-auth";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { translations } from "@/i18n/translations";
-import { LEGAL_NAME, SITE_URL, WHATSAPP_E164 } from "@/lib/site";
+import { LEGAL_NAME, ORGANIZATION_ID, SITE_URL, WHATSAPP_E164 } from "@/lib/site";
 
 const DEFAULT_SEO = translations.es.seo.home;
+const FRAUNCES_CSS =
+  "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&display=swap";
 
 import appCss from "../styles.css?url";
 
@@ -71,10 +73,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&display=swap",
-      },
+      { rel: "preload", as: "style", href: FRAUNCES_CSS },
+      { rel: "stylesheet", href: FRAUNCES_CSS },
       { rel: "stylesheet", href: appCss },
     ],
     scripts: [
@@ -85,10 +85,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@graph": [
             {
               "@type": "Organization",
-              "@id": `${SITE_URL}/#organization`,
+              "@id": ORGANIZATION_ID,
               name: "Vibranding",
               legalName: LEGAL_NAME,
               url: SITE_URL,
+              // TODO: reemplazar por un logo PNG cuadrado de al menos 112x112 px (p. ej. public/logo.png).
               logo: `${SITE_URL}/favicon.ico`,
               telephone: WHATSAPP_E164,
               address: { "@type": "PostalAddress", addressLocality: "Santiago", addressCountry: "CL" },

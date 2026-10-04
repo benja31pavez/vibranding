@@ -1,15 +1,15 @@
 import {
   Bot, Camera, Megaphone, MonitorSmartphone, Palette, Search, ShieldCheck, ShoppingBag, Sparkles, ThumbsUp,
 } from "lucide-react";
-import { useLang } from "@/i18n/LanguageContext";
 import { SectionHeading } from "./shared";
+import { translations } from "@/i18n/translations";
 
 const BENEFIT_ICONS = [Search, ThumbsUp, ShoppingBag];
 const SERVICE_ICONS = [Palette, Camera, Megaphone, Search];
 const TONES = ["var(--brand-1)", "var(--brand-2)", "var(--brand-3)", "var(--brand-1)"];
 
 export function BenefitsSection() {
-  const { t } = useLang();
+  const t = translations.es; // The public home is Spanish-only (Chile).
   const b = t.home.benefits;
   return (
     <section aria-labelledby="beneficios-title" className="mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24">
@@ -38,7 +38,7 @@ export function BenefitsSection() {
 }
 
 export function ServicesSection() {
-  const { t } = useLang();
+  const t = translations.es; // The public home is Spanish-only (Chile).
   const s = t.home.services;
   return (
     <section id="servicios" aria-labelledby="servicios-title" className="scroll-mt-20 bg-secondary/50 py-16 md:py-24">
@@ -71,7 +71,7 @@ export function ServicesSection() {
 }
 
 export function HowWeWorkSection() {
-  const { t } = useLang();
+  const t = translations.es; // The public home is Spanish-only (Chile).
   const h = t.home.how;
   return (
     <section id="como" aria-labelledby="como-title" className="scroll-mt-20 mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24">
@@ -92,7 +92,7 @@ export function HowWeWorkSection() {
 }
 
 export function GuaranteeSection() {
-  const { t } = useLang();
+  const t = translations.es; // The public home is Spanish-only (Chile).
   const g = t.home.guarantee;
   return (
     <section aria-labelledby="garantia-title" className="mx-auto max-w-4xl px-4 pt-16 md:px-10 md:pt-24">

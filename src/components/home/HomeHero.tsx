@@ -1,11 +1,11 @@
 import { Check, Dumbbell, HeartPulse, Home as HomeIcon, MapPin } from "lucide-react";
-import { useLang } from "@/i18n/LanguageContext";
 import { WhatsAppCta } from "./shared";
+import { translations } from "@/i18n/translations";
 
 const NICHE_ICONS = [HomeIcon, HeartPulse, Dumbbell];
 
 export function HomeHero() {
-  const { t } = useLang();
+  const t = translations.es; // The public home is Spanish-only (Chile).
   const hero = t.home.hero;
 
   return (
@@ -62,7 +62,7 @@ export function HomeHero() {
 }
 
 function NichesStrip() {
-  const { t } = useLang();
+  const t = translations.es; // The public home is Spanish-only (Chile).
   const niches = t.home.niches;
   return (
     <div className="mx-auto max-w-6xl px-4 pb-16 md:px-10 md:pb-20">

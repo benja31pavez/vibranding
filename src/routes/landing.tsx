@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Landing } from "./index";
+import { fetchPublicPortfolio } from "@/lib/portfolio";
 
 export const Route = createFileRoute("/landing")({
   head: () => ({
@@ -8,5 +9,11 @@ export const Route = createFileRoute("/landing")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: () => <Landing forcePublic />,
+  loader: () => fetchPublicPortfolio(),
+  component: LandingPreview,
 });
+
+function LandingPreview() {
+  const portfolio = Route.useLoaderData();
+  return <Landing forcePublic portfolio={portfolio} />;
+}

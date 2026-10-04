@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { useLang } from "@/i18n/LanguageContext";
 import { WhatsAppCta } from "./shared";
+import { translations } from "@/i18n/translations";
 
 export function HomeHeader() {
-  const { t } = useLang();
+  const t = translations.es; // The public home is Spanish-only (Chile).
   const nav = t.home.nav;
   const links = [
     { href: "#servicios", label: nav.services },

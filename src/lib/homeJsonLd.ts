@@ -1,5 +1,5 @@
 import { translations } from "@/i18n/translations";
-import { LEGAL_NAME, LEGAL_RUT, SITE_URL, WHATSAPP_E164 } from "@/lib/site";
+import { LEGAL_NAME, LEGAL_RUT, ORGANIZATION_ID, SITE_URL, WHATSAPP_E164, formatClp } from "@/lib/site";
 
 /** Comunas of Santiago we actively serve (plus the rest of Chile via the Country entry). */
 const SANTIAGO_COMUNAS = [
@@ -10,25 +10,31 @@ const SANTIAGO_COMUNAS = [
 /** Structured data for the home page: business, offer catalog and FAQ. */
 export function buildHomeJsonLd(): string {
   const es = translations.es;
-  const businessId = `${SITE_URL}/#business`;
+  // Same @id as the Organization node in __root.tsx, so both describe one entity.
+  const businessId = ORGANIZATION_ID;
 
-  const offers = es.home.plans.items.map((plan) => ({
-    "@type": "Offer",
-    name: plan.name,
-    description: [plan.desc, ...plan.features].join(" · "),
-    url: `${SITE_URL}/#planes`,
-    priceCurrency: "CLP",
-    price: plan.price,
-    priceSpecification: {
-      "@type": plan.period === "al mes" ? "UnitPriceSpecification" : "PriceSpecification",
+  const plans = es.home.plans.items;
+  const prices = plans.map((p) => p.price);
+  const priceRange = `${formatClp(Math.min(...prices))} - ${formatClp(Math.max(...prices))} CLP`;
+
+  const offers = plans.map((plan) => {
+    const monthly = plan.period === "al mes";
+    return {
+      "@type": "Offer",
+      name: plan.name,
+      description: [plan.desc, ...plan.features].join(" · "),
+      url: `${SITE_URL}/#planes`,
       price: plan.price,
       priceCurrency: "CLP",
-      valueAddedTaxIncluded: true,
-      ...(plan.period === "al mes" ? { unitCode: "MON", referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitCode: "MON" } } : {}),
-    },
-    areaServed: { "@type": "Country", name: "Chile" },
-    seller: { "@id": businessId },
-  }));
+      priceSpecification: {
+        "@type": monthly ? "UnitPriceSpecification" : "PriceSpecification",
+        valueAddedTaxIncluded: true,
+        ...(monthly ? { unitCode: "MON" } : {}),
+      },
+      areaServed: { "@type": "Country", name: "Chile" },
+      seller: { "@id": businessId },
+    };
+  });
 
   const graph = [
     {
@@ -38,10 +44,9 @@ export function buildHomeJsonLd(): string {
       legalName: LEGAL_NAME,
       taxID: LEGAL_RUT,
       url: `${SITE_URL}/`,
-      logo: `${SITE_URL}/favicon.ico`,
       description: es.seo.home.description,
       telephone: WHATSAPP_E164,
-      priceRange: "$129.990 - $249.990 CLP",
+      priceRange,
       currenciesAccepted: "CLP",
       paymentAccepted: "Transferencia bancaria, link de pago",
       founder: { "@type": "Person", name: "Benjamín Pavez" },

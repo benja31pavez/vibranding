@@ -18,8 +18,7 @@ Disallow: /stats
 Disallow: /profile
 Disallow: /portfolio$
 
-# Vistas previas, revisiones privadas y API
-Disallow: /landing
+# Revisiones privadas y API (/landing es preview con noindex, no se bloquea para que el noindex se lea)
 Disallow: /review/
 Disallow: /api/
 

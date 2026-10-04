@@ -1,9 +1,9 @@
 import { Check } from "lucide-react";
-import { useLang } from "@/i18n/LanguageContext";
 import { SectionHeading } from "./shared";
+import { translations } from "@/i18n/translations";
 
 export function AboutSection() {
-  const { t } = useLang();
+  const t = translations.es; // The public home is Spanish-only (Chile).
   const a = t.home.about;
   return (
     <section id="nosotros" aria-labelledby="nosotros-title" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-16 md:px-10 md:py-24">

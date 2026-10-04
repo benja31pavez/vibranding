@@ -1,13 +1,15 @@
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown, MessageCircle } from "lucide-react";
 import { useLang } from "@/i18n/LanguageContext";
 import { trackLandingEvent } from "@/lib/track";
 import { whatsappUrl } from "@/lib/site";
 import { SectionHeading, WhatsAppCta } from "./shared";
+import { translations } from "@/i18n/translations";
 
 /** Native <details> keeps every answer in the server-rendered HTML (good for SEO and no-JS). */
 export function FaqSection() {
-  const { t } = useLang();
+  const t = translations.es; // The public home is Spanish-only (Chile).
   const copy = t.home.faq;
   return (
     <section id="preguntas" aria-labelledby="preguntas-title" className="scroll-mt-20 bg-secondary/50 py-16 md:py-24">
@@ -35,7 +37,7 @@ export function FaqSection() {
 }
 
 export function FinalCtaSection() {
-  const { t } = useLang();
+  const t = translations.es; // The public home is Spanish-only (Chile).
   const c = t.home.finalCta;
   return (
     <section id="contacto" aria-labelledby="contacto-title" className="scroll-mt-20 px-4 py-16 md:px-10 md:py-24">
@@ -66,9 +68,30 @@ export function FinalCtaSection() {
   );
 }
 
-/** Fixed WhatsApp button, always reachable on mobile. */
+/** Sections where the floating button would cover a CTA or the legal line. */
+const FLOAT_HIDE_SELECTORS = ["#contacto", "footer"];
+
+/** Fixed WhatsApp button, always reachable on mobile; hides over the final CTA and the footer. */
 export function WhatsAppFloat() {
-  const { t, lang } = useLang();
+  const t = translations.es;
+  const { lang } = useLang();
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const targets = FLOAT_HIDE_SELECTORS.map((sel) => document.querySelector(sel)).filter(
+      (el): el is Element => el !== null,
+    );
+    if (targets.length === 0) return;
+    const visible = new Set<Element>();
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((e) => (e.isIntersecting ? visible.add(e.target) : visible.delete(e.target)));
+      setHidden(visible.size > 0);
+    });
+    targets.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <a
       href={whatsappUrl()}
@@ -76,7 +99,11 @@ export function WhatsAppFloat() {
       rel="noopener noreferrer"
       onClick={() => trackLandingEvent("whatsapp_click", lang)}
       aria-label={t.home.floatLabel}
-      className="fixed bottom-4 right-4 z-50 inline-flex h-14 items-center gap-2 rounded-full bg-[#128C7E] px-4 text-white shadow-lg shadow-black/20 transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:bottom-6 md:right-6"
+      aria-hidden={hidden || undefined}
+      tabIndex={hidden ? -1 : undefined}
+      className={`fixed bottom-4 right-4 z-50 inline-flex h-14 items-center gap-2 rounded-full bg-[#128C7E] px-4 text-white shadow-lg shadow-black/20 transition duration-300 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transition-none md:bottom-6 md:right-6 ${
+        hidden ? "pointer-events-none translate-y-4 opacity-0" : "opacity-100"
+      }`}
     >
       <MessageCircle aria-hidden className="h-6 w-6" />
       <span className="hidden text-sm font-semibold md:inline">WhatsApp</span>

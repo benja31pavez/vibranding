@@ -1,12 +1,11 @@
 import { Check, Info } from "lucide-react";
-import { useLang } from "@/i18n/LanguageContext";
-import type { PlanItem } from "@/i18n/translations";
 import { formatClp } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { SectionHeading, WhatsAppCta } from "./shared";
+import { translations, type PlanItem } from "@/i18n/translations";
 
 export function PlansSection() {
-  const { t } = useLang();
+  const t = translations.es; // The public home is Spanish-only (Chile).
   const p = t.home.plans;
   return (
     <section id="planes" aria-labelledby="planes-title" className="scroll-mt-20 bg-secondary/50 py-16 md:py-24">

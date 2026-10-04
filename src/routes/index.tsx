@@ -14,10 +14,13 @@ import { FaqSection, FinalCtaSection, WhatsAppFloat } from "@/components/home/Fa
 import { translations } from "@/i18n/translations";
 import { buildHomeJsonLd } from "@/lib/homeJsonLd";
 import { SITE_URL } from "@/lib/site";
+import { fetchPublicPortfolio, type PortfolioClientWithWorks } from "@/lib/portfolio";
 
 const SEO = translations.es.seo.home;
 
 export const Route = createFileRoute("/")({
+  // Loaded on the server so portfolio logos and names are in the SSR HTML.
+  loader: () => fetchPublicPortfolio(),
   head: () => ({
     meta: [
       { title: SEO.title },
@@ -32,14 +35,25 @@ export const Route = createFileRoute("/")({
     links: [{ rel: "canonical", href: `${SITE_URL}/` }],
     scripts: [{ type: "application/ld+json", children: buildHomeJsonLd() }],
   }),
-  component: Landing,
+  component: HomeRoute,
 });
+
+function HomeRoute() {
+  const portfolio = Route.useLoaderData();
+  return <Landing portfolio={portfolio} />;
+}
 
 /**
  * Public agency home. Always rendered (also on the server) so crawlers get the
  * full content; signed-in users are sent to the dashboard on the client only.
  */
-export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {}) {
+export function Landing({
+  forcePublic = false,
+  portfolio,
+}: {
+  forcePublic?: boolean;
+  portfolio: PortfolioClientWithWorks[];
+}) {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -65,7 +79,7 @@ export function Landing({ forcePublic = false }: { forcePublic?: boolean } = {})
         <GuaranteeSection />
         <HowWeWorkSection />
         <AboutSection />
-        <PortfolioSection />
+        <PortfolioSection portfolio={portfolio} />
         <FaqSection />
         <FinalCtaSection />
       </main>

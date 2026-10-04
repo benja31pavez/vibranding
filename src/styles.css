@@ -281,3 +281,12 @@
 @utility animate-marquee {
   animation: marquee 40s linear infinite;
 }
+
+/* Respect reduced-motion: no floating blobs, no logo marquee (a static list is shown instead). */
+@media (prefers-reduced-motion: reduce) {
+  .blob,
+  .animate-marquee,
+  .bg-gradient-brand-animated {
+    animation: none !important;
+  }
+}
