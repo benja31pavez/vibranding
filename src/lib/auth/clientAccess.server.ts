@@ -7,8 +7,6 @@
  * at the agency". Anything that spends the agency's Meta token or changes data
  * must go through these helpers instead.
  */
-import type { SupabaseClient } from "@supabase/supabase-js";
-
 export type OrgRole = "owner" | "admin" | "agent" | "viewer";
 
 /** Org roles allowed to modify a client's data (viewers are read-only). */
@@ -66,24 +64,6 @@ export async function assertCanEditClient(userId: string, clientId: string): Pro
   if (!role) throw new ClientAccessError(NO_ACCESS);
   if (!CLIENT_EDITOR_ROLES.includes(role)) throw new ClientAccessError(NO_EDIT);
   return role;
-}
-
-/**
- * Throws unless the caller is a member (any role) of the client's org.
- * Delegates to the existing `owns_client()` RPC, evaluated with the caller's
- * own session, which excludes the portal user.
- */
-export async function assertOrgMemberOfClient(
-  supabase: SupabaseClient<any>,
-  clientId: string,
-): Promise<void> {
-  if (!clientId || !UUID_RE.test(clientId)) throw new ClientAccessError(NO_ACCESS);
-  const { data, error } = await (supabase.rpc as any)("owns_client", { _client_id: clientId });
-  if (error) {
-    console.error("[clientAccess] owns_client failed", error.message);
-    throw new Error("No se pudo verificar el acceso al cliente");
-  }
-  if (data !== true) throw new ClientAccessError(NO_ACCESS);
 }
 
 /**

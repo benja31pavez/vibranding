@@ -127,6 +127,8 @@ export const testMetaIngest = createServerFn({ method: "POST" })
       .eq("id", data.accountId)
       .maybeSingle();
     if (!owned) throw new Error("No tienes acceso a esta conexión");
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, owned.client_id);
 
     const { getMetaToken } = await import("@/lib/meta/tokens.server");
     const token = await getMetaToken(data.accountId);
@@ -150,6 +152,8 @@ export const debugMetaConnection = createServerFn({ method: "POST" })
       .eq("id", data.accountId)
       .maybeSingle();
     if (!owned) throw new Error("No tienes acceso a esta conexión");
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, owned.client_id);
 
     const { getMetaToken } = await import("@/lib/meta/tokens.server");
     const token = await getMetaToken(data.accountId);

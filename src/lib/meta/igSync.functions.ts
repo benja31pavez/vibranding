@@ -15,9 +15,9 @@ export const listUnmatchedMedia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { clientId: string }) => input)
   .handler(async ({ data, context }): Promise<UnmatchedMedia[]> => {
-    // owns_client() excludes the portal user, unlike the clients RLS policy.
-    const { assertOrgMemberOfClient } = await import("@/lib/auth/clientAccess.server");
-    await assertOrgMemberOfClient(context.supabase, data.clientId);
+    // Uses the agency's Meta token: agency editors only (no viewers, no portal).
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, data.clientId);
 
     const { getClientMetaToken } = await import("@/lib/meta/clientToken.server");
     const found = await getClientMetaToken(data.clientId);
