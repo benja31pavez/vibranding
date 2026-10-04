@@ -4,7 +4,7 @@ import { EmptyState, ErrorState, ListSkeleton, Money, Panel, StatusBadge } from 
 import { Button } from "@/components/ui/button";
 import { effectiveStatus, formatChileDate, isProposalStatus, PROPOSAL_STATUS_META } from "@/lib/proposals/model";
 import { ProposalLinkActions } from "./ProposalLinkActions";
-import { useClientProposals, type ProposalRow } from "./proposalQueries";
+import { useRecipientProposals, type ProposalRow } from "./proposalQueries";
 
 export function ProposalStatusBadge({ status, expiresAt }: { status: string; expiresAt: string | null }) {
   const effective = effectiveStatus(status, expiresAt);
@@ -19,10 +19,18 @@ function statusHint(p: ProposalRow): string {
   return `Creada el ${formatChileDate(p.created_at)}`;
 }
 
-/** Propuestas del cliente en su ficha: estado, monto, link y "Marcar enviada". */
-export function ProposalsPanel({ clientId, canEdit }: { clientId: string; canEdit: boolean }) {
-  const query = useClientProposals(clientId);
+type PanelTarget = { clientId: string; prospectId?: undefined } | { prospectId: string; clientId?: undefined };
+
+/**
+ * Propuestas de un cliente (en su ficha) o de un prospecto (en su Sheet):
+ * estado, monto, link y "Marcar enviada".
+ */
+export function ProposalsPanel({ canEdit, ...target }: PanelTarget & { canEdit: boolean }) {
+  const query = useRecipientProposals(
+    target.clientId ? { kind: "client", id: target.clientId } : { kind: "prospect", id: target.prospectId ?? "" },
+  );
   const proposals = query.data ?? [];
+  const newSearch = target.clientId ? { clientId: target.clientId } : { prospectId: target.prospectId };
 
   return (
     <Panel
@@ -31,8 +39,8 @@ export function ProposalsPanel({ clientId, canEdit }: { clientId: string; canEdi
       actions={
         canEdit ? (
           <Button size="sm" variant="outline" asChild>
-            <Link to="/proposals/new" search={{ clientId }}>
-              <Plus aria-hidden className="mr-1 h-3.5 w-3.5" /> Nueva propuesta
+            <Link to="/proposals/new" search={newSearch}>
+              <Plus aria-hidden className="mr-1 h-3.5 w-3.5" /> {target.clientId ? "Nueva propuesta" : "Crear propuesta"}
             </Link>
           </Button>
         ) : undefined

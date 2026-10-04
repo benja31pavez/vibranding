@@ -22,6 +22,8 @@ import {
 } from "@/lib/prospects/schema";
 import { toDateInput } from "./format";
 import { ConvertAction } from "./ProspectCard";
+import { ProposalsPanel } from "@/components/proposals/ProposalsPanel";
+import { useCanEditRecipient } from "@/components/proposals/proposalQueries";
 import { useIsOrgManager, useRevokeBaja, useSaveProspect, type Prospect } from "./prospectsData";
 
 type Errors = Partial<Record<keyof ProspectFormInput, string>>;
@@ -82,6 +84,9 @@ export function ProspectSheet({
   const manager = useIsOrgManager(isBaja ? prospect?.org_id : null);
   // Si no se pudo consultar el rol, se muestra el control y la RPC decide (muestra su error).
   const canRevoke = manager.data !== false;
+  const canEditProposals = useCanEditRecipient(
+    prospect ? { kind: "prospect", id: prospect.id, orgId: prospect.org_id } : null,
+  );
 
   // Se reinicia solo al abrir o al cambiar de prospecto (no en refetch): si la RPC
   // falla tras guardar los campos, el motivo escrito se conserva para reintentar.
@@ -236,6 +241,12 @@ export function ProspectSheet({
             <Button type="submit" disabled={busy}>{busy ? "Guardando…" : "Guardar"}</Button>
           </SheetFooter>
         </form>
+        {prospect && (
+          <div className="mt-6 border-t border-border-subtle pt-6">
+            {/* Si el permiso no se pudo consultar, se muestra el botón y la BD decide (RLS). */}
+            <ProposalsPanel prospectId={prospect.id} canEdit={canEditProposals.data !== false} />
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
