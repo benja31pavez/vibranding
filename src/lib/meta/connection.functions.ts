@@ -422,5 +422,6 @@ export const updateMetaAccountAssets = createServerFn({ method: "POST" })
       { onConflict: "client_id" },
     );
     if (error) throw new Error(error.message);
-    return { ok: true as const };
+    // Devuelve el patch normalizado (p. ej. "act_123") para que la UI muestre lo guardado.
+    return { ok: true as const, patch };
   });

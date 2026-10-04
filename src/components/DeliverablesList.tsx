@@ -153,7 +153,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [seeding, setSeeding] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const { caps } = useClientCapabilities(clientId);
+  const { caps, loading: capsLoading, error: capsError } = useClientCapabilities(clientId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(true);
   const [draft, setDraft] = useState({ title: "", description: "", due_date: "", type: "post" as DType, folder_id: "" as string });
@@ -190,6 +190,12 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   }, [items, selectedId]);
 
   const seedStarter = async () => {
+    // Las etapas dependen de si hay WhatsApp: no sembrar con capacidades sin cargar o con error.
+    if (capsLoading) return;
+    if (capsError) {
+      toast.error(`No se pudo revisar si el cliente tiene WhatsApp: ${capsError.message}`);
+      return;
+    }
     setSeeding(true);
     const { data: billing, error: billingError } = await supabase
       .from("client_billing")
@@ -201,7 +207,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
       return toast.error(`No se pudo leer el plan del cliente: ${billingError.message}`);
     }
     const stages = suggestedStages(billing?.plan_key ?? null, caps.has_whatsapp);
-    const { error } = await supabase.from("deliverables").insert(
+    const res = await supabase.from("deliverables").insert(
       stages.map((s, i) => ({
         client_id: clientId,
         title: s.title,
@@ -209,9 +215,9 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
         type: s.type,
         sort_order: i,
       })),
-    );
+    ).select("id");
     setSeeding(false);
-    if (error) return toast.error(error.message);
+    if (writeFailed(res, "No se pudieron crear las etapas")) return;
     toast.success("Etapas sugeridas creadas");
     load();
   };
@@ -424,7 +430,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
             <div className="text-sm text-muted-foreground">
               Aún no hay etapas. Puedes crear las sugeridas según el plan del cliente.
             </div>
-            <Button size="sm" className="rounded-full" disabled={seeding} onClick={seedStarter}>
+            <Button size="sm" className="rounded-full" disabled={seeding || capsLoading} onClick={seedStarter}>
               {seeding ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
               Crear etapas sugeridas
             </Button>

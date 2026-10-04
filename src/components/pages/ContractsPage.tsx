@@ -72,8 +72,14 @@ export function ContractsPage({ clientId }: { clientId: string }) {
   const [loadingAll, setLoadingAll] = useState(false);
 
   /** Carga cliente, precios, servicios y contratos; si algo falla, se muestra con reintentar. */
+  /** Cliente para el que se pidió la última carga; descarta respuestas de un cliente anterior. */
+  const requestedClientRef = useRef(clientId);
+
   const loadAll = async () => {
     if (!user) return;
+    const forClient = clientId;
+    requestedClientRef.current = forClient;
+    const isStale = () => requestedClientRef.current !== forClient;
     setLoadingAll(true);
     setLoadError(null);
     try {
@@ -82,6 +88,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
         loadPricing(user.id),
         loadServicePricing(user.id),
       ]);
+      if (isStale()) return;
       if (clientRes.error) throw new Error(clientRes.error.message);
       if (!clientRes.data) throw new Error("No se encontró el cliente o no tienes acceso.");
       setClient(clientRes.data as ClientRow);
@@ -89,19 +96,36 @@ export function ContractsPage({ clientId }: { clientId: string }) {
       setServices(sv);
       await reloadContracts();
     } catch (e: any) {
-      setLoadError(e?.message ?? "No se pudo cargar la información de contratos");
+      if (!isStale()) setLoadError(e?.message ?? "No se pudo cargar la información de contratos");
     } finally {
-      setLoadingAll(false);
+      if (!isStale()) setLoadingAll(false);
     }
   };
 
+  /** Al cambiar de cliente no se arrastran datos ni selecciones del anterior. */
+  const resetClientState = () => {
+    setClient(null);
+    setContracts([]);
+    setSelected(new Set());
+    setSelectedPlan(null);
+    setClientLegalName("");
+    setClientTaxId("");
+    setClientAddress("");
+    setClientEmail("");
+    setPreviewing(null);
+    setLoadError(null);
+  };
+
   useEffect(() => {
+    resetClientState();
     void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, clientId]);
 
   const reloadContracts = async () => {
-    const { data, error } = await supabase.from("client_contracts").select("*").eq("client_id", clientId).order("created_at", { ascending: false });
+    const forClient = clientId;
+    const { data, error } = await supabase.from("client_contracts").select("*").eq("client_id", forClient).order("created_at", { ascending: false });
+    if (requestedClientRef.current !== forClient) return;
     if (error) throw new Error(`No se pudieron cargar los contratos: ${error.message}`);
     setContracts((data ?? []) as any);
   };

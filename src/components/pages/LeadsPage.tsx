@@ -133,7 +133,9 @@ export function LeadsPage({ clientId }: { clientId: string }) {
   const upsertMeta = async (lead: Lead, patch: Partial<Pick<Lead, "status" | "notes" | "tags">>) => {
     const next = { ...lead, ...patch };
     const same = (l: Lead) => l.source === lead.source && l.source_id === lead.source_id;
-    setLeads((ls) => ls.map((l) => (same(l) ? next : l)));
+    const applyPatch = (l: Lead) => ({ ...l, ...patch });
+    setLeads((ls) => ls.map((l) => (same(l) ? applyPatch(l) : l)));
+    setEditing((cur) => (cur && same(cur) ? applyPatch(cur) : cur));
     const { error } = await (supabase.from("lead_meta" as any) as any).upsert({
       client_id: clientId,
       source: lead.source,
@@ -143,13 +145,18 @@ export function LeadsPage({ clientId }: { clientId: string }) {
       tags: next.tags,
     }, { onConflict: "client_id,source,source_id" });
     if (error) {
-      // Revertir el cambio optimista: el estado en pantalla no debe mentir.
-      setLeads((ls) => ls.map((l) => (same(l) ? lead : l)));
-      setEditing((cur) => (cur && same(cur) ? lead : cur));
+      // Revertir solo los campos de este patch, y solo si nadie los cambió después.
+      const revert = (l: Lead): Lead => {
+        const restored = { ...l };
+        for (const key of Object.keys(patch) as (keyof typeof patch)[]) {
+          if (l[key] === patch[key]) (restored as any)[key] = lead[key];
+        }
+        return restored;
+      };
+      setLeads((ls) => ls.map((l) => (same(l) ? revert(l) : l)));
+      setEditing((cur) => (cur && same(cur) ? revert(cur) : cur));
       toast.error(`No se pudo guardar el lead: ${error.message}`);
-      return;
     }
-    setEditing((cur) => (cur && same(cur) ? next : cur));
   };
 
   const filtered = useMemo(() => {
