@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { dashboardKeys } from "@/components/dashboard/queries";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -18,7 +19,21 @@ export const approvalKeys = {
 
 /** Refresca la bandeja y el badge del header (llamar tras cambiar entregables, posts o propuestas). */
 export function invalidateApprovalQueue(queryClient: QueryClient) {
-  return queryClient.invalidateQueries({ queryKey: approvalKeys.all });
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: approvalKeys.all }),
+    // Bloque "Aprobaciones" del dashboard: su key se acota por usuario, así que se compara por forma.
+    queryClient.invalidateQueries({ predicate: (q) => isDashboardApprovalsKey(q.queryKey) }),
+  ]);
+}
+
+const DASHBOARD_APPROVALS_SHAPE = dashboardKeys.approvals("");
+
+function isDashboardApprovalsKey(key: readonly unknown[]): boolean {
+  return (
+    key.length === DASHBOARD_APPROVALS_SHAPE.length &&
+    key[0] === DASHBOARD_APPROVALS_SHAPE[0] &&
+    key[2] === DASHBOARD_APPROVALS_SHAPE[2]
+  );
 }
 
 const REFRESH_MS = 60_000;
