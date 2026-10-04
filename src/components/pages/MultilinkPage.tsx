@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { anyWriteFailed, writeFailed } from "@/lib/writeCheck";
+import { ErrorState } from "@/components/app";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
 import {
@@ -54,6 +56,9 @@ import {
 } from "@/lib/multilinkTheme";
 import type { IGProfile } from "@/components/InstagramEditor";
 
+/** El dominio propio no se verifica todavía; se oculta hasta que exista la verificación. */
+const SHOW_CUSTOM_DOMAIN = false;
+
 type TabKey = "diseno" | "enlaces" | "config" | "metricas";
 
 export function MultilinkPage({ clientId }: { clientId: string }) {
@@ -62,6 +67,7 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Item[]>([]);
   const [igProfile, setIgProfile] = useState<IGProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">("mobile");
   const [tab, setTab] = useState<TabKey>("diseno");
@@ -69,29 +75,35 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: m }, { data: ig }] = await Promise.all([
+    setLoadError(null);
+    const [mRes, igRes] = await Promise.all([
       supabase.from("multilinks").select("*").eq("client_id", clientId).maybeSingle(),
       supabase.from("instagram_profiles").select("*").eq("client_id", clientId).maybeSingle(),
     ]);
-    const igP = (ig ?? null) as IGProfile | null;
-    setIgProfile(igP);
-
-    let multilink = m as Multilink | null;
-    if (multilink && !multilink.avatar_url) {
-      const igAvatar = igP?.proposed_avatar_url ?? igP?.current_avatar_url ?? null;
-      if (igAvatar) {
-        await supabase.from("multilinks").update({ avatar_url: igAvatar }).eq("id", multilink.id);
-        multilink = { ...multilink, avatar_url: igAvatar };
-      }
+    const firstError = mRes.error ?? igRes.error;
+    if (firstError) {
+      setLoadError(firstError.message);
+      setLoading(false);
+      return;
     }
+    setIgProfile((igRes.data ?? null) as IGProfile | null);
+
+    // Cargar no escribe: el avatar de Instagram se usa como respaldo visual (effectiveAvatarUrl)
+    // y se guarda recién cuando el usuario guarda el multienlace.
+    const multilink = mRes.data as Multilink | null;
     setMl(multilink);
 
     if (multilink) {
-      const { data: it } = await supabase
+      const { data: it, error: itemsError } = await supabase
         .from("multilink_items")
         .select("*")
         .eq("multilink_id", multilink.id)
         .order("sort_order");
+      if (itemsError) {
+        setLoadError(itemsError.message);
+        setLoading(false);
+        return;
+      }
       setItems((it ?? []) as Item[]);
     }
     setLoading(false);
@@ -146,7 +158,7 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
             .replace(/\/.*$/, "") || null,
         title: ml.title,
         bio: ml.bio,
-        avatar_url: ml.avatar_url,
+        avatar_url: ml.avatar_url ?? defaultAvatarUrl,
         theme_color: ml.theme_color,
         theme_mode: ml.theme_mode,
         button_style: ml.button_style,
@@ -213,8 +225,10 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
   };
 
   const removeItem = async (id: string) => {
-    const { error } = await supabase.from("multilink_items").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    const label = items.find((i) => i.id === id)?.title;
+    if (!confirm(`¿Eliminar el enlace${label ? ` «${label}»` : ""}?`)) return;
+    const res = await supabase.from("multilink_items").delete().eq("id", id).select("id");
+    if (writeFailed(res, "No se pudo eliminar el enlace")) return;
     setItems(items.filter((i) => i.id !== id));
   };
 
@@ -224,8 +238,12 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
     if (idx < 0 || j < 0 || j >= items.length) return;
     const next = [...items];
     [next[idx], next[j]] = [next[j], next[idx]];
+    const previous = items;
     setItems(next);
-    await Promise.all(next.map((it, k) => supabase.from("multilink_items").update({ sort_order: k }).eq("id", it.id)));
+    const results = await Promise.all(
+      next.map((it, k) => supabase.from("multilink_items").update({ sort_order: k }).eq("id", it.id).select("id")),
+    );
+    if (anyWriteFailed(results, "No se pudo reordenar")) setItems(previous);
   };
 
   const onAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -233,13 +251,19 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
     if (!f || !ml) return;
     try {
       const url = await uploadClientMedia(f, clientId);
+      const res = await supabase.from("multilinks").update({ avatar_url: url }).eq("id", ml.id).select("id");
+      if (writeFailed(res, "No se pudo guardar la foto")) return;
       setMl({ ...ml, avatar_url: url });
-      await supabase.from("multilinks").update({ avatar_url: url }).eq("id", ml.id);
     } catch (err: any) {
       toast.error(err.message);
     }
   };
 
+  if (loadError) {
+    return (
+      <ErrorState title="No pudimos cargar el multienlace" message={loadError} onRetry={() => void load()} retrying={loading} />
+    );
+  }
   if (loading) return <div className="p-10 text-muted-foreground">Cargando…</div>;
 
   if (!ml) {
@@ -789,6 +813,8 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
             <div className="ml-auto text-xs text-muted-foreground">{ml.view_count} visitas acumuladas</div>
           </div>
 
+          {/* Dominio propio oculto: la verificación DNS aún no está implementada. */}
+          {SHOW_CUSTOM_DOMAIN && (
           <SettingsSection
             title="Dominio propio"
             icon={<Globe className="w-4 h-4" />}
@@ -817,6 +843,7 @@ export function MultilinkPage({ clientId }: { clientId: string }) {
               URL pública actual: <code>{publicUrl}</code>
             </div>
           </SettingsSection>
+          )}
 
           <SettingsSection
             title="Programación de enlaces"

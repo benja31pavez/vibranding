@@ -35,10 +35,11 @@ function SitioPage() {
         <TabsTrigger value="multienlace">Multienlace</TabsTrigger>
         <TabsTrigger value="landing">Landing page</TabsTrigger>
       </TabsList>
-      <TabsContent value="multienlace">
+      {/* forceMount: cambiar de pestaña no desmonta el editor ni pierde cambios sin guardar. */}
+      <TabsContent value="multienlace" forceMount className="data-[state=inactive]:hidden">
         <MultilinkPage clientId={clientId} />
       </TabsContent>
-      <TabsContent value="landing">
+      <TabsContent value="landing" forceMount className="data-[state=inactive]:hidden">
         <LandingEditor clientId={clientId} />
       </TabsContent>
     </Tabs>
