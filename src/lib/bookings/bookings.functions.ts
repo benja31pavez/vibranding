@@ -1,8 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { zonedParts } from "./tz";
+import type { Database } from "@/integrations/supabase/types";
+import { bookingWindow, safeTimeZone, zonedParts } from "./tz";
+import { parseOrThrow } from "./validation";
 
 const SlotsInput = z.object({
   slug: z.string().min(1).max(80),
@@ -12,25 +15,35 @@ const SlotsInput = z.object({
 
 export const getBookingPage = createServerFn({ method: "POST" })
   .inputValidator((d: { slug: string; from: string; to: string }) =>
-    SlotsInput.parse(d),
+    parseOrThrow(SlotsInput, d),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: settings, error } = await supabaseAdmin
       .rpc("get_booking_settings_by_slug", { _slug: data.slug });
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("[booking] get_booking_settings_by_slug failed", error.message);
+      throw new Error("No se pudo cargar la agenda. Intenta de nuevo.");
+    }
     const s = (settings ?? [])[0];
     if (!s) throw new Error("Agenda no encontrada o deshabilitada");
 
-    const { data: taken } = await supabaseAdmin.rpc("list_taken_slots", {
+    const { data: taken, error: tErr } = await supabaseAdmin.rpc("list_taken_slots", {
       _settings_id: s.id,
       _from: data.from,
       _to: data.to,
     });
+    if (tErr) {
+      console.error("[booking] list_taken_slots failed", tErr.message);
+      throw new Error("No se pudo cargar la disponibilidad. Intenta de nuevo.");
+    }
 
+    const { isBookingEmailEnabled } = await import("./notify.server");
     return {
       settings: s,
       taken: (taken ?? []) as { scheduled_at: string; duration_minutes: number }[],
+      /** Whether confirmation emails are actually sent (RESEND_API_KEY set). */
+      emailEnabled: isBookingEmailEnabled(),
     };
   });
 
@@ -80,6 +93,11 @@ const BOOKING_LIMITS = {
   perAgendaPerHour: 20,
 } as const;
 
+/** How far back to look for bookings that could still overlap a new slot. */
+const OVERLAP_LOOKBACK_MS = 24 * 60 * 60 * 1000;
+
+const UNIQUE_VIOLATION = "23505";
+
 const RATE_LIMITED = "Demasiadas reservas en poco tiempo. Intenta más tarde.";
 
 /** ip hash -> recent attempt timestamps. In-memory, so it is a first line only. */
@@ -128,7 +146,7 @@ export const createBooking = createServerFn({ method: "POST" })
       email: string;
       phone?: string;
       notes?: string;
-    }) => BookingInput.parse(d),
+    }) => parseOrThrow(BookingInput, d),
   )
   .handler(async ({ data }) => {
     if (!allowIpAttempt(await clientIpHash())) throw new Error(RATE_LIMITED);
@@ -139,24 +157,41 @@ export const createBooking = createServerFn({ method: "POST" })
       "get_booking_settings_by_slug",
       { _slug: data.slug },
     );
-    if (sErr) throw new Error(sErr.message);
+    if (sErr) {
+      console.error("[booking] get_booking_settings_by_slug failed", sErr.message);
+      throw new Error("No se pudo procesar la reserva. Intenta de nuevo.");
+    }
     const s = (settingsRows ?? [])[0];
     if (!s) throw new Error("Agenda no encontrada");
 
     const slotDate = new Date(data.scheduledAt);
-    const now = new Date();
-    // Must be tomorrow or later (UTC date comparison)
-    const tomorrow = new Date(now);
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-    tomorrow.setUTCHours(0, 0, 0, 0);
-    const maxDate = new Date(now);
-    maxDate.setUTCDate(maxDate.getUTCDate() + 31);
-    if (slotDate < tomorrow) throw new Error("Solo puedes agendar a partir de mañana");
-    if (slotDate > maxDate) throw new Error("Solo se permite agendar hasta 30 días en adelante");
-    const tz = (s as any).timezone || "America/Santiago";
+    // "Tomorrow" and the 30-day limit are calendar days in the agenda's zone.
+    const tz = safeTimeZone(s.timezone);
+    const { minBookable, maxExclusive } = bookingWindow(tz);
+    if (slotDate < minBookable) throw new Error("Solo puedes agendar a partir de mañana");
+    if (slotDate >= maxExclusive) throw new Error("Solo se permite agendar hasta 30 días en adelante");
     if (!withinHours(data.scheduledAt, s.hours as any, s.slot_minutes, tz)) {
       throw new Error("Ese horario no está disponible");
     }
+
+    // Reject overlaps (e.g. after the slot length changed); the unique index
+    // only catches bookings that start at the exact same minute.
+    const slotStart = slotDate.getTime();
+    const slotEnd = slotStart + s.slot_minutes * 60_000;
+    const { data: nearby, error: ovErr } = await supabaseAdmin.rpc("list_taken_slots", {
+      _settings_id: s.id,
+      _from: new Date(slotStart - OVERLAP_LOOKBACK_MS).toISOString(),
+      _to: new Date(slotEnd).toISOString(),
+    });
+    if (ovErr) {
+      console.error("[booking] overlap check failed", ovErr.message);
+      throw new Error("No se pudo procesar la reserva. Intenta de nuevo.");
+    }
+    const overlaps = (nearby ?? []).some((b: { scheduled_at: string; duration_minutes: number }) => {
+      const start = new Date(b.scheduled_at).getTime();
+      return start < slotEnd && start + b.duration_minutes * 60_000 > slotStart;
+    });
+    if (overlaps) throw new Error("Ese horario ya fue tomado");
 
     // Persistent caps (survive restarts and multiple instances): per email per
     // day and per agenda per hour, counted on bookings already stored.
@@ -210,33 +245,28 @@ export const createBooking = createServerFn({ method: "POST" })
       .select("id, scheduled_at")
       .single();
     if (iErr) {
-      if (iErr.code === "23505") throw new Error("Ese horario ya fue tomado");
-      throw new Error(iErr.message);
+      if (iErr.code === UNIQUE_VIOLATION) throw new Error("Ese horario ya fue tomado");
+      console.error("[booking] insert failed", iErr.code, iErr.message);
+      throw new Error("No se pudo procesar la reserva. Intenta de nuevo.");
     }
 
-    // Send notification email if infra is configured
+    // Emails are best-effort: a failure here never undoes the booking.
     try {
-      const { data: settingsFull } = await supabaseAdmin
+      const { data: notif, error: nErr } = await supabaseAdmin
         .from("booking_settings")
-        .select("notification_email, display_name, timezone")
+        .select("notification_email")
         .eq("id", s.id)
         .maybeSingle();
-      const to = settingsFull?.notification_email;
-      if (to) {
-        const fmt = new Date(data.scheduledAt).toLocaleString("es-CL", {
-          dateStyle: "full",
-          timeStyle: "short",
-          timeZone: settingsFull?.timezone || "America/Santiago",
-        });
-        const body = `Nueva reserva en "${settingsFull?.display_name ?? "Agenda"}"\n\nFecha: ${fmt}\nNombre: ${data.name}\nEmail: ${data.email}\nTeléfono: ${data.phone || "-"}\nNotas: ${data.notes || "-"}`;
-        // Best-effort — uses Lovable Emails queue if available
-        await fetch(`${process.env.SUPABASE_URL}/functions/v1/send-email-stub`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to, subject: "Nueva reserva", body }),
-        }).catch(() => {});
-        console.log("[booking] notification target:", to, "\n", body);
-      }
+      if (nErr) console.error("[booking] notification_email lookup failed", nErr.message);
+      const { sendBookingEmails } = await import("./notify.server");
+      await sendBookingEmails({
+        ownerEmail: notif?.notification_email ?? null,
+        agendaName: s.display_name ?? "Agenda",
+        timeZone: tz,
+        scheduledAt: inserted.scheduled_at,
+        durationMinutes: s.slot_minutes,
+        customer: { name: data.name, email: data.email, phone: data.phone, notes: data.notes },
+      });
     } catch (e) {
       console.error("[booking] notification failed", e);
     }
@@ -244,53 +274,77 @@ export const createBooking = createServerFn({ method: "POST" })
     return { id: inserted.id, scheduled_at: inserted.scheduled_at };
   });
 
+/** Reads the user's agenda (oldest first, so legacy duplicates resolve to one row). */
+async function findBookingSettings(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  clientId: string | null,
+) {
+  const base = supabase.from("booking_settings").select("*").eq("owner_user_id", userId);
+  const scoped = clientId === null ? base.is("client_id", null) : base.eq("client_id", clientId);
+  const { data, error } = await scoped
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error("[booking] read booking_settings failed", error.message);
+    throw new Error("No se pudo cargar la agenda. Intenta de nuevo.");
+  }
+  return data;
+}
+
+function slugify(text: string): string {
+  return (text || "agenda")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
 export const ensureBookingSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { clientId?: string | null }) => ({
-    clientId: d.clientId ?? null,
+    clientId: parseOrThrow(z.string().uuid().nullable(), d.clientId ?? null),
   }))
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = context;
-    const query = supabase
-      .from("booking_settings")
-      .select("*")
-      .eq("owner_user_id", userId);
-    const { data: existing } = await (data.clientId === null
-      ? query.is("client_id", null)
-      : query.eq("client_id", data.clientId)
-    ).maybeSingle();
+    const { supabase, userId, claims } = context;
+    // Never create when the read failed (findBookingSettings throws on error).
+    const existing = await findBookingSettings(supabase, userId, data.clientId);
     if (existing) return existing;
 
-    // Generate slug
     let displayName = "Agenda";
     if (data.clientId) {
-      const { data: c } = await supabase
+      const { data: c, error: cErr } = await supabase
         .from("clients")
         .select("name")
         .eq("id", data.clientId)
         .maybeSingle();
+      if (cErr) throw new Error("No se pudo cargar el cliente de la agenda.");
       displayName = c?.name ? `Agenda · ${c.name}` : "Agenda";
     }
-    const seed = (displayName || "agenda")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 40);
-    const slug = `${seed}-${Math.random().toString(36).slice(2, 7)}`;
+    const ownerEmail = typeof claims?.email === "string" ? claims.email : null;
 
-    const insertPayload: any = {
-      owner_user_id: userId,
-      client_id: data.clientId,
-      slug,
-      display_name: displayName,
-    };
     const { data: created, error } = await supabase
       .from("booking_settings")
-      .insert(insertPayload)
+      .insert({
+        owner_user_id: userId,
+        client_id: data.clientId,
+        slug: `${slugify(displayName)}-${crypto.randomUUID().slice(0, 8)}`,
+        display_name: displayName,
+        notification_email: ownerEmail,
+      })
       .select("*")
       .single();
-    if (error) throw new Error(error.message);
-    return created;
+    if (!error) return created;
+
+    // Another request (e.g. a second component mounting) created it first:
+    // the unique index rejects ours, so return the row that won.
+    if (error.code === UNIQUE_VIOLATION) {
+      const winner = await findBookingSettings(supabase, userId, data.clientId);
+      if (winner) return winner;
+    }
+    console.error("[booking] create booking_settings failed", error.code, error.message);
+    throw new Error("No se pudo crear la agenda. Intenta de nuevo.");
   });
