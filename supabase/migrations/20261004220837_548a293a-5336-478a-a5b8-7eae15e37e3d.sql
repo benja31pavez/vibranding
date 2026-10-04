@@ -1,0 +1,5 @@
+SELECT cron.schedule('monthly_reports_0', '0 12 1 * *', $$SELECT public.run_http_cron_job('monthly_reports_0', 'https://vibranding.pro/api/public/reports/monthly?offset=0&limit=15')$$);
+SELECT cron.schedule('monthly_reports_15', '5 12 1 * *', $$SELECT public.run_http_cron_job('monthly_reports_15', 'https://vibranding.pro/api/public/reports/monthly?offset=15&limit=15')$$);
+SELECT cron.schedule('monthly_reports_30', '10 12 1 * *', $$SELECT public.run_http_cron_job('monthly_reports_30', 'https://vibranding.pro/api/public/reports/monthly?offset=30&limit=15')$$);
+SELECT cron.schedule('billing_monthly_charges', '30 13 * * *', $$SELECT public.run_http_cron_job('billing_monthly_charges', 'https://vibranding.pro/api/public/billing/charge-monthly')$$);
+SELECT cron.schedule('onboarding_cleanup', '0 7 * * *', $$SELECT public.run_http_cron_job('onboarding_cleanup', 'https://vibranding.pro/api/public/onboarding/cleanup')$$);
