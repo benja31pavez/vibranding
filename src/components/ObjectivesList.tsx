@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { addDaysYmd, chileToday } from "@/lib/dates/chile";
+import { writeFailed } from "@/lib/writeCheck";
+import { ErrorState } from "@/components/app";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -175,7 +177,7 @@ function DatePicker({
 }) {
   const date = value ? new Date(`${value}T00:00`) : undefined;
   const label = date
-    ? date.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "2-digit" })
+    ? date.toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "2-digit" })
     : placeholder;
   return (
     <Popover>
@@ -223,6 +225,7 @@ function DatePicker({
 export function ObjectivesList({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const emptyDraft = {
@@ -246,8 +249,8 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
       .eq("client_id", clientId)
       .order("sort_order")
       .order("created_at");
-    if (error) toast.error(error.message);
-    setItems((data ?? []) as Row[]);
+    setLoadError(error ? error.message : null);
+    if (!error) setItems((data ?? []) as Row[]);
     setLoading(false);
   };
   useEffect(() => {
@@ -361,15 +364,15 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
     // Patch locally: a full refetch on every dropdown change made the row
     // flicker and stole focus. Roll back if the write fails.
     setItems((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-    const { error } = await supabase.from("objectives").update(patch).eq("id", id);
-    if (error) {
-      setItems(previous);
-      toast.error(error.message);
-    }
+    const res = await supabase.from("objectives").update(patch).eq("id", id).select("id");
+    if (writeFailed(res)) setItems(previous);
   };
 
   const remove = async (id: string) => {
-    await supabase.from("objectives").delete().eq("id", id);
+    const title = items.find((x) => x.id === id)?.title;
+    if (!confirm(`¿Eliminar ${title ? `«${title}»` : "este objetivo"}? No se puede deshacer.`)) return;
+    const res = await supabase.from("objectives").delete().eq("id", id).select("id");
+    if (writeFailed(res, "No se pudo eliminar")) return;
     load();
   };
 
@@ -520,7 +523,7 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
     // Tolerance: 5% or absolute 1 (for small numbers)
     const tolerance = Math.max(1, target * 0.05);
     if (Math.abs(titleNum - target) <= tolerance) return { ok: true, titleNum };
-    const fmt = (n: number) => n.toLocaleString("es-ES");
+    const fmt = (n: number) => n.toLocaleString("es-CL");
     return {
       ok: false,
       titleNum,
@@ -750,7 +753,9 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
         </div>
       )}
 
-      {loading ? (
+      {loadError ? (
+        <ErrorState title="No pudimos cargar los objetivos" message={loadError} onRetry={() => void load()} retrying={loading} />
+      ) : loading ? (
         <div className="text-sm text-muted-foreground">Cargando…</div>
       ) : sorted.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
