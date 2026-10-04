@@ -261,9 +261,8 @@ function EditDialog({
   // Con un link de Flow vigente, el monto y la moneda quedan fijos: Flow cobraría
   // el monto original y el pago no podría registrarse contra el cobro editado.
   // (La BD también lo impide: trigger t_payments_lock_amount.)
-  const linkLocked =
-    Boolean(payment?.payment_url) &&
-    (payment?.status === "pending" || payment?.status === "overdue");
+  // Mismo criterio que el trigger t_payments_lock_amount: pagado o con link de Flow.
+  const linkLocked = payment?.status === "paid" || Boolean(payment?.payment_url);
 
   const save = async () => {
     const amount = Number(form.amount);
@@ -324,7 +323,9 @@ function EditDialog({
           </div>
           {linkLocked && (
             <p className="text-xs text-muted-foreground">
-              Este cobro tiene un link de pago de Flow: el monto y la moneda no se pueden cambiar.
+              {payment?.status === "paid"
+                ? "Este cobro ya está pagado: el monto y la moneda no se pueden cambiar."
+                : "Este cobro tiene un link de pago de Flow: el monto y la moneda no se pueden cambiar."}{" "}
               Si el monto es otro, cancela este cobro y crea uno nuevo.
             </p>
           )}

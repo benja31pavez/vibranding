@@ -4195,6 +4195,10 @@ export type Database = {
         Returns: Json
       }
       review_link_get: { Args: { _token: string }; Returns: Json }
+      revoke_prospect_baja: {
+        Args: { _estado?: string; _motivo: string; _prospect_id: string }
+        Returns: Json
+      }
       rotate_onboarding_token: {
         Args: { _client_id: string; _valid_days?: number }
         Returns: Json

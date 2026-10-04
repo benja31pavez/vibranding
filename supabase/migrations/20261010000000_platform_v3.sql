@@ -1,10 +1,10 @@
 -- =====================================================================
--- VIBRANDING · Plataforma v3 · migración única (NO APLICAR AÚN)
+-- VIBRANDING · Plataforma v3 · parte aditiva (NO APLICAR AÚN)
 -- =====================================================================
 -- Qué hace (resumen):
 --   A. Onboarding público
 --      1. client_intake: datos que el cliente entrega en el onboarding
---         (1 fila por cliente). Miembros de la org leen; nadie escribe
+--         (1 fila por cliente). Editores (can_edit_client) leen; nadie escribe
 --         desde el navegador (solo submit_onboarding() y service_role).
 --      2. submit_onboarding(token, payload): SECURITY DEFINER, ejecutable por
 --         anon. Valida token vigente (client_billing.onboarding_token +
@@ -15,14 +15,26 @@
 --   B. Endurecimiento de cobros (SQL propuesto en PR #14)
 --      4. payment_provider_orders: historial de órdenes de Flow por cobro.
 --      5. payment_anomalies: anomalías de cobro (duplicado, mismatch, ...).
---      6. Trigger: no se cambia amount/currency de un cobro pending/overdue
---         con flow_token (link de Flow) desde el navegador.
---      7. payments: desde el navegador ya no se escriben status, paid_at,
---         provider, provider_ref, flow_token, payment_url ni subscription_id
---         (ni en UPDATE ni en INSERT). El cambio de estado manual pasa por
---         set_payment_status() (SECURITY DEFINER, manages_client = owner/admin, con
---         transiciones válidas). La app (PaymentsPanel, /billing) se adapta
---         en el mismo PR.
+--      6. Trigger: desde el navegador no se cambia amount/currency de un
+--         cobro pagado o con flow_token (link de Flow).
+--      7. set_payment_status() (SECURITY DEFINER, manages_client = owner/admin,
+--         transiciones válidas): el cambio de estado manual. La app
+--         (PaymentsPanel, /billing) ya la usa en este PR.
+--         El cierre de columnas (REVOKE/GRANT por columna en payments) va
+--         aparte en 20261010000100_platform_v3b_payments_lockdown.sql.
+--   C. Prospectos
+--      8. prospects: estado 'frio' (CHECK con nombre), client_id (FK, misma org), no_contactar_hasta,
+--         baja_revocada_at; índices únicos por org para email_publico y
+--         nombre+comuna normalizados (si hay duplicados: WARNING y no se crea).
+--      9. 'baja' solo se revoca vía revoke_prospect_baja(prospect_id, motivo)
+--         (owner/admin; ver C9).
+--     10. convert_prospect_to_client(prospect_id, plan_key, mrr_clp).
+--     11. append_prospect_note(prospect_id, text): solo service_role.
+--   D. Propuestas (PR #18)
+--     12. payments.proposal_id (FK, mismo cliente) + un cobro por propuesta.
+--     13. proposals.accepted_rut; accept_proposal(..., _rut, _extra_text).
+--     14. Trigger: amount_clp se recalcula desde items; items solo cambia en
+--         borrador (ver D14).
 --
 -- Subida de archivos del onboarding (no se puede expresar 100% en SQL):
 --   - El bucket 'onboarding' es privado y NO tiene policies de INSERT/UPDATE/
@@ -36,21 +48,46 @@
 --     El navegador sube con uploadToSignedUrl(path, token, file) y luego
 --     envía esos paths en payload.archivos de submit_onboarding(), que
 --     verifica que cada path empiece por "<client_id>/" y exista en el bucket.
---   - Lectura: miembros de la org del cliente (owns_client) pueden leer
---     objetos "<client_id>/..." (createSignedUrl desde la app).
---   - Límite del bucket: 10 MB y tipos PDF/PNG/JPEG/WEBP/ZIP (sin SVG: puede
---     llevar scripts). Archivos subidos y nunca enviados quedan huérfanos;
---     limpiarlos con un job de servidor si llega a importar.
+--   - La server fn ADEMÁS debe: contar los objetos ya subidos bajo
+--     "<client_id>/" y negar si hay 20 o más; limitar la tasa por IP y por
+--     token; y forzar nombres ASCII (safeName = [A-Za-z0-9._-], sin espacios
+--     ni "..", máx. 100 caracteres; el resto se reemplaza por "-").
+--   - Lectura: editores del cliente (can_edit_client) pueden leer objetos
+--     "<client_id>/..." (createSignedUrl desde la app).
+--   - Límite del bucket: 10 MB y tipos PDF/PNG/JPEG/WEBP (sin SVG: puede
+--     llevar scripts; sin ZIP: no se puede inspeccionar). Archivos subidos y
+--     nunca enviados quedan huérfanos; limpiarlos con un job de servidor si
+--     llega a importar.
+--   - links_redes: la BD solo acepta "https?://..." o un usuario
+--     (@?[A-Za-z0-9._-]). La UI que los muestre debe igualmente validar el
+--     esquema http(s) antes de usarlos en href (src/lib/onboarding/links.ts).
 --
--- Cómo se aplica: UNA sola vez, FUERA DE HORARIO, después de
--- 20261005000000_platform_v2.sql, vía Lovable ("aplica la migración
--- supabase/migrations/20261010000000_platform_v3.sql tal cual") o pegándola
--- completa en el SQL editor de Supabase (una sola transacción).
--- Es idempotente: re-ejecutarla no rompe nada.
+-- Orden de despliegue:
+--   1. Aplicar ESTE archivo (aditivo: el código actual sigue funcionando).
+--   2. Integrar y publicar el código del PR (usa set_payment_status).
+--   3. Aplicar 20261010000100_platform_v3b_payments_lockdown.sql.
+-- Cada archivo: UNA sola vez, FUERA DE HORARIO, vía Lovable ("aplica la
+-- migración supabase/migrations/<archivo> tal cual") o pegándolo completo en
+-- el SQL editor de Supabase (una sola transacción). Idempotentes.
 --
--- IMPORTANTE: aplicar SOLO junto con el deploy del código de este PR
--- (PaymentsPanel y /billing usan set_payment_status). Con el código anterior,
--- "Marcar pagado" y el selector de estado fallan con "permission denied".
+-- Después de aplicar, revisar los WARNING (índices de prospects no creados
+-- por duplicados) con:
+--   SELECT i AS indice, to_regclass('public.' || i) IS NOT NULL AS creado
+--   FROM unnest(ARRAY['prospects_org_email_uk', 'prospects_org_nombre_comuna_uk']) AS i;
+-- Si alguno sale false: unificar los duplicados (el WARNING lista los ids)
+-- y re-ejecutar este archivo.
+--
+-- Propuestas existentes con items en formato antiguo o cuyo amount_clp no
+-- cuadra con items (el trigger D14 solo valida cuando items cambia):
+--   SELECT id, status, amount_clp, items FROM public.proposals
+--   WHERE jsonb_typeof(items) <> 'array'
+--      OR EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(items) = 'array' THEN items ELSE '[]' END) it
+--                 WHERE jsonb_typeof(it) <> 'object' OR jsonb_typeof(it->'amount') IS DISTINCT FROM 'number'
+--                    OR coalesce(it->>'billing', '') NOT IN ('one_time', 'monthly'))
+--      OR amount_clp IS DISTINCT FROM (
+--           SELECT coalesce(sum((it->>'amount')::numeric), 0)::integer
+--           FROM jsonb_array_elements(CASE WHEN jsonb_typeof(items) = 'array' THEN items ELSE '[]' END) it
+--           WHERE jsonb_typeof(it) = 'object' AND jsonb_typeof(it->'amount') = 'number');
 -- =====================================================================
 
 -- Si alguna tabla está bloqueada, fallar rápido en vez de colgar la app.
@@ -155,7 +192,7 @@ CREATE TABLE IF NOT EXISTS public.client_intake (
 );
 
 COMMENT ON TABLE public.client_intake IS
-  'Datos del onboarding público (1:1 con clients). Escribe solo submit_onboarding() / service_role; leen miembros de la org.';
+  'Datos del onboarding público (1:1 con clients). Escribe solo submit_onboarding() / service_role; leen editores (can_edit_client).';
 COMMENT ON COLUMN public.client_intake.accesos_pendientes IS
   'Checklist [{servicio, estado: pendiente|compartido|no_aplica, nota}]. NUNCA contraseñas.';
 COMMENT ON COLUMN public.client_intake.archivos IS
@@ -168,7 +205,7 @@ ALTER TABLE public.client_intake ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "client_intake select" ON public.client_intake;
 CREATE POLICY "client_intake select" ON public.client_intake FOR SELECT TO authenticated
-  USING (public.owns_client(client_id));
+  USING (public.can_edit_client(client_id));
 
 DROP TRIGGER IF EXISTS t_client_intake_u ON public.client_intake;
 CREATE TRIGGER t_client_intake_u BEFORE UPDATE ON public.client_intake
@@ -272,7 +309,7 @@ BEGIN
       END IF;
       t := private.intake_text(v, k, 300);
       IF t IS NOT NULL THEN
-        IF t !~* '^(https?://|@)?[^\s<>"]+$' THEN
+        IF t !~ '^(https?://[^\s<>"]+|@?[A-Za-z0-9._-]{1,100})$' THEN
           RAISE EXCEPTION 'links_redes.% inválido', k USING ERRCODE = '22023';
         END IF;
         r.links_redes := r.links_redes || jsonb_build_object(k, t);
@@ -435,20 +472,21 @@ BEGIN
 
   INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
   VALUES ('onboarding', 'onboarding', false, 10485760,
-          ARRAY['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'application/zip'])
+          ARRAY['application/pdf', 'image/png', 'image/jpeg', 'image/webp'])
   ON CONFLICT (id) DO UPDATE
     SET public = false,
         file_size_limit = EXCLUDED.file_size_limit,
         allowed_mime_types = EXCLUDED.allowed_mime_types;
 
-  -- Solo lectura para miembros de la org del cliente ("<client_id>/archivo").
+  -- Solo lectura para editores del cliente ("<client_id>/archivo").
   -- Sin policies de INSERT/UPDATE/DELETE: la subida usa createSignedUploadUrl
   -- (service role) y no pasa por RLS de anon/authenticated.
   DROP POLICY IF EXISTS "onboarding members read" ON storage.objects;
-  CREATE POLICY "onboarding members read" ON storage.objects FOR SELECT TO authenticated
+  DROP POLICY IF EXISTS "onboarding editors read" ON storage.objects;
+  CREATE POLICY "onboarding editors read" ON storage.objects FOR SELECT TO authenticated
     USING (
       bucket_id = 'onboarding'
-      AND public.owns_client(
+      AND public.can_edit_client(
         CASE WHEN split_part(name, '/', 1) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
              THEN split_part(name, '/', 1)::uuid END)
     );
@@ -527,19 +565,19 @@ CREATE POLICY "payment_anomalies select" ON public.payment_anomalies FOR SELECT 
 -- =====================================================================
 -- B6. No cambiar monto/moneda con un link de Flow vigente
 -- =====================================================================
--- Vigente = flow_token presente y cobro pending/overdue. Aplica a anon y
+-- Bloquea si el cobro ya está pagado o tiene (o tuvo) flow_token: Flow cobra
+-- el monto original y el pago no podría conciliarse. Aplica a anon y
 -- authenticated (navegador); el servidor (service_role) y las funciones
--- SECURITY DEFINER no se bloquean.
+-- SECURITY DEFINER no se bloquean. Para otro monto: cancelar y crear otro.
 CREATE OR REPLACE FUNCTION public.lock_amount_with_flow_order()
 RETURNS trigger
 LANGUAGE plpgsql SET search_path = ''
 AS $$
 BEGIN
   IF current_user IN ('anon', 'authenticated')
-     AND OLD.flow_token IS NOT NULL
-     AND OLD.status IN ('pending', 'overdue')
+     AND (OLD.status = 'paid' OR OLD.flow_token IS NOT NULL)
      AND (NEW.amount IS DISTINCT FROM OLD.amount OR NEW.currency IS DISTINCT FROM OLD.currency) THEN
-    RAISE EXCEPTION 'No se puede cambiar el monto de un cobro con link de pago vigente'
+    RAISE EXCEPTION 'No se puede cambiar el monto de un cobro pagado o con link de pago'
       USING ERRCODE = '42501';
   END IF;
   RETURN NEW;
@@ -553,20 +591,8 @@ CREATE TRIGGER t_payments_lock_amount BEFORE UPDATE OF amount, currency ON publi
 
 
 -- =====================================================================
--- B7. payments: columnas de cobro/proveedor solo para el servidor
+-- B7. set_payment_status() (el cierre de columnas está en v3b)
 -- =====================================================================
--- Desde el navegador (authenticated) solo se escriben los datos del cobro.
--- status / paid_at / provider: vía set_payment_status().
--- flow_token / payment_url / provider_ref / subscription_id: solo servidor.
--- client_id no es editable (un cobro no se mueve de cliente).
--- NOTA: una columna nueva en payments debe agregarse aquí si el navegador
--- necesita escribirla.
-REVOKE INSERT, UPDATE ON public.payments FROM anon, authenticated;
-GRANT INSERT (client_id, description, amount, currency, due_date, document_type, kind, period)
-  ON public.payments TO authenticated;
-GRANT UPDATE (description, amount, currency, due_date, document_type, kind, period)
-  ON public.payments TO authenticated;
-
 -- Cambio de estado manual. Solo owner/admin (manages_client), igual que la
 -- policy de UPDATE de payments. Transiciones válidas:
 --   pending   -> paid | overdue | cancelled
@@ -615,7 +641,7 @@ BEGIN
     WHEN 'paid'      THEN _status IN ('paid', 'pending') AND NOT flow_confirmed
     ELSE false
   END;
-  IF NOT allowed THEN
+  IF allowed IS NOT TRUE THEN
     RAISE EXCEPTION 'Cambio de estado no permitido: % -> %', p.status, _status USING ERRCODE = '22023';
   END IF;
 
@@ -659,9 +685,32 @@ ALTER TABLE public.prospects
 COMMENT ON COLUMN public.prospects.client_id IS 'Cliente creado al convertir el prospecto (convert_prospect_to_client).';
 COMMENT ON COLUMN public.prospects.no_contactar_hasta IS 'No contactar antes de esta fecha (pidió esperar).';
 COMMENT ON COLUMN public.prospects.baja_revocada_at IS
-  'Marca explícita para sacar un prospecto de ''baja'': el UPDATE que cambia estado debe ponerla en now().';
+  'Cuándo se revocó la última baja (solo la escribe revoke_prospect_baja()).';
 
 CREATE INDEX IF NOT EXISTS prospects_client_idx ON public.prospects (client_id) WHERE client_id IS NOT NULL;
+
+-- Estado 'frio': guardado, no se insiste automáticamente, se puede retomar a
+-- mano cuando haga sentido (a diferencia de 'baja', que es "nunca más" y
+-- sigue protegida por el guard de C9). Se reemplaza el CHECK de v2 por uno
+-- que incluye 'frio' (NOT VALID + VALIDATE: no bloquea escrituras al validar).
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT conname FROM pg_constraint
+    WHERE conrelid = 'public.prospects'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%estado%'
+      AND pg_get_constraintdef(oid) NOT LIKE '%frio%'
+  LOOP
+    EXECUTE format('ALTER TABLE public.prospects DROP CONSTRAINT %I', r.conname);
+  END LOOP;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'prospects_estado_chk' AND conrelid = 'public.prospects'::regclass) THEN
+    ALTER TABLE public.prospects ADD CONSTRAINT prospects_estado_chk CHECK (estado IN
+      ('nuevo', 'contactado', 'respondio', 'demo', 'propuesta', 'ganado', 'perdido', 'baja', 'frio')) NOT VALID;
+  END IF;
+END $$;
+ALTER TABLE public.prospects VALIDATE CONSTRAINT prospects_estado_chk;
 
 -- client_id debe ser un cliente de la misma org (reutiliza enforce_client_in_org de v2).
 DROP TRIGGER IF EXISTS t_prospects_client_org ON public.prospects;
@@ -756,13 +805,16 @@ END $$;
 -- =====================================================================
 -- C9. 'baja' es pegajosa (pidió no ser contactado)
 -- =====================================================================
--- Para sacar un prospecto de 'baja' (p. ej. volvió a escribir pidiendo
--- contacto), el MISMO UPDATE debe cambiar estado y poner
--- baja_revocada_at = now() (se acepta hasta 5 minutos de antigüedad, para
--- relojes del servidor algo desfasados; nunca en el futuro > 1 min).
---   UPDATE prospects SET estado = 'contactado', baja_revocada_at = now() WHERE id = ...;
--- Al volver a 'baja' se limpia baja_revocada_at, así cada revocación exige
--- una marca nueva. Aplica a todos los roles (también service_role).
+-- Un prospecto en 'baja' solo sale de 'baja' vía revoke_prospect_baja()
+-- (owner/admin de la org, con motivo). Ningún UPDATE directo lo logra, ni
+-- siquiera con service_role ni poniendo baja_revocada_at a mano: el trigger
+-- exige la marca transaccional que pone la RPC (set_config local a la
+-- transacción; la API REST no permite fijarla).
+-- Al pasar a 'baja' se limpia baja_revocada_at; mientras está en 'baja' no
+-- se puede escribir.
+-- App: el checkbox "retiró su solicitud de baja" del Sheet de prospectos
+-- (PR #15) deberá llamar a esta RPC en un PR siguiente; mientras tanto el
+-- guard bloquea la salida de baja (el Sheet muestra el error al guardar).
 CREATE OR REPLACE FUNCTION public.guard_prospect_baja()
 RETURNS trigger
 LANGUAGE plpgsql SET search_path = ''
@@ -771,18 +823,16 @@ BEGIN
   IF NEW.estado = 'baja' THEN
     IF TG_OP = 'INSERT' OR OLD.estado IS DISTINCT FROM 'baja' THEN
       NEW.baja_revocada_at := NULL;
+    ELSE
+      NEW.baja_revocada_at := OLD.baja_revocada_at;
     END IF;
     RETURN NEW;
   END IF;
 
-  IF TG_OP = 'UPDATE' AND OLD.estado = 'baja' THEN
-    IF NEW.baja_revocada_at IS NULL
-       OR NEW.baja_revocada_at IS NOT DISTINCT FROM OLD.baja_revocada_at
-       OR NEW.baja_revocada_at < now() - interval '5 minutes'
-       OR NEW.baja_revocada_at > now() + interval '1 minute' THEN
-      RAISE EXCEPTION 'El prospecto pidió la baja: para cambiar su estado marca baja_revocada_at = now() en el mismo cambio'
-        USING ERRCODE = '42501';
-    END IF;
+  IF TG_OP = 'UPDATE' AND OLD.estado = 'baja'
+     AND coalesce(current_setting('vibranding.revoke_baja', true), '') <> OLD.id::text THEN
+    RAISE EXCEPTION 'El prospecto pidió la baja: solo un owner/admin puede revocarla con revoke_prospect_baja()'
+      USING ERRCODE = '42501';
   END IF;
   RETURN NEW;
 END $$;
@@ -792,6 +842,59 @@ REVOKE ALL ON FUNCTION public.guard_prospect_baja() FROM PUBLIC, anon, authentic
 DROP TRIGGER IF EXISTS t_prospects_baja_guard ON public.prospects;
 CREATE TRIGGER t_prospects_baja_guard BEFORE INSERT OR UPDATE ON public.prospects
   FOR EACH ROW EXECUTE FUNCTION public.guard_prospect_baja();
+
+-- Revoca la baja: owner/admin de la org (is_org_manager). Motivo obligatorio
+-- (5..300 caracteres, saneado); queda en notas con fecha y usuario.
+-- _estado: al que vuelve (por defecto 'nuevo'; no 'baja' ni 'ganado').
+CREATE OR REPLACE FUNCTION public.revoke_prospect_baja(
+  _prospect_id uuid,
+  _motivo text,
+  _estado text DEFAULT 'nuevo'
+)
+RETURNS jsonb
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = ''
+AS $$
+DECLARE
+  oid_ uuid;
+  pr public.prospects%ROWTYPE;
+  motivo text;
+  line text;
+BEGIN
+  SELECT org_id INTO oid_ FROM public.prospects WHERE id = _prospect_id;
+  IF oid_ IS NULL OR NOT public.is_org_manager(oid_) THEN
+    RAISE EXCEPTION 'No tienes permisos para esta acción' USING ERRCODE = '42501';
+  END IF;
+
+  motivo := left(btrim(regexp_replace(coalesce(_motivo, ''), '[[:cntrl:]\s]+', ' ', 'g')), 300);
+  IF length(motivo) < 5 THEN
+    RAISE EXCEPTION 'Indica el motivo (mínimo 5 caracteres)' USING ERRCODE = '22023';
+  END IF;
+  IF _estado IS NULL OR _estado NOT IN ('nuevo', 'contactado', 'respondio', 'demo', 'propuesta', 'perdido', 'frio') THEN
+    RAISE EXCEPTION 'Estado inválido' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT * INTO pr FROM public.prospects WHERE id = _prospect_id FOR UPDATE;
+  IF pr.estado <> 'baja' THEN
+    RETURN jsonb_build_object('ok', true, 'changed', false, 'estado', pr.estado);
+  END IF;
+
+  line := format('[%s] Baja revocada por %s: %s',
+                 to_char(now() AT TIME ZONE 'America/Santiago', 'YYYY-MM-DD HH24:MI'),
+                 coalesce(auth.uid()::text, 'sistema'), motivo);
+
+  PERFORM set_config('vibranding.revoke_baja', pr.id::text, true);
+  UPDATE public.prospects
+     SET estado = _estado,
+         baja_revocada_at = now(),
+         notas = right(CASE WHEN coalesce(notas, '') = '' THEN line ELSE notas || E'\n' || line END, 20000)
+   WHERE id = pr.id;
+  PERFORM set_config('vibranding.revoke_baja', '', true);
+
+  RETURN jsonb_build_object('ok', true, 'changed', true, 'estado', _estado);
+END $$;
+
+REVOKE ALL ON FUNCTION public.revoke_prospect_baja(uuid, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.revoke_prospect_baja(uuid, text, text) TO authenticated, service_role;
 
 
 -- =====================================================================
@@ -900,8 +1003,8 @@ GRANT EXECUTE ON FUNCTION public.append_prospect_note(uuid, text) TO service_rol
 -- =====================================================================
 -- D12. payments.proposal_id: un cobro por propuesta
 -- =====================================================================
--- Lo escribe solo el servidor al aceptar (no está en los GRANT por columna
--- de authenticated, sección B7).
+-- Lo escribe solo el servidor al aceptar (tras v3b no está en los GRANT por
+-- columna de authenticated).
 ALTER TABLE public.payments
   ADD COLUMN IF NOT EXISTS proposal_id uuid REFERENCES public.proposals(id) ON DELETE SET NULL;
 
@@ -1074,9 +1177,11 @@ GRANT EXECUTE ON FUNCTION public.accept_proposal(text, text, text, text, text) T
 --   - type distinto de plan|extra; label vacío o > 120;
 --   - amount no entero o fuera de ±50.000.000; billing distinto de one_time|monthly;
 --   - plan con monto negativo; total único o mensual negativo.
--- items vacío => amount_clp = 0. No toca propuestas ya aceptadas (el guard
--- de aceptación ya impide modificarlas desde el navegador; el servidor no
--- cambia items al aceptar).
+-- items vacío => amount_clp = 0.
+-- UPDATE: items solo se puede cambiar mientras la propuesta está en
+-- 'borrador' (lo enviado al cliente no cambia). Si items no cambia, no se
+-- valida (propuestas con items en formato antiguo siguen editables en otros
+-- campos) y amount_clp conserva su valor (no se edita a mano).
 CREATE OR REPLACE FUNCTION public.proposal_recalc_amount()
 RETURNS trigger
 LANGUAGE plpgsql SET search_path = ''
@@ -1087,8 +1192,14 @@ DECLARE
   one_time bigint := 0;
   monthly bigint := 0;
 BEGIN
-  IF TG_OP = 'UPDATE' AND OLD.status = 'aceptada' THEN
-    RETURN NEW;
+  IF TG_OP = 'UPDATE' THEN
+    IF NEW.items IS NOT DISTINCT FROM OLD.items THEN
+      NEW.amount_clp := OLD.amount_clp;
+      RETURN NEW;
+    END IF;
+    IF OLD.status <> 'borrador' THEN
+      RAISE EXCEPTION 'items solo se puede cambiar en una propuesta en borrador' USING ERRCODE = '22023';
+    END IF;
   END IF;
   IF NEW.items IS NULL OR jsonb_typeof(NEW.items) <> 'array' THEN
     RAISE EXCEPTION 'items debe ser una lista' USING ERRCODE = '22023';
