@@ -31,6 +31,26 @@ function writeDenied(error: unknown, rows: unknown[] | null): boolean {
 
 type Status = "pending" | "paid" | "overdue" | "cancelled";
 
+/**
+ * El estado (y paid_at/provider) solo se cambia vía la RPC set_payment_status:
+ * valida permisos (can_edit_client) y transiciones en la BD.
+ * Devuelve un mensaje de error para mostrar, o null si salió bien.
+ */
+async function setPaymentStatus(
+  id: string,
+  status: Status,
+  paidAt?: string | null,
+): Promise<string | null> {
+  const { error } = await supabase.rpc("set_payment_status", {
+    _payment_id: id,
+    _status: status,
+    ...(paidAt ? { _paid_at: paidAt } : {}),
+  });
+  if (!error) return null;
+  if (error.code === "42501") return NO_PERMISSION;
+  return `No se pudo cambiar el estado: ${error.message}`;
+}
+
 interface Payment {
   id: string;
   client_id: string;
@@ -120,14 +140,9 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
     load();
   };
 
-  const update = async (id: string, patch: Partial<Payment>) => {
-    const fullPatch =
-      patch.status === "paid" && !items.find((i) => i.id === id)?.paid_at
-        ? { ...patch, paid_at: new Date().toISOString().slice(0, 10) }
-        : patch;
-    const { data, error } = await supabase.from("payments").update(fullPatch).eq("id", id).select("id");
-    if (error) toast.error(`No se pudo actualizar el pago: ${error.message}`);
-    else if (writeDenied(error, data)) toast.error(NO_PERMISSION);
+  const changeStatus = async (id: string, status: Status) => {
+    const error = await setPaymentStatus(id, status);
+    if (error) toast.error(error);
     load();
   };
 
@@ -199,7 +214,7 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
               </div>
               <Money amount={Number(p.amount)} currency={p.currency} className="font-semibold" />
               <PaymentLinkButton payment={p} onChanged={load} />
-              <Select value={p.status} onValueChange={(v) => update(p.id, { status: v as Status })}>
+              <Select value={p.status} onValueChange={(v) => changeStatus(p.id, v as Status)}>
                 <SelectTrigger aria-label="Estado del pago" className={`h-8 w-32 rounded-full border-0 text-xs font-medium focus:ring-2 focus:ring-ring focus:ring-offset-1 ${statusCls(p.status)}`}>
                   <SelectValue />
                 </SelectTrigger>
@@ -243,24 +258,45 @@ function EditDialog({
 
   if (!form) return null;
 
+  // Con un link de Flow vigente, el monto y la moneda quedan fijos: Flow cobraría
+  // el monto original y el pago no podría registrarse contra el cobro editado.
+  // (La BD también lo impide: trigger t_payments_lock_amount.)
+  const linkLocked =
+    Boolean(payment?.payment_url) &&
+    (payment?.status === "pending" || payment?.status === "overdue");
+
   const save = async () => {
     const amount = Number(form.amount);
     if (!amount || amount <= 0) return toast.error("Ingresa un monto válido");
     setSaving(true);
-    // Si cambia el monto, el link de Flow anterior ya no corresponde: se descarta.
-    const amountChanged = payment !== null && amount !== Number(payment.amount);
-    const patch: Partial<Payment> & { flow_token?: null } = {
+    // Datos del cobro: UPDATE directo (solo columnas permitidas al navegador).
+    const patch: Partial<Payment> = {
       description: form.description?.trim() || null,
-      amount,
-      currency: normalizeCurrency(form.currency),
-      status: form.status,
+      ...(linkLocked ? {} : { amount, currency: normalizeCurrency(form.currency) }),
       due_date: form.due_date || null,
-      paid_at: form.status === "paid" ? (form.paid_at || new Date().toISOString().slice(0, 10)) : null,
-      ...(amountChanged ? { payment_url: null, flow_token: null } : {}),
     };
     const { data, error } = await supabase.from("payments").update(patch).eq("id", form.id).select("id");
+    if (writeDenied(error, data)) {
+      setSaving(false);
+      return toast.error(error ? `No se pudo actualizar el pago: ${error.message}` : NO_PERMISSION);
+    }
+    // Estado / fecha de pago: vía RPC, solo si cambiaron.
+    const statusChanged = payment !== null && form.status !== payment.status;
+    const paidAtChanged =
+      form.status === "paid" && payment !== null && (form.paid_at || null) !== payment.paid_at;
+    if (statusChanged || paidAtChanged) {
+      const statusError = await setPaymentStatus(
+        form.id,
+        form.status,
+        form.status === "paid" ? form.paid_at : null,
+      );
+      if (statusError) {
+        setSaving(false);
+        toast.error(statusError);
+        return onSaved();
+      }
+    }
     setSaving(false);
-    if (writeDenied(error, data)) return toast.error(NO_PERMISSION);
     toast.success("Pago actualizado");
     onSaved();
   };
@@ -279,13 +315,19 @@ function EditDialog({
           <div className="grid grid-cols-3 gap-2">
             <div className="space-y-1.5 col-span-2">
               <Label className="text-xs text-muted-foreground">Monto</Label>
-              <Input type="number" step={amountStep(form.currency)} value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
+              <Input type="number" step={amountStep(form.currency)} value={form.amount} disabled={linkLocked} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Moneda</Label>
-              <Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} />
+              <Input value={form.currency} disabled={linkLocked} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} />
             </div>
           </div>
+          {linkLocked && (
+            <p className="text-xs text-muted-foreground">
+              Este cobro tiene un link de pago de Flow: el monto y la moneda no se pueden cambiar.
+              Si el monto es otro, cancela este cobro y crea uno nuevo.
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Fecha de vencimiento</Label>

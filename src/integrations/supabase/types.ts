@@ -488,6 +488,83 @@ export type Database = {
         }
         Relationships: []
       }
+      client_intake: {
+        Row: {
+          accesos_pendientes: Json
+          archivos: string[]
+          client_id: string
+          colores: string[]
+          competencia: string | null
+          contacto_email: string | null
+          contacto_nombre: string | null
+          contacto_telefono: string | null
+          created_at: string
+          descripcion: string | null
+          direccion: string | null
+          email_facturacion: string | null
+          estilo: string | null
+          giro: string | null
+          links_redes: Json
+          publico_objetivo: string | null
+          razon_social: string
+          rut: string | null
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          accesos_pendientes?: Json
+          archivos?: string[]
+          client_id: string
+          colores?: string[]
+          competencia?: string | null
+          contacto_email?: string | null
+          contacto_nombre?: string | null
+          contacto_telefono?: string | null
+          created_at?: string
+          descripcion?: string | null
+          direccion?: string | null
+          email_facturacion?: string | null
+          estilo?: string | null
+          giro?: string | null
+          links_redes?: Json
+          publico_objetivo?: string | null
+          razon_social: string
+          rut?: string | null
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          accesos_pendientes?: Json
+          archivos?: string[]
+          client_id?: string
+          colores?: string[]
+          competencia?: string | null
+          contacto_email?: string | null
+          contacto_nombre?: string | null
+          contacto_telefono?: string | null
+          created_at?: string
+          descripcion?: string | null
+          direccion?: string | null
+          email_facturacion?: string | null
+          estilo?: string | null
+          giro?: string | null
+          links_redes?: Json
+          publico_objetivo?: string | null
+          razon_social?: string
+          rut?: string | null
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_intake_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_leads: {
         Row: {
           client_id: string
@@ -2771,6 +2848,109 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_anomalies: {
+        Row: {
+          amount: number | null
+          commerce_order: string | null
+          created_at: string
+          currency: string | null
+          detail: Json
+          flow_order: string | null
+          id: string
+          kind: string
+          payment_id: string
+          provider: string
+          resolved_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          commerce_order?: string | null
+          created_at?: string
+          currency?: string | null
+          detail?: Json
+          flow_order?: string | null
+          id?: string
+          kind: string
+          payment_id: string
+          provider?: string
+          resolved_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          commerce_order?: string | null
+          created_at?: string
+          currency?: string | null
+          detail?: Json
+          flow_order?: string | null
+          id?: string
+          kind?: string
+          payment_id?: string
+          provider?: string
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_anomalies_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_provider_orders: {
+        Row: {
+          amount: number
+          commerce_order: string
+          created_at: string
+          currency: string
+          expires_at: string | null
+          flow_order: string | null
+          id: string
+          payment_id: string
+          payment_url: string | null
+          provider: string
+          status: string
+          token: string
+        }
+        Insert: {
+          amount: number
+          commerce_order: string
+          created_at?: string
+          currency?: string
+          expires_at?: string | null
+          flow_order?: string | null
+          id?: string
+          payment_id: string
+          payment_url?: string | null
+          provider: string
+          status?: string
+          token: string
+        }
+        Update: {
+          amount?: number
+          commerce_order?: string
+          created_at?: string
+          currency?: string
+          expires_at?: string | null
+          flow_order?: string | null
+          id?: string
+          payment_id?: string
+          payment_url?: string | null
+          provider?: string
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_provider_orders_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -3159,6 +3339,8 @@ export type Database = {
       }
       prospects: {
         Row: {
+          baja_revocada_at: string | null
+          client_id: string | null
           comuna: string | null
           created_at: string
           created_by: string | null
@@ -3167,6 +3349,7 @@ export type Database = {
           fuente: string
           id: string
           instagram: string | null
+          no_contactar_hasta: string | null
           nombre: string
           notas: string | null
           org_id: string
@@ -3178,6 +3361,8 @@ export type Database = {
           web: string | null
         }
         Insert: {
+          baja_revocada_at?: string | null
+          client_id?: string | null
           comuna?: string | null
           created_at?: string
           created_by?: string | null
@@ -3186,6 +3371,7 @@ export type Database = {
           fuente: string
           id?: string
           instagram?: string | null
+          no_contactar_hasta?: string | null
           nombre: string
           notas?: string | null
           org_id: string
@@ -3197,6 +3383,8 @@ export type Database = {
           web?: string | null
         }
         Update: {
+          baja_revocada_at?: string | null
+          client_id?: string | null
           comuna?: string | null
           created_at?: string
           created_by?: string | null
@@ -3205,6 +3393,7 @@ export type Database = {
           fuente?: string
           id?: string
           instagram?: string | null
+          no_contactar_hasta?: string | null
           nombre?: string
           notas?: string | null
           org_id?: string
@@ -3216,6 +3405,13 @@ export type Database = {
           web?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "prospects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prospects_org_id_fkey"
             columns: ["org_id"]
@@ -3855,6 +4051,10 @@ export type Database = {
         Args: { _client_id: string; _from: string; _to: string }
         Returns: Json
       }
+      convert_prospect_to_client: {
+        Args: { _mrr_clp?: number; _plan_key: string; _prospect_id: string }
+        Returns: Json
+      }
       ensure_org: { Args: never; Returns: string }
       gen_public_token: { Args: never; Returns: string }
       get_booking_settings_by_slug: {
@@ -3962,6 +4162,10 @@ export type Database = {
       }
       org_meta_token_status: { Args: never; Returns: Json }
       owns_client: { Args: { _client_id: string }; Returns: boolean }
+      prospect_name_key: {
+        Args: { _comuna: string; _nombre: string }
+        Returns: string
+      }
       reconcile_job_runs: { Args: never; Returns: undefined }
       review_link_comment: {
         Args: { _body: string; _kind: string; _name?: string; _token: string }
@@ -3985,6 +4189,14 @@ export type Database = {
         Args: { _job_name: string; _schedule: string }
         Returns: boolean
       }
+      set_payment_status: {
+        Args: {
+          _paid_at?: string
+          _payment_id: string
+          _status: Database["public"]["Enums"]["payment_status"]
+        }
+        Returns: Json
+      }
       submit_landing_contact: {
         Args: {
           _email: string
@@ -3995,6 +4207,10 @@ export type Database = {
           _name: string
           _phone: string
         }
+        Returns: Json
+      }
+      submit_onboarding: {
+        Args: { _payload: Json; _token: string }
         Returns: Json
       }
       user_client_id: { Args: never; Returns: string }

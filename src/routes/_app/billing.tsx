@@ -84,13 +84,14 @@ function BillingPage() {
   const loading = data === null && error === null;
 
   const markPaid = async (row: BillingRow) => {
-    const { data: updated, error: err } = await supabase
-      .from("payments")
-      .update({ status: "paid", paid_at: today, provider: "manual" })
-      .eq("id", row.id)
-      .select("id");
-    if (err) toast.error(`No se pudo actualizar el pago: ${err.message}`);
-    else if (!updated || updated.length === 0) toast.error(NO_PERMISSION);
+    // set_payment_status valida permisos y transición, y registra provider='manual'.
+    const { error: err } = await supabase.rpc("set_payment_status", {
+      _payment_id: row.id,
+      _status: "paid",
+      _paid_at: today,
+    });
+    if (err?.code === "42501") toast.error(NO_PERMISSION);
+    else if (err) toast.error(`No se pudo actualizar el pago: ${err.message}`);
     else toast.success("Cobro marcado como pagado");
     load();
   };
