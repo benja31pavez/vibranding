@@ -103,7 +103,7 @@ async function loadClientMetrics(days: number): Promise<ClientMetrics> {
         .from("payments")
         .select("id,client_id,amount,currency")
         .eq("status", "paid")
-        .gte("paid_at", chileMidnightUtc(from))
+        .gte("paid_at", from)
         .order("id")
         .range(a, b),
     ),
