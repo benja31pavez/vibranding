@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useQueryClient } from "@tanstack/react-query";
+import { invalidateShellClients } from "@/components/shell/shellQueries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Instagram, ArrowRight } from "lucide-react";
@@ -25,6 +27,7 @@ interface Client {
 
 function ClientsList() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -61,6 +64,7 @@ function ClientsList() {
     setName(""); setHandle(""); setOpen(false);
     toast.success("Cliente creado");
     load();
+    void invalidateShellClients(queryClient);
   };
 
   return (

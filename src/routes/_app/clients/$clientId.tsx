@@ -9,6 +9,8 @@ import { SummaryExport } from "@/components/SummaryExport";
 import { exportElementToPdf } from "@/lib/exportPdf";
 import { loadPricing, type PricingSettings } from "@/components/PricingPanel";
 import { useAuth } from "@/hooks/use-auth";
+import { useQueryClient } from "@tanstack/react-query";
+import { invalidateShellClients } from "@/components/shell/shellQueries";
 import { ClientProvider, useActiveClient } from "@/contexts/ActiveClientContext";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -33,6 +35,7 @@ function ClientShell() {
   const navigate = Route.useNavigate();
   const { client, ig, reloadClient } = useActiveClient();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [pricing, setPricing] = useState<PricingSettings | null>(null);
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -45,11 +48,13 @@ function ClientShell() {
     if (!name.trim() || name === client?.name) return;
     await supabase.from("clients").update({ name: name.trim() }).eq("id", clientId);
     reloadClient();
+    void invalidateShellClients(queryClient);
   };
 
   const updateHandle = async (h: string) => {
     await supabase.from("clients").update({ instagram_handle: h.trim() || null }).eq("id", clientId);
     reloadClient();
+    void invalidateShellClients(queryClient);
   };
 
   const deleteClient = async () => {
@@ -57,6 +62,7 @@ function ClientShell() {
     if (error) return toast.error(error.message);
     toast.success("Cliente eliminado");
     localStorage.removeItem("activeClientId");
+    void invalidateShellClients(queryClient);
     navigate({ to: "/clients" });
   };
 
