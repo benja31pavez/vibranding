@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { HomeHeader } from "@/components/home/HomeHeader";
 import { HomeHero } from "@/components/home/HomeHero";
 import {
-  BenefitsSection, GuaranteeSection, HowWeWorkSection, ServicesSection,
+  BenefitsSection, HowWeWorkSection, ServicesSection,
 } from "@/components/home/HomeSections";
 import { PlansSection } from "@/components/home/PlansSection";
 import { AboutSection } from "@/components/home/AboutSection";
@@ -76,7 +76,6 @@ export function Landing({
         <BenefitsSection />
         <ServicesSection />
         <PlansSection />
-        <GuaranteeSection />
         <HowWeWorkSection />
         <AboutSection />
         <PortfolioSection portfolio={portfolio} />
