@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { LinkProps } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { addMoney, type MoneyByCurrency } from "@/lib/pricing/plans";
+import { EMPTY_CLP_TOTALS, addClp, type ClpTotals } from "@/lib/pricing/plans";
 import type { Database } from "@/integrations/supabase/types";
 import { fetchAllRows } from "@/lib/db/fetchAllRows";
 import { UPCOMING_DAYS, addIsoDays, upcomingUntil } from "@/lib/billing/openPayments";
@@ -129,18 +129,18 @@ export interface OpenPayment {
 export interface PaymentsSummary {
   /** Pendientes con vencimiento entre hoy y hoy + 7 días (todos, sin truncar). */
   upcoming: OpenPayment[];
-  upcomingTotals: MoneyByCurrency;
+  upcomingTotals: ClpTotals;
   /** 'overdue' + 'pending' ya vencidos que el cron aún no marcó (todos, sin truncar). */
   overdue: OpenPayment[];
-  overdueTotals: MoneyByCurrency;
+  overdueTotals: ClpTotals;
   /** Vencidos primero y luego próximos, por fecha. La vista recorta solo esta lista. */
   agenda: OpenPayment[];
 }
 
 const PAYMENT_COLUMNS = "id,client_id,amount,currency,due_date,status,payment_url,description";
 
-function totals(rows: readonly OpenPayment[]): MoneyByCurrency {
-  return rows.reduce<MoneyByCurrency>((acc, p) => addMoney(acc, p.currency, p.amount), {});
+function totals(rows: readonly OpenPayment[]): ClpTotals {
+  return rows.reduce<ClpTotals>((acc, p) => addClp(acc, p.currency, p.amount), EMPTY_CLP_TOTALS);
 }
 
 function byDueDate(a: OpenPayment, b: OpenPayment): number {

@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { MessageCircle, MonitorSmartphone, FileSignature, Building2, ChevronDown } from "lucide-react";
 import { PlanCatalog, VatLines } from "@/components/pricing/PlanCatalog";
-import { AGENCY_DEFAULTS, DEFAULT_CURRENCY, currencyDecimals } from "@/lib/pricing/plans";
+import { AGENCY_DEFAULTS, DEFAULT_CURRENCY } from "@/lib/pricing/plans";
 
 /**
  * Servicios adicionales (sueltos) que se pueden sumar a un plan, con precio editable.
@@ -43,6 +43,7 @@ export const SERVICE_CATALOG: Array<{ key: ServiceKey; label: string; descriptio
 export interface PricingSettings {
   id: string;
   user_id: string;
+  /** Siempre 'CLP' (CHECK en la BD). */
   currency: string;
   // legacy IG breakdown (still used in Instagram cost summary)
   pack_price: number;
@@ -123,30 +124,28 @@ export async function loadServicePricing(userId: string): Promise<Record<Service
 
 // ───────── UI helpers ─────────
 
+/** Monto en CLP: pesos enteros, sin decimales. */
 function MoneyInput({
   label,
   value,
-  currency,
   onChange,
   onBlur,
   placeholder,
 }: {
   label: string;
   value: number;
-  currency: string;
   onChange: (v: number) => void;
   onBlur: (v: number) => void;
   placeholder?: string;
 }) {
-  const decimals = currencyDecimals(currency);
   return (
     <div className="space-y-1.5">
       <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{label}</Label>
       <Input
         type="number"
         min={0}
-        step={decimals === 0 ? 1 : 0.01}
-        inputMode={decimals === 0 ? "numeric" : "decimal"}
+        step={1}
+        inputMode="numeric"
         value={Number.isFinite(value) ? String(value) : ""}
         placeholder={placeholder ?? "0"}
         onChange={(e) => onChange(Math.max(0, Number(e.target.value || 0)))}
@@ -293,29 +292,6 @@ export function PricingPanel() {
         <PlanCatalog />
       </div>
 
-      {/* Moneda: la agencia cobra solo en CLP. Datos antiguos en otra moneda se leen con aviso. */}
-      {p.currency !== DEFAULT_CURRENCY && (
-        <div role="alert" className="rounded-2xl border border-warning/40 bg-warning-subtle p-5 space-y-2 text-sm text-warning-strong">
-          <p className="font-medium">Tus precios guardados están en {p.currency}.</p>
-          <p className="text-xs">
-            La plataforma ahora trabaja solo en CLP (pesos chilenos, IVA incluido). Los montos de los
-            servicios adicionales no se convierten: revísalos y luego cambia la moneda a CLP. Mientras
-            tanto no podrás generar contratos con un plan.
-          </p>
-          <Button
-            size="sm"
-            variant="outline"
-            className="bg-surface"
-            onClick={() => {
-              setP_({ currency: DEFAULT_CURRENCY });
-              void saveP({ currency: DEFAULT_CURRENCY });
-            }}
-          >
-            Usar CLP
-          </Button>
-        </div>
-      )}
-
       {/* Add-on services */}
       <div className="space-y-3">
         <div className="flex items-baseline justify-between gap-3 flex-wrap">
@@ -359,22 +335,19 @@ export function PricingPanel() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <MoneyInput
-                    label={`Setup (${p.currency})`}
-                    currency={p.currency}
+                    label="Setup (CLP)"
                     value={Number(row.one_time_price)}
                     onChange={(v) => updateService(svc.key, { one_time_price: v })}
                     onBlur={(v) => saveService(row.id, { one_time_price: v })}
                   />
                   <MoneyInput
-                    label={`Mensual (${p.currency})`}
-                    currency={p.currency}
+                    label="Mensual (CLP)"
                     value={Number(row.monthly_price)}
                     onChange={(v) => updateService(svc.key, { monthly_price: v })}
                     onBlur={(v) => saveService(row.id, { monthly_price: v })}
                   />
                 </div>
-                {p.currency === DEFAULT_CURRENCY &&
-                  (Number(row.one_time_price) > 0 || Number(row.monthly_price) > 0) && (
+                {(Number(row.one_time_price) > 0 || Number(row.monthly_price) > 0) && (
                     <div className="space-y-0.5">
                       {Number(row.one_time_price) > 0 && <VatLines label="Pago único" gross={Number(row.one_time_price)} />}
                       {Number(row.monthly_price) > 0 && <VatLines label="Mensual" gross={Number(row.monthly_price)} />}

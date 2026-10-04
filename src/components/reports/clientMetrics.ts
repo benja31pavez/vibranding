@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchAllRows } from "@/lib/db/fetchAllRows";
-import { addMoney, type MoneyByCurrency } from "@/lib/pricing/plans";
+import { EMPTY_CLP_TOTALS, addClp, mergeClpTotals, type ClpTotals } from "@/lib/pricing/plans";
 import { todayInChile } from "@/lib/billing/dates";
 import { addIsoDays } from "@/lib/billing/openPayments";
 import { chileMidnightUtc } from "@/lib/reports/period";
@@ -24,9 +24,10 @@ export interface ClientMetricsRow {
   impressions: number;
   clicks: number;
   conversions: number;
-  spend: MoneyByCurrency;
-  paid: MoneyByCurrency;
-  pending: MoneyByCurrency;
+  /** Gasto en Meta (CLP). Si la cuenta publicitaria usa otra moneda, queda fuera y se avisa. */
+  spend: ClpTotals;
+  paid: ClpTotals;
+  pending: ClpTotals;
 }
 
 export type MetricsTotals = Omit<ClientMetricsRow, "client_id" | "client_name">;
@@ -44,14 +45,10 @@ const EMPTY: MetricsTotals = {
   impressions: 0,
   clicks: 0,
   conversions: 0,
-  spend: {},
-  paid: {},
-  pending: {},
+  spend: EMPTY_CLP_TOTALS,
+  paid: EMPTY_CLP_TOTALS,
+  pending: EMPTY_CLP_TOTALS,
 };
-
-function mergeMoney(a: MoneyByCurrency, b: MoneyByCurrency): MoneyByCurrency {
-  return Object.entries(b).reduce<MoneyByCurrency>((acc, [cur, v]) => addMoney(acc, cur, v), a);
-}
 
 function sumTotals(rows: readonly ClientMetricsRow[]): MetricsTotals {
   return rows.reduce<MetricsTotals>(
@@ -61,9 +58,9 @@ function sumTotals(rows: readonly ClientMetricsRow[]): MetricsTotals {
       impressions: acc.impressions + r.impressions,
       clicks: acc.clicks + r.clicks,
       conversions: acc.conversions + r.conversions,
-      spend: mergeMoney(acc.spend, r.spend),
-      paid: mergeMoney(acc.paid, r.paid),
-      pending: mergeMoney(acc.pending, r.pending),
+      spend: mergeClpTotals(acc.spend, r.spend),
+      paid: mergeClpTotals(acc.paid, r.paid),
+      pending: mergeClpTotals(acc.pending, r.pending),
     }),
     EMPTY,
   );
@@ -139,19 +136,19 @@ async function loadClientMetrics(days: number): Promise<ClientMetrics> {
       impressions: r.impressions + Number(i.impressions || 0),
       clicks: r.clicks + Number(i.clicks || 0),
       conversions: r.conversions + Number(i.messaging_conversations_started || 0),
-      spend: addMoney(r.spend, i.currency, Number(i.spend || 0)),
+      spend: addClp(r.spend, i.currency, Number(i.spend || 0)),
     }));
   }
   for (const p of paid) {
     update(p.client_id, (r) => ({
       ...r,
-      paid: addMoney(r.paid, p.currency, Number(p.amount || 0)),
+      paid: addClp(r.paid, p.currency, Number(p.amount || 0)),
     }));
   }
   for (const p of open) {
     update(p.client_id, (r) => ({
       ...r,
-      pending: addMoney(r.pending, p.currency, Number(p.amount || 0)),
+      pending: addClp(r.pending, p.currency, Number(p.amount || 0)),
     }));
   }
   const rows = [...byClient.values()];

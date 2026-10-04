@@ -28,7 +28,7 @@ import {
   type ClientMetricsRow,
   type ReportRangeDays,
 } from "@/components/reports/clientMetrics";
-import type { MoneyByCurrency } from "@/lib/pricing/plans";
+import { EMPTY_CLP_TOTALS, type ClpTotals } from "@/lib/pricing/plans";
 
 export const Route = createFileRoute("/_app/reports")({
   component: ReportsPage,
@@ -38,12 +38,12 @@ export const Route = createFileRoute("/_app/reports")({
       {
         name: "description",
         content:
-          "Métricas agregadas por cliente: publicaciones, inversión publicitaria, clicks, conversaciones y cobros, siempre separados por moneda.",
+          "Métricas agregadas por cliente: publicaciones, inversión publicitaria, clicks, conversaciones y cobros en CLP.",
       },
       { property: "og:title", content: "Reportes por cliente · Vibranding" },
       {
         property: "og:description",
-        content: "Resumen de resultados por cliente con montos agrupados por su moneda real.",
+        content: "Resumen de resultados por cliente con montos en CLP.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -57,8 +57,8 @@ const DAY = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeZone: "U
 const fmtDay = (iso: string) => DAY.format(new Date(`${iso}T12:00:00Z`));
 const fmtPct = (value: number) => `${PCT.format(value)} %`;
 
-function MoneyCell({ money }: { money: MoneyByCurrency }) {
-  const hasValue = Object.values(money).some((v) => v !== 0);
+function MoneyCell({ money }: { money: ClpTotals }) {
+  const hasValue = money.clp !== 0 || money.excludedCurrencies.length > 0;
   if (!hasValue) return <span className="text-muted-foreground">—</span>;
   return <MoneyTotals totals={money} className="whitespace-nowrap" />;
 }
@@ -74,7 +74,7 @@ function ReportsPage() {
     <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 md:px-10">
       <PageHeader
         title="Reportes"
-        description="Métricas agregadas por cliente. Los montos se agrupan por moneda y nunca se suman entre monedas distintas."
+        description="Métricas agregadas por cliente. Montos en CLP; si una cuenta de Meta usa otra moneda, ese gasto no se suma y se indica."
       />
 
       <LatestReportsTable />
@@ -131,7 +131,7 @@ function ReportsPage() {
                 icon={Megaphone}
                 label="Inversión Ads"
                 loading={loading}
-                value={<MoneyCell money={totals?.spend ?? {}} />}
+                value={<MoneyCell money={totals?.spend ?? EMPTY_CLP_TOTALS} />}
               />
               <StatCard
                 icon={Percent}
@@ -155,13 +155,13 @@ function ReportsPage() {
                 icon={Wallet}
                 label="Cobrado"
                 loading={loading}
-                value={<MoneyCell money={totals?.paid ?? {}} />}
+                value={<MoneyCell money={totals?.paid ?? EMPTY_CLP_TOTALS} />}
               />
               <StatCard
                 icon={Wallet}
                 label="Pendiente"
                 loading={loading}
-                value={<MoneyCell money={totals?.pending ?? {}} />}
+                value={<MoneyCell money={totals?.pending ?? EMPTY_CLP_TOTALS} />}
               />
             </div>
 

@@ -57,7 +57,7 @@ export function Step2AdSet({
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Monto *</Label>
+              <Label className="text-xs">Monto (CLP) *</Label>
               <Input type="number" value={draft.budgetAmount ?? ""} onChange={(e) => onChange({ budgetAmount: e.target.value ? Number(e.target.value) : null })} />
               <E k="budgetAmount" />
             </div>

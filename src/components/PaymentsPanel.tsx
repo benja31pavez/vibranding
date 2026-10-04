@@ -14,15 +14,9 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Trash2, Pencil, Receipt } from "lucide-react";
 import { toast } from "sonner";
+import { DEFAULT_CURRENCY, EMPTY_CLP_TOTALS, addClp, type ClpTotals } from "@/lib/pricing/plans";
 import {
-  DEFAULT_CURRENCY,
-  addMoney,
-  currencyDecimals,
-  normalizeCurrency,
-  type MoneyByCurrency,
-} from "@/lib/pricing/plans";
-import {
-  ConfirmDialog, EmptyState, ErrorState, Money, StatCard, TableSkeleton, TONE_CLASSES, getStatus,
+  ConfirmDialog, EmptyState, ErrorState, Money, MoneyTotals, StatCard, TableSkeleton, TONE_CLASSES, getStatus,
 } from "@/components/app";
 import { PaymentLinkButton } from "@/components/billing/PaymentLinkButton";
 
@@ -66,8 +60,6 @@ interface Payment {
   payment_url: string | null;
 }
 
-/** Los cobros nuevos son siempre en CLP; los antiguos en otra moneda se leen tal cual. */
-const NEW_PAYMENT_CURRENCY = DEFAULT_CURRENCY;
 const STATUS_LOCKED_HINT = "Solo un owner o admin de la organización puede cambiar el estado de un cobro.";
 const STATUS_UNVERIFIED_HINT = "No pudimos verificar permisos; si no corresponde, el cambio se rechazará.";
 
@@ -97,22 +89,8 @@ const STATUSES: readonly Status[] = ["pending", "paid", "overdue", "cancelled"];
 const statusLabel = (s: Status) => getStatus(s).label;
 const statusCls = (s: Status) => TONE_CLASSES[getStatus(s).tone].badge;
 
-const amountStep = (currency: string) => (currencyDecimals(normalizeCurrency(currency)) === 0 ? 1 : 0.01);
-
-type Totals = MoneyByCurrency;
-const addTo = addMoney;
-
-function TotalsValue({ totals }: { totals: Totals }) {
-  const entries = Object.entries(totals).filter(([, v]) => v !== 0);
-  if (entries.length === 0) return <Money amount={0} currency={DEFAULT_CURRENCY} />;
-  return (
-    <div className="space-y-0.5">
-      {entries.map(([cur, v]) => (
-        <Money key={cur} amount={v} currency={cur} className="block" />
-      ))}
-    </div>
-  );
-}
+/** Montos en CLP: pesos enteros. */
+const toClpAmount = (raw: string | number) => Math.round(Number(raw));
 
 export function PaymentsPanel({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Payment[]>([]);
@@ -163,13 +141,13 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
   }, [clientId]);
 
   const create = async () => {
-    const amount = parseFloat(draft.amount);
-    if (!amount) return toast.error("Ingresa un monto");
+    const amount = toClpAmount(draft.amount);
+    if (!Number.isFinite(amount) || amount <= 0) return toast.error("Ingresa un monto en CLP");
     const { error } = await supabase.from("payments").insert({
       client_id: clientId,
       description: draft.description || null,
       amount,
-      currency: NEW_PAYMENT_CURRENCY,
+      currency: DEFAULT_CURRENCY,
       due_date: draft.due_date || null,
     });
     if (error) return toast.error(error.message);
@@ -191,22 +169,22 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
     load();
   };
 
-  const totals = items.reduce<{ paid: Totals; pending: Totals }>(
+  const totals = items.reduce<{ paid: ClpTotals; pending: ClpTotals }>(
     (acc, p) => {
-      if (p.status === "paid") return { ...acc, paid: addTo(acc.paid, p.currency, Number(p.amount)) };
+      if (p.status === "paid") return { ...acc, paid: addClp(acc.paid, p.currency, Number(p.amount)) };
       if (p.status === "pending" || p.status === "overdue") {
-        return { ...acc, pending: addTo(acc.pending, p.currency, Number(p.amount)) };
+        return { ...acc, pending: addClp(acc.pending, p.currency, Number(p.amount)) };
       }
       return acc;
     },
-    { paid: {}, pending: {} }
+    { paid: EMPTY_CLP_TOTALS, pending: EMPTY_CLP_TOTALS }
   );
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3">
-        <StatCard label="Cobrado" loading={loading} value={<TotalsValue totals={totals.paid} />} />
-        <StatCard label="Por cobrar" loading={loading} value={<TotalsValue totals={totals.pending} />} />
+        <StatCard label="Cobrado" loading={loading} value={<MoneyTotals totals={totals.paid} />} />
+        <StatCard label="Por cobrar" loading={loading} value={<MoneyTotals totals={totals.pending} />} />
       </div>
 
       <div className="flex items-center justify-between">
@@ -222,7 +200,7 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
         <div className="space-y-3 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs">
           <Input placeholder="Concepto" aria-label="Concepto" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} autoFocus />
           <div className="flex gap-2">
-            <Input type="number" step={amountStep(NEW_PAYMENT_CURRENCY)} placeholder="Monto en CLP (IVA incluido)" aria-label="Monto en CLP (IVA incluido)" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
+            <Input type="number" step={1} min={1} inputMode="numeric" placeholder="Monto en CLP (IVA incluido)" aria-label="Monto en CLP (IVA incluido)" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
             <span className="flex h-10 shrink-0 items-center rounded-app-sm border border-border-subtle px-3 text-sm text-muted-foreground" aria-label="Moneda: pesos chilenos">CLP</span>
             <Input type="date" aria-label="Fecha de vencimiento" value={draft.due_date} onChange={(e) => setDraft({ ...draft, due_date: e.target.value })} />
           </div>
@@ -345,20 +323,20 @@ function EditDialog({
 
   if (!form) return null;
 
-  // Con un link de Flow vigente, el monto y la moneda quedan fijos: Flow cobraría
+  // Con un link de Flow vigente, el monto queda fijo: Flow cobraría
   // el monto original y el pago no podría registrarse contra el cobro editado.
   // (La BD también lo impide: trigger t_payments_lock_amount.)
   // Mismo criterio que el trigger t_payments_lock_amount: pagado o con link de Flow.
   const linkLocked = payment?.status === "paid" || Boolean(payment?.payment_url);
 
   const save = async () => {
-    const amount = Number(form.amount);
-    if (!amount || amount <= 0) return toast.error("Ingresa un monto válido");
+    const amount = toClpAmount(form.amount);
+    if (!Number.isFinite(amount) || amount <= 0) return toast.error("Ingresa un monto válido en CLP");
     setSaving(true);
     // Datos del cobro: UPDATE directo (solo columnas permitidas al navegador).
     const patch: Partial<Payment> = {
       description: form.description?.trim() || null,
-      // La moneda no se edita: los cobros nuevos son CLP y los antiguos conservan la suya.
+      // La moneda no se edita: siempre CLP.
       ...(linkLocked ? {} : { amount }),
       due_date: form.due_date || null,
     };
@@ -401,26 +379,15 @@ function EditDialog({
             <Label className="text-xs text-muted-foreground">Concepto</Label>
             <Input value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="space-y-1.5 col-span-2">
-              <Label className="text-xs text-muted-foreground">Monto</Label>
-              <Input type="number" step={amountStep(form.currency)} value={form.amount} disabled={linkLocked} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Moneda</Label>
-              <Input value={normalizeCurrency(form.currency)} readOnly disabled aria-describedby={normalizeCurrency(form.currency) !== NEW_PAYMENT_CURRENCY ? "legacy-currency" : undefined} />
-            </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Monto en CLP (IVA incluido)</Label>
+            <Input type="number" step={1} min={1} inputMode="numeric" value={form.amount} disabled={linkLocked} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
           </div>
-          {normalizeCurrency(form.currency) !== NEW_PAYMENT_CURRENCY && (
-            <p id="legacy-currency" className="text-xs text-warning-strong">
-              Cobro antiguo en {normalizeCurrency(form.currency)}. Los cobros nuevos se registran solo en CLP.
-            </p>
-          )}
           {linkLocked && (
             <p className="text-xs text-muted-foreground">
               {payment?.status === "paid"
-                ? "Este cobro ya está pagado: el monto y la moneda no se pueden cambiar."
-                : "Este cobro tiene un link de pago de Flow: el monto y la moneda no se pueden cambiar."}{" "}
+                ? "Este cobro ya está pagado: el monto no se puede cambiar."
+                : "Este cobro tiene un link de pago de Flow: el monto no se puede cambiar."}{" "}
               Si el monto es otro, cancela este cobro y crea uno nuevo.
             </p>
           )}

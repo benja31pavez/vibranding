@@ -91,58 +91,77 @@ export function splitVat(gross: number): VatBreakdown {
   return { gross: safeGross, net, vat: safeGross - net };
 }
 
-/** Monedas sin decimales en la práctica. */
-const ZERO_DECIMAL = new Set(["CLP", "COP", "PYG", "JPY", "KRW"]);
+const CLP_FORMATTER = new Intl.NumberFormat("es-CL", {
+  style: "currency",
+  currency: DEFAULT_CURRENCY,
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
 
-export function currencyDecimals(currency: string): number {
-  return ZERO_DECIMAL.has(currency.toUpperCase()) ? 0 : 2;
+const PLAIN_FORMATTER = new Intl.NumberFormat("es-CL", { maximumFractionDigits: 2 });
+
+function toAmount(amount: unknown): number {
+  const value = Number(amount);
+  return Number.isFinite(value) ? value : 0;
 }
 
-/**
- * Formatea montos en es-CL. CLP sin decimales: `$149.990`.
- * Otras monedas: con su código (`US$12,50`, `€ 10,00`, …).
- */
-export function formatMoney(currency: string | null | undefined, amount: number): string {
-  const code = (currency ?? DEFAULT_CURRENCY).trim().toUpperCase() || DEFAULT_CURRENCY;
-  const value = Number.isFinite(Number(amount)) ? Number(amount) : 0;
-  const decimals = currencyDecimals(code);
-  try {
-    return new Intl.NumberFormat("es-CL", {
-      style: "currency",
-      currency: code,
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    }).format(value);
-  } catch {
-    return `${code} ${value.toLocaleString("es-CL", { maximumFractionDigits: decimals })}`;
-  }
+/** Formatea un monto en CLP (es-CL, sin decimales): `$149.990`. Única moneda de la plataforma. */
+export function formatMoney(amount: number): string {
+  return CLP_FORMATTER.format(toAmount(amount));
 }
 
-export function planPriceLabel(plan: Plan): string {
-  const base = formatMoney(DEFAULT_CURRENCY, plan.price);
-  if (plan.billing === "one_time") return `${base} pago único`;
-  return plan.minMonths ? `${base}/mes · mínimo ${plan.minMonths} meses` : `${base}/mes`;
+/** Número sin símbolo de moneda (`200`, `0,15`), para montos antiguos que no están en CLP. */
+export function formatPlainAmount(amount: number): string {
+  return PLAIN_FORMATTER.format(toAmount(amount));
 }
 
-/** Montos agrupados por código de moneda (nunca se suman monedas distintas). */
-export type MoneyByCurrency = Readonly<Record<string, number>>;
-
+/** Código en mayúsculas; vacío o nulo se interpreta como CLP. */
 export function normalizeCurrency(currency: string | null | undefined): string {
   return (currency ?? "").trim().toUpperCase() || DEFAULT_CURRENCY;
 }
 
-export function addMoney(
-  totals: MoneyByCurrency,
-  currency: string | null | undefined,
-  amount: number,
-): MoneyByCurrency {
-  const key = normalizeCurrency(currency);
-  return { ...totals, [key]: (totals[key] ?? 0) + (Number(amount) || 0) };
+/** true si el registro trae una moneda distinta de CLP (dato antiguo por limpiar). */
+export function isLegacyCurrency(currency: string | null | undefined): boolean {
+  return normalizeCurrency(currency) !== DEFAULT_CURRENCY;
 }
 
-/** `$129.990 · US$50,00` — o `$0` si no hay montos. */
-export function formatMoneyTotals(totals: MoneyByCurrency): string {
-  const entries = Object.entries(totals).filter(([, v]) => v !== 0);
-  if (entries.length === 0) return formatMoney(DEFAULT_CURRENCY, 0);
-  return entries.map(([cur, v]) => formatMoney(cur, v)).join(" · ");
+/** Etiqueta discreta para registros antiguos: `Moneda antigua (USD)`. */
+export function legacyCurrencyLabel(currency: string | null | undefined): string {
+  return `Moneda antigua (${normalizeCurrency(currency)})`;
+}
+
+export function planPriceLabel(plan: Plan): string {
+  const base = formatMoney(plan.price);
+  if (plan.billing === "one_time") return `${base} pago único`;
+  return plan.minMonths ? `${base}/mes · mínimo ${plan.minMonths} meses` : `${base}/mes`;
+}
+
+/**
+ * Total en CLP. Los montos en otra moneda (registros antiguos o cuentas de Meta
+ * en otra moneda) nunca se suman: solo se anotan sus códigos para avisarlo.
+ */
+export interface ClpTotals {
+  readonly clp: number;
+  readonly excludedCurrencies: readonly string[];
+}
+
+export const EMPTY_CLP_TOTALS: ClpTotals = { clp: 0, excludedCurrencies: [] };
+
+export function addClp(totals: ClpTotals, currency: string | null | undefined, amount: number): ClpTotals {
+  if (!isLegacyCurrency(currency)) return { ...totals, clp: totals.clp + toAmount(amount) };
+  const code = normalizeCurrency(currency);
+  if (totals.excludedCurrencies.includes(code)) return totals;
+  return { ...totals, excludedCurrencies: [...totals.excludedCurrencies, code] };
+}
+
+export function mergeClpTotals(a: ClpTotals, b: ClpTotals): ClpTotals {
+  const extra = b.excludedCurrencies.filter((c) => !a.excludedCurrencies.includes(c));
+  return { clp: a.clp + b.clp, excludedCurrencies: [...a.excludedCurrencies, ...extra] };
+}
+
+/** `$129.990`, con nota si se dejaron fuera montos en otra moneda. */
+export function formatClpTotals(totals: ClpTotals): string {
+  const base = formatMoney(totals.clp);
+  if (totals.excludedCurrencies.length === 0) return base;
+  return `${base} (sin incluir montos en ${totals.excludedCurrencies.join(", ")})`;
 }

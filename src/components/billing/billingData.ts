@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { addMoney, type MoneyByCurrency } from "@/lib/pricing/plans";
+import { EMPTY_CLP_TOTALS, addClp, type ClpTotals } from "@/lib/pricing/plans";
 import { firstDayOfMonth } from "@/lib/billing/dates";
 import { fetchAllRows } from "@/lib/db/fetchAllRows";
 import { isDueSoon, isPastDue } from "@/lib/billing/openPayments";
@@ -71,8 +71,8 @@ export function filterRows(rows: readonly BillingRow[], filter: BillingFilter, t
 }
 
 export interface BillingTotals {
-  collectedThisMonth: MoneyByCurrency;
-  receivable: MoneyByCurrency;
+  collectedThisMonth: ClpTotals;
+  receivable: ClpTotals;
 }
 
 export function computeTotals(rows: readonly BillingRow[], today: string): BillingTotals {
@@ -82,14 +82,14 @@ export function computeTotals(rows: readonly BillingRow[], today: string): Billi
       if (r.status === "paid" && inMonth(r.paid_at, month)) {
         return {
           ...acc,
-          collectedThisMonth: addMoney(acc.collectedThisMonth, r.currency, r.amount),
+          collectedThisMonth: addClp(acc.collectedThisMonth, r.currency, r.amount),
         };
       }
       if (r.status === "pending" || r.status === "overdue") {
-        return { ...acc, receivable: addMoney(acc.receivable, r.currency, r.amount) };
+        return { ...acc, receivable: addClp(acc.receivable, r.currency, r.amount) };
       }
       return acc;
     },
-    { collectedThisMonth: {}, receivable: {} },
+    { collectedThisMonth: EMPTY_CLP_TOTALS, receivable: EMPTY_CLP_TOTALS },
   );
 }
