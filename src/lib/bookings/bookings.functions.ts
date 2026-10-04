@@ -160,6 +160,14 @@ export const createBooking = createServerFn({ method: "POST" })
 
     // Persistent caps (survive restarts and multiple instances): per email per
     // day and per agenda per hour, counted on bookings already stored.
+    // Not atomic: two simultaneous requests can both pass the count before
+    // either inserts (at most a request or two over the cap). Making it atomic
+    // means moving count + insert into one SECURITY DEFINER RPC with an
+    // advisory lock per agenda; deferred because that RPC would only exist
+    // after a manual migration and this path must work without it.
+    // TODO(seguridad): add Cloudflare Turnstile to the public booking form
+    // (widget in book.$slug.tsx + server-side siteverify here) to stop bots
+    // rotating IPs/emails; the limits below are only a backstop.
     const email = data.email.toLowerCase();
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();

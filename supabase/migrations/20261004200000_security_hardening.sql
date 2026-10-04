@@ -61,15 +61,27 @@ BEGIN
     END IF;
 
     FOR p IN
-      SELECT policyname, cmd FROM pg_policies
+      SELECT policyname, cmd, qual, roles::text[] AS roles, permissive FROM pg_policies
       WHERE schemaname = 'public' AND tablename = t
         AND cmd IN ('INSERT', 'UPDATE', 'DELETE', 'ALL')
     LOOP
       IF p.cmd = 'ALL' THEN
-        -- None exist in the repo history; never drop one blindly because it
-        -- also grants SELECT. Flag it for manual review instead.
-        RAISE WARNING 'security_hardening: FOR ALL policy "%" on public.% left in place, review manually',
+        -- A FOR ALL policy also grants writes, which would bypass the editor
+        -- policies below (policies are OR-ed). None exist in the repo history,
+        -- but if one was added outside it we keep its read part: recreate it
+        -- as a SELECT policy with the same roles / USING expression, then drop
+        -- it. Owners keep reading, and write through the editor policies.
+        IF p.qual IS NOT NULL THEN
+          EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', p.policyname || ' (read)', t);
+          EXECUTE format('CREATE POLICY %I ON public.%I AS %s FOR SELECT TO %s USING (%s)',
+            p.policyname || ' (read)', t, p.permissive,
+            (SELECT string_agg(CASE WHEN r = 'public' THEN 'public' ELSE quote_ident(r) END, ', ')
+               FROM unnest(p.roles) AS r),
+            p.qual);
+        END IF;
+        RAISE WARNING 'security_hardening: FOR ALL policy "%" on public.% replaced by a SELECT policy',
           p.policyname, t;
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', p.policyname, t);
       ELSE
         EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', p.policyname, t);
       END IF;
@@ -120,6 +132,39 @@ BEGIN
     CREATE UNIQUE INDEX IF NOT EXISTS meta_accounts_ig_account_id_key
       ON public.meta_accounts (ig_account_id)
       WHERE ig_account_id IS NOT NULL AND btrim(ig_account_id) <> '';
+  END IF;
+END $$;
+
+
+-- ---------------------------------------------------------------------
+-- 3b. One WhatsApp number per account (whatsapp_accounts.phone_number_id).
+--     The webhook routes by account id and now checks phone_number_id; two
+--     accounts sharing a number would make that check meaningless. Same
+--     duplicate handling as above: warn, skip the index, never fail.
+-- ---------------------------------------------------------------------
+DO $$
+DECLARE
+  dup record;
+  has_dups boolean := false;
+BEGIN
+  FOR dup IN
+    SELECT phone_number_id, array_agg(id ORDER BY created_at) AS account_ids
+    FROM public.whatsapp_accounts
+    WHERE phone_number_id IS NOT NULL AND btrim(phone_number_id) <> ''
+    GROUP BY phone_number_id
+    HAVING count(*) > 1
+  LOOP
+    has_dups := true;
+    RAISE WARNING 'security_hardening: phone_number_id % is used by several whatsapp_accounts: %',
+      dup.phone_number_id, dup.account_ids;
+  END LOOP;
+
+  IF has_dups THEN
+    RAISE WARNING 'security_hardening: UNIQUE index on whatsapp_accounts.phone_number_id NOT created. Fix the duplicates and run this migration again.';
+  ELSE
+    CREATE UNIQUE INDEX IF NOT EXISTS whatsapp_accounts_phone_number_id_key
+      ON public.whatsapp_accounts (phone_number_id)
+      WHERE phone_number_id IS NOT NULL AND btrim(phone_number_id) <> '';
   END IF;
 END $$;
 
