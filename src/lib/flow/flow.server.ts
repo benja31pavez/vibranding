@@ -109,8 +109,9 @@ async function parseFlowResponse<T>(res: Response, service: string): Promise<T> 
   if (!res.ok) {
     const err = (body ?? {}) as { code?: number; message?: string };
     console.error(`[flow] ${service} HTTP ${res.status}`, err.message ?? text.slice(0, 200));
+    // El detalle de Flow queda en el log; al navegador solo va un mensaje genérico.
     throw new FlowApiError(
-      `Flow rechazó la solicitud (${service}): ${err.message ?? `HTTP ${res.status}`}`,
+      "Flow rechazó la solicitud. Inténtalo de nuevo o revisa la configuración de Flow.",
       res.status,
       typeof err.code === "number" ? err.code : null,
     );
@@ -187,6 +188,8 @@ export async function createFlowPayment(
 export interface FlowPaymentStatus {
   flowOrder: number;
   commerceOrder: string;
+  /** "yyyy-mm-dd hh:mm:ss" */
+  requestDate?: string;
   status: number;
   currency: string;
   amount: number;

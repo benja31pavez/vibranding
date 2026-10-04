@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Image as ImageIcon, Film, Camera, Palette, Users, FileText, Package, Check, X, AlertCircle, Folder, FolderPlus, ChevronDown, ChevronRight, Pencil, Minus, GripVertical, Upload, Paperclip, Download, Loader2, Sparkles, MessageSquare, ThumbsUp, RotateCcw, Send, Eye, Link2, Gauge, Megaphone, Globe } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { invalidateApprovalQueue } from "@/hooks/use-approval-queue";
 import { uploadClientMedia } from "@/lib/uploadMedia";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -119,6 +121,7 @@ const typeMeta: Record<DType, { label: string; icon: any }> = {
 };
 
 export function DeliverablesList({ clientId }: { clientId: string }) {
+  const queryClient = useQueryClient();
   const [items, setItems] = useState<Row[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -333,11 +336,14 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     const { error } = await supabase.from("deliverables").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
     load();
+    // Estado o título pueden cambiar la bandeja de aprobaciones y su badge.
+    invalidateApprovalQueue(queryClient);
   };
 
   const remove = async (id: string) => {
     await supabase.from("deliverables").delete().eq("id", id);
     load();
+    invalidateApprovalQueue(queryClient);
   };
 
   const filtered = useMemo(
