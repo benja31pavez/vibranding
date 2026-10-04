@@ -12,6 +12,12 @@ import {
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
+/** RLS hides rows instead of erroring: 0 affected rows means "not allowed". */
+const NO_PERMISSION = "No tienes permisos para esta acción";
+function writeDenied(error: unknown, rows: unknown[] | null): boolean {
+  return Boolean(error) || !rows || rows.length === 0;
+}
+
 type Status = "pending" | "paid" | "overdue" | "cancelled";
 
 interface Payment {
@@ -70,15 +76,18 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
   };
 
   const update = async (id: string, patch: Partial<Payment>) => {
-    if (patch.status === "paid" && !items.find((i) => i.id === id)?.paid_at) {
-      patch.paid_at = new Date().toISOString().slice(0, 10);
-    }
-    await supabase.from("payments").update(patch).eq("id", id);
+    const fullPatch =
+      patch.status === "paid" && !items.find((i) => i.id === id)?.paid_at
+        ? { ...patch, paid_at: new Date().toISOString().slice(0, 10) }
+        : patch;
+    const { data, error } = await supabase.from("payments").update(fullPatch).eq("id", id).select("id");
+    if (writeDenied(error, data)) toast.error(NO_PERMISSION);
     load();
   };
 
   const remove = async (id: string) => {
-    await supabase.from("payments").delete().eq("id", id);
+    const { data, error } = await supabase.from("payments").delete().eq("id", id).select("id");
+    if (writeDenied(error, data)) toast.error(NO_PERMISSION);
     load();
   };
 
@@ -202,9 +211,9 @@ function EditDialog({
       due_date: form.due_date || null,
       paid_at: form.status === "paid" ? (form.paid_at || new Date().toISOString().slice(0, 10)) : null,
     };
-    const { error } = await supabase.from("payments").update(patch).eq("id", form.id);
+    const { data, error } = await supabase.from("payments").update(patch).eq("id", form.id).select("id");
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (writeDenied(error, data)) return toast.error(NO_PERMISSION);
     toast.success("Pago actualizado");
     onSaved();
   };
