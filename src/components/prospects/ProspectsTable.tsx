@@ -4,8 +4,9 @@ import { EmptyState } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PROSPECT_STATES, STATE_META } from "@/lib/prospects/schema";
 import { cn } from "@/lib/utils";
-import { ConvertAction, NoContactBadge, StageSelect, type CardActions } from "./ProspectCard";
+import { ConvertAction, NoContactBadge, ResumeAction, StageSelect, type CardActions } from "./ProspectCard";
 import { formatShortDate } from "./format";
 import type { Prospect } from "./prospectsData";
 
@@ -13,13 +14,14 @@ const ALL = "";
 type SortDir = "asc" | "desc";
 
 interface Filters {
+  estado: string;
   rubro: string;
   comuna: string;
   fuente: string;
   q: string;
 }
 
-const EMPTY_FILTERS: Filters = { rubro: ALL, comuna: ALL, fuente: ALL, q: "" };
+const EMPTY_FILTERS: Filters = { estado: ALL, rubro: ALL, comuna: ALL, fuente: ALL, q: "" };
 
 function normalize(s: string | null | undefined): string {
   return (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -30,10 +32,13 @@ function distinct(list: Prospect[], field: "rubro" | "comuna" | "fuente"): strin
   return [...values].sort((a, b) => a.localeCompare(b, "es"));
 }
 
-/** Filtra por rubro/comuna/fuente exactos y búsqueda libre (nombre, correo, teléfono, instagram, notas). */
+const STATE_OPTIONS = PROSPECT_STATES.map((s) => ({ value: s, label: STATE_META[s].label }));
+
+/** Filtra por estado/rubro/comuna/fuente exactos y búsqueda libre (nombre, correo, teléfono, instagram, notas). */
 export function filterProspects(list: Prospect[], f: Filters): Prospect[] {
   const q = normalize(f.q.trim());
   return list.filter((p) => {
+    if (f.estado && p.estado !== f.estado) return false;
     if (f.rubro && p.rubro?.trim() !== f.rubro) return false;
     if (f.comuna && p.comuna?.trim() !== f.comuna) return false;
     if (f.fuente && p.fuente.trim() !== f.fuente) return false;
@@ -57,8 +62,10 @@ export function sortByLastContact(list: Prospect[], dir: SortDir): Prospect[] {
   });
 }
 
+type Option = string | { value: string; label: string };
+
 function FilterSelect({ id, label, value, options, onChange }: {
-  id: string; label: string; value: string; options: string[]; onChange: (v: string) => void;
+  id: string; label: string; value: string; options: readonly Option[]; onChange: (v: string) => void;
 }) {
   return (
     <div className="space-y-1">
@@ -70,7 +77,10 @@ function FilterSelect({ id, label, value, options, onChange }: {
         className="h-9 w-full rounded-app-sm border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <option value={ALL}>Todos</option>
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+        {options.map((o) => {
+          const opt = typeof o === "string" ? { value: o, label: o } : o;
+          return <option key={opt.value} value={opt.value}>{opt.label}</option>;
+        })}
       </select>
     </div>
   );
@@ -92,7 +102,7 @@ export function ProspectsTable({ prospects, actions }: { prospects: Prospect[]; 
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_auto] lg:items-end">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] lg:items-end">
         <div className="space-y-1">
           <Label htmlFor="pf-q" className="text-xs">Buscar</Label>
           <div className="relative">
@@ -100,6 +110,7 @@ export function ProspectsTable({ prospects, actions }: { prospects: Prospect[]; 
             <Input id="pf-q" value={filters.q} onChange={(e) => set("q")(e.target.value)} placeholder="Nombre, correo, teléfono…" className="pl-8" />
           </div>
         </div>
+        <FilterSelect id="pf-estado" label="Estado" value={filters.estado} options={STATE_OPTIONS} onChange={set("estado")} />
         <FilterSelect id="pf-rubro" label="Rubro" value={filters.rubro} options={options.rubro} onChange={set("rubro")} />
         <FilterSelect id="pf-comuna" label="Comuna" value={filters.comuna} options={options.comuna} onChange={set("comuna")} />
         <FilterSelect id="pf-fuente" label="Fuente" value={filters.fuente} options={options.fuente} onChange={set("fuente")} />
@@ -148,8 +159,11 @@ export function ProspectsTable({ prospects, actions }: { prospects: Prospect[]; 
                   <td className="max-w-[220px] truncate px-3 py-2 text-muted-foreground" title={p.fuente}>{p.fuente}</td>
                   <td className="px-3 py-2 tabular-nums">{formatShortDate(p.ultimo_contacto)}</td>
                   <td className="px-3 py-2"><StageSelect prospect={p} onMove={actions.onMove} /></td>
-                  <td className="px-3 py-2 text-right">
-                    <ConvertAction prospect={p} onConvert={actions.onConvert} label="Convertir en cliente" />
+                  <td className="px-3 py-2">
+                    <div className="flex justify-end gap-2">
+                      <ConvertAction prospect={p} onConvert={actions.onConvert} label="Convertir en cliente" />
+                      <ResumeAction prospect={p} onMove={actions.onMove} />
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -2931,6 +2931,13 @@ export type Database = {
             referencedRelation: "payments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payment_anomalies_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "portal_payments"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payment_provider_orders: {
@@ -2982,6 +2989,13 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_provider_orders_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "portal_payments"
             referencedColumns: ["id"]
           },
         ]
@@ -4100,11 +4114,6 @@ export type Database = {
       }
       can_edit_client: { Args: { _client_id: string }; Returns: boolean }
       can_edit_org: { Args: { _org_id: string }; Returns: boolean }
-      client_analytics: {
-        Args: { _client_id: string; _from: string; _to: string }
-        Returns: Json
-      }
-      client_analytics_guard: { Args: { _client_id: string }; Returns: boolean }
       cleanup_onboarding_orphans: {
         Args: never
         Returns: {
@@ -4112,6 +4121,11 @@ export type Database = {
           reason: string
         }[]
       }
+      client_analytics: {
+        Args: { _client_id: string; _from: string; _to: string }
+        Returns: Json
+      }
+      client_analytics_guard: { Args: { _client_id: string }; Returns: boolean }
       content_performance: {
         Args: { _client_id: string; _from: string; _to: string }
         Returns: Json

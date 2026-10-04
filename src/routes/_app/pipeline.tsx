@@ -60,7 +60,7 @@ function PipelinePage() {
 
   const onMove = (p: Prospect, estado: ProspectState) => {
     if (p.estado === "baja" && estado !== "baja") {
-      toast.error(`${p.nombre} pidió la baja: no se puede volver a contactar. Si retiró la solicitud, cámbialo desde la ficha del prospecto.`);
+      toast.error(`${p.nombre} pidió la baja: no se puede volver a contactar. Si retiró la solicitud, un owner/admin puede revocarla desde la ficha del prospecto.`);
       return;
     }
     move.mutate(
@@ -72,6 +72,8 @@ function PipelinePage() {
             toast.success(`${p.nombre} pasó a Ganado`, {
               action: { label: "Convertir en cliente", onClick: () => setConverting({ ...p, estado }) },
             });
+          } else if (estado === "frio") {
+            toast.success(`${p.nombre} quedó en Fríos: no se le insistirá. Retómalo a mano cuando haga sentido.`);
           } else toast.success(`${p.nombre} → ${STATE_META[estado].label}`);
         },
         onError: (err) => toast.error(err instanceof Error ? err.message : "No se pudo mover el prospecto"),

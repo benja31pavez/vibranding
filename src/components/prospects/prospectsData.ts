@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import type { ExistingProspect } from "@/lib/prospects/importOficina";
-import type { ProspectState, ProspectValues } from "@/lib/prospects/schema";
+import type { ProspectState, ProspectValues, RevokeTargetState } from "@/lib/prospects/schema";
 
 export type Prospect = Tables<"prospects">;
 
@@ -11,14 +11,30 @@ export const NO_PERMISSION = "No tienes permisos para esta acción";
 export const BAJA_LOCKED =
   "No se guardó: el prospecto está dado de baja (no se puede volver a contactar) o no tienes permisos para esta acción.";
 
-const PROSPECT_COLUMNS =
-  "id,org_id,nombre,rubro,comuna,web,instagram,email_publico,telefono_publico,fuente,estado," +
-  "producto_sugerido,notas,ultimo_contacto,created_by,created_at,updated_at";
+/**
+ * "*": incluye las columnas de la v3 (client_id, no_contactar_hasta, baja_revocada_at)
+ * cuando existen, sin romper la lectura si la migración aún no se aplicó.
+ */
+const PROSPECT_COLUMNS = "*";
 
-/** Errores de RLS/privilegios → mensaje de permisos; el resto, tal cual. */
+export const FRIO_NEEDS_V3 =
+  "El estado \"Frío\" requiere la migración v3 de la base de datos. Mientras tanto usa \"Perdido\".";
+
+/** Errores de RLS/privilegios → mensaje de permisos; CHECK de estado sin 'frio' → aviso v3; el resto, tal cual. */
 export function writeError(error: { code?: string; message: string }): string {
   if (error.code === "42501" || /row-level security|permission denied/i.test(error.message)) return NO_PERMISSION;
+  if (error.code === "23514" && /estado/i.test(error.message)) return FRIO_NEEDS_V3;
   return error.message;
+}
+
+/**
+ * La RPC `fn` aún no existe (migración v3 sin aplicar): PGRST202, o 42883 que nombre a `fn`.
+ * Cualquier otro error se propaga (no se cae al flujo antiguo).
+ */
+export function isMissingRpc(error: { code?: string; message?: string } | null | undefined, fn: string): boolean {
+  if (!error) return false;
+  if (error.code === "PGRST202") return true;
+  return error.code === "42883" && (error.message ?? "").includes(fn);
 }
 
 export function prospectsKey(userId: string) {
@@ -111,13 +127,13 @@ export function useSaveProspect() {
   const key = prospectsKey(user?.id ?? "anon");
   return useMutation({
     /**
-     * `allowLeaveBaja`: solo con la confirmación explícita del formulario se puede sacar un
-     * prospecto de baja; si no, el UPDATE que cambia el estado lleva `estado <> 'baja'`.
+     * Un UPDATE que deja un estado distinto de baja lleva `estado <> 'baja'`: salir de baja
+     * solo se hace con useRevokeBaja (revoke_prospect_baja; el trigger de la v3 lo exige).
      */
-    mutationFn: async ({ id, values, allowLeaveBaja = false }: { id?: string; values: ProspectValues; allowLeaveBaja?: boolean }) => {
+    mutationFn: async ({ id, values }: { id?: string; values: ProspectValues }) => {
       if (id) {
         let query = supabase.from("prospects").update(values).eq("id", id);
-        if (values.estado !== "baja" && !allowLeaveBaja) query = query.neq("estado", "baja");
+        if (values.estado !== "baja") query = query.neq("estado", "baja");
         const { data, error } = await query.select("id");
         if (error) throw new Error(writeError(error));
         if (!data || data.length === 0) throw new Error(values.estado === "baja" ? NO_PERMISSION : BAJA_LOCKED);
@@ -193,4 +209,39 @@ export async function fetchExistingFor(rows: readonly ProspectValues[]): Promise
   const failed = results.find((r) => r.error);
   if (failed?.error) throw new Error(`No se pudo revisar duplicados: ${failed.error.message}`);
   return results.flatMap((r) => (r.data ?? []) as ExistingProspect[]);
+}
+
+/** Revoca una baja (owner/admin) con motivo; vuelve al estado indicado. Ver revoke_prospect_baja (v3). */
+export function useRevokeBaja() {
+  const queryClient = useQueryClient();
+  const key = prospectsKey(useUserId());
+  return useMutation({
+    mutationFn: async ({ id, motivo, estado }: { id: string; motivo: string; estado: RevokeTargetState }) => {
+      const { error } = await supabase.rpc("revoke_prospect_baja", {
+        _prospect_id: id,
+        _motivo: motivo,
+        _estado: estado,
+      });
+      if (error) {
+        if (isMissingRpc(error, "revoke_prospect_baja")) throw new Error("Revocar una baja requiere la migración v3 de la base de datos.");
+        throw new Error(writeError(error));
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+}
+
+/** ¿El usuario es owner/admin de la org? (is_org_manager). Solo ellos pueden revocar una baja. */
+export function useIsOrgManager(orgId: string | null | undefined) {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: ["is-org-manager", userId, orgId],
+    enabled: Boolean(orgId) && userId !== "anon",
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<boolean> => {
+      const { data, error } = await supabase.rpc("is_org_manager", { _org_id: orgId as string });
+      if (error) throw new Error(error.message);
+      return data === true;
+    },
+  });
 }
