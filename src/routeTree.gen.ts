@@ -9,121 +9,77 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PortalRouteImport } from './routes/portal'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as LandingRouteImport } from './routes/landing'
-import { Route as FaqRouteImport } from './routes/faq'
-import { Route as DataDeletionRouteImport } from './routes/data-deletion'
-import { Route as CookiesRouteImport } from './routes/cookies'
-import { Route as AppRouteImport } from './routes/_app'
-import { Route as AtChar123slugChar125RouteImport } from './routes/@{$slug}'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ReviewTokenRouteImport } from './routes/review.$token'
-import { Route as LSlugRouteImport } from './routes/l.$slug'
-import { Route as BookSlugRouteImport } from './routes/book.$slug'
-import { Route as AppStatsRouteImport } from './routes/_app/stats'
-import { Route as AppReportsRouteImport } from './routes/_app/reports'
-import { Route as AppProfileRouteImport } from './routes/_app/profile'
-import { Route as AppPortfolioRouteImport } from './routes/_app/portfolio'
-import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
-import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
-import { Route as AppBookingsRouteImport } from './routes/_app/bookings'
+import { Route as AtChar123slugChar125RouteImport } from './routes/@{$slug}'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as CookiesRouteImport } from './routes/cookies'
+import { Route as DataDeletionRouteImport } from './routes/data-deletion'
+import { Route as FaqRouteImport } from './routes/faq'
+import { Route as LandingRouteImport } from './routes/landing'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as PortalRouteImport } from './routes/portal'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AtChar123slugChar125LinksRouteImport } from './routes/@{$slug}.links'
-import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
-import { Route as ApiMetaAdsUpdateRouteImport } from './routes/api/meta-ads/update'
-import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
-import { Route as ApiMetaAdsPublishFullRouteImport } from './routes/api/meta-ads/publish-full'
-import { Route as ApiMetaAdsDiscoverRouteImport } from './routes/api/meta-ads/discover'
-import { Route as ApiMetaAdsCreateCampaignRouteImport } from './routes/api/meta-ads/create-campaign'
-import { Route as ApiMetaAdsArchiveRouteImport } from './routes/api/meta-ads/archive'
-import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
-import { Route as AppSettingsMetaRouteImport } from './routes/_app/settings/meta'
-import { Route as AppClientsConnectRouteImport } from './routes/_app/clients/connect'
-import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
-import { Route as AppAdminMetaDiagnosticsRouteImport } from './routes/_app/admin/meta-diagnostics'
+import { Route as AppBillingRouteImport } from './routes/_app/billing'
+import { Route as AppBookingsRouteImport } from './routes/_app/bookings'
+import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppPortfolioRouteImport } from './routes/_app/portfolio'
+import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppReportsRouteImport } from './routes/_app/reports'
+import { Route as AppStatsRouteImport } from './routes/_app/stats'
+import { Route as BookSlugRouteImport } from './routes/book.$slug'
+import { Route as LSlugRouteImport } from './routes/l.$slug'
+import { Route as PagoResultadoRouteImport } from './routes/pago.resultado'
+import { Route as ReviewTokenRouteImport } from './routes/review.$token'
 import { Route as AppAdminHealthRouteImport } from './routes/_app/admin/health'
+import { Route as AppAdminMetaDiagnosticsRouteImport } from './routes/_app/admin/meta-diagnostics'
+import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
+import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
+import { Route as AppClientsConnectRouteImport } from './routes/_app/clients/connect'
+import { Route as AppSettingsMetaRouteImport } from './routes/_app/settings/meta'
+import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
+import { Route as ApiMetaAdsArchiveRouteImport } from './routes/api/meta-ads/archive'
+import { Route as ApiMetaAdsCreateCampaignRouteImport } from './routes/api/meta-ads/create-campaign'
+import { Route as ApiMetaAdsDiscoverRouteImport } from './routes/api/meta-ads/discover'
+import { Route as ApiMetaAdsPublishFullRouteImport } from './routes/api/meta-ads/publish-full'
+import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
+import { Route as ApiMetaAdsUpdateRouteImport } from './routes/api/meta-ads/update'
 import { Route as AppClientsClientIdIndexRouteImport } from './routes/_app/clients/$clientId/index'
-import { Route as ApiPublicWhatsappDispatchRouteImport } from './routes/api/public/whatsapp/dispatch'
-import { Route as ApiPublicMetaIngestDailyRouteImport } from './routes/api/public/meta/ingest-daily'
-import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
-import { Route as AppClientsClientIdSitioRouteImport } from './routes/_app/clients/$clientId/sitio'
-import { Route as AppClientsClientIdSetupRouteImport } from './routes/_app/clients/$clientId/setup'
-import { Route as AppClientsClientIdPlanRouteImport } from './routes/_app/clients/$clientId/plan'
-import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/clients/$clientId/payments'
-import { Route as AppClientsClientIdObjectivesRouteImport } from './routes/_app/clients/$clientId/objectives'
-import { Route as AppClientsClientIdMultilinkRouteImport } from './routes/_app/clients/$clientId/multilink'
-import { Route as AppClientsClientIdMetaAdsRouteImport } from './routes/_app/clients/$clientId/meta-ads'
-import { Route as AppClientsClientIdLeadsRouteImport } from './routes/_app/clients/$clientId/leads'
-import { Route as AppClientsClientIdLandingRouteImport } from './routes/_app/clients/$clientId/landing'
-import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
-import { Route as AppClientsClientIdFacturacionRouteImport } from './routes/_app/clients/$clientId/facturacion'
-import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
-import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
-import { Route as AppClientsClientIdContentRouteImport } from './routes/_app/clients/$clientId/content'
-import { Route as AppClientsClientIdChatbotRouteImport } from './routes/_app/clients/$clientId/chatbot'
-import { Route as AppClientsClientIdBandejaRouteImport } from './routes/_app/clients/$clientId/bandeja'
-import { Route as AppClientsClientIdBackfillRouteImport } from './routes/_app/clients/$clientId/backfill'
-import { Route as AppClientsClientIdAutomatizacionRouteImport } from './routes/_app/clients/$clientId/automatizacion'
 import { Route as AppClientsClientIdAnalyticsRouteImport } from './routes/_app/clients/$clientId/analytics'
-import { Route as ApiPublicWhatsappWebhookAccountIdRouteImport } from './routes/api/public/whatsapp/webhook/$accountId'
+import { Route as AppClientsClientIdAutomatizacionRouteImport } from './routes/_app/clients/$clientId/automatizacion'
+import { Route as AppClientsClientIdBackfillRouteImport } from './routes/_app/clients/$clientId/backfill'
+import { Route as AppClientsClientIdBandejaRouteImport } from './routes/_app/clients/$clientId/bandeja'
+import { Route as AppClientsClientIdChatbotRouteImport } from './routes/_app/clients/$clientId/chatbot'
+import { Route as AppClientsClientIdContentRouteImport } from './routes/_app/clients/$clientId/content'
+import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
+import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
+import { Route as AppClientsClientIdFacturacionRouteImport } from './routes/_app/clients/$clientId/facturacion'
+import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
+import { Route as AppClientsClientIdLandingRouteImport } from './routes/_app/clients/$clientId/landing'
+import { Route as AppClientsClientIdLeadsRouteImport } from './routes/_app/clients/$clientId/leads'
+import { Route as AppClientsClientIdMetaAdsRouteImport } from './routes/_app/clients/$clientId/meta-ads'
+import { Route as AppClientsClientIdMultilinkRouteImport } from './routes/_app/clients/$clientId/multilink'
+import { Route as AppClientsClientIdObjectivesRouteImport } from './routes/_app/clients/$clientId/objectives'
+import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/clients/$clientId/payments'
+import { Route as AppClientsClientIdPlanRouteImport } from './routes/_app/clients/$clientId/plan'
+import { Route as AppClientsClientIdSetupRouteImport } from './routes/_app/clients/$clientId/setup'
+import { Route as AppClientsClientIdSitioRouteImport } from './routes/_app/clients/$clientId/sitio'
+import { Route as ApiPublicBillingChargeMonthlyRouteImport } from './routes/api/public/billing/charge-monthly'
+import { Route as ApiPublicFlowConfirmRouteImport } from './routes/api/public/flow/confirm'
+import { Route as ApiPublicFlowReturnRouteImport } from './routes/api/public/flow/return'
+import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
+import { Route as ApiPublicMetaIngestDailyRouteImport } from './routes/api/public/meta/ingest-daily'
+import { Route as ApiPublicWhatsappDispatchRouteImport } from './routes/api/public/whatsapp/dispatch'
 import { Route as ApiPublicMetaOauthCallbackRouteImport } from './routes/api/public/meta/oauth/callback'
+import { Route as ApiPublicWhatsappWebhookAccountIdRouteImport } from './routes/api/public/whatsapp/webhook/$accountId'
 
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PortalRoute = PortalRouteImport.update({
-  id: '/portal',
-  path: '/portal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LandingRoute = LandingRouteImport.update({
-  id: '/landing',
-  path: '/landing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FaqRoute = FaqRouteImport.update({
-  id: '/faq',
-  path: '/faq',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DataDeletionRoute = DataDeletionRouteImport.update({
-  id: '/data-deletion',
-  path: '/data-deletion',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CookiesRoute = CookiesRouteImport.update({
-  id: '/cookies',
-  path: '/cookies',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppRoute = AppRouteImport.update({
-  id: '/_app',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AtChar123slugChar125Route = AtChar123slugChar125RouteImport.update({
@@ -131,60 +87,59 @@ const AtChar123slugChar125Route = AtChar123slugChar125RouteImport.update({
   path: '/@{$slug}',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReviewTokenRoute = ReviewTokenRouteImport.update({
-  id: '/review/$token',
-  path: '/review/$token',
+const CookiesRoute = CookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LSlugRoute = LSlugRouteImport.update({
-  id: '/l/$slug',
-  path: '/l/$slug',
+const DataDeletionRoute = DataDeletionRouteImport.update({
+  id: '/data-deletion',
+  path: '/data-deletion',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BookSlugRoute = BookSlugRouteImport.update({
-  id: '/book/$slug',
-  path: '/book/$slug',
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppStatsRoute = AppStatsRouteImport.update({
-  id: '/stats',
-  path: '/stats',
-  getParentRoute: () => AppRoute,
+const LandingRoute = LandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppReportsRoute = AppReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => AppRoute,
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppProfileRoute = AppProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => AppRoute,
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppPortfolioRoute = AppPortfolioRouteImport.update({
-  id: '/portfolio',
-  path: '/portfolio',
-  getParentRoute: () => AppRoute,
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppDashboardRoute = AppDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AppRoute,
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppCalendarRoute = AppCalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
-  getParentRoute: () => AppRoute,
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppBookingsRoute = AppBookingsRouteImport.update({
-  id: '/bookings',
-  path: '/bookings',
-  getParentRoute: () => AppRoute,
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AtChar123slugChar125LinksRoute =
   AtChar123slugChar125LinksRouteImport.update({
@@ -192,29 +147,104 @@ const AtChar123slugChar125LinksRoute =
     path: '/links',
     getParentRoute: () => AtChar123slugChar125Route,
   } as any)
+const AppBillingRoute = AppBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBookingsRoute = AppBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPortfolioRoute = AppPortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStatsRoute = AppStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => AppRoute,
+} as any)
+const BookSlugRoute = BookSlugRouteImport.update({
+  id: '/book/$slug',
+  path: '/book/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LSlugRoute = LSlugRouteImport.update({
+  id: '/l/$slug',
+  path: '/l/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagoResultadoRoute = PagoResultadoRouteImport.update({
+  id: '/pago/resultado',
+  path: '/pago/resultado',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewTokenRoute = ReviewTokenRouteImport.update({
+  id: '/review/$token',
+  path: '/review/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAdminHealthRoute = AppAdminHealthRouteImport.update({
+  id: '/admin/health',
+  path: '/admin/health',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminMetaDiagnosticsRoute = AppAdminMetaDiagnosticsRouteImport.update({
+  id: '/admin/meta-diagnostics',
+  path: '/admin/meta-diagnostics',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
   id: '/clients/',
   path: '/clients/',
   getParentRoute: () => AppRoute,
 } as any)
-const ApiMetaAdsUpdateRoute = ApiMetaAdsUpdateRouteImport.update({
-  id: '/api/meta-ads/update',
-  path: '/api/meta-ads/update',
-  getParentRoute: () => rootRouteImport,
+const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
+  id: '/clients/$clientId',
+  path: '/clients/$clientId',
+  getParentRoute: () => AppRoute,
 } as any)
-const ApiMetaAdsSyncRoute = ApiMetaAdsSyncRouteImport.update({
-  id: '/api/meta-ads/sync',
-  path: '/api/meta-ads/sync',
-  getParentRoute: () => rootRouteImport,
+const AppClientsConnectRoute = AppClientsConnectRouteImport.update({
+  id: '/clients/connect',
+  path: '/clients/connect',
+  getParentRoute: () => AppRoute,
 } as any)
-const ApiMetaAdsPublishFullRoute = ApiMetaAdsPublishFullRouteImport.update({
-  id: '/api/meta-ads/publish-full',
-  path: '/api/meta-ads/publish-full',
-  getParentRoute: () => rootRouteImport,
+const AppSettingsMetaRoute = AppSettingsMetaRouteImport.update({
+  id: '/settings/meta',
+  path: '/settings/meta',
+  getParentRoute: () => AppRoute,
 } as any)
-const ApiMetaAdsDiscoverRoute = ApiMetaAdsDiscoverRouteImport.update({
-  id: '/api/meta-ads/discover',
-  path: '/api/meta-ads/discover',
+const AppSettingsPricingRoute = AppSettingsPricingRouteImport.update({
+  id: '/settings/pricing',
+  path: '/settings/pricing',
+  getParentRoute: () => AppRoute,
+} as any)
+const ApiMetaAdsArchiveRoute = ApiMetaAdsArchiveRouteImport.update({
+  id: '/api/meta-ads/archive',
+  path: '/api/meta-ads/archive',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMetaAdsCreateCampaignRoute =
@@ -223,160 +253,35 @@ const ApiMetaAdsCreateCampaignRoute =
     path: '/api/meta-ads/create-campaign',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiMetaAdsArchiveRoute = ApiMetaAdsArchiveRouteImport.update({
-  id: '/api/meta-ads/archive',
-  path: '/api/meta-ads/archive',
+const ApiMetaAdsDiscoverRoute = ApiMetaAdsDiscoverRouteImport.update({
+  id: '/api/meta-ads/discover',
+  path: '/api/meta-ads/discover',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppSettingsPricingRoute = AppSettingsPricingRouteImport.update({
-  id: '/settings/pricing',
-  path: '/settings/pricing',
-  getParentRoute: () => AppRoute,
+const ApiMetaAdsPublishFullRoute = ApiMetaAdsPublishFullRouteImport.update({
+  id: '/api/meta-ads/publish-full',
+  path: '/api/meta-ads/publish-full',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppSettingsMetaRoute = AppSettingsMetaRouteImport.update({
-  id: '/settings/meta',
-  path: '/settings/meta',
-  getParentRoute: () => AppRoute,
+const ApiMetaAdsSyncRoute = ApiMetaAdsSyncRouteImport.update({
+  id: '/api/meta-ads/sync',
+  path: '/api/meta-ads/sync',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppClientsConnectRoute = AppClientsConnectRouteImport.update({
-  id: '/clients/connect',
-  path: '/clients/connect',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
-  id: '/clients/$clientId',
-  path: '/clients/$clientId',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAdminMetaDiagnosticsRoute = AppAdminMetaDiagnosticsRouteImport.update({
-  id: '/admin/meta-diagnostics',
-  path: '/admin/meta-diagnostics',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAdminHealthRoute = AppAdminHealthRouteImport.update({
-  id: '/admin/health',
-  path: '/admin/health',
-  getParentRoute: () => AppRoute,
+const ApiMetaAdsUpdateRoute = ApiMetaAdsUpdateRouteImport.update({
+  id: '/api/meta-ads/update',
+  path: '/api/meta-ads/update',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppClientsClientIdIndexRoute = AppClientsClientIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppClientsClientIdRoute,
 } as any)
-const ApiPublicWhatsappDispatchRoute =
-  ApiPublicWhatsappDispatchRouteImport.update({
-    id: '/api/public/whatsapp/dispatch',
-    path: '/api/public/whatsapp/dispatch',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicMetaIngestDailyRoute =
-  ApiPublicMetaIngestDailyRouteImport.update({
-    id: '/api/public/meta/ingest-daily',
-    path: '/api/public/meta/ingest-daily',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicInstagramWebhookRoute =
-  ApiPublicInstagramWebhookRouteImport.update({
-    id: '/api/public/instagram/webhook',
-    path: '/api/public/instagram/webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AppClientsClientIdSitioRoute = AppClientsClientIdSitioRouteImport.update({
-  id: '/sitio',
-  path: '/sitio',
-  getParentRoute: () => AppClientsClientIdRoute,
-} as any)
-const AppClientsClientIdSetupRoute = AppClientsClientIdSetupRouteImport.update({
-  id: '/setup',
-  path: '/setup',
-  getParentRoute: () => AppClientsClientIdRoute,
-} as any)
-const AppClientsClientIdPlanRoute = AppClientsClientIdPlanRouteImport.update({
-  id: '/plan',
-  path: '/plan',
-  getParentRoute: () => AppClientsClientIdRoute,
-} as any)
-const AppClientsClientIdPaymentsRoute =
-  AppClientsClientIdPaymentsRouteImport.update({
-    id: '/payments',
-    path: '/payments',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdObjectivesRoute =
-  AppClientsClientIdObjectivesRouteImport.update({
-    id: '/objectives',
-    path: '/objectives',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdMultilinkRoute =
-  AppClientsClientIdMultilinkRouteImport.update({
-    id: '/multilink',
-    path: '/multilink',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdMetaAdsRoute =
-  AppClientsClientIdMetaAdsRouteImport.update({
-    id: '/meta-ads',
-    path: '/meta-ads',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdLeadsRoute = AppClientsClientIdLeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
-  getParentRoute: () => AppClientsClientIdRoute,
-} as any)
-const AppClientsClientIdLandingRoute =
-  AppClientsClientIdLandingRouteImport.update({
-    id: '/landing',
-    path: '/landing',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdInstagramRoute =
-  AppClientsClientIdInstagramRouteImport.update({
-    id: '/instagram',
-    path: '/instagram',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdFacturacionRoute =
-  AppClientsClientIdFacturacionRouteImport.update({
-    id: '/facturacion',
-    path: '/facturacion',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdDeliverablesRoute =
-  AppClientsClientIdDeliverablesRouteImport.update({
-    id: '/deliverables',
-    path: '/deliverables',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdContractsRoute =
-  AppClientsClientIdContractsRouteImport.update({
-    id: '/contracts',
-    path: '/contracts',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdContentRoute =
-  AppClientsClientIdContentRouteImport.update({
-    id: '/content',
-    path: '/content',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdChatbotRoute =
-  AppClientsClientIdChatbotRouteImport.update({
-    id: '/chatbot',
-    path: '/chatbot',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdBandejaRoute =
-  AppClientsClientIdBandejaRouteImport.update({
-    id: '/bandeja',
-    path: '/bandeja',
-    getParentRoute: () => AppClientsClientIdRoute,
-  } as any)
-const AppClientsClientIdBackfillRoute =
-  AppClientsClientIdBackfillRouteImport.update({
-    id: '/backfill',
-    path: '/backfill',
+const AppClientsClientIdAnalyticsRoute =
+  AppClientsClientIdAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
 const AppClientsClientIdAutomatizacionRoute =
@@ -385,22 +290,148 @@ const AppClientsClientIdAutomatizacionRoute =
     path: '/automatizacion',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
-const AppClientsClientIdAnalyticsRoute =
-  AppClientsClientIdAnalyticsRouteImport.update({
-    id: '/analytics',
-    path: '/analytics',
+const AppClientsClientIdBackfillRoute =
+  AppClientsClientIdBackfillRouteImport.update({
+    id: '/backfill',
+    path: '/backfill',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
-const ApiPublicWhatsappWebhookAccountIdRoute =
-  ApiPublicWhatsappWebhookAccountIdRouteImport.update({
-    id: '/api/public/whatsapp/webhook/$accountId',
-    path: '/api/public/whatsapp/webhook/$accountId',
+const AppClientsClientIdBandejaRoute =
+  AppClientsClientIdBandejaRouteImport.update({
+    id: '/bandeja',
+    path: '/bandeja',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdChatbotRoute =
+  AppClientsClientIdChatbotRouteImport.update({
+    id: '/chatbot',
+    path: '/chatbot',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdContentRoute =
+  AppClientsClientIdContentRouteImport.update({
+    id: '/content',
+    path: '/content',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdContractsRoute =
+  AppClientsClientIdContractsRouteImport.update({
+    id: '/contracts',
+    path: '/contracts',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdDeliverablesRoute =
+  AppClientsClientIdDeliverablesRouteImport.update({
+    id: '/deliverables',
+    path: '/deliverables',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdFacturacionRoute =
+  AppClientsClientIdFacturacionRouteImport.update({
+    id: '/facturacion',
+    path: '/facturacion',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdInstagramRoute =
+  AppClientsClientIdInstagramRouteImport.update({
+    id: '/instagram',
+    path: '/instagram',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdLandingRoute =
+  AppClientsClientIdLandingRouteImport.update({
+    id: '/landing',
+    path: '/landing',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdLeadsRoute = AppClientsClientIdLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AppClientsClientIdRoute,
+} as any)
+const AppClientsClientIdMetaAdsRoute =
+  AppClientsClientIdMetaAdsRouteImport.update({
+    id: '/meta-ads',
+    path: '/meta-ads',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdMultilinkRoute =
+  AppClientsClientIdMultilinkRouteImport.update({
+    id: '/multilink',
+    path: '/multilink',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdObjectivesRoute =
+  AppClientsClientIdObjectivesRouteImport.update({
+    id: '/objectives',
+    path: '/objectives',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdPaymentsRoute =
+  AppClientsClientIdPaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdPlanRoute = AppClientsClientIdPlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
+  getParentRoute: () => AppClientsClientIdRoute,
+} as any)
+const AppClientsClientIdSetupRoute = AppClientsClientIdSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => AppClientsClientIdRoute,
+} as any)
+const AppClientsClientIdSitioRoute = AppClientsClientIdSitioRouteImport.update({
+  id: '/sitio',
+  path: '/sitio',
+  getParentRoute: () => AppClientsClientIdRoute,
+} as any)
+const ApiPublicBillingChargeMonthlyRoute =
+  ApiPublicBillingChargeMonthlyRouteImport.update({
+    id: '/api/public/billing/charge-monthly',
+    path: '/api/public/billing/charge-monthly',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicFlowConfirmRoute = ApiPublicFlowConfirmRouteImport.update({
+  id: '/api/public/flow/confirm',
+  path: '/api/public/flow/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicFlowReturnRoute = ApiPublicFlowReturnRouteImport.update({
+  id: '/api/public/flow/return',
+  path: '/api/public/flow/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicInstagramWebhookRoute =
+  ApiPublicInstagramWebhookRouteImport.update({
+    id: '/api/public/instagram/webhook',
+    path: '/api/public/instagram/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicMetaIngestDailyRoute =
+  ApiPublicMetaIngestDailyRouteImport.update({
+    id: '/api/public/meta/ingest-daily',
+    path: '/api/public/meta/ingest-daily',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWhatsappDispatchRoute =
+  ApiPublicWhatsappDispatchRouteImport.update({
+    id: '/api/public/whatsapp/dispatch',
+    path: '/api/public/whatsapp/dispatch',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicMetaOauthCallbackRoute =
   ApiPublicMetaOauthCallbackRouteImport.update({
     id: '/api/public/meta/oauth/callback',
     path: '/api/public/meta/oauth/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWhatsappWebhookAccountIdRoute =
+  ApiPublicWhatsappWebhookAccountIdRouteImport.update({
+    id: '/api/public/whatsapp/webhook/$accountId',
+    path: '/api/public/whatsapp/webhook/$accountId',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -418,6 +449,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
+  '/billing': typeof AppBillingRoute
   '/bookings': typeof AppBookingsRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
@@ -427,6 +459,7 @@ export interface FileRoutesByFullPath {
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/pago/resultado': typeof PagoResultadoRoute
   '/review/$token': typeof ReviewTokenRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
@@ -460,6 +493,9 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
   '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
+  '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
+  '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
+  '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
@@ -481,6 +517,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
+  '/billing': typeof AppBillingRoute
   '/bookings': typeof AppBookingsRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
@@ -490,6 +527,7 @@ export interface FileRoutesByTo {
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/pago/resultado': typeof PagoResultadoRoute
   '/review/$token': typeof ReviewTokenRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
@@ -522,6 +560,9 @@ export interface FileRoutesByTo {
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
   '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
+  '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
+  '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
+  '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
@@ -545,6 +586,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
+  '/_app/billing': typeof AppBillingRoute
   '/_app/bookings': typeof AppBookingsRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
@@ -554,6 +596,7 @@ export interface FileRoutesById {
   '/_app/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/pago/resultado': typeof PagoResultadoRoute
   '/review/$token': typeof ReviewTokenRoute
   '/_app/admin/health': typeof AppAdminHealthRoute
   '/_app/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
@@ -587,6 +630,9 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
   '/_app/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/_app/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
+  '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
+  '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
+  '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
@@ -610,6 +656,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/@{$slug}/links'
+    | '/billing'
     | '/bookings'
     | '/calendar'
     | '/dashboard'
@@ -619,6 +666,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/pago/resultado'
     | '/review/$token'
     | '/admin/health'
     | '/admin/meta-diagnostics'
@@ -652,6 +700,9 @@ export interface FileRouteTypes {
     | '/clients/$clientId/plan'
     | '/clients/$clientId/setup'
     | '/clients/$clientId/sitio'
+    | '/api/public/billing/charge-monthly'
+    | '/api/public/flow/confirm'
+    | '/api/public/flow/return'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
     | '/api/public/whatsapp/dispatch'
@@ -673,6 +724,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/@{$slug}/links'
+    | '/billing'
     | '/bookings'
     | '/calendar'
     | '/dashboard'
@@ -682,6 +734,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/pago/resultado'
     | '/review/$token'
     | '/admin/health'
     | '/admin/meta-diagnostics'
@@ -714,6 +767,9 @@ export interface FileRouteTypes {
     | '/clients/$clientId/plan'
     | '/clients/$clientId/setup'
     | '/clients/$clientId/sitio'
+    | '/api/public/billing/charge-monthly'
+    | '/api/public/flow/confirm'
+    | '/api/public/flow/return'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
     | '/api/public/whatsapp/dispatch'
@@ -736,6 +792,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/@{$slug}/links'
+    | '/_app/billing'
     | '/_app/bookings'
     | '/_app/calendar'
     | '/_app/dashboard'
@@ -745,6 +802,7 @@ export interface FileRouteTypes {
     | '/_app/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/pago/resultado'
     | '/review/$token'
     | '/_app/admin/health'
     | '/_app/admin/meta-diagnostics'
@@ -778,6 +836,9 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/plan'
     | '/_app/clients/$clientId/setup'
     | '/_app/clients/$clientId/sitio'
+    | '/api/public/billing/charge-monthly'
+    | '/api/public/flow/confirm'
+    | '/api/public/flow/return'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
     | '/api/public/whatsapp/dispatch'
@@ -802,6 +863,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   BookSlugRoute: typeof BookSlugRoute
   LSlugRoute: typeof LSlugRoute
+  PagoResultadoRoute: typeof PagoResultadoRoute
   ReviewTokenRoute: typeof ReviewTokenRoute
   ApiMetaAdsArchiveRoute: typeof ApiMetaAdsArchiveRoute
   ApiMetaAdsCreateCampaignRoute: typeof ApiMetaAdsCreateCampaignRoute
@@ -809,6 +871,9 @@ export interface RootRouteChildren {
   ApiMetaAdsPublishFullRoute: typeof ApiMetaAdsPublishFullRoute
   ApiMetaAdsSyncRoute: typeof ApiMetaAdsSyncRoute
   ApiMetaAdsUpdateRoute: typeof ApiMetaAdsUpdateRoute
+  ApiPublicBillingChargeMonthlyRoute: typeof ApiPublicBillingChargeMonthlyRoute
+  ApiPublicFlowConfirmRoute: typeof ApiPublicFlowConfirmRoute
+  ApiPublicFlowReturnRoute: typeof ApiPublicFlowReturnRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicMetaIngestDailyRoute: typeof ApiPublicMetaIngestDailyRoute
   ApiPublicWhatsappDispatchRoute: typeof ApiPublicWhatsappDispatchRoute
@@ -818,81 +883,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/portal': {
-      id: '/portal'
-      path: '/portal'
-      fullPath: '/portal'
-      preLoaderRoute: typeof PortalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/landing': {
-      id: '/landing'
-      path: '/landing'
-      fullPath: '/landing'
-      preLoaderRoute: typeof LandingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/faq': {
-      id: '/faq'
-      path: '/faq'
-      fullPath: '/faq'
-      preLoaderRoute: typeof FaqRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/data-deletion': {
-      id: '/data-deletion'
-      path: '/data-deletion'
-      fullPath: '/data-deletion'
-      preLoaderRoute: typeof DataDeletionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cookies': {
-      id: '/cookies'
-      path: '/cookies'
-      fullPath: '/cookies'
-      preLoaderRoute: typeof CookiesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app': {
-      id: '/_app'
-      path: ''
+    '/': {
+      id: '/'
+      path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AppRouteImport
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/@{$slug}': {
@@ -902,74 +897,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AtChar123slugChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/review/$token': {
-      id: '/review/$token'
-      path: '/review/$token'
-      fullPath: '/review/$token'
-      preLoaderRoute: typeof ReviewTokenRouteImport
+    '/cookies': {
+      id: '/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof CookiesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/l/$slug': {
-      id: '/l/$slug'
-      path: '/l/$slug'
-      fullPath: '/l/$slug'
-      preLoaderRoute: typeof LSlugRouteImport
+    '/data-deletion': {
+      id: '/data-deletion'
+      path: '/data-deletion'
+      fullPath: '/data-deletion'
+      preLoaderRoute: typeof DataDeletionRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/book/$slug': {
-      id: '/book/$slug'
-      path: '/book/$slug'
-      fullPath: '/book/$slug'
-      preLoaderRoute: typeof BookSlugRouteImport
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/stats': {
-      id: '/_app/stats'
-      path: '/stats'
-      fullPath: '/stats'
-      preLoaderRoute: typeof AppStatsRouteImport
-      parentRoute: typeof AppRoute
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/reports': {
-      id: '/_app/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof AppReportsRouteImport
-      parentRoute: typeof AppRoute
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/profile': {
-      id: '/_app/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof AppProfileRouteImport
-      parentRoute: typeof AppRoute
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/portfolio': {
-      id: '/_app/portfolio'
-      path: '/portfolio'
-      fullPath: '/portfolio'
-      preLoaderRoute: typeof AppPortfolioRouteImport
-      parentRoute: typeof AppRoute
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/dashboard': {
-      id: '/_app/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AppDashboardRouteImport
-      parentRoute: typeof AppRoute
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/calendar': {
-      id: '/_app/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof AppCalendarRouteImport
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@{$slug}/links': {
+      id: '/@{$slug}/links'
+      path: '/links'
+      fullPath: '/@{$slug}/links'
+      preLoaderRoute: typeof AtChar123slugChar125LinksRouteImport
+      parentRoute: typeof AtChar123slugChar125Route
+    }
+    '/_app/billing': {
+      id: '/_app/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AppBillingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/bookings': {
@@ -979,88 +995,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBookingsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/@{$slug}/links': {
-      id: '/@{$slug}/links'
-      path: '/links'
-      fullPath: '/@{$slug}/links'
-      preLoaderRoute: typeof AtChar123slugChar125LinksRouteImport
-      parentRoute: typeof AtChar123slugChar125Route
-    }
-    '/_app/clients/': {
-      id: '/_app/clients/'
-      path: '/clients'
-      fullPath: '/clients/'
-      preLoaderRoute: typeof AppClientsIndexRouteImport
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
-    '/api/meta-ads/update': {
-      id: '/api/meta-ads/update'
-      path: '/api/meta-ads/update'
-      fullPath: '/api/meta-ads/update'
-      preLoaderRoute: typeof ApiMetaAdsUpdateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/meta-ads/sync': {
-      id: '/api/meta-ads/sync'
-      path: '/api/meta-ads/sync'
-      fullPath: '/api/meta-ads/sync'
-      preLoaderRoute: typeof ApiMetaAdsSyncRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/meta-ads/publish-full': {
-      id: '/api/meta-ads/publish-full'
-      path: '/api/meta-ads/publish-full'
-      fullPath: '/api/meta-ads/publish-full'
-      preLoaderRoute: typeof ApiMetaAdsPublishFullRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/meta-ads/discover': {
-      id: '/api/meta-ads/discover'
-      path: '/api/meta-ads/discover'
-      fullPath: '/api/meta-ads/discover'
-      preLoaderRoute: typeof ApiMetaAdsDiscoverRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/meta-ads/create-campaign': {
-      id: '/api/meta-ads/create-campaign'
-      path: '/api/meta-ads/create-campaign'
-      fullPath: '/api/meta-ads/create-campaign'
-      preLoaderRoute: typeof ApiMetaAdsCreateCampaignRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/meta-ads/archive': {
-      id: '/api/meta-ads/archive'
-      path: '/api/meta-ads/archive'
-      fullPath: '/api/meta-ads/archive'
-      preLoaderRoute: typeof ApiMetaAdsArchiveRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app/settings/pricing': {
-      id: '/_app/settings/pricing'
-      path: '/settings/pricing'
-      fullPath: '/settings/pricing'
-      preLoaderRoute: typeof AppSettingsPricingRouteImport
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/settings/meta': {
-      id: '/_app/settings/meta'
-      path: '/settings/meta'
-      fullPath: '/settings/meta'
-      preLoaderRoute: typeof AppSettingsMetaRouteImport
+    '/_app/portfolio': {
+      id: '/_app/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof AppPortfolioRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/clients/connect': {
-      id: '/_app/clients/connect'
-      path: '/clients/connect'
-      fullPath: '/clients/connect'
-      preLoaderRoute: typeof AppClientsConnectRouteImport
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/clients/$clientId': {
-      id: '/_app/clients/$clientId'
-      path: '/clients/$clientId'
-      fullPath: '/clients/$clientId'
-      preLoaderRoute: typeof AppClientsClientIdRouteImport
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/stats': {
+      id: '/_app/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof AppStatsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/book/$slug': {
+      id: '/book/$slug'
+      path: '/book/$slug'
+      fullPath: '/book/$slug'
+      preLoaderRoute: typeof BookSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/l/$slug': {
+      id: '/l/$slug'
+      path: '/l/$slug'
+      fullPath: '/l/$slug'
+      preLoaderRoute: typeof LSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pago/resultado': {
+      id: '/pago/resultado'
+      path: '/pago/resultado'
+      fullPath: '/pago/resultado'
+      preLoaderRoute: typeof PagoResultadoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/review/$token': {
+      id: '/review/$token'
+      path: '/review/$token'
+      fullPath: '/review/$token'
+      preLoaderRoute: typeof ReviewTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/admin/health': {
+      id: '/_app/admin/health'
+      path: '/admin/health'
+      fullPath: '/admin/health'
+      preLoaderRoute: typeof AppAdminHealthRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/admin/meta-diagnostics': {
@@ -1070,165 +1079,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminMetaDiagnosticsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/admin/health': {
-      id: '/_app/admin/health'
-      path: '/admin/health'
-      fullPath: '/admin/health'
-      preLoaderRoute: typeof AppAdminHealthRouteImport
+    '/_app/clients/': {
+      id: '/_app/clients/'
+      path: '/clients'
+      fullPath: '/clients/'
+      preLoaderRoute: typeof AppClientsIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/clients/$clientId': {
+      id: '/_app/clients/$clientId'
+      path: '/clients/$clientId'
+      fullPath: '/clients/$clientId'
+      preLoaderRoute: typeof AppClientsClientIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/clients/connect': {
+      id: '/_app/clients/connect'
+      path: '/clients/connect'
+      fullPath: '/clients/connect'
+      preLoaderRoute: typeof AppClientsConnectRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings/meta': {
+      id: '/_app/settings/meta'
+      path: '/settings/meta'
+      fullPath: '/settings/meta'
+      preLoaderRoute: typeof AppSettingsMetaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings/pricing': {
+      id: '/_app/settings/pricing'
+      path: '/settings/pricing'
+      fullPath: '/settings/pricing'
+      preLoaderRoute: typeof AppSettingsPricingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/api/meta-ads/archive': {
+      id: '/api/meta-ads/archive'
+      path: '/api/meta-ads/archive'
+      fullPath: '/api/meta-ads/archive'
+      preLoaderRoute: typeof ApiMetaAdsArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/meta-ads/create-campaign': {
+      id: '/api/meta-ads/create-campaign'
+      path: '/api/meta-ads/create-campaign'
+      fullPath: '/api/meta-ads/create-campaign'
+      preLoaderRoute: typeof ApiMetaAdsCreateCampaignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/meta-ads/discover': {
+      id: '/api/meta-ads/discover'
+      path: '/api/meta-ads/discover'
+      fullPath: '/api/meta-ads/discover'
+      preLoaderRoute: typeof ApiMetaAdsDiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/meta-ads/publish-full': {
+      id: '/api/meta-ads/publish-full'
+      path: '/api/meta-ads/publish-full'
+      fullPath: '/api/meta-ads/publish-full'
+      preLoaderRoute: typeof ApiMetaAdsPublishFullRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/meta-ads/sync': {
+      id: '/api/meta-ads/sync'
+      path: '/api/meta-ads/sync'
+      fullPath: '/api/meta-ads/sync'
+      preLoaderRoute: typeof ApiMetaAdsSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/meta-ads/update': {
+      id: '/api/meta-ads/update'
+      path: '/api/meta-ads/update'
+      fullPath: '/api/meta-ads/update'
+      preLoaderRoute: typeof ApiMetaAdsUpdateRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/clients/$clientId/': {
       id: '/_app/clients/$clientId/'
       path: '/'
       fullPath: '/clients/$clientId/'
       preLoaderRoute: typeof AppClientsClientIdIndexRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/api/public/whatsapp/dispatch': {
-      id: '/api/public/whatsapp/dispatch'
-      path: '/api/public/whatsapp/dispatch'
-      fullPath: '/api/public/whatsapp/dispatch'
-      preLoaderRoute: typeof ApiPublicWhatsappDispatchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/meta/ingest-daily': {
-      id: '/api/public/meta/ingest-daily'
-      path: '/api/public/meta/ingest-daily'
-      fullPath: '/api/public/meta/ingest-daily'
-      preLoaderRoute: typeof ApiPublicMetaIngestDailyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/instagram/webhook': {
-      id: '/api/public/instagram/webhook'
-      path: '/api/public/instagram/webhook'
-      fullPath: '/api/public/instagram/webhook'
-      preLoaderRoute: typeof ApiPublicInstagramWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app/clients/$clientId/sitio': {
-      id: '/_app/clients/$clientId/sitio'
-      path: '/sitio'
-      fullPath: '/clients/$clientId/sitio'
-      preLoaderRoute: typeof AppClientsClientIdSitioRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/setup': {
-      id: '/_app/clients/$clientId/setup'
-      path: '/setup'
-      fullPath: '/clients/$clientId/setup'
-      preLoaderRoute: typeof AppClientsClientIdSetupRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/plan': {
-      id: '/_app/clients/$clientId/plan'
-      path: '/plan'
-      fullPath: '/clients/$clientId/plan'
-      preLoaderRoute: typeof AppClientsClientIdPlanRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/payments': {
-      id: '/_app/clients/$clientId/payments'
-      path: '/payments'
-      fullPath: '/clients/$clientId/payments'
-      preLoaderRoute: typeof AppClientsClientIdPaymentsRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/objectives': {
-      id: '/_app/clients/$clientId/objectives'
-      path: '/objectives'
-      fullPath: '/clients/$clientId/objectives'
-      preLoaderRoute: typeof AppClientsClientIdObjectivesRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/multilink': {
-      id: '/_app/clients/$clientId/multilink'
-      path: '/multilink'
-      fullPath: '/clients/$clientId/multilink'
-      preLoaderRoute: typeof AppClientsClientIdMultilinkRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/meta-ads': {
-      id: '/_app/clients/$clientId/meta-ads'
-      path: '/meta-ads'
-      fullPath: '/clients/$clientId/meta-ads'
-      preLoaderRoute: typeof AppClientsClientIdMetaAdsRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/leads': {
-      id: '/_app/clients/$clientId/leads'
-      path: '/leads'
-      fullPath: '/clients/$clientId/leads'
-      preLoaderRoute: typeof AppClientsClientIdLeadsRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/landing': {
-      id: '/_app/clients/$clientId/landing'
-      path: '/landing'
-      fullPath: '/clients/$clientId/landing'
-      preLoaderRoute: typeof AppClientsClientIdLandingRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/instagram': {
-      id: '/_app/clients/$clientId/instagram'
-      path: '/instagram'
-      fullPath: '/clients/$clientId/instagram'
-      preLoaderRoute: typeof AppClientsClientIdInstagramRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/facturacion': {
-      id: '/_app/clients/$clientId/facturacion'
-      path: '/facturacion'
-      fullPath: '/clients/$clientId/facturacion'
-      preLoaderRoute: typeof AppClientsClientIdFacturacionRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/deliverables': {
-      id: '/_app/clients/$clientId/deliverables'
-      path: '/deliverables'
-      fullPath: '/clients/$clientId/deliverables'
-      preLoaderRoute: typeof AppClientsClientIdDeliverablesRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/contracts': {
-      id: '/_app/clients/$clientId/contracts'
-      path: '/contracts'
-      fullPath: '/clients/$clientId/contracts'
-      preLoaderRoute: typeof AppClientsClientIdContractsRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/content': {
-      id: '/_app/clients/$clientId/content'
-      path: '/content'
-      fullPath: '/clients/$clientId/content'
-      preLoaderRoute: typeof AppClientsClientIdContentRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/chatbot': {
-      id: '/_app/clients/$clientId/chatbot'
-      path: '/chatbot'
-      fullPath: '/clients/$clientId/chatbot'
-      preLoaderRoute: typeof AppClientsClientIdChatbotRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/bandeja': {
-      id: '/_app/clients/$clientId/bandeja'
-      path: '/bandeja'
-      fullPath: '/clients/$clientId/bandeja'
-      preLoaderRoute: typeof AppClientsClientIdBandejaRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/backfill': {
-      id: '/_app/clients/$clientId/backfill'
-      path: '/backfill'
-      fullPath: '/clients/$clientId/backfill'
-      preLoaderRoute: typeof AppClientsClientIdBackfillRouteImport
-      parentRoute: typeof AppClientsClientIdRoute
-    }
-    '/_app/clients/$clientId/automatizacion': {
-      id: '/_app/clients/$clientId/automatizacion'
-      path: '/automatizacion'
-      fullPath: '/clients/$clientId/automatizacion'
-      preLoaderRoute: typeof AppClientsClientIdAutomatizacionRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
     '/_app/clients/$clientId/analytics': {
@@ -1238,11 +1170,172 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdAnalyticsRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
-    '/api/public/whatsapp/webhook/$accountId': {
-      id: '/api/public/whatsapp/webhook/$accountId'
-      path: '/api/public/whatsapp/webhook/$accountId'
-      fullPath: '/api/public/whatsapp/webhook/$accountId'
-      preLoaderRoute: typeof ApiPublicWhatsappWebhookAccountIdRouteImport
+    '/_app/clients/$clientId/automatizacion': {
+      id: '/_app/clients/$clientId/automatizacion'
+      path: '/automatizacion'
+      fullPath: '/clients/$clientId/automatizacion'
+      preLoaderRoute: typeof AppClientsClientIdAutomatizacionRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/backfill': {
+      id: '/_app/clients/$clientId/backfill'
+      path: '/backfill'
+      fullPath: '/clients/$clientId/backfill'
+      preLoaderRoute: typeof AppClientsClientIdBackfillRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/bandeja': {
+      id: '/_app/clients/$clientId/bandeja'
+      path: '/bandeja'
+      fullPath: '/clients/$clientId/bandeja'
+      preLoaderRoute: typeof AppClientsClientIdBandejaRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/chatbot': {
+      id: '/_app/clients/$clientId/chatbot'
+      path: '/chatbot'
+      fullPath: '/clients/$clientId/chatbot'
+      preLoaderRoute: typeof AppClientsClientIdChatbotRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/content': {
+      id: '/_app/clients/$clientId/content'
+      path: '/content'
+      fullPath: '/clients/$clientId/content'
+      preLoaderRoute: typeof AppClientsClientIdContentRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/contracts': {
+      id: '/_app/clients/$clientId/contracts'
+      path: '/contracts'
+      fullPath: '/clients/$clientId/contracts'
+      preLoaderRoute: typeof AppClientsClientIdContractsRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/deliverables': {
+      id: '/_app/clients/$clientId/deliverables'
+      path: '/deliverables'
+      fullPath: '/clients/$clientId/deliverables'
+      preLoaderRoute: typeof AppClientsClientIdDeliverablesRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/facturacion': {
+      id: '/_app/clients/$clientId/facturacion'
+      path: '/facturacion'
+      fullPath: '/clients/$clientId/facturacion'
+      preLoaderRoute: typeof AppClientsClientIdFacturacionRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/instagram': {
+      id: '/_app/clients/$clientId/instagram'
+      path: '/instagram'
+      fullPath: '/clients/$clientId/instagram'
+      preLoaderRoute: typeof AppClientsClientIdInstagramRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/landing': {
+      id: '/_app/clients/$clientId/landing'
+      path: '/landing'
+      fullPath: '/clients/$clientId/landing'
+      preLoaderRoute: typeof AppClientsClientIdLandingRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/leads': {
+      id: '/_app/clients/$clientId/leads'
+      path: '/leads'
+      fullPath: '/clients/$clientId/leads'
+      preLoaderRoute: typeof AppClientsClientIdLeadsRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/meta-ads': {
+      id: '/_app/clients/$clientId/meta-ads'
+      path: '/meta-ads'
+      fullPath: '/clients/$clientId/meta-ads'
+      preLoaderRoute: typeof AppClientsClientIdMetaAdsRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/multilink': {
+      id: '/_app/clients/$clientId/multilink'
+      path: '/multilink'
+      fullPath: '/clients/$clientId/multilink'
+      preLoaderRoute: typeof AppClientsClientIdMultilinkRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/objectives': {
+      id: '/_app/clients/$clientId/objectives'
+      path: '/objectives'
+      fullPath: '/clients/$clientId/objectives'
+      preLoaderRoute: typeof AppClientsClientIdObjectivesRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/payments': {
+      id: '/_app/clients/$clientId/payments'
+      path: '/payments'
+      fullPath: '/clients/$clientId/payments'
+      preLoaderRoute: typeof AppClientsClientIdPaymentsRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/plan': {
+      id: '/_app/clients/$clientId/plan'
+      path: '/plan'
+      fullPath: '/clients/$clientId/plan'
+      preLoaderRoute: typeof AppClientsClientIdPlanRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/setup': {
+      id: '/_app/clients/$clientId/setup'
+      path: '/setup'
+      fullPath: '/clients/$clientId/setup'
+      preLoaderRoute: typeof AppClientsClientIdSetupRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/sitio': {
+      id: '/_app/clients/$clientId/sitio'
+      path: '/sitio'
+      fullPath: '/clients/$clientId/sitio'
+      preLoaderRoute: typeof AppClientsClientIdSitioRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/api/public/billing/charge-monthly': {
+      id: '/api/public/billing/charge-monthly'
+      path: '/api/public/billing/charge-monthly'
+      fullPath: '/api/public/billing/charge-monthly'
+      preLoaderRoute: typeof ApiPublicBillingChargeMonthlyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/flow/confirm': {
+      id: '/api/public/flow/confirm'
+      path: '/api/public/flow/confirm'
+      fullPath: '/api/public/flow/confirm'
+      preLoaderRoute: typeof ApiPublicFlowConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/flow/return': {
+      id: '/api/public/flow/return'
+      path: '/api/public/flow/return'
+      fullPath: '/api/public/flow/return'
+      preLoaderRoute: typeof ApiPublicFlowReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/instagram/webhook': {
+      id: '/api/public/instagram/webhook'
+      path: '/api/public/instagram/webhook'
+      fullPath: '/api/public/instagram/webhook'
+      preLoaderRoute: typeof ApiPublicInstagramWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/meta/ingest-daily': {
+      id: '/api/public/meta/ingest-daily'
+      path: '/api/public/meta/ingest-daily'
+      fullPath: '/api/public/meta/ingest-daily'
+      preLoaderRoute: typeof ApiPublicMetaIngestDailyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/whatsapp/dispatch': {
+      id: '/api/public/whatsapp/dispatch'
+      path: '/api/public/whatsapp/dispatch'
+      fullPath: '/api/public/whatsapp/dispatch'
+      preLoaderRoute: typeof ApiPublicWhatsappDispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/meta/oauth/callback': {
@@ -1250,6 +1343,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/meta/oauth/callback'
       fullPath: '/api/public/meta/oauth/callback'
       preLoaderRoute: typeof ApiPublicMetaOauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/whatsapp/webhook/$accountId': {
+      id: '/api/public/whatsapp/webhook/$accountId'
+      path: '/api/public/whatsapp/webhook/$accountId'
+      fullPath: '/api/public/whatsapp/webhook/$accountId'
+      preLoaderRoute: typeof ApiPublicWhatsappWebhookAccountIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -1316,6 +1416,7 @@ const AppClientsClientIdRouteWithChildren =
   AppClientsClientIdRoute._addFileChildren(AppClientsClientIdRouteChildren)
 
 interface AppRouteChildren {
+  AppBillingRoute: typeof AppBillingRoute
   AppBookingsRoute: typeof AppBookingsRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
@@ -1333,6 +1434,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppBillingRoute: AppBillingRoute,
   AppBookingsRoute: AppBookingsRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
@@ -1367,6 +1469,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   BookSlugRoute: BookSlugRoute,
   LSlugRoute: LSlugRoute,
+  PagoResultadoRoute: PagoResultadoRoute,
   ReviewTokenRoute: ReviewTokenRoute,
   ApiMetaAdsArchiveRoute: ApiMetaAdsArchiveRoute,
   ApiMetaAdsCreateCampaignRoute: ApiMetaAdsCreateCampaignRoute,
@@ -1374,6 +1477,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMetaAdsPublishFullRoute: ApiMetaAdsPublishFullRoute,
   ApiMetaAdsSyncRoute: ApiMetaAdsSyncRoute,
   ApiMetaAdsUpdateRoute: ApiMetaAdsUpdateRoute,
+  ApiPublicBillingChargeMonthlyRoute: ApiPublicBillingChargeMonthlyRoute,
+  ApiPublicFlowConfirmRoute: ApiPublicFlowConfirmRoute,
+  ApiPublicFlowReturnRoute: ApiPublicFlowReturnRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicMetaIngestDailyRoute: ApiPublicMetaIngestDailyRoute,
   ApiPublicWhatsappDispatchRoute: ApiPublicWhatsappDispatchRoute,

@@ -1,0 +1,249 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, Receipt, Repeat, Wallet } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import {
+  EmptyState,
+  ErrorState,
+  Money,
+  MoneyTotals,
+  PageHeader,
+  StatCard,
+  StatusBadge,
+  TableSkeleton,
+} from "@/components/app";
+import { PaymentLinkButton } from "@/components/billing/PaymentLinkButton";
+import {
+  computeTotals,
+  filterRows,
+  isOverdue,
+  loadBillingData,
+  type BillingData,
+  type BillingFilter,
+  type BillingRow,
+} from "@/components/billing/billingData";
+import { periodLabel, todayInChile } from "@/lib/billing/dates";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/_app/billing")({
+  component: BillingPage,
+  head: () => ({
+    meta: [
+      { title: "Cobros · Vibranding" },
+      {
+        name: "description",
+        content: "Todos los cobros de la agencia: vencidos, del mes y por cobrar.",
+      },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
+});
+
+/** RLS oculta filas en vez de fallar: 0 filas afectadas = sin permiso. */
+const NO_PERMISSION = "No tienes permisos para esta acción";
+
+const FILTERS: ReadonlyArray<{ value: BillingFilter; label: string }> = [
+  { value: "vencidos", label: "Vencidos" },
+  { value: "mes", label: "Este mes" },
+  { value: "todos", label: "Todos" },
+];
+
+const DATE_FMT = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeZone: "UTC" });
+const fmtDate = (iso: string | null) =>
+  iso ? DATE_FMT.format(new Date(`${iso.slice(0, 10)}T00:00:00Z`)) : "—";
+
+function BillingPage() {
+  const [data, setData] = useState<BillingData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<BillingFilter>("vencidos");
+  const requestId = useRef(0);
+  const today = todayInChile();
+
+  const load = async () => {
+    const id = ++requestId.current;
+    try {
+      const next = await loadBillingData();
+      if (id !== requestId.current) return;
+      setData(next);
+      setError(null);
+    } catch (e) {
+      if (id !== requestId.current) return;
+      console.error("[billing] error al cargar", e);
+      setError((e as Error).message || "No se pudieron cargar los cobros");
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const totals = useMemo(() => computeTotals(data?.rows ?? [], today), [data, today]);
+  const visible = useMemo(() => filterRows(data?.rows ?? [], filter, today), [data, filter, today]);
+  const loading = data === null && error === null;
+
+  const markPaid = async (row: BillingRow) => {
+    const { data: updated, error: err } = await supabase
+      .from("payments")
+      .update({ status: "paid", paid_at: today, provider: "manual" })
+      .eq("id", row.id)
+      .select("id");
+    if (err) toast.error(`No se pudo actualizar el pago: ${err.message}`);
+    else if (!updated || updated.length === 0) toast.error(NO_PERMISSION);
+    else toast.success("Cobro marcado como pagado");
+    load();
+  };
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 md:px-10">
+      <PageHeader title="Cobros" description="Todos los cobros de tus clientes en un solo lugar." />
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatCard
+          label="Cobrado del mes"
+          icon={CheckCircle2}
+          loading={loading}
+          value={<MoneyTotals totals={totals.collectedThisMonth} />}
+        />
+        <StatCard
+          label="Por cobrar"
+          icon={Wallet}
+          loading={loading}
+          value={<MoneyTotals totals={totals.receivable} />}
+        />
+        <StatCard
+          label="MRR"
+          icon={Repeat}
+          loading={loading}
+          hint="Clientes activos"
+          value={<Money amount={data?.mrr ?? 0} currency="CLP" />}
+        />
+      </div>
+
+      <div role="group" aria-label="Filtrar cobros" className="flex flex-wrap gap-2">
+        {FILTERS.map((f) => (
+          <Button
+            key={f.value}
+            size="sm"
+            variant={filter === f.value ? "default" : "outline"}
+            aria-pressed={filter === f.value}
+            onClick={() => setFilter(f.value)}
+          >
+            {f.label}
+          </Button>
+        ))}
+      </div>
+
+      {loading ? (
+        <TableSkeleton rows={5} columns={6} label="Cargando cobros" />
+      ) : error ? (
+        <ErrorState
+          message={error}
+          onRetry={() => {
+            setError(null);
+            setData(null);
+            load();
+          }}
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          icon={Receipt}
+          title={filter === "vencidos" ? "No hay cobros vencidos." : "Sin cobros para este filtro."}
+          description="Los cobros se registran desde la ficha de cada cliente, en Facturación."
+        />
+      ) : (
+        <BillingTable rows={visible} today={today} onMarkPaid={markPaid} onChanged={load} />
+      )}
+    </div>
+  );
+}
+
+function BillingTable({
+  rows,
+  today,
+  onMarkPaid,
+  onChanged,
+}: {
+  rows: readonly BillingRow[];
+  today: string;
+  onMarkPaid: (row: BillingRow) => void;
+  onChanged: () => void;
+}) {
+  return (
+    <div className="overflow-x-auto rounded-app-lg border border-border-subtle bg-surface shadow-app-xs">
+      <table className="w-full min-w-[860px] text-sm">
+        <thead className="border-b border-border-subtle text-left text-xs text-muted-foreground">
+          <tr>
+            <th scope="col" className="px-4 py-2 font-medium">
+              Cliente
+            </th>
+            <th scope="col" className="px-4 py-2 font-medium">
+              Concepto
+            </th>
+            <th scope="col" className="px-4 py-2 font-medium">
+              Período
+            </th>
+            <th scope="col" className="px-4 py-2 text-right font-medium">
+              Monto
+            </th>
+            <th scope="col" className="px-4 py-2 font-medium">
+              Vencimiento
+            </th>
+            <th scope="col" className="px-4 py-2 font-medium">
+              Estado
+            </th>
+            <th scope="col" className="px-4 py-2 font-medium">
+              <span className="sr-only">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            const late = isOverdue(r, today);
+            const open = r.status === "pending" || r.status === "overdue";
+            return (
+              <tr key={r.id} className="border-b border-border-subtle last:border-0">
+                <td className="px-4 py-3 font-medium">
+                  <Link
+                    to="/clients/$clientId/facturacion"
+                    params={{ clientId: r.client_id }}
+                    search={{ tab: "pagos" }}
+                    className="rounded-app-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {r.client_name}
+                  </Link>
+                </td>
+                <td className="max-w-[220px] truncate px-4 py-3">{r.description || "Cobro"}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {r.period ? periodLabel(r.period) : "—"}
+                </td>
+                <td className="px-4 py-3 text-right font-semibold">
+                  <Money amount={r.amount} currency={r.currency} />
+                </td>
+                <td
+                  className={cn("px-4 py-3", late ? "text-danger-strong" : "text-muted-foreground")}
+                >
+                  {fmtDate(r.due_date)}
+                </td>
+                <td className="px-4 py-3">
+                  <StatusBadge status={late ? "overdue" : r.status} />
+                </td>
+                <td className="px-4 py-3">
+                  {open && (
+                    <div className="flex justify-end gap-2">
+                      <PaymentLinkButton payment={r} onChanged={onChanged} />
+                      <Button size="sm" variant="ghost" onClick={() => onMarkPaid(r)}>
+                        Marcar pagado
+                      </Button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
