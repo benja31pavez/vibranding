@@ -80,6 +80,7 @@ import { Route as ApiPublicFlowConfirmRouteImport } from './routes/api/public/fl
 import { Route as ApiPublicFlowReturnRouteImport } from './routes/api/public/flow/return'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as ApiPublicMetaIngestDailyRouteImport } from './routes/api/public/meta/ingest-daily'
+import { Route as ApiPublicOnboardingCleanupRouteImport } from './routes/api/public/onboarding/cleanup'
 import { Route as ApiPublicReportsMonthlyRouteImport } from './routes/api/public/reports/monthly'
 import { Route as ApiPublicWhatsappDispatchRouteImport } from './routes/api/public/whatsapp/dispatch'
 import { Route as ApiPublicMetaOauthCallbackRouteImport } from './routes/api/public/meta/oauth/callback'
@@ -459,6 +460,12 @@ const ApiPublicMetaIngestDailyRoute =
     path: '/api/public/meta/ingest-daily',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicOnboardingCleanupRoute =
+  ApiPublicOnboardingCleanupRouteImport.update({
+    id: '/api/public/onboarding/cleanup',
+    path: '/api/public/onboarding/cleanup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicReportsMonthlyRoute = ApiPublicReportsMonthlyRouteImport.update({
   id: '/api/public/reports/monthly',
   path: '/api/public/reports/monthly',
@@ -553,6 +560,7 @@ export interface FileRoutesByFullPath {
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
+  '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/clients/$clientId/': typeof AppClientsClientIdIndexRoute
@@ -628,6 +636,7 @@ export interface FileRoutesByTo {
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
+  '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/clients/$clientId': typeof AppClientsClientIdIndexRoute
@@ -706,6 +715,7 @@ export interface FileRoutesById {
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
+  '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/_app/clients/$clientId/': typeof AppClientsClientIdIndexRoute
@@ -784,6 +794,7 @@ export interface FileRouteTypes {
     | '/api/public/flow/return'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
+    | '/api/public/onboarding/cleanup'
     | '/api/public/reports/monthly'
     | '/api/public/whatsapp/dispatch'
     | '/clients/$clientId/'
@@ -859,6 +870,7 @@ export interface FileRouteTypes {
     | '/api/public/flow/return'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
+    | '/api/public/onboarding/cleanup'
     | '/api/public/reports/monthly'
     | '/api/public/whatsapp/dispatch'
     | '/clients/$clientId'
@@ -936,6 +948,7 @@ export interface FileRouteTypes {
     | '/api/public/flow/return'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
+    | '/api/public/onboarding/cleanup'
     | '/api/public/reports/monthly'
     | '/api/public/whatsapp/dispatch'
     | '/_app/clients/$clientId/'
@@ -975,6 +988,7 @@ export interface RootRouteChildren {
   ApiPublicFlowReturnRoute: typeof ApiPublicFlowReturnRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicMetaIngestDailyRoute: typeof ApiPublicMetaIngestDailyRoute
+  ApiPublicOnboardingCleanupRoute: typeof ApiPublicOnboardingCleanupRoute
   ApiPublicReportsMonthlyRoute: typeof ApiPublicReportsMonthlyRoute
   ApiPublicWhatsappDispatchRoute: typeof ApiPublicWhatsappDispatchRoute
   ApiPublicMetaOauthCallbackRoute: typeof ApiPublicMetaOauthCallbackRoute
@@ -1480,6 +1494,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMetaIngestDailyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/onboarding/cleanup': {
+      id: '/api/public/onboarding/cleanup'
+      path: '/api/public/onboarding/cleanup'
+      fullPath: '/api/public/onboarding/cleanup'
+      preLoaderRoute: typeof ApiPublicOnboardingCleanupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/reports/monthly': {
       id: '/api/public/reports/monthly'
       path: '/api/public/reports/monthly'
@@ -1649,6 +1670,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicFlowReturnRoute: ApiPublicFlowReturnRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicMetaIngestDailyRoute: ApiPublicMetaIngestDailyRoute,
+  ApiPublicOnboardingCleanupRoute: ApiPublicOnboardingCleanupRoute,
   ApiPublicReportsMonthlyRoute: ApiPublicReportsMonthlyRoute,
   ApiPublicWhatsappDispatchRoute: ApiPublicWhatsappDispatchRoute,
   ApiPublicMetaOauthCallbackRoute: ApiPublicMetaOauthCallbackRoute,

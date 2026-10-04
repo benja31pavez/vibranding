@@ -24,8 +24,8 @@ export const getOnboardingFileUrl = createServerFn({ method: "POST" })
     await assertCanEditClient(context.userId, data.clientId);
     if (!isClientFilePath(data.clientId, data.path)) throw new Error("Archivo no válido");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: intake, error } = await supabaseAdmin
+    // Lectura con la sesión del usuario: el RLS de client_intake (can_edit_client) decide.
+    const { data: intake, error } = await context.supabase
       .from("client_intake")
       .select("archivos")
       .eq("client_id", data.clientId)
@@ -36,9 +36,11 @@ export const getOnboardingFileUrl = createServerFn({ method: "POST" })
     }
     if (!intake?.archivos.includes(data.path)) throw new Error("Ese archivo no está en el onboarding del cliente");
 
+    // Service role solo para firmar la lectura (bucket privado).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: signed, error: signErr } = await supabaseAdmin.storage
       .from("onboarding")
-      .createSignedUrl(data.path, READ_URL_TTL_SECONDS);
+      .createSignedUrl(data.path, READ_URL_TTL_SECONDS, { download: true });
     if (signErr || !signed?.signedUrl) {
       console.error("[onboarding] no se pudo firmar la lectura", data.clientId, signErr?.message);
       throw new Error("No pudimos abrir el archivo. Puede que ya no exista.");

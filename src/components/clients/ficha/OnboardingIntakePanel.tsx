@@ -186,26 +186,23 @@ function IntakeDetails({ clientId, intake }: { clientId: string; intake: Intake 
   );
 }
 
+/** URL firmada de lectura: vence a los 5 min en el servidor; se pide de nuevo un poco antes. */
+const LINK_TTL_MS = 4 * 60 * 1000;
+
 function FileRow({ clientId, path }: { clientId: string; path: string }) {
   const getUrl = useServerFn(getOnboardingFileUrl);
   const [busy, setBusy] = useState(false);
+  const [link, setLink] = useState<{ url: string; until: number } | null>(null);
   const name = displayFileName(path);
+  const fresh = link && link.until > Date.now() ? link.url : null;
 
-  const open = async () => {
-    // Se abre la pestaña antes del await para que el navegador no la bloquee.
-    const tab = window.open("about:blank", "_blank");
+  const prepare = async () => {
     setBusy(true);
     try {
       const { url } = await getUrl({ data: { clientId, path } });
-      if (tab) {
-        tab.opener = null;
-        tab.location.href = url;
-      } else {
-        window.location.assign(url);
-      }
+      setLink({ url, until: Date.now() + LINK_TTL_MS });
     } catch (e) {
-      tab?.close();
-      toast.error((e as Error).message || "No se pudo abrir el archivo");
+      toast.error((e as Error).message || "No se pudo preparar la descarga");
     } finally {
       setBusy(false);
     }
@@ -216,9 +213,17 @@ function FileRow({ clientId, path }: { clientId: string; path: string }) {
       <span className="min-w-0 truncate text-sm text-foreground" title={name}>
         {name}
       </span>
-      <Button size="sm" variant="ghost" onClick={() => void open()} disabled={busy} aria-label={`Abrir ${name}`}>
-        {busy ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : <Download aria-hidden className="h-4 w-4" />}
-      </Button>
+      {fresh ? (
+        <Button asChild size="sm" variant="outline">
+          <a href={fresh} target="_blank" rel="noopener noreferrer" aria-label={`Descargar ${name}`}>
+            <Download aria-hidden className="mr-1 h-4 w-4" /> Descargar
+          </a>
+        </Button>
+      ) : (
+        <Button size="sm" variant="ghost" onClick={() => void prepare()} disabled={busy} aria-label={`Preparar descarga de ${name}`}>
+          {busy ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : <Download aria-hidden className="h-4 w-4" />}
+        </Button>
+      )}
     </li>
   );
 }

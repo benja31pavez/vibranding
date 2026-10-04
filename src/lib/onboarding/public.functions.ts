@@ -6,6 +6,14 @@
  *  - firmar subidas: 40 / hora por IP y 30 / hora por token
  *  - enviar: 10 intentos / hora por IP y 10 / hora por token
  * Son best effort (ver ipRateLimit.server.ts); la BD valida token y payload.
+ * Los límites por token se aplican solo después de validar el formato del
+ * token (48 hex), para que basura no llene el mapa de claves.
+ *
+ * IP: clientIp() usa cf-connecting-ip (la pone Cloudflare y el cliente no la
+ * puede falsear en Workers). x-real-ip / x-forwarded-for son solo respaldo
+ * fuera de Cloudflare (dev/preview) y SÍ se pueden falsificar: ahí el límite
+ * por IP no protege; el límite por token y la regla de Rate Limiting de
+ * Cloudflare (ver PR #20) cubren ese caso.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseHeaders } from "@tanstack/react-start/server";
@@ -50,6 +58,7 @@ export const getOnboarding = createServerFn({ method: "POST" })
   .inputValidator((d: { token: string }) => ViewInput.parse(d))
   .handler(async ({ data }): Promise<OnboardingInfo> => {
     privateHeaders();
+    if (!TOKEN_RE.test(data.token)) return { ok: false };
     const { view, limitKey } = await security();
     if (!view.allow(limitKey("onb-view", data.token))) throw new Error(RATE_LIMITED);
     const { loadOnboarding } = await import("./public.server");

@@ -4,9 +4,9 @@
  * - Lectura y envío usan la clave anon (sin sesión): get_onboarding_by_token y
  *   submit_onboarding están en GRANT EXECUTE para anon y son SECURITY DEFINER,
  *   así que no hace falta el service role (mínimo privilegio).
- * - El service role se usa SOLO para Storage (contar objetos y firmar la
- *   subida, el bucket no tiene policies de INSERT) y para resolver client_id
- *   del token, que get_onboarding_by_token no expone.
+ * - El service role se usa SOLO para reserve_onboarding_upload (GRANT solo a
+ *   service_role) y para firmar la subida en Storage (el bucket no tiene
+ *   policies de INSERT). No se leen tablas directamente con service role.
  * Quien llama ya validó el input (zod) y los límites por IP/token.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -14,9 +14,6 @@ import type { Database } from "@/integrations/supabase/types";
 import { MAX_FILES, TOKEN_RE, mapDbError, safeFileName, type FieldError, type OnboardingPayload, type UploadRequestData } from "./schema";
 
 const BUCKET = "onboarding";
-const OPEN_STATUSES = ["prospecto", "onboarding"];
-/** Más que MAX_FILES para detectar que se llegó al tope aunque haya carpetas u otros objetos. */
-const LIST_LIMIT = 100;
 
 let anon: SupabaseClient<Database> | undefined;
 
@@ -64,60 +61,51 @@ export async function loadOnboarding(token: string): Promise<OnboardingInfo> {
   };
 }
 
-/** client_id de un token vigente (mismas condiciones que get_onboarding_by_token). */
-async function resolveClientId(token: string): Promise<string | null> {
-  if (!TOKEN_RE.test(token)) return null;
-  const db = await admin();
-  const { data: billing, error } = await db
-    .from("client_billing")
-    .select("client_id,onboarding_token_expires_at")
-    .eq("onboarding_token", token)
-    .maybeSingle();
-  if (error) {
-    console.error("[onboarding] no se pudo leer el token", error.message);
-    throw new Error("No pudimos validar tu link. Intenta de nuevo en unos minutos.");
-  }
-  const expires = billing?.onboarding_token_expires_at;
-  if (!billing || !expires || new Date(expires).getTime() <= Date.now()) return null;
-
-  const { data: client, error: cErr } = await db.from("clients").select("status").eq("id", billing.client_id).maybeSingle();
-  if (cErr) {
-    console.error("[onboarding] no se pudo leer el cliente", cErr.message);
-    throw new Error("No pudimos validar tu link. Intenta de nuevo en unos minutos.");
-  }
-  return client && OPEN_STATUSES.includes(client.status) ? billing.client_id : null;
-}
-
 // ------------------------------------------------------------------ subida
 
 export type UploadUrlResult =
   | { ok: true; path: string; uploadToken: string }
   | { ok: false; message: string };
 
-const INVALID_LINK = "Este link ya no es válido. Pide uno nuevo a tu contacto en Vibranding.";
+const PREPARE_FAILED = "No pudimos preparar la subida. Intenta de nuevo en unos minutos.";
 
-/** Firma una subida a "<client_id>/<uuid>-<nombre seguro>" si el token sigue vigente y hay cupo. */
+/** Mensajes para los rechazos de reserve_onboarding_upload(). */
+const RESERVE_MESSAGES: Readonly<Record<string, string>> = {
+  invalid: "Este link ya no es válido. Pide uno nuevo a tu contacto en Vibranding.",
+  limit: `Ya recibimos ${MAX_FILES} archivos, el máximo. Si necesitas enviar más, escríbenos.`,
+  rate: "Subiste muchos archivos en poco tiempo. Espera un rato y vuelve a intentarlo.",
+  invalid_path: "El nombre del archivo no es válido. Renómbralo e intenta de nuevo.",
+  duplicate: PREPARE_FAILED,
+};
+
+/**
+ * Reserva el path en la BD (token vigente, cupo de 20 por token y 30/hora por
+ * cliente, serializado con FOR UPDATE) y firma la subida a ese path exacto.
+ * El navegador nunca elige el path: el sufijo lo arma el servidor.
+ */
 export async function createUploadUrl(req: UploadRequestData): Promise<UploadUrlResult> {
-  const clientId = await resolveClientId(req.token);
-  if (!clientId) return { ok: false, message: INVALID_LINK };
+  const db = await admin();
+  const suffix = `${crypto.randomUUID()}-${safeFileName(req.filename, req.contentType)}`;
+  const { data, error } = await db.rpc("reserve_onboarding_upload", { _token: req.token, _path_suffix: suffix });
+  if (error) {
+    console.error("[onboarding] reserve_onboarding_upload falló", error.code, error.message);
+    return { ok: false, message: PREPARE_FAILED };
+  }
+  const res = data as { ok?: boolean; reason?: string; path?: string } | null;
+  if (!res?.ok || typeof res.path !== "string") {
+    if (res?.reason === "duplicate" || !res?.reason) console.error("[onboarding] reserva rechazada", res);
+    return { ok: false, message: RESERVE_MESSAGES[res?.reason ?? ""] ?? PREPARE_FAILED };
+  }
 
-  const storage = (await admin()).storage.from(BUCKET);
-  const { data: existing, error: listErr } = await storage.list(clientId, { limit: LIST_LIMIT });
-  if (listErr) {
-    console.error("[onboarding] no se pudo contar archivos", clientId, listErr.message);
-    return { ok: false, message: "No pudimos preparar la subida. Intenta de nuevo en unos minutos." };
+  // upsert: false → la URL firmada no puede sobrescribir un objeto existente.
+  const { data: signed, error: signErr } = await db.storage
+    .from(BUCKET)
+    .createSignedUploadUrl(res.path, { upsert: false });
+  if (signErr || !signed?.token) {
+    console.error("[onboarding] no se pudo firmar la subida", signErr?.message);
+    return { ok: false, message: PREPARE_FAILED };
   }
-  if ((existing?.length ?? 0) >= MAX_FILES) {
-    return { ok: false, message: `Ya recibimos ${MAX_FILES} archivos, el máximo. Si necesitas enviar más, escríbenos.` };
-  }
-
-  const path = `${clientId}/${crypto.randomUUID()}-${safeFileName(req.filename, req.contentType)}`;
-  const { data, error } = await storage.createSignedUploadUrl(path);
-  if (error || !data?.token) {
-    console.error("[onboarding] no se pudo firmar la subida", clientId, error?.message);
-    return { ok: false, message: "No pudimos preparar la subida. Intenta de nuevo en unos minutos." };
-  }
-  return { ok: true, path: data.path ?? path, uploadToken: data.token };
+  return { ok: true, path: res.path, uploadToken: signed.token };
 }
 
 // ------------------------------------------------------------------ envío
