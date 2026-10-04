@@ -232,6 +232,18 @@
   color: transparent;
 }
 
+/* Darker brand gradient for text/buttons that must meet WCAG AA on light backgrounds */
+@utility text-gradient-brand-strong {
+  background: linear-gradient(120deg, oklch(0.48 0.2 262), oklch(0.5 0.24 330) 60%, oklch(0.55 0.19 35));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility bg-gradient-brand-strong {
+  background-image: linear-gradient(120deg, oklch(0.48 0.2 262), oklch(0.5 0.24 330));
+}
+
 /* Brand gradient background */
 @utility bg-gradient-brand {
   background-image: var(--gradient-brand);
@@ -268,4 +280,13 @@
 
 @utility animate-marquee {
   animation: marquee 40s linear infinite;
+}
+
+/* Respect reduced-motion: no floating blobs, no logo marquee (a static list is shown instead). */
+@media (prefers-reduced-motion: reduce) {
+  .blob,
+  .animate-marquee,
+  .bg-gradient-brand-animated {
+    animation: none !important;
+  }
 }

@@ -12,56 +12,213 @@ export type LegalContent = {
   blocks: LegalBlock[];
 };
 
+export type PlanItem = {
+  id: "marca-web" | "contenido" | "crecimiento";
+  name: string;
+  price: number;
+  period: string;
+  terms: string;
+  desc: string;
+  features: string[];
+  whatsappMessage: string;
+  highlighted: boolean;
+};
+
+const homeEs = {
+  nav: {
+    services: "Servicios",
+    plans: "Planes",
+    how: "Cómo trabajamos",
+    faq: "Preguntas",
+    clientAccess: "Acceso clientes",
+    cta: "Cotiza por WhatsApp",
+    ctaShort: "Cotizar",
+  },
+  hero: {
+    badge: "Agencia en Santiago · Pymes de todo Chile",
+    titleLead: "Marketing digital para pymes chilenas que quieren",
+    titleAccent: "más clientes",
+    subtitle:
+      "Creamos tu marca, tu contenido y tus campañas en Meta Ads y Google Ads, y las optimizamos mes a mes para que más personas te encuentren y te escriban por WhatsApp.",
+    priceLine: "Planes desde $129.990/mes, IVA incluido.",
+    ctaPrimary: "Cotiza por WhatsApp",
+    ctaSecondary: "Ver planes",
+    trust: ["Garantía de 30 días", "Precios claros en pesos", "Factura o boleta"],
+  },
+  niches: {
+    title: "Trabajamos sobre todo con",
+    items: [
+      { title: "Servicios y oficios del hogar", desc: "Paisajismo, piscinas, remodelación y mantención." },
+      { title: "Salud y profesionales", desc: "Consultas, centros de salud y servicios profesionales." },
+      { title: "Gimnasios y estética", desc: "Gimnasios, estudios, centros de estética y belleza." },
+    ],
+    coverage: "En Santiago y regiones.",
+  },
+  benefits: {
+    title: "Tres cosas que tu negocio",
+    titleAccent: "necesita en internet",
+    items: [
+      {
+        title: "Te encuentran",
+        desc: "Ficha de Google Business optimizada, una web clara y anuncios que te ponen frente a quien ya está buscando lo que vendes.",
+      },
+      {
+        title: "Te eligen",
+        desc: "Una marca cuidada y contenido constante generan confianza. El cliente compara y se queda con quien se ve profesional.",
+      },
+      {
+        title: "Te compran",
+        desc: "Cada pieza lleva a un solo lugar: tu WhatsApp o tu formulario. Menos clics, más conversaciones con clientes reales.",
+      },
+    ],
+  },
+  services: {
+    title: "Lo que",
+    titleAccent: "hacemos por ti",
+    subtitle: "Todo lo que una pyme necesita para vender en internet, con un solo equipo y un solo contacto.",
+    items: [
+      {
+        title: "Branding",
+        desc: "Logo, colores, tipografías y tono de tu marca para que te vean profesional en todos lados.",
+      },
+      {
+        title: "Contenido",
+        desc: "Posts, carruseles y reels con calendario y textos listos. Tú apruebas, nosotros publicamos.",
+      },
+      {
+        title: "Meta Ads",
+        desc: "Campañas en Instagram y Facebook segmentadas por comuna, intereses y edad, con optimización continua.",
+      },
+      {
+        title: "Google Ads",
+        desc: "Aparece cuando alguien busca tu servicio en Google. Medimos cada consulta y ajustamos la inversión.",
+      },
+    ],
+    extras:
+      "Además: landing pages con botón de WhatsApp y formulario, y chatbot de WhatsApp para responder las preguntas frecuentes de tus clientes.",
+  },
+  plans: {
+    title: "Planes y",
+    titleAccent: "precios",
+    subtitle: "Precios en pesos chilenos, IVA incluido. Sin costos escondidos.",
+    popular: "Más completo",
+    cta: "Lo quiero",
+    adSpendNote:
+      "La inversión en anuncios (pauta) no está incluida en el Plan Crecimiento: la pagas directo a Meta y Google con tu tarjeta. Sugerimos partir desde $150.000 al mes.",
+    items: [
+      {
+        id: "marca-web",
+        name: "Marca + Web",
+        price: 149990,
+        period: "pago único",
+        terms: "Entrega en 72 horas hábiles",
+        desc: "Para partir con una presencia profesional desde cero.",
+        features: [
+          "Kit de marca básico (logo, colores y tipografías)",
+          "Landing en español con botón de WhatsApp y formulario",
+          "Ficha de Google Business optimizada",
+        ],
+        whatsappMessage: "Hola Vibranding, me interesa el plan Marca + Web ($149.990). Mi negocio es: ",
+        highlighted: false,
+      },
+      {
+        id: "contenido",
+        name: "Plan Contenido",
+        price: 129990,
+        period: "al mes",
+        terms: "Mínimo 3 meses",
+        desc: "Para mantener tus redes activas y profesionales todo el mes.",
+        features: [
+          "12 piezas al mes: posts, carruseles y reels",
+          "Calendario de contenido y copy",
+          "4 publicaciones al mes en Google Business",
+          "Reporte mensual",
+        ],
+        whatsappMessage: "Hola Vibranding, me interesa el Plan Contenido ($129.990/mes). Mi negocio es: ",
+        highlighted: false,
+      },
+      {
+        id: "crecimiento",
+        name: "Plan Crecimiento",
+        price: 249990,
+        period: "al mes",
+        terms: "Mínimo 3 meses",
+        desc: "Para conseguir clientes nuevos con anuncios, además del contenido.",
+        features: [
+          "Todo lo del Plan Contenido",
+          "Campañas de Meta Ads (Instagram y Facebook)",
+          "Campañas de Google Ads",
+          "Monitoreo y optimización continua de tus campañas",
+          "Reporte mensual de resultados",
+        ],
+        whatsappMessage: "Hola Vibranding, me interesa el Plan Crecimiento ($249.990/mes). Mi negocio es: ",
+        highlighted: true,
+      },
+    ] as PlanItem[],
+  },
+  how: {
+    title: "Cómo",
+    titleAccent: "trabajamos",
+    steps: [
+      {
+        title: "Conversamos",
+        desc: "Nos escribes por WhatsApp, nos cuentas de tu negocio y te recomendamos el plan que tiene sentido para ti.",
+      },
+      {
+        title: "Propuesta y pago",
+        desc: "Te enviamos alcance y plazos por escrito. Pagas por transferencia o link de pago y recibes factura o boleta.",
+      },
+      {
+        title: "Producimos y optimizamos",
+        desc: "Entregamos en días, publicamos lo que apruebas, medimos y ajustamos cada mes con un reporte claro.",
+      },
+    ],
+  },
+  guarantee: {
+    title: "Garantía de 30 días",
+    desc: "Si en los primeros 30 días no te gusta la entrega, la rehacemos sin costo.",
+    fineprint:
+      "No prometemos resultados garantizados: nadie serio puede hacerlo. Sí te prometemos trabajo profesional, transparencia y optimización continua.",
+  },
+  about: {
+    title: "Quién está",
+    titleAccent: "detrás",
+    name: "Benjamín Pavez",
+    initials: "BP",
+    role: "Fundador de VIBRANDING · Santiago de Chile",
+    paragraphs: [
+      "Soy Benjamín, publicista. Antes de fundar VIBRANDING trabajé de forma independiente con las marcas que ves en esta página.",
+      "Hoy dirijo un equipo apoyado en inteligencia artificial. Para ti eso significa entregas en días, no semanas, y precios que una pyme puede pagar. Cada entrega la revisa una persona antes de llegar a ti.",
+    ],
+    highlights: ["Santiago de Chile", "Equipo con IA", "Entregas en días, no semanas"],
+  },
+  portfolio: {
+    title: "Marcas con las que",
+    titleAccent: "hemos trabajado",
+    subtitle: "Proyectos de branding, contenido y campañas realizados por Benjamín.",
+    empty: "Muy pronto compartiremos nuestros casos.",
+  },
+  faq: {
+    title: "Preguntas",
+    titleAccent: "frecuentes",
+    more: "Ver todas las preguntas",
+  },
+  finalCta: {
+    title: "¿Hablamos de",
+    titleAccent: "tu negocio",
+    titleEnd: "?",
+    subtitle: "Escríbenos por WhatsApp, cuéntanos qué vendes y dónde, y te decimos qué plan te conviene.",
+    cta: "Cotiza por WhatsApp",
+    bullets: ["Sin compromiso", "Respuesta en horario hábil", "Garantía de 30 días"],
+  },
+  floatLabel: "Escríbenos por WhatsApp",
+};
+
+type HomeDict = typeof homeEs;
+
 type Dict = {
   langSwitcher: { label: string; es: string; en: string };
-  nav: { services: string; how: string; about: string; clients: string; contact: string; signIn: string };
-  hero: {
-    badge: string;
-    title1: string;
-    titleAccent: string;
-    titleEnd: string;
-    subtitle: string;
-    ctaPrimary: string;
-    ctaSecondary: string;
-  };
-  services: {
-    eyebrow: string;
-    accent: string;
-    subtitle: string;
-    items: { title: string; desc: string; why: string }[];
-  };
-  how: {
-    eyebrow: string;
-    accent: string;
-    steps: { n: string; t: string; d: string }[];
-  };
-  about: {
-    eyebrow: string;
-    accent: string;
-    title: string;
-    subtitle: string;
-    paragraph1: string;
-    paragraph2: string;
-    chips: string[];
-    antonia: { name: string; role: string; bio: string };
-    benjamin: { name: string; role: string; bio: string };
-  };
-  clients: {
-    eyebrow: string;
-    accent: string;
-    subtitle: string;
-    viewWork: string;
-    empty: string;
-  };
-  contact: {
-    title1: string;
-    accent: string;
-    title2: string;
-    subtitle: string;
-    whatsapp: string;
-    whatsappMessage: string;
-    bullets: string[];
-  };
+  home: HomeDict;
   footer: {
     tagline: string;
     columns: { product: string; resources: string; legal: string };
@@ -71,12 +228,15 @@ type Dict = {
       about: string;
       clients: string;
       contact: string;
+      plans: string;
+      clientAccess: string;
       faq: string;
       terms: string;
       privacy: string;
       cookies: string;
     };
     rights: string;
+    location: string;
   };
   legal: {
     back: string;
@@ -105,149 +265,74 @@ type Dict = {
 
 const es: Dict = {
   langSwitcher: { label: "Idioma", es: "ES", en: "EN" },
-  nav: { services: "Servicios", how: "Cómo funciona", about: "Nosotros", clients: "Clientes", contact: "Contacto", signIn: "Iniciar sesión" },
-  hero: {
-    badge: "Especialistas en Diseño y Publicidad",
-    title1: "Hacemos que tu marca ",
-    titleAccent: "vibre de verdad",
-    titleEnd: ".",
-    subtitle: "",
-    ctaPrimary: "Hablemos de tu marca",
-    ctaSecondary: "Ver servicios",
-  },
-  services: {
-    eyebrow: "Lo que",
-    accent: "hacemos",
-    subtitle: "Seis etapas en orden. Cada una sostiene a la siguiente: si te saltas una, las demás vibran a medias.",
-    items: [
-      {
-        title: "Branding",
-        desc: "Identidad visual, tono y estrategia clara. La base sobre la que se construye todo lo demás.",
-        why: "Tu marca pierde fuerza y carácter.",
-      },
-      {
-        title: "Optimización",
-        desc: "Optimizamos tu perfil de Instagram y presencia digital para que te encuentren a la primera.",
-        why: "Te vuelves invisible en las búsquedas.",
-      },
-      {
-        title: "Contenido",
-        desc: "Calendario, fotografía y copy que comunican el valor real de lo que ofreces cada semana.",
-        why: "No comunicas el valor de lo que haces.",
-      },
-      {
-        title: "Anuncios",
-        desc: "Campañas Meta Ads pensadas para llegar a quienes aún no te conocen y deberían conocerte.",
-        why: "Nuevas audiencias nunca te descubren.",
-      },
-      {
-        title: "Landing Page",
-        desc: "Una página clara que explica lo que ofreces y convierte la curiosidad en interés real.",
-        why: "La curiosidad no se vuelve interés real.",
-      },
-      {
-        title: "Chatbot",
-        desc: "Un WhatsApp dedicado con chatbot que califica y cierra clientes mientras tú trabajas.",
-        why: "Las conversaciones no se vuelven ventas.",
-      },
-    ],
-  },
-  how: {
-    eyebrow: "Cómo",
-    accent: "trabajamos",
-    steps: [
-      { n: "01", t: "Diagnóstico", d: "Analizamos tu marca, tu público y tu competencia." },
-      { n: "02", t: "Propuesta", d: "Te entregamos una visión clara con objetivos, contenido y campañas." },
-      { n: "03", t: "Ejecución", d: "Producimos, publicamos, anunciamos y medimos resultados." },
-    ],
-  },
-  about: {
-    eyebrow: "Quiénes",
-    accent: "somos",
-    title: "Quiénes",
-    subtitle: "Somos Antonia y Benjamín, un equipo chileno que combina diseño gráfico y publicidad para hacer crecer marcas desde Santiago.",
-    paragraph1: "Trabajamos en conjunto: estrategia, identidad visual, campañas y contenido. Sin intermediarios y con foco en resultados.",
-    paragraph2: "",
-    chips: ["Santiago, Chile", "Diseño + publicidad", "Trato directo"],
-    antonia: { name: "Antonia", role: "Diseñadora Gráfica", bio: "Lidera identidad, feed y piezas visuales de cada marca." },
-    benjamin: { name: "Benjamín", role: "Publicista", bio: "Define estrategia y campañas para llegar a la persona correcta." },
-  },
-  clients: {
-    eyebrow: "Marcas con las que",
-    accent: "hemos trabajado",
-    subtitle: "",
-    viewWork: "Ver trabajo",
-    empty: "Pronto compartiremos nuestros próximos casos.",
-  },
-  contact: {
-    title1: "¿Listo para ",
-    accent: "vibrar",
-    title2: " con nosotros?",
-    subtitle: "Cuéntanos sobre tu marca y te respondemos con una propuesta personalizada.",
-    whatsapp: "Escríbenos por WhatsApp",
-    whatsappMessage: "Hola Vibranding, me gustaría saber más sobre sus servicios.",
-    bullets: ["Respuesta en 24h", "Sin compromiso", "Plan a tu medida"],
-  },
+  home: homeEs,
   footer: {
-    tagline: "Crecemos tu marca en Instagram y Meta Ads con estrategia, diseño y datos.",
-    columns: { product: "Producto", resources: "Recursos", legal: "Legal" },
+    tagline: "Agencia de marketing digital para pymes en Chile: branding, contenido, Meta Ads y Google Ads.",
+    columns: { product: "Agencia", resources: "Recursos", legal: "Legal" },
     links: {
       services: "Servicios",
-      how: "Cómo funciona",
-      about: "Nosotros",
+      how: "Cómo trabajamos",
+      about: "Quién está detrás",
       clients: "Clientes",
-      contact: "Contacto",
+      contact: "Cotiza por WhatsApp",
+      plans: "Planes y precios",
+      clientAccess: "Acceso clientes",
       faq: "Preguntas Frecuentes",
       terms: "Términos de Servicio",
       privacy: "Política de Privacidad",
       cookies: "Cookies",
     },
     rights: "Todos los derechos reservados.",
+    location: "Santiago, Chile",
   },
   legal: { back: "Volver al inicio", updatedLabel: "Última actualización:" },
   faq: {
     title: "Preguntas Frecuentes",
-    updated: "13 de mayo de 2026",
+    updated: "4 de octubre de 2026",
     items: [
-      { q: "¿Qué incluye una propuesta de Vibranding?", a: "Una auditoría de tu Instagram actual, una propuesta visual de feed, biografía y destacados, un plan de contenido y, si aplica, una estrategia de Meta Ads con creatividades y presupuesto sugerido." },
-      { q: "¿Trabajan con marcas pequeñas?", a: "Sí. Adaptamos el alcance al tamaño de tu marca. Tenemos planes desde una sola campaña hasta gestión mensual completa." },
-      { q: "¿Cuánto tarda en verse resultados?", a: "Los cambios visuales son inmediatos. El crecimiento orgánico se nota desde el primer mes y las campañas pagadas entregan datos en días." },
-      { q: "¿Necesito entregarles acceso a mis cuentas?", a: "Para Meta Ads sí, mediante Business Manager. Para Instagram orgánico podemos trabajar con propuestas que tú apruebas y publicas, o gestionar la cuenta por ti." },
-      { q: "¿Cómo se hace el pago?", a: "Trabajamos con un anticipo al iniciar y el saldo a la entrega o mensualmente según el plan. Aceptamos transferencia y pagos en USD o moneda local." },
-      { q: "¿Firmamos un contrato?", a: "Sí, siempre. Incluye alcance, plazos, formas de pago y condiciones de cancelación." },
-      { q: "¿Puedo cancelar en cualquier momento?", a: "Los planes mensuales se pueden cancelar con 30 días de aviso. Los proyectos puntuales son no reembolsables una vez iniciados." },
-      { q: "¿Qué pasa si no me gusta una propuesta?", a: "Incluimos hasta dos rondas de cambios sin costo. Cambios mayores se cotizan aparte." },
+      { q: "¿Hay permanencia mínima?", a: "Marca + Web es un pago único. Los planes Contenido y Crecimiento tienen un mínimo de 3 meses, porque es el tiempo razonable para ver cómo responde tu público. Después siguen mes a mes y puedes cancelar avisando con 30 días de anticipación." },
+      { q: "¿La pauta publicitaria está incluida?", a: "No. En el Plan Crecimiento nuestro precio cubre la creación, gestión y optimización de las campañas. La inversión en anuncios (pauta) la pagas directo a Meta y Google con tu tarjeta, así siempre sabes cuánto se gasta. Sugerimos partir desde $150.000 al mes." },
+      { q: "¿Cuánto se demoran?", a: "Marca + Web se entrega en 72 horas hábiles desde que recibimos tu información y el pago. En los planes mensuales te enviamos el calendario de contenido durante la primera semana, y las campañas parten apenas apruebas los anuncios." },
+      { q: "¿Con qué tipo de negocios trabajan?", a: "Con pymes y profesionales de Chile, en Santiago y regiones. Trabajamos sobre todo con servicios y oficios del hogar (paisajismo, piscinas, remodelación), salud y profesionales, gimnasios y estética. Si tu rubro es otro, escríbenos igual y te decimos con honestidad si te podemos ayudar." },
+      { q: "¿Cómo se paga?", a: "Por transferencia bancaria o link de pago, en pesos chilenos y con IVA incluido. Emitimos factura o boleta de VIBRANDING SpA (RUT 78.505.344-3). Los planes mensuales se pagan por mes adelantado." },
+      { q: "¿Usan inteligencia artificial?", a: "Sí. Somos un equipo apoyado en IA para producir, analizar y optimizar más rápido; por eso entregamos en días y no en semanas. Cada pieza la revisa una persona antes de llegar a ti, y nada se publica sin tu aprobación." },
     ],
   },
   terms: {
     title: "Términos de Servicio",
-    updated: "13 de mayo de 2026",
-    intro: "Bienvenido a Vibranding. Al contratar nuestros servicios o usar esta plataforma aceptas los siguientes términos.",
+    updated: "4 de octubre de 2026",
+    intro: "Estos términos regulan los servicios que presta VIBRANDING SpA, RUT 78.505.344-3, con domicilio en Santiago de Chile (en adelante, “Vibranding”). Al contratar nuestros servicios o usar esta plataforma aceptas lo siguiente.",
     blocks: [
       { type: "h2", text: "1. Servicios" },
-      { type: "p", html: "Vibranding ofrece servicios de marketing digital enfocados en Instagram y Meta Ads, incluyendo estrategia, diseño, gestión de contenido y campañas pagadas. El alcance específico se acuerda por escrito en cada propuesta." },
-      { type: "h2", text: "2. Pagos" },
-      { type: "p", html: "Los honorarios y plazos se definen en la propuesta firmada. Salvo acuerdo distinto, se cobra un anticipo al inicio. La mora superior a 15 días puede causar la suspensión del servicio." },
-      { type: "h2", text: "3. Propiedad intelectual" },
-      { type: "p", html: "Todo el material entregado pasa a ser propiedad del cliente una vez pagado en su totalidad. Vibranding conserva el derecho de mostrar el trabajo en su portafolio salvo solicitud expresa." },
-      { type: "h2", text: "4. Resultados" },
-      { type: "p", html: "Aplicamos buenas prácticas de la industria, pero no garantizamos resultados específicos en alcance, seguidores o ventas, ya que dependen de variables fuera de nuestro control." },
-      { type: "h2", text: "5. Cancelación" },
-      { type: "p", html: "Los planes mensuales pueden cancelarse con 30 días de aviso. Los proyectos puntuales no son reembolsables una vez iniciados." },
-      { type: "h2", text: "6. Confidencialidad" },
+      { type: "p", html: "Vibranding presta servicios de marketing digital a empresas y profesionales en Chile: branding, creación de contenido, optimización de presencia digital (incluida la ficha de Google Business), landing pages y gestión de campañas de Meta Ads y Google Ads. El alcance específico de cada servicio se acuerda por escrito antes de comenzar." },
+      { type: "h2", text: "2. Precios y pagos" },
+      { type: "p", html: "Los precios se expresan en pesos chilenos (CLP) e incluyen IVA. El pago se realiza por transferencia bancaria o link de pago, y VIBRANDING SpA emite la factura o boleta correspondiente. Los planes mensuales se pagan por mes adelantado. La mora superior a 15 días puede causar la suspensión del servicio." },
+      { type: "h2", text: "3. Inversión publicitaria" },
+      { type: "p", html: "La inversión en anuncios (pauta) no está incluida en nuestros precios. El cliente la paga directamente a Meta, Google u otras plataformas, con su propio medio de pago." },
+      { type: "h2", text: "4. Permanencia y cancelación" },
+      { type: "p", html: "Los planes mensuales tienen una permanencia mínima de 3 meses. Cumplido ese plazo continúan mes a mes y pueden cancelarse avisando con 30 días de anticipación. Los servicios de pago único no son reembolsables una vez iniciados, sin perjuicio de la garantía indicada a continuación y de los derechos que la ley otorgue al cliente." },
+      { type: "h2", text: "5. Garantía de satisfacción" },
+      { type: "p", html: "Si dentro de los primeros 30 días desde la entrega el cliente no está conforme con ella, Vibranding la rehace sin costo adicional, dentro del alcance contratado." },
+      { type: "h2", text: "6. Resultados" },
+      { type: "p", html: "Aplicamos buenas prácticas de la industria y optimizamos las campañas de forma continua, pero no garantizamos resultados específicos de alcance, seguidores, consultas o ventas, ya que dependen de factores fuera de nuestro control." },
+      { type: "h2", text: "7. Propiedad intelectual" },
+      { type: "p", html: "El material entregado pasa a ser propiedad del cliente una vez pagado en su totalidad. Vibranding puede mostrar el trabajo en su portafolio, salvo que el cliente solicite lo contrario por escrito." },
+      { type: "h2", text: "8. Confidencialidad" },
       { type: "p", html: "Tratamos toda la información compartida como confidencial y no la revelamos a terceros sin autorización." },
-      { type: "h2", text: "7. Limitación de responsabilidad" },
-      { type: "p", html: "La responsabilidad máxima de Vibranding ante cualquier reclamo se limita al monto pagado por el cliente en los 3 meses anteriores al hecho que motiva el reclamo." },
-      { type: "h2", text: "8. Modificaciones" },
-      { type: "p", html: "Podemos actualizar estos términos. Las modificaciones aplican a partir de su publicación en este sitio." },
-      { type: "h2", text: "9. Contacto" },
-      { type: "p", html: "Para dudas o reclamos, contáctanos por los canales indicados en el sitio." },
+      { type: "h2", text: "9. Limitación de responsabilidad" },
+      { type: "p", html: "La responsabilidad máxima de Vibranding ante cualquier reclamo se limita al monto pagado por el cliente en los 3 meses anteriores al hecho que motiva el reclamo, en la medida que la ley lo permita." },
+      { type: "h2", text: "10. Modificaciones" },
+      { type: "p", html: "Podemos actualizar estos términos. Las modificaciones aplican desde su publicación en este sitio." },
+      { type: "h2", text: "11. Ley aplicable y jurisdicción" },
+      { type: "p", html: "Estos términos se rigen por las leyes de la República de Chile. Cualquier controversia se someterá a los tribunales ordinarios de justicia de la ciudad de Santiago." },
+      { type: "h2", text: "12. Contacto" },
+      { type: "p", html: "VIBRANDING SpA · RUT 78.505.344-3 · Santiago, Chile. Para dudas o reclamos escríbenos por WhatsApp al +56 9 8929 4014 o a <a href=\"mailto:privacidad@vibranding.pro\">privacidad@vibranding.pro</a>." },
     ],
   },
   privacy: {
     title: "Política de Privacidad",
     updated: "13 de mayo de 2026",
-    intro: "En Vibranding respetamos tu privacidad. Esta política explica qué datos recopilamos y cómo los usamos.",
+    intro: "En Vibranding respetamos tu privacidad. El responsable del tratamiento de tus datos es VIBRANDING SpA, RUT 78.505.344-3, con domicilio en Santiago de Chile. Esta política explica qué datos recopilamos y cómo los usamos, conforme a la legislación chilena de protección de datos personales.",
     blocks: [
       { type: "h2", text: "1. Datos que recopilamos" },
       { type: "ul", items: [
@@ -324,9 +409,9 @@ const es: Dict = {
   notFound: { title: "404", subtitle: "Esta página no existe.", cta: "Volver al inicio" },
   error: { title: "Algo salió mal", cta: "Reintentar" },
   seo: {
-    home: { title: "Vibranding — Instagram & Meta Ads", description: "Vibranding te ayuda a planear, presentar y ejecutar estrategias de Instagram y campañas de Meta Ads para tus clientes, todo en un mismo lugar." },
-    faq: { title: "Preguntas Frecuentes — Vibranding", description: "Respuestas a las dudas más comunes sobre nuestros servicios de Instagram y Meta Ads." },
-    terms: { title: "Términos de Servicio — Vibranding", description: "Términos y condiciones que regulan el uso de los servicios de Vibranding." },
+    home: { title: "Agencia de marketing digital para pymes en Chile | Vibranding", description: "Branding, contenido, Meta Ads y Google Ads para pymes chilenas, con optimización continua. Planes desde $129.990/mes IVA incluido. Cotiza por WhatsApp." },
+    faq: { title: "Preguntas Frecuentes | Vibranding", description: "Permanencia, pauta publicitaria, plazos, formas de pago y uso de IA: respuestas sobre los planes de marketing digital de Vibranding para pymes en Chile." },
+    terms: { title: "Términos de Servicio | Vibranding", description: "Términos y condiciones de los servicios de VIBRANDING SpA, agencia de marketing digital en Santiago de Chile." },
     privacy: { title: "Política de Privacidad — Vibranding", description: "Cómo Vibranding recopila, usa y protege tus datos personales." },
     cookies: { title: "Política de Cookies — Vibranding", description: "Qué cookies usa Vibranding y cómo puedes controlarlas." },
     dataDeletion: { title: "Eliminación de datos — Vibranding", description: "Cómo solicitar la eliminación de tus datos personales en Vibranding." },
@@ -335,89 +420,8 @@ const es: Dict = {
 
 const en: Dict = {
   langSwitcher: { label: "Language", es: "ES", en: "EN" },
-  nav: { services: "Services", how: "How it works", about: "About", clients: "Clients", contact: "Contact", signIn: "Sign in" },
-  hero: {
-    badge: "Design & Advertising specialists",
-    title1: "We make your brand ",
-    titleAccent: "truly vibrate",
-    titleEnd: ".",
-    subtitle: "",
-    ctaPrimary: "Let's talk about your brand",
-    ctaSecondary: "See services",
-  },
-  services: {
-    eyebrow: "What we",
-    accent: "do",
-    subtitle: "Six stages, in order. Each one holds up the next: skip one and the rest only half-vibrate.",
-    items: [
-      {
-        title: "Branding",
-        desc: "Visual identity, tone and clear strategy. The foundation everything else is built on.",
-        why: "Your brand loses strength and character.",
-      },
-      {
-        title: "Optimization",
-        desc: "We tune up your Instagram profile and digital presence so people find you on the first try.",
-        why: "You become invisible in searches.",
-      },
-      {
-        title: "Content",
-        desc: "Calendar, photography and copy that actually communicate the real value of what you offer.",
-        why: "You fail to communicate real value.",
-      },
-      {
-        title: "Ads",
-        desc: "Meta Ads campaigns designed to reach the people who don't know you yet but should.",
-        why: "New audiences never discover you.",
-      },
-      {
-        title: "Landing Page",
-        desc: "A clear page that explains what you offer and turns curiosity into real interest.",
-        why: "Curiosity never turns into real interest.",
-      },
-      {
-        title: "Chatbot",
-        desc: "A dedicated WhatsApp with a chatbot that qualifies and closes clients while you work.",
-        why: "Conversations never become real sales.",
-      },
-    ],
-  },
-  how: {
-    eyebrow: "How we",
-    accent: "work",
-    steps: [
-      { n: "01", t: "Diagnosis", d: "We analyze your brand, your audience and your competition." },
-      { n: "02", t: "Proposal", d: "We deliver a clear vision with goals, content and campaigns." },
-      { n: "03", t: "Execution", d: "We produce, publish, advertise and measure results." },
-    ],
-  },
-  about: {
-    eyebrow: "Who",
-    accent: "we are",
-    title: "Who",
-    subtitle: "We're Antonia and Benjamín, a Chilean team blending graphic design and advertising to grow brands from Santiago.",
-    paragraph1: "We work together across strategy, visual identity, campaigns and content. No middlemen, focused on results.",
-    paragraph2: "",
-    chips: ["Santiago, Chile", "Design + advertising", "Direct relationship"],
-    antonia: { name: "Antonia", role: "Graphic Designer", bio: "Leads identity, feed and visual pieces for every brand." },
-    benjamin: { name: "Benjamín", role: "Advertiser", bio: "Defines strategy and campaigns to reach the right person." },
-  },
-  clients: {
-    eyebrow: "Brands we've",
-    accent: "worked with",
-    subtitle: "",
-    viewWork: "View work",
-    empty: "We'll share our next case studies soon.",
-  },
-  contact: {
-    title1: "Ready to ",
-    accent: "vibrate",
-    title2: " with us?",
-    subtitle: "Tell us about your brand and we'll reply with a tailored proposal.",
-    whatsapp: "Message us on WhatsApp",
-    whatsappMessage: "Hi Vibranding, I'd like to learn more about your services.",
-    bullets: ["Reply within 24h", "No commitment", "Plan tailored to you"],
-  },
+  // TODO: translate the home copy; the public site is Spanish-only for now.
+  home: homeEs,
   footer: {
     tagline: "We grow your brand on Instagram and Meta Ads with strategy, design and data.",
     columns: { product: "Product", resources: "Resources", legal: "Legal" },
@@ -427,12 +431,15 @@ const en: Dict = {
       about: "About",
       clients: "Clients",
       contact: "Contact",
+      plans: "Plans & pricing",
+      clientAccess: "Client access",
       faq: "FAQ",
       terms: "Terms of Service",
       privacy: "Privacy Policy",
       cookies: "Cookies",
     },
     rights: "All rights reserved.",
+    location: "Santiago, Chile",
   },
   legal: { back: "Back to home", updatedLabel: "Last updated:" },
   faq: {
@@ -443,7 +450,7 @@ const en: Dict = {
       { q: "Do you work with small brands?", a: "Yes. We adapt the scope to the size of your brand. Plans range from a single campaign to full monthly management." },
       { q: "How long until I see results?", a: "Visual changes are immediate. Organic growth shows from the first month and paid campaigns deliver data in days." },
       { q: "Do I need to share access to my accounts?", a: "For Meta Ads yes, through Business Manager. For organic Instagram we can work with proposals you approve and publish, or manage the account for you." },
-      { q: "How does payment work?", a: "We work with a deposit at the start and the balance on delivery or monthly depending on the plan. We accept bank transfer and payments in USD or local currency." },
+      { q: "How does payment work?", a: "We work with a deposit at the start and the balance on delivery or monthly depending on the plan. We accept bank transfer or payment link, in Chilean pesos (CLP), with an invoice from VIBRANDING SpA." },
       { q: "Do we sign a contract?", a: "Yes, always. It includes scope, deadlines, payment terms and cancellation conditions." },
       { q: "Can I cancel at any time?", a: "Monthly plans can be cancelled with 30 days notice. One-off projects are non-refundable once started." },
       { q: "What if I don't like a proposal?", a: "We include up to two rounds of changes at no cost. Major changes are quoted separately." },

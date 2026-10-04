@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isPlaceholderName } from "@/lib/site";
 
 export type PortfolioClient = {
   id: string;
@@ -25,39 +25,38 @@ export type PortfolioWork = {
 
 export type PortfolioClientWithWorks = PortfolioClient & { works: PortfolioWork[] };
 
-export function usePublicPortfolio() {
-  const [data, setData] = useState<PortfolioClientWithWorks[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const [{ data: clients }, { data: works }] = await Promise.all([
-        supabase
-          .from("portfolio_clients")
-          .select("id,name,logo_url,description,website_url,industry,sort_order,is_visible")
-          .eq("is_visible", true)
-          .order("sort_order", { ascending: true })
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("portfolio_works")
-          .select("id,portfolio_client_id,title,description,image_url,link_url,sort_order,is_visible")
-          .eq("is_visible", true)
-          .order("sort_order", { ascending: true })
-          .order("created_at", { ascending: true }),
-      ]);
-      if (cancelled) return;
-      const grouped: PortfolioClientWithWorks[] = ((clients as PortfolioClient[]) ?? []).map((c) => ({
-        ...c,
-        works: ((works as PortfolioWork[]) ?? []).filter((w) => w.portfolio_client_id === c.id),
-      }));
-      setData(grouped);
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { data, loading };
+/**
+ * Loads the visible portfolio (clients + works). Used by the "/" route loader so
+ * logos and names are part of the server-rendered HTML.
+ * Never throws: on failure it logs and returns an empty list (the section hides).
+ */
+export async function fetchPublicPortfolio(): Promise<PortfolioClientWithWorks[]> {
+  try {
+    const [clientsRes, worksRes] = await Promise.all([
+      supabase
+        .from("portfolio_clients")
+        .select("id,name,logo_url,description,website_url,industry,sort_order,is_visible")
+        .eq("is_visible", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("portfolio_works")
+        .select("id,portfolio_client_id,title,description,image_url,link_url,sort_order,is_visible")
+        .eq("is_visible", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+    ]);
+    if (clientsRes.error) throw clientsRes.error;
+    if (worksRes.error) throw worksRes.error;
+    const clients = (clientsRes.data as PortfolioClient[]) ?? [];
+    const works = (worksRes.data as PortfolioWork[]) ?? [];
+    // Placeholders ("Marca 2", etc.) never leave the server, not even in the dehydrated loader data.
+    return clients.filter((c) => !isPlaceholderName(c.name)).map((c) => ({
+      ...c,
+      works: works.filter((w) => w.portfolio_client_id === c.id),
+    }));
+  } catch (err) {
+    console.error("[portfolio] could not load public portfolio", err);
+    return [];
+  }
 }
