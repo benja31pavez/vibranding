@@ -73,8 +73,19 @@ function summarize(items: readonly AgendaItem[]): string {
     .join(", ");
 }
 
-function dayLabel(day: string, today: string, items: readonly AgendaItem[]): string {
-  return `${today === day ? "Hoy, " : ""}${formatLongDay(day)}: ${summarize(items)}`;
+function dayLabel(day: string, today: string): string {
+  return `${today === day ? "Hoy, " : ""}${formatLongDay(day)}`;
+}
+
+const descId = (prefix: string, day: string) => `${prefix}-${day}-desc`;
+
+/** Resumen del día referenciado por aria-describedby (la etiqueta queda corta). */
+function DayDescription({ id, items }: { id: string; items: readonly AgendaItem[] }) {
+  return (
+    <span id={id} className="sr-only">
+      {summarize(items)}
+    </span>
+  );
 }
 
 /** Mueve el foco al día seleccionado tras navegar con teclado. */
@@ -129,19 +140,21 @@ function MonthView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCa
       onKeyDown={onKeyDown}
       className="w-full"
     >
-      <div role="row" className="grid grid-cols-7 gap-1 pb-1">
-        {WEEKDAY_SHORT.map((d, i) => (
-          <div
-            key={d}
-            role="columnheader"
-            aria-label={WEEKDAY_LONG[i]}
-            className="px-1 text-center text-[11px] font-medium text-muted-foreground sm:text-left"
-          >
-            {d}
-          </div>
-        ))}
+      <div role="rowgroup">
+        <div role="row" className="grid grid-cols-7 gap-1 pb-1">
+          {WEEKDAY_SHORT.map((d, i) => (
+            <div
+              key={d}
+              role="columnheader"
+              aria-label={WEEKDAY_LONG[i]}
+              className="px-1 text-center text-[11px] font-medium text-muted-foreground sm:text-left"
+            >
+              {d}
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="space-y-1">
+      <div role="rowgroup" className="space-y-1">
         {weeks.map((week) => (
           <div key={week[0]} role="row" className="grid grid-cols-7 gap-1">
             {week.map((day) => {
@@ -155,7 +168,8 @@ function MonthView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCa
                     type="button"
                     data-day={day}
                     tabIndex={isSelected ? 0 : -1}
-                    aria-label={dayLabel(day, today, items)}
+                    aria-label={dayLabel(day, today)}
+                    aria-describedby={descId("mes", day)}
                     aria-current={isToday ? "date" : undefined}
                     onClick={() => onSelectDay(day)}
                     className={cn(
@@ -167,6 +181,7 @@ function MonthView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCa
                       outside && "opacity-50",
                     )}
                   >
+                    <DayDescription id={descId("mes", day)} items={items} />
                     <span
                       aria-hidden
                       className={cn(
@@ -223,59 +238,63 @@ function WeekView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCal
   return (
     <div
       ref={containerRef}
+      role="grid"
+      aria-label="Calendario de la semana. Usa las flechas para moverte entre días."
       onKeyDown={onKeyDown}
-      className="grid grid-cols-1 gap-2 sm:grid-cols-7 sm:gap-1"
     >
-      {days.map((day) => {
-        const items = itemsByDay.get(day) ?? [];
-        const isSelected = day === selected;
-        const isToday = day === today;
-        return (
-          <section
-            key={day}
-            aria-label={formatLongDay(day)}
-            className={cn(
-              "flex min-w-0 flex-col gap-1.5 rounded-app-sm border p-1.5 sm:min-h-64",
-              isSelected ? "border-primary bg-primary/5" : "border-border-subtle",
-            )}
-          >
-            <button
-              type="button"
-              data-day={day}
-              tabIndex={isSelected ? 0 : -1}
-              aria-pressed={isSelected}
-              aria-label={dayLabel(day, today, items)}
-              aria-current={isToday ? "date" : undefined}
-              onClick={() => onSelectDay(day)}
-              className="flex items-center gap-2 rounded-app-sm px-1 py-0.5 text-left text-xs hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      <div role="row" className="grid grid-cols-1 gap-2 sm:grid-cols-7 sm:gap-1">
+        {days.map((day) => {
+          const items = itemsByDay.get(day) ?? [];
+          const isSelected = day === selected;
+          const isToday = day === today;
+          return (
+            <div
+              key={day}
+              role="gridcell"
+              aria-selected={isSelected}
+              className={cn(
+                "flex min-w-0 flex-col gap-1.5 rounded-app-sm border p-1.5 sm:min-h-64",
+                isSelected ? "border-primary bg-primary/5" : "border-border-subtle",
+              )}
             >
-              <span className="font-medium text-muted-foreground">
-                {WEEKDAY_SHORT[weekdayIndex(day)]}
-              </span>
-              <span
-                className={cn(
-                  "grid h-6 min-w-6 place-items-center rounded-full px-1 font-medium",
-                  isToday && "bg-primary text-primary-foreground",
-                )}
+              <button
+                type="button"
+                data-day={day}
+                tabIndex={isSelected ? 0 : -1}
+                aria-label={dayLabel(day, today)}
+                aria-describedby={descId("semana", day)}
+                aria-current={isToday ? "date" : undefined}
+                onClick={() => onSelectDay(day)}
+                className="flex items-center gap-2 rounded-app-sm px-1 py-0.5 text-left text-xs hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {formatShortDay(day)}
-              </span>
-              {isToday && <span className="sr-only">(hoy)</span>}
-            </button>
-            {items.length === 0 ? (
-              <p className="px-1 text-[11px] text-muted-foreground sm:sr-only">Sin eventos</p>
-            ) : (
-              <ul className="flex flex-col gap-1">
-                {items.map((it) => (
-                  <li key={it.id} className="min-w-0">
-                    <AgendaChip item={it} asLink />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        );
-      })}
+                <span className="font-medium text-muted-foreground">
+                  {WEEKDAY_SHORT[weekdayIndex(day)]}
+                </span>
+                <span
+                  className={cn(
+                    "grid h-6 min-w-6 place-items-center rounded-full px-1 font-medium",
+                    isToday && "bg-primary text-primary-foreground",
+                  )}
+                >
+                  {formatShortDay(day)}
+                </span>
+                <DayDescription id={descId("semana", day)} items={items} />
+              </button>
+              {items.length === 0 ? (
+                <p className="px-1 text-[11px] text-muted-foreground sm:sr-only">Sin eventos</p>
+              ) : (
+                <ul className="flex flex-col gap-1">
+                  {items.map((it) => (
+                    <li key={it.id} className="min-w-0">
+                      <AgendaChip item={it} asLink />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

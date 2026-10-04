@@ -8,11 +8,14 @@ export { todayInChile };
 
 const DAY_KEY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const DAYS_PER_WEEK = 7;
+/** Años aceptados en ?fecha= (evita rangos absurdos en la URL). */
+const MIN_YEAR = 2000;
+const MAX_YEAR = 2100;
 
 export function isDayKey(value: unknown): value is string {
   if (typeof value !== "string") return false;
   const m = DAY_KEY_RE.exec(value);
-  if (!m) return false;
+  if (!m || +m[1] < MIN_YEAR || +m[1] > MAX_YEAR) return false;
   const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
   return d.getUTCDate() === +m[3] && d.getUTCMonth() === +m[2] - 1;
 }

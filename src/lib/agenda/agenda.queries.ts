@@ -2,10 +2,16 @@
  * Fuentes de la Agenda: un hook de TanStack Query por tabla, cada uno con su
  * propio estado de error para que una fuente caída no oculte las demás.
  */
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { useEffect } from "react";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+  type UseQueryResult,
+} from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { chileDayStartIso } from "./dates";
+import { chileDayStartIso, dayKeyOf } from "./dates";
 import type { AgendaItem, AgendaKind, AgendaRange } from "./types";
 
 /** Keys de React Query de la Agenda; acotadas por usuario y rango. */
@@ -16,6 +22,8 @@ export const agendaKeys = {
 };
 
 const STALE_MS = 60_000;
+/** Ids por consulta `.in()` para no exceder el largo de URL. */
+const IN_CHUNK = 200;
 const TITLE_MAX = 80;
 const NO_CLIENT = "Sin cliente";
 const CANCELLED_BOOKING_STATUSES = "(cancelled,canceled,cancelado)";
@@ -49,25 +57,55 @@ async function clientNames(ids: readonly string[]): Promise<Map<string, string>>
   if (unique.length === 0) return new Map();
   const { data, error } = await supabase.from("clients").select("id,name").in("id", unique);
   if (error) throw new Error(error.message);
-  return new Map((data ?? []).map((c) => [c.id, c.name]));
+  return new Map(data.map((c) => [c.id, c.name]));
 }
 
 function fail(source: string, message: string): never {
   throw new Error(`${source}: ${message}`);
 }
 
+const PAGE_SIZE = 1000;
+/** Tope de seguridad: 50 lotes = 50.000 filas por fuente y rango. */
+const MAX_PAGES = 50;
+
+interface PageResult<T> {
+  data: T[] | null;
+  error: { message: string } | null;
+}
+
+/** Trae todas las filas en lotes de PAGE_SIZE (la consulta debe tener orden estable). */
+async function fetchAllPages<T>(
+  source: string,
+  page: (from: number, to: number) => PromiseLike<PageResult<T>>,
+): Promise<T[]> {
+  let rows: T[] = [];
+  for (let i = 0; i < MAX_PAGES; i++) {
+    const from = i * PAGE_SIZE;
+    const { data, error } = await page(from, from + PAGE_SIZE - 1);
+    if (error) fail(source, error.message);
+    const batch = data ?? [];
+    rows = [...rows, ...batch];
+    if (batch.length < PAGE_SIZE) return rows;
+  }
+  return fail(source, "demasiados eventos en el período; acota el rango o los filtros");
+}
+
 // ─── Fetchers (exportados para pruebas y prefetch) ──────────────────────────
 
 export async function fetchPostItems(range: AgendaRange): Promise<AgendaItem[]> {
-  const { data, error } = await supabase
-    .from("instagram_posts")
-    .select("id,scheduled_at,approval_status,caption,client_id,client:clients(name)")
-    .is("archived_at", null)
-    .not("scheduled_at", "is", null)
-    .gte("scheduled_at", chileDayStartIso(range.from))
-    .lt("scheduled_at", chileDayStartIso(range.to));
-  if (error) fail("Publicaciones", error.message);
-  return (data ?? []).flatMap((p) =>
+  const data = await fetchAllPages("Publicaciones", (from, to) =>
+    supabase
+      .from("instagram_posts")
+      .select("id,scheduled_at,approval_status,caption,client_id,client:clients(name)")
+      .is("archived_at", null)
+      .not("scheduled_at", "is", null)
+      .gte("scheduled_at", chileDayStartIso(range.from))
+      .lt("scheduled_at", chileDayStartIso(range.to))
+      .order("scheduled_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.flatMap((p) =>
     p.scheduled_at
       ? [
           {
@@ -87,13 +125,17 @@ export async function fetchPostItems(range: AgendaRange): Promise<AgendaItem[]> 
 }
 
 export async function fetchDeliverableItems(range: AgendaRange): Promise<AgendaItem[]> {
-  const { data, error } = await supabase
-    .from("deliverables")
-    .select("id,due_date,title,status,client_id,client:clients(name)")
-    .gte("due_date", range.from)
-    .lt("due_date", range.to);
-  if (error) fail("Entregables", error.message);
-  return (data ?? []).flatMap((d) =>
+  const data = await fetchAllPages("Entregables", (from, to) =>
+    supabase
+      .from("deliverables")
+      .select("id,due_date,title,status,client_id,client:clients(name)")
+      .gte("due_date", range.from)
+      .lt("due_date", range.to)
+      .order("due_date", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.flatMap((d) =>
     d.due_date
       ? [
           {
@@ -113,13 +155,17 @@ export async function fetchDeliverableItems(range: AgendaRange): Promise<AgendaI
 }
 
 export async function fetchTaskItems(range: AgendaRange): Promise<AgendaItem[]> {
-  const { data, error } = await supabase
-    .from("client_tasks")
-    .select("id,due_date,title,status,client_id,client:clients(name)")
-    .gte("due_date", range.from)
-    .lt("due_date", range.to);
-  if (error) fail("Tareas", error.message);
-  return (data ?? []).flatMap((t) =>
+  const data = await fetchAllPages("Tareas", (from, to) =>
+    supabase
+      .from("client_tasks")
+      .select("id,due_date,title,status,client_id,client:clients(name)")
+      .gte("due_date", range.from)
+      .lt("due_date", range.to)
+      .order("due_date", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.flatMap((t) =>
     t.due_date
       ? [
           {
@@ -139,13 +185,17 @@ export async function fetchTaskItems(range: AgendaRange): Promise<AgendaItem[]> 
 }
 
 export async function fetchObjectiveItems(range: AgendaRange): Promise<AgendaItem[]> {
-  const { data, error } = await supabase
-    .from("objectives")
-    .select("id,due_date,title,status,client_id,client:clients(name)")
-    .gte("due_date", range.from)
-    .lt("due_date", range.to);
-  if (error) fail("Objetivos", error.message);
-  return (data ?? []).flatMap((o) =>
+  const data = await fetchAllPages("Objetivos", (from, to) =>
+    supabase
+      .from("objectives")
+      .select("id,due_date,title,status,client_id,client:clients(name)")
+      .gte("due_date", range.from)
+      .lt("due_date", range.to)
+      .order("due_date", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.flatMap((o) =>
     o.due_date
       ? [
           {
@@ -165,14 +215,18 @@ export async function fetchObjectiveItems(range: AgendaRange): Promise<AgendaIte
 }
 
 export async function fetchPaymentItems(range: AgendaRange): Promise<AgendaItem[]> {
-  const { data, error } = await supabase
-    .from("payments")
-    .select("id,due_date,amount,currency,description,status,client_id,client:clients(name)")
-    .in("status", ["pending", "overdue"])
-    .gte("due_date", range.from)
-    .lt("due_date", range.to);
-  if (error) fail("Cobros", error.message);
-  return (data ?? []).flatMap((p) =>
+  const data = await fetchAllPages("Cobros", (from, to) =>
+    supabase
+      .from("payments")
+      .select("id,due_date,amount,currency,description,status,client_id,client:clients(name)")
+      .in("status", ["pending", "overdue"])
+      .gte("due_date", range.from)
+      .lt("due_date", range.to)
+      .order("due_date", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.flatMap((p) =>
     p.due_date
       ? [
           {
@@ -192,14 +246,18 @@ export async function fetchPaymentItems(range: AgendaRange): Promise<AgendaItem[
 }
 
 export async function fetchSubscriptionItems(range: AgendaRange): Promise<AgendaItem[]> {
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .select("id,next_charge_date,amount_clp,plan_key,status,client_id,client:clients(name)")
-    .eq("status", "activa")
-    .gte("next_charge_date", range.from)
-    .lt("next_charge_date", range.to);
-  if (error) fail("Suscripciones", error.message);
-  return (data ?? []).flatMap((s) =>
+  const data = await fetchAllPages("Suscripciones", (from, to) =>
+    supabase
+      .from("subscriptions")
+      .select("id,next_charge_date,amount_clp,plan_key,status,client_id,client:clients(name)")
+      .eq("status", "activa")
+      .gte("next_charge_date", range.from)
+      .lt("next_charge_date", range.to)
+      .order("next_charge_date", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.flatMap((s) =>
     s.next_charge_date
       ? [
           {
@@ -219,14 +277,18 @@ export async function fetchSubscriptionItems(range: AgendaRange): Promise<Agenda
 }
 
 export async function fetchContractItems(range: AgendaRange): Promise<AgendaItem[]> {
-  const { data, error } = await supabase
-    .from("client_contracts")
-    .select("id,effective_date,title,status,client_id")
-    .neq("status", "cancelled")
-    .gte("effective_date", range.from)
-    .lt("effective_date", range.to);
-  if (error) fail("Contratos", error.message);
-  const rows = data ?? [];
+  const data = await fetchAllPages("Contratos", (from, to) =>
+    supabase
+      .from("client_contracts")
+      .select("id,effective_date,title,status,client_id")
+      .neq("status", "cancelled")
+      .gte("effective_date", range.from)
+      .lt("effective_date", range.to)
+      .order("effective_date", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  const rows = data;
   const names = await clientNames(rows.map((c) => c.client_id)).catch((e: unknown) =>
     fail("Contratos", e instanceof Error ? e.message : String(e)),
   );
@@ -250,15 +312,21 @@ export async function fetchContractItems(range: AgendaRange): Promise<AgendaItem
 }
 
 export async function fetchBookingItems(range: AgendaRange, userId: string): Promise<AgendaItem[]> {
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("id,scheduled_at,duration_minutes,customer_name,status,client_id,client:clients(name)")
-    .eq("owner_user_id", userId)
-    .not("status", "in", CANCELLED_BOOKING_STATUSES)
-    .gte("scheduled_at", chileDayStartIso(range.from))
-    .lt("scheduled_at", chileDayStartIso(range.to));
-  if (error) fail("Reservas", error.message);
-  return (data ?? []).map((b) => ({
+  const data = await fetchAllPages("Reservas", (from, to) =>
+    supabase
+      .from("bookings")
+      .select(
+        "id,scheduled_at,duration_minutes,customer_name,status,client_id,client:clients(name)",
+      )
+      .eq("owner_user_id", userId)
+      .not("status", "in", CANCELLED_BOOKING_STATUSES)
+      .gte("scheduled_at", chileDayStartIso(range.from))
+      .lt("scheduled_at", chileDayStartIso(range.to))
+      .order("scheduled_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map((b) => ({
     id: `reserva:${b.id}`,
     kind: "reserva" as const,
     date: b.scheduled_at,
@@ -275,6 +343,17 @@ export async function fetchBookingItems(range: AgendaRange, userId: string): Pro
 
 type Fetcher = (range: AgendaRange, userId: string) => Promise<AgendaItem[]>;
 
+const FETCHERS: Readonly<Record<AgendaKind, Fetcher>> = {
+  publicacion: fetchPostItems,
+  entregable: fetchDeliverableItems,
+  tarea: fetchTaskItems,
+  objetivo: fetchObjectiveItems,
+  pago: fetchPaymentItems,
+  suscripcion: fetchSubscriptionItems,
+  contrato: fetchContractItems,
+  reserva: fetchBookingItems,
+};
+
 function useAgendaSource(kind: AgendaKind, fetcher: Fetcher, range: AgendaRange) {
   const { user } = useAuth();
   const userId = user?.id ?? "";
@@ -282,8 +361,30 @@ function useAgendaSource(kind: AgendaKind, fetcher: Fetcher, range: AgendaRange)
     queryKey: agendaKeys.source(kind, userId, range),
     enabled: Boolean(userId),
     staleTime: STALE_MS,
+    // Al cambiar de mes/semana se mantiene lo anterior hasta que llega lo nuevo (sin parpadeo).
+    placeholderData: keepPreviousData,
     queryFn: () => fetcher(range, userId),
   });
+}
+
+/** Precarga el rango indicado (p. ej. el mes siguiente) para navegar sin espera. */
+export function usePrefetchAgendaRange(range: AgendaRange | null) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
+  const from = range?.from;
+  const to = range?.to;
+  useEffect(() => {
+    if (!userId || !from || !to) return;
+    const target = { from, to };
+    for (const [kind, fetcher] of Object.entries(FETCHERS) as Array<[AgendaKind, Fetcher]>) {
+      void queryClient.prefetchQuery({
+        queryKey: agendaKeys.source(kind, userId, target),
+        queryFn: () => fetcher(target, userId),
+        staleTime: STALE_MS,
+      });
+    }
+  }, [queryClient, userId, from, to]);
 }
 
 export const usePostsAgenda = (range: AgendaRange) =>
@@ -306,6 +407,8 @@ export const useBookingsAgenda = (range: AgendaRange) =>
 export interface AgendaSourceState {
   kind: AgendaKind;
   isPending: boolean;
+  /** Muestra datos del rango anterior mientras carga el nuevo. */
+  isPlaceholderData: boolean;
   isError: boolean;
   isFetching: boolean;
   errorMessage: string | null;
@@ -315,8 +418,10 @@ export interface AgendaSourceState {
 export interface AgendaData {
   items: AgendaItem[];
   sources: AgendaSourceState[];
-  /** Ninguna fuente terminó todavía (primera carga). */
+  /** Primera carga: ninguna fuente tiene datos aún (ni previos). */
   isLoading: boolean;
+  /** Hay datos del rango anterior en pantalla mientras llega el nuevo. */
+  isRefreshing: boolean;
   /** Todas las fuentes fallaron. */
   allFailed: boolean;
   failed: AgendaSourceState[];
@@ -327,6 +432,7 @@ function toState(kind: AgendaKind, q: UseQueryResult<AgendaItem[]>): AgendaSourc
   return {
     kind,
     isPending: q.isPending,
+    isPlaceholderData: q.isPlaceholderData,
     isError: q.isError,
     isFetching: q.isFetching,
     errorMessage: q.error instanceof Error ? q.error.message : q.error ? String(q.error) : null,
@@ -334,11 +440,12 @@ function toState(kind: AgendaKind, q: UseQueryResult<AgendaItem[]>): AgendaSourc
   };
 }
 
+/** Orden por día de Chile; el mismo día, primero los de día completo y luego por hora. */
 function byDate(a: AgendaItem, b: AgendaItem): number {
-  // Los de día completo van antes que los con hora el mismo día.
-  if (a.allDay !== b.allDay && a.date.slice(0, 10) === b.date.slice(0, 10)) {
-    return a.allDay ? -1 : 1;
-  }
+  const dayA = dayKeyOf(a.date, a.allDay);
+  const dayB = dayKeyOf(b.date, b.allDay);
+  if (dayA !== dayB) return dayA < dayB ? -1 : 1;
+  if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
   return a.date.localeCompare(b.date) || a.title.localeCompare(b.title, "es");
 }
 
@@ -361,6 +468,7 @@ export function useAgendaData(range: AgendaRange): AgendaData {
     items,
     sources,
     isLoading: sources.every((s) => s.isPending && !s.isError),
+    isRefreshing: sources.some((s) => s.isPlaceholderData),
     allFailed: failed.length === sources.length,
     failed,
     refetchFailed: () => failed.forEach((s) => s.refetch()),

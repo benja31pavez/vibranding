@@ -19,7 +19,7 @@ import { useClientList } from "@/components/shell/useClientList";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useAgendaData } from "@/lib/agenda/agenda.queries";
+import { useAgendaData, usePrefetchAgendaRange } from "@/lib/agenda/agenda.queries";
 import {
   addDays,
   addMonths,
@@ -29,8 +29,9 @@ import {
   isDayKey,
   monthRange,
   rangeForView,
-  todayInChile,
 } from "@/lib/agenda/dates";
+import { useChileToday } from "@/lib/agenda/useChileToday";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   AGENDA_KINDS,
   AGENDA_KIND_LABEL_PLURAL,
@@ -50,6 +51,8 @@ interface AgendaSearch {
   cliente?: string;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function parseKinds(raw: unknown): string | undefined {
   if (typeof raw !== "string") return undefined;
   const kinds = AGENDA_KINDS.filter((k) => raw.split(",").includes(k));
@@ -62,7 +65,7 @@ export const Route = createFileRoute("/_app/agenda")({
     vista: s.vista === "semana" || s.vista === "lista" ? s.vista : undefined,
     fecha: isDayKey(s.fecha) ? s.fecha : undefined,
     tipos: parseKinds(s.tipos),
-    cliente: typeof s.cliente === "string" && s.cliente ? s.cliente : undefined,
+    cliente: typeof s.cliente === "string" && UUID_RE.test(s.cliente) ? s.cliente : undefined,
   }),
   component: AgendaPage,
   head: () => ({
@@ -136,12 +139,16 @@ function periodLabel(view: AgendaView, range: AgendaRange, anchor: string): stri
 }
 
 function CalendarTab({ search, setSearch }: CalendarTabProps) {
-  const today = todayInChile();
-  const view: AgendaView = search.vista ?? "mes";
+  const today = useChileToday();
+  const isMobile = useIsMobile();
+  // La vista Lista es solo para móvil; en escritorio cae a Mes.
+  const view: AgendaView = search.vista === "lista" && !isMobile ? "mes" : (search.vista ?? "mes");
   const selected = search.fecha ?? today;
   const range = useMemo(() => queryRange(view, selected), [view, selected]);
+  const nextRange = useMemo(() => queryRange(view, step(view, selected, 1)), [view, selected]);
 
   const agenda = useAgendaData(range);
+  usePrefetchAgendaRange(nextRange);
   const clientsQuery = useClientList(true);
   const clients = clientsQuery.data ?? [];
 
@@ -246,6 +253,9 @@ function CalendarTab({ search, setSearch }: CalendarTabProps) {
             </ToggleGroupItem>
           </ToggleGroup>
 
+          <p role="status" aria-live="polite" className="sr-only">
+            {agenda.isRefreshing ? "Actualizando agenda…" : ""}
+          </p>
           {agenda.allFailed ? (
             <ErrorState
               title="No pudimos cargar la agenda"
@@ -256,14 +266,21 @@ function CalendarTab({ search, setSearch }: CalendarTabProps) {
           ) : agenda.isLoading ? (
             <AgendaCalendarSkeleton />
           ) : (
-            <AgendaCalendar
-              view={view}
-              range={range}
-              selected={selected}
-              today={today}
-              itemsByDay={itemsByDay}
-              onSelectDay={selectDay}
-            />
+            <div
+              aria-busy={agenda.isRefreshing}
+              className={
+                agenda.isRefreshing ? "opacity-70 transition-opacity" : "transition-opacity"
+              }
+            >
+              <AgendaCalendar
+                view={view}
+                range={range}
+                selected={selected}
+                today={today}
+                itemsByDay={itemsByDay}
+                onSelectDay={selectDay}
+              />
+            </div>
           )}
         </Panel>
 
