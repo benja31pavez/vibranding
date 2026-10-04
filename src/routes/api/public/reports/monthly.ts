@@ -6,7 +6,7 @@ const PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])-01$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const INT_RE = /^\d{1,6}$/;
 const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 50;
+const MAX_LIMIT = 15; // mismo tope que MAX_BATCH_LIMIT (límite de subrequests del Worker)
 
 type BatchParams = { period?: string; offset: number; limit: number; clientId?: string };
 

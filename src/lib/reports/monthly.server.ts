@@ -30,7 +30,7 @@ import type { Json, TablesInsert } from "@/integrations/supabase/types";
 
 const ACTIVE_STATUS = "activo";
 export const DEFAULT_BATCH_LIMIT = 10;
-export const MAX_BATCH_LIMIT = 50;
+export const MAX_BATCH_LIMIT = 15; // ~55 consultas por cliente; Workers permite 1000 subrequests por invocación
 const CLIENT_CONCURRENCY = 3;
 
 export const LEAD_SOURCE_LABEL: Readonly<Record<string, string>> = {
