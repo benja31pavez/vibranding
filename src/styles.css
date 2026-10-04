@@ -98,6 +98,41 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
+  /* ── Plataforma interna (ver src/components/app/README.md) ── */
+  --color-bg: var(--bg);
+  --color-surface-2: var(--surface-2);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-strong: var(--success-strong);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-strong: var(--warning-strong);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-strong: var(--danger-strong);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-strong: var(--info-strong);
+  --color-neutral-subtle: var(--neutral-subtle);
+  --color-neutral-strong: var(--neutral-strong);
+
+  /* Radios de la plataforma: 6 / 8 / 12 (no tocan --radius de la home). */
+  --radius-app-sm: 6px;
+  --radius-app-md: 8px;
+  --radius-app-lg: 12px;
+
+  /* Sombras de la plataforma (namespaced para no alterar shadow-md/lg de la home). */
+  --shadow-app-xs: var(--app-shadow-xs);
+  --shadow-app-md: var(--app-shadow-md);
+  --shadow-app-lg: var(--app-shadow-lg);
+
+  /* Escala tipográfica: 12 xs · 13 ui · 14 sm · 16 base · 20 xl · 24 2xl · 30 3xl.
+     Solo "ui" (13px) es nuevo; el resto coincide con los valores por defecto de Tailwind. */
+  --text-ui: 0.8125rem;
+  --text-ui--line-height: 1.25rem;
 }
 
 :root {
@@ -160,6 +195,31 @@
   --chart-3: oklch(0.78 0.16 75);
   --chart-4: oklch(0.6 0.22 27);
   --chart-5: oklch(0.55 0.2 310);
+
+  /* ── Plataforma interna: neutros fríos + estados semánticos ── */
+  --bg: oklch(0.984 0.003 255);
+  --surface-2: oklch(0.967 0.004 255);
+  --border-subtle: oklch(0.93 0.005 255);
+  --border-strong: oklch(0.86 0.008 255);
+
+  --success-subtle: oklch(0.96 0.04 150);
+  --success-strong: oklch(0.45 0.12 150);
+  --warning-subtle: oklch(0.975 0.03 85);
+  --warning-strong: oklch(0.48 0.11 65);
+  --danger: oklch(0.58 0.21 27);
+  --danger-foreground: oklch(0.99 0 0);
+  --danger-subtle: oklch(0.96 0.03 25);
+  --danger-strong: oklch(0.48 0.18 27);
+  --info: oklch(0.6 0.15 240);
+  --info-foreground: oklch(0.99 0 0);
+  --info-subtle: oklch(0.96 0.03 240);
+  --info-strong: oklch(0.45 0.13 245);
+  --neutral-subtle: oklch(0.955 0.004 255);
+  --neutral-strong: oklch(0.42 0.015 255);
+
+  --app-shadow-xs: 0 1px 2px 0 oklch(0.2 0.02 255 / 0.06);
+  --app-shadow-md: 0 2px 4px -1px oklch(0.2 0.02 255 / 0.06), 0 4px 12px -2px oklch(0.2 0.02 255 / 0.08);
+  --app-shadow-lg: 0 8px 16px -4px oklch(0.2 0.02 255 / 0.08), 0 16px 40px -8px oklch(0.2 0.02 255 / 0.14);
 }
 
 .dark {
@@ -192,6 +252,29 @@
   --sidebar-accent-foreground: oklch(0.97 0.003 250);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.68 0.18 255);
+
+  --bg: oklch(0.15 0.006 260);
+  --surface-2: oklch(0.23 0.008 260);
+  --border-subtle: oklch(1 0 0 / 7%);
+  --border-strong: oklch(1 0 0 / 16%);
+  --success: oklch(0.72 0.15 150);
+  --warning: oklch(0.8 0.15 75);
+  --success-subtle: oklch(0.72 0.15 150 / 14%);
+  --success-strong: oklch(0.82 0.13 150);
+  --warning-subtle: oklch(0.8 0.15 75 / 14%);
+  --warning-strong: oklch(0.86 0.12 80);
+  --danger: oklch(0.65 0.21 27);
+  --danger-subtle: oklch(0.65 0.21 27 / 16%);
+  --danger-strong: oklch(0.8 0.13 25);
+  --info: oklch(0.68 0.14 240);
+  --info-subtle: oklch(0.68 0.14 240 / 16%);
+  --info-strong: oklch(0.82 0.1 240);
+  --neutral-subtle: oklch(1 0 0 / 7%);
+  --neutral-strong: oklch(0.8 0.01 255);
+
+  --app-shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.4);
+  --app-shadow-md: 0 4px 12px -2px oklch(0 0 0 / 0.45);
+  --app-shadow-lg: 0 16px 40px -8px oklch(0 0 0 / 0.55);
 }
 
 @layer base {
