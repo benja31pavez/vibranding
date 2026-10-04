@@ -1,6 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { BarChart3, Eye, Heart, Images, Megaphone, MousePointerClick, Percent, Wallet } from "lucide-react";
+import {
+  BarChart3,
+  Eye,
+  Heart,
+  Images,
+  Megaphone,
+  MousePointerClick,
+  Percent,
+  Wallet,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   EmptyState,
@@ -73,7 +82,9 @@ function ReportsPage() {
       <section className="space-y-4" aria-labelledby="metrics-title">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 id="metrics-title" className="text-lg font-semibold">Resultados por cliente</h2>
+            <h2 id="metrics-title" className="text-lg font-semibold">
+              Resultados por cliente
+            </h2>
             <p className="text-sm text-muted-foreground">
               {data
                 ? `Del ${fmtDay(data.from)} al ${fmtDay(data.to)} (hora de Chile). "Pendiente" es todo lo abierto hoy.`
@@ -104,20 +115,64 @@ function ReportsPage() {
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <StatCard icon={Images} label="Publicaciones" loading={loading} value={NUM.format(totals?.posts ?? 0)} />
-              <StatCard icon={Heart} label="Likes IG" loading={loading} value={NUM.format(totals?.likes ?? 0)} />
-              <StatCard icon={Megaphone} label="Inversión Ads" loading={loading} value={<MoneyCell money={totals?.spend ?? {}} />} />
-              <StatCard icon={Percent} label="CTR" loading={loading} value={fmtPct(ctrPercent(totals?.clicks ?? 0, totals?.impressions ?? 0))} />
-              <StatCard icon={Eye} label="Impresiones" loading={loading} value={NUM.format(totals?.impressions ?? 0)} />
-              <StatCard icon={MousePointerClick} label="Clicks" loading={loading} value={NUM.format(totals?.clicks ?? 0)} />
-              <StatCard icon={Wallet} label="Cobrado" loading={loading} value={<MoneyCell money={totals?.paid ?? {}} />} />
-              <StatCard icon={Wallet} label="Pendiente" loading={loading} value={<MoneyCell money={totals?.pending ?? {}} />} />
+              <StatCard
+                icon={Images}
+                label="Publicaciones"
+                loading={loading}
+                value={NUM.format(totals?.posts ?? 0)}
+              />
+              <StatCard
+                icon={Heart}
+                label="Likes IG"
+                loading={loading}
+                value={NUM.format(totals?.likes ?? 0)}
+              />
+              <StatCard
+                icon={Megaphone}
+                label="Inversión Ads"
+                loading={loading}
+                value={<MoneyCell money={totals?.spend ?? {}} />}
+              />
+              <StatCard
+                icon={Percent}
+                label="CTR"
+                loading={loading}
+                value={fmtPct(ctrPercent(totals?.clicks ?? 0, totals?.impressions ?? 0))}
+              />
+              <StatCard
+                icon={Eye}
+                label="Impresiones"
+                loading={loading}
+                value={NUM.format(totals?.impressions ?? 0)}
+              />
+              <StatCard
+                icon={MousePointerClick}
+                label="Clicks"
+                loading={loading}
+                value={NUM.format(totals?.clicks ?? 0)}
+              />
+              <StatCard
+                icon={Wallet}
+                label="Cobrado"
+                loading={loading}
+                value={<MoneyCell money={totals?.paid ?? {}} />}
+              />
+              <StatCard
+                icon={Wallet}
+                label="Pendiente"
+                loading={loading}
+                value={<MoneyCell money={totals?.pending ?? {}} />}
+              />
             </div>
 
             {loading ? (
               <TableSkeleton rows={5} columns={10} label="Cargando métricas por cliente" />
             ) : !data || data.rows.length === 0 ? (
-              <EmptyState icon={BarChart3} title="Aún no hay clientes." description="Cuando agregues clientes verás aquí sus resultados." />
+              <EmptyState
+                icon={BarChart3}
+                title="Aún no hay clientes."
+                description="Cuando agregues clientes verás aquí sus resultados."
+              />
             ) : (
               <MetricsTable rows={data.rows} />
             )}
@@ -135,31 +190,61 @@ function MetricsTable({ rows }: { rows: readonly ClientMetricsRow[] }) {
       <table className="w-full min-w-[900px] text-sm">
         <thead className="border-b border-border-subtle text-left text-xs text-muted-foreground">
           <tr>
-            <th scope="col" className="px-4 py-2 font-medium">Cliente</th>
-            <th scope="col" className={th}>Posts</th>
-            <th scope="col" className={th}>Likes</th>
-            <th scope="col" className={th}>Impresiones</th>
-            <th scope="col" className={th}>Clicks</th>
-            <th scope="col" className={th}>CTR</th>
-            <th scope="col" className={th}>Inversión</th>
-            <th scope="col" className={th}>Conversaciones</th>
-            <th scope="col" className={th}>Cobrado</th>
-            <th scope="col" className={th}>Pendiente</th>
+            <th scope="col" className="px-4 py-2 font-medium">
+              Cliente
+            </th>
+            <th scope="col" className={th}>
+              Posts
+            </th>
+            <th scope="col" className={th}>
+              Likes
+            </th>
+            <th scope="col" className={th}>
+              Impresiones
+            </th>
+            <th scope="col" className={th}>
+              Clicks
+            </th>
+            <th scope="col" className={th}>
+              CTR
+            </th>
+            <th scope="col" className={th}>
+              Inversión
+            </th>
+            <th scope="col" className={th}>
+              Conversaciones
+            </th>
+            <th scope="col" className={th}>
+              Cobrado
+            </th>
+            <th scope="col" className={th}>
+              Pendiente
+            </th>
           </tr>
         </thead>
         <tbody className="tabular-nums">
           {rows.map((r) => (
             <tr key={r.client_id} className="border-b border-border-subtle last:border-0">
-              <th scope="row" className="px-4 py-2 text-left font-medium">{r.client_name}</th>
+              <th scope="row" className="px-4 py-2 text-left font-medium">
+                {r.client_name}
+              </th>
               <td className="px-3 py-2 text-right">{NUM.format(r.posts)}</td>
               <td className="px-3 py-2 text-right">{NUM.format(r.likes)}</td>
               <td className="px-3 py-2 text-right">{NUM.format(r.impressions)}</td>
               <td className="px-3 py-2 text-right">{NUM.format(r.clicks)}</td>
-              <td className="px-3 py-2 text-right">{fmtPct(ctrPercent(r.clicks, r.impressions))}</td>
-              <td className="px-3 py-2 text-right"><MoneyCell money={r.spend} /></td>
+              <td className="px-3 py-2 text-right">
+                {fmtPct(ctrPercent(r.clicks, r.impressions))}
+              </td>
+              <td className="px-3 py-2 text-right">
+                <MoneyCell money={r.spend} />
+              </td>
               <td className="px-3 py-2 text-right">{NUM.format(r.conversions)}</td>
-              <td className="px-3 py-2 text-right"><MoneyCell money={r.paid} /></td>
-              <td className="px-3 py-2 text-right text-muted-foreground"><MoneyCell money={r.pending} /></td>
+              <td className="px-3 py-2 text-right">
+                <MoneyCell money={r.paid} />
+              </td>
+              <td className="px-3 py-2 text-right text-muted-foreground">
+                <MoneyCell money={r.pending} />
+              </td>
             </tr>
           ))}
         </tbody>

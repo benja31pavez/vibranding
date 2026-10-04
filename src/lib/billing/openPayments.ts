@@ -29,7 +29,14 @@ export function isDueSoon(
 }
 
 /** 'overdue', o 'pending' ya vencido que el cron aún no marcó. */
-export function isPastDue(row: { status: string; due_date: string | null }, today: string): boolean {
+export function isPastDue(
+  row: { status: string; due_date: string | null },
+  today: string,
+): boolean {
   if (row.status === "overdue") return true;
-  return row.status === "pending" && Boolean(row.due_date) && (row.due_date as string).slice(0, 10) < today;
+  return (
+    row.status === "pending" &&
+    Boolean(row.due_date) &&
+    (row.due_date as string).slice(0, 10) < today
+  );
 }

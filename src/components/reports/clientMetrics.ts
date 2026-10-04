@@ -80,7 +80,9 @@ async function loadClientMetrics(days: number): Promise<ClientMetrics> {
   const to = todayInChile();
   const from = addIsoDays(to, -(days - 1));
   const [clients, posts, insights, paid, open] = await Promise.all([
-    fetchAllRows((a, b) => supabase.from("clients").select("id,name").order("name").order("id").range(a, b)),
+    fetchAllRows((a, b) =>
+      supabase.from("clients").select("id,name").order("name").order("id").range(a, b),
+    ),
     fetchAllRows((a, b) =>
       supabase
         .from("instagram_posts")
@@ -125,7 +127,11 @@ async function loadClientMetrics(days: number): Promise<ClientMetrics> {
     if (row) byClient.set(clientId, fn(row));
   };
   for (const p of posts) {
-    update(p.client_id, (r) => ({ ...r, posts: r.posts + 1, likes: r.likes + Number(p.likes_count || 0) }));
+    update(p.client_id, (r) => ({
+      ...r,
+      posts: r.posts + 1,
+      likes: r.likes + Number(p.likes_count || 0),
+    }));
   }
   for (const i of insights) {
     update(i.client_id, (r) => ({
@@ -137,10 +143,16 @@ async function loadClientMetrics(days: number): Promise<ClientMetrics> {
     }));
   }
   for (const p of paid) {
-    update(p.client_id, (r) => ({ ...r, paid: addMoney(r.paid, p.currency, Number(p.amount || 0)) }));
+    update(p.client_id, (r) => ({
+      ...r,
+      paid: addMoney(r.paid, p.currency, Number(p.amount || 0)),
+    }));
   }
   for (const p of open) {
-    update(p.client_id, (r) => ({ ...r, pending: addMoney(r.pending, p.currency, Number(p.amount || 0)) }));
+    update(p.client_id, (r) => ({
+      ...r,
+      pending: addMoney(r.pending, p.currency, Number(p.amount || 0)),
+    }));
   }
   const rows = [...byClient.values()];
   return { from, to, rows, totals: sumTotals(rows) };

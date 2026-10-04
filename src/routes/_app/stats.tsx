@@ -10,14 +10,22 @@ export const Route = createFileRoute("/_app/stats")({
   head: () => ({
     meta: [
       { title: "Estadísticas del landing · Vibranding" },
-      { name: "description", content: "Clics en Contacto y WhatsApp registrados desde la landing pública." },
+      {
+        name: "description",
+        content: "Clics en Contacto y WhatsApp registrados desde la landing pública.",
+      },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
 });
 
 const EVENTS = [
-  { key: "contact_click", label: "Clics en «Contacto»", short: "Contacto", icon: MousePointerClick },
+  {
+    key: "contact_click",
+    label: "Clics en «Contacto»",
+    short: "Contacto",
+    icon: MousePointerClick,
+  },
   { key: "whatsapp_click", label: "Clics en WhatsApp", short: "WhatsApp", icon: MessageCircle },
 ] as const;
 type EventKey = (typeof EVENTS)[number]["key"];
@@ -78,7 +86,10 @@ async function loadRecent(): Promise<RecentRow[]> {
     .from("landing_events")
     .select("id,event_name,path,referrer,created_at")
     .eq("source_type", "site")
-    .in("event_name", EVENTS.map((e) => e.key))
+    .in(
+      "event_name",
+      EVENTS.map((e) => e.key),
+    )
     .order("created_at", { ascending: false })
     .limit(RECENT_LIMIT);
   if (error) throw new Error(error.message);
@@ -88,12 +99,23 @@ async function loadRecent(): Promise<RecentRow[]> {
 function StatsPage() {
   const { user } = useAuth();
   const userId = user?.id ?? "";
-  const counts = useQuery({ queryKey: ["landing-stats", userId, "counts"], enabled: Boolean(userId), queryFn: loadCounts });
-  const recent = useQuery({ queryKey: ["landing-stats", userId, "recent"], enabled: Boolean(userId), queryFn: loadRecent });
+  const counts = useQuery({
+    queryKey: ["landing-stats", userId, "counts"],
+    enabled: Boolean(userId),
+    queryFn: loadCounts,
+  });
+  const recent = useQuery({
+    queryKey: ["landing-stats", userId, "recent"],
+    enabled: Boolean(userId),
+    queryFn: loadRecent,
+  });
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-8 sm:px-6 md:px-10">
-      <PageHeader title="Estadísticas del landing" description="Clics registrados desde la landing pública." />
+      <PageHeader
+        title="Estadísticas del landing"
+        description="Clics registrados desde la landing pública."
+      />
 
       {counts.isError ? (
         <ErrorState
@@ -123,7 +145,9 @@ function StatsPage() {
       )}
 
       <section className="space-y-3" aria-labelledby="recent-title">
-        <h2 id="recent-title" className="text-lg font-semibold">Últimos clics</h2>
+        <h2 id="recent-title" className="text-lg font-semibold">
+          Últimos clics
+        </h2>
         {recent.isError ? (
           <ErrorState
             message={recent.error instanceof Error ? recent.error.message : undefined}
@@ -139,19 +163,35 @@ function StatsPage() {
             <table className="w-full min-w-[560px] text-sm">
               <thead className="border-b border-border-subtle text-left text-xs text-muted-foreground">
                 <tr>
-                  <th scope="col" className="px-4 py-2 font-medium">Evento</th>
-                  <th scope="col" className="px-4 py-2 font-medium">Ruta</th>
-                  <th scope="col" className="px-4 py-2 font-medium">Origen</th>
-                  <th scope="col" className="px-4 py-2 font-medium">Fecha</th>
+                  <th scope="col" className="px-4 py-2 font-medium">
+                    Evento
+                  </th>
+                  <th scope="col" className="px-4 py-2 font-medium">
+                    Ruta
+                  </th>
+                  <th scope="col" className="px-4 py-2 font-medium">
+                    Origen
+                  </th>
+                  <th scope="col" className="px-4 py-2 font-medium">
+                    Fecha
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {recent.data.map((r) => (
                   <tr key={r.id} className="border-b border-border-subtle last:border-0">
-                    <td className="px-4 py-2">{EVENTS.find((e) => e.key === r.event_name)?.short ?? r.event_name}</td>
-                    <td className="max-w-[200px] truncate px-4 py-2 text-muted-foreground">{r.path ?? "—"}</td>
-                    <td className="max-w-[200px] truncate px-4 py-2 text-muted-foreground">{r.referrer || "Directo"}</td>
-                    <td className="whitespace-nowrap px-4 py-2 text-muted-foreground">{DATE_TIME.format(new Date(r.created_at))}</td>
+                    <td className="px-4 py-2">
+                      {EVENTS.find((e) => e.key === r.event_name)?.short ?? r.event_name}
+                    </td>
+                    <td className="max-w-[200px] truncate px-4 py-2 text-muted-foreground">
+                      {r.path ?? "—"}
+                    </td>
+                    <td className="max-w-[200px] truncate px-4 py-2 text-muted-foreground">
+                      {r.referrer || "Directo"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 text-muted-foreground">
+                      {DATE_TIME.format(new Date(r.created_at))}
+                    </td>
                   </tr>
                 ))}
               </tbody>

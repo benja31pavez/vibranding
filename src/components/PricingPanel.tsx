@@ -1,28 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { ErrorState, ListSkeleton } from "@/components/app";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { MessageCircle, MonitorSmartphone, FileSignature, Building2, ChevronDown } from "lucide-react";
 import { PlanCatalog, VatLines } from "@/components/pricing/PlanCatalog";
-import { AGENCY_DEFAULTS, DEFAULT_CURRENCY, currencyDecimals, formatMoney } from "@/lib/pricing/plans";
-
-const CURRENCY_OPTIONS = [
-  { code: "CLP", label: "CLP · Peso chileno" },
-  { code: "USD", label: "USD · Dólar estadounidense" },
-  { code: "EUR", label: "EUR · Euro" },
-  { code: "MXN", label: "MXN · Peso mexicano" },
-  { code: "ARS", label: "ARS · Peso argentino" },
-  { code: "COP", label: "COP · Peso colombiano" },
-  { code: "PEN", label: "PEN · Sol peruano" },
-  { code: "BRL", label: "BRL · Real brasileño" },
-  { code: "GBP", label: "GBP · Libra esterlina" },
-  { code: "UYU", label: "UYU · Peso uruguayo" },
-];
+import { AGENCY_DEFAULTS, DEFAULT_CURRENCY, currencyDecimals } from "@/lib/pricing/plans";
 
 /**
  * Servicios adicionales (sueltos) que se pueden sumar a un plan, con precio editable.
@@ -205,11 +193,14 @@ export function PricingPanel() {
   const [services, setServices] = useState<Record<ServiceKey, ServicePricing> | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     setLoadError(null);
+    setP(null);
+    setServices(null);
     Promise.all([loadPricing(user.id), loadServicePricing(user.id)])
       .then(([pricing, svc]) => {
         if (cancelled) return;
@@ -222,17 +213,19 @@ export function PricingPanel() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, reloadKey]);
 
   if (loadError) {
     return (
-      <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-5 max-w-lg">
-        <div className="font-semibold text-sm">No se pudieron cargar tus servicios</div>
-        <p className="text-xs text-muted-foreground mt-1">{loadError}</p>
-      </div>
+      <ErrorState
+        title="No se pudieron cargar tus servicios"
+        message={loadError}
+        onRetry={() => setReloadKey((k) => k + 1)}
+        className="max-w-lg"
+      />
     );
   }
-  if (!p || !services) return <div className="text-muted-foreground">Cargando…</div>;
+  if (!p || !services) return <ListSkeleton rows={5} label="Cargando precios y servicios" />;
 
   const flashSaved = () => {
     setSaveState("saved");
@@ -300,44 +293,28 @@ export function PricingPanel() {
         <PlanCatalog />
       </div>
 
-      {/* Currency */}
-      <div className="rounded-2xl border bg-card p-5 space-y-2">
-        <div className="space-y-1.5 max-w-xs">
-          <Label className="text-xs text-muted-foreground">Moneda por defecto</Label>
-          <Select
-            value={p.currency}
-            onValueChange={(v) => {
-              if (v === p.currency) return;
-              setP_({ currency: v });
-              saveP({ currency: v });
-              toast.warning(
-                `Moneda cambiada a ${v}. Los precios de los servicios adicionales no se convierten: revísalos y ajústalos a ${v}.`,
-                { duration: 8000 },
-              );
+      {/* Moneda: la agencia cobra solo en CLP. Datos antiguos en otra moneda se leen con aviso. */}
+      {p.currency !== DEFAULT_CURRENCY && (
+        <div role="alert" className="rounded-2xl border border-warning/40 bg-warning-subtle p-5 space-y-2 text-sm text-warning-strong">
+          <p className="font-medium">Tus precios guardados están en {p.currency}.</p>
+          <p className="text-xs">
+            La plataforma ahora trabaja solo en CLP (pesos chilenos, IVA incluido). Los montos de los
+            servicios adicionales no se convierten: revísalos y luego cambia la moneda a CLP. Mientras
+            tanto no podrás generar contratos con un plan.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-surface"
+            onClick={() => {
+              setP_({ currency: DEFAULT_CURRENCY });
+              void saveP({ currency: DEFAULT_CURRENCY });
             }}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecciona una moneda" />
-            </SelectTrigger>
-            <SelectContent>
-              {CURRENCY_OPTIONS.map((c) => (
-                <SelectItem key={c.code} value={c.code}>
-                  {c.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            Usar CLP
+          </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground">
-          Se usa para los servicios adicionales y los contratos. Los planes siempre se cobran en CLP. Cambiar la
-          moneda no convierte los precios ya guardados: revisa los adicionales después de cambiarla.
-        </p>
-        {p.currency !== DEFAULT_CURRENCY && (
-          <p className="text-[11px] text-destructive">
-            Tu moneda por defecto no es CLP: no podrás generar contratos con un plan hasta cambiarla a CLP.
-          </p>
-        )}
-      </div>
+      )}
 
       {/* Add-on services */}
       <div className="space-y-3">
@@ -626,96 +603,6 @@ function ClauseField({
         onBlur={(e) => onSave(e.target.value || null)}
         placeholder={fallback}
       />
-    </div>
-  );
-}
-
-// ───────── Money helpers + IG breakdown (kept for legacy callers) ─────────
-
-function fmtMoney(currency: string, n: number) {
-  return formatMoney(currency, n);
-}
-
-export function PricingSummary({
-  pricing,
-  services,
-}: {
-  pricing: PricingSettings | null;
-  services?: Record<ServiceKey, ServicePricing> | null;
-}) {
-  if (!pricing) return null;
-  const fmt = (n: number) => fmtMoney(pricing.currency, n);
-  return (
-    <div className="rounded-2xl border bg-card p-5">
-      <div className="flex items-baseline justify-between mb-3">
-        <h3 className="font-semibold">Servicios adicionales</h3>
-        <span className="text-xs text-muted-foreground">{pricing.currency}</span>
-      </div>
-      <div className="space-y-2 text-sm">
-        {services
-          ? SERVICE_CATALOG.map((s) => {
-              const row = services[s.key];
-              if (!row || (Number(row.one_time_price) === 0 && Number(row.monthly_price) === 0)) return null;
-              return (
-                <div key={s.key} className="flex justify-between border-b last:border-0 py-1.5">
-                  <div className="min-w-0">
-                    <div className="font-medium">{s.label}</div>
-                    {row.included_text && (
-                      <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{row.included_text}</div>
-                    )}
-                  </div>
-                  <div className="text-right shrink-0 ml-3">
-                    {Number(row.one_time_price) > 0 && (
-                      <div className="font-semibold">{fmt(Number(row.one_time_price))}</div>
-                    )}
-                    {Number(row.monthly_price) > 0 && (
-                      <div className="text-xs text-muted-foreground">{fmt(Number(row.monthly_price))}/mes</div>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          : null}
-      </div>
-    </div>
-  );
-}
-
-import type { IGPost, PostFormat } from "./InstagramEditor";
-
-export function priceForFormat(pricing: PricingSettings, f: PostFormat): number {
-  return f === "reel" ? pricing.reel_price : f === "carousel" ? pricing.carousel_price : pricing.photo_price;
-}
-
-export function ProposedCostsBreakdown({ pricing, posts }: { pricing: PricingSettings | null; posts: IGPost[] }) {
-  if (!pricing) return null;
-  const proposed = posts.filter((p) => p.type === "proposed").sort((a, b) => a.position - b.position);
-  if (!proposed.length) return null;
-  const fmt = (n: number) => fmtMoney(pricing.currency, n);
-  const subtotal = proposed.reduce((s, p) => s + priceForFormat(pricing, p.format), 0);
-
-  const label = (f: PostFormat) => (f === "reel" ? "Reel" : f === "carousel" ? "Carrusel" : "Foto");
-
-  return (
-    <div className="rounded-2xl border bg-card p-5">
-      <div className="flex items-baseline justify-between mb-3">
-        <h3 className="font-semibold">Desglose por publicación</h3>
-        <span className="text-xs text-muted-foreground">{pricing.currency}</span>
-      </div>
-      <div className="space-y-1.5 text-sm">
-        {proposed.map((p, i) => (
-          <div key={p.id} className="flex justify-between py-1 border-b last:border-0">
-            <span className="text-muted-foreground">
-              Post #{i + 1} · <span className="text-foreground">{label(p.format)}</span>
-            </span>
-            <span className="font-medium">{fmt(priceForFormat(pricing, p.format))}</span>
-          </div>
-        ))}
-        <div className="flex justify-between pt-2 border-t mt-2 text-base">
-          <span className="font-semibold">Subtotal publicaciones</span>
-          <span className="font-bold">{fmt(subtotal)}</span>
-        </div>
-      </div>
     </div>
   );
 }
