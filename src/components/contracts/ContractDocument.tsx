@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import { AGENCY_DEFAULTS, DEFAULT_CURRENCY, formatMoney, splitVat } from "@/lib/pricing/plans";
 
 export interface ContractDocProps {
   agency: {
@@ -20,12 +21,15 @@ export interface ContractDocProps {
   effective_date: string;
   payment_due_days: number;
   jurisdiction: string;
+  /** Ley aplicable. Por defecto, las leyes de la República de Chile. */
+  governingLaw?: string;
   services: Array<{
     service_key: string;
     label: string;
     one_time_price: number;
     monthly_price: number;
     included_text: string | null;
+    min_months?: number | null;
   }>;
   clauses: Array<{ title: string; body: string }>;
   totals: { one_time: number; monthly: number };
@@ -41,14 +45,20 @@ const C = {
   bg: "#ffffff",
 };
 
-const money = (cur: string, n: number) =>
-  `${cur} ${Number(n).toLocaleString("es", { maximumFractionDigits: 2 })}`;
+const money = (cur: string, n: number) => formatMoney(cur, n);
 
 export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(function ContractDocument(
-  { agency, client, currency, effective_date, payment_due_days, jurisdiction, services, clauses, totals, title },
+  { agency, client, currency, effective_date, payment_due_days, jurisdiction, governingLaw, services, clauses, totals, title },
   ref
 ) {
   const today = effective_date || new Date().toISOString().slice(0, 10);
+  const law = governingLaw || AGENCY_DEFAULTS.governing_law;
+  const isClp = currency.toUpperCase() === DEFAULT_CURRENCY;
+  const oneTimeVat = splitVat(totals.one_time);
+  const monthlyVat = splitVat(totals.monthly);
+  const includesAds = services.some((s) => s.service_key === "crecimiento");
+  let section = clauses.length > 0 ? 5 : 4;
+  const nextSection = () => ++section;
   return (
     <div
       ref={ref}
@@ -96,7 +106,7 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(fun
           <thead>
             <tr style={{ background: "#f8fafc" }}>
               <th style={thStyle}>Servicio</th>
-              <th style={{ ...thStyle, textAlign: "right" }}>Setup</th>
+              <th style={{ ...thStyle, textAlign: "right" }}>Pago único</th>
               <th style={{ ...thStyle, textAlign: "right" }}>Mensualidad</th>
             </tr>
           </thead>
@@ -108,6 +118,11 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(fun
                   {s.included_text && (
                     <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>{s.included_text}</div>
                   )}
+                  {s.min_months ? (
+                    <div style={{ fontSize: 11.5, color: C.sub, marginTop: 2 }}>
+                      Permanencia mínima: {s.min_months} meses
+                    </div>
+                  ) : null}
                 </td>
                 <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
                   {Number(s.one_time_price) > 0 ? money(currency, Number(s.one_time_price)) : "—"}
@@ -122,15 +137,35 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(fun
               <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, totals.one_time)}</td>
               <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, totals.monthly)}/mes</td>
             </tr>
+            {isClp && (
+              <>
+                <tr style={{ color: C.sub, fontSize: 12 }}>
+                  <td style={tdStyle}>Neto</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, oneTimeVat.net)}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, monthlyVat.net)}/mes</td>
+                </tr>
+                <tr style={{ color: C.sub, fontSize: 12 }}>
+                  <td style={tdStyle}>IVA (19%)</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, oneTimeVat.vat)}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, monthlyVat.vat)}/mes</td>
+                </tr>
+              </>
+            )}
           </tbody>
         </table>
+      )}
+      {isClp && services.length > 0 && (
+        <p style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>
+          Montos en pesos chilenos (CLP), IVA incluido.
+          {includesAds && " La inversión en publicidad pagada (pauta en Meta Ads) no está incluida y la paga directamente el cliente."}
+        </p>
       )}
 
       {/* Payment terms */}
       <h2 style={h2Style}>4. Condiciones de pago</h2>
       <ul style={ulStyle}>
         <li>
-          Los importes <strong>no se acumulan</strong>: cada etapa se factura al momento de su entrega u ofrecimiento, y
+          Los montos <strong>no se acumulan</strong>: cada etapa se factura al momento de su entrega u ofrecimiento, y
           se paga de forma <strong>independiente</strong>. Los servicios con mensualidad se facturan cada mes durante
           su vigencia.
         </li>
@@ -139,8 +174,14 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(fun
           correspondiente.
         </li>
         <li>
+          Cada pago se respalda con factura o boleta electrónica emitida por el prestador según corresponda.
+        </li>
+        <li>
+          Los planes mensuales tienen la permanencia mínima indicada en la tabla de servicios.
+        </li>
+        <li>
           Pagos vencidos podrán suspender automáticamente el servicio hasta su regularización, sin que ello exima al
-          cliente del importe adeudado.
+          cliente del monto adeudado.
         </li>
       </ul>
 
@@ -157,10 +198,16 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(fun
         </>
       )}
 
+      {/* Governing law */}
+      <h2 style={h2Style}>{nextSection()}. Ley aplicable</h2>
+      <p style={{ color: C.sub }}>
+        El presente contrato se rige por <strong>{law}</strong>.
+      </p>
+
       {/* Jurisdiction */}
       {jurisdiction && (
         <>
-          <h2 style={h2Style}>{clauses.length > 0 ? "6" : "5"}. Jurisdicción</h2>
+          <h2 style={h2Style}>{nextSection()}. Jurisdicción</h2>
           <p style={{ color: C.sub }}>
             Las partes acuerdan someter cualquier controversia derivada del presente contrato a{" "}
             <strong>{jurisdiction}</strong>.
@@ -207,7 +254,7 @@ function PartyBlock({
       <div style={{ fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: C.muted, fontWeight: 700 }}>{title}</div>
       <div style={{ fontWeight: 700, fontSize: 15, marginTop: 4 }}>{name || "—"}</div>
       {handle && <div style={{ color: C.muted, fontSize: 12 }}>@{handle}</div>}
-      {taxId && <div style={{ color: C.sub, marginTop: 6, fontSize: 12 }}>ID fiscal: {taxId}</div>}
+      {taxId && <div style={{ color: C.sub, marginTop: 6, fontSize: 12 }}>RUT: {taxId}</div>}
       {address && <div style={{ color: C.sub, fontSize: 12 }}>{address}</div>}
       {email && <div style={{ color: C.sub, fontSize: 12 }}>{email}</div>}
     </div>

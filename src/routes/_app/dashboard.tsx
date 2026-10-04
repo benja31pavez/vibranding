@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Users, CheckSquare, DollarSign, CalendarClock, TrendingUp, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useReviewAlerts } from "@/hooks/use-review-alerts";
+import { DEFAULT_CURRENCY, formatMoney } from "@/lib/pricing/plans";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
@@ -51,7 +52,7 @@ function Dashboard() {
       ]);
 
       const monthRevenue = (paid ?? []).reduce((s, x: any) => s + Number(x.amount), 0);
-      const currency = (paid ?? [])[0]?.currency ?? "USD";
+      const currency = (paid ?? [])[0]?.currency ?? DEFAULT_CURRENCY;
 
       setStats({
         clients: clients?.length ?? 0,
@@ -89,7 +90,7 @@ function Dashboard() {
             <Card icon={Users} label="Clientes" value={String(stats.clients)} />
             <Card icon={CheckSquare} label="Etapas próximas" value={String(stats.upcomingDeliverables.length)} hint="próximos 7 días" />
             <Card icon={DollarSign} label="Pagos pendientes" value={String(stats.pendingPayments.length)} />
-            <Card icon={TrendingUp} label="Ingresos del mes" value={`${stats.currency} ${stats.monthRevenue.toFixed(0)}`} />
+            <Card icon={TrendingUp} label="Ingresos del mes" value={formatMoney(stats.currency, stats.monthRevenue)} />
           </div>
 
           <ReviewActivity />
@@ -125,7 +126,7 @@ function Dashboard() {
                         <span className="font-medium">{p.client_name}</span>
                         {p.description && <span className="text-muted-foreground"> · {p.description}</span>}
                       </Link>
-                      <span className="text-xs">{p.currency} {Number(p.amount).toFixed(0)} <span className="text-muted-foreground">{p.due_date ?? ""}</span></span>
+                      <span className="text-xs">{formatMoney(p.currency, Number(p.amount))} <span className="text-muted-foreground">{p.due_date ?? ""}</span></span>
                     </li>
                   ))}
                 </ul>
