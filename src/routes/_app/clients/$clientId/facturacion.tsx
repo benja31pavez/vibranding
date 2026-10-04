@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContractsPage } from "@/components/pages/ContractsPage";
 import { PaymentsPanel } from "@/components/PaymentsPanel";
+import { PageHeader } from "@/components/app";
 
 export const Route = createFileRoute("/_app/clients/$clientId/facturacion")({
   validateSearch: (s: Record<string, unknown>): { tab?: "contratos" | "pagos" } => ({
@@ -26,21 +27,27 @@ function FacturacionPage() {
   const navigate = Route.useNavigate();
 
   return (
-    <Tabs
-      value={tab}
-      onValueChange={(v) => navigate({ search: { tab: v as "contratos" | "pagos" } })}
-      className="space-y-4"
-    >
-      <TabsList>
-        <TabsTrigger value="contratos">Contratos</TabsTrigger>
-        <TabsTrigger value="pagos">Pagos</TabsTrigger>
-      </TabsList>
-      <TabsContent value="contratos">
-        <ContractsPage clientId={clientId} />
-      </TabsContent>
-      <TabsContent value="pagos">
-        <PaymentsPanel clientId={clientId} />
-      </TabsContent>
-    </Tabs>
+    <div className="space-y-6">
+      <PageHeader
+        title="Facturación"
+        description="Contratos y pagos del cliente en una sola vista."
+      />
+      <Tabs
+        value={tab}
+        onValueChange={(v) => navigate({ search: { tab: v as "contratos" | "pagos" } })}
+        className="space-y-4"
+      >
+        <TabsList aria-label="Secciones de facturación">
+          <TabsTrigger value="contratos">Contratos</TabsTrigger>
+          <TabsTrigger value="pagos">Pagos</TabsTrigger>
+        </TabsList>
+        <TabsContent value="contratos">
+          <ContractsPage clientId={clientId} />
+        </TabsContent>
+        <TabsContent value="pagos">
+          <PaymentsPanel clientId={clientId} />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

@@ -10,6 +10,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState, ErrorState, PageHeader } from "@/components/app";
 
 export const Route = createFileRoute("/_app/clients/")({
   component: ClientsList,
@@ -27,17 +29,22 @@ function ClientsList() {
   const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
 
   const load = async () => {
     setLoading(true);
+    setLoadError(null);
     const { data, error } = await supabase
       .from("clients")
       .select("id,name,instagram_handle,notes,updated_at")
       .order("updated_at", { ascending: false });
-    if (error) toast.error(error.message);
+    if (error) {
+      console.error("[clients] error al cargar", error);
+      setLoadError(error.message);
+    }
     setClients(data ?? []);
     setLoading(false);
   };
@@ -64,76 +71,90 @@ function ClientsList() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
-      <header className="flex flex-wrap items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            <span className="font-brand text-gradient-brand bg-gradient-brand-animated">Clientes</span>
-          </h1>
-          <p className="text-muted-foreground mt-1">Gestiona las asesorías de cada uno.</p>
-        </div>
-        <div className="flex items-center gap-2">
-        <Button asChild variant="outline" className="rounded-full h-11 px-5">
-          <Link to="/clients/connect">Conectar con Meta</Link>
-        </Button>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="rounded-full h-11 px-5 bg-gradient-brand bg-gradient-brand-animated text-white border-0 hover:opacity-90"><Plus className="w-4 h-4 mr-1" /> Nuevo cliente</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Nuevo cliente</DialogTitle></DialogHeader>
-            <form onSubmit={create} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nombre</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
-              </div>
-              <div className="space-y-2">
-                <Label>Instagram (sin @)</Label>
-                <Input value={handle} onChange={(e) => setHandle(e.target.value.replace(/^@/, ""))} placeholder="usuario" />
-              </div>
-              <DialogFooter>
-                <Button type="submit" className="rounded-full">Crear</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-        </div>
-      </header>
+    <div className="mx-auto max-w-7xl space-y-6 px-6 py-8 md:px-10">
+      <PageHeader
+        title="Clientes"
+        description="Gestiona las asesorías de cada uno."
+        actions={
+          <>
+            <Button asChild variant="outline">
+              <Link to="/clients/connect">Conectar con Meta</Link>
+            </Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo cliente</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Nuevo cliente</DialogTitle></DialogHeader>
+                <form onSubmit={create} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-client-name">Nombre</Label>
+                    <Input id="new-client-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-client-handle">Instagram (sin @)</Label>
+                    <Input id="new-client-handle" value={handle} onChange={(e) => setHandle(e.target.value.replace(/^@/, ""))} placeholder="usuario" />
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit">Crear</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </>
+        }
+      />
 
       {loading ? (
-        <div className="text-muted-foreground">Cargando…</div>
+        <CardsSkeleton />
+      ) : loadError ? (
+        <ErrorState message={loadError} onRetry={load} />
       ) : clients.length === 0 ? (
-        <div className="rounded-3xl border border-dashed p-16 text-center bg-surface">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-secondary grid place-items-center mb-4">
-            <Instagram className="w-6 h-6" />
-          </div>
-          <h3 className="text-lg font-medium">Aún no tienes clientes</h3>
-          <p className="text-muted-foreground mt-1">Crea tu primer cliente para empezar.</p>
-        </div>
+        <EmptyState
+          icon={Instagram}
+          title="Aún no tienes clientes"
+          description="Crea tu primer cliente para empezar."
+        />
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {clients.map((c) => (
             <Link
               key={c.id}
               to="/clients/$clientId"
               params={{ clientId: c.id }}
-              className="group rounded-2xl border bg-surface p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all"
+              className="group rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs transition-shadow hover:border-border-strong hover:shadow-app-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold">{c.name}</h3>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="truncate text-base font-semibold">{c.name}</h3>
                   {c.instagram_handle && (
-                    <div className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1">
-                      <Instagram className="w-3.5 h-3.5" /> @{c.instagram_handle}
+                    <div className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
+                      <Instagram aria-hidden className="h-3.5 w-3.5" /> @{c.instagram_handle}
                     </div>
                   )}
                 </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                <ArrowRight aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" />
               </div>
             </Link>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+const SKELETON_CARDS = 6;
+
+function CardsSkeleton() {
+  return (
+    <div role="status" aria-busy className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <span className="sr-only">Cargando clientes</span>
+      {Array.from({ length: SKELETON_CARDS }, (_, i) => (
+        <div key={i} className="space-y-2 rounded-app-lg border border-border-subtle bg-surface p-5">
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-3 w-1/3" />
+        </div>
+      ))}
     </div>
   );
 }
