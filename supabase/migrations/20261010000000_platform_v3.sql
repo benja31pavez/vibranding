@@ -12,6 +12,9 @@
 --         guarda, expira el token (un solo envío por link) y pasa el cliente
 --         de 'prospecto' a 'onboarding'.
 --      3. Bucket privado 'onboarding' (ver "Subida de archivos" abajo).
+--      3b. onboarding_upload_reservations + reserve_onboarding_upload(),
+--          onboarding_client_id(), cleanup_onboarding_orphans() (solo
+--          service_role): cada archivo enviado debe tener reserva (ver A4).
 --   B. Endurecimiento de cobros (SQL propuesto en PR #14)
 --      4. payment_provider_orders: historial de órdenes de Flow por cobro.
 --      5. payment_anomalies: anomalías de cobro (duplicado, mismatch, ...).
@@ -48,9 +51,9 @@
 --     El navegador sube con uploadToSignedUrl(path, token, file) y luego
 --     envía esos paths en payload.archivos de submit_onboarding(), que
 --     verifica que cada path empiece por "<client_id>/" y exista en el bucket.
---   - La server fn ADEMÁS debe: contar los objetos ya subidos bajo
---     "<client_id>/" y negar si hay 20 o más; limitar la tasa por IP y por
---     token; y forzar nombres ASCII (safeName = [A-Za-z0-9._-], sin espacios
+--   - La server fn reserva cada path con reserve_onboarding_upload() (límites
+--     20 por token y 30/hora en la BD; ver A4). ADEMÁS debe limitar la tasa
+--     por IP y forzar nombres ASCII (safeName = [A-Za-z0-9._-], sin espacios
 --     ni "..", máx. 100 caracteres; el resto se reemplaza por "-").
 --   - Lectura: editores del cliente (can_edit_client) pueden leer objetos
 --     "<client_id>/..." (createSignedUrl desde la app).
@@ -368,6 +371,11 @@ BEGIN
       IF NOT EXISTS (SELECT 1 FROM storage.objects o WHERE o.bucket_id = 'onboarding' AND o.name = t) THEN
         RAISE EXCEPTION 'archivos: % no existe en el bucket', t USING ERRCODE = '22023';
       END IF;
+      -- Debe venir de reserve_onboarding_upload() para este cliente (A4).
+      IF NOT EXISTS (SELECT 1 FROM public.onboarding_upload_reservations ur
+                     WHERE ur.path = t AND ur.client_id = _client_id) THEN
+        RAISE EXCEPTION 'archivos: % no fue reservado para este onboarding', t USING ERRCODE = '22023';
+      END IF;
       IF NOT t = ANY (r.archivos) THEN
         r.archivos := r.archivos || t;
       END IF;
@@ -445,6 +453,10 @@ BEGIN
     archivos = EXCLUDED.archivos,
     submitted_at = EXCLUDED.submitted_at;
 
+  UPDATE public.onboarding_upload_reservations
+     SET used = true
+   WHERE client_id = b.client_id AND path = ANY (r.archivos) AND NOT used;
+
   -- Link de un solo uso: expira ahora (el token se conserva como registro).
   UPDATE public.client_billing
      SET onboarding_token_expires_at = now()
@@ -491,6 +503,162 @@ BEGIN
              THEN split_part(name, '/', 1)::uuid END)
     );
 END $$;
+
+
+-- =====================================================================
+-- A4. Reservas de subida del onboarding (revisión de seguridad PR #20)
+-- =====================================================================
+-- Flujo de la server fn de subida (service role):
+--   1. reserve_onboarding_upload(token, sufijo) -> {ok, client_id, path}.
+--      Valida el token como get_onboarding_by_token, el sufijo (mismo regex
+--      que submit_onboarding: ASCII, sin "..", empieza por letra/dígito) y
+--      los límites: máx. 20 reservas por token vigente y máx. 30 por hora
+--      por cliente. La server fn genera el sufijo
+--      (`${crypto.randomUUID()}-${safeName}`) y luego llama a
+--      createSignedUploadUrl(path).
+--   2. submit_onboarding() solo acepta archivos con reserva del mismo
+--      cliente y la marca used = true.
+--   3. Job (server, diario): cleanup_onboarding_orphans() borra reservas no
+--      usadas de más de 48 h con token ya no vigente y devuelve los paths a borrar en storage
+--      (reservas vencidas + objetos del bucket sin reserva de más de 48 h).
+--      El job los borra con supabaseAdmin.storage.from('onboarding').remove(paths).
+--      Desde SQL no se borra storage (los archivos los gestiona la API de Storage).
+-- onboarding_client_id(token): client_id de un token vigente (o NULL), para
+-- la server fn (p. ej. contar objetos del prefijo).
+CREATE TABLE IF NOT EXISTS public.onboarding_upload_reservations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id uuid NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
+  token text NOT NULL,
+  path text NOT NULL,
+  used boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT onboarding_upload_reservations_path_uk UNIQUE (path)
+);
+
+CREATE INDEX IF NOT EXISTS onboarding_upload_reservations_client_idx
+  ON public.onboarding_upload_reservations (client_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS onboarding_upload_reservations_pending_idx
+  ON public.onboarding_upload_reservations (created_at) WHERE NOT used;
+
+-- Sin acceso del navegador (sin policies): solo service_role y funciones.
+REVOKE ALL ON public.onboarding_upload_reservations FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.onboarding_upload_reservations TO service_role;
+ALTER TABLE public.onboarding_upload_reservations ENABLE ROW LEVEL SECURITY;
+
+-- Misma validación que get_onboarding_by_token: 48 hex, vigente, cliente en
+-- prospecto/onboarding. NULL si no.
+CREATE OR REPLACE FUNCTION private.onboarding_token_client(_token text)
+RETURNS uuid
+LANGUAGE sql STABLE SET search_path = ''
+AS $$
+  SELECT b.client_id
+  FROM public.client_billing b
+  JOIN public.clients c ON c.id = b.client_id
+  WHERE _token ~ '^[0-9a-f]{48}$'
+    AND b.onboarding_token = _token
+    AND b.onboarding_token_expires_at IS NOT NULL
+    AND b.onboarding_token_expires_at > now()
+    AND c.status IN ('prospecto', 'onboarding')
+$$;
+REVOKE ALL ON FUNCTION private.onboarding_token_client(text) FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.onboarding_client_id(_token text)
+RETURNS uuid
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $$
+  SELECT private.onboarding_token_client(_token)
+$$;
+REVOKE ALL ON FUNCTION public.onboarding_client_id(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.onboarding_client_id(text) TO service_role;
+
+-- Respuestas: {ok:true, client_id, path} | {ok:false, reason:
+--   'invalid' (token) | 'invalid_path' | 'limit' (20 por token) |
+--   'rate' (30/hora) | 'duplicate' (path ya reservado)}
+CREATE OR REPLACE FUNCTION public.reserve_onboarding_upload(_token text, _path_suffix text)
+RETURNS jsonb
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = ''
+AS $$
+DECLARE
+  cid uuid;
+  p text;
+  n integer;
+BEGIN
+  cid := private.onboarding_token_client(_token);
+  IF cid IS NULL THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'invalid');
+  END IF;
+  IF _path_suffix IS NULL OR _path_suffix !~ '^[A-Za-z0-9][A-Za-z0-9._ -]{0,250}$'
+     OR position('..' IN _path_suffix) > 0 THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'invalid_path');
+  END IF;
+  p := cid::text || '/' || _path_suffix;
+  IF length(p) > 300 THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'invalid_path');
+  END IF;
+
+  -- Serializa las reservas concurrentes del mismo cliente (conteos exactos).
+  PERFORM 1 FROM public.client_billing WHERE client_id = cid FOR UPDATE;
+
+  SELECT count(*) INTO n FROM public.onboarding_upload_reservations
+   WHERE client_id = cid AND token = _token;
+  IF n >= 20 THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'limit');
+  END IF;
+  SELECT count(*) INTO n FROM public.onboarding_upload_reservations
+   WHERE client_id = cid AND created_at > now() - interval '1 hour';
+  IF n >= 30 THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'rate');
+  END IF;
+
+  INSERT INTO public.onboarding_upload_reservations (client_id, token, path)
+  VALUES (cid, _token, p)
+  ON CONFLICT (path) DO NOTHING;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'duplicate');
+  END IF;
+
+  RETURN jsonb_build_object('ok', true, 'client_id', cid, 'path', p);
+END $$;
+REVOKE ALL ON FUNCTION public.reserve_onboarding_upload(text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.reserve_onboarding_upload(text, text) TO service_role;
+
+-- Borra reservas no usadas de más de 48 h cuyo token ya no está vigente
+-- (rotado o vencido) y devuelve los paths que el job debe borrar de storage:
+-- los de esas reservas y los objetos del bucket 'onboarding' de más de 48 h
+-- sin ninguna reserva (ni usada ni vigente: subidos por fuera del flujo).
+CREATE OR REPLACE FUNCTION public.cleanup_onboarding_orphans()
+RETURNS TABLE (path text, reason text)
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = ''
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH del AS (
+    DELETE FROM public.onboarding_upload_reservations r
+     WHERE NOT r.used
+       AND r.created_at < now() - interval '48 hours'
+       -- solo si su token ya no está vigente (rotado o vencido): un cliente
+       -- que tarda días en completar el formulario no pierde sus archivos.
+       AND NOT EXISTS (
+         SELECT 1 FROM public.client_billing b
+         WHERE b.client_id = r.client_id
+           AND b.onboarding_token = r.token
+           AND b.onboarding_token_expires_at IS NOT NULL
+           AND b.onboarding_token_expires_at >= now())
+    RETURNING r.path
+  )
+  SELECT del.path, 'reserva_vencida'::text FROM del;
+
+  IF to_regclass('storage.objects') IS NOT NULL THEN
+    RETURN QUERY
+    SELECT o.name::text, 'sin_reserva'::text
+    FROM storage.objects o
+    WHERE o.bucket_id = 'onboarding'
+      AND o.created_at < now() - interval '48 hours'
+      AND NOT EXISTS (SELECT 1 FROM public.onboarding_upload_reservations r WHERE r.path = o.name);
+  END IF;
+END $$;
+REVOKE ALL ON FUNCTION public.cleanup_onboarding_orphans() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.cleanup_onboarding_orphans() TO service_role;
 
 
 -- =====================================================================
