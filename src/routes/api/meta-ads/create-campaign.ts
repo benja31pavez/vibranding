@@ -1,4 +1,5 @@
 import { graphBase } from "@/lib/meta/version";
+import { denyUnlessClientEditor } from "@/lib/auth/clientAccess.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
@@ -22,6 +23,10 @@ export const Route = createFileRoute("/api/meta-ads/create-campaign")({
           const { data: c } = await userClient
             .from("meta_ads_campaigns").select("*").eq("id", campaignId).maybeSingle();
           if (!c) return json({ error: "Campaña no encontrada" }, 404);
+          // Spending the agency's Meta token requires an editor role (owner/admin/agent)
+          // in the client's org; viewers and portal users are rejected.
+          const denied = await denyUnlessClientEditor(authHeader, c.client_id);
+          if (denied) return denied;
           if (c.fb_campaign_id) return json({ error: "Esta campaña ya existe en Meta", fb_campaign_id: c.fb_campaign_id }, 400);
 
           const { data: acc } = await userClient

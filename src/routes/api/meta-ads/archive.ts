@@ -1,4 +1,5 @@
 import { graphBase } from "@/lib/meta/version";
+import { denyUnlessClientEditor } from "@/lib/auth/clientAccess.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
@@ -29,6 +30,10 @@ export const Route = createFileRoute("/api/meta-ads/archive")({
 
           const { data: row } = await supa.from(cfg.table).select("*").eq("id", id).maybeSingle();
           if (!row) return j({ error: "No encontrado" }, 404);
+          // Spending the agency's Meta token requires an editor role (owner/admin/agent)
+          // in the client's org; viewers and portal users are rejected.
+          const denied = await denyUnlessClientEditor(authHeader, (row as any).client_id);
+          if (denied) return denied;
           const fbId = (row as any)[cfg.fk];
 
           if (fbId) {

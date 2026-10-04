@@ -1,4 +1,5 @@
 import { graphBase } from "@/lib/meta/version";
+import { denyUnlessClientEditor } from "@/lib/auth/clientAccess.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
@@ -16,6 +17,10 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
 
           const { clientId, campaign, adset, ad } = (await request.json()) as any;
           if (!clientId || !campaign || !adset || !ad) return j({ error: "Datos incompletos" }, 400);
+          // Spending the agency's Meta token requires an editor role (owner/admin/agent)
+          // in the client's org; viewers and portal users are rejected.
+          const denied = await denyUnlessClientEditor(authHeader, String(clientId));
+          if (denied) return denied;
 
           // RLS check: the caller must be able to see this client's connection.
           const { data: acc } = await supa.from("meta_accounts").select("*").eq("client_id", clientId).maybeSingle();
