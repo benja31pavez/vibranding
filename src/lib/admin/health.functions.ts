@@ -42,7 +42,12 @@ export type ConnectionDataRow = {
  */
 export const getJobHealth = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    // Cross-tenant data (every client's connection + all cron runs): platform
+    // operators only, never a regular org owner or a portal user.
+    const { assertPlatformAdmin } = await import("@/lib/auth/platformAdmin.server");
+    await assertPlatformAdmin(context.userId);
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: health, error } = await (supabaseAdmin.rpc as any)("job_health");
@@ -96,6 +101,17 @@ export const getJobHealth = createServerFn({ method: "POST" })
     };
   });
 
+/** Jobs whose frequency can be changed from /admin/health. */
+const SCHEDULABLE_JOBS: readonly string[] = ["whatsapp_ai_dispatch"];
+
+/** Closed list of frequencies (mirrors DISPATCH_SCHEDULES in the admin page). */
+export const ALLOWED_JOB_SCHEDULES: readonly string[] = [
+  "30 seconds",
+  "* * * * *",
+  "*/2 * * * *",
+  "*/5 * * * *",
+];
+
 /**
  * Lets the operator change how often a scheduled job runs.
  * More frequency = lower response latency for the WhatsApp bot, but more
@@ -104,13 +120,16 @@ export const getJobHealth = createServerFn({ method: "POST" })
 export const setJobSchedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { jobName: string; schedule: string }) => {
-    const schedule = String(input.schedule ?? "").trim();
-    if (!/^[\d*/,\-\s]+$/.test(schedule) && !/^\d+\s+seconds?$/.test(schedule)) {
-      throw new Error("Frecuencia inválida");
-    }
-    return { jobName: String(input.jobName), schedule };
+    const jobName = String(input?.jobName ?? "").trim();
+    const schedule = String(input?.schedule ?? "").trim();
+    if (!SCHEDULABLE_JOBS.includes(jobName)) throw new Error("Tarea no permitida");
+    if (!ALLOWED_JOB_SCHEDULES.includes(schedule)) throw new Error("Frecuencia inválida");
+    return { jobName, schedule };
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { assertPlatformAdmin } = await import("@/lib/auth/platformAdmin.server");
+    await assertPlatformAdmin(context.userId);
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: ok, error } = await (supabaseAdmin.rpc as any)("set_job_schedule", {
       _job_name: data.jobName,
