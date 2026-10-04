@@ -307,8 +307,13 @@ export function PricingPanel() {
           <Select
             value={p.currency}
             onValueChange={(v) => {
+              if (v === p.currency) return;
               setP_({ currency: v });
               saveP({ currency: v });
+              toast.warning(
+                `Moneda cambiada a ${v}. Los precios de los servicios adicionales no se convierten: revísalos y ajústalos a ${v}.`,
+                { duration: 8000 },
+              );
             }}
           >
             <SelectTrigger>
@@ -324,7 +329,8 @@ export function PricingPanel() {
           </Select>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          Se usa para los servicios adicionales y los contratos. Los planes siempre se cobran en CLP.
+          Se usa para los servicios adicionales y los contratos. Los planes siempre se cobran en CLP. Cambiar la
+          moneda no convierte los precios ya guardados: revisa los adicionales después de cambiarla.
         </p>
         {p.currency !== DEFAULT_CURRENCY && (
           <p className="text-[11px] text-destructive">
@@ -393,8 +399,8 @@ export function PricingPanel() {
                 {p.currency === DEFAULT_CURRENCY &&
                   (Number(row.one_time_price) > 0 || Number(row.monthly_price) > 0) && (
                     <div className="space-y-0.5">
-                      {Number(row.one_time_price) > 0 && <VatLines gross={Number(row.one_time_price)} />}
-                      {Number(row.monthly_price) > 0 && <VatLines gross={Number(row.monthly_price)} />}
+                      {Number(row.one_time_price) > 0 && <VatLines label="Pago único" gross={Number(row.one_time_price)} />}
+                      {Number(row.monthly_price) > 0 && <VatLines label="Mensual" gross={Number(row.monthly_price)} />}
                     </div>
                   )}
 

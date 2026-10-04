@@ -11,7 +11,14 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { DEFAULT_CURRENCY, currencyDecimals, formatMoney } from "@/lib/pricing/plans";
+import {
+  DEFAULT_CURRENCY,
+  addMoney,
+  currencyDecimals,
+  formatMoney,
+  normalizeCurrency,
+  type MoneyByCurrency,
+} from "@/lib/pricing/plans";
 
 type Status = "pending" | "paid" | "overdue" | "cancelled";
 
@@ -36,15 +43,10 @@ const statusLabel: Record<Status, string> = {
   pending: "Pendiente", paid: "Pagado", overdue: "Vencido", cancelled: "Cancelado",
 };
 
-const normalizeCurrency = (c: string | null | undefined) => (c || DEFAULT_CURRENCY).trim().toUpperCase() || DEFAULT_CURRENCY;
 const amountStep = (currency: string) => (currencyDecimals(normalizeCurrency(currency)) === 0 ? 1 : 0.01);
 
-type Totals = Record<string, number>;
-
-function addTo(totals: Totals, currency: string, amount: number): Totals {
-  const key = normalizeCurrency(currency);
-  return { ...totals, [key]: (totals[key] ?? 0) + amount };
-}
+type Totals = MoneyByCurrency;
+const addTo = addMoney;
 
 function TotalsValue({ totals }: { totals: Totals }) {
   const entries = Object.entries(totals).filter(([, v]) => v !== 0);

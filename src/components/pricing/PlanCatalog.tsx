@@ -24,13 +24,16 @@ const PLAN_TONES: Record<PlanKey, string> = {
 export function VatLines({
   gross,
   currency = DEFAULT_CURRENCY,
+  label,
 }: {
   gross: number;
   currency?: string;
+  label?: string;
 }) {
   const { net, vat } = splitVat(gross);
   return (
     <div className="text-[11px] text-muted-foreground tabular-nums leading-snug">
+      {label && <span className="font-medium">{label}: </span>}
       Neto {formatMoney(currency, net)} · IVA 19% {formatMoney(currency, vat)}
     </div>
   );

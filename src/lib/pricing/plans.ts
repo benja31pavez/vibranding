@@ -117,3 +117,26 @@ export function planPriceLabel(plan: Plan): string {
   if (plan.billing === "one_time") return `${base} pago único`;
   return plan.minMonths ? `${base}/mes · mínimo ${plan.minMonths} meses` : `${base}/mes`;
 }
+
+/** Montos agrupados por código de moneda (nunca se suman monedas distintas). */
+export type MoneyByCurrency = Readonly<Record<string, number>>;
+
+export function normalizeCurrency(currency: string | null | undefined): string {
+  return (currency ?? "").trim().toUpperCase() || DEFAULT_CURRENCY;
+}
+
+export function addMoney(
+  totals: MoneyByCurrency,
+  currency: string | null | undefined,
+  amount: number,
+): MoneyByCurrency {
+  const key = normalizeCurrency(currency);
+  return { ...totals, [key]: (totals[key] ?? 0) + (Number(amount) || 0) };
+}
+
+/** `$129.990 · US$50,00` — o `$0` si no hay montos. */
+export function formatMoneyTotals(totals: MoneyByCurrency): string {
+  const entries = Object.entries(totals).filter(([, v]) => v !== 0);
+  if (entries.length === 0) return formatMoney(DEFAULT_CURRENCY, 0);
+  return entries.map(([cur, v]) => formatMoney(cur, v)).join(" · ");
+}

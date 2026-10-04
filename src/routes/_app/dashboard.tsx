@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Users, CheckSquare, DollarSign, CalendarClock, TrendingUp, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useReviewAlerts } from "@/hooks/use-review-alerts";
-import { DEFAULT_CURRENCY, formatMoney } from "@/lib/pricing/plans";
+import { addMoney, formatMoney, formatMoneyTotals, type MoneyByCurrency } from "@/lib/pricing/plans";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
@@ -16,8 +16,8 @@ interface Stats {
   upcomingDeliverables: { id: string; title: string; due_date: string | null; client_id: string; client_name: string }[];
   pendingPayments: { id: string; amount: number; currency: string; description: string | null; due_date: string | null; client_id: string; client_name: string }[];
   scheduledPosts: { id: string; scheduled_at: string; client_id: string; client_name: string; type: string }[];
-  monthRevenue: number;
-  currency: string;
+  /** Ingresos del mes agrupados por moneda. */
+  monthRevenue: MoneyByCurrency;
 }
 
 function Dashboard() {
@@ -51,8 +51,10 @@ function Dashboard() {
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
-      const monthRevenue = (paid ?? []).reduce((s, x: any) => s + Number(x.amount), 0);
-      const currency = (paid ?? [])[0]?.currency ?? DEFAULT_CURRENCY;
+      const monthRevenue = (paid ?? []).reduce<MoneyByCurrency>(
+        (acc, x: any) => addMoney(acc, x.currency, Number(x.amount)),
+        {},
+      );
 
       setStats({
         clients: clients?.length ?? 0,
@@ -60,7 +62,6 @@ function Dashboard() {
         pendingPayments: (pays ?? []).map((p: any) => ({ ...p, client_name: nameById.get(p.client_id) ?? "—" })),
         scheduledPosts: (posts ?? []).map((p: any) => ({ ...p, client_name: nameById.get(p.client_id) ?? "—" })),
         monthRevenue,
-        currency,
       });
     })();
   }, [user]);
@@ -90,7 +91,7 @@ function Dashboard() {
             <Card icon={Users} label="Clientes" value={String(stats.clients)} />
             <Card icon={CheckSquare} label="Etapas próximas" value={String(stats.upcomingDeliverables.length)} hint="próximos 7 días" />
             <Card icon={DollarSign} label="Pagos pendientes" value={String(stats.pendingPayments.length)} />
-            <Card icon={TrendingUp} label="Ingresos del mes" value={formatMoney(stats.currency, stats.monthRevenue)} />
+            <Card icon={TrendingUp} label="Ingresos del mes" value={formatMoneyTotals(stats.monthRevenue)} />
           </div>
 
           <ReviewActivity />

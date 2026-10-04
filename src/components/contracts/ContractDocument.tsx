@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { AGENCY_DEFAULTS, DEFAULT_CURRENCY, formatMoney, splitVat } from "@/lib/pricing/plans";
+import { formatMoney, splitVat } from "@/lib/pricing/plans";
 
 export interface ContractDocProps {
   agency: {
@@ -21,8 +21,10 @@ export interface ContractDocProps {
   effective_date: string;
   payment_due_days: number;
   jurisdiction: string;
-  /** Ley aplicable. Por defecto, las leyes de la República de Chile. */
+  /** Ley aplicable. Solo se muestra si el snapshot la guardó (contratos antiguos no la tienen). */
   governingLaw?: string;
+  /** true si los montos del snapshot incluyen IVA (contratos nuevos). Activa el desglose neto/IVA. */
+  vatIncluded?: boolean;
   services: Array<{
     service_key: string;
     label: string;
@@ -48,12 +50,12 @@ const C = {
 const money = (cur: string, n: number) => formatMoney(cur, n);
 
 export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(function ContractDocument(
-  { agency, client, currency, effective_date, payment_due_days, jurisdiction, governingLaw, services, clauses, totals, title },
+  { agency, client, currency, effective_date, payment_due_days, jurisdiction, governingLaw, vatIncluded, services, clauses, totals, title },
   ref
 ) {
   const today = effective_date || new Date().toISOString().slice(0, 10);
-  const law = governingLaw || AGENCY_DEFAULTS.governing_law;
-  const isClp = currency.toUpperCase() === DEFAULT_CURRENCY;
+  const law = governingLaw?.trim() ?? "";
+  const showVat = vatIncluded === true;
   const oneTimeVat = splitVat(totals.one_time);
   const monthlyVat = splitVat(totals.monthly);
   const includesAds = services.some((s) => s.service_key === "crecimiento");
@@ -137,7 +139,7 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(fun
               <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, totals.one_time)}</td>
               <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, totals.monthly)}/mes</td>
             </tr>
-            {isClp && (
+            {showVat && (
               <>
                 <tr style={{ color: C.sub, fontSize: 12 }}>
                   <td style={tdStyle}>Neto</td>
@@ -154,9 +156,9 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(fun
           </tbody>
         </table>
       )}
-      {isClp && services.length > 0 && (
+      {showVat && services.length > 0 && (
         <p style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>
-          Montos en pesos chilenos (CLP), IVA incluido.
+          Montos en {currency.toUpperCase()}, IVA incluido.
           {includesAds && " La inversión en publicidad pagada (pauta en Meta Ads) no está incluida y la paga directamente el cliente."}
         </p>
       )}
@@ -198,11 +200,15 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(fun
         </>
       )}
 
-      {/* Governing law */}
-      <h2 style={h2Style}>{nextSection()}. Ley aplicable</h2>
-      <p style={{ color: C.sub }}>
-        El presente contrato se rige por <strong>{law}</strong>.
-      </p>
+      {/* Governing law (solo si el snapshot la guardó) */}
+      {law && (
+        <>
+          <h2 style={h2Style}>{nextSection()}. Ley aplicable</h2>
+          <p style={{ color: C.sub }}>
+            El presente contrato se rige por <strong>{law}</strong>.
+          </p>
+        </>
+      )}
 
       {/* Jurisdiction */}
       {jurisdiction && (

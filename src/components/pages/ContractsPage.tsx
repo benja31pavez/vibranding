@@ -137,6 +137,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
         email: pricing.agency_email || AGENCY_DEFAULTS.email,
         jurisdiction: pricing.jurisdiction || AGENCY_DEFAULTS.jurisdiction,
         governing_law: AGENCY_DEFAULTS.governing_law,
+        vat_included: true,
       },
       client_snapshot: {
         name: client.name,
@@ -190,6 +191,8 @@ export function ContractsPage({ clientId }: { clientId: string }) {
 
   if (!client || !pricing || !services) return <div className="p-6 text-muted-foreground">Cargando…</div>;
 
+  const currencyIsClp = pricing.currency.toUpperCase() === DEFAULT_CURRENCY;
+
   return (
     <div className="max-w-5xl mx-auto px-6 md:px-10 py-8 space-y-8">
       <div>
@@ -208,6 +211,13 @@ export function ContractsPage({ clientId }: { clientId: string }) {
           <h2 className="text-lg font-semibold">Nuevo contrato</h2>
         </div>
 
+        {!currencyIsClp && (
+          <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-xs">
+            Tu moneda por defecto es <strong>{pricing.currency}</strong>. Los planes se cobran en CLP, así que no
+            puedes crear contratos con plan hasta cambiar la moneda a CLP en Servicios.
+          </div>
+        )}
+
         <div>
           <Label className="text-xs text-muted-foreground">Plan (CLP, IVA incluido)</Label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2" role="radiogroup" aria-label="Plan">
@@ -219,8 +229,9 @@ export function ContractsPage({ clientId }: { clientId: string }) {
                   type="button"
                   role="radio"
                   aria-checked={checked}
+                  disabled={!currencyIsClp}
                   onClick={() => setSelectedPlan(checked ? null : plan.key)}
-                  className={`text-left rounded-xl border p-3 transition-colors ${
+                  className={`text-left rounded-xl border p-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                     checked ? "border-primary/50 bg-primary/5" : "hover:bg-muted/30"
                   }`}
                 >
@@ -273,7 +284,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
           <div className="text-xs text-muted-foreground">
             Plazo de pago: <strong>{pricing.payment_due_days} días</strong> · Pagos por etapa, no acumulados.
           </div>
-          <Button onClick={createContract} disabled={creating || (selected.size === 0 && !selectedPlan)}>
+          <Button onClick={createContract} disabled={creating || (selected.size === 0 && !selectedPlan) || (!!selectedPlan && !currencyIsClp)}>
             <Plus className="w-4 h-4 mr-1" /> Crear contrato
           </Button>
         </div>
@@ -329,6 +340,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
             payment_due_days={previewing.payment_due_days}
             jurisdiction={previewing.agency_snapshot?.jurisdiction ?? ""}
             governingLaw={previewing.agency_snapshot?.governing_law ?? ""}
+            vatIncluded={previewing.agency_snapshot?.vat_included === true}
             agency={{
               name: previewing.agency_snapshot?.name ?? "",
               legal_name: previewing.agency_snapshot?.legal_name ?? "",
