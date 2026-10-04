@@ -23,6 +23,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AtChar123slugChar125LinksRouteImport } from './routes/@{$slug}.links'
+import { Route as AppAgendaRouteImport } from './routes/_app/agenda'
 import { Route as AppApprovalsRouteImport } from './routes/_app/approvals'
 import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBookingsRouteImport } from './routes/_app/bookings'
@@ -156,6 +157,11 @@ const AtChar123slugChar125LinksRoute =
     path: '/links',
     getParentRoute: () => AtChar123slugChar125Route,
   } as any)
+const AppAgendaRoute = AppAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppApprovalsRoute = AppApprovalsRouteImport.update({
   id: '/approvals',
   path: '/approvals',
@@ -504,6 +510,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
+  '/agenda': typeof AppAgendaRoute
   '/approvals': typeof AppApprovalsRoute
   '/billing': typeof AppBillingRoute
   '/bookings': typeof AppBookingsRoute
@@ -581,6 +588,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
+  '/agenda': typeof AppAgendaRoute
   '/approvals': typeof AppApprovalsRoute
   '/billing': typeof AppBillingRoute
   '/bookings': typeof AppBookingsRoute
@@ -659,6 +667,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
+  '/_app/agenda': typeof AppAgendaRoute
   '/_app/approvals': typeof AppApprovalsRoute
   '/_app/billing': typeof AppBillingRoute
   '/_app/bookings': typeof AppBookingsRoute
@@ -738,6 +747,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/@{$slug}/links'
+    | '/agenda'
     | '/approvals'
     | '/billing'
     | '/bookings'
@@ -815,6 +825,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/@{$slug}/links'
+    | '/agenda'
     | '/approvals'
     | '/billing'
     | '/bookings'
@@ -892,6 +903,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/@{$slug}/links'
+    | '/_app/agenda'
     | '/_app/approvals'
     | '/_app/billing'
     | '/_app/bookings'
@@ -1094,6 +1106,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/@{$slug}/links'
       preLoaderRoute: typeof AtChar123slugChar125LinksRouteImport
       parentRoute: typeof AtChar123slugChar125Route
+    }
+    '/_app/agenda': {
+      id: '/_app/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AppAgendaRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/approvals': {
       id: '/_app/approvals'
@@ -1593,6 +1612,7 @@ const AppClientsClientIdRouteWithChildren =
   AppClientsClientIdRoute._addFileChildren(AppClientsClientIdRouteChildren)
 
 interface AppRouteChildren {
+  AppAgendaRoute: typeof AppAgendaRoute
   AppApprovalsRoute: typeof AppApprovalsRoute
   AppBillingRoute: typeof AppBillingRoute
   AppBookingsRoute: typeof AppBookingsRoute
@@ -1615,6 +1635,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAgendaRoute: AppAgendaRoute,
   AppApprovalsRoute: AppApprovalsRoute,
   AppBillingRoute: AppBillingRoute,
   AppBookingsRoute: AppBookingsRoute,

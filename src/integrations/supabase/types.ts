@@ -4121,6 +4121,10 @@ export type Database = {
           reason: string
         }[]
       }
+      claim_booking_email_slot: {
+        Args: { _email_hash: string; _max_per_day: number }
+        Returns: boolean
+      }
       client_analytics: {
         Args: { _client_id: string; _from: string; _to: string }
         Returns: Json
@@ -4134,18 +4138,32 @@ export type Database = {
         Args: { _mrr_clp?: number; _plan_key: string; _prospect_id: string }
         Returns: Json
       }
+      create_booking_atomic: {
+        Args: {
+          _email: string
+          _max_per_agenda_hour: number
+          _max_per_email_day: number
+          _name: string
+          _notes: string
+          _phone: string
+          _scheduled_at: string
+          _settings_id: string
+        }
+        Returns: {
+          booking_id: string
+          booking_scheduled_at: string
+        }[]
+      }
       ensure_org: { Args: never; Returns: string }
       gen_public_token: { Args: never; Returns: string }
       get_booking_settings_by_slug: {
         Args: { _slug: string }
         Returns: {
-          client_id: string
           display_name: string
           enabled: boolean
           hours: Json
           id: string
           intro: string
-          owner_user_id: string
           slot_minutes: number
           timezone: string
         }[]

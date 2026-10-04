@@ -255,9 +255,15 @@ async function processConversation(convId: string) {
       .from("booking_settings")
       .select("id,slug,display_name,hours,slot_minutes,timezone,enabled")
       .eq("owner_user_id", cli.user_id)
+      // Only this client's agenda — never the agency's own or another client's.
+      .eq("client_id", acc.client_id)
       .eq("enabled", true);
 
     if (settings && settings.length > 0) {
+      const siteOrigin = process.env["PUBLIC_SITE_URL"]?.trim().replace(/\/+$/, "") || null;
+      if (!siteOrigin) {
+        console.error("[ALERTA][wa dispatch] PUBLIC_SITE_URL no configurada: el bot no puede compartir el link de reservas.");
+      }
       const now = new Date();
       const in14d = new Date(now.getTime() + 14 * 86_400_000);
       const ids = settings.map((s) => s.id);
@@ -278,7 +284,8 @@ async function processConversation(convId: string) {
           .filter((u) => u.settings_id === s.id)
           .map((u) => new Date(u.scheduled_at).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short", timeZone: s.timezone }))
           .join("; ");
-        return `- ${s.display_name}\n  Link: https://vibranding.lovable.app/book/${s.slug}\n  Citas de ${s.slot_minutes} min · ${hrs}\n  Reglas: solo se puede agendar desde MAÑANA hasta 30 días en adelante. NO se permite agendar el mismo día.\n  Slots ya ocupados (próximos 14 días): ${taken || "ninguno"}`;
+        const linkLine = siteOrigin ? `\n  Link: ${siteOrigin}/book/${s.slug}` : "";
+        return `- ${s.display_name}${linkLine}\n  Citas de ${s.slot_minutes} min · ${hrs}\n  Reglas: solo se puede agendar desde MAÑANA (zona horaria ${s.timezone}) hasta 30 días en adelante. NO se permite agendar el mismo día.\n  Slots ya ocupados (próximos 14 días): ${taken || "ninguno"}`;
       });
       bookingBlock = lines.join("\n\n");
     }
