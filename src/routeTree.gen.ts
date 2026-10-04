@@ -35,6 +35,7 @@ import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppStatsRouteImport } from './routes/_app/stats'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as LSlugRouteImport } from './routes/l.$slug'
+import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PagoResultadoRouteImport } from './routes/pago.resultado'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as ReviewTokenRouteImport } from './routes/review.$token'
@@ -43,6 +44,8 @@ import { Route as AppAdminMetaDiagnosticsRouteImport } from './routes/_app/admin
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
 import { Route as AppClientsConnectRouteImport } from './routes/_app/clients/connect'
+import { Route as AppProposalsProposalIdRouteImport } from './routes/_app/proposals/$proposalId'
+import { Route as AppProposalsNewRouteImport } from './routes/_app/proposals/new'
 import { Route as AppSettingsMetaRouteImport } from './routes/_app/settings/meta'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
 import { Route as ApiMetaAdsArchiveRouteImport } from './routes/api/meta-ads/archive'
@@ -211,6 +214,11 @@ const LSlugRoute = LSlugRouteImport.update({
   path: '/l/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PTokenRoute = PTokenRouteImport.update({
+  id: '/p/$token',
+  path: '/p/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PagoResultadoRoute = PagoResultadoRouteImport.update({
   id: '/pago/resultado',
   path: '/pago/resultado',
@@ -249,6 +257,16 @@ const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
 const AppClientsConnectRoute = AppClientsConnectRouteImport.update({
   id: '/clients/connect',
   path: '/clients/connect',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProposalsProposalIdRoute = AppProposalsProposalIdRouteImport.update({
+  id: '/proposals/$proposalId',
+  path: '/proposals/$proposalId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProposalsNewRoute = AppProposalsNewRouteImport.update({
+  id: '/proposals/new',
+  path: '/proposals/new',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsMetaRoute = AppSettingsMetaRouteImport.update({
@@ -485,6 +503,7 @@ export interface FileRoutesByFullPath {
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
   '/review/$token': typeof ReviewTokenRoute
@@ -492,6 +511,8 @@ export interface FileRoutesByFullPath {
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/clients/connect': typeof AppClientsConnectRoute
+  '/proposals/$proposalId': typeof AppProposalsProposalIdRoute
+  '/proposals/new': typeof AppProposalsNewRoute
   '/settings/meta': typeof AppSettingsMetaRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -557,12 +578,15 @@ export interface FileRoutesByTo {
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
   '/review/$token': typeof ReviewTokenRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/clients/connect': typeof AppClientsConnectRoute
+  '/proposals/$proposalId': typeof AppProposalsProposalIdRoute
+  '/proposals/new': typeof AppProposalsNewRoute
   '/settings/meta': typeof AppSettingsMetaRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -630,6 +654,7 @@ export interface FileRoutesById {
   '/_app/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
   '/review/$token': typeof ReviewTokenRoute
@@ -637,6 +662,8 @@ export interface FileRoutesById {
   '/_app/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/_app/clients/connect': typeof AppClientsConnectRoute
+  '/_app/proposals/$proposalId': typeof AppProposalsProposalIdRoute
+  '/_app/proposals/new': typeof AppProposalsNewRoute
   '/_app/settings/meta': typeof AppSettingsMetaRoute
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -704,6 +731,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/p/$token'
     | '/pago/resultado'
     | '/r/$token'
     | '/review/$token'
@@ -711,6 +739,8 @@ export interface FileRouteTypes {
     | '/admin/meta-diagnostics'
     | '/clients/$clientId'
     | '/clients/connect'
+    | '/proposals/$proposalId'
+    | '/proposals/new'
     | '/settings/meta'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
@@ -776,12 +806,15 @@ export interface FileRouteTypes {
     | '/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/p/$token'
     | '/pago/resultado'
     | '/r/$token'
     | '/review/$token'
     | '/admin/health'
     | '/admin/meta-diagnostics'
     | '/clients/connect'
+    | '/proposals/$proposalId'
+    | '/proposals/new'
     | '/settings/meta'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
@@ -848,6 +881,7 @@ export interface FileRouteTypes {
     | '/_app/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/p/$token'
     | '/pago/resultado'
     | '/r/$token'
     | '/review/$token'
@@ -855,6 +889,8 @@ export interface FileRouteTypes {
     | '/_app/admin/meta-diagnostics'
     | '/_app/clients/$clientId'
     | '/_app/clients/connect'
+    | '/_app/proposals/$proposalId'
+    | '/_app/proposals/new'
     | '/_app/settings/meta'
     | '/_app/settings/pricing'
     | '/api/meta-ads/archive'
@@ -911,6 +947,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   BookSlugRoute: typeof BookSlugRoute
   LSlugRoute: typeof LSlugRoute
+  PTokenRoute: typeof PTokenRoute
   PagoResultadoRoute: typeof PagoResultadoRoute
   RTokenRoute: typeof RTokenRoute
   ReviewTokenRoute: typeof ReviewTokenRoute
@@ -1115,6 +1152,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/p/$token': {
+      id: '/p/$token'
+      path: '/p/$token'
+      fullPath: '/p/$token'
+      preLoaderRoute: typeof PTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pago/resultado': {
       id: '/pago/resultado'
       path: '/pago/resultado'
@@ -1169,6 +1213,20 @@ declare module '@tanstack/react-router' {
       path: '/clients/connect'
       fullPath: '/clients/connect'
       preLoaderRoute: typeof AppClientsConnectRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/proposals/$proposalId': {
+      id: '/_app/proposals/$proposalId'
+      path: '/proposals/$proposalId'
+      fullPath: '/proposals/$proposalId'
+      preLoaderRoute: typeof AppProposalsProposalIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/proposals/new': {
+      id: '/_app/proposals/new'
+      path: '/proposals/new'
+      fullPath: '/proposals/new'
+      preLoaderRoute: typeof AppProposalsNewRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings/meta': {
@@ -1508,6 +1566,8 @@ interface AppRouteChildren {
   AppAdminMetaDiagnosticsRoute: typeof AppAdminMetaDiagnosticsRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRouteWithChildren
   AppClientsConnectRoute: typeof AppClientsConnectRoute
+  AppProposalsProposalIdRoute: typeof AppProposalsProposalIdRoute
+  AppProposalsNewRoute: typeof AppProposalsNewRoute
   AppSettingsMetaRoute: typeof AppSettingsMetaRoute
   AppSettingsPricingRoute: typeof AppSettingsPricingRoute
   AppClientsIndexRoute: typeof AppClientsIndexRoute
@@ -1528,6 +1588,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminMetaDiagnosticsRoute: AppAdminMetaDiagnosticsRoute,
   AppClientsClientIdRoute: AppClientsClientIdRouteWithChildren,
   AppClientsConnectRoute: AppClientsConnectRoute,
+  AppProposalsProposalIdRoute: AppProposalsProposalIdRoute,
+  AppProposalsNewRoute: AppProposalsNewRoute,
   AppSettingsMetaRoute: AppSettingsMetaRoute,
   AppSettingsPricingRoute: AppSettingsPricingRoute,
   AppClientsIndexRoute: AppClientsIndexRoute,
@@ -1551,6 +1613,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   BookSlugRoute: BookSlugRoute,
   LSlugRoute: LSlugRoute,
+  PTokenRoute: PTokenRoute,
   PagoResultadoRoute: PagoResultadoRoute,
   RTokenRoute: RTokenRoute,
   ReviewTokenRoute: ReviewTokenRoute,

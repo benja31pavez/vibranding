@@ -10,6 +10,7 @@ const MAX_APPROVALS = 6;
 const KIND_LABEL: Readonly<Record<string, string>> = {
   entregable: "Entregable",
   post_instagram: "Post",
+  propuesta: "Propuesta",
 };
 
 interface ApprovalsProps {
@@ -46,13 +47,23 @@ export function PendingApprovalPanel({ clientId, health, loading, error, onRetry
           {items.slice(0, MAX_APPROVALS).map((item) => (
             <li key={`${item.kind}-${item.ref_id}`} className="flex items-center justify-between gap-3 py-2.5">
               <div className="min-w-0">
-                <Link
-                  to={item.kind === "post_instagram" ? "/clients/$clientId/instagram" : "/clients/$clientId/deliverables"}
-                  params={{ clientId }}
-                  className="block truncate text-sm font-medium hover:underline"
-                >
-                  {item.title ?? "Sin título"}
-                </Link>
+                {item.kind === "propuesta" && item.ref_id ? (
+                  <Link
+                    to="/proposals/$proposalId"
+                    params={{ proposalId: item.ref_id }}
+                    className="block truncate text-sm font-medium hover:underline"
+                  >
+                    {item.title ?? "Sin título"}
+                  </Link>
+                ) : (
+                  <Link
+                    to={item.kind === "post_instagram" ? "/clients/$clientId/instagram" : "/clients/$clientId/deliverables"}
+                    params={{ clientId }}
+                    className="block truncate text-sm font-medium hover:underline"
+                  >
+                    {item.title ?? "Sin título"}
+                  </Link>
+                )}
                 <div className="text-xs text-muted-foreground">
                   {KIND_LABEL[item.kind ?? ""] ?? item.kind} · en revisión desde {formatDate(item.created_at)}
                 </div>
