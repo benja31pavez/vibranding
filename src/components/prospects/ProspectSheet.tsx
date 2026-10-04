@@ -1,0 +1,181 @@
+import { useEffect, useState, type ReactNode } from "react";
+import { AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { PLANS } from "@/lib/pricing/plans";
+import {
+  BAJA_NOTICE,
+  EMPTY_FORM,
+  PROSPECT_STATES,
+  STATE_META,
+  fieldErrors,
+  prospectSchema,
+  type ProspectFormInput,
+} from "@/lib/prospects/schema";
+import { toDateInput } from "./format";
+import { useSaveProspect, type Prospect } from "./prospectsData";
+
+type Errors = Partial<Record<keyof ProspectFormInput, string>>;
+
+function toForm(p: Prospect | null): ProspectFormInput {
+  if (!p) return EMPTY_FORM;
+  return {
+    nombre: p.nombre,
+    rubro: p.rubro ?? "",
+    comuna: p.comuna ?? "",
+    web: p.web ?? "",
+    instagram: p.instagram ?? "",
+    email_publico: p.email_publico ?? "",
+    telefono_publico: p.telefono_publico ?? "",
+    fuente: p.fuente,
+    estado: PROSPECT_STATES.includes(p.estado as never) ? (p.estado as ProspectFormInput["estado"]) : "nuevo",
+    producto_sugerido: (PLANS.some((pl) => pl.key === p.producto_sugerido) ? p.producto_sugerido : "") as ProspectFormInput["producto_sugerido"],
+    notas: p.notas ?? "",
+    ultimo_contacto: toDateInput(p.ultimo_contacto),
+  };
+}
+
+const selectCls =
+  "h-9 w-full rounded-app-sm border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+function Field({ id, label, error, hint, children }: {
+  id: string; label: string; error?: string; hint?: string; children: ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      {children}
+      {hint && !error && <p id={`${id}-hint`} className="text-xs text-muted-foreground">{hint}</p>}
+      {error && <p id={`${id}-error`} role="alert" className="text-xs text-danger-strong">{error}</p>}
+    </div>
+  );
+}
+
+export function ProspectSheet({
+  open,
+  prospect,
+  onOpenChange,
+  onConvert,
+}: {
+  open: boolean;
+  /** null = nuevo prospecto. */
+  prospect: Prospect | null;
+  onOpenChange: (open: boolean) => void;
+  onConvert: (p: Prospect) => void;
+}) {
+  const [form, setForm] = useState<ProspectFormInput>(() => toForm(prospect));
+  const [errors, setErrors] = useState<Errors>({});
+  const [confirmUnbaja, setConfirmUnbaja] = useState(false);
+  const save = useSaveProspect();
+
+  useEffect(() => {
+    if (!open) return;
+    setForm(toForm(prospect));
+    setErrors({});
+    setConfirmUnbaja(false);
+  }, [open, prospect]);
+
+  const set = <K extends keyof ProspectFormInput>(key: K) => (value: ProspectFormInput[K]) =>
+    setForm((f) => ({ ...f, [key]: value }));
+  const leavingBaja = prospect?.estado === "baja" && form.estado !== "baja";
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = prospectSchema.safeParse(form);
+    if (!parsed.success) {
+      setErrors(fieldErrors(parsed.error));
+      return;
+    }
+    if (leavingBaja && !confirmUnbaja) {
+      toast.error("Confirma que el prospecto retiró su solicitud de baja antes de cambiar el estado.");
+      return;
+    }
+    setErrors({});
+    try {
+      await save.mutateAsync({ id: prospect?.id, values: parsed.data });
+      toast.success(prospect ? "Prospecto actualizado" : "Prospecto creado");
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo guardar el prospecto");
+    }
+  };
+
+  const input = (key: keyof ProspectFormInput, props: React.ComponentProps<typeof Input> = {}) => (
+    <Input
+      id={`pr-${key}`}
+      value={form[key] as string}
+      onChange={(e) => set(key)(e.target.value as never)}
+      aria-invalid={Boolean(errors[key])}
+      aria-describedby={errors[key] ? `pr-${key}-error` : undefined}
+      {...props}
+    />
+  );
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle>{prospect ? "Editar prospecto" : "Nuevo prospecto"}</SheetTitle>
+          <SheetDescription>Guarda solo datos públicos de contacto del negocio, nunca datos personales.</SheetDescription>
+        </SheetHeader>
+        <form onSubmit={submit} noValidate className="mt-4 space-y-4">
+          <Field id="pr-nombre" label="Nombre del negocio *" error={errors.nombre}>{input("nombre", { required: true })}</Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id="pr-rubro" label="Rubro" error={errors.rubro}>{input("rubro")}</Field>
+            <Field id="pr-comuna" label="Comuna" error={errors.comuna}>{input("comuna")}</Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id="pr-web" label="Web" error={errors.web}>{input("web", { placeholder: "misitio.cl", inputMode: "url" })}</Field>
+            <Field id="pr-instagram" label="Instagram" error={errors.instagram}>{input("instagram", { placeholder: "@usuario o URL" })}</Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id="pr-email_publico" label="Correo público" error={errors.email_publico}>{input("email_publico", { type: "email", inputMode: "email" })}</Field>
+            <Field id="pr-telefono_publico" label="Teléfono público" error={errors.telefono_publico}>{input("telefono_publico", { type: "tel", placeholder: "+56 9 1234 5678" })}</Field>
+          </div>
+          <Field id="pr-fuente" label="Fuente del dato *" error={errors.fuente} hint="Dónde se vio el contacto (ej. sitio web, página Contacto).">
+            {input("fuente", { required: true })}
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id="pr-estado" label="Estado" error={errors.estado}>
+              <select id="pr-estado" className={selectCls} value={form.estado} onChange={(e) => set("estado")(e.target.value as ProspectFormInput["estado"])}>
+                {PROSPECT_STATES.map((s) => <option key={s} value={s}>{STATE_META[s].label}</option>)}
+              </select>
+            </Field>
+            <Field id="pr-producto_sugerido" label="Producto sugerido" error={errors.producto_sugerido}>
+              <select id="pr-producto_sugerido" className={selectCls} value={form.producto_sugerido} onChange={(e) => set("producto_sugerido")(e.target.value as ProspectFormInput["producto_sugerido"])}>
+                <option value="">Sin definir</option>
+                {PLANS.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+              </select>
+            </Field>
+          </div>
+          {form.estado === "baja" && (
+            <div role="alert" className="flex gap-2 rounded-app-md border border-danger/40 bg-danger-subtle p-3 text-sm text-danger-strong">
+              <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{BAJA_NOTICE}</p>
+            </div>
+          )}
+          {leavingBaja && (
+            <label className="flex items-start gap-2 rounded-app-md border border-warning/40 bg-warning-subtle p-3 text-sm text-warning-strong">
+              <input type="checkbox" checked={confirmUnbaja} onChange={(e) => setConfirmUnbaja(e.target.checked)} className="mt-0.5" />
+              Confirmo que el prospecto retiró por escrito su solicitud de no ser contactado.
+            </label>
+          )}
+          <Field id="pr-ultimo_contacto" label="Último contacto" error={errors.ultimo_contacto}>{input("ultimo_contacto", { type: "date" })}</Field>
+          <Field id="pr-notas" label="Notas" error={errors.notas}>
+            <Textarea id="pr-notas" rows={4} value={form.notas} onChange={(e) => set("notas")(e.target.value)} />
+          </Field>
+          <SheetFooter className="gap-2 sm:justify-between">
+            {prospect?.estado === "ganado" ? (
+              <Button type="button" variant="outline" onClick={() => onConvert(prospect)}>Convertir en cliente</Button>
+            ) : <span />}
+            <Button type="submit" disabled={save.isPending}>{save.isPending ? "Guardando…" : "Guardar"}</Button>
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}

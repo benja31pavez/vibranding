@@ -27,6 +27,7 @@ import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBookingsRouteImport } from './routes/_app/bookings'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppPipelineRouteImport } from './routes/_app/pipeline'
 import { Route as AppPortfolioRouteImport } from './routes/_app/portfolio'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
@@ -165,6 +166,11 @@ const AppCalendarRoute = AppCalendarRouteImport.update({
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPipelineRoute = AppPipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPortfolioRoute = AppPortfolioRouteImport.update({
@@ -453,6 +459,7 @@ export interface FileRoutesByFullPath {
   '/bookings': typeof AppBookingsRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
+  '/pipeline': typeof AppPipelineRoute
   '/portfolio': typeof AppPortfolioRoute
   '/profile': typeof AppProfileRoute
   '/reports': typeof AppReportsRoute
@@ -521,6 +528,7 @@ export interface FileRoutesByTo {
   '/bookings': typeof AppBookingsRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
+  '/pipeline': typeof AppPipelineRoute
   '/portfolio': typeof AppPortfolioRoute
   '/profile': typeof AppProfileRoute
   '/reports': typeof AppReportsRoute
@@ -590,6 +598,7 @@ export interface FileRoutesById {
   '/_app/bookings': typeof AppBookingsRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/pipeline': typeof AppPipelineRoute
   '/_app/portfolio': typeof AppPortfolioRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/reports': typeof AppReportsRoute
@@ -660,6 +669,7 @@ export interface FileRouteTypes {
     | '/bookings'
     | '/calendar'
     | '/dashboard'
+    | '/pipeline'
     | '/portfolio'
     | '/profile'
     | '/reports'
@@ -728,6 +738,7 @@ export interface FileRouteTypes {
     | '/bookings'
     | '/calendar'
     | '/dashboard'
+    | '/pipeline'
     | '/portfolio'
     | '/profile'
     | '/reports'
@@ -796,6 +807,7 @@ export interface FileRouteTypes {
     | '/_app/bookings'
     | '/_app/calendar'
     | '/_app/dashboard'
+    | '/_app/pipeline'
     | '/_app/portfolio'
     | '/_app/profile'
     | '/_app/reports'
@@ -1007,6 +1019,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pipeline': {
+      id: '/_app/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof AppPipelineRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/portfolio': {
@@ -1420,6 +1439,7 @@ interface AppRouteChildren {
   AppBookingsRoute: typeof AppBookingsRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppPipelineRoute: typeof AppPipelineRoute
   AppPortfolioRoute: typeof AppPortfolioRoute
   AppProfileRoute: typeof AppProfileRoute
   AppReportsRoute: typeof AppReportsRoute
@@ -1438,6 +1458,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBookingsRoute: AppBookingsRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppPipelineRoute: AppPipelineRoute,
   AppPortfolioRoute: AppPortfolioRoute,
   AppProfileRoute: AppProfileRoute,
   AppReportsRoute: AppReportsRoute,
