@@ -15,12 +15,9 @@ export const listUnmatchedMedia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { clientId: string }) => input)
   .handler(async ({ data, context }): Promise<UnmatchedMedia[]> => {
-    const { data: owned } = await context.supabase
-      .from("clients")
-      .select("id")
-      .eq("id", data.clientId)
-      .maybeSingle();
-    if (!owned) throw new Error("No tienes acceso a este cliente");
+    // owns_client() excludes the portal user, unlike the clients RLS policy.
+    const { assertOrgMemberOfClient } = await import("@/lib/auth/clientAccess.server");
+    await assertOrgMemberOfClient(context.supabase, data.clientId);
 
     const { getClientMetaToken } = await import("@/lib/meta/clientToken.server");
     const found = await getClientMetaToken(data.clientId);
@@ -58,12 +55,10 @@ export const matchPostToMedia = createServerFn({ method: "POST" })
     (input: { clientId: string; postId: string; igMediaId: string | null }) => input,
   )
   .handler(async ({ data, context }) => {
-    const { data: owned } = await context.supabase
-      .from("clients")
-      .select("id")
-      .eq("id", data.clientId)
-      .maybeSingle();
-    if (!owned) throw new Error("No tienes acceso a este cliente");
+    // Portal users can see their client row via RLS, so a plain select is not
+    // enough: only agency editors may use the org's Meta token here.
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, data.clientId);
 
     let publishedAt: string | null = null;
     if (data.igMediaId) {
@@ -101,12 +96,10 @@ export const captureInstagramGridVersion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { clientId: string; label: string }) => input)
   .handler(async ({ data, context }) => {
-    const { data: owned } = await context.supabase
-      .from("clients")
-      .select("id")
-      .eq("id", data.clientId)
-      .maybeSingle();
-    if (!owned) throw new Error("No tienes acceso a este cliente");
+    // Portal users can see their client row via RLS, so a plain select is not
+    // enough: only agency editors may use the org's Meta token here.
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, data.clientId);
 
     const { getClientMetaToken } = await import("@/lib/meta/clientToken.server");
     const resolved = await getClientMetaToken(data.clientId);
