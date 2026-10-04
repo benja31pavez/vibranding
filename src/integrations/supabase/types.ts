@@ -387,6 +387,47 @@ export type Database = {
           },
         ]
       }
+      client_billing: {
+        Row: {
+          billing_day: number | null
+          client_id: string
+          created_at: string
+          mrr: number
+          onboarding_token: string | null
+          onboarding_token_expires_at: string | null
+          plan_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_day?: number | null
+          client_id: string
+          created_at?: string
+          mrr?: number
+          onboarding_token?: string | null
+          onboarding_token_expires_at?: string | null
+          plan_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_day?: number | null
+          client_id?: string
+          created_at?: string
+          mrr?: number
+          onboarding_token?: string | null
+          onboarding_token_expires_at?: string | null
+          plan_key?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_billing_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_contracts: {
         Row: {
           agency_snapshot: Json
@@ -585,51 +626,39 @@ export type Database = {
       }
       clients: {
         Row: {
-          billing_day: number | null
           business_description: string | null
           created_at: string
           id: string
           instagram_handle: string | null
-          mrr: number
           name: string
           notes: string | null
-          onboarding_token: string | null
           org_id: string
-          plan_key: string | null
           started_at: string | null
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
-          billing_day?: number | null
           business_description?: string | null
           created_at?: string
           id?: string
           instagram_handle?: string | null
-          mrr?: number
           name: string
           notes?: string | null
-          onboarding_token?: string | null
           org_id: string
-          plan_key?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
-          billing_day?: number | null
           business_description?: string | null
           created_at?: string
           id?: string
           instagram_handle?: string | null
-          mrr?: number
           name?: string
           notes?: string | null
-          onboarding_token?: string | null
           org_id?: string
-          plan_key?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -3695,6 +3724,19 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_payments: {
+        Row: {
+          amount: number | null
+          currency: string | null
+          document_type: string | null
+          due_date: string | null
+          id: string | null
+          payment_url: string | null
+          period: string | null
+          status: Database["public"]["Enums"]["payment_status"] | null
+        }
+        Relationships: []
+      }
       whatsapp_accounts_safe: {
         Row: {
           ai_business_context: string | null
@@ -3794,6 +3836,7 @@ export type Database = {
         Returns: Json
       }
       ensure_org: { Args: never; Returns: string }
+      gen_public_token: { Args: never; Returns: string }
       get_booking_settings_by_slug: {
         Args: { _slug: string }
         Returns: {
@@ -3881,6 +3924,7 @@ export type Database = {
       }
       manages_client: { Args: { _client_id: string }; Returns: boolean }
       mark_overdue_payments: { Args: never; Returns: number }
+      mark_proposal_viewed: { Args: { _token: string }; Returns: boolean }
       meta_get_secret: { Args: { _account_id: string }; Returns: string }
       meta_set_secret: {
         Args: { _account_id: string; _secret: string }
@@ -3904,6 +3948,10 @@ export type Database = {
         Returns: Json
       }
       review_link_get: { Args: { _token: string }; Returns: Json }
+      rotate_onboarding_token: {
+        Args: { _client_id: string; _valid_days?: number }
+        Returns: Json
+      }
       run_http_cron_job: {
         Args: { _job_name: string; _url: string }
         Returns: undefined
