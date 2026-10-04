@@ -1,0 +1,229 @@
+import { useMemo, useState, type FormEvent } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { Lock, Save } from "lucide-react";
+import { toast } from "sonner";
+import { Panel } from "@/components/app";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PLANS, findPlan, planPriceLabel, type PlanKey } from "@/lib/pricing/plans";
+import {
+  DEFAULT_VALIDITY_DAYS,
+  PROPOSAL_STATUS_META,
+  chileDatePlusDays,
+  computeTotals,
+  endOfChileDayIso,
+  formatChileDate,
+  parseItems,
+  planItem,
+  proposalConditions,
+  toChileDate,
+  validateDraft,
+  type ProposalItem,
+  type ProposalStatus,
+} from "@/lib/proposals/model";
+import { ExtraItemsEditor, toExtraRow, type ExtraRow } from "./ExtraItemsEditor";
+import { ProposalLines } from "./ProposalLines";
+import { ProposalLinkActions } from "./ProposalLinkActions";
+import { ProposalStatusBadge } from "./ProposalsPanel";
+import { useSaveProposal, type ProposalRow, type Recipient } from "./proposalQueries";
+
+const NO_PLAN = "none";
+/** Estados que se eligen a mano. "vista" y "aceptada" los pone el sistema. */
+const MANUAL_STATUSES: readonly ProposalStatus[] = ["borrador", "enviada", "rechazada", "expirada"];
+
+interface Props {
+  recipient: Recipient;
+  existing?: ProposalRow;
+  canEdit: boolean;
+}
+
+function initialState(recipient: Recipient, existing?: ProposalRow) {
+  const items = parseItems(existing?.items ?? []);
+  const plan = items.find((i) => i.type === "plan");
+  return {
+    title: existing?.title ?? `Propuesta para ${recipient.name}`,
+    planKey: (plan?.key ?? existing?.plan_key ?? NO_PLAN) as PlanKey | typeof NO_PLAN,
+    extras: items.filter((i) => i.type === "extra").map(toExtraRow),
+    expiresDate: existing ? toChileDate(existing.expires_at) : chileDatePlusDays(DEFAULT_VALIDITY_DAYS),
+    status: (existing?.status ?? "borrador") as string,
+  };
+}
+
+function buildItems(planKey: string, extras: readonly ExtraRow[]): ProposalItem[] {
+  const plan = findPlan(planKey);
+  const extraItems = extras.map(({ item }) => ({ ...item, label: item.label.trim() }));
+  return plan ? [planItem(plan.key), ...extraItems] : extraItems;
+}
+
+/** Editor de propuesta: título, plan + adicionales, vencimiento y estado. */
+export function ProposalEditor({ recipient, existing, canEdit }: Props) {
+  const navigate = useNavigate();
+  const save = useSaveProposal();
+  const [state, setState] = useState(() => initialState(recipient, existing));
+  const locked = !canEdit || existing?.status === "aceptada";
+
+  const items = useMemo(() => buildItems(state.planKey, state.extras), [state.planKey, state.extras]);
+  const totals = computeTotals(items);
+  const errors = validateDraft({ title: state.title, items });
+  const statusOptions = MANUAL_STATUSES.includes(state.status as ProposalStatus)
+    ? MANUAL_STATUSES
+    : [...MANUAL_STATUSES, state.status as ProposalStatus];
+
+  const set = <K extends keyof typeof state>(key: K, value: (typeof state)[K]) =>
+    setState((prev) => ({ ...prev, [key]: value }));
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (locked) return;
+    if (errors.length > 0) {
+      toast.error(errors[0]);
+      return;
+    }
+    let expiresAt: string | null = null;
+    try {
+      expiresAt = state.expiresDate ? endOfChileDayIso(state.expiresDate) : null;
+    } catch {
+      toast.error("La fecha de vencimiento no es válida.");
+      return;
+    }
+    const draft = {
+      title: state.title,
+      planKey: findPlan(state.planKey)?.key ?? null,
+      items,
+      amountClp: totals.firstCharge,
+      expiresAt,
+      status: state.status,
+    };
+    save.mutate(
+      { recipient, draft, existing },
+      {
+        onSuccess: (id) => {
+          toast.success(existing ? "Propuesta guardada" : "Propuesta creada");
+          if (!existing) void navigate({ to: "/proposals/$proposalId", params: { proposalId: id }, replace: true });
+        },
+        onError: (err) => toast.error(err.message),
+      },
+    );
+  };
+
+  const selectedPlan = findPlan(state.planKey);
+
+  return (
+    <form onSubmit={submit} className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+      <div className="space-y-6 lg:col-span-3">
+        {locked && existing?.status === "aceptada" && (
+          <p className="flex items-center gap-2 rounded-app-md bg-success-subtle px-3 py-2 text-sm text-success-strong">
+            <Lock aria-hidden className="h-4 w-4" /> Propuesta aceptada: ya no se puede editar.
+          </p>
+        )}
+        <Panel title="Datos">
+          <fieldset disabled={locked} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="proposal-title">Título</Label>
+              <Input
+                id="proposal-title"
+                value={state.title}
+                maxLength={140}
+                onChange={(e) => set("title", e.target.value)}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="proposal-expires">Vence el</Label>
+                <Input
+                  id="proposal-expires"
+                  type="date"
+                  value={state.expiresDate}
+                  onChange={(e) => set("expiresDate", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">Por defecto {DEFAULT_VALIDITY_DAYS} días. Hora de Chile.</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="proposal-status">Estado</Label>
+                <Select value={state.status} onValueChange={(v) => set("status", v)} disabled={locked}>
+                  <SelectTrigger id="proposal-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((s) => (
+                      <SelectItem key={s} value={s} disabled={!MANUAL_STATUSES.includes(s)}>
+                        {PROPOSAL_STATUS_META[s]?.label ?? s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">El link público funciona desde "Enviada".</p>
+              </div>
+            </div>
+          </fieldset>
+        </Panel>
+
+        <Panel title="Plan" description="Precios con IVA incluido (src/lib/pricing/plans.ts).">
+          <Select value={state.planKey} onValueChange={(v) => set("planKey", v as PlanKey)} disabled={locked}>
+            <SelectTrigger aria-label="Plan">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_PLAN}>Sin plan (solo ítems a medida)</SelectItem>
+              {PLANS.map((p) => (
+                <SelectItem key={p.key} value={p.key}>
+                  {p.label} · {planPriceLabel(p)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedPlan && <p className="mt-2 text-sm text-muted-foreground">{selectedPlan.description}</p>}
+        </Panel>
+
+        <Panel title="Adicionales y descuentos">
+          <ExtraItemsEditor items={state.extras} onChange={(rows) => set("extras", rows)} disabled={locked} />
+        </Panel>
+
+        {!locked && (
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" disabled={save.isPending || errors.length > 0}>
+              <Save aria-hidden className="mr-1.5 h-4 w-4" /> {existing ? "Guardar cambios" : "Crear propuesta"}
+            </Button>
+            {errors.length > 0 && <p className="text-sm text-muted-foreground">{errors[0]}</p>}
+          </div>
+        )}
+      </div>
+
+      <aside className="space-y-6 lg:col-span-2" aria-label="Resumen de la propuesta">
+        <Panel
+          title="Resumen"
+          actions={existing ? <ProposalStatusBadge status={existing.status} expiresAt={existing.expires_at} /> : undefined}
+        >
+          <p className="mb-3 text-sm text-muted-foreground">
+            Para <span className="font-medium text-foreground">{recipient.name}</span>
+            {recipient.kind === "prospect" ? " (prospecto)" : ""}
+          </p>
+          {items.length > 0 ? (
+            <ProposalLines items={items} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Elige un plan o agrega ítems.</p>
+          )}
+          {existing && (
+            <div className="mt-4 space-y-2 border-t border-border-subtle pt-4">
+              <ProposalLinkActions proposal={existing} showOpen />
+              {existing.accepted_at && (
+                <p className="text-xs text-muted-foreground">
+                  Aceptada el {formatChileDate(existing.accepted_at)} por {existing.accepted_name}.
+                </p>
+              )}
+            </div>
+          )}
+        </Panel>
+        <Panel title="Condiciones que verá el cliente">
+          <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
+            {proposalConditions(findPlan(state.planKey)?.key ?? null, items).map((c) => (
+              <li key={c}>{c}</li>
+            ))}
+          </ul>
+        </Panel>
+      </aside>
+    </form>
+  );
+}

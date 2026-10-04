@@ -14,6 +14,7 @@ import { OnboardingLinkPanel } from "@/components/clients/ficha/OnboardingLinkPa
 import { HealthCards } from "@/components/clients/ficha/HealthCards";
 import { PendingApprovalPanel, UpcomingContentPanel } from "@/components/clients/ficha/MainPanels";
 import { ContractPanel } from "@/components/clients/ficha/ContractPanel";
+import { ProposalsPanel } from "@/components/proposals/ProposalsPanel";
 import { ReportsPanel } from "@/components/clients/ficha/ReportsPanel";
 import { PERMISSION_DENIED_MSG, useFichaHealth, useFichaOverview } from "@/components/clients/ficha/fichaQueries";
 
@@ -46,6 +47,7 @@ function ClientFichaPage() {
             error={health.error}
             onRetry={() => void health.refetch()}
           />
+          <ProposalsPanel clientId={clientId} canEdit={Boolean(overview.data?.canEdit)} />
           <UpcomingContentPanel clientId={clientId} />
           <ReportsPanel clientId={clientId} clientName={client?.name ?? ""} canEdit={overview.data?.canEdit ?? false} />
           <BusinessDescription

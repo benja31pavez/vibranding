@@ -32,7 +32,7 @@ export const submitLandingContact = createServerFn({ method: "POST" })
     const { createHash } = await import("crypto");
     const ipHash = ip
       ? createHash("sha256")
-          .update(`${ip}:${process.env["SUPABASE_PROJECT_SALT"] ?? "landing"}`)
+          .update(`${ip}:${process.env["IP_HASH_SALT"] ?? process.env["SUPABASE_PROJECT_SALT"] ?? "landing"}`)
           .digest("hex")
       : null;
 

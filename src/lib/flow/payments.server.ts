@@ -193,7 +193,7 @@ async function resolveAlreadyPaid(
 }
 
 /** Email del portal del cliente, si existe, como pagador por defecto. */
-async function defaultPayerEmail(clientId: string): Promise<string | null> {
+export async function defaultPayerEmail(clientId: string): Promise<string | null> {
   const db = await admin();
   const { data, error } = await db
     .from("client_users")
