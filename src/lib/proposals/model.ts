@@ -111,9 +111,6 @@ export function proposalConditions(planKey: string | null, items: readonly Propo
       "La inversión en pauta (Meta Ads) no está incluida: la paga directamente el cliente a Meta con su propio medio de pago.",
     );
   }
-  conditions.push(
-    "Garantía de 30 días: si dentro de los primeros 30 días desde la entrega no estás conforme, la rehacemos sin costo, dentro del alcance contratado.",
-  );
   conditions.push("Todos los precios están en pesos chilenos (CLP) e incluyen IVA.");
   return conditions;
 }
