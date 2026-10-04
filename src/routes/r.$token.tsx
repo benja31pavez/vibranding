@@ -18,6 +18,7 @@ export const Route = createFileRoute("/r/$token")({
       },
       { name: "description", content: "Resultados del mes de tu marca, preparados por Vibranding." },
       NOINDEX,
+      { name: "referrer", content: "no-referrer" },
     ],
   }),
   component: PublicReportPage,

@@ -10,17 +10,33 @@ const GenerateInput = z.object({
     .string()
     .regex(/^\d{4}-(0[1-9]|1[0-2])-01$/, "El periodo debe ser el primer día del mes (YYYY-MM-01)")
     .optional(),
+  /** Regenerar aunque ya se haya enviado (la UI pide confirmación). */
+  force: z.boolean().optional(),
 });
+
+/** Una generación manual por cliente y periodo cada 60 s. */
+const GENERATE_COOLDOWN_MS = 60_000;
 
 /** "Generar ahora": arma el reporte del mes anterior (o `period`) de un cliente. Solo editores. */
 export const generateMonthlyReportNow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { clientId: string; period?: string }) => GenerateInput.parse(d))
+  .inputValidator((d: { clientId: string; period?: string; force?: boolean }) => GenerateInput.parse(d))
   .handler(async ({ data, context }): Promise<GeneratedReport> => {
     const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
     await assertCanEditClient(context.userId, data.clientId);
-    const { generateMonthlyReport } = await import("./monthly.server");
-    return generateMonthlyReport(data.clientId, data.period);
+
+    const { defaultReportPeriod } = await import("./period");
+    const period = data.period ?? defaultReportPeriod();
+    if (period > defaultReportPeriod()) {
+      throw new Error("Solo se pueden generar reportes de meses ya cerrados.");
+    }
+
+    const { generateMonthlyReport, lastGeneratedAt } = await import("./monthly.server");
+    const last = await lastGeneratedAt(data.clientId, period);
+    if (last && Date.now() - new Date(last).getTime() < GENERATE_COOLDOWN_MS) {
+      throw new Error("Este reporte se acaba de generar. Espera un minuto antes de volver a intentarlo.");
+    }
+    return generateMonthlyReport(data.clientId, period, { force: data.force });
   });
 
 const TokenInput = z.object({ token: z.string().regex(/^[0-9a-f]{48}$/) });

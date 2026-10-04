@@ -26,9 +26,12 @@ import {
   type Metric,
   type MonthlyReportData,
 } from "./types";
+import type { Json, TablesInsert } from "@/integrations/supabase/types";
 
-const MAX_DELIVERABLE_ITEMS = 10;
 const ACTIVE_STATUS = "activo";
+export const DEFAULT_BATCH_LIMIT = 10;
+export const MAX_BATCH_LIMIT = 50;
+const CLIENT_CONCURRENCY = 3;
 
 export const LEAD_SOURCE_LABEL: Readonly<Record<string, string>> = {
   whatsapp: "WhatsApp",
@@ -44,14 +47,15 @@ interface RawMonth {
   bookings: number | null;
   meta: RawAds | null;
   google: RawAds | null;
-  deliverables: { title: string; type: string }[] | null;
+  deliverables: Record<string, number> | null;
 }
 
-async function collectMonth(clientId: string, period: string): Promise<RawMonth> {
+/** `detail`: series diarias y top posts (solo hacen falta para el mes reportado). */
+async function collectMonth(clientId: string, period: string, detail: boolean): Promise<RawMonth> {
   const range = periodRange(period);
   const [instagram, landing, leads, bookings, meta, google, deliverables] = await Promise.all([
     collectInstagram(clientId, range),
-    collectLanding(clientId, range),
+    collectLanding(clientId, range, detail),
     collectLeads(clientId, range),
     collectBookings(clientId, range),
     collectMetaAds(clientId, range),
@@ -110,7 +114,10 @@ const sumValues = (r: Record<string, number>) => Object.values(r).reduce((s, n) 
 /** Snapshot completo del mes `period` para un cliente (sin guardar). */
 export async function buildReportData(clientId: string, period: string): Promise<MonthlyReportData> {
   if (!isValidPeriod(period)) throw new Error(`Periodo inválido: ${period}`);
-  const [cur, prev] = await Promise.all([collectMonth(clientId, period), collectMonth(clientId, previousPeriod(period))]);
+  const [cur, prev] = await Promise.all([
+    collectMonth(clientId, period, true),
+    collectMonth(clientId, previousPeriod(period), false),
+  ]);
 
   const data: MonthlyReportData = {
     version: REPORT_DATA_VERSION,
@@ -158,8 +165,10 @@ export async function buildReportData(clientId: string, period: string): Promise
 
   if (cur.deliverables) {
     data.deliverables = {
-      completed: cur.deliverables.length,
-      items: cur.deliverables.slice(0, MAX_DELIVERABLE_ITEMS),
+      completed: sumValues(cur.deliverables),
+      by_type: Object.entries(cur.deliverables)
+        .sort(([a, x], [b, y]) => y - x || a.localeCompare(b))
+        .map(([type, count]) => ({ type, count })),
     };
   }
 
@@ -174,66 +183,145 @@ export interface GeneratedReport {
   created: boolean;
 }
 
+/** El reporte ya fue enviado: regenerarlo cambiaría lo que ve el cliente. */
+export class ReportAlreadySentError extends Error {
+  constructor() {
+    super("Este reporte ya fue enviado; regenerarlo cambiará lo que ve el cliente.");
+    this.name = "ReportAlreadySentError";
+  }
+}
+
+export interface GenerateOptions {
+  /** Permite regenerar un reporte ya enviado. */
+  force?: boolean;
+}
+
+/** Fecha de la última generación del reporte (para limitar "Generar ahora"). */
+export async function lastGeneratedAt(clientId: string, period: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin
+    .from("monthly_reports")
+    .select("data")
+    .eq("client_id", clientId)
+    .eq("period", period)
+    .maybeSingle();
+  if (error) throw new Error(`[reports] lectura: ${error.message}`);
+  return data && isReportData(data.data) ? data.data.generated_at : null;
+}
+
 /**
  * Genera (o regenera) el reporte del mes. No duplica: upsert por
- * client_id + period. Conserva `sent_at` y el resumen si la agencia lo editó.
+ * client_id + period. Conserva el resumen si la agencia lo editó y no pisa
+ * un reporte ya enviado salvo `force`.
  */
-export async function generateMonthlyReport(clientId: string, period: string = defaultReportPeriod()): Promise<GeneratedReport> {
-  const data = await buildReportData(clientId, period);
-
+export async function generateMonthlyReport(
+  clientId: string,
+  period: string = defaultReportPeriod(),
+  { force = false }: GenerateOptions = {},
+): Promise<GeneratedReport> {
   const { data: existing, error: readErr } = await supabaseAdmin
     .from("monthly_reports")
-    .select("id,summary,data")
+    .select("id,summary,data,sent_at")
     .eq("client_id", clientId)
     .eq("period", period)
     .maybeSingle();
   if (readErr) throw new Error(`[reports] lectura: ${readErr.message}`);
+  if (existing?.sent_at && !force) throw new ReportAlreadySentError();
 
+  const data = await buildReportData(clientId, period);
   const previousAuto = existing && isReportData(existing.data) ? existing.data.auto_summary : null;
   const summaryUntouched = !existing?.summary?.trim() || existing.summary === previousAuto;
-  const payload = {
+  const payload: TablesInsert<"monthly_reports"> = {
     client_id: clientId,
     period,
-    data: data as unknown as Record<string, unknown>,
+    data: data as unknown as Json,
     ...(summaryUntouched && { summary: data.auto_summary }),
   };
 
   // Sin "token" en el payload: lo genera la BD al insertar y no cambia al actualizar.
   const { data: saved, error } = await supabaseAdmin
     .from("monthly_reports")
-    .upsert(payload as never, { onConflict: "client_id,period" })
+    .upsert(payload, { onConflict: "client_id,period" })
     .select("id")
     .single();
   if (error) throw new Error(`[reports] guardado: ${error.message}`);
-  return { clientId, period, id: (saved as { id: string }).id, created: !existing };
+  return { clientId, period, id: saved.id, created: !existing };
+}
+
+export interface BatchOptions {
+  period?: string;
+  offset?: number;
+  limit?: number;
+  /** Solo este cliente (debe estar activo). */
+  clientId?: string;
 }
 
 export interface MonthlyRunSummary {
   period: string;
+  offset: number;
   clients: number;
   generated: number;
+  /** Ya enviados: no se regeneran desde el cron. */
+  skipped_sent: number;
   failed: number;
   errors: { clientId: string; message: string }[];
+  /** Siguiente offset si quedan clientes; null si terminó. */
+  next_offset: number | null;
 }
 
-/** Genera el reporte del mes para todos los clientes con status = 'activo'. */
-export async function generateReportsForActiveClients(period: string = defaultReportPeriod()): Promise<MonthlyRunSummary> {
+/** Ejecuta `fn` sobre `items` con a lo más `concurrency` tareas a la vez. */
+async function runPool<T>(items: T[], concurrency: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const item = items[next++];
+      await fn(item);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+}
+
+/**
+ * Genera el reporte del mes para un lote de clientes activos (orden estable por id).
+ * Devuelve `next_offset` para que el cron llame de nuevo hasta que sea null.
+ */
+export async function generateReportsForActiveClients(opts: BatchOptions = {}): Promise<MonthlyRunSummary> {
+  const period = opts.period ?? defaultReportPeriod();
   if (!isValidPeriod(period)) throw new Error(`Periodo inválido: ${period}`);
-  const { data: clients, error } = await supabaseAdmin.from("clients").select("id").eq("status", ACTIVE_STATUS);
+  const offset = Math.max(0, opts.offset ?? 0);
+  const limit = Math.min(MAX_BATCH_LIMIT, Math.max(1, opts.limit ?? DEFAULT_BATCH_LIMIT));
+
+  let q = supabaseAdmin.from("clients").select("id").eq("status", ACTIVE_STATUS);
+  if (opts.clientId) q = q.eq("id", opts.clientId);
+  // Se pide uno extra para saber si quedan más.
+  const { data: clients, error } = await q.order("id", { ascending: true }).range(offset, offset + limit);
   if (error) throw new Error(`[reports] clientes: ${error.message}`);
 
-  const summary: MonthlyRunSummary = { period, clients: clients?.length ?? 0, generated: 0, failed: 0, errors: [] };
-  // En serie: cada cliente hace varias consultas y no queremos saturar la BD.
-  for (const c of clients ?? []) {
+  const batch = (clients ?? []).slice(0, limit);
+  const results: { clientId: string; outcome: "ok" | "sent" | "error"; message?: string }[] = [];
+  await runPool(batch, CLIENT_CONCURRENCY, async (c) => {
     try {
       await generateMonthlyReport(c.id, period);
-      summary.generated += 1;
+      results.push({ clientId: c.id, outcome: "ok" });
     } catch (e) {
+      if (e instanceof ReportAlreadySentError) {
+        results.push({ clientId: c.id, outcome: "sent" });
+        return;
+      }
       const message = (e as Error).message;
       console.error("[reports] cliente falló", { clientId: c.id, period, message });
-      summary.failed += 1;
-      summary.errors.push({ clientId: c.id, message });
+      results.push({ clientId: c.id, outcome: "error", message });
     }
-  }
-  return summary;
+  });
+
+  const failed = results.filter((r) => r.outcome === "error");
+  return {
+    period,
+    offset,
+    clients: batch.length,
+    generated: results.filter((r) => r.outcome === "ok").length,
+    skipped_sent: results.filter((r) => r.outcome === "sent").length,
+    failed: failed.length,
+    errors: failed.map((r) => ({ clientId: r.clientId, message: r.message ?? "" })),
+    next_offset: (clients ?? []).length > limit ? offset + limit : null,
+  };
 }

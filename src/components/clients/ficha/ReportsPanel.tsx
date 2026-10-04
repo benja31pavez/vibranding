@@ -8,19 +8,30 @@ import { EmptyState, ErrorState, ListSkeleton, Panel, StatusBadge } from "@/comp
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ReportView } from "@/components/reports/ReportView";
 import { publicReportUrl, reportKeys, useClientReports, type MonthlyReportRow } from "@/components/reports/reportQueries";
 import { generateMonthlyReportNow } from "@/lib/reports/monthly.functions";
 import { periodLabel } from "@/lib/billing/dates";
+import { defaultReportPeriod } from "@/lib/reports/period";
 import { formatDate, useUserKey, writeErrorMessage } from "./fichaQueries";
 
-/** Reportes mensuales del cliente: generar, editar resumen, copiar link y marcar enviado. */
 interface ReportsPanelProps {
   clientId: string;
   clientName: string;
   canEdit: boolean;
 }
 
+/** Reportes mensuales del cliente: generar, editar resumen, copiar link y marcar enviado. */
 export function ReportsPanel({ clientId, clientName, canEdit }: ReportsPanelProps) {
   const userKey = useUserKey();
   const queryClient = useQueryClient();
@@ -29,13 +40,16 @@ export function ReportsPanel({ clientId, clientName, canEdit }: ReportsPanelProp
   const [generating, setGenerating] = useState(false);
   const [editing, setEditing] = useState<MonthlyReportRow | null>(null);
   const [preview, setPreview] = useState<MonthlyReportRow | null>(null);
+  const [confirmForce, setConfirmForce] = useState(false);
+  const period = defaultReportPeriod();
+  const alreadySent = Boolean(reports.data?.find((r) => r.period === period)?.sent_at);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["monthly-reports", userKey] });
 
-  const onGenerate = async () => {
+  const onGenerate = async (force = false) => {
     setGenerating(true);
     try {
-      const res = await generate({ data: { clientId } });
+      const res = await generate({ data: { clientId, period, force } });
       toast.success(`Reporte de ${periodLabel(res.period)} ${res.created ? "generado" : "actualizado"}`);
       await refresh();
     } catch (e) {
@@ -46,7 +60,12 @@ export function ReportsPanel({ clientId, clientName, canEdit }: ReportsPanelProp
   };
 
   const actions = canEdit ? (
-    <Button size="sm" variant="outline" onClick={onGenerate} disabled={generating}>
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={() => (alreadySent ? setConfirmForce(true) : void onGenerate())}
+      disabled={generating}
+    >
       <RefreshCw aria-hidden className={`mr-1.5 h-4 w-4 ${generating ? "animate-spin" : ""}`} />
       Generar ahora
     </Button>
@@ -84,6 +103,20 @@ export function ReportsPanel({ clientId, clientName, canEdit }: ReportsPanelProp
         </ul>
       )}
 
+      <AlertDialog open={confirmForce} onOpenChange={setConfirmForce}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Regenerar el reporte de {periodLabel(period)}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este reporte ya fue enviado; regenerarlo cambiará lo que ve el cliente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void onGenerate(true)}>Regenerar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <SummaryDialog report={editing} onClose={() => setEditing(null)} onSaved={refresh} />
       <Dialog open={preview !== null} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">

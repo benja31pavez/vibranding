@@ -7,13 +7,13 @@ import type { AdsBlock, Metric, MonthlyReportData } from "@/lib/reports/types";
 import { DailyVisitsChart, LeadsBySourceChart } from "./ReportCharts";
 
 const DELIVERABLE_LABEL: Record<string, string> = {
-  post: "Publicación",
-  reel: "Reel",
-  story: "Historia",
-  design: "Diseño",
-  meeting: "Reunión",
-  report: "Informe",
-  other: "Otro",
+  post: "Publicaciones",
+  reel: "Reels",
+  story: "Historias",
+  design: "Diseños",
+  meeting: "Reuniones",
+  report: "Informes",
+  other: "Otros",
 };
 
 const MEDIA_LABEL: Record<string, string> = {
@@ -221,11 +221,10 @@ export function ReportView({ clientName, period, data, summary }: ReportViewProp
             Este mes completamos {fmtInt(data.deliverables.completed)}{" "}
             {data.deliverables.completed === 1 ? "entregable" : "entregables"} para tu marca.
           </p>
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {data.deliverables.items.map((d, i) => (
-              <li key={i} className="rounded-app-md border border-border-subtle bg-surface px-3 py-2 text-sm">
-                <span className="text-xs text-muted-foreground">{DELIVERABLE_LABEL[d.type] ?? "Entregable"}</span>
-                <p className="truncate">{d.title}</p>
+          <ul className="flex flex-wrap gap-2">
+            {data.deliverables.by_type.map((d) => (
+              <li key={d.type} className="rounded-app-md border border-border-subtle bg-surface px-3 py-1.5 text-sm tabular-nums">
+                {DELIVERABLE_LABEL[d.type] ?? "Otros"}: {fmtInt(d.count)}
               </li>
             ))}
           </ul>

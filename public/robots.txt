@@ -20,6 +20,7 @@ Disallow: /portfolio$
 
 # Revisiones privadas y API (/landing es preview con noindex, no se bloquea para que el noindex se lea)
 Disallow: /review/
+Disallow: /r/
 Disallow: /api/
 
 Sitemap: https://vibranding.pro/sitemap.xml

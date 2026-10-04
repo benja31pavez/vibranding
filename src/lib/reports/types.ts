@@ -62,9 +62,10 @@ export interface AdsBlock {
   cpl?: number | null;
 }
 
+/** Solo conteos: los títulos de entregables son internos y el reporte es público. */
 export interface DeliverablesBlock {
   completed: number;
-  items: { title: string; type: string }[];
+  by_type: { type: string; count: number }[];
 }
 
 export interface MonthlyReportData {
