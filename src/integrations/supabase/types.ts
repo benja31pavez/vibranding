@@ -3735,6 +3735,26 @@ export type Database = {
           period: string | null
           status: Database["public"]["Enums"]["payment_status"] | null
         }
+        Insert: {
+          amount?: number | null
+          currency?: string | null
+          document_type?: string | null
+          due_date?: string | null
+          id?: string | null
+          payment_url?: string | null
+          period?: string | null
+          status?: Database["public"]["Enums"]["payment_status"] | null
+        }
+        Update: {
+          amount?: number | null
+          currency?: string | null
+          document_type?: string | null
+          due_date?: string | null
+          id?: string | null
+          payment_url?: string | null
+          period?: string | null
+          status?: Database["public"]["Enums"]["payment_status"] | null
+        }
         Relationships: []
       }
       whatsapp_accounts_safe: {
