@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { LatestReportsTable } from "@/components/reports/LatestReportsTable";
 
 export const Route = createFileRoute("/_app/reports")({
   component: ReportsPage,
@@ -196,6 +197,8 @@ function ReportsPage() {
           monedas distintas.
         </p>
       </header>
+
+      <LatestReportsTable />
 
       {!rows ? (
         <div className="text-muted-foreground text-sm">Cargando…</div>
