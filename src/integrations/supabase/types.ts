@@ -488,6 +488,83 @@ export type Database = {
         }
         Relationships: []
       }
+      client_intake: {
+        Row: {
+          accesos_pendientes: Json
+          archivos: string[]
+          client_id: string
+          colores: string[]
+          competencia: string | null
+          contacto_email: string | null
+          contacto_nombre: string | null
+          contacto_telefono: string | null
+          created_at: string
+          descripcion: string | null
+          direccion: string | null
+          email_facturacion: string | null
+          estilo: string | null
+          giro: string | null
+          links_redes: Json
+          publico_objetivo: string | null
+          razon_social: string
+          rut: string | null
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          accesos_pendientes?: Json
+          archivos?: string[]
+          client_id: string
+          colores?: string[]
+          competencia?: string | null
+          contacto_email?: string | null
+          contacto_nombre?: string | null
+          contacto_telefono?: string | null
+          created_at?: string
+          descripcion?: string | null
+          direccion?: string | null
+          email_facturacion?: string | null
+          estilo?: string | null
+          giro?: string | null
+          links_redes?: Json
+          publico_objetivo?: string | null
+          razon_social: string
+          rut?: string | null
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          accesos_pendientes?: Json
+          archivos?: string[]
+          client_id?: string
+          colores?: string[]
+          competencia?: string | null
+          contacto_email?: string | null
+          contacto_nombre?: string | null
+          contacto_telefono?: string | null
+          created_at?: string
+          descripcion?: string | null
+          direccion?: string | null
+          email_facturacion?: string | null
+          estilo?: string | null
+          giro?: string | null
+          links_redes?: Json
+          publico_objetivo?: string | null
+          razon_social?: string
+          rut?: string | null
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_intake_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_leads: {
         Row: {
           client_id: string
@@ -2700,6 +2777,41 @@ export type Database = {
           },
         ]
       }
+      onboarding_upload_reservations: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          path: string
+          token: string
+          used: boolean
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          path: string
+          token: string
+          used?: boolean
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          path?: string
+          token?: string
+          used?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_upload_reservations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_members: {
         Row: {
           created_at: string
@@ -2771,6 +2883,109 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_anomalies: {
+        Row: {
+          amount: number | null
+          commerce_order: string | null
+          created_at: string
+          currency: string | null
+          detail: Json
+          flow_order: string | null
+          id: string
+          kind: string
+          payment_id: string
+          provider: string
+          resolved_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          commerce_order?: string | null
+          created_at?: string
+          currency?: string | null
+          detail?: Json
+          flow_order?: string | null
+          id?: string
+          kind: string
+          payment_id: string
+          provider?: string
+          resolved_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          commerce_order?: string | null
+          created_at?: string
+          currency?: string | null
+          detail?: Json
+          flow_order?: string | null
+          id?: string
+          kind?: string
+          payment_id?: string
+          provider?: string
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_anomalies_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_provider_orders: {
+        Row: {
+          amount: number
+          commerce_order: string
+          created_at: string
+          currency: string
+          expires_at: string | null
+          flow_order: string | null
+          id: string
+          payment_id: string
+          payment_url: string | null
+          provider: string
+          status: string
+          token: string
+        }
+        Insert: {
+          amount: number
+          commerce_order: string
+          created_at?: string
+          currency?: string
+          expires_at?: string | null
+          flow_order?: string | null
+          id?: string
+          payment_id: string
+          payment_url?: string | null
+          provider: string
+          status?: string
+          token: string
+        }
+        Update: {
+          amount?: number
+          commerce_order?: string
+          created_at?: string
+          currency?: string
+          expires_at?: string | null
+          flow_order?: string | null
+          id?: string
+          payment_id?: string
+          payment_url?: string | null
+          provider?: string
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_provider_orders_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -2786,6 +3001,7 @@ export type Database = {
           paid_at: string | null
           payment_url: string | null
           period: string | null
+          proposal_id: string | null
           provider: string | null
           provider_ref: string | null
           status: Database["public"]["Enums"]["payment_status"]
@@ -2806,6 +3022,7 @@ export type Database = {
           paid_at?: string | null
           payment_url?: string | null
           period?: string | null
+          proposal_id?: string | null
           provider?: string | null
           provider_ref?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
@@ -2826,6 +3043,7 @@ export type Database = {
           paid_at?: string | null
           payment_url?: string | null
           period?: string | null
+          proposal_id?: string | null
           provider?: string | null
           provider_ref?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
@@ -2838,6 +3056,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
           {
@@ -3071,6 +3296,7 @@ export type Database = {
           accepted_at: string | null
           accepted_ip_hash: string | null
           accepted_name: string | null
+          accepted_rut: string | null
           accepted_text: string | null
           amount_clp: number
           client_id: string | null
@@ -3093,6 +3319,7 @@ export type Database = {
           accepted_at?: string | null
           accepted_ip_hash?: string | null
           accepted_name?: string | null
+          accepted_rut?: string | null
           accepted_text?: string | null
           amount_clp?: number
           client_id?: string | null
@@ -3115,6 +3342,7 @@ export type Database = {
           accepted_at?: string | null
           accepted_ip_hash?: string | null
           accepted_name?: string | null
+          accepted_rut?: string | null
           accepted_text?: string | null
           amount_clp?: number
           client_id?: string | null
@@ -3159,6 +3387,8 @@ export type Database = {
       }
       prospects: {
         Row: {
+          baja_revocada_at: string | null
+          client_id: string | null
           comuna: string | null
           created_at: string
           created_by: string | null
@@ -3167,6 +3397,7 @@ export type Database = {
           fuente: string
           id: string
           instagram: string | null
+          no_contactar_hasta: string | null
           nombre: string
           notas: string | null
           org_id: string
@@ -3178,6 +3409,8 @@ export type Database = {
           web: string | null
         }
         Insert: {
+          baja_revocada_at?: string | null
+          client_id?: string | null
           comuna?: string | null
           created_at?: string
           created_by?: string | null
@@ -3186,6 +3419,7 @@ export type Database = {
           fuente: string
           id?: string
           instagram?: string | null
+          no_contactar_hasta?: string | null
           nombre: string
           notas?: string | null
           org_id: string
@@ -3197,6 +3431,8 @@ export type Database = {
           web?: string | null
         }
         Update: {
+          baja_revocada_at?: string | null
+          client_id?: string | null
           comuna?: string | null
           created_at?: string
           created_by?: string | null
@@ -3205,6 +3441,7 @@ export type Database = {
           fuente?: string
           id?: string
           instagram?: string | null
+          no_contactar_hasta?: string | null
           nombre?: string
           notas?: string | null
           org_id?: string
@@ -3216,6 +3453,13 @@ export type Database = {
           web?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "prospects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prospects_org_id_fkey"
             columns: ["org_id"]
@@ -3841,8 +4085,18 @@ export type Database = {
     }
     Functions: {
       accept_proposal: {
-        Args: { _ip_hash: string; _name: string; _token: string }
+        Args: {
+          _extra_text?: string
+          _ip_hash: string
+          _name: string
+          _rut?: string
+          _token: string
+        }
         Returns: Json
+      }
+      append_prospect_note: {
+        Args: { _note: string; _prospect_id: string }
+        Returns: boolean
       }
       can_edit_client: { Args: { _client_id: string }; Returns: boolean }
       can_edit_org: { Args: { _org_id: string }; Returns: boolean }
@@ -3851,8 +4105,19 @@ export type Database = {
         Returns: Json
       }
       client_analytics_guard: { Args: { _client_id: string }; Returns: boolean }
+      cleanup_onboarding_orphans: {
+        Args: never
+        Returns: {
+          path: string
+          reason: string
+        }[]
+      }
       content_performance: {
         Args: { _client_id: string; _from: string; _to: string }
+        Returns: Json
+      }
+      convert_prospect_to_client: {
+        Args: { _mrr_clp?: number; _plan_key: string; _prospect_id: string }
         Returns: Json
       }
       ensure_org: { Args: never; Returns: string }
@@ -3950,6 +4215,7 @@ export type Database = {
         Args: { _account_id: string; _secret: string }
         Returns: string
       }
+      onboarding_client_id: { Args: { _token: string }; Returns: string }
       org_meta_get_secret: { Args: { _org_id: string }; Returns: string }
       org_meta_set_secret: {
         Args: {
@@ -3962,12 +4228,24 @@ export type Database = {
       }
       org_meta_token_status: { Args: never; Returns: Json }
       owns_client: { Args: { _client_id: string }; Returns: boolean }
+      prospect_name_key: {
+        Args: { _comuna: string; _nombre: string }
+        Returns: string
+      }
       reconcile_job_runs: { Args: never; Returns: undefined }
+      reserve_onboarding_upload: {
+        Args: { _path_suffix: string; _token: string }
+        Returns: Json
+      }
       review_link_comment: {
         Args: { _body: string; _kind: string; _name?: string; _token: string }
         Returns: Json
       }
       review_link_get: { Args: { _token: string }; Returns: Json }
+      revoke_prospect_baja: {
+        Args: { _estado?: string; _motivo: string; _prospect_id: string }
+        Returns: Json
+      }
       rotate_onboarding_token: {
         Args: { _client_id: string; _valid_days?: number }
         Returns: Json
@@ -3985,6 +4263,14 @@ export type Database = {
         Args: { _job_name: string; _schedule: string }
         Returns: boolean
       }
+      set_payment_status: {
+        Args: {
+          _paid_at?: string
+          _payment_id: string
+          _status: Database["public"]["Enums"]["payment_status"]
+        }
+        Returns: Json
+      }
       submit_landing_contact: {
         Args: {
           _email: string
@@ -3995,6 +4281,10 @@ export type Database = {
           _name: string
           _phone: string
         }
+        Returns: Json
+      }
+      submit_onboarding: {
+        Args: { _payload: Json; _token: string }
         Returns: Json
       }
       user_client_id: { Args: never; Returns: string }
