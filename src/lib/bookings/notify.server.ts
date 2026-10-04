@@ -1,6 +1,11 @@
 // Booking email notifications via Resend (https://resend.com/docs/api-reference/emails/send-email).
 // Optional: without RESEND_API_KEY nothing is sent and a warning is logged.
-// Never throws — a failed email must not block a booking.
+// Never throws — a failed email must not block a booking. Never logs addresses.
+//
+// Anti-abuse: the owner alert is always sent (to the agenda's own address).
+// The customer confirmation goes to an address typed by an anonymous visitor,
+// so the caller only enables it behind Turnstile + a per-recipient DB limit,
+// and its content is generic: no visitor-supplied text at all.
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 const DEFAULT_FROM = "Vibranding <reservas@vibranding.pro>";
@@ -17,6 +22,8 @@ type BookingEmailInput = {
   scheduledAt: string;
   durationMinutes: number;
   customer: { name: string; email: string; phone?: string | null; notes?: string | null };
+  /** Send the generic confirmation to the customer (caller enforces anti-abuse). */
+  sendCustomerConfirmation: boolean;
 };
 
 type Email = { kind: "dueño" | "cliente"; to: string; subject: string; text: string; html: string; replyTo?: string };
@@ -63,23 +70,23 @@ function buildOwnerEmail(input: BookingEmailInput, when: string): Email | null {
   };
 }
 
+/** Generic on purpose: only the agenda name (owner-controlled) and the date. */
 function buildCustomerEmail(input: BookingEmailInput, when: string): Email {
   const lines = [
-    `Hola ${input.customer.name},`,
+    "Hola,",
     "",
-    `Tu reserva en "${input.agendaName}" quedó registrada.`,
+    `Se registró una reserva en "${input.agendaName}" para este correo.`,
     `Fecha: ${when} (${input.timeZone})`,
     `Duración: ${input.durationMinutes} min`,
     "",
-    "Si necesitas cambiarla o cancelarla, responde a este correo.",
+    "Si no fuiste tú, ignora este correo.",
   ];
   return {
     kind: "cliente",
     to: input.customer.email,
-    subject: `Reserva confirmada · ${when}`,
+    subject: `Reserva registrada · ${input.agendaName}`,
     text: lines.join("\n"),
     html: toHtml(lines),
-    replyTo: input.ownerEmail ?? undefined,
   };
 }
 
@@ -98,12 +105,13 @@ async function sendViaResend(apiKey: string, from: string, email: Email): Promis
     signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
   });
   if (!res.ok) {
-    const detail = (await res.text().catch(() => "")).slice(0, 300);
-    throw new Error(`Resend ${res.status}: ${detail}`);
+    // Only the error name: Resend messages may echo the recipient address.
+    const body = (await res.json().catch(() => null)) as { name?: string } | null;
+    throw new Error(`Resend ${res.status}${body?.name ? ` (${body.name})` : ""}`);
   }
 }
 
-/** Sends the owner alert and the customer confirmation. Logs failures, never throws. */
+/** Sends the owner alert and, if enabled, the customer confirmation. Logs failures, never throws. */
 export async function sendBookingEmails(input: BookingEmailInput): Promise<void> {
   const apiKey = process.env["RESEND_API_KEY"]?.trim();
   if (!apiKey) {
@@ -112,7 +120,10 @@ export async function sendBookingEmails(input: BookingEmailInput): Promise<void>
   }
   const from = process.env["RESEND_FROM"]?.trim() || DEFAULT_FROM;
   const when = formatWhen(input.scheduledAt, input.timeZone);
-  const emails = [buildOwnerEmail(input, when), buildCustomerEmail(input, when)].filter(
+  const emails = [
+    buildOwnerEmail(input, when),
+    input.sendCustomerConfirmation ? buildCustomerEmail(input, when) : null,
+  ].filter(
     (e): e is Email => e !== null,
   );
   const results = await Promise.allSettled(emails.map((e) => sendViaResend(apiKey, from, e)));

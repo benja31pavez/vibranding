@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { CalendarDays, Clock, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { TurnstileWidget } from "@/components/bookings/TurnstileWidget";
 
 export const Route = createFileRoute("/book/$slug")({
   component: BookingPage,
@@ -133,6 +134,9 @@ function BookingPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [taken, setTaken] = useState<TakenRange[]>([]);
   const [emailEnabled, setEmailEnabled] = useState(false);
+  const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [selectedISO, setSelectedISO] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -163,6 +167,7 @@ function BookingPage() {
       .then((r) => {
         setSettings(r.settings as any);
         setEmailEnabled(Boolean(r.emailEnabled));
+        setTurnstileSiteKey(r.turnstileSiteKey ?? null);
         // Default to viewer's local tz so the user immediately sees their own clock
         setViewerTz(Intl.DateTimeFormat().resolvedOptions().timeZone || (r.settings as any).timezone);
         setTaken(
@@ -239,11 +244,14 @@ function BookingPage() {
           email: form.email,
           phone: form.phone,
           notes: form.notes,
+          turnstileToken: turnstileToken ?? undefined,
         },
       });
       setDone({ when: r.scheduled_at });
     } catch (e: any) {
       toast.error(e.message ?? "Error al reservar");
+      // Turnstile tokens are single-use: get a fresh one for the next try.
+      if (turnstileSiteKey) setTurnstileReset((n) => n + 1);
     } finally {
       setConfirming(false);
     }
@@ -451,7 +459,18 @@ function BookingPage() {
                 <Label>Notas (opcional)</Label>
                 <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
-              <Button onClick={handleSubmit} disabled={confirming || !form.name || !form.email} className="w-full">
+              {turnstileSiteKey && (
+                <TurnstileWidget
+                  siteKey={turnstileSiteKey}
+                  onToken={setTurnstileToken}
+                  resetSignal={turnstileReset}
+                />
+              )}
+              <Button
+                onClick={handleSubmit}
+                disabled={confirming || !form.name || !form.email || (Boolean(turnstileSiteKey) && !turnstileToken)}
+                className="w-full"
+              >
                 {confirming ? "Confirmando…" : "Confirmar reserva"}
               </Button>
             </div>

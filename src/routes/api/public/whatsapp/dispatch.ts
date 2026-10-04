@@ -262,7 +262,7 @@ async function processConversation(convId: string) {
     if (settings && settings.length > 0) {
       const siteOrigin = process.env["PUBLIC_SITE_URL"]?.trim().replace(/\/+$/, "") || null;
       if (!siteOrigin) {
-        console.warn("[wa dispatch] PUBLIC_SITE_URL no configurada: se omite el link de reservas.");
+        console.error("[ALERTA][wa dispatch] PUBLIC_SITE_URL no configurada: el bot no puede compartir el link de reservas.");
       }
       const now = new Date();
       const in14d = new Date(now.getTime() + 14 * 86_400_000);

@@ -39,21 +39,41 @@ export const getBookingPage = createServerFn({ method: "POST" })
     }
 
     const { isBookingEmailEnabled } = await import("./notify.server");
+    const { turnstileSiteKey } = await import("./turnstile.server");
+    const siteKey = turnstileSiteKey();
     return {
       settings: s,
       taken: (taken ?? []) as { scheduled_at: string; duration_minutes: number }[],
-      /** Whether confirmation emails are actually sent (RESEND_API_KEY set). */
-      emailEnabled: isBookingEmailEnabled(),
+      /** Customer confirmation emails are only sent with Resend + Turnstile configured. */
+      emailEnabled: isBookingEmailEnabled() && siteKey !== null,
+      /** Public Turnstile site key; null when Turnstile is not configured. */
+      turnstileSiteKey: siteKey,
     };
   });
+
+/** Control characters (incl. CR/LF), stripped from single-line fields. */
+const CONTROL_CHARS = /[\u0000-\u001F\u007F]+/g;
+/** Same but keeps \n (notes are multi-line). */
+const CONTROL_CHARS_EXCEPT_LF = /[\u0000-\u0009\u000B-\u001F\u007F]+/g;
+
+const singleLine = (v: string) => v.replace(CONTROL_CHARS, " ").replace(/\s+/g, " ").trim();
 
 const BookingInput = z.object({
   slug: z.string().min(1).max(80),
   scheduledAt: z.string().datetime(),
-  name: z.string().trim().min(1).max(100),
+  name: z.string().transform(singleLine).pipe(z.string().min(1).max(100)),
   email: z.string().trim().email().max(200),
-  phone: z.string().trim().max(40).optional().or(z.literal("")),
-  notes: z.string().trim().max(1000).optional().or(z.literal("")),
+  phone: z
+    .string()
+    .transform(singleLine)
+    .pipe(z.string().max(40).regex(/^[0-9+()\-.\s]*$/))
+    .optional(),
+  notes: z
+    .string()
+    .transform((v) => v.replace(CONTROL_CHARS_EXCEPT_LF, " ").trim())
+    .pipe(z.string().max(1000))
+    .optional(),
+  turnstileToken: z.string().max(4096).optional(),
 });
 
 function withinHours(
@@ -93,8 +113,15 @@ const BOOKING_LIMITS = {
   perAgendaPerHour: 20,
 } as const;
 
-/** How far back to look for bookings that could still overlap a new slot. */
-const OVERLAP_LOOKBACK_MS = 24 * 60 * 60 * 1000;
+/** Customer confirmations one recipient address may receive per 24 h (enforced in DB). */
+const MAX_CONFIRMATIONS_PER_EMAIL_DAY = 3;
+
+/** create_booking_atomic error messages -> public messages. */
+const ATOMIC_ERRORS: Record<string, string> = {
+  BOOKING_AGENDA_NOT_FOUND: "Agenda no encontrada",
+  BOOKING_RATE_LIMITED: "Demasiadas reservas en poco tiempo. Intenta más tarde.",
+  BOOKING_SLOT_TAKEN: "Ese horario ya fue tomado",
+};
 
 const UNIQUE_VIOLATION = "23505";
 
@@ -103,19 +130,31 @@ const RATE_LIMITED = "Demasiadas reservas en poco tiempo. Intenta más tarde.";
 /** ip hash -> recent attempt timestamps. In-memory, so it is a first line only. */
 const ipAttempts = new Map<string, number[]>();
 
-/** Same IP derivation + salted hash as the landing contact form. */
-async function clientIpHash(): Promise<string | null> {
+function clientIp(): string | null {
   const req = getRequest();
-  const ip =
+  return (
     req?.headers.get("cf-connecting-ip") ??
     req?.headers.get("x-real-ip") ??
     req?.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    null;
+    null
+  );
+}
+
+function hashSalt(): string {
+  return process.env["IP_HASH_SALT"] ?? process.env["SUPABASE_PROJECT_SALT"] ?? "landing";
+}
+
+/** Same IP derivation + salted hash as the landing contact form. */
+async function clientIpHash(ip: string | null): Promise<string | null> {
   if (!ip) return null;
   const { createHash } = await import("crypto");
-  return createHash("sha256")
-    .update(`${ip}:${process.env["IP_HASH_SALT"] ?? process.env["SUPABASE_PROJECT_SALT"] ?? "landing"}`)
-    .digest("hex");
+  return createHash("sha256").update(`${ip}:${hashSalt()}`).digest("hex");
+}
+
+/** Salted hash of a recipient address (the email log never stores addresses). */
+async function emailHash(email: string): Promise<string> {
+  const { createHash } = await import("crypto");
+  return createHash("sha256").update(`email:${email.trim().toLowerCase()}:${hashSalt()}`).digest("hex");
 }
 
 /** Records an attempt and returns false when the IP is over its limit. */
@@ -146,10 +185,19 @@ export const createBooking = createServerFn({ method: "POST" })
       email: string;
       phone?: string;
       notes?: string;
+      turnstileToken?: string;
     }) => parseOrThrow(BookingInput, d),
   )
   .handler(async ({ data }) => {
-    if (!allowIpAttempt(await clientIpHash())) throw new Error(RATE_LIMITED);
+    const ip = clientIp();
+    if (!allowIpAttempt(await clientIpHash(ip))) throw new Error(RATE_LIMITED);
+
+    // Bot check before touching the agenda (only when Turnstile is configured).
+    const { isTurnstileEnabled, verifyTurnstile } = await import("./turnstile.server");
+    const turnstileOn = isTurnstileEnabled();
+    if (turnstileOn && !(await verifyTurnstile(data.turnstileToken, ip))) {
+      throw new Error("No pudimos verificar que no eres un robot. Recarga la página e inténtalo de nuevo.");
+    }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -174,101 +222,65 @@ export const createBooking = createServerFn({ method: "POST" })
       throw new Error("Ese horario no está disponible");
     }
 
-    // Reject overlaps (e.g. after the slot length changed); the unique index
-    // only catches bookings that start at the exact same minute.
-    const slotStart = slotDate.getTime();
-    const slotEnd = slotStart + s.slot_minutes * 60_000;
-    const { data: nearby, error: ovErr } = await supabaseAdmin.rpc("list_taken_slots", {
+    // Limits, overlap check and insert run atomically in the DB
+    // (advisory lock per agenda), so concurrent requests cannot race them.
+    const { data: rows, error: iErr } = await supabaseAdmin.rpc("create_booking_atomic", {
       _settings_id: s.id,
-      _from: new Date(slotStart - OVERLAP_LOOKBACK_MS).toISOString(),
-      _to: new Date(slotEnd).toISOString(),
+      _scheduled_at: data.scheduledAt,
+      _name: data.name,
+      _email: data.email,
+      _phone: data.phone ?? "",
+      _notes: data.notes ?? "",
+      _max_per_email_day: BOOKING_LIMITS.perEmailPerDay,
+      _max_per_agenda_hour: BOOKING_LIMITS.perAgendaPerHour,
     });
-    if (ovErr) {
-      console.error("[booking] overlap check failed", ovErr.message);
-      throw new Error("No se pudo procesar la reserva. Intenta de nuevo.");
-    }
-    const overlaps = (nearby ?? []).some((b: { scheduled_at: string; duration_minutes: number }) => {
-      const start = new Date(b.scheduled_at).getTime();
-      return start < slotEnd && start + b.duration_minutes * 60_000 > slotStart;
-    });
-    if (overlaps) throw new Error("Ese horario ya fue tomado");
-
-    // Persistent caps (survive restarts and multiple instances): per email per
-    // day and per agenda per hour, counted on bookings already stored.
-    // Not atomic: two simultaneous requests can both pass the count before
-    // either inserts (at most a request or two over the cap). Making it atomic
-    // means moving count + insert into one SECURITY DEFINER RPC with an
-    // advisory lock per agenda; deferred because that RPC would only exist
-    // after a manual migration and this path must work without it.
-    // TODO(seguridad): add Cloudflare Turnstile to the public booking form
-    // (widget in book.$slug.tsx + server-side siteverify here) to stop bots
-    // rotating IPs/emails; the limits below are only a backstop.
-    const email = data.email.toLowerCase();
-    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const [{ count: byEmail, error: eErr }, { count: byAgenda, error: aErr }] = await Promise.all([
-      supabaseAdmin
-        .from("bookings")
-        .select("id", { count: "exact", head: true })
-        .eq("settings_id", s.id)
-        // Case-insensitive exact match: escape LIKE wildcards ("_" is valid in emails).
-        .ilike("customer_email", email.replace(/[\\%_]/g, (c) => `\\${c}`))
-        .gte("created_at", dayAgo),
-      supabaseAdmin
-        .from("bookings")
-        .select("id", { count: "exact", head: true })
-        .eq("settings_id", s.id)
-        .gte("created_at", hourAgo),
-    ]);
-    if (eErr || aErr) {
-      console.error("[booking] rate-limit count failed", eErr?.message ?? aErr?.message);
-      throw new Error("No se pudo procesar la reserva. Intenta de nuevo.");
-    }
-    if ((byEmail ?? 0) >= BOOKING_LIMITS.perEmailPerDay) throw new Error(RATE_LIMITED);
-    if ((byAgenda ?? 0) >= BOOKING_LIMITS.perAgendaPerHour) throw new Error(RATE_LIMITED);
-
-    // Insert (unique index prevents double-booking)
-    const { data: inserted, error: iErr } = await supabaseAdmin
-      .from("bookings")
-      .insert({
-        owner_user_id: s.owner_user_id,
-        client_id: s.client_id,
-        settings_id: s.id,
-        scheduled_at: data.scheduledAt,
-        duration_minutes: s.slot_minutes,
-        customer_name: data.name,
-        customer_email: data.email,
-        customer_phone: data.phone || null,
-        notes: data.notes || null,
-        status: "confirmed",
-      })
-      .select("id, scheduled_at")
-      .single();
     if (iErr) {
-      if (iErr.code === UNIQUE_VIOLATION) throw new Error("Ese horario ya fue tomado");
-      console.error("[booking] insert failed", iErr.code, iErr.message);
+      const known = ATOMIC_ERRORS[iErr.message];
+      if (known) throw new Error(known);
+      if (iErr.code === UNIQUE_VIOLATION) throw new Error(ATOMIC_ERRORS["BOOKING_SLOT_TAKEN"]);
+      console.error("[booking] create_booking_atomic failed", iErr.code, iErr.message);
       throw new Error("No se pudo procesar la reserva. Intenta de nuevo.");
     }
+    const created = (rows ?? [])[0];
+    if (!created) throw new Error("No se pudo procesar la reserva. Intenta de nuevo.");
+    const inserted = { id: created.booking_id, scheduled_at: created.booking_scheduled_at };
 
     // Emails are best-effort: a failure here never undoes the booking.
     try {
-      const { data: notif, error: nErr } = await supabaseAdmin
-        .from("booking_settings")
-        .select("notification_email")
-        .eq("id", s.id)
-        .maybeSingle();
-      if (nErr) console.error("[booking] notification_email lookup failed", nErr.message);
-      const { sendBookingEmails } = await import("./notify.server");
-      await sendBookingEmails({
-        ownerEmail: notif?.notification_email ?? null,
-        agendaName: s.display_name ?? "Agenda",
-        timeZone: tz,
-        scheduledAt: inserted.scheduled_at,
-        durationMinutes: s.slot_minutes,
-        customer: { name: data.name, email: data.email, phone: data.phone, notes: data.notes },
-      });
+      const { isBookingEmailEnabled, sendBookingEmails } = await import("./notify.server");
+      if (isBookingEmailEnabled()) {
+        const { data: notif, error: nErr } = await supabaseAdmin
+          .from("booking_settings")
+          .select("notification_email")
+          .eq("id", s.id)
+          .maybeSingle();
+        if (nErr) console.error("[booking] notification_email lookup failed", nErr.message);
+
+        // Customer confirmation only behind Turnstile and a per-recipient cap.
+        let sendCustomerConfirmation = false;
+        if (turnstileOn) {
+          const { data: allowed, error: cErr } = await supabaseAdmin.rpc("claim_booking_email_slot", {
+            _email_hash: await emailHash(data.email),
+            _max_per_day: MAX_CONFIRMATIONS_PER_EMAIL_DAY,
+          });
+          if (cErr) console.error("[booking] claim_booking_email_slot failed", cErr.message);
+          sendCustomerConfirmation = !cErr && allowed === true;
+        }
+
+        await sendBookingEmails({
+          ownerEmail: notif?.notification_email ?? null,
+          agendaName: s.display_name ?? "Agenda",
+          timeZone: tz,
+          scheduledAt: inserted.scheduled_at,
+          durationMinutes: s.slot_minutes,
+          customer: { name: data.name, email: data.email, phone: data.phone, notes: data.notes },
+          sendCustomerConfirmation,
+        });
+      } else {
+        console.warn("[booking] RESEND_API_KEY no configurada: no se envían correos de la reserva.");
+      }
     } catch (e) {
-      console.error("[booking] notification failed", e);
+      console.error("[booking] notification failed", (e as Error)?.message ?? e);
     }
 
     return { id: inserted.id, scheduled_at: inserted.scheduled_at };
