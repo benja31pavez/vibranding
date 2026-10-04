@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchAllRows } from "@/lib/db/fetchAllRows";
@@ -64,7 +64,16 @@ export async function loadMrr(): Promise<MrrSummary> {
   return computeMrr({ activeClientIds: active.map((c) => c.id), subscriptions, billing });
 }
 
-export const mrrKey = (userId: string) => ["mrr", userId] as const;
+export const MRR_KEY_PREFIX = ["mrr"] as const;
+export const mrrKey = (userId: string) => [...MRR_KEY_PREFIX, userId] as const;
+
+/**
+ * Recalcula el MRR en "Hoy" y /billing. Llamar tras cambiar client_billing,
+ * suscripciones o el estado de un cliente (activo/inactivo).
+ */
+export function invalidateMrr(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({ queryKey: MRR_KEY_PREFIX });
+}
 
 export function useMrr() {
   const { user } = useAuth();

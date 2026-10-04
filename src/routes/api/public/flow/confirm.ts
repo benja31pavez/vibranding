@@ -142,7 +142,9 @@ export const Route = createFileRoute("/api/public/flow/confirm")({
           return result === "mismatch" ? text("Mismatch", 500) : text("OK", 200);
         } catch (e) {
           if (e instanceof FlowNotConfiguredError) {
+            // 503: Flow reintenta la confirmación; el pago se registra cuando se configure.
             console.error("[flow confirm][ALERTA] Flow no está configurado:", e.adminDetail);
+            return text("Service Unavailable", 503);
           } else {
             console.error("[flow confirm][ALERTA] error al confirmar", (e as Error).message);
           }

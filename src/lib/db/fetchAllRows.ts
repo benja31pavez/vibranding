@@ -4,6 +4,11 @@
  * los totales nunca se truncan en silencio. La consulta debe tener un orden
  * estable (p. ej. `.order("id")`) para que las páginas no se solapen.
  */
+/**
+ * Debe ser <= `max_rows` de PostgREST (1000 en Supabase por defecto, ver
+ * supabase/config.toml → [api] max_rows). Si la página pedida supera ese tope,
+ * el servidor devuelve menos filas y el bucle cortaría antes de tiempo.
+ */
 export const PAGE_SIZE = 1000;
 
 export type PageResult<T> = PromiseLike<{

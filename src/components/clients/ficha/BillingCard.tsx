@@ -146,6 +146,7 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
     } finally {
       setSaving(false);
       void queryClient.invalidateQueries({ queryKey: fichaKeys.all(userKey, clientId) });
+      // invalidateShellClients también recalcula el MRR (client_billing / suscripción).
       void invalidateShellClients(queryClient);
     }
   };

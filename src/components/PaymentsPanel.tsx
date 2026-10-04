@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +69,7 @@ interface Payment {
 /** Los cobros nuevos son siempre en CLP; los antiguos en otra moneda se leen tal cual. */
 const NEW_PAYMENT_CURRENCY = DEFAULT_CURRENCY;
 const STATUS_LOCKED_HINT = "Solo un owner o admin de la organización puede cambiar el estado de un cobro.";
+const STATUS_UNVERIFIED_HINT = "No pudimos verificar permisos; si no corresponde, el cambio se rechazará.";
 
 const DATE_FMT = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeZone: "UTC" });
 /** YYYY-MM-DD (o timestamp) → "4 oct 2026" sin corrimiento de zona horaria. */
@@ -77,8 +79,11 @@ const toDateInput = (iso: string | null) => (iso ? iso.slice(0, 10) : "");
 
 /** ¿Puede cambiar estados? Mismo criterio que la RPC set_payment_status (manages_client). */
 function useManagesClient(clientId: string) {
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
   return useQuery({
-    queryKey: ["manages-client", clientId],
+    queryKey: ["manages-client", userId, clientId],
+    enabled: Boolean(userId),
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<boolean> => {
       const { data, error } = await supabase.rpc("manages_client", { _client_id: clientId });
@@ -117,6 +122,10 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
   const manager = useManagesClient(clientId);
   // Si no se pudo consultar el rol, se deja habilitado y la RPC decide (muestra su error).
   const canChangeStatus = manager.data !== false;
+  useEffect(() => {
+    if (manager.isError) console.warn("[payments] no se pudo verificar manages_client", manager.error);
+  }, [manager.isError, manager.error]);
+  const statusHint = manager.isError ? STATUS_UNVERIFIED_HINT : STATUS_LOCKED_HINT;
   const [editing, setEditing] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -246,6 +255,7 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
               <StatusSelect
                 status={p.status}
                 disabled={!canChangeStatus}
+                hint={manager.isError ? statusHint : null}
                 onChange={(v) => changeStatus(p.id, v)}
               />
               <button type="button" onClick={() => setEditing(p)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-foreground" aria-label="Editar pago">
@@ -285,10 +295,13 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
 function StatusSelect({
   status,
   disabled,
+  hint,
   onChange,
 }: {
   status: Status;
   disabled: boolean;
+  /** Aviso en tooltip aunque esté habilitado (p. ej. permisos sin verificar). */
+  hint?: string | null;
   onChange: (s: Status) => void;
 }) {
   const select = (
@@ -303,7 +316,7 @@ function StatusSelect({
       </SelectContent>
     </Select>
   );
-  if (!disabled) return select;
+  if (!disabled && !hint) return select;
   return (
     <TooltipProvider>
       <Tooltip>
@@ -311,7 +324,7 @@ function StatusSelect({
         <TooltipTrigger asChild>
           <span tabIndex={0} className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{select}</span>
         </TooltipTrigger>
-        <TooltipContent>{STATUS_LOCKED_HINT}</TooltipContent>
+        <TooltipContent>{hint ?? STATUS_LOCKED_HINT}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
