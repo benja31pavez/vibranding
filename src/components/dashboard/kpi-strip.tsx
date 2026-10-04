@@ -1,27 +1,32 @@
-import { AlertTriangle, CalendarClock, Target, Users } from "lucide-react";
+import { AlertTriangle, CalendarClock, RotateCw, Target, Users } from "lucide-react";
+import type { UseQueryResult } from "@tanstack/react-query";
 import { Money, MoneyTotals, StatCard } from "@/components/app";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  MRR_GOAL_CLP,
-  UPCOMING_DAYS,
-  useClientIndex,
-  useMrr,
-  useOpenPayments,
-  type MrrSummary,
-} from "./queries";
+import { MRR_GOAL_CLP, UPCOMING_DAYS, useClientIndex, useMrr, useOpenPayments, type MrrSummary } from "./queries";
 
-const SOURCE_LABEL: Record<MrrSummary["source"], string> = {
-  subscriptions: "suscripciones activas",
-  client_billing: "facturación de clientes activos",
-};
+/** Valor de una tarjeta cuya query falló: aviso + reintento de esa query. */
+function RetryValue({ query }: { query: UseQueryResult<unknown> }) {
+  return (
+    <span role="alert" className="flex flex-wrap items-center gap-2 text-base text-danger-strong">
+      No disponible
+      <Button size="sm" variant="outline" className="h-7 text-xs" disabled={query.isFetching} onClick={() => void query.refetch()}>
+        <RotateCw aria-hidden className={cn("mr-1 h-3.5 w-3.5", query.isFetching && "animate-spin")} />
+        Reintentar
+      </Button>
+    </span>
+  );
+}
 
-const ERROR_VALUE = <span className="text-base text-danger-strong">No disponible</span>;
+const plural = (n: number) => `${n} ${n === 1 ? "cliente" : "clientes"}`;
 
 /** Franja de KPIs: MRR vs meta, clientes activos, cobros próximos y vencidos. */
 export function KpiStrip() {
   const mrr = useMrr();
   const clients = useClientIndex();
   const payments = useOpenPayments();
+  const paymentsLoading = payments.isPending && !payments.isError;
+  const overdueCount = payments.data?.overdue.length ?? 0;
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -30,26 +35,24 @@ export function KpiStrip() {
         icon={Users}
         label="Clientes activos"
         loading={clients.isPending && !clients.isError}
-        value={clients.isError ? ERROR_VALUE : (clients.data?.activeCount ?? 0)}
+        value={clients.isError ? <RetryValue query={clients} /> : (clients.data?.activeCount ?? 0)}
       />
       <StatCard
         icon={CalendarClock}
         label={`Cobros próximos ${UPCOMING_DAYS} días`}
-        loading={payments.isPending && !payments.isError}
-        value={payments.isError ? ERROR_VALUE : (payments.data?.upcoming.length ?? 0)}
+        loading={paymentsLoading}
+        value={payments.isError ? <RetryValue query={payments} /> : (payments.data?.upcoming.length ?? 0)}
         hint={payments.data ? <MoneyTotals totals={payments.data.upcomingTotals} /> : undefined}
       />
       <StatCard
         icon={AlertTriangle}
         label="Pagos vencidos"
-        loading={payments.isPending && !payments.isError}
+        loading={paymentsLoading}
         value={
           payments.isError ? (
-            ERROR_VALUE
+            <RetryValue query={payments} />
           ) : (
-            <span className={cn(payments.data?.overdue.length ? "text-danger-strong" : undefined)}>
-              {payments.data?.overdue.length ?? 0}
-            </span>
+            <span className={cn(overdueCount > 0 && "text-danger-strong")}>{overdueCount}</span>
           )
         }
         hint={payments.data ? <MoneyTotals totals={payments.data.overdueTotals} /> : undefined}
@@ -58,11 +61,12 @@ export function KpiStrip() {
   );
 }
 
-function MrrCard({ query }: { query: ReturnType<typeof useMrr> }) {
+function MrrCard({ query }: { query: UseQueryResult<MrrSummary> }) {
   if (query.isError) {
-    return <StatCard icon={Target} label="MRR actual" value={ERROR_VALUE} hint="Reintenta recargando la página" />;
+    return <StatCard icon={Target} label="MRR actual" value={<RetryValue query={query} />} />;
   }
-  const total = query.data?.total ?? 0;
+  const data = query.data;
+  const total = data?.total ?? 0;
   const pct = Math.round((total / MRR_GOAL_CLP) * 100);
   const width = Math.min(100, Math.max(0, pct));
   return (
@@ -72,7 +76,7 @@ function MrrCard({ query }: { query: ReturnType<typeof useMrr> }) {
       loading={query.isPending}
       value={<Money amount={total} />}
       hint={
-        query.data && (
+        data && (
           <span className="flex w-full flex-col gap-1.5">
             <span
               role="progressbar"
@@ -89,7 +93,11 @@ function MrrCard({ query }: { query: ReturnType<typeof useMrr> }) {
             </span>
             <span>
               <span className="font-medium tabular-nums text-foreground">{pct}%</span> de la meta{" "}
-              <Money amount={MRR_GOAL_CLP} /> · según {SOURCE_LABEL[query.data.source]}
+              <Money amount={MRR_GOAL_CLP} />
+            </span>
+            <span>
+              Suscripciones <Money amount={data.fromSubscriptions} /> ({plural(data.subscriptionClients)}) ·
+              Facturación manual <Money amount={data.fromBilling} /> ({plural(data.billingClients)})
             </span>
           </span>
         )
