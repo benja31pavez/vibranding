@@ -57,3 +57,40 @@ export function zonedParts(iso: string, timeZone: string) {
     day: p.day,
   };
 }
+
+export const DEFAULT_BOOKING_TZ = "America/Santiago";
+
+/** Returns a valid IANA zone, falling back to America/Santiago. */
+export function safeTimeZone(timeZone: string | null | undefined): string {
+  if (!timeZone) return DEFAULT_BOOKING_TZ;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone });
+    return timeZone;
+  } catch {
+    return DEFAULT_BOOKING_TZ;
+  }
+}
+
+/**
+ * Calendar date (in `timeZone`) of `now` shifted by `offsetDays`, as a
+ * UTC-midnight Date used as a day key (getUTCFullYear/Month/Date = local date).
+ */
+export function zonedDayKey(timeZone: string, offsetDays = 0, now: Date = new Date()): Date {
+  const p = zonedParts(now.toISOString(), timeZone);
+  return new Date(Date.UTC(p.year, p.month - 1, p.day + offsetDays));
+}
+
+/** Instant at which the day `offsetDays` after today starts (00:00) in `timeZone`. */
+export function zonedStartOfDay(timeZone: string, offsetDays = 0, now: Date = new Date()): Date {
+  const key = zonedDayKey(timeZone, offsetDays, now);
+  return zonedToUTC(key.getUTCFullYear(), key.getUTCMonth(), key.getUTCDate(), 0, 0, timeZone);
+}
+
+/** Booking window: from tomorrow 00:00 up to (not including) day +31 00:00, in the agenda zone. */
+export function bookingWindow(timeZone: string, now: Date = new Date()) {
+  const tz = safeTimeZone(timeZone);
+  return {
+    minBookable: zonedStartOfDay(tz, 1, now),
+    maxExclusive: zonedStartOfDay(tz, 31, now),
+  };
+}

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getBookingPage, createBooking } from "@/lib/bookings/bookings.functions";
-import { zonedToUTC } from "@/lib/bookings/tz";
+import { bookingWindow, DEFAULT_BOOKING_TZ, safeTimeZone, zonedDayKey, zonedToUTC } from "@/lib/bookings/tz";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { CalendarDays, Clock, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { TurnstileWidget } from "@/components/bookings/TurnstileWidget";
 
 export const Route = createFileRoute("/book/$slug")({
   component: BookingPage,
@@ -50,10 +51,11 @@ const MONTH_NAMES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
-function startOfTodayUTC() {
-  const n = new Date();
-  return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
-}
+type TakenRange = { start: number; end: number };
+
+const DAY_MS = 86_400_000;
+/** Range of taken slots fetched; wide enough for any agenda zone and the 30-day window. */
+const TAKEN_RANGE_DAYS = { before: 1, after: 33 } as const;
 
 function mondayOf(d: Date) {
   const x = new Date(d);
@@ -72,7 +74,7 @@ function sameUTCDay(a: Date, b: Date) {
   return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
 }
 
-function buildSlots(date: Date, settings: Settings, taken: Set<string>, viewerTz: string, minBookable: Date) {
+function buildSlots(date: Date, settings: Settings, taken: TakenRange[], viewerTz: string, minBookable: Date) {
   // calendar day in owner's tz
   const y = date.getUTCFullYear();
   const mo = date.getUTCMonth();
@@ -116,7 +118,10 @@ function buildSlots(date: Date, settings: Settings, taken: Set<string>, viewerTz
       label = `${h12}:${String(min).padStart(2, "0")}${period}`;
     }
     const isPast = slotUTC < now || slotUTC < minBookable;
-    slots.push({ iso, label, disabled: taken.has(iso) || isPast });
+    const start = slotUTC.getTime();
+    const end = start + settings.slot_minutes * 60_000;
+    const isTaken = taken.some((t) => start < t.end && end > t.start);
+    slots.push({ iso, label, disabled: isTaken || isPast });
   }
   return slots;
 }
@@ -127,7 +132,11 @@ function BookingPage() {
   const submit = useServerFn(createBooking);
 
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [taken, setTaken] = useState<Set<string>>(new Set());
+  const [taken, setTaken] = useState<TakenRange[]>([]);
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [selectedISO, setSelectedISO] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -135,10 +144,14 @@ function BookingPage() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
   const [viewerTz, setViewerTz] = useState<string>("");
 
-  const today0 = useMemo(() => startOfTodayUTC(), []);
-  // Earliest bookable date stays "tomorrow" per server rule
+  // "Today" is the calendar day in the agenda's zone (same rule as the server).
+  const agendaTz = safeTimeZone(settings?.timezone ?? DEFAULT_BOOKING_TZ);
+  const today0 = useMemo(() => zonedDayKey(agendaTz), [agendaTz]);
+  // Day keys: first bookable day is tomorrow, last one is today + 30.
   const minBookable = useMemo(() => addDays(today0, 1), [today0]);
   const maxDay = useMemo(() => addDays(today0, 30), [today0]);
+  // Exact instant (tomorrow 00:00 in the agenda zone) used to disable slots.
+  const minBookableInstant = useMemo(() => bookingWindow(agendaTz).minBookable, [agendaTz]);
   const [weekStart, setWeekStart] = useState<Date>(() => mondayOf(today0));
   const [monthCursor, setMonthCursor] = useState<Date>(() => {
     const d = new Date(today0);
@@ -147,17 +160,31 @@ function BookingPage() {
   });
 
   useEffect(() => {
-    const from = today0.toISOString();
-    const to = addDays(maxDay, 1).toISOString();
+    const now = Date.now();
+    const from = new Date(now - TAKEN_RANGE_DAYS.before * DAY_MS).toISOString();
+    const to = new Date(now + TAKEN_RANGE_DAYS.after * DAY_MS).toISOString();
     loadPage({ data: { slug, from, to } })
       .then((r) => {
         setSettings(r.settings as any);
+        setEmailEnabled(Boolean(r.emailEnabled));
+        setTurnstileSiteKey(r.turnstileSiteKey ?? null);
         // Default to viewer's local tz so the user immediately sees their own clock
         setViewerTz(Intl.DateTimeFormat().resolvedOptions().timeZone || (r.settings as any).timezone);
-        setTaken(new Set(r.taken.map((t) => new Date(t.scheduled_at).toISOString())));
+        setTaken(
+          r.taken.map((t) => {
+            const start = new Date(t.scheduled_at).getTime();
+            return { start, end: start + (t.duration_minutes || 0) * 60_000 };
+          }),
+        );
       })
       .catch((e) => setError(e.message));
   }, [slug]);
+
+  // Once the agenda zone is known, re-anchor the visible week/month on its "today".
+  useEffect(() => {
+    setWeekStart(mondayOf(today0));
+    setMonthCursor(new Date(Date.UTC(today0.getUTCFullYear(), today0.getUTCMonth(), 1)));
+  }, [today0]);
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
@@ -195,7 +222,11 @@ function BookingPage() {
           <p className="text-muted-foreground mt-2">
             Te esperamos el {new Date(done.when).toLocaleString("es-CL", { dateStyle: "full", timeStyle: "short", timeZone: viewerTz || settings.timezone })}.
           </p>
-          <p className="text-sm text-muted-foreground mt-4">Recibirás un correo de confirmación.</p>
+          <p className="text-sm text-muted-foreground mt-4">
+            {emailEnabled
+              ? "Recibirás un correo de confirmación."
+              : "Te contactaremos para confirmar."}
+          </p>
         </Card>
       </div>
     );
@@ -213,11 +244,14 @@ function BookingPage() {
           email: form.email,
           phone: form.phone,
           notes: form.notes,
+          turnstileToken: turnstileToken ?? undefined,
         },
       });
       setDone({ when: r.scheduled_at });
     } catch (e: any) {
       toast.error(e.message ?? "Error al reservar");
+      // Turnstile tokens are single-use: get a fresh one for the next try.
+      if (turnstileSiteKey) setTurnstileReset((n) => n + 1);
     } finally {
       setConfirming(false);
     }
@@ -373,7 +407,7 @@ function BookingPage() {
                   {weekDays.map((d) => {
                     const isPast = d < minBookable;
                     const outOfRange = d > maxDay;
-                    const slots = isPast || outOfRange ? [] : buildSlots(d, settings, taken, viewerTz || settings.timezone, minBookable);
+                    const slots = isPast || outOfRange ? [] : buildSlots(d, settings, taken, viewerTz || settings.timezone, minBookableInstant);
                     return (
                       <div key={d.toISOString()} className="space-y-2">
                         {slots.length === 0 ? (
@@ -425,7 +459,18 @@ function BookingPage() {
                 <Label>Notas (opcional)</Label>
                 <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
-              <Button onClick={handleSubmit} disabled={confirming || !form.name || !form.email} className="w-full">
+              {turnstileSiteKey && (
+                <TurnstileWidget
+                  siteKey={turnstileSiteKey}
+                  onToken={setTurnstileToken}
+                  resetSignal={turnstileReset}
+                />
+              )}
+              <Button
+                onClick={handleSubmit}
+                disabled={confirming || !form.name || !form.email || (Boolean(turnstileSiteKey) && !turnstileToken)}
+                className="w-full"
+              >
                 {confirming ? "Confirmando…" : "Confirmar reserva"}
               </Button>
             </div>
