@@ -1,29 +1,44 @@
 import { Link } from "@tanstack/react-router";
 import { useLang } from "@/i18n/LanguageContext";
 import { trackLandingEvent } from "@/lib/track";
+import { LEGAL_NAME, LEGAL_RUT, WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/site";
 
 export function SiteFooter() {
   const { t, lang } = useLang();
   return (
     <footer className="border-t bg-background">
-      <div className="max-w-7xl mx-auto px-6 md:px-10 py-14 grid grid-cols-2 md:grid-cols-4 gap-10">
+      <div className="max-w-7xl mx-auto px-4 md:px-10 py-14 grid grid-cols-2 md:grid-cols-4 gap-10">
         <div className="col-span-2 md:col-span-1">
           <Link to="/" className="flex items-center gap-2">
             <span className="font-brand text-3xl tracking-tight">Vibranding</span>
           </Link>
           <p className="text-sm text-muted-foreground mt-4 max-w-xs">{t.footer.tagline}</p>
+          <p className="text-sm text-muted-foreground mt-4">
+            <a
+              href={whatsappUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackLandingEvent("whatsapp_click", lang)}
+              className="hover:text-foreground"
+            >
+              WhatsApp {WHATSAPP_DISPLAY}
+            </a>
+            <br />
+            {t.footer.location}
+          </p>
         </div>
 
         <FooterCol title={t.footer.columns.product}>
           <FooterLink href="/#servicios">{t.footer.links.services}</FooterLink>
+          <FooterLink href="/#planes">{t.footer.links.plans}</FooterLink>
           <FooterLink href="/#como">{t.footer.links.how}</FooterLink>
-          
-          <FooterLink href="/#clientes">{t.footer.links.clients}</FooterLink>
+          <FooterLink href="/#nosotros">{t.footer.links.about}</FooterLink>
           <FooterLink href="/#contacto" onClick={() => trackLandingEvent("contact_click", lang)}>{t.footer.links.contact}</FooterLink>
         </FooterCol>
 
         <FooterCol title={t.footer.columns.resources}>
           <FooterLink to="/faq">{t.footer.links.faq}</FooterLink>
+          <FooterLink to="/login">{t.footer.links.clientAccess}</FooterLink>
         </FooterCol>
 
         <FooterCol title={t.footer.columns.legal}>
@@ -33,8 +48,9 @@ export function SiteFooter() {
         </FooterCol>
       </div>
       <div className="border-t">
-        <div className="max-w-7xl mx-auto px-6 md:px-10 py-6 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Vibranding. {t.footer.rights}
+        {/* Extra bottom padding on mobile so the floating WhatsApp button never covers the legal line. */}
+        <div className="max-w-7xl mx-auto px-4 md:px-10 pt-6 pb-24 md:pb-6 text-sm text-muted-foreground">
+          © {new Date().getFullYear()} {LEGAL_NAME} · RUT {LEGAL_RUT}. {t.footer.rights}
         </div>
       </div>
     </footer>
