@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock, AlertTriangle, Check, Megaphone, Instagram, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import { writeFailed } from "@/lib/writeCheck";
 import { isStale } from "@/hooks/use-unmarked-outcomes";
 import { Link } from "@tanstack/react-router";
 import {
@@ -171,7 +172,12 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
   const closeConv = async () => {
     if (!active) return;
     const next = active.status === "open" ? "closed" : "open";
-    await supabase.from("whatsapp_conversations").update({ status: next }).eq("id", active.id);
+    const res = await supabase
+      .from("whatsapp_conversations")
+      .update({ status: next })
+      .eq("id", active.id)
+      .select("id");
+    if (writeFailed(res, "No se pudo cambiar el estado de la conversación")) return;
     setActive({ ...active, status: next });
     loadConvs();
   };

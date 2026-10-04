@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { chileToday } from "@/lib/dates/chile";
+import { writeFailed } from "@/lib/writeCheck";
+import { ErrorState } from "@/components/app";
+import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +67,22 @@ const STARTER_STAGES: { title: string; type: DType; description: string }[] = [
   { title: "Landing Page", type: "design", description: "Página de captación y textos." },
   { title: "Chatbot", type: "other", description: "Flujos de respuesta automática en WhatsApp." },
 ];
+
+/**
+ * Etapas sugeridas según el plan contratado (client_billing.plan_key).
+ * "Chatbot" solo aplica si el cliente tiene WhatsApp conectado.
+ */
+const PLAN_STAGE_TITLES: Record<string, readonly string[]> = {
+  "marca-web": ["Branding", "Optimización", "Landing Page"],
+  contenido: ["Optimización", "Contenido"],
+  crecimiento: ["Optimización", "Contenido", "Ads", "Landing Page"],
+};
+
+function suggestedStages(planKey: string | null, hasWhatsapp: boolean) {
+  const titles = (planKey && PLAN_STAGE_TITLES[planKey]) || STARTER_STAGES.map((s) => s.title).filter((t) => t !== "Chatbot");
+  const withChatbot = hasWhatsapp ? [...titles, "Chatbot"] : titles;
+  return STARTER_STAGES.filter((s) => withChatbot.includes(s.title));
+}
 
 const STAGE_ORDER = STARTER_STAGES.map((stage) => stage.title.toLocaleLowerCase("es"));
 
@@ -133,33 +152,26 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
   const [filterType, setFilterType] = useState<"all" | DType>("all");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [seeding, setSeeding] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { caps } = useClientCapabilities(clientId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(true);
   const [draft, setDraft] = useState({ title: "", description: "", due_date: "", type: "post" as DType, folder_id: "" as string });
 
   const load = async () => {
     setLoading(true);
-    const [{ data: dItems, error }, { data: dFolders }] = await Promise.all([
+    setLoadError(null);
+    const [{ data: dItems, error }, { data: dFolders, error: foldersError }] = await Promise.all([
       supabase.from("deliverables").select("*").eq("client_id", clientId).order("sort_order").order("created_at"),
       supabase.from("deliverable_folders").select("*").eq("client_id", clientId).order("sort_order").order("created_at"),
     ]);
-    if (error) toast.error(error.message);
-    let nextItems = dItems ?? [];
-    // Solo se crean las etapas iniciales cuando el cliente aún no tiene ninguna.
-    // Nunca se re-crean etapas eliminadas o renombradas por el usuario.
-    if (!error && nextItems.length === 0) {
-      const { data: created, error: createError } = await supabase.from("deliverables").insert(
-        STARTER_STAGES.map((stage, index) => ({
-          client_id: clientId,
-          title: stage.title,
-          description: stage.description,
-          type: stage.type,
-          sort_order: index,
-        })),
-      ).select("*");
-      if (createError) toast.error(createError.message);
-      else nextItems = created ?? [];
+    if (error || foldersError) {
+      setLoadError((error ?? foldersError)!.message);
+      setLoading(false);
+      return;
     }
+    // Las etapas sugeridas se crean solo con el botón "Crear etapas sugeridas", nunca al cargar.
+    const nextItems = dItems ?? [];
     setItems(nextItems.map((r: any) => ({ ...r, checklist: r.checklist ?? [] })) as Row[]);
     setFolders((dFolders ?? []) as FolderRow[]);
     setLoading(false);
@@ -179,8 +191,18 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
 
   const seedStarter = async () => {
     setSeeding(true);
+    const { data: billing, error: billingError } = await supabase
+      .from("client_billing")
+      .select("plan_key")
+      .eq("client_id", clientId)
+      .maybeSingle();
+    if (billingError) {
+      setSeeding(false);
+      return toast.error(`No se pudo leer el plan del cliente: ${billingError.message}`);
+    }
+    const stages = suggestedStages(billing?.plan_key ?? null, caps.has_whatsapp);
     const { error } = await supabase.from("deliverables").insert(
-      STARTER_STAGES.map((s, i) => ({
+      stages.map((s, i) => ({
         client_id: clientId,
         title: s.title,
         description: s.description,
@@ -190,7 +212,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     );
     setSeeding(false);
     if (error) return toast.error(error.message);
-    toast.success("Etapas iniciales creadas");
+    toast.success("Etapas sugeridas creadas");
     load();
   };
 
@@ -333,16 +355,20 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     if (err?.error) { toast.error(err.error.message); load(); }
   };
 
-  const update = async (id: string, patch: any) => {
-    const { error } = await supabase.from("deliverables").update(patch).eq("id", id);
-    if (error) return toast.error(error.message);
+  const update = async (id: string, patch: any): Promise<boolean> => {
+    const res = await supabase.from("deliverables").update(patch).eq("id", id).select("id");
+    if (writeFailed(res)) return false;
     load();
     // Estado o título pueden cambiar la bandeja de aprobaciones y su badge.
     invalidateApprovalQueue(queryClient);
+    return true;
   };
 
   const remove = async (id: string) => {
-    await supabase.from("deliverables").delete().eq("id", id);
+    const title = items.find((x) => x.id === id)?.title;
+    if (!confirm(`¿Eliminar ${title ? `«${title}»` : "este entregable"}? No se puede deshacer.`)) return;
+    const res = await supabase.from("deliverables").delete().eq("id", id).select("id");
+    if (writeFailed(res, "No se pudo eliminar")) return;
     load();
     invalidateApprovalQueue(queryClient);
   };
@@ -390,19 +416,18 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
     >
       <h3 className="text-lg font-semibold">Etapas</h3>
 
-      {loading ? <div className="text-sm text-muted-foreground">Cargando…</div>
+      {loadError ? (
+        <ErrorState title="No pudimos cargar las etapas" message={loadError} onRetry={() => void load()} retrying={loading} />
+      ) : loading ? <div className="text-sm text-muted-foreground">Cargando…</div>
         : items.length === 0 && folders.length === 0 ? (
           <div className="rounded-2xl border border-dashed p-8 text-center space-y-3">
             <div className="text-sm text-muted-foreground">
-              Aún no hay etapas. Puedes empezar con el set por defecto de tus seis servicios.
+              Aún no hay etapas. Puedes crear las sugeridas según el plan del cliente.
             </div>
             <Button size="sm" className="rounded-full" disabled={seeding} onClick={seedStarter}>
               {seeding ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
-              Crear etapas iniciales
+              Crear etapas sugeridas
             </Button>
-            <div className="text-[11px] text-muted-foreground">
-              {STARTER_STAGES.map((s) => s.title).join(" · ")}
-            </div>
           </div>
         ) : (
           <StageGridView
@@ -424,7 +449,7 @@ export function DeliverablesList({ clientId }: { clientId: string }) {
           <Tabs value={view} onValueChange={(v) => setView(v as any)}>
             <TabsList className="h-8">
               <TabsTrigger value="list" className="text-xs">Lista</TabsTrigger>
-              <TabsTrigger value="timeline" className="text-xs">Timeline</TabsTrigger>
+              <TabsTrigger value="timeline" className="text-xs">Cronograma</TabsTrigger>
             </TabsList>
           </Tabs>
           <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAddingFolder(true)}>
@@ -630,7 +655,7 @@ function FolderSection({ folder, count, collapsed, onToggle, onRename, onDelete,
   );
 }
 
-function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: { it: Row; folders: FolderRow[]; update: (id: string, patch: any) => void; remove: (id: string) => void; compact?: boolean; dragHandle?: DragHandle }) {
+function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: { it: Row; folders: FolderRow[]; update: (id: string, patch: any) => Promise<boolean>; remove: (id: string) => void; compact?: boolean; dragHandle?: DragHandle }) {
   const M = statusMeta[it.status];
   const Icon = M.icon;
   const T = typeMeta[it.type].icon;
@@ -901,7 +926,7 @@ function FilePreview({ fileUrl, fileName, fileSize, mimeType, compact, onRename 
   );
 }
 
-function MediaTile({ it, update, remove, dragHandle }: { it: Row; update: (id: string, patch: any) => void; remove: (id: string) => void; dragHandle?: DragHandle }) {
+function MediaTile({ it, update, remove, dragHandle }: { it: Row; update: (id: string, patch: any) => Promise<boolean>; remove: (id: string) => void; dragHandle?: DragHandle }) {
   const [open, setOpen] = useState(false);
   const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
   const isImage = it.mime_type?.startsWith("image/");
@@ -912,7 +937,7 @@ function MediaTile({ it, update, remove, dragHandle }: { it: Row; update: (id: s
       ? `${Math.round(it.file_size / 1024)} KB`
       : `${(it.file_size / 1024 / 1024).toFixed(1)} MB`
     : null;
-  const dateLabel = it.created_at ? new Date(it.created_at).toLocaleDateString() : null;
+  const dateLabel = it.created_at ? new Date(it.created_at).toLocaleDateString("es-CL") : null;
 
   return (
     <>
@@ -1032,7 +1057,7 @@ function MediaTile({ it, update, remove, dragHandle }: { it: Row; update: (id: s
 function SortableItemsList({ items, folders, update, remove, sensors, onReorder }: {
   items: Row[];
   folders: FolderRow[];
-  update: (id: string, patch: any) => void;
+  update: (id: string, patch: any) => Promise<boolean>;
   remove: (id: string) => void;
   sensors: ReturnType<typeof useSensors>;
   onReorder: (activeId: string, overId: string) => void;
@@ -1059,7 +1084,7 @@ function SortableItemsList({ items, folders, update, remove, sensors, onReorder 
   );
 }
 
-function SortableDeliverable({ it, folders, update, remove }: { it: Row; folders: FolderRow[]; update: (id: string, patch: any) => void; remove: (id: string) => void }) {
+function SortableDeliverable({ it, folders, update, remove }: { it: Row; folders: FolderRow[]; update: (id: string, patch: any) => Promise<boolean>; remove: (id: string) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: it.id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -1077,7 +1102,7 @@ function SortableDeliverable({ it, folders, update, remove }: { it: Row; folders
 
 // ───────────────────────── Review thread ─────────────────────────
 
-function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any) => void }) {
+function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any) => Promise<boolean> }) {
   const { user } = useAuth();
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [open, setOpen] = useState(false);
@@ -1129,8 +1154,8 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
     return data.client_id as string;
   };
 
-  const addComment = async (kind: CommentRow["kind"], text: string) => {
-    if (!text.trim()) return;
+  const addComment = async (kind: CommentRow["kind"], text: string): Promise<boolean> => {
+    if (!text.trim()) return false;
     const clientId = await resolveClientId();
     const { error } = await supabase.from("deliverable_comments").insert({
       deliverable_id: it.id,
@@ -1143,39 +1168,51 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
       kind,
       body: text.trim(),
     });
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(error.message); return false; }
     setBody("");
     load();
+    return true;
   };
 
   const createShareLink = async () => {
     setSharing(true);
-    const clientId = await resolveClientId();
-    const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
-    const expires = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
-    const { error } = await supabase.from("deliverable_review_links").insert({
-      deliverable_id: it.id,
-      client_id: clientId,
-      token,
-      expires_at: expires,
-      created_by: user?.id ?? null,
-    });
-    setSharing(false);
-    if (error) return toast.error(error.message);
-    const url = `${window.location.origin}/review/${token}`;
-    try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
-    toast.success("Enlace de revisión copiado (14 días)");
+    try {
+      const clientId = await resolveClientId();
+      const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+      const expires = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
+      const { error } = await supabase.from("deliverable_review_links").insert({
+        deliverable_id: it.id,
+        client_id: clientId,
+        token,
+        expires_at: expires,
+        created_by: user?.id ?? null,
+      });
+      if (error) {
+        toast.error(`No se pudo crear el enlace: ${error.message}`);
+        return;
+      }
+      const url = `${window.location.origin}/review/${token}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("Enlace de revisión copiado (válido 14 días)");
+      } catch {
+        // Sin permiso de portapapeles: mostramos el enlace para copiarlo a mano.
+        toast.info(`Enlace de revisión creado (válido 14 días): ${url}`, { duration: 15000 });
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo crear el enlace de revisión");
+    } finally {
+      setSharing(false);
+    }
   };
 
   const sendToReview = async () => {
-    update(it.id, { status: "in_review" });
-    toast.success("Marcado como En revisión cliente");
+    if (await update(it.id, { status: "in_review" })) toast.success("Marcado como En revisión cliente");
   };
 
   const approve = async () => {
-    await addComment("approval", "Aprobado ✓");
-    update(it.id, { status: "done" });
-    toast.success("Entregable aprobado");
+    if (!(await addComment("approval", "Aprobado ✓"))) return;
+    if (await update(it.id, { status: "done" })) toast.success("Entregable aprobado");
   };
 
   const requestChanges = async () => {
@@ -1183,13 +1220,14 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
       toast.error("Escribe qué hay que cambiar antes de enviar");
       return;
     }
-    await addComment("change_request", body);
-    update(it.id, { status: "in_progress" });
-    toast.success("Cambios solicitados");
+    if (!(await addComment("change_request", body))) return;
+    if (await update(it.id, { status: "in_progress" })) toast.success("Cambios solicitados");
   };
 
   const remove = async (id: string) => {
-    await supabase.from("deliverable_comments").delete().eq("id", id);
+    if (!confirm("¿Eliminar este comentario?")) return;
+    const res = await supabase.from("deliverable_comments").delete().eq("id", id).select("id");
+    if (writeFailed(res, "No se pudo eliminar el comentario")) return;
     load();
   };
 
@@ -1250,7 +1288,7 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
               <div key={c.id} className={`rounded-xl border ${tone} px-3 py-2 group/cm`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                    {label} · {c.author_name || (c.author_role === "client" ? "Cliente" : c.author_role === "guest" ? "Invitado" : "Agencia")} · {new Date(c.created_at).toLocaleString()}
+                    {label} · {c.author_name || (c.author_role === "client" ? "Cliente" : c.author_role === "guest" ? "Invitado" : "Agencia")} · {new Date(c.created_at).toLocaleString("es-CL")}
                   </div>
                   <button onClick={() => remove(c.id)} className="opacity-0 group-hover/cm:opacity-100 text-muted-foreground hover:text-destructive">
                     <X className="w-3 h-3" />
@@ -1288,7 +1326,7 @@ function ReviewPanel({ it, update }: { it: Row; update: (id: string, patch: any)
 
 // ───────────────────────── Timeline / Gantt ─────────────────────────
 
-function TimelineView({ items, update }: { items: Row[]; update: (id: string, patch: any) => void }) {
+function TimelineView({ items, update }: { items: Row[]; update: (id: string, patch: any) => Promise<boolean> }) {
   const scheduled = items.filter((it) => it.due_date);
   const unscheduled = items.filter((it) => !it.due_date);
 
@@ -1319,7 +1357,7 @@ function TimelineView({ items, update }: { items: Row[]; update: (id: string, pa
     const days = Math.round((monthEnd.getTime() - cursor.getTime()) / 86400000) + 1;
     const offsetDays = Math.round((cursor.getTime() - start.getTime()) / 86400000);
     months.push({
-      label: cursor.toLocaleDateString("es", { month: "short", year: "2-digit" }),
+      label: cursor.toLocaleDateString("es-CL", { month: "short", year: "2-digit" }),
       days,
       offsetDays,
     });
@@ -1402,7 +1440,7 @@ function TimelineView({ items, update }: { items: Row[]; update: (id: string, pa
                       left: `${Math.max(0, leftPct - 1)}%`,
                       width: `${Math.min(6, Math.max(2, 100 / totalDays * 3))}%`,
                     }}
-                    title={`${it.title} — ${d.toLocaleDateString()}`}
+                    title={`${it.title} — ${d.toLocaleDateString("es-CL")}`}
                   />
                 </div>
               </div>
