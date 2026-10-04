@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ErrorState } from "@/components/app";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { IdentityEditor, ConfigEditor, PostsEditor, HighlightsEditor } from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
@@ -13,7 +14,7 @@ import { loadGridVersions, type GridVersion } from "@/lib/instagram/gridVersions
 type View = "current" | "proposed" | "compare";
 
 export function InstagramPage({ clientId }: { clientId: string }) {
-  const { client, ig, setProfile, setPosts, setHighlights, setComments, reloadIG } = useActiveClient();
+  const { client, ig, setProfile, setPosts, setHighlights, setComments, reloadIG, igError } = useActiveClient();
   const [view, setView] = useState<View>("proposed");
   const [versions, setVersions] = useState<GridVersion[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -80,6 +81,16 @@ export function InstagramPage({ clientId }: { clientId: string }) {
     view === "proposed"
       ? ig.posts.filter((p) => !p.version_id)
       : ig.posts.filter((p) => p.version_id === selectedId);
+
+  if (igError) {
+    return (
+      <ErrorState
+        title="No pudimos cargar los datos de Instagram"
+        message={igError}
+        onRetry={() => void reloadIG()}
+      />
+    );
+  }
 
   return (
     <div className="grid lg:grid-cols-[1fr_360px] gap-10">

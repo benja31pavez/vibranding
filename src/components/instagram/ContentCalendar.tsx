@@ -25,6 +25,9 @@ import { es } from "date-fns/locale";
 import { CalendarDays, ChevronLeft, ChevronRight, Heart, Images, Film, Image as ImageIcon, Target } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { writeFailed } from "@/lib/writeCheck";
+import { useOptionalActiveClient } from "@/contexts/ActiveClientContext";
+import { ErrorState } from "@/components/app";
 import { usePostInsights } from "@/hooks/use-post-insights";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -191,7 +194,7 @@ function PostEditor({
 
   const save = async () => {
     setSaving(true);
-    const { error } = await supabase
+    const res = await supabase
       .from("instagram_posts")
       .update({
         caption: draft.caption,
@@ -200,12 +203,10 @@ function PostEditor({
         objective: draft.objective,
         scheduled_at: draft.scheduled_at,
       })
-      .eq("id", draft.id);
+      .eq("id", draft.id)
+      .select("id");
     setSaving(false);
-    if (error) {
-      toast.error("No se pudo guardar");
-      return;
-    }
+    if (writeFailed(res)) return;
     toast.success("Publicación actualizada");
     onSaved(draft);
     onClose();
@@ -301,6 +302,9 @@ export function ContentCalendar({ clientId }: { clientId: string }) {
   const [cursor, setCursor] = useState(() => new Date());
   const [editing, setEditing] = useState<Post | null>(null);
   const [dragging, setDragging] = useState<Post | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+  const activeClient = useOptionalActiveClient();
   const { metrics } = usePostInsights(clientId);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -308,7 +312,8 @@ export function ContentCalendar({ clientId }: { clientId: string }) {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data } = await supabase
+      setLoadError(null);
+      const { data, error } = await supabase
         .from("instagram_posts")
         .select(
           "id,client_id,type,format,image_url,cover_url,carousel_urls,caption,music,location,objective,scheduled_at,published_at,ig_media_id",
@@ -317,13 +322,19 @@ export function ContentCalendar({ clientId }: { clientId: string }) {
         .is("archived_at", null)
         .order("position", { ascending: true });
       if (cancelled) return;
-      setPosts((data ?? []) as unknown as Post[]);
+      if (error) setLoadError(error.message);
+      else setPosts((data ?? []) as unknown as Post[]);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [clientId]);
+  }, [clientId, reloadTick]);
+
+  /** Refleja el cambio en el contexto del cliente para que Ficha y Grid vean la fecha nueva. */
+  const syncContext = (id: string, patch: Partial<Post>) => {
+    activeClient?.setPosts((cur) => cur.map((p) => (p.id === id ? ({ ...p, ...patch } as typeof p) : p)));
+  };
 
   const days = useMemo(() => {
     if (view === "week") {
@@ -363,17 +374,32 @@ export function ContentCalendar({ clientId }: { clientId: string }) {
     const next = new Date(`${target}T${prev ? format(prev, "HH:mm") : "12:00"}:00`);
     const iso = next.toISOString();
     setPosts((cur) => cur.map((p) => (p.id === post.id ? { ...p, scheduled_at: iso } : p)));
-    const { error } = await supabase.from("instagram_posts").update({ scheduled_at: iso }).eq("id", post.id);
-    if (error) {
-      toast.error("No se pudo reprogramar");
+    const res = await supabase
+      .from("instagram_posts")
+      .update({ scheduled_at: iso })
+      .eq("id", post.id)
+      .select("id");
+    if (writeFailed(res, "No se pudo reprogramar")) {
       setPosts((cur) => cur.map((p) => (p.id === post.id ? { ...p, scheduled_at: post.scheduled_at } : p)));
       return;
     }
+    syncContext(post.id, { scheduled_at: iso });
     toast.success(`Programada para ${format(next, "d 'de' MMMM, HH:mm", { locale: es })}`);
   };
 
   const step = (dir: number) =>
     setCursor((c) => (view === "week" ? addWeeks(c, dir) : addMonths(c, dir)));
+
+  if (loadError) {
+    return (
+      <ErrorState
+        title="No pudimos cargar el calendario"
+        message={loadError}
+        onRetry={() => setReloadTick((t) => t + 1)}
+        retrying={loading}
+      />
+    );
+  }
 
   return (
     <DndContext
@@ -478,7 +504,16 @@ export function ContentCalendar({ clientId }: { clientId: string }) {
         <PostEditor
           post={editing}
           onClose={() => setEditing(null)}
-          onSaved={(p) => setPosts((cur) => cur.map((x) => (x.id === p.id ? p : x)))}
+          onSaved={(p) => {
+            setPosts((cur) => cur.map((x) => (x.id === p.id ? p : x)));
+            syncContext(p.id, {
+              caption: p.caption,
+              music: p.music,
+              location: p.location,
+              objective: p.objective,
+              scheduled_at: p.scheduled_at,
+            });
+          }}
         />
       )}
     </DndContext>
