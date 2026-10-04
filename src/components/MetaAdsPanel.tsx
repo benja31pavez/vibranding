@@ -13,7 +13,9 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Trash2, RefreshCw, Megaphone, Layers, Image as ImageIcon, Sparkles, Upload, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { ErrorState } from "@/components/app";
+import { Link } from "@tanstack/react-router";
+import { EmptyState, ErrorState } from "@/components/app";
+import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { MediaUpload } from "./MediaUpload";
 import { CampaignWizard } from "./meta-ads/CampaignWizard";
 
@@ -59,8 +61,25 @@ const PLACEMENT_LABELS: Record<MetaPlacement, string> = {
 type AccountIdField = "ad_account_id" | "page_id" | "ig_account_id";
 const ACCOUNT_ID_FIELDS: readonly AccountIdField[] = ["ad_account_id", "page_id", "ig_account_id"];
 
+function emptyAccount(clientId: string): Account {
+  return {
+    id: "", client_id: clientId, ad_account_id: null, business_name: null,
+    page_id: null, ig_account_id: null, last_synced_at: null,
+  };
+}
+
+/** Dominio legible de una URL de destino; null si no es una URL válida. */
+function safeHostname(url: string): string | null {
+  try {
+    return new URL(url.startsWith("http") ? url : `https://${url}`).hostname;
+  } catch {
+    return null;
+  }
+}
+
 export function MetaAdsPanel({ clientId }: { clientId: string }) {
   const saveAssets = useServerFn(updateMetaAccountAssets);
+  const { caps, loading: capsLoading } = useClientCapabilities(clientId);
   const [account, setAccount] = useState<Account | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [adsets, setAdsets] = useState<AdSet[]>([]);
@@ -145,11 +164,8 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     ]);
     const firstError = [acRes, csRes, asRes, adsRes, insRes].find((r) => r.error)?.error;
     if (firstError) throw new Error(firstError.message);
-    if (!acRes.data) {
-      const { data: created, error } = await supabase.from("meta_accounts").insert({ client_id: clientId }).select().single();
-      if (error) throw new Error(error.message);
-      setAccount(created as Account);
-    } else setAccount(acRes.data as Account);
+    // Sin fila todavía: no se crea al abrir; el servidor la crea (upsert) al guardar o conectar.
+    setAccount((acRes.data as Account | null) ?? emptyAccount(clientId));
     setCampaigns((csRes.data ?? []) as Campaign[]);
     setAdsets((asRes.data ?? []) as AdSet[]);
     setAds((adsRes.data ?? []) as Ad[]);
@@ -293,6 +309,21 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     );
   }
 
+  if (!capsLoading && !caps.meta_connected && !account?.ad_account_id && campaigns.length === 0) {
+    return (
+      <EmptyState
+        icon={Megaphone}
+        title="Conecta Meta para gestionar campañas"
+        description="Usa el botón «Conectar con Meta» de arriba o sigue la configuración guiada del cliente."
+        action={
+          <Button asChild size="sm" variant="outline">
+            <Link to="/clients/$clientId/setup" params={{ clientId }}>Ir a la configuración</Link>
+          </Button>
+        }
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Account config */}
@@ -347,7 +378,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
           </Field>
         </div>
         {account?.last_synced_at && (
-          <p className="text-xs text-muted-foreground">Última sincronización: {new Date(account.last_synced_at).toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">Última sincronización: {new Date(account.last_synced_at).toLocaleString("es-CL")}</p>
         )}
       </div>
 
@@ -831,7 +862,7 @@ function AdPreview({ ad, accountName }: { ad: Ad; accountName: string }) {
       </div>
       <div className="flex items-center justify-between px-3 py-2 bg-zinc-50">
         <div className="min-w-0">
-          {ad.link_url && <div className="text-[10px] text-zinc-500 uppercase truncate">{new URL(ad.link_url.startsWith("http") ? ad.link_url : `https://${ad.link_url}`).hostname}</div>}
+          {ad.link_url && safeHostname(ad.link_url) && <div className="text-[10px] text-zinc-500 uppercase truncate">{safeHostname(ad.link_url)}</div>}
           {ad.headline && <div className="font-semibold truncate">{ad.headline}</div>}
           {ad.description && <div className="text-[10px] text-zinc-500 truncate">{ad.description}</div>}
         </div>

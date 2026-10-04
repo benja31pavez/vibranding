@@ -8,6 +8,8 @@ import { AIBotTab } from "@/components/chatbot/AIBotTab";
 import { MetricsTab } from "@/components/chatbot/MetricsTab";
 import { BusinessProfileTab } from "@/components/chatbot/BusinessProfileTab";
 import { MessageCircle } from "lucide-react";
+import { ErrorState, ListSkeleton } from "@/components/app";
+import { useInvalidateClientCapabilities } from "@/hooks/use-client-capabilities";
 
 
 export type WAAccount = {
@@ -39,15 +41,24 @@ export type WAAccount = {
 export function ChatbotPage({ clientId }: { clientId: string }) {
   const [acc, setAcc] = useState<WAAccount | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const invalidateCaps = useInvalidateClientCapabilities();
 
   const load = async () => {
     setLoading(true);
+    setLoadError(null);
     // Reads go through the safe view: access_token / verify_token are server-only.
-    const { data } = await (supabase.from("whatsapp_accounts_safe" as any) as any)
+    const { data, error } = await (supabase.from("whatsapp_accounts_safe" as any) as any)
       .select("*")
       .eq("client_id", clientId)
       .maybeSingle();
-    setAcc((data ?? null) as WAAccount | null);
+    if (error) {
+      setLoadError(error.message);
+    } else {
+      setAcc((data ?? null) as WAAccount | null);
+      // El candado de WhatsApp del sidebar depende de esta conexión.
+      void invalidateCaps(clientId);
+    }
     setLoading(false);
   };
 
@@ -56,7 +67,16 @@ export function ChatbotPage({ clientId }: { clientId: string }) {
     load();
   }, [clientId]);
 
-  if (loading) return <div className="p-8 text-muted-foreground">Cargando…</div>;
+  if (loadError)
+    return (
+      <ErrorState
+        title="No pudimos cargar la conexión de WhatsApp"
+        message={loadError}
+        onRetry={() => void load()}
+        retrying={loading}
+      />
+    );
+  if (loading && !acc) return <ListSkeleton rows={3} label="Cargando WhatsApp" />;
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
