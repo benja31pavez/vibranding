@@ -9,9 +9,14 @@ const InviteInput = z.object({
 });
 const RevokeInput = z.object({ id: z.string().uuid() });
 
-/** Deliberately generic: does not reveal whether/where the account exists. */
-const INVITE_BLOCKED =
-  "No se puede dar acceso a este correo. Usa otro correo o contacta a soporte.";
+/**
+ * Blocked invites (address already tied to another client's portal or to an
+ * agency org) are logged server-side but answered exactly like a successful
+ * one, so the endpoint cannot be used to probe which emails exist or where.
+ */
+function logBlockedInvite(reason: string, clientId: string, userId: string) {
+  console.warn("[clientAccess] portal invite blocked", { reason, clientId, userId });
+}
 
 /** Users with read-only access to a client. */
 export const listClientUsers = createServerFn({ method: "POST" })
@@ -81,7 +86,10 @@ export const inviteClientUser = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .maybeSingle();
     if (linkError) throw new Error("No se pudo verificar el correo");
-    if (currentLink && currentLink.client_id !== data.clientId) throw new Error(INVITE_BLOCKED);
+    if (currentLink && currentLink.client_id !== data.clientId) {
+      logBlockedInvite("linked_to_other_client", data.clientId, userId);
+      return { ok: true, email };
+    }
 
     const { data: membership, error: memberError } = await (
       supabaseAdmin.from("org_members" as any) as any
@@ -90,13 +98,21 @@ export const inviteClientUser = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .limit(1);
     if (memberError) throw new Error("No se pudo verificar el correo");
-    if (((membership ?? []) as unknown[]).length > 0) throw new Error(INVITE_BLOCKED);
+    if (((membership ?? []) as unknown[]).length > 0) {
+      logBlockedInvite("org_member", data.clientId, userId);
+      return { ok: true, email };
+    }
 
     if (!currentLink) {
       const { error } = await supabaseAdmin
         .from("client_users")
         .insert({ user_id: userId, client_id: data.clientId, email });
-      if (error) throw new Error(error.code === "23505" ? INVITE_BLOCKED : error.message);
+      if (error?.code === "23505") {
+        // Raced with another invite for the same account: treat as blocked.
+        logBlockedInvite("unique_conflict", data.clientId, userId);
+        return { ok: true, email };
+      }
+      if (error) throw new Error(error.message);
     }
 
     // Same response whether the address was new or already registered, so the
