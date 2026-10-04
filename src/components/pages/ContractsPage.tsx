@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { chileToday } from "@/lib/dates/chile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -157,7 +158,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
       clauses_snapshot: buildClauses(pricing),
       total_one_time,
       total_monthly,
-      effective_date: new Date().toISOString().slice(0, 10),
+      effective_date: chileToday(),
     });
     setCreating(false);
     if (error) { toast.error(error.message); return; }

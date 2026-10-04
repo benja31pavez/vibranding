@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { chileToday } from "@/lib/dates/chile";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -633,7 +634,7 @@ function DeliverableCard({ it, folders, update, remove, compact, dragHandle }: {
   const M = statusMeta[it.status];
   const Icon = M.icon;
   const T = typeMeta[it.type].icon;
-  const overdue = it.due_date && it.status !== "done" && it.due_date < new Date().toISOString().slice(0, 10);
+  const overdue = it.due_date && it.status !== "done" && it.due_date < chileToday();
   const checklist: Checklist = it.checklist ?? [];
   const doneCount = checklist.filter((c) => c.done).length;
   const checklistOn = it.checklist_enabled ?? false;
@@ -1375,7 +1376,7 @@ function TimelineView({ items, update }: { items: Row[]; update: (id: string, pa
             const offset = Math.round((d.getTime() - start.getTime()) / 86400000);
             const leftPct = (offset / totalDays) * 100;
             const M = statusMeta[it.status];
-            const overdue = it.due_date! < today.toISOString().slice(0, 10) && it.status !== "done";
+            const overdue = it.due_date! < chileToday() && it.status !== "done";
             return (
               <div key={it.id} className="flex items-center border-b last:border-b-0 hover:bg-secondary/20 transition-colors">
                 <div className="w-64 shrink-0 px-3 py-2 border-r flex items-center gap-2 min-w-0">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { addDaysYmd, chileToday } from "@/lib/dates/chile";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -381,8 +382,8 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
   });
 
   // KPIs
-  const today = new Date().toISOString().slice(0, 10);
-  const in7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const today = chileToday();
+  const in7 = addDaysYmd(today, 7);
   const total = items.length;
   const done = items.filter((x) => x.status === "done").length;
   const inProgress = items.filter((x) => x.status === "in_progress").length;
@@ -761,7 +762,7 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
             const M = statusMeta[it.status];
             const Icon = M.icon;
             const Cat = categoryMeta[it.category].icon;
-            const overdue = it.due_date && it.status !== "done" && it.due_date < new Date().toISOString().slice(0, 10);
+            const overdue = it.due_date && it.status !== "done" && it.due_date < chileToday();
             const pct =
               it.target_value && it.target_value > 0
                 ? Math.min(100, Math.round(((it.current_value ?? 0) / it.target_value) * 100))
