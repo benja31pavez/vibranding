@@ -314,7 +314,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                         </Select>
                       </Field>
                       <Field label="Moneda">
-                        <Input defaultValue={c.currency ?? "USD"} onBlur={(e) => updateCampaign(c.id, { currency: e.target.value || null })} />
+                        <Input defaultValue={c.currency ?? "CLP"} onBlur={(e) => updateCampaign(c.id, { currency: e.target.value || null })} />
                       </Field>
                       <Field label="Presupuesto diario">
                         <Input type="number" defaultValue={c.daily_budget ?? ""} onBlur={(e) => updateCampaign(c.id, { daily_budget: e.target.value ? Number(e.target.value) : null })} />

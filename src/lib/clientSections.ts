@@ -18,7 +18,26 @@ export interface SectionDef {
   lockedReason: (c: ClientCapabilities) => string | null;
 }
 
-export const CLIENT_SECTIONS: SectionDef[] = [
+/**
+ * Secciones ocultas del menú del cliente (feature flag).
+ *
+ * Se ocultan porque no forman parte de los planes que vende VIBRANDING
+ * (Marca + Web, Plan Contenido, Plan Crecimiento) y solo agregan ruido:
+ *  - "automatizacion": automatización avanzada de Instagram.
+ *  - "analytics": embudo/CAC/ROAS basado en outcomes y backfill de conversaciones.
+ *
+ * Las rutas siguen existiendo (se puede entrar por URL); solo desaparecen del menú
+ * y del contador "X de Y secciones activas".
+ *
+ * Para reactivar una sección: quítala de este Set. Para mostrar todas: `new Set()`.
+ */
+export const HIDDEN_SECTIONS: ReadonlySet<SectionKey> = new Set<SectionKey>([
+  "automatizacion",
+  "analytics",
+]);
+
+/** Todas las secciones definidas, incluidas las ocultas. */
+export const ALL_CLIENT_SECTIONS: SectionDef[] = [
   { key: "plan", label: "Plan", lockedReason: () => null },
   {
     key: "instagram",
@@ -54,6 +73,11 @@ export const CLIENT_SECTIONS: SectionDef[] = [
         : "Falta la primera ingesta de anuncios o marcar conversaciones",
   },
 ];
+
+/** Secciones visibles en el menú del cliente. */
+export const CLIENT_SECTIONS: SectionDef[] = ALL_CLIENT_SECTIONS.filter(
+  (s) => !HIDDEN_SECTIONS.has(s.key),
+);
 
 export function activeSectionCount(caps: ClientCapabilities): number {
   return CLIENT_SECTIONS.filter((s) => s.lockedReason(caps) === null).length;
