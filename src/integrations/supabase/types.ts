@@ -334,6 +334,59 @@ export type Database = {
           },
         ]
       }
+      campaign_alerts: {
+        Row: {
+          client_id: string
+          created_at: string
+          data: Json
+          dedupe_key: string | null
+          id: string
+          kind: string
+          message: string
+          platform: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          data?: Json
+          dedupe_key?: string | null
+          id?: string
+          kind: string
+          message: string
+          platform: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          data?: Json
+          dedupe_key?: string | null
+          id?: string
+          kind?: string
+          message?: string
+          platform?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_alerts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_contracts: {
         Row: {
           agency_snapshot: Json
@@ -532,35 +585,53 @@ export type Database = {
       }
       clients: {
         Row: {
+          billing_day: number | null
           business_description: string | null
           created_at: string
           id: string
           instagram_handle: string | null
+          mrr: number
           name: string
           notes: string | null
+          onboarding_token: string | null
           org_id: string
+          plan_key: string | null
+          started_at: string | null
+          status: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          billing_day?: number | null
           business_description?: string | null
           created_at?: string
           id?: string
           instagram_handle?: string | null
+          mrr?: number
           name: string
           notes?: string | null
+          onboarding_token?: string | null
           org_id: string
+          plan_key?: string | null
+          started_at?: string | null
+          status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          billing_day?: number | null
           business_description?: string | null
           created_at?: string
           id?: string
           instagram_handle?: string | null
+          mrr?: number
           name?: string
           notes?: string | null
+          onboarding_token?: string | null
           org_id?: string
+          plan_key?: string | null
+          started_at?: string | null
+          status?: string
           updated_at?: string
           user_id?: string
         }
@@ -830,6 +901,116 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "deliverable_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_ads_accounts: {
+        Row: {
+          client_id: string
+          created_at: string
+          customer_id: string
+          id: string
+          last_sync_error: string | null
+          last_synced_at: string | null
+          manager_customer_id: string | null
+          org_id: string
+          status: string
+          token_secret_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          last_sync_error?: string | null
+          last_synced_at?: string | null
+          manager_customer_id?: string | null
+          org_id: string
+          status?: string
+          token_secret_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          last_sync_error?: string | null
+          last_synced_at?: string | null
+          manager_customer_id?: string | null
+          org_id?: string
+          status?: string
+          token_secret_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_accounts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_ads_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_ads_insights_daily: {
+        Row: {
+          campaign_id: string
+          campaign_name: string | null
+          clicks: number
+          client_id: string
+          conversions: number
+          cost_clp: number
+          created_at: string
+          customer_id: string
+          date: string
+          id: string
+          impressions: number
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          campaign_name?: string | null
+          clicks?: number
+          client_id: string
+          conversions?: number
+          cost_clp?: number
+          created_at?: string
+          customer_id: string
+          date: string
+          id?: string
+          impressions?: number
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          campaign_name?: string | null
+          clicks?: number
+          client_id?: string
+          conversions?: number
+          cost_clp?: number
+          created_at?: string
+          customer_id?: string
+          date?: string
+          id?: string
+          impressions?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_insights_daily_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -1269,6 +1450,9 @@ export type Database = {
       }
       instagram_posts: {
         Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           archived_at: string | null
           caption: string | null
           carousel_urls: string[]
@@ -1293,6 +1477,9 @@ export type Database = {
           version_id: string | null
         }
         Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           archived_at?: string | null
           caption?: string | null
           carousel_urls?: string[]
@@ -1317,6 +1504,9 @@ export type Database = {
           version_id?: string | null
         }
         Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           archived_at?: string | null
           caption?: string | null
           carousel_urls?: string[]
@@ -2197,6 +2387,50 @@ export type Database = {
           },
         ]
       }
+      monthly_reports: {
+        Row: {
+          client_id: string
+          created_at: string
+          data: Json
+          id: string
+          period: string
+          sent_at: string | null
+          summary: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          data?: Json
+          id?: string
+          period: string
+          sent_at?: string | null
+          summary?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          data?: Json
+          id?: string
+          period?: string
+          sent_at?: string | null
+          summary?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       multilink_items: {
         Row: {
           click_count: number
@@ -2515,10 +2749,18 @@ export type Database = {
           created_at: string
           currency: string
           description: string | null
+          document_type: string | null
           due_date: string | null
+          flow_token: string | null
           id: string
+          kind: string | null
           paid_at: string | null
+          payment_url: string | null
+          period: string | null
+          provider: string | null
+          provider_ref: string | null
           status: Database["public"]["Enums"]["payment_status"]
+          subscription_id: string | null
           updated_at: string
         }
         Insert: {
@@ -2527,10 +2769,18 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          document_type?: string | null
           due_date?: string | null
+          flow_token?: string | null
           id?: string
+          kind?: string | null
           paid_at?: string | null
+          payment_url?: string | null
+          period?: string | null
+          provider?: string | null
+          provider_ref?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          subscription_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -2539,10 +2789,18 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          document_type?: string | null
           due_date?: string | null
+          flow_token?: string | null
           id?: string
+          kind?: string | null
           paid_at?: string | null
+          payment_url?: string | null
+          period?: string | null
+          provider?: string | null
+          provider_ref?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          subscription_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2551,6 +2809,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -2772,6 +3037,165 @@ export type Database = {
         }
         Relationships: []
       }
+      proposals: {
+        Row: {
+          accepted_at: string | null
+          accepted_ip_hash: string | null
+          accepted_name: string | null
+          accepted_text: string | null
+          amount_clp: number
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          items: Json
+          org_id: string
+          plan_key: string | null
+          prospect_id: string | null
+          sent_at: string | null
+          status: string
+          title: string | null
+          token: string
+          updated_at: string
+          viewed_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_ip_hash?: string | null
+          accepted_name?: string | null
+          accepted_text?: string | null
+          amount_clp?: number
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          items?: Json
+          org_id: string
+          plan_key?: string | null
+          prospect_id?: string | null
+          sent_at?: string | null
+          status?: string
+          title?: string | null
+          token?: string
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_ip_hash?: string | null
+          accepted_name?: string | null
+          accepted_text?: string | null
+          amount_clp?: number
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          items?: Json
+          org_id?: string
+          plan_key?: string | null
+          prospect_id?: string | null
+          sent_at?: string | null
+          status?: string
+          title?: string | null
+          token?: string
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospects: {
+        Row: {
+          comuna: string | null
+          created_at: string
+          created_by: string | null
+          email_publico: string | null
+          estado: string
+          fuente: string
+          id: string
+          instagram: string | null
+          nombre: string
+          notas: string | null
+          org_id: string
+          producto_sugerido: string | null
+          rubro: string | null
+          telefono_publico: string | null
+          ultimo_contacto: string | null
+          updated_at: string
+          web: string | null
+        }
+        Insert: {
+          comuna?: string | null
+          created_at?: string
+          created_by?: string | null
+          email_publico?: string | null
+          estado?: string
+          fuente: string
+          id?: string
+          instagram?: string | null
+          nombre: string
+          notas?: string | null
+          org_id: string
+          producto_sugerido?: string | null
+          rubro?: string | null
+          telefono_publico?: string | null
+          ultimo_contacto?: string | null
+          updated_at?: string
+          web?: string | null
+        }
+        Update: {
+          comuna?: string | null
+          created_at?: string
+          created_by?: string | null
+          email_publico?: string | null
+          estado?: string
+          fuente?: string
+          id?: string
+          instagram?: string | null
+          nombre?: string
+          notas?: string | null
+          org_id?: string
+          producto_sugerido?: string | null
+          rubro?: string | null
+          telefono_publico?: string | null
+          ultimo_contacto?: string | null
+          updated_at?: string
+          web?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_pricing: {
         Row: {
           created_at: string
@@ -2807,6 +3231,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          amount_clp: number
+          cancelled_at: string | null
+          client_id: string
+          created_at: string
+          id: string
+          interval: string
+          min_months: number
+          next_charge_date: string | null
+          plan_key: string
+          provider: string
+          provider_ref: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_clp?: number
+          cancelled_at?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          interval?: string
+          min_months?: number
+          next_charge_date?: string | null
+          plan_key: string
+          provider?: string
+          provider_ref?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_clp?: number
+          cancelled_at?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          interval?: string
+          min_months?: number
+          next_charge_date?: string | null
+          plan_key?: string
+          provider?: string
+          provider_ref?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_profiles: {
         Row: {
@@ -3200,6 +3683,18 @@ export type Database = {
       }
     }
     Views: {
+      approval_queue: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          kind: string | null
+          org_id: string | null
+          ref_id: string | null
+          title: string | null
+          url_hint: string | null
+        }
+        Relationships: []
+      }
       whatsapp_accounts_safe: {
         Row: {
           ai_business_context: string | null
@@ -3283,6 +3778,12 @@ export type Database = {
       }
     }
     Functions: {
+      accept_proposal: {
+        Args: { _ip_hash: string; _name: string; _token: string }
+        Returns: Json
+      }
+      can_edit_client: { Args: { _client_id: string }; Returns: boolean }
+      can_edit_org: { Args: { _org_id: string }; Returns: boolean }
       client_analytics: {
         Args: { _client_id: string; _from: string; _to: string }
         Returns: Json
@@ -3306,6 +3807,14 @@ export type Database = {
           slot_minutes: number
           timezone: string
         }[]
+      }
+      get_monthly_report_by_token: { Args: { _token: string }; Returns: Json }
+      get_onboarding_by_token: { Args: { _token: string }; Returns: Json }
+      get_proposal_by_token: { Args: { _token: string }; Returns: Json }
+      google_ads_get_secret: { Args: { _account_id: string }; Returns: string }
+      google_ads_set_secret: {
+        Args: { _account_id: string; _secret: string }
+        Returns: string
       }
       ig_dm_trigger_bump: {
         Args: {
@@ -3371,6 +3880,7 @@ export type Database = {
         Returns: undefined
       }
       manages_client: { Args: { _client_id: string }; Returns: boolean }
+      mark_overdue_payments: { Args: never; Returns: number }
       meta_get_secret: { Args: { _account_id: string }; Returns: string }
       meta_set_secret: {
         Args: { _account_id: string; _secret: string }
