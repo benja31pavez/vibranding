@@ -11,14 +11,18 @@ import {
   BAJA_NOTICE,
   EMPTY_FORM,
   PROSPECT_STATES,
+  REVOKE_MOTIVO_MAX,
+  REVOKE_MOTIVO_MIN,
+  REVOKE_TARGET_STATES,
   STATE_META,
+  type RevokeTargetState,
   fieldErrors,
   prospectSchema,
   type ProspectFormInput,
 } from "@/lib/prospects/schema";
 import { toDateInput } from "./format";
 import { ConvertAction } from "./ProspectCard";
-import { useSaveProspect, type Prospect } from "./prospectsData";
+import { useIsOrgManager, useRevokeBaja, useSaveProspect, type Prospect } from "./prospectsData";
 
 type Errors = Partial<Record<keyof ProspectFormInput, string>>;
 
@@ -71,18 +75,40 @@ export function ProspectSheet({
   const [form, setForm] = useState<ProspectFormInput>(() => toForm(prospect));
   const [errors, setErrors] = useState<Errors>({});
   const [confirmUnbaja, setConfirmUnbaja] = useState(false);
+  const [motivo, setMotivo] = useState("");
   const save = useSaveProspect();
+  const revoke = useRevokeBaja();
+  const isBaja = prospect?.estado === "baja";
+  const manager = useIsOrgManager(isBaja ? prospect?.org_id : null);
+  // Si no se pudo consultar el rol, se muestra el control y la RPC decide (muestra su error).
+  const canRevoke = manager.data !== false;
 
   useEffect(() => {
     if (!open) return;
     setForm(toForm(prospect));
     setErrors({});
     setConfirmUnbaja(false);
+    setMotivo("");
   }, [open, prospect]);
 
   const set = <K extends keyof ProspectFormInput>(key: K) => (value: ProspectFormInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
-  const leavingBaja = prospect?.estado === "baja" && form.estado !== "baja";
+  const leavingBaja = isBaja && form.estado !== "baja";
+  const motivoClean = motivo.trim().replace(/\s+/g, " ");
+  const busy = save.isPending || revoke.isPending;
+
+  /** Error de la salida de baja (null si se puede guardar). */
+  const revokeProblem = (): string | null => {
+    if (!canRevoke) return "Solo un owner/admin puede revocar una baja.";
+    if (!(REVOKE_TARGET_STATES as readonly string[]).includes(form.estado)) {
+      return `Al salir de baja el prospecto no puede quedar como ${STATE_META[form.estado].label}.`;
+    }
+    if (!confirmUnbaja) return "Confirma que el prospecto retiró su solicitud de baja antes de cambiar el estado.";
+    if (motivoClean.length < REVOKE_MOTIVO_MIN || motivoClean.length > REVOKE_MOTIVO_MAX) {
+      return `Indica el motivo (entre ${REVOKE_MOTIVO_MIN} y ${REVOKE_MOTIVO_MAX} caracteres).`;
+    }
+    return null;
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,13 +117,23 @@ export function ProspectSheet({
       setErrors(fieldErrors(parsed.error));
       return;
     }
-    if (leavingBaja && !confirmUnbaja) {
-      toast.error("Confirma que el prospecto retiró su solicitud de baja antes de cambiar el estado.");
+    const problem = leavingBaja ? revokeProblem() : null;
+    if (problem) {
+      toast.error(problem);
       return;
     }
     setErrors({});
     try {
-      await save.mutateAsync({ id: prospect?.id, values: parsed.data, allowLeaveBaja: leavingBaja && confirmUnbaja });
+      if (leavingBaja && prospect) {
+        // Primero se guardan los demás campos (sigue en baja) y luego la RPC sale de baja:
+        // así la línea que la RPC agrega a las notas no se pisa.
+        await save.mutateAsync({ id: prospect.id, values: { ...parsed.data, estado: "baja" } });
+        await revoke.mutateAsync({ id: prospect.id, motivo: motivoClean, estado: form.estado as RevokeTargetState });
+        toast.success(`Baja revocada: ${prospect.nombre} → ${STATE_META[form.estado].label}`);
+        onOpenChange(false);
+        return;
+      }
+      await save.mutateAsync({ id: prospect?.id, values: parsed.data });
       toast.success(prospect ? "Prospecto actualizado" : "Prospecto creado");
       onOpenChange(false);
     } catch (err) {
@@ -159,11 +195,33 @@ export function ProspectSheet({
               <p>{BAJA_NOTICE}</p>
             </div>
           )}
-          {leavingBaja && (
-            <label className="flex items-start gap-2 rounded-app-md border border-warning/40 bg-warning-subtle p-3 text-sm text-warning-strong">
-              <input type="checkbox" checked={confirmUnbaja} onChange={(e) => setConfirmUnbaja(e.target.checked)} className="mt-0.5" />
-              Confirmo que el prospecto retiró por escrito su solicitud de no ser contactado.
-            </label>
+          {leavingBaja && !canRevoke && (
+            <p role="alert" className="rounded-app-md border border-danger/40 bg-danger-subtle p-3 text-sm text-danger-strong">
+              Solo un owner/admin de la organización puede revocar una baja.
+            </p>
+          )}
+          {leavingBaja && canRevoke && (
+            <div className="space-y-3 rounded-app-md border border-warning/40 bg-warning-subtle p-3 text-sm text-warning-strong">
+              <label className="flex items-start gap-2">
+                <input type="checkbox" checked={confirmUnbaja} onChange={(e) => setConfirmUnbaja(e.target.checked)} className="mt-0.5" />
+                Confirmo que el prospecto retiró por escrito su solicitud de no ser contactado.
+              </label>
+              <div className="space-y-1.5">
+                <Label htmlFor="pr-motivo-baja">Motivo *</Label>
+                <Textarea
+                  id="pr-motivo-baja"
+                  rows={2}
+                  maxLength={REVOKE_MOTIVO_MAX}
+                  value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)}
+                  aria-describedby="pr-motivo-baja-hint"
+                  className="bg-background text-foreground"
+                />
+                <p id="pr-motivo-baja-hint" className="text-xs">
+                  Cómo y cuándo retiró la solicitud ({REVOKE_MOTIVO_MIN}–{REVOKE_MOTIVO_MAX} caracteres). Queda en las notas.
+                </p>
+              </div>
+            </div>
           )}
           <Field id="pr-ultimo_contacto" label="Último contacto" error={errors.ultimo_contacto}>{input("ultimo_contacto", { type: "date" })}</Field>
           <Field id="pr-notas" label="Notas" error={errors.notas}>
@@ -171,7 +229,7 @@ export function ProspectSheet({
           </Field>
           <SheetFooter className="gap-2 sm:justify-between">
             <div>{prospect && <ConvertAction prospect={prospect} onConvert={onConvert} label="Convertir en cliente" />}</div>
-            <Button type="submit" disabled={save.isPending}>{save.isPending ? "Guardando…" : "Guardar"}</Button>
+            <Button type="submit" disabled={busy}>{busy ? "Guardando…" : "Guardar"}</Button>
           </SheetFooter>
         </form>
       </SheetContent>

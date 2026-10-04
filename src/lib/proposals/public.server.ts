@@ -67,12 +67,31 @@ async function admin() {
   return supabaseAdmin;
 }
 
-/** Las funciones nuevas aún no están todas en types.ts: rpc sin tipar. */
-async function rpc(fn: string, args: Record<string, unknown>): Promise<unknown> {
+interface DbError {
+  code?: string;
+  message: string;
+}
+
+/** rpc sin tipar que devuelve el error (con code) en vez de lanzar. */
+async function rpcRaw(fn: string, args: Record<string, unknown>): Promise<{ data: unknown; error: DbError | null }> {
   const db = await admin();
-  const { data, error } = await (db as unknown as {
-    rpc: (f: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+  return (db as unknown as {
+    rpc: (f: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: DbError | null }>;
   }).rpc(fn, args);
+}
+
+/** La función (o su firma con esos argumentos) no existe: migración v3 sin aplicar. */
+function isMissingFunction(error: DbError | null): boolean {
+  return Boolean(error) && (error?.code === "PGRST202" || error?.code === "42883");
+}
+
+/** La columna no existe (p. ej. payments.proposal_id antes de la v3). */
+function isMissingColumn(error: DbError | null): boolean {
+  return Boolean(error) && (error?.code === "PGRST204" || error?.code === "42703");
+}
+
+async function rpc(fn: string, args: Record<string, unknown>): Promise<unknown> {
+  const { data, error } = await rpcRaw(fn, args);
   if (error) {
     console.error(`[proposals] ${fn} falló`, error.message);
     throw new Error("No pudimos cargar la propuesta. Intenta de nuevo en unos minutos.");
@@ -113,13 +132,36 @@ async function loadRow(token: string): Promise<ProposalRow | null> {
 
 // ------------------------------------------------------------------ cobro
 
-/** Marca que liga un cobro con su propuesta (payments no tiene proposal_id). */
+/**
+ * Referencia visible de la propuesta en la descripción del cobro. El vínculo es
+ * payments.proposal_id (v3); la marca sirve para cobros anteriores a la v3 y como
+ * respaldo si la columna aún no existe.
+ */
 export function paymentRef(proposalId: string): string {
   return `ref P-${proposalId.slice(0, 8)}`;
 }
 
-async function findProposalPayment(row: ProposalRow): Promise<PaymentRow | null> {
-  if (!row.client_id) return null;
+const PAYMENT_LOOKUP_ERROR = "No pudimos revisar el estado del pago.";
+
+/** Cobro de la propuesta por payments.proposal_id. "missing" si la columna no existe. */
+async function findByProposalId(row: ProposalRow & { client_id: string }): Promise<PaymentRow | null | "missing"> {
+  const db = await admin();
+  const { data, error } = await db
+    .from("payments")
+    .select("*")
+    .eq("client_id", row.client_id)
+    .eq("proposal_id", row.id)
+    .limit(1);
+  if (isMissingColumn(error)) return "missing";
+  if (error) {
+    console.error("[proposals] no se pudo buscar el cobro", row.id, error.message);
+    throw new Error(PAYMENT_LOOKUP_ERROR);
+  }
+  return data?.[0] ?? null;
+}
+
+/** Cobro de la propuesta por la marca en la descripción (cobros previos a la v3). */
+async function findByDescription(row: ProposalRow & { client_id: string }): Promise<PaymentRow | null> {
   const db = await admin();
   const { data, error } = await db
     .from("payments")
@@ -130,9 +172,17 @@ async function findProposalPayment(row: ProposalRow): Promise<PaymentRow | null>
     .limit(1);
   if (error) {
     console.error("[proposals] no se pudo buscar el cobro", row.id, error.message);
-    throw new Error("No pudimos revisar el estado del pago.");
+    throw new Error(PAYMENT_LOOKUP_ERROR);
   }
   return data?.[0] ?? null;
+}
+
+async function findProposalPayment(row: ProposalRow): Promise<PaymentRow | null> {
+  if (!row.client_id) return null;
+  const withClient = { ...row, client_id: row.client_id };
+  const byId = await findByProposalId(withClient);
+  if (byId && byId !== "missing") return byId;
+  return findByDescription(withClient);
 }
 
 export class AmountMismatchError extends Error {
@@ -144,7 +194,8 @@ export class AmountMismatchError extends Error {
 
 async function createProposalPayment(row: ProposalRow & { client_id: string }): Promise<PaymentRow> {
   const totals = computeTotals(parseItems(row.items));
-  // Sin el trigger de la v3, amount_clp lo escribe el navegador: se valida contra los ítems.
+  // Con la v3 el trigger t_proposals_amount recalcula amount_clp desde los ítems; se
+  // valida igual por si hay propuestas anteriores con montos desalineados.
   if (totals.firstCharge !== row.amount_clp || totals.firstCharge <= 0) {
     console.error("[proposals] [ALERTA] monto de la propuesta no coincide con sus ítems; no se crea el cobro", {
       proposalId: row.id,
@@ -156,21 +207,31 @@ async function createProposalPayment(row: ProposalRow & { client_id: string }): 
   const kind = chargeKind(totals);
   const today = todayInChile();
   const what = kind === "mensual" ? "primer mes" : "pago único";
+  const values = {
+    client_id: row.client_id,
+    amount: totals.firstCharge,
+    currency: "CLP",
+    status: "pending" as const,
+    kind,
+    period: kind === "mensual" ? firstDayOfMonth(today) : null,
+    due_date: today,
+    description: `Propuesta "${noteSafe(row.title ?? "Vibranding", 80)}" (${what}) · ${paymentRef(row.id)}`,
+  };
   const db = await admin();
-  const { data, error } = await db
+  // Servidor (service role): proposal_id no está en los GRANT del navegador (v3b).
+  let { data, error } = await db
     .from("payments")
-    .insert({
-      client_id: row.client_id,
-      amount: totals.firstCharge,
-      currency: "CLP",
-      status: "pending",
-      kind,
-      period: kind === "mensual" ? firstDayOfMonth(today) : null,
-      due_date: today,
-      description: `Propuesta "${noteSafe(row.title ?? "Vibranding", 80)}" (${what}) · ${paymentRef(row.id)}`,
-    })
+    .insert({ ...values, proposal_id: row.id })
     .select("*")
     .single();
+  if (isMissingColumn(error)) {
+    ({ data, error } = await db.from("payments").insert(values).select("*").single());
+  }
+  if (error?.code === "23505") {
+    // payments_proposal_uk: otro request ya creó el cobro de esta propuesta.
+    const existing = await findProposalPayment(row);
+    if (existing) return existing;
+  }
   if (error || !data) {
     console.error("[proposals] no se pudo crear el cobro", row.id, error?.message);
     throw new Error("Tu aceptación quedó registrada, pero no pudimos generar el cobro. Te contactaremos.");
@@ -183,14 +244,32 @@ function noteSafe(text: string, max: number): string {
   return text.replace(/[\p{Cc}\p{Cf}\u2028\u2029]+/gu, " ").replace(/\s+/g, " ").trim().slice(0, max);
 }
 
-const NOTE_MAX = 400;
+/** append_prospect_note recorta a 300 caracteres; con el prefijo la nota cabe entera. */
+const NOTE_MAX = 260;
 
 /**
  * Agrega una nota al destinatario (prospects.notas o clients.notes), prefijada
  * con "[Propuesta AAAA-MM-DD]" y recortada. proposals no tiene columna de notas.
+ * Prospectos: append_prospect_note (v3, atómico); si no existe, leer-modificar-escribir.
  */
 async function appendRecipientNote(row: ProposalRow, text: string): Promise<void> {
   const note = `[Propuesta ${todayInChile()}] ${noteSafe(text, NOTE_MAX)}`;
+  if (!row.client_id && row.prospect_id) {
+    const { data, error } = await rpcRaw("append_prospect_note", { _prospect_id: row.prospect_id, _note: note });
+    if (!error) {
+      if (data !== true) console.error("[proposals] no se encontró el prospecto para anotar", row.prospect_id);
+      return;
+    }
+    if (!isMissingFunction(error)) {
+      console.error("[proposals] no se pudo anotar", "prospects", row.prospect_id, error.message);
+      return;
+    }
+  }
+  await appendNoteReadWrite(row, note);
+}
+
+/** Respaldo sin la v3 (y para clients.notes): leer-modificar-escribir. */
+async function appendNoteReadWrite(row: ProposalRow, note: string): Promise<void> {
   const db = await admin();
   const target = row.client_id
     ? ({ table: "clients", column: "notes", id: row.client_id } as const)
@@ -275,6 +354,33 @@ export async function loadPublicProposal(token: string, signal: ViewSignal): Pro
   return { ok: true, proposal, payment };
 }
 
+type AcceptRpcResult = { ok?: boolean; already?: boolean; reason?: string } | null;
+
+/**
+ * accept_proposal de la v3 recibe RUT y condiciones y los guarda en la misma
+ * transacción. Si esa firma no existe (antes de la v3), se llama la de 3 argumentos
+ * y `legacy` indica que hay que completar el texto aceptado aparte.
+ */
+async function callAcceptProposal(
+  input: { token: string; name: string; rut: string | null; ipHash: string | null },
+  extraText: string,
+): Promise<{ res: AcceptRpcResult; legacy: boolean }> {
+  const base = { _token: input.token, _name: input.name, _ip_hash: input.ipHash };
+  const { data, error } = await rpcRaw("accept_proposal", { ...base, _rut: input.rut, _extra_text: extraText });
+  if (!error) return { res: data as AcceptRpcResult, legacy: false };
+  if (!isMissingFunction(error)) {
+    console.error("[proposals] accept_proposal falló", error.message);
+    throw new Error("No pudimos cargar la propuesta. Intenta de nuevo en unos minutos.");
+  }
+  return { res: (await rpc("accept_proposal", base)) as AcceptRpcResult, legacy: true };
+}
+
+/** Condiciones aceptadas (texto adicional de accept_proposal). */
+async function conditionsText(token: string): Promise<string> {
+  const row = await loadRow(token);
+  return row ? `Condiciones aceptadas: ${proposalConditions(row.plan_key, parseItems(row.items)).join(" ")}` : "";
+}
+
 export type AcceptResult =
   | { ok: true; already: boolean; payment: PublicPaymentState }
   | { ok: false; reason: "invalid" | "name_required" | "expirada" | "rechazada" | "aceptada" | "error"; message?: string };
@@ -293,13 +399,10 @@ export async function acceptPublicProposal(input: {
   email: string | null;
   ipHash: string | null;
 }): Promise<AcceptResult> {
-  const res = (await rpc("accept_proposal", { _token: input.token, _name: input.name, _ip_hash: input.ipHash })) as {
-    ok?: boolean;
-    already?: boolean;
-    reason?: string;
-  } | null;
+  const { res, legacy } = await callAcceptProposal(input, await conditionsText(input.token));
   if (!res?.ok) {
     const reason = res?.reason;
+    if (reason === "invalid_rut") return { ok: false, reason: "error", message: "El RUT no es válido. Revísalo e intenta de nuevo." };
     const known = ["invalid", "name_required", "expirada", "rechazada", "aceptada"] as const;
     return { ok: false, reason: (known as readonly string[]).includes(reason ?? "") ? (reason as (typeof known)[number]) : "invalid" };
   }
@@ -308,7 +411,7 @@ export async function acceptPublicProposal(input: {
   if (!row) return { ok: false, reason: "invalid" };
 
   if (!already) {
-    await appendAcceptanceText(row, input.rut);
+    if (legacy) await appendAcceptanceText(row, input.rut);
     if (!row.client_id) {
       await appendRecipientNote(row, `Aceptó "${row.title ?? ""}" (${input.name}). Falta crear el cliente y el cobro.`);
     }
@@ -328,10 +431,10 @@ export async function acceptPublicProposal(input: {
 }
 
 /**
- * Agrega condiciones y RUT al texto aceptado (update condicionado al texto
- * leído). Reintenta una vez; si sigue fallando deja una nota en el
- * destinatario y un log [ALERTA]. La migración v3 (PR #17) lo hace atómico
- * dentro de accept_proposal.
+ * Solo sin la v3: agrega condiciones y RUT al texto aceptado (update condicionado
+ * al texto leído). Reintenta una vez; si sigue fallando deja una nota en el
+ * destinatario y un log [ALERTA]. Con la v3 accept_proposal recibe _rut y
+ * _extra_text y lo guarda en la misma transacción.
  */
 async function appendAcceptanceText(row: ProposalRow, rut: string | null): Promise<void> {
   for (let attempt = 1; attempt <= 2; attempt++) {

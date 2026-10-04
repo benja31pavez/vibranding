@@ -28,7 +28,9 @@ const STATE_MAP: Readonly<Record<string, ProspectState>> = {
   propuesta: "propuesta",
   ganado: "ganado",
   perdido: "perdido",
-  frio: "perdido",
+  // "Frío" (no respondió al correo ni al recordatorio): se guarda sin fecha de
+  // "no contactar" y sin recontacto automático; retomarlo es manual.
+  frio: "frio",
   baja: "baja",
 };
 
@@ -140,10 +142,9 @@ function buildNotes(row: OfficeRow): string {
   if (row.proximoPaso?.accion) {
     lines.push(`Próximo paso: ${row.proximoPaso.accion}${row.proximoPaso.fecha ? ` el ${row.proximoPaso.fecha}` : ""}`);
   }
-  if (row.estado === "frio" || row.estado === "perdido") {
-    if (row.estado === "frio") lines.push("En la oficina estaba \"frío\": no respondió al correo ni al recordatorio.");
-    lines.push(noContactNote(addMonthsIso(lastHistoryDate(row), NO_CONTACT_MONTHS)));
-  }
+  if (row.estado === "frio") lines.push("En la oficina estaba \"frío\": no respondió al correo ni al recordatorio.");
+  // Solo los que venían como "perdido" llevan plazo de "no contactar".
+  if (row.estado === "perdido") lines.push(noContactNote(addMonthsIso(lastHistoryDate(row), NO_CONTACT_MONTHS)));
   if (row.id) lines.push(`ID oficina: ${row.id}`);
   return lines.join("\n");
 }

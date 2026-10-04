@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { findPlan, type Plan } from "@/lib/pricing/plans";
 import { clientMark, convertedClientId, normalizeInstagram, normalizeName } from "@/lib/prospects/schema";
-import { NO_PERMISSION, writeError, type Prospect } from "./prospectsData";
+import { NO_PERMISSION, isMissingRpc, writeError, type Prospect } from "./prospectsData";
 
 export type ConvertResult =
   | { ok: true; clientId: string; warnings: string[] }
@@ -27,7 +27,7 @@ function clientNotes(p: Prospect): string {
 }
 
 async function assignPlan(clientId: string, plan: Plan): Promise<string | null> {
-  const values = { plan_key: plan.key, mrr: plan.billing === "monthly" ? plan.price : 0 };
+  const values = { plan_key: plan.key, mrr: planMrr(plan) };
   const upd = await supabase.from("client_billing").update(values).eq("client_id", clientId).select("client_id");
   if (upd.error) return writeError(upd.error);
   if (upd.data && upd.data.length > 0) return null;
@@ -37,14 +37,54 @@ async function assignPlan(clientId: string, plan: Plan): Promise<string | null> 
   return ins.data && ins.data.length > 0 ? null : NO_PERMISSION;
 }
 
+function planMrr(plan: Plan | null): number {
+  return plan && plan.billing === "monthly" ? plan.price : 0;
+}
+
+type RpcOutcome = { kind: "missing" } | { kind: "done"; result: ConvertResult };
+
+/**
+ * convert_prospect_to_client (v3): una transacción, idempotente (si ya hay client_id lo
+ * devuelve) y enlaza por prospects.client_id. Después completa en la ficha del cliente
+ * los datos que la RPC no copia (rubro y notas), sin bloquear si falla.
+ */
+async function convertWithRpc(prospect: Prospect): Promise<RpcOutcome> {
+  const plan = suggestedPlan(prospect);
+  const { data, error } = await supabase.rpc("convert_prospect_to_client", {
+    _prospect_id: prospect.id,
+    // La función acepta NULL (sin plan); el tipo generado no lo refleja.
+    _plan_key: (plan?.key ?? null) as string,
+    _mrr_clp: planMrr(plan),
+  });
+  if (isMissingRpc(error)) return { kind: "missing" };
+  if (error) return { kind: "done", result: { ok: false, error: `No se pudo crear el cliente: ${writeError(error)}` } };
+  const res = data as { client_id?: string; created?: boolean } | null;
+  const clientId = res?.client_id;
+  if (!clientId) return { kind: "done", result: { ok: false, error: `No se pudo crear el cliente: ${NO_PERMISSION}` } };
+
+  const warnings: string[] = [];
+  if (!res.created) return { kind: "done", result: { ok: true, clientId, warnings } };
+  if (!plan) warnings.push("El prospecto no tenía plan sugerido: asígnalo en la ficha del cliente.");
+  const upd = await supabase
+    .from("clients")
+    .update({ business_description: prospect.rubro, notes: clientNotes(prospect) })
+    .eq("id", clientId)
+    .select("id");
+  const err = upd.error ? writeError(upd.error) : !upd.data?.length ? NO_PERMISSION : null;
+  if (err) warnings.push(`El cliente se creó, pero no se pudieron copiar el rubro y las notas: ${err}`);
+  return { kind: "done", result: { ok: true, clientId, warnings } };
+}
+
 /**
  * Crea el cliente (clients + client_billing con el plan sugerido) y marca el prospecto
- * como ganado. Si el cliente se crea pero falla un paso posterior, devuelve ok con avisos.
+ * como ganado. Usa la RPC de la v3; si aún no existe, cae al flujo anterior (inserts
+ * desde el navegador + marca en notas). Si el cliente se crea pero falla un paso
+ * posterior, devuelve ok con avisos.
  */
 export async function convertToClient(prospect: Prospect, userId: string): Promise<ConvertResult> {
   if (prospect.estado === "baja") return { ok: false, error: "Un prospecto dado de baja no se puede convertir en cliente." };
   if (prospect.estado !== "ganado") return { ok: false, error: "Solo se convierten prospectos en estado Ganado." };
-  const already = convertedClientId(prospect.notas);
+  const already = convertedClientId(prospect);
   if (already) return { ok: false, error: "Este prospecto ya se convirtió en cliente." };
   try {
     const sameName = await findClientsByName(prospect.org_id, prospect.nombre);
@@ -52,6 +92,14 @@ export async function convertToClient(prospect: Prospect, userId: string): Promi
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "No se pudo revisar si el cliente ya existe." };
   }
+
+  const viaRpc = await convertWithRpc(prospect);
+  if (viaRpc.kind === "done") return viaRpc.result;
+  return convertLegacy(prospect, userId);
+}
+
+/** Flujo anterior a la v3: inserts desde el navegador y marca "[Cliente: id]" en las notas. */
+async function convertLegacy(prospect: Prospect, userId: string): Promise<ConvertResult> {
 
   const { data, error } = await supabase
     .from("clients")

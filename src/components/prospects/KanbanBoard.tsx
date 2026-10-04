@@ -16,6 +16,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   CLOSED_STATES,
+  COLD_STATE,
   OPEN_STATES,
   STATE_META,
   isProspectState,
@@ -169,6 +170,17 @@ export function KanbanBoard({ prospects, actions }: { prospects: Prospect[]; act
             </Column>
           );
         })}
+        <Column
+          state={COLD_STATE}
+          title="Fríos"
+          count={byState.get(COLD_STATE)?.length ?? 0}
+          className="w-64 shrink-0"
+        >
+          <p className="px-1 pb-2 text-xs text-muted-foreground">
+            Guardados sin insistir. Para retomar, muévelo a Nuevo o Contactado.
+          </p>
+          <CardList items={byState.get(COLD_STATE) ?? []} actions={actions} />
+        </Column>
         <ClosedColumn
           open={closedOpen}
           onToggle={() => setClosedOpen((o) => !o)}

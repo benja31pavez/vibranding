@@ -1,10 +1,11 @@
 import { useDraggable } from "@dnd-kit/core";
 import { Link } from "@tanstack/react-router";
-import { Ban, ExternalLink, GripVertical, UserPlus } from "lucide-react";
+import { Ban, ExternalLink, GripVertical, RotateCcw, UserPlus } from "lucide-react";
 import { StatusBadge } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { findPlan } from "@/lib/pricing/plans";
 import {
+  COLD_STATE,
   PROSPECT_STATES,
   STATE_META,
   convertedClientId,
@@ -61,7 +62,7 @@ export function ConvertAction({ prospect, onConvert, label = "Convertir" }: {
   onConvert: CardActions["onConvert"];
   label?: string;
 }) {
-  const clientId = convertedClientId(prospect.notas);
+  const clientId = convertedClientId(prospect);
   if (clientId) {
     return (
       <Button asChild size="sm" variant="outline" className="h-8 shrink-0 px-2 text-xs">
@@ -79,10 +80,29 @@ export function ConvertAction({ prospect, onConvert, label = "Convertir" }: {
   );
 }
 
-/** Aviso "No contactar hasta …" (perdido/frío con plazo vigente o baja). */
+/** "Retomar" un prospecto frío: lo vuelve a "nuevo" (retomar es siempre manual). */
+export function ResumeAction({ prospect, onMove }: { prospect: Prospect; onMove: CardActions["onMove"] }) {
+  if (prospect.estado !== COLD_STATE) return null;
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      className="h-8 shrink-0 px-2 text-xs"
+      onClick={() => onMove(prospect, "nuevo")}
+      aria-label={`Retomar ${prospect.nombre} (mover a Nuevo)`}
+    >
+      <RotateCcw aria-hidden className="mr-1 h-3.5 w-3.5" /> Retomar
+    </Button>
+  );
+}
+
+/** Aviso "No contactar hasta …" (perdido con plazo vigente o baja). Los fríos no tienen plazo. */
 export function NoContactBadge({ prospect }: { prospect: Prospect }) {
   if (prospect.estado === "baja") return <StatusBadge status="baja" label="No contactar" tone="danger" />;
-  const until = noContactUntil(prospect.notas, toDateInput(new Date().toISOString()));
+  const today = toDateInput(new Date().toISOString());
+  // prospects.no_contactar_hasta (v3) o, en prospectos antiguos, la nota "No contactar antes de …".
+  const column = prospect.no_contactar_hasta && prospect.no_contactar_hasta > today ? prospect.no_contactar_hasta : null;
+  const until = column ?? noContactUntil(prospect.notas, today);
   if (!until) return null;
   return <StatusBadge status="no-contactar" label={`No contactar hasta ${formatShortDate(`${until}T12:00:00`)}`} tone="warning" />;
 }
@@ -140,6 +160,7 @@ export function ProspectCard({ prospect, actions }: { prospect: Prospect; action
       <div className="mt-2 flex items-center gap-2">
         <StageSelect prospect={prospect} onMove={actions.onMove} className="min-w-0 flex-1" />
         <ConvertAction prospect={prospect} onConvert={actions.onConvert} />
+        <ResumeAction prospect={prospect} onMove={actions.onMove} />
       </div>
     </li>
   );
