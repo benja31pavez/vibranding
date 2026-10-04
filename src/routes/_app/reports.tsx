@@ -1,8 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
+import { useState } from "react";
+import { BarChart3, Eye, Heart, Images, Megaphone, MousePointerClick, Percent, Wallet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  EmptyState,
+  ErrorState,
+  MoneyTotals,
+  PageHeader,
+  StatCard,
+  TableSkeleton,
+} from "@/components/app";
 import { LatestReportsTable } from "@/components/reports/LatestReportsTable";
+import {
+  DEFAULT_RANGE_DAYS,
+  REPORT_RANGES,
+  ctrPercent,
+  useClientMetrics,
+  type ClientMetricsRow,
+  type ReportRangeDays,
+} from "@/components/reports/clientMetrics";
+import type { MoneyByCurrency } from "@/lib/pricing/plans";
 
 export const Route = createFileRoute("/_app/reports")({
   component: ReportsPage,
@@ -25,243 +42,128 @@ export const Route = createFileRoute("/_app/reports")({
   }),
 });
 
-type Money = Record<string, number>;
+const NUM = new Intl.NumberFormat("es-CL");
+const PCT = new Intl.NumberFormat("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const DAY = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeZone: "UTC" });
+const fmtDay = (iso: string) => DAY.format(new Date(`${iso}T12:00:00Z`));
+const fmtPct = (value: number) => `${PCT.format(value)} %`;
 
-interface Row {
-  client_id: string;
-  client_name: string;
-  posts: number;
-  likes: number;
-  impressions: number;
-  clicks: number;
-  conversions: number;
-  spend: Money;
-  paid: Money;
-  pending: Money;
-}
-
-const UNKNOWN = "—";
-
-function addMoney(target: Money, currency: string | null | undefined, amount: number) {
-  const key = (currency ?? "").trim().toUpperCase() || UNKNOWN;
-  target[key] = (target[key] ?? 0) + amount;
-}
-
-function mergeMoney(target: Money, source: Money) {
-  for (const [k, v] of Object.entries(source)) target[k] = (target[k] ?? 0) + v;
-}
-
-function fmtMoney(currency: string, amount: number): string {
-  if (currency === UNKNOWN) return amount.toLocaleString("es-CL", { maximumFractionDigits: 0 });
-  try {
-    return new Intl.NumberFormat("es-CL", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: currency === "CLP" ? 0 : 2,
-    }).format(amount);
-  } catch {
-    return `${amount.toLocaleString("es-CL", { maximumFractionDigits: 2 })} ${currency}`;
-  }
-}
-
-function MoneyList({ money }: { money: Money }) {
-  const entries = Object.entries(money).filter(([, v]) => v !== 0);
-  if (entries.length === 0) return <span className="text-muted-foreground">—</span>;
-  return (
-    <span className="inline-flex flex-col items-end gap-0.5">
-      {entries.map(([c, v]) => (
-        <span key={c} className="whitespace-nowrap">
-          {fmtMoney(c, v)}
-        </span>
-      ))}
-    </span>
-  );
+function MoneyCell({ money }: { money: MoneyByCurrency }) {
+  const hasValue = Object.values(money).some((v) => v !== 0);
+  if (!hasValue) return <span className="text-muted-foreground">—</span>;
+  return <MoneyTotals totals={money} className="whitespace-nowrap" />;
 }
 
 function ReportsPage() {
-  const { user } = useAuth();
-  const [rows, setRows] = useState<Row[] | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const { data: clients } = await supabase.from("clients").select("id,name");
-      const list = clients ?? [];
-      const ids = list.map((c) => c.id);
-      if (!ids.length) return setRows([]);
-
-      const [{ data: posts }, { data: ins }, { data: pays }] = await Promise.all([
-        supabase.from("instagram_posts").select("client_id,likes_count").in("client_id", ids),
-        // insights are written at ad level only, so aggregate every row we have.
-        supabase
-          .from("ad_insights_daily")
-          .select(
-            "client_id,spend,impressions,clicks,messaging_conversations_started,currency",
-          )
-          .in("client_id", ids),
-        supabase.from("payments").select("client_id,amount,status,currency").in("client_id", ids),
-      ]);
-
-      const result: Row[] = list.map((c) => {
-        const p = (posts ?? []).filter((x: any) => x.client_id === c.id);
-        const i = (ins ?? []).filter((x: any) => x.client_id === c.id);
-        const pay = (pays ?? []).filter((x: any) => x.client_id === c.id);
-
-        const spend: Money = {};
-        for (const x of i as any[]) addMoney(spend, x.currency, Number(x.spend || 0));
-
-        const paid: Money = {};
-        const pending: Money = {};
-        for (const x of pay as any[]) {
-          const amount = Number(x.amount || 0);
-          if (x.status === "paid") addMoney(paid, x.currency, amount);
-          else if (x.status !== "cancelled") addMoney(pending, x.currency, amount);
-        }
-
-        return {
-          client_id: c.id,
-          client_name: c.name,
-          posts: p.length,
-          likes: p.reduce((s: number, x: any) => s + Number(x.likes_count || 0), 0),
-          impressions: i.reduce((s: number, x: any) => s + Number(x.impressions || 0), 0),
-          clicks: i.reduce((s: number, x: any) => s + Number(x.clicks || 0), 0),
-          conversions: i.reduce(
-            (s: number, x: any) => s + Number(x.messaging_conversations_started || 0),
-            0,
-          ),
-          spend,
-          paid,
-          pending,
-        };
-      });
-      setRows(result);
-    })();
-  }, [user]);
-
-  const totals = (rows ?? []).reduce(
-    (acc, r) => {
-      mergeMoney(acc.spend, r.spend);
-      mergeMoney(acc.paid, r.paid);
-      mergeMoney(acc.pending, r.pending);
-      return {
-        ...acc,
-        posts: acc.posts + r.posts,
-        likes: acc.likes + r.likes,
-        impressions: acc.impressions + r.impressions,
-        clicks: acc.clicks + r.clicks,
-        conversions: acc.conversions + r.conversions,
-      };
-    },
-    {
-      posts: 0,
-      likes: 0,
-      impressions: 0,
-      clicks: 0,
-      conversions: 0,
-      spend: {} as Money,
-      paid: {} as Money,
-      pending: {} as Money,
-    },
-  );
-  const ctr = totals.impressions ? (totals.clicks / totals.impressions) * 100 : 0;
-
-  const Card = ({ label, value }: { label: string; value: React.ReactNode }) => (
-    <div className="rounded-2xl border bg-surface p-5">
-      <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="text-2xl font-semibold mt-1 flex flex-col">{value}</div>
-    </div>
-  );
-
-  const MoneyCardValue = ({ money }: { money: Money }) => {
-    const entries = Object.entries(money).filter(([, v]) => v !== 0);
-    if (entries.length === 0) return <span className="text-muted-foreground">—</span>;
-    return (
-      <>
-        {entries.map(([c, v]) => (
-          <span key={c} className="text-2xl font-semibold leading-tight">
-            {fmtMoney(c, v)}
-          </span>
-        ))}
-      </>
-    );
-  };
+  const [days, setDays] = useState<ReportRangeDays>(DEFAULT_RANGE_DAYS);
+  const metrics = useClientMetrics(days);
+  const data = metrics.data;
+  const loading = metrics.isPending && !metrics.isError;
+  const totals = data?.totals;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 md:px-10 py-8 space-y-8">
-      <header>
-        <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-          <span className="font-brand text-gradient-brand bg-gradient-brand-animated">Reportes</span>
-        </h1>
-        <p className="text-muted-foreground">
-          Métricas agregadas por cliente. Los montos se agrupan por moneda y nunca se suman entre
-          monedas distintas.
-        </p>
-      </header>
+    <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 md:px-10">
+      <PageHeader
+        title="Reportes"
+        description="Métricas agregadas por cliente. Los montos se agrupan por moneda y nunca se suman entre monedas distintas."
+      />
 
       <LatestReportsTable />
 
-      {!rows ? (
-        <div className="text-muted-foreground text-sm">Cargando…</div>
-      ) : rows.length === 0 ? (
-        <div className="text-muted-foreground text-sm">Aún no hay clientes.</div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Card label="Publicaciones" value={String(totals.posts)} />
-            <Card label="Likes IG" value={totals.likes.toLocaleString()} />
-            <Card label="Inversión Ads" value={<MoneyCardValue money={totals.spend} />} />
-            <Card label="CTR" value={`${ctr.toFixed(2)}%`} />
-            <Card label="Impresiones" value={totals.impressions.toLocaleString()} />
-            <Card label="Clicks" value={totals.clicks.toLocaleString()} />
-            <Card label="Cobrado" value={<MoneyCardValue money={totals.paid} />} />
-            <Card label="Pendiente" value={<MoneyCardValue money={totals.pending} />} />
+      <section className="space-y-4" aria-labelledby="metrics-title">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="metrics-title" className="text-lg font-semibold">Resultados por cliente</h2>
+            <p className="text-sm text-muted-foreground">
+              {data
+                ? `Del ${fmtDay(data.from)} al ${fmtDay(data.to)} (hora de Chile). "Pendiente" es todo lo abierto hoy.`
+                : "Publicaciones, Ads y cobros del período elegido."}
+            </p>
           </div>
+          <div role="group" aria-label="Rango de fechas" className="flex flex-wrap gap-2">
+            {REPORT_RANGES.map((r) => (
+              <Button
+                key={r.days}
+                size="sm"
+                variant={days === r.days ? "default" : "outline"}
+                aria-pressed={days === r.days}
+                onClick={() => setDays(r.days)}
+              >
+                {r.label}
+              </Button>
+            ))}
+          </div>
+        </div>
 
-          <div className="rounded-2xl border bg-surface overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/40 text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="text-left px-4 py-2">Cliente</th>
-                  <th className="text-right px-3 py-2">Posts</th>
-                  <th className="text-right px-3 py-2">Likes</th>
-                  <th className="text-right px-3 py-2">Impres.</th>
-                  <th className="text-right px-3 py-2">Clicks</th>
-                  <th className="text-right px-3 py-2">CTR</th>
-                  <th className="text-right px-3 py-2">Inversión</th>
-                  <th className="text-right px-3 py-2">Conv.</th>
-                  <th className="text-right px-3 py-2">Cobrado</th>
-                  <th className="text-right px-3 py-2">Pendiente</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => {
-                  const rctr = r.impressions ? (r.clicks / r.impressions) * 100 : 0;
-                  return (
-                    <tr key={r.client_id} className="border-t">
-                      <td className="px-4 py-2 font-medium">{r.client_name}</td>
-                      <td className="text-right px-3 py-2">{r.posts}</td>
-                      <td className="text-right px-3 py-2">{r.likes.toLocaleString()}</td>
-                      <td className="text-right px-3 py-2">{r.impressions.toLocaleString()}</td>
-                      <td className="text-right px-3 py-2">{r.clicks.toLocaleString()}</td>
-                      <td className="text-right px-3 py-2">{rctr.toFixed(2)}%</td>
-                      <td className="text-right px-3 py-2">
-                        <MoneyList money={r.spend} />
-                      </td>
-                      <td className="text-right px-3 py-2">{r.conversions}</td>
-                      <td className="text-right px-3 py-2">
-                        <MoneyList money={r.paid} />
-                      </td>
-                      <td className="text-right px-3 py-2 text-muted-foreground">
-                        <MoneyList money={r.pending} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+        {metrics.isError ? (
+          <ErrorState
+            message={metrics.error instanceof Error ? metrics.error.message : undefined}
+            onRetry={() => void metrics.refetch()}
+            retrying={metrics.isFetching}
+          />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <StatCard icon={Images} label="Publicaciones" loading={loading} value={NUM.format(totals?.posts ?? 0)} />
+              <StatCard icon={Heart} label="Likes IG" loading={loading} value={NUM.format(totals?.likes ?? 0)} />
+              <StatCard icon={Megaphone} label="Inversión Ads" loading={loading} value={<MoneyCell money={totals?.spend ?? {}} />} />
+              <StatCard icon={Percent} label="CTR" loading={loading} value={fmtPct(ctrPercent(totals?.clicks ?? 0, totals?.impressions ?? 0))} />
+              <StatCard icon={Eye} label="Impresiones" loading={loading} value={NUM.format(totals?.impressions ?? 0)} />
+              <StatCard icon={MousePointerClick} label="Clicks" loading={loading} value={NUM.format(totals?.clicks ?? 0)} />
+              <StatCard icon={Wallet} label="Cobrado" loading={loading} value={<MoneyCell money={totals?.paid ?? {}} />} />
+              <StatCard icon={Wallet} label="Pendiente" loading={loading} value={<MoneyCell money={totals?.pending ?? {}} />} />
+            </div>
+
+            {loading ? (
+              <TableSkeleton rows={5} columns={10} label="Cargando métricas por cliente" />
+            ) : !data || data.rows.length === 0 ? (
+              <EmptyState icon={BarChart3} title="Aún no hay clientes." description="Cuando agregues clientes verás aquí sus resultados." />
+            ) : (
+              <MetricsTable rows={data.rows} />
+            )}
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function MetricsTable({ rows }: { rows: readonly ClientMetricsRow[] }) {
+  const th = "px-3 py-2 text-right font-medium";
+  return (
+    <div className="overflow-x-auto rounded-app-lg border border-border-subtle bg-surface shadow-app-xs">
+      <table className="w-full min-w-[900px] text-sm">
+        <thead className="border-b border-border-subtle text-left text-xs text-muted-foreground">
+          <tr>
+            <th scope="col" className="px-4 py-2 font-medium">Cliente</th>
+            <th scope="col" className={th}>Posts</th>
+            <th scope="col" className={th}>Likes</th>
+            <th scope="col" className={th}>Impresiones</th>
+            <th scope="col" className={th}>Clicks</th>
+            <th scope="col" className={th}>CTR</th>
+            <th scope="col" className={th}>Inversión</th>
+            <th scope="col" className={th}>Conversaciones</th>
+            <th scope="col" className={th}>Cobrado</th>
+            <th scope="col" className={th}>Pendiente</th>
+          </tr>
+        </thead>
+        <tbody className="tabular-nums">
+          {rows.map((r) => (
+            <tr key={r.client_id} className="border-b border-border-subtle last:border-0">
+              <th scope="row" className="px-4 py-2 text-left font-medium">{r.client_name}</th>
+              <td className="px-3 py-2 text-right">{NUM.format(r.posts)}</td>
+              <td className="px-3 py-2 text-right">{NUM.format(r.likes)}</td>
+              <td className="px-3 py-2 text-right">{NUM.format(r.impressions)}</td>
+              <td className="px-3 py-2 text-right">{NUM.format(r.clicks)}</td>
+              <td className="px-3 py-2 text-right">{fmtPct(ctrPercent(r.clicks, r.impressions))}</td>
+              <td className="px-3 py-2 text-right"><MoneyCell money={r.spend} /></td>
+              <td className="px-3 py-2 text-right">{NUM.format(r.conversions)}</td>
+              <td className="px-3 py-2 text-right"><MoneyCell money={r.paid} /></td>
+              <td className="px-3 py-2 text-right text-muted-foreground"><MoneyCell money={r.pending} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
