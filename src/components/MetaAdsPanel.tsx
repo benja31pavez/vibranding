@@ -318,7 +318,8 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     );
   }
 
-  if (capsError) {
+  // Las capacidades solo deciden el estado vacío: si ya hay cuenta o campañas, el panel sigue usable.
+  if (capsError && !account?.ad_account_id && campaigns.length === 0) {
     return (
       <ErrorState
         title="No pudimos revisar la conexión con Meta"
