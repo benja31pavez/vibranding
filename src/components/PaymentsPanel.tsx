@@ -21,6 +21,7 @@ import {
 import {
   EmptyState, ErrorState, Money, StatCard, TableSkeleton, TONE_CLASSES, getStatus,
 } from "@/components/app";
+import { PaymentLinkButton } from "@/components/billing/PaymentLinkButton";
 
 /** RLS hides rows instead of erroring: 0 affected rows means "not allowed". */
 const NO_PERMISSION = "No tienes permisos para esta acción";
@@ -39,6 +40,7 @@ interface Payment {
   status: Status;
   due_date: string | null;
   paid_at: string | null;
+  payment_url: string | null;
 }
 
 const STATUSES: readonly Status[] = ["pending", "paid", "overdue", "cancelled"];
@@ -187,7 +189,7 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
       ) : (
         <ul className="space-y-2">
           {items.map((p) => (
-            <li key={p.id} className="group flex items-center gap-4 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs">
+            <li key={p.id} className="group flex flex-wrap items-center gap-x-4 gap-y-2 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs">
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{p.description || "Cobro"}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">
@@ -196,6 +198,7 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
                 </div>
               </div>
               <Money amount={Number(p.amount)} currency={p.currency} className="font-semibold" />
+              <PaymentLinkButton payment={p} onChanged={load} />
               <Select value={p.status} onValueChange={(v) => update(p.id, { status: v as Status })}>
                 <SelectTrigger aria-label="Estado del pago" className={`h-8 w-32 rounded-full border-0 text-xs font-medium focus:ring-2 focus:ring-ring focus:ring-offset-1 ${statusCls(p.status)}`}>
                   <SelectValue />
@@ -244,13 +247,16 @@ function EditDialog({
     const amount = Number(form.amount);
     if (!amount || amount <= 0) return toast.error("Ingresa un monto válido");
     setSaving(true);
-    const patch: Partial<Payment> = {
+    // Si cambia el monto, el link de Flow anterior ya no corresponde: se descarta.
+    const amountChanged = payment !== null && amount !== Number(payment.amount);
+    const patch: Partial<Payment> & { flow_token?: null } = {
       description: form.description?.trim() || null,
       amount,
       currency: normalizeCurrency(form.currency),
       status: form.status,
       due_date: form.due_date || null,
       paid_at: form.status === "paid" ? (form.paid_at || new Date().toISOString().slice(0, 10)) : null,
+      ...(amountChanged ? { payment_url: null, flow_token: null } : {}),
     };
     const { data, error } = await supabase.from("payments").update(patch).eq("id", form.id).select("id");
     setSaving(false);
