@@ -17,6 +17,31 @@ type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
 
 const OPEN_STATUSES: readonly PaymentRow["status"][] = ["pending", "overdue"];
 
+/**
+ * Vigencia de la orden en Flow (parámetro `timeout` de payment/create, en
+ * segundos según apiFlow.yaml). Sin él la orden no expira nunca y un link
+ * viejo podría pagarse meses después.
+ */
+export const FLOW_ORDER_TIMEOUT_SECONDS = 7 * 24 * 60 * 60;
+/**
+ * No se reutiliza un link al que le quede menos de esto: se genera uno nuevo.
+ * El margen cubre que la zona horaria de requestDate no está documentada.
+ */
+const REUSE_MARGIN_SECONDS = 24 * 60 * 60;
+
+/** Segundos desde requestDate ("yyyy-mm-dd hh:mm:ss"); null si no se puede leer. */
+function orderAgeSeconds(requestDate: string | undefined, now = Date.now()): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/.exec(requestDate ?? "");
+  if (!m) return null;
+  const ts = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+  return Math.floor((now - ts) / 1000);
+}
+
+function reusable(status: FlowPaymentStatus): boolean {
+  const age = orderAgeSeconds(status.requestDate);
+  return age !== null && age < FLOW_ORDER_TIMEOUT_SECONDS - REUSE_MARGIN_SECONDS;
+}
+
 export const FLOW_CONFIRM_PATH = "/api/public/flow/confirm";
 export const FLOW_RETURN_PATH = "/api/public/flow/return";
 
@@ -28,6 +53,8 @@ export const FLOW_RETURN_PATH = "/api/public/flow/return";
 export function commerceOrderMatches(commerceOrder: string, paymentId: string): boolean {
   return commerceOrder === paymentId || commerceOrder.startsWith(`${paymentId}.`);
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -50,7 +77,19 @@ function paidDate(status: FlowPaymentStatus): string {
   return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : todayInChile();
 }
 
-export type ApplyResult = "paid" | "already_paid" | "pending" | "rejected" | "mismatch";
+/**
+ * - paid / already_paid: el cobro quedó (o ya estaba) pagado con esta orden.
+ * - duplicate: el cobro ya estaba pagado con OTRA orden de Flow (posible pago doble).
+ * - mismatch: la orden no corresponde al cobro (commerceOrder, monto o moneda).
+ */
+export type ApplyResult =
+  "paid" | "already_paid" | "duplicate" | "pending" | "rejected" | "mismatch";
+
+/** Id del cobro a partir del commerceOrder ("<uuid>" o "<uuid>.<sufijo>"). */
+export function paymentIdFromCommerceOrder(commerceOrder: string): string | null {
+  const id = commerceOrder.split(".")[0] ?? "";
+  return UUID_RE.test(id) ? id : null;
+}
 
 /**
  * Aplica a `payment` el estado que Flow reportó para su orden. Nunca se llama
@@ -62,22 +101,46 @@ export async function applyFlowStatus(
   status: FlowPaymentStatus,
 ): Promise<ApplyResult> {
   if (!commerceOrderMatches(String(status.commerceOrder ?? ""), payment.id)) {
-    console.error("[flow] commerceOrder no coincide", payment.id, status.commerceOrder);
+    console.error("[flow][ALERTA] commerceOrder no coincide", {
+      paymentId: payment.id,
+      commerceOrder: status.commerceOrder,
+      flowOrder: status.flowOrder,
+    });
     return "mismatch";
   }
   if (status.status !== FLOW_STATUS.PAID) {
     return status.status === FLOW_STATUS.PENDING ? "pending" : "rejected";
   }
-  if (payment.status === "paid") return "already_paid";
+  const flowOrder = String(status.flowOrder);
+  if (payment.status === "paid") {
+    if (payment.provider_ref && payment.provider_ref !== flowOrder) {
+      console.error("[flow][ALERTA] posible pago doble: el cobro ya estaba pagado con otra orden", {
+        paymentId: payment.id,
+        paidWith: payment.provider_ref,
+        newFlowOrder: flowOrder,
+        amount: status.amount,
+      });
+      return "duplicate";
+    }
+    return "already_paid";
+  }
 
   const sameAmount = Math.round(Number(status.amount)) === Math.round(Number(payment.amount));
   if (!sameAmount || String(status.currency).toUpperCase() !== "CLP") {
-    console.error("[flow] monto/moneda no coinciden; no se marca pagado", {
+    console.error("[flow][ALERTA] pago recibido con monto/moneda distintos; no se marca pagado", {
+      flowOrder,
       paymentId: payment.id,
       flow: { amount: status.amount, currency: status.currency },
       local: { amount: payment.amount, currency: payment.currency },
     });
     return "mismatch";
+  }
+
+  if (payment.status === "cancelled") {
+    console.warn("[flow] cobro cancelado recibió un pago en Flow; se marca pagado", {
+      paymentId: payment.id,
+      flowOrder,
+    });
   }
 
   const db = await admin();
@@ -87,7 +150,7 @@ export async function applyFlowStatus(
       status: "paid",
       paid_at: paidDate(status),
       provider: "flow",
-      provider_ref: String(status.flowOrder),
+      provider_ref: flowOrder,
     })
     .eq("id", payment.id)
     .neq("status", "paid")
@@ -146,15 +209,19 @@ export async function ensurePaymentLink(
   let regenerate = false;
   if (payment.provider === "flow" && payment.flow_token && payment.payment_url) {
     const current = await getFlowPaymentStatus(payment.flow_token);
-    if (current.status === FLOW_STATUS.PENDING) {
+    if (current.status === FLOW_STATUS.PENDING && reusable(current)) {
       return { state: "link", paymentUrl: payment.payment_url, reused: true };
     }
     if (current.status === FLOW_STATUS.PAID) {
       const applied = await applyFlowStatus(payment, current);
-      if (applied === "paid" || applied === "already_paid") return { state: "already_paid" };
+      if (applied === "paid" || applied === "already_paid" || applied === "duplicate") {
+        return { state: "already_paid" };
+      }
       throw new Error("Flow reporta un pago que no coincide con este cobro; revísalo en Flow");
     }
-    regenerate = true; // rechazada o anulada: se crea una orden nueva
+    // Rechazada, anulada o por expirar: orden nueva. La anterior no se pierde:
+    // si igual se paga, el webhook la resuelve por su commerceOrder.
+    regenerate = true;
   }
 
   const payer = email?.trim() || (await defaultPayerEmail(payment.client_id));
@@ -170,6 +237,7 @@ export async function ensurePaymentLink(
     email: payer,
     urlConfirmation: `${origin}${FLOW_CONFIRM_PATH}`,
     urlReturn: `${origin}${FLOW_RETURN_PATH}`,
+    timeout: FLOW_ORDER_TIMEOUT_SECONDS,
   });
 
   const db = await admin();
