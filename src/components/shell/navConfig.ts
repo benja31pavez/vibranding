@@ -1,5 +1,5 @@
 import {
-  BarChart3, CalendarCheck, CalendarDays, DollarSign, HeartPulse, LayoutDashboard,
+  BarChart3, CalendarCheck, CalendarDays, DollarSign, HeartPulse, Inbox, LayoutDashboard,
   Images, LineChart, Plug, Users,
 } from "lucide-react";
 import type { ComponentType } from "react";
@@ -16,6 +16,7 @@ export interface NavItem {
 export const PRIMARY_NAV: readonly NavItem[] = [
   { to: "/dashboard", label: "Inicio", icon: LayoutDashboard, keywords: ["dashboard", "hoy"] },
   { to: "/clients", label: "Clientes", icon: Users, keywords: ["cuentas", "marcas"] },
+  { to: "/approvals", label: "Aprobaciones", icon: Inbox, keywords: ["bandeja", "revisión", "pendientes"] },
   { to: "/calendar", label: "Calendario", icon: CalendarDays, keywords: ["agenda", "publicaciones"] },
   { to: "/bookings", label: "Reservas", icon: CalendarCheck, keywords: ["citas", "reuniones"] },
   { to: "/reports", label: "Reportes", icon: BarChart3, keywords: ["informes", "resultados"] },
