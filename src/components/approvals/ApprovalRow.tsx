@@ -73,7 +73,11 @@ function RowActions({ item, onAction }: ActionProps) {
     case "entregable":
       return (
         <>
-          <Button size="sm" onClick={() => onAction({ type: "deliverable_approve", item })}>
+          <Button
+            size="sm"
+            aria-label={`Aprobar ${item.title}`}
+            onClick={() => onAction({ type: "deliverable_approve", item })}
+          >
             <Check aria-hidden className="mr-1 h-3.5 w-3.5" /> Aprobar
           </Button>
           <RequestChangesButton item={item} onAction={onAction} />
@@ -85,7 +89,7 @@ function RowActions({ item, onAction }: ActionProps) {
         <>
           <Button
             size="sm"
-
+            aria-label={`Aprobar ${item.title}`}
             onClick={() => onAction({ type: "instagram_decision", item, decision: "aprobado" })}
           >
             <Check aria-hidden className="mr-1 h-3.5 w-3.5" /> Aprobar
@@ -93,7 +97,7 @@ function RowActions({ item, onAction }: ActionProps) {
           <Button
             size="sm"
             variant="outline"
-
+            aria-label={`Pedir cambios a ${item.title}`}
             onClick={() => onAction({ type: "instagram_decision", item, decision: "cambios" })}
           >
             <MessageSquareWarning aria-hidden className="mr-1 h-3.5 w-3.5" /> Cambios
@@ -102,7 +106,7 @@ function RowActions({ item, onAction }: ActionProps) {
             size="sm"
             variant="ghost"
             className="text-danger-strong hover:bg-danger-subtle hover:text-danger-strong"
-
+            aria-label={`Rechazar ${item.title}`}
             onClick={() => onAction({ type: "instagram_decision", item, decision: "rechazado" })}
           >
             <X aria-hidden className="mr-1 h-3.5 w-3.5" /> Rechazar
@@ -128,11 +132,15 @@ function RequestChangesButton({ item, onAction }: ActionProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button size="sm" variant="outline">
+        <Button size="sm" variant="outline" aria-label={`Pedir cambios a ${item.title}`}>
           <MessageSquareWarning aria-hidden className="mr-1 h-3.5 w-3.5" /> Pedir cambios
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 space-y-2">
+      <PopoverContent
+        align="end"
+        className="w-80 space-y-2"
+        aria-label={`Pedir cambios a ${item.title}`}
+      >
         <label htmlFor={`changes-${item.refId}`} className="text-sm font-medium">
           ¿Qué hay que cambiar?
         </label>

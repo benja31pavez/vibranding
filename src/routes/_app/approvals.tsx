@@ -60,13 +60,16 @@ function ApprovalsPage() {
   const action = useApprovalAction();
 
   const groupBy: GroupBy = search.agrupar === "tipo" ? "kind" : "client";
+  const clients = useMemo(() => clientOptions(items), [items]);
+  // Un ?cliente= que no está en la cola (id viejo o inventado) se ignora.
+  const clientId =
+    search.cliente && clients.some((c) => c.id === search.cliente) ? search.cliente : ALL;
   const filters = useMemo(
-    (): ApprovalFilters => ({ kind: search.tipo ?? ALL, clientId: search.cliente ?? ALL }),
-    [search.tipo, search.cliente],
+    (): ApprovalFilters => ({ kind: search.tipo ?? ALL, clientId }),
+    [search.tipo, clientId],
   );
   const hasFilters = filters.kind !== ALL || filters.clientId !== ALL;
 
-  const clients = useMemo(() => clientOptions(items), [items]);
   const groups = useMemo(
     () => groupApprovals(filterApprovals(items, filters), groupBy),
     [items, filters, groupBy],

@@ -1,11 +1,19 @@
-import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 import { dashboardKeys } from "@/components/dashboard/queries";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ApprovalPermissionError,
+  ApprovalStaleError,
   itemKey,
+  restoreItem,
   toApprovalItems,
   type ApprovalItem,
   type InstagramDecision,
@@ -56,33 +64,32 @@ async function fetchApprovalQueue(): Promise<ApprovalItem[]> {
   return toApprovalItems(rows ?? [], names);
 }
 
-function useQueueKey() {
-  const { user } = useAuth();
-  const userId = user?.id ?? "";
-  return { userId, queryKey: approvalKeys.queue(userId) };
-}
-
-/** Cola de aprobaciones pendientes (entregables, posts de Instagram y propuestas). */
-export function useApprovalQueue() {
-  const { userId, queryKey } = useQueueKey();
-  const query = useQuery({
-    queryKey,
+/** Opciones compartidas por la bandeja y el badge: misma key, misma caché. */
+export function approvalQueueOptions(userId: string) {
+  return queryOptions({
+    queryKey: approvalKeys.queue(userId),
     enabled: Boolean(userId),
     queryFn: fetchApprovalQueue,
     refetchInterval: REFRESH_MS,
   });
+}
+
+function useUserId(): string {
+  const { user } = useAuth();
+  return user?.id ?? "";
+}
+
+/** Cola de aprobaciones pendientes (entregables, posts de Instagram y propuestas). */
+export function useApprovalQueue() {
+  const query = useQuery(approvalQueueOptions(useUserId()));
   return { ...query, items: query.data ?? [], count: query.data?.length ?? 0 };
 }
 
-/** Solo el conteo, para el badge del header. Comparte caché con useApprovalQueue. */
+/** Solo el conteo, para el badge del header. */
 export function useApprovalCount(): number {
-  const { userId, queryKey } = useQueueKey();
   const { data } = useQuery({
-    queryKey,
-    enabled: Boolean(userId),
-    queryFn: fetchApprovalQueue,
-    refetchInterval: REFRESH_MS,
-    select: (items) => items.length,
+    ...approvalQueueOptions(useUserId()),
+    select: (items: ApprovalItem[]) => items.length,
   });
   return data ?? 0;
 }
@@ -106,24 +113,56 @@ const SUCCESS_MESSAGE: Record<string, string> = {
 
 const DEFAULT_CHANGES_NOTE = "Se solicitaron cambios desde la bandeja de aprobaciones.";
 
+export const approvalActionKey = ["approvals", "action"] as const;
+
 interface Author {
   id: string;
   name: string;
 }
 
-/** Falla con ApprovalPermissionError si RLS no dejó actualizar ninguna fila. */
-function assertUpdated(data: unknown[] | null) {
-  if (!data || data.length === 0) throw new ApprovalPermissionError();
+/** Resultado de una acción aplicada: el comentario del entregable es secundario y puede fallar. */
+interface ActionResult {
+  commentError: string | null;
 }
 
+/**
+ * 0 filas actualizadas: se vuelve a leer el registro para distinguir
+ * "otro ya lo resolvió" (stale) de "RLS no te deja" (permisos).
+ */
+async function explainNoRows(stillPending: () => Promise<boolean>): Promise<never> {
+  throw (await stillPending()) ? new ApprovalPermissionError() : new ApprovalStaleError();
+}
+
+async function deliverableStillPending(id: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("deliverables")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.status === "in_review";
+}
+
+async function postStillPending(id: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("instagram_posts")
+    .select("approval_status,archived_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.approval_status === "pendiente" && data.archived_at === null;
+}
+
+/** Solo actualiza si sigue "in_review" (mismo criterio que la vista approval_queue). */
 async function setDeliverableStatus(id: string, status: "done" | "in_progress") {
   const { data, error } = await supabase
     .from("deliverables")
     .update({ status })
     .eq("id", id)
+    .eq("status", "in_review")
     .select("id");
   if (error) throw new Error(error.message);
-  assertUpdated(data);
+  if (!data || data.length === 0) await explainNoRows(() => deliverableStillPending(id));
 }
 
 /** Deja constancia en el hilo del entregable, igual que DeliverablesList. */
@@ -132,8 +171,8 @@ async function addDeliverableComment(
   author: Author,
   kind: "approval" | "change_request",
   body: string,
-) {
-  if (!item.clientId) return;
+): Promise<ActionResult> {
+  if (!item.clientId) return { commentError: null };
   const { error } = await supabase.from("deliverable_comments").insert({
     deliverable_id: item.refId,
     client_id: item.clientId,
@@ -145,12 +184,15 @@ async function addDeliverableComment(
     kind,
     body,
   });
-  // El cambio de estado ya se aplicó: solo avisamos que el comentario no quedó registrado.
-  if (error)
-    toast.warning(`El estado cambió, pero no se pudo guardar el comentario: ${error.message}`);
+  return { commentError: error?.message ?? null };
 }
 
-async function decideInstagramPost(id: string, decision: InstagramDecision, authorId: string) {
+/** Solo actualiza si sigue "pendiente" y sin archivar (mismo criterio que approval_queue). */
+async function decideInstagramPost(
+  id: string,
+  decision: InstagramDecision,
+  authorId: string,
+): Promise<ActionResult> {
   const approved = decision === "aprobado";
   const { data, error } = await supabase
     .from("instagram_posts")
@@ -160,40 +202,44 @@ async function decideInstagramPost(id: string, decision: InstagramDecision, auth
       approved_by: approved ? authorId : null,
     })
     .eq("id", id)
+    .eq("approval_status", "pendiente")
+    .is("archived_at", null)
     .select("id");
   if (error) throw new Error(error.message);
-  assertUpdated(data);
+  if (!data || data.length === 0) await explainNoRows(() => postStillPending(id));
+  return { commentError: null };
 }
 
-async function runAction(action: ApprovalAction, author: Author) {
+async function runAction(action: ApprovalAction, author: Author): Promise<ActionResult> {
   switch (action.type) {
     case "deliverable_approve":
       await setDeliverableStatus(action.item.refId, "done");
-      await addDeliverableComment(action.item, author, "approval", "Aprobado ✓");
-      return;
+      return addDeliverableComment(action.item, author, "approval", "Aprobado ✓");
     case "deliverable_changes":
       await setDeliverableStatus(action.item.refId, "in_progress");
-      await addDeliverableComment(
+      return addDeliverableComment(
         action.item,
         author,
         "change_request",
         action.note.trim() || DEFAULT_CHANGES_NOTE,
       );
-      return;
     case "instagram_decision":
-      await decideInstagramPost(action.item.refId, action.decision, author.id);
-      return;
+      return decideInstagramPost(action.item.refId, action.decision, author.id);
   }
 }
 
-/** Mutación optimista: saca el ítem de la cola al instante y lo repone si falla. */
+/**
+ * Mutación optimista: saca el ítem de la cola al instante.
+ * Si falla, repone solo ese ítem (salvo que ya lo haya resuelto otro).
+ */
 export function useApprovalAction() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { queryKey } = useQueueKey();
+  const queryKey = approvalKeys.queue(user?.id ?? "");
 
   return useMutation({
-    mutationFn: (action: ApprovalAction) => {
+    mutationKey: approvalActionKey,
+    mutationFn: (action: ApprovalAction): Promise<ActionResult> => {
       if (!user) throw new ApprovalPermissionError();
       const author: Author = {
         id: user.id,
@@ -203,21 +249,36 @@ export function useApprovalAction() {
     },
     onMutate: async (action) => {
       await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData<ApprovalItem[]>(queryKey);
       const removedKey = itemKey(action.item);
       queryClient.setQueryData<ApprovalItem[]>(queryKey, (items) =>
         items?.filter((i) => itemKey(i) !== removedKey),
       );
-      return { previous };
     },
-    onError: (error, _action, context) => {
-      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+    onError: (error, action) => {
+      if (error instanceof ApprovalStaleError) {
+        toast.info(error.message);
+        return;
+      }
+      queryClient.setQueryData<ApprovalItem[]>(queryKey, (items) =>
+        items ? restoreItem(items, action.item) : items,
+      );
       toast.error(error instanceof Error ? error.message : "No se pudo completar la acción");
     },
-    onSuccess: (_data, action) => {
+    onSuccess: (result, action) => {
+      if (result.commentError) {
+        toast.warning(
+          `El estado cambió, pero no se pudo guardar el comentario: ${result.commentError}`,
+        );
+        return;
+      }
       const key = action.type === "instagram_decision" ? action.decision : action.type;
       toast.success(SUCCESS_MESSAGE[key]);
     },
-    onSettled: () => invalidateApprovalQueue(queryClient),
+    onSettled: () => {
+      // Con varias acciones en vuelo, solo la última refresca (evita repintar ítems ya quitados).
+      if (queryClient.isMutating({ mutationKey: approvalActionKey }) === 1) {
+        return invalidateApprovalQueue(queryClient);
+      }
+    },
   });
 }

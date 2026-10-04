@@ -130,10 +130,26 @@ export function clientOptions(items: readonly ApprovalItem[]): { id: string; nam
 
 export const PERMISSION_DENIED_MESSAGE = "No tienes permisos para esta acción";
 
-/** Se lanza cuando un UPDATE no afecta filas (RLS lo filtró o el registro ya no existe). */
+/** El UPDATE no afectó filas aunque el ítem sigue pendiente: RLS no lo permite. */
 export class ApprovalPermissionError extends Error {
   constructor() {
     super(PERMISSION_DENIED_MESSAGE);
     this.name = "ApprovalPermissionError";
   }
+}
+
+export const STALE_ITEM_MESSAGE = "Este ítem ya fue actualizado";
+
+/** El UPDATE no afectó filas porque el ítem ya no está pendiente (otro usuario lo resolvió o se borró). */
+export class ApprovalStaleError extends Error {
+  constructor() {
+    super(STALE_ITEM_MESSAGE);
+    this.name = "ApprovalStaleError";
+  }
+}
+
+/** Repone un ítem en la cola (si no está) manteniendo el orden por fecha. */
+export function restoreItem(items: readonly ApprovalItem[], item: ApprovalItem): ApprovalItem[] {
+  if (items.some((i) => itemKey(i) === itemKey(item))) return [...items];
+  return [...items, item].sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""));
 }
