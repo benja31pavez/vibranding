@@ -17,6 +17,7 @@ import { DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/app";
+import { chileToday } from "@/lib/dates/chile";
 
 
 type Source = "whatsapp" | "landing" | "meta_ads" | "multilink";
@@ -185,7 +186,7 @@ export function LeadsPage({ clientId }: { clientId: string }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `leads-${chileToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
