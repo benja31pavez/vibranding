@@ -4,6 +4,7 @@ import { Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ErrorState } from "@/components/app";
 import { listClientUsers, inviteClientUser, revokeClientUser } from "@/lib/clients/clientAccess.functions";
 
 interface Row {
@@ -21,12 +22,14 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = async () => {
     try {
       setRows((await list({ data: { clientId } })) as Row[]);
-    } catch {
-      /* sin permisos o sin accesos */
+      setLoadError(null);
+    } catch (err: any) {
+      setLoadError(err?.message ?? "No se pudieron cargar los accesos");
     }
   };
 
@@ -76,7 +79,9 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
         </Button>
       </form>
 
-      {rows.length === 0 ? (
+      {loadError ? (
+        <ErrorState title="No pudimos cargar los accesos" message={loadError} onRetry={() => void load()} />
+      ) : rows.length === 0 ? (
         <div className="text-sm text-muted-foreground">Todavía no has dado acceso a nadie.</div>
       ) : (
         <ul className="space-y-2">
@@ -86,7 +91,9 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
               <Button
                 size="sm"
                 variant="ghost"
+                aria-label={`Revocar acceso de ${r.email ?? r.user_id}`}
                 onClick={async () => {
+                  if (!confirm(`¿Quitar el acceso de ${r.email ?? "este usuario"}?`)) return;
                   try {
                     await revoke({ data: { id: r.id } });
                     toast.success("Acceso revocado");
