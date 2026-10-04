@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnmarkedOutcomes } from "@/hooks/use-unmarked-outcomes";
@@ -19,25 +19,38 @@ function AppLayout() {
   const { session, loading, signOut, user } = useAuth();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { activeClient, clearActive } = useShellActiveClient(path, Boolean(session));
+  const { activeClient, clearActive } = useShellActiveClient(path, session?.user?.id);
   const profile = useUserProfile(session?.user?.id);
   const { stale: unmarkedStale } = useUnmarkedOutcomes(activeClient?.id ?? null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [clientSheetOpen, setClientSheetOpen] = useState(false);
+  // Usuario verificado como agencia (no cliente invitado); hasta entonces se muestra el skeleton.
+  const [verifiedUserId, setVerifiedUserId] = useState<string | null>(null);
+  const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
   }, [loading, session, navigate]);
 
-  // Invited client users only have the read-only portal.
+  // Invited client users only have the read-only portal: no mostrar el shell de agencia antes de saberlo.
+  const userId = session?.user?.id;
   useEffect(() => {
-    if (!session) return;
+    if (!userId) return;
+    let cancelled = false;
     supabase.rpc("user_client_id").then(({ data, error }) => {
+      if (cancelled) return;
       if (error) console.error("[shell] No se pudo verificar el tipo de usuario", error);
-      if (data) navigate({ to: "/portal" });
+      if (data) {
+        navigate({ to: "/portal" });
+        return;
+      }
+      setVerifiedUserId(userId);
     });
-  }, [session?.user?.id, navigate]);
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, navigate]);
 
   // Al navegar, cerrar los paneles móviles.
   useEffect(() => {
@@ -45,7 +58,7 @@ function AppLayout() {
     setClientSheetOpen(false);
   }, [path]);
 
-  if (loading || !session) return <ShellSkeleton />;
+  if (loading || !session || verifiedUserId !== userId) return <ShellSkeleton />;
 
   const sidebarProps = {
     activeClient,
@@ -74,7 +87,7 @@ function AppLayout() {
           <MobileClientSheet {...sidebarProps} open={clientSheetOpen} onOpenChange={setClientSheetOpen} />
         }
       />
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} onToggle={togglePalette} />
 
       <div className="flex min-h-0 flex-1">
         <aside

@@ -15,6 +15,7 @@ export function useUserProfile(userId: string | undefined) {
 
   useEffect(() => {
     if (!userId) return;
+    let cancelled = false;
     const loadProfile = () => {
       supabase
         .from("user_profiles")
@@ -22,13 +23,17 @@ export function useUserProfile(userId: string | undefined) {
         .eq("user_id", userId)
         .maybeSingle()
         .then(({ data, error }) => {
+          if (cancelled) return;
           if (error) console.error("[shell] No se pudo cargar el perfil", error);
           setProfile(data ?? EMPTY_PROFILE);
         });
     };
     loadProfile();
     window.addEventListener("profile-updated", loadProfile);
-    return () => window.removeEventListener("profile-updated", loadProfile);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("profile-updated", loadProfile);
+    };
   }, [userId]);
 
   return profile;

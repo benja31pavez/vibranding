@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { isApplePlatform } from "./platform";
 
 /** "⌘K" en Mac y "Ctrl K" en el resto; se resuelve tras montar para no romper el SSR. */
 function useShortcutLabel() {
   const [label, setLabel] = useState("⌘K");
   useEffect(() => {
-    const platform = navigator.platform || navigator.userAgent;
-    if (!/mac|iphone|ipad/i.test(platform)) setLabel("Ctrl K");
+    if (!isApplePlatform()) setLabel("Ctrl K");
   }, []);
   return label;
 }
@@ -21,7 +21,7 @@ export function SearchButton({ onClick }: { onClick: () => void }) {
       size="sm"
       onClick={onClick}
       aria-label={`Buscar clientes o secciones (${shortcut})`}
-      aria-keyshortcuts="Meta+K Control+K"
+      aria-keyshortcuts={shortcut === "⌘K" ? "Meta+K" : "Control+K"}
       className="h-9 w-9 gap-2 px-0 text-muted-foreground sm:w-auto sm:px-3"
     >
       <Search className="h-4 w-4" aria-hidden="true" />

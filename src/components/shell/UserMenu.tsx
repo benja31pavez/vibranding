@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { User } from "@supabase/supabase-js";
-import { LogOut, UserCircle2, UserCog } from "lucide-react";
+import { ExternalLink, LogOut, UserCircle2, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
@@ -45,6 +45,12 @@ export function UserMenu({ user, profile, onSignOut }: UserMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild className="cursor-pointer">
           <Link to="/profile"><UserCog className="mr-2 h-4 w-4" /> Editar perfil</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <a href="/" target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="mr-2 h-4 w-4" /> Ver sitio público
+            <span className="sr-only"> (se abre en una pestaña nueva)</span>
+          </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
