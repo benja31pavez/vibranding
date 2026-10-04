@@ -9,6 +9,15 @@ const InviteInput = z.object({
 });
 const RevokeInput = z.object({ id: z.string().uuid() });
 
+/**
+ * Blocked invites (address already tied to another client's portal or to an
+ * agency org) are logged server-side but answered exactly like a successful
+ * one, so the endpoint cannot be used to probe which emails exist or where.
+ */
+function logBlockedInvite(reason: string, clientId: string, userId: string) {
+  console.warn("[clientAccess] portal invite blocked", { reason, clientId, userId });
+}
+
 /** Users with read-only access to a client. */
 export const listClientUsers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -56,7 +65,6 @@ export const inviteClientUser = createServerFn({ method: "POST" })
     };
 
     let userId: string | null = null;
-    let alreadyRegistered = false;
 
     const invited = await supabaseAdmin.auth.admin.inviteUserByEmail(email, { redirectTo });
     if (invited.data?.user) {
@@ -66,16 +74,50 @@ export const inviteClientUser = createServerFn({ method: "POST" })
       // account instead of minting a recovery link: returning such a link to the caller
       // would let any org admin take over any existing user's account.
       userId = await findExistingUserId(email);
-      alreadyRegistered = true;
       if (!userId) throw new Error(invited.error?.message ?? "No se pudo invitar");
     }
 
-    const { error } = await supabaseAdmin
+    // Never move an existing account: a user that already belongs to another
+    // client's portal, or to any agency org, must not be silently reassigned
+    // (that would cut off their access or hand them a different tenant).
+    const { data: currentLink, error: linkError } = await supabaseAdmin
       .from("client_users")
-      .upsert({ user_id: userId!, client_id: data.clientId, email }, { onConflict: "user_id" });
-    if (error) throw new Error(error.message);
+      .select("client_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (linkError) throw new Error("No se pudo verificar el correo");
+    if (currentLink && currentLink.client_id !== data.clientId) {
+      logBlockedInvite("linked_to_other_client", data.clientId, userId);
+      return { ok: true, email };
+    }
 
-    return { ok: true, email, alreadyRegistered };
+    const { data: membership, error: memberError } = await (
+      supabaseAdmin.from("org_members" as any) as any
+    )
+      .select("id")
+      .eq("user_id", userId)
+      .limit(1);
+    if (memberError) throw new Error("No se pudo verificar el correo");
+    if (((membership ?? []) as unknown[]).length > 0) {
+      logBlockedInvite("org_member", data.clientId, userId);
+      return { ok: true, email };
+    }
+
+    if (!currentLink) {
+      const { error } = await supabaseAdmin
+        .from("client_users")
+        .insert({ user_id: userId, client_id: data.clientId, email });
+      if (error?.code === "23505") {
+        // Raced with another invite for the same account: treat as blocked.
+        logBlockedInvite("unique_conflict", data.clientId, userId);
+        return { ok: true, email };
+      }
+      if (error) throw new Error(error.message);
+    }
+
+    // Same response whether the address was new or already registered, so the
+    // endpoint cannot be used to discover which emails have an account.
+    return { ok: true, email };
   });
 
 export const revokeClientUser = createServerFn({ method: "POST" })

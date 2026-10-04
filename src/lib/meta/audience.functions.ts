@@ -6,12 +6,9 @@ export const refreshAudienceSnapshot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { clientId: string; force?: boolean }) => input)
   .handler(async ({ data, context }) => {
-    const { data: owned } = await context.supabase
-      .from("clients")
-      .select("id")
-      .eq("id", data.clientId)
-      .maybeSingle();
-    if (!owned) throw new Error("No tienes acceso a este cliente");
+    // Uses the agency's Meta token: agency editors only (no viewers, no portal).
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, data.clientId);
 
     const { getClientMetaToken } = await import("@/lib/meta/clientToken.server");
     const resolved = await getClientMetaToken(data.clientId);

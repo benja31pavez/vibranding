@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { zonedParts } from "./tz";
@@ -68,6 +69,56 @@ function withinHours(
   return true;
 }
 
+/** Public booking abuse limits. */
+const BOOKING_LIMITS = {
+  /** Bookings one IP may create per window (best-effort, per server instance). */
+  perIp: 5,
+  ipWindowMs: 60 * 60 * 1000,
+  /** Bookings one email may create per agenda in the last 24 h (enforced in DB). */
+  perEmailPerDay: 3,
+  /** Bookings one agenda accepts per hour, whoever sends them (enforced in DB). */
+  perAgendaPerHour: 20,
+} as const;
+
+const RATE_LIMITED = "Demasiadas reservas en poco tiempo. Intenta más tarde.";
+
+/** ip hash -> recent attempt timestamps. In-memory, so it is a first line only. */
+const ipAttempts = new Map<string, number[]>();
+
+/** Same IP derivation + salted hash as the landing contact form. */
+async function clientIpHash(): Promise<string | null> {
+  const req = getRequest();
+  const ip =
+    req?.headers.get("cf-connecting-ip") ??
+    req?.headers.get("x-real-ip") ??
+    req?.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    null;
+  if (!ip) return null;
+  const { createHash } = await import("crypto");
+  return createHash("sha256")
+    .update(`${ip}:${process.env["SUPABASE_PROJECT_SALT"] ?? "landing"}`)
+    .digest("hex");
+}
+
+/** Records an attempt and returns false when the IP is over its limit. */
+function allowIpAttempt(ipHash: string | null, now = Date.now()): boolean {
+  if (!ipHash) return true;
+  const since = now - BOOKING_LIMITS.ipWindowMs;
+  const recent = (ipAttempts.get(ipHash) ?? []).filter((t) => t > since);
+  if (recent.length >= BOOKING_LIMITS.perIp) {
+    ipAttempts.set(ipHash, recent);
+    return false;
+  }
+  ipAttempts.set(ipHash, [...recent, now]);
+  // Keep the map bounded on long-lived instances.
+  if (ipAttempts.size > 5000) {
+    for (const [key, times] of ipAttempts) {
+      if (!times.some((t) => t > since)) ipAttempts.delete(key);
+    }
+  }
+  return true;
+}
+
 export const createBooking = createServerFn({ method: "POST" })
   .inputValidator(
     (d: {
@@ -80,6 +131,8 @@ export const createBooking = createServerFn({ method: "POST" })
     }) => BookingInput.parse(d),
   )
   .handler(async ({ data }) => {
+    if (!allowIpAttempt(await clientIpHash())) throw new Error(RATE_LIMITED);
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: settingsRows, error: sErr } = await supabaseAdmin.rpc(
@@ -104,6 +157,40 @@ export const createBooking = createServerFn({ method: "POST" })
     if (!withinHours(data.scheduledAt, s.hours as any, s.slot_minutes, tz)) {
       throw new Error("Ese horario no está disponible");
     }
+
+    // Persistent caps (survive restarts and multiple instances): per email per
+    // day and per agenda per hour, counted on bookings already stored.
+    // Not atomic: two simultaneous requests can both pass the count before
+    // either inserts (at most a request or two over the cap). Making it atomic
+    // means moving count + insert into one SECURITY DEFINER RPC with an
+    // advisory lock per agenda; deferred because that RPC would only exist
+    // after a manual migration and this path must work without it.
+    // TODO(seguridad): add Cloudflare Turnstile to the public booking form
+    // (widget in book.$slug.tsx + server-side siteverify here) to stop bots
+    // rotating IPs/emails; the limits below are only a backstop.
+    const email = data.email.toLowerCase();
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const [{ count: byEmail, error: eErr }, { count: byAgenda, error: aErr }] = await Promise.all([
+      supabaseAdmin
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("settings_id", s.id)
+        // Case-insensitive exact match: escape LIKE wildcards ("_" is valid in emails).
+        .ilike("customer_email", email.replace(/[\\%_]/g, (c) => `\\${c}`))
+        .gte("created_at", dayAgo),
+      supabaseAdmin
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("settings_id", s.id)
+        .gte("created_at", hourAgo),
+    ]);
+    if (eErr || aErr) {
+      console.error("[booking] rate-limit count failed", eErr?.message ?? aErr?.message);
+      throw new Error("No se pudo procesar la reserva. Intenta de nuevo.");
+    }
+    if ((byEmail ?? 0) >= BOOKING_LIMITS.perEmailPerDay) throw new Error(RATE_LIMITED);
+    if ((byAgenda ?? 0) >= BOOKING_LIMITS.perAgendaPerHour) throw new Error(RATE_LIMITED);
 
     // Insert (unique index prevents double-booking)
     const { data: inserted, error: iErr } = await supabaseAdmin

@@ -161,12 +161,10 @@ export const assignClientAssets = createServerFn({ method: "POST" })
     if (!data.adAccountId && !data.igAccountId) {
       throw new Error("Selecciona al menos una cuenta publicitaria o de Instagram");
     }
-    const { data: client } = await context.supabase
-      .from("clients")
-      .select("id")
-      .eq("id", data.clientId)
-      .maybeSingle();
-    if (!client) throw new Error("No tienes acceso a este cliente");
+    // Portal users can see their client row via RLS, so a plain select is not
+    // enough: only agency editors may use the org's Meta token here.
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, data.clientId);
 
     const { normalizeAdAccountId } = await import("@/lib/meta/systemUser.server");
     const adAccountId = data.adAccountId ? normalizeAdAccountId(data.adAccountId) : null;
@@ -204,7 +202,13 @@ export const assignClientAssets = createServerFn({ method: "POST" })
       .eq("client_id", data.clientId)
       .maybeSingle();
 
-    const { error } = await (context.supabase.from("meta_accounts" as any) as any).upsert(
+    const { assertMetaAssetsFree } = await import("@/lib/auth/clientAccess.server");
+    await assertMetaAssetsFree(data.clientId, { adAccountId, igAccountId: data.igAccountId });
+
+    // Identity columns are written with the service role after the editor
+    // check, so the database can block direct rewrites by authenticated users.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin.from("meta_accounts" as any) as any).upsert(
       {
         client_id: data.clientId,
         ad_account_id: adAccountId,
@@ -247,12 +251,10 @@ export const validateClientMeta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { clientId: string }) => input)
   .handler(async ({ data, context }) => {
-    const { data: client } = await context.supabase
-      .from("clients")
-      .select("id")
-      .eq("id", data.clientId)
-      .maybeSingle();
-    if (!client) throw new Error("No tienes acceso a este cliente");
+    // Portal users can see their client row via RLS, so a plain select is not
+    // enough: only agency editors may use the org's Meta token here.
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, data.clientId);
 
     const validation = await runValidation(data.clientId);
     const passed = Boolean((validation as MetaValidation).ok);
@@ -267,12 +269,10 @@ export const syncClientNow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { clientId: string }) => input)
   .handler(async ({ data, context }) => {
-    const { data: client } = await context.supabase
-      .from("clients")
-      .select("id")
-      .eq("id", data.clientId)
-      .maybeSingle();
-    if (!client) throw new Error("No tienes acceso a este cliente");
+    // Portal users can see their client row via RLS, so a plain select is not
+    // enough: only agency editors may use the org's Meta token here.
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, data.clientId);
 
     const { getClientMetaToken } = await import("@/lib/meta/clientToken.server");
     const resolved = await getClientMetaToken(data.clientId);

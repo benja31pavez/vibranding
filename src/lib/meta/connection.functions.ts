@@ -24,12 +24,10 @@ export const discoverSystemUserToken = createServerFn({ method: "POST" })
     const token = data.token.trim();
     if (token.length < 20) throw new Error("El token pegado no parece válido");
 
-    const { data: owned } = await context.supabase
-      .from("clients")
-      .select("id")
-      .eq("id", data.clientId)
-      .maybeSingle();
-    if (!owned) throw new Error("No tienes acceso a este cliente");
+    // Portal users can see their client row via RLS, so a plain select is not
+    // enough: only agency editors may use the org's Meta token here.
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, data.clientId);
 
     const { discoverSystemUserAssets } = await import("@/lib/meta/systemUser.server");
     return await discoverSystemUserAssets(token);
@@ -103,12 +101,10 @@ export const connectSystemUser = createServerFn({ method: "POST" })
     }
 
 
-    const { data: owned } = await context.supabase
-      .from("clients")
-      .select("id")
-      .eq("id", data.clientId)
-      .maybeSingle();
-    if (!owned) throw new Error("No tienes acceso a este cliente");
+    // Portal users can see their client row via RLS, so a plain select is not
+    // enough: only agency editors may use the org's Meta token here.
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, data.clientId);
 
     const { normalizeAdAccountId } = await import("@/lib/meta/systemUser.server");
     const adAccountId = data.adAccountId ? normalizeAdAccountId(data.adAccountId) : null;
@@ -136,7 +132,14 @@ export const connectSystemUser = createServerFn({ method: "POST" })
     }
 
 
-    const { data: saved, error } = await (context.supabase.from("meta_accounts" as any) as any)
+    const { assertMetaAssetsFree } = await import("@/lib/auth/clientAccess.server");
+    await assertMetaAssetsFree(data.clientId, { adAccountId, igAccountId: data.igAccountId });
+
+    // Identity columns are written with the service role (after the editor
+    // check above) so the database can forbid authenticated users from
+    // rewriting ig/ad/page ids directly.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: saved, error } = await (supabaseAdmin.from("meta_accounts" as any) as any)
       .upsert(
         {
           client_id: data.clientId,
@@ -175,12 +178,10 @@ export const startMetaOAuth = createServerFn({ method: "POST" })
     const appSecret = process.env.META_APP_SECRET;
     if (!appId || !appSecret) throw new Error("Falta configurar la app de Meta");
 
-    const { data: owned } = await context.supabase
-      .from("clients")
-      .select("id")
-      .eq("id", data.clientId)
-      .maybeSingle();
-    if (!owned) throw new Error("No tienes acceso a este cliente");
+    // Portal users can see their client row via RLS, so a plain select is not
+    // enough: only agency editors may use the org's Meta token here.
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, data.clientId);
 
     const { META_SCOPES, redirectUri, signState, metaGraphVersion } = await import(
       "@/lib/meta/oauth.server",
@@ -218,15 +219,19 @@ export const disconnectMeta = createServerFn({ method: "POST" })
   .inputValidator((input: { accountId: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: owned } = await (context.supabase.from("meta_accounts" as any) as any)
-      .select("id")
+      .select("id,client_id")
       .eq("id", data.accountId)
       .maybeSingle();
     if (!owned) throw new Error("No tienes acceso a esta conexión");
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, owned.client_id);
 
     const { setMetaToken } = await import("@/lib/meta/tokens.server");
     await setMetaToken(data.accountId, null);
 
-    const { error } = await (context.supabase.from("meta_accounts" as any) as any)
+    // Written with the service role only after the editor check above.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin.from("meta_accounts" as any) as any)
       .update({ connected: false, scopes: [] })
       .eq("id", data.accountId);
     if (error) throw new Error(error.message);
@@ -243,6 +248,8 @@ export const syncMetaInsights = createServerFn({ method: "POST" })
       .eq("id", data.accountId)
       .maybeSingle();
     if (!owned) throw new Error("No tienes acceso a esta conexión");
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, owned.client_id);
     if (!owned.connected) throw new Error("La cuenta de Meta no está conectada");
 
     const { getMetaToken } = await import("@/lib/meta/tokens.server");
@@ -332,14 +339,18 @@ export const discoverOrgMetaAssets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { clientId: string }) => input)
   .handler(async ({ data, context }) => {
-    const { data: client } = await context.supabase
+    // Only agency editors may list the agency's Meta assets (not viewers, not
+    // the portal user, who can see the client row via RLS).
+    const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+    await assertCanEditClient(context.userId, data.clientId);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: client } = await supabaseAdmin
       .from("clients")
       .select("id,org_id")
       .eq("id", data.clientId)
       .maybeSingle();
     if (!client) throw new Error("No tienes acceso a este cliente");
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: token, error } = await (supabaseAdmin.rpc as any)("org_meta_get_secret", {
       _org_id: (client as any).org_id,
     });
@@ -349,4 +360,67 @@ export const discoverOrgMetaAssets = createServerFn({ method: "POST" })
 
     const { discoverSystemUserAssets } = await import("@/lib/meta/systemUser.server");
     return await discoverSystemUserAssets(value);
+  });
+
+const ASSET_FIELDS = ["ad_account_id", "page_id", "ig_account_id", "business_name"] as const;
+type AssetField = (typeof ASSET_FIELDS)[number];
+export type MetaAssetPatch = Partial<Record<AssetField, string | null>>;
+
+function sanitizeAssetPatch(input: { clientId: string; patch: MetaAssetPatch }) {
+  const clientId = String(input?.clientId ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(clientId)) throw new Error("Cliente inválido");
+  const patch: MetaAssetPatch = {};
+  for (const key of ASSET_FIELDS) {
+    if (!(key in (input?.patch ?? {}))) continue;
+    const raw = (input.patch as Record<string, unknown>)[key];
+    if (raw === null || raw === undefined || String(raw).trim() === "") {
+      patch[key] = null;
+      continue;
+    }
+    const value = String(raw).trim();
+    if (key === "business_name") {
+      patch[key] = value.slice(0, 200);
+    } else {
+      // Meta ids are numeric; ad accounts may carry the "act_" prefix.
+      if (!/^(act_)?\d{1,30}$/.test(value)) throw new Error(`ID inválido en ${key}`);
+      patch[key] = value;
+    }
+  }
+  if (Object.keys(patch).length === 0) throw new Error("Nada que actualizar");
+  return { clientId, patch };
+}
+
+/**
+ * Manual edit of the Meta assets linked to a client (ad account, page, IG).
+ * Replaces direct browser writes to meta_accounts so identity columns are only
+ * changed by agency editors and never collide with another client.
+ */
+export const updateMetaAccountAssets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clientId: string; patch: MetaAssetPatch }) => sanitizeAssetPatch(input))
+  .handler(async ({ data, context }) => {
+    const { assertCanEditClient, assertMetaAssetsFree } = await import(
+      "@/lib/auth/clientAccess.server"
+    );
+    await assertCanEditClient(context.userId, data.clientId);
+
+    // Same canonical form as the other connect paths ("act_<id>"), so the
+    // uniqueness check and the stored value never disagree.
+    const { normalizeAdAccountId } = await import("@/lib/meta/systemUser.server");
+    const patch: MetaAssetPatch = data.patch.ad_account_id
+      ? { ...data.patch, ad_account_id: normalizeAdAccountId(data.patch.ad_account_id) }
+      : data.patch;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await assertMetaAssetsFree(data.clientId, {
+      adAccountId: patch.ad_account_id,
+      igAccountId: patch.ig_account_id,
+    });
+
+    const { error } = await (supabaseAdmin.from("meta_accounts" as any) as any).upsert(
+      { client_id: data.clientId, ...patch },
+      { onConflict: "client_id" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
   });

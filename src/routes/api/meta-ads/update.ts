@@ -1,4 +1,5 @@
 import { graphBase } from "@/lib/meta/version";
+import { denyUnlessClientEditor } from "@/lib/auth/clientAccess.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
@@ -100,6 +101,10 @@ export const Route = createFileRoute("/api/meta-ads/update")({
 
           if ([...params.keys()].length === 0) return j({ ok: true, skipped: "no-meta-fields" });
 
+          // Spending the agency's Meta token requires an editor role (owner/admin/agent)
+          // in the client's org; viewers and portal users are rejected.
+          const denied = await denyUnlessClientEditor(authHeader, rowClientId);
+          if (denied) return denied;
           // Token from the Vault for this client (OAuth or System User), never env.
           const { requireClientMetaToken } = await import("@/lib/meta/clientToken.server");
           const { token } = await requireClientMetaToken(rowClientId!);

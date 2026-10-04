@@ -6,6 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+
+/** RLS hides rows instead of erroring: 0 affected rows means "not allowed". */
+const NO_PERMISSION = "No tienes permisos para esta acción";
+function writeDenied(error: unknown, rows: unknown[] | null): boolean {
+  return Boolean(error) || !rows || rows.length === 0;
+}
 import { FileSignature, Download, Trash2, Plus, FileText } from "lucide-react";
 import {
   loadPricing, loadServicePricing, SERVICE_CATALOG,
@@ -139,16 +145,16 @@ export function ContractsPage({ clientId }: { clientId: string }) {
 
   const deleteContract = async (id: string) => {
     if (!confirm("¿Eliminar este contrato?")) return;
-    const { error } = await supabase.from("client_contracts").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    const { data, error } = await supabase.from("client_contracts").delete().eq("id", id).select("id");
+    if (writeDenied(error, data)) return toast.error(NO_PERMISSION);
     reloadContracts();
   };
 
   const setStatus = async (id: string, status: ClientContract["status"]) => {
     const patch: any = { status };
     if (status === "signed") patch.signed_at = new Date().toISOString();
-    const { error } = await supabase.from("client_contracts").update(patch).eq("id", id);
-    if (error) return toast.error(error.message);
+    const { data, error } = await supabase.from("client_contracts").update(patch).eq("id", id).select("id");
+    if (writeDenied(error, data)) return toast.error(NO_PERMISSION);
     reloadContracts();
   };
 
