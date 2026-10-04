@@ -112,18 +112,7 @@ export async function applyFlowStatus(
     return status.status === FLOW_STATUS.PENDING ? "pending" : "rejected";
   }
   const flowOrder = String(status.flowOrder);
-  if (payment.status === "paid") {
-    if (payment.provider_ref && payment.provider_ref !== flowOrder) {
-      console.error("[flow][ALERTA] posible pago doble: el cobro ya estaba pagado con otra orden", {
-        paymentId: payment.id,
-        paidWith: payment.provider_ref,
-        newFlowOrder: flowOrder,
-        amount: status.amount,
-      });
-      return "duplicate";
-    }
-    return "already_paid";
-  }
+  if (payment.status === "paid") return resolveAlreadyPaid(payment, status);
 
   const sameAmount = Math.round(Number(status.amount)) === Math.round(Number(payment.amount));
   if (!sameAmount || String(status.currency).toUpperCase() !== "CLP") {
@@ -159,7 +148,48 @@ export async function applyFlowStatus(
     console.error("[flow] no se pudo marcar pagado", payment.id, error.message);
     throw new Error("No se pudo registrar el pago");
   }
-  return data && data.length > 0 ? "paid" : "already_paid";
+  if (data && data.length > 0) return "paid";
+
+  // 0 filas: otra petición lo marcó pagado entre medio. ¿Con esta misma orden?
+  const latest = await loadPayment(payment.id);
+  if (!latest) throw new Error("El cobro desapareció mientras se registraba el pago");
+  return resolveAlreadyPaid(latest, status);
+}
+
+const DUPLICATE_MARK = "[PAGO DUPLICADO";
+
+/**
+ * Cobro ya pagado que recibe otra orden pagada en Flow (o que se marcó pagado
+ * a mano): posible pago doble. Alerta en el log y deja una nota visible en
+ * payments.description (no hay tabla de anomalías todavía; ver SQL del PR).
+ */
+async function resolveAlreadyPaid(
+  payment: PaymentRow,
+  status: FlowPaymentStatus,
+): Promise<"already_paid" | "duplicate"> {
+  const flowOrder = String(status.flowOrder);
+  if (payment.provider_ref === flowOrder) return "already_paid";
+
+  console.error("[flow][ALERTA] posible pago doble: el cobro ya estaba pagado con otra orden", {
+    paymentId: payment.id,
+    paidWith: payment.provider_ref ?? `(${payment.provider ?? "sin proveedor"})`,
+    newFlowOrder: flowOrder,
+    amount: status.amount,
+    currency: status.currency,
+  });
+
+  const note = `${DUPLICATE_MARK} flowOrder=${flowOrder}]`;
+  const current = payment.description ?? "";
+  if (current.includes(note)) return "duplicate";
+  const db = await admin();
+  const { error } = await db
+    .from("payments")
+    .update({ description: current ? `${current} ${note}` : note })
+    .eq("id", payment.id);
+  if (error) {
+    console.error("[flow][ALERTA] no se pudo anotar el pago duplicado", payment.id, error.message);
+  }
+  return "duplicate";
 }
 
 /** Email del portal del cliente, si existe, como pagador por defecto. */

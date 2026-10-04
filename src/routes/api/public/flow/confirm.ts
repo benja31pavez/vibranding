@@ -6,6 +6,38 @@ const TOKEN_RE = /^[A-Za-z0-9_-]+$/;
 
 const text = (body: string, status: number) => new Response(body, { status });
 
+/**
+ * Cache negativa por isolate: tokens que Flow ya rechazó (4xx ≠ 401) no
+ * vuelven a consultarse durante 5 minutos. Acota el costo de POSTs basura;
+ * el límite real va en una regla de rate limit de Cloudflare (ver PR).
+ */
+const NEGATIVE_TTL_MS = 5 * 60 * 1000;
+const NEGATIVE_MAX_ENTRIES = 500;
+const negativeCache = new Map<string, number>();
+
+function isNegativelyCached(token: string, now = Date.now()): boolean {
+  const at = negativeCache.get(token);
+  if (at === undefined) return false;
+  if (now - at < NEGATIVE_TTL_MS) return true;
+  negativeCache.delete(token);
+  return false;
+}
+
+function rememberNegative(token: string, now = Date.now()): void {
+  negativeCache.delete(token);
+  negativeCache.set(token, now);
+  // Map conserva orden de inserción: se descartan las más antiguas.
+  while (negativeCache.size > NEGATIVE_MAX_ENTRIES) {
+    const oldest = negativeCache.keys().next().value;
+    if (oldest === undefined) break;
+    negativeCache.delete(oldest);
+  }
+}
+
+/** 4xx que significan "Flow no reconoce este token". 401 = credenciales nuestras → alerta. */
+const isClientError = (httpStatus: number) =>
+  httpStatus >= 400 && httpStatus < 500 && httpStatus !== 401;
+
 type TokenRead = { ok: true; token: string } | { ok: false; status: 400 | 413 };
 
 /** Lee el body form-urlencoded con tope de 4 KB. */
@@ -48,20 +80,39 @@ export const Route = createFileRoute("/api/public/flow/confirm")({
         const { token } = read;
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { getFlowPaymentStatus, FlowNotConfiguredError } =
+        const { getFlowPaymentStatus, FlowApiError, FlowNotConfiguredError } =
           await import("@/lib/flow/flow.server");
         const { applyFlowStatus, loadPayment, paymentIdFromCommerceOrder } =
           await import("@/lib/flow/payments.server");
 
         try {
-          const status = await getFlowPaymentStatus(token);
-
+          // 1) Token conocido: es una orden nuestra; sin atajos.
           const { data: byToken, error } = await supabaseAdmin
             .from("payments")
             .select("*")
             .eq("flow_token", token)
             .maybeSingle();
           if (error) throw new Error(`búsqueda por token: ${error.message}`);
+
+          // 2) Token desconocido ya rechazado por Flow hace poco: no volver a llamarlo.
+          if (!byToken && isNegativelyCached(token)) return text("OK", 200);
+
+          let status: Awaited<ReturnType<typeof getFlowPaymentStatus>>;
+          try {
+            status = await getFlowPaymentStatus(token);
+          } catch (e) {
+            const rejected = e instanceof FlowApiError && isClientError(e.httpStatus);
+            if (!byToken && rejected) {
+              // Flow no reconoce el token: no es una orden real. Sin alerta.
+              rememberNegative(token);
+              console.warn("[flow confirm] token desconocido rechazado por Flow", {
+                httpStatus: (e as InstanceType<typeof FlowApiError>).httpStatus,
+                code: (e as InstanceType<typeof FlowApiError>).code,
+              });
+              return text("OK", 200);
+            }
+            throw e; // 401, red/timeout o token conocido → 500 (Flow reintenta)
+          }
 
           const fallbackId = byToken
             ? null
@@ -87,6 +138,7 @@ export const Route = createFileRoute("/api/public/flow/confirm")({
             result,
           });
           // mismatch: Flow cobró algo que no pudimos registrar → alerta y reintento.
+          // duplicate: ya alertado y anotado; reintentar no lo arregla → 200.
           return result === "mismatch" ? text("Mismatch", 500) : text("OK", 200);
         } catch (e) {
           if (e instanceof FlowNotConfiguredError) {
