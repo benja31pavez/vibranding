@@ -148,6 +148,24 @@ export type Database = {
           },
         ]
       }
+      booking_email_log: {
+        Row: {
+          created_at: string
+          email_hash: string
+          id: number
+        }
+        Insert: {
+          created_at?: string
+          email_hash: string
+          id?: never
+        }
+        Update: {
+          created_at?: string
+          email_hash?: string
+          id?: never
+        }
+        Relationships: []
+      }
       booking_settings: {
         Row: {
           client_id: string | null
@@ -200,6 +218,32 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_slug_aliases: {
+        Row: {
+          created_at: string
+          settings_id: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          settings_id: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          settings_id?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_slug_aliases_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: false
+            referencedRelation: "booking_settings"
             referencedColumns: ["id"]
           },
         ]
@@ -4114,6 +4158,10 @@ export type Database = {
       }
       can_edit_client: { Args: { _client_id: string }; Returns: boolean }
       can_edit_org: { Args: { _org_id: string }; Returns: boolean }
+      claim_booking_email_slot: {
+        Args: { _email_hash: string; _max_per_day: number }
+        Returns: boolean
+      }
       cleanup_onboarding_orphans: {
         Args: never
         Returns: {
@@ -4134,18 +4182,32 @@ export type Database = {
         Args: { _mrr_clp?: number; _plan_key: string; _prospect_id: string }
         Returns: Json
       }
+      create_booking_atomic: {
+        Args: {
+          _email: string
+          _max_per_agenda_hour: number
+          _max_per_email_day: number
+          _name: string
+          _notes: string
+          _phone: string
+          _scheduled_at: string
+          _settings_id: string
+        }
+        Returns: {
+          booking_id: string
+          booking_scheduled_at: string
+        }[]
+      }
       ensure_org: { Args: never; Returns: string }
       gen_public_token: { Args: never; Returns: string }
       get_booking_settings_by_slug: {
         Args: { _slug: string }
         Returns: {
-          client_id: string
           display_name: string
           enabled: boolean
           hours: Json
           id: string
           intro: string
-          owner_user_id: string
           slot_minutes: number
           timezone: string
         }[]
