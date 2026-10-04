@@ -10,9 +10,8 @@ function MetaAdsPage() {
   const { clientId } = Route.useParams();
   return (
     <div className="space-y-4">
-      <div className="p-6 md:p-8 pb-0 max-w-7xl mx-auto">
-        <MetaConnectCard clientId={clientId} />
-      </div>
+      {/* El layout del cliente ya aplica ancho máximo y padding. */}
+      <MetaConnectCard clientId={clientId} />
       <MetaAdsPanel clientId={clientId} />
     </div>
   );

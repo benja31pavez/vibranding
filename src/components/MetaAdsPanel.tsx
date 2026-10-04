@@ -13,6 +13,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Trash2, RefreshCw, Megaphone, Layers, Image as ImageIcon, Sparkles, Upload, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { ErrorState } from "@/components/app";
 import { MediaUpload } from "./MediaUpload";
 import { CampaignWizard } from "./meta-ads/CampaignWizard";
 
@@ -47,6 +48,16 @@ const OBJECTIVES: Record<MetaObjective, string> = {
 const STATUSES: MetaStatus[] = ["DRAFT", "ACTIVE", "PAUSED", "ARCHIVED", "DELETED"];
 const CTAS: MetaCTA[] = ["LEARN_MORE", "SHOP_NOW", "SIGN_UP", "SUBSCRIBE", "CONTACT_US", "DOWNLOAD", "GET_OFFER", "APPLY_NOW", "SEND_MESSAGE", "WATCH_MORE", "BOOK_TRAVEL"];
 const PLACEMENTS: MetaPlacement[] = ["feed", "stories", "reels", "marketplace", "search", "audience_network"];
+/** Etiquetas en español solo para la UI; a Meta se envían los valores originales. */
+const STATUS_LABELS: Record<MetaStatus, string> = {
+  DRAFT: "Borrador", ACTIVE: "Activa", PAUSED: "Pausada", ARCHIVED: "Archivada", DELETED: "Eliminada",
+};
+const PLACEMENT_LABELS: Record<MetaPlacement, string> = {
+  feed: "Feed", stories: "Historias", reels: "Reels", marketplace: "Marketplace",
+  search: "Búsqueda", audience_network: "Audience Network",
+};
+type AccountIdField = "ad_account_id" | "page_id" | "ig_account_id";
+const ACCOUNT_ID_FIELDS: readonly AccountIdField[] = ["ad_account_id", "page_id", "ig_account_id"];
 
 export function MetaAdsPanel({ clientId }: { clientId: string }) {
   const saveAssets = useServerFn(updateMetaAccountAssets);
@@ -61,6 +72,8 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   const [discovering, setDiscovering] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const authedFetch = async (path: string, body: any) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -106,7 +119,19 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   };
 
   const load = async () => {
-    const [{ data: ac }, { data: cs }, { data: as }, { data: ads_ }, { data: ins }] = await Promise.all([
+    setLoading(true);
+    setLoadError(null);
+    try {
+      await loadAll();
+    } catch (e: any) {
+      setLoadError(e?.message ?? "Error desconocido");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAll = async () => {
+    const [acRes, csRes, asRes, adsRes, insRes] = await Promise.all([
       supabase.from("meta_accounts").select("*").eq("client_id", clientId).maybeSingle(),
       supabase.from("meta_ads_campaigns").select("*").eq("client_id", clientId).order("position"),
       supabase.from("meta_ads_adsets").select("*").eq("client_id", clientId).order("position"),
@@ -118,34 +143,72 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
         .eq("level", "campaign")
         .order("date", { ascending: false }),
     ]);
-    if (!ac) {
-      const { data: created } = await supabase.from("meta_accounts").insert({ client_id: clientId }).select().single();
+    const firstError = [acRes, csRes, asRes, adsRes, insRes].find((r) => r.error)?.error;
+    if (firstError) throw new Error(firstError.message);
+    if (!acRes.data) {
+      const { data: created, error } = await supabase.from("meta_accounts").insert({ client_id: clientId }).select().single();
+      if (error) throw new Error(error.message);
       setAccount(created as Account);
-    } else setAccount(ac as Account);
-    setCampaigns((cs ?? []) as Campaign[]);
-    setAdsets((as ?? []) as AdSet[]);
-    setAds((ads_ ?? []) as Ad[]);
-    setInsights((ins ?? []) as Insight[]);
+    } else setAccount(acRes.data as Account);
+    setCampaigns((csRes.data ?? []) as Campaign[]);
+    setAdsets((asRes.data ?? []) as AdSet[]);
+    setAds((adsRes.data ?? []) as Ad[]);
+    setInsights((insRes.data ?? []) as Insight[]);
   };
 
   useEffect(() => { load(); }, [clientId]);
 
-  const updateAccount = async (patch: MetaAssetPatch) => {
-    if (!account) return;
+  const updateAccount = async (patch: MetaAssetPatch): Promise<boolean> => {
+    if (!account) return false;
     const previous = account;
     setAccount({ ...account, ...patch });
     try {
       // Goes through the server so only agency editors can change linked ids.
       await saveAssets({ data: { clientId, patch } });
+      return true;
     } catch (e: any) {
       setAccount(previous);
       toast.error(e?.message ?? "No se pudo guardar la cuenta de Meta");
+      return false;
     }
   };
 
+  /**
+   * Guarda un campo de la cuenta solo si cambió. Vaciar un ID vinculado desconecta
+   * la cuenta, así que exige confirmación explícita. Devuelve false si no se guardó.
+   */
+  const updateAccountField = async (field: keyof MetaAssetPatch, raw: string): Promise<boolean> => {
+    if (!account) return false;
+    const next = raw.trim() || null;
+    const current = (account as any)[field] ?? null;
+    if (next === current) return true;
+    if (next === null && ACCOUNT_ID_FIELDS.includes(field as AccountIdField)) {
+      if (!confirm("¿Desconectar esta cuenta? Se borrará el ID guardado.")) return false;
+    }
+    return updateAccount({ [field]: next } as MetaAssetPatch);
+  };
+
+  /** Aplica un patch local con revert si la escritura falla o no afecta filas (permisos). */
+  const saveRow = async <T extends { id: string }>(
+    table: "meta_ads_campaigns" | "meta_ads_adsets" | "meta_ads_ads",
+    id: string,
+    patch: Partial<T>,
+    rows: T[],
+    setter: (fn: (rows: T[]) => T[]) => void,
+  ): Promise<boolean> => {
+    const previous = rows.find((r) => r.id === id);
+    setter((list) => list.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+    const { data, error } = await supabase.from(table).update(patch as any).eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      if (previous) setter((list) => list.map((r) => (r.id === id ? previous : r)));
+      toast.error(error ? `No se pudo guardar: ${error.message}` : "No se pudo guardar (sin permisos para editar)");
+      return false;
+    }
+    return true;
+  };
+
   const updateCampaign = async (id: string, patch: Partial<Campaign>) => {
-    setCampaigns(campaigns.map((c) => (c.id === id ? { ...c, ...patch } : c)));
-    await supabase.from("meta_ads_campaigns").update(patch).eq("id", id);
+    if (!(await saveRow<Campaign>("meta_ads_campaigns", id, patch, campaigns, setCampaigns))) return;
     const c = campaigns.find((x) => x.id === id);
     if (c?.fb_campaign_id) await pushToMeta("campaign", id, patch);
   };
@@ -164,8 +227,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   };
 
   const updateAdSet = async (id: string, patch: Partial<AdSet>) => {
-    setAdsets(adsets.map((a) => (a.id === id ? { ...a, ...patch } : a)));
-    await supabase.from("meta_ads_adsets").update(patch).eq("id", id);
+    if (!(await saveRow<AdSet>("meta_ads_adsets", id, patch, adsets, setAdsets))) return;
     const a = adsets.find((x) => x.id === id) as any;
     if (a?.fb_adset_id) await pushToMeta("adset", id, patch);
   };
@@ -181,8 +243,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   };
 
   const updateAd = async (id: string, patch: Partial<Ad>) => {
-    setAds(ads.map((a) => (a.id === id ? { ...a, ...patch } : a)));
-    await supabase.from("meta_ads_ads").update(patch).eq("id", id);
+    if (!(await saveRow<Ad>("meta_ads_ads", id, patch, ads, setAds))) return;
     const a = ads.find((x) => x.id === id) as any;
     if (a?.fb_ad_id) await pushToMeta("ad", id, patch);
   };
@@ -221,6 +282,17 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     }
   };
 
+  if (loadError) {
+    return (
+      <ErrorState
+        title="No pudimos cargar Meta Ads"
+        message={loadError}
+        onRetry={() => void load()}
+        retrying={loading}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Account config */}
@@ -242,31 +314,35 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
         </div>
         <div className="grid md:grid-cols-2 gap-3">
           <Field label="ID de cuenta publicitaria">
-            <Input
+            <AccountInput
               placeholder="act_1234567890"
-              defaultValue={account?.ad_account_id ?? ""}
-              onBlur={(e) => updateAccount({ ad_account_id: e.target.value || null })}
+              value={account?.ad_account_id ?? null}
+              disabled={!account}
+              onCommit={(v) => updateAccountField("ad_account_id", v)}
             />
           </Field>
           <Field label="Nombre del negocio">
-            <Input
+            <AccountInput
               placeholder="Mi marca"
-              defaultValue={account?.business_name ?? ""}
-              onBlur={(e) => updateAccount({ business_name: e.target.value || null })}
+              value={account?.business_name ?? null}
+              disabled={!account}
+              onCommit={(v) => updateAccountField("business_name", v)}
             />
           </Field>
           <Field label="ID de página de Facebook">
-            <Input
+            <AccountInput
               placeholder="123456789"
-              defaultValue={account?.page_id ?? ""}
-              onBlur={(e) => updateAccount({ page_id: e.target.value || null })}
+              value={account?.page_id ?? null}
+              disabled={!account}
+              onCommit={(v) => updateAccountField("page_id", v)}
             />
           </Field>
           <Field label="ID de cuenta de Instagram">
-            <Input
+            <AccountInput
               placeholder="178414..."
-              defaultValue={account?.ig_account_id ?? ""}
-              onBlur={(e) => updateAccount({ ig_account_id: e.target.value || null })}
+              value={account?.ig_account_id ?? null}
+              disabled={!account}
+              onCommit={(v) => updateAccountField("ig_account_id", v)}
             />
           </Field>
         </div>
@@ -300,7 +376,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                           {c.name}
                           {c.fb_campaign_id && <CheckCircle2 className="w-3.5 h-3.5 text-green-600" aria-label="Publicada en Meta" />}
                         </div>
-                        <div className="text-xs text-muted-foreground">{OBJECTIVES[c.objective]} · {c.status}{c.fb_campaign_id ? ` · ${c.fb_campaign_id}` : " · Solo local"}</div>
+                        <div className="text-xs text-muted-foreground">{OBJECTIVES[c.objective]} · {STATUS_LABELS[c.status] ?? c.status}{c.fb_campaign_id ? ` · ${c.fb_campaign_id}` : " · Solo local"}</div>
                       </div>
                     </div>
                   </AccordionTrigger>
@@ -320,7 +396,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                       <Field label="Estado">
                         <Select value={c.status} onValueChange={(v) => updateCampaign(c.id, { status: v as MetaStatus })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                          <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>)}</SelectContent>
                         </Select>
                       </Field>
                       <Field label="Moneda">
@@ -363,7 +439,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                               <Field label="Estado">
                                 <Select value={a.status} onValueChange={(v) => updateAdSet(a.id, { status: v as MetaStatus })}>
                                   <SelectTrigger><SelectValue /></SelectTrigger>
-                                  <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                                  <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>)}</SelectContent>
                                 </Select>
                               </Field>
                               <Field label="Presupuesto diario">
@@ -448,7 +524,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                                     <Field label="Ubicación">
                                       <Select value={ad.placement} onValueChange={(v) => updateAd(ad.id, { placement: v as MetaPlacement })}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>{PLACEMENTS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{PLACEMENTS.map((p) => <SelectItem key={p} value={p}>{PLACEMENT_LABELS[p]}</SelectItem>)}</SelectContent>
                                       </Select>
                                     </Field>
                                     <Field label="CTA">
@@ -589,11 +665,11 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                     {discoverData.adAccounts.map((a) => (
                       <button
                         key={a.id}
-                        onClick={async () => { await updateAccount({ ad_account_id: a.id, business_name: a.business }); toast.success(`Cuenta ${a.name} vinculada`); }}
+                        onClick={async () => { if (await updateAccount({ ad_account_id: a.id, business_name: a.business })) toast.success(`Cuenta ${a.name} vinculada`); }}
                         className={`w-full text-left rounded-lg border p-3 text-sm hover:bg-muted transition-colors ${account?.ad_account_id === a.id ? "border-primary bg-primary/5" : ""}`}
                       >
                         <div className="font-medium">{a.name}</div>
-                        <div className="text-xs text-muted-foreground">{a.id} · {a.business} · {a.status === 1 ? "Activa" : `status ${a.status}`}</div>
+                        <div className="text-xs text-muted-foreground">{a.id} · {a.business} · {a.status === 1 ? "Activa" : `Estado ${a.status}`}</div>
                       </button>
                     ))}
                   </div>
@@ -614,8 +690,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                         <button
                           key={p.id}
                           onClick={async () => {
-                            await updateAccount({ page_id: p.id });
-                            toast.success(`Página ${p.name} vinculada`);
+                            if (await updateAccount({ page_id: p.id })) toast.success(`Página ${p.name} vinculada`);
                           }}
                           className={`w-full text-left rounded-lg border p-3 text-sm hover:bg-muted transition-colors ${pageSelected ? "border-primary bg-primary/5" : ""}`}
                         >
@@ -672,8 +747,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                               size="sm"
                               variant={selected ? "default" : "outline"}
                               onClick={async () => {
-                                await updateAccount({ ig_account_id: ig.id });
-                                toast.success(`Anuncios saldrán desde @${ig.username || ig.id}`);
+                                if (await updateAccount({ ig_account_id: ig.id })) toast.success(`Anuncios saldrán desde @${ig.username || ig.id}`);
                               }}
                             >
                               {selected ? "IG vinculado" : "Usar este IG"}
@@ -690,6 +764,34 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+/**
+ * Input controlado de la cuenta: refleja el valor guardado cuando llega (evita que un
+ * input montado antes de cargar quede vacío y borre el dato al perder foco).
+ */
+function AccountInput({
+  value, placeholder, disabled, onCommit,
+}: {
+  value: string | null;
+  placeholder: string;
+  disabled?: boolean;
+  onCommit: (value: string) => Promise<boolean>;
+}) {
+  const [draft, setDraft] = useState(value ?? "");
+  useEffect(() => { setDraft(value ?? ""); }, [value]);
+  return (
+    <Input
+      placeholder={placeholder}
+      value={draft}
+      disabled={disabled}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={async () => {
+        const ok = await onCommit(draft);
+        if (!ok) setDraft(value ?? "");
+      }}
+    />
   );
 }
 
