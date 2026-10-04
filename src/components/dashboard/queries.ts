@@ -15,7 +15,7 @@ export const MRR_GOAL_CLP = 1_000_000;
 /** Ventana de "cobros próximos" en días. */
 export const UPCOMING_DAYS = 7;
 const CHILE_TZ = "America/Santiago";
-const OPEN_PAYMENTS_LIMIT = 200;
+const PAGE_SIZE = 1000;
 const RECENT_APPROVALS = 5;
 const ALERTS_LIMIT = 50;
 
@@ -52,6 +52,17 @@ export function chileToday(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: CHILE_TZ }).format(new Date());
 }
 
+/** Instante (ISO UTC) de las 00:00 de hoy en Chile, respetando horario de verano. */
+export function chileStartOfDayIso(): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: CHILE_TZ,
+    timeZoneName: "longOffset",
+  }).formatToParts(new Date());
+  const raw = parts.find((p) => p.type === "timeZoneName")?.value ?? "GMT-03:00";
+  const offset = raw === "GMT" ? "+00:00" : raw.replace("GMT", "");
+  return new Date(`${chileToday()}T00:00:00${offset}`).toISOString();
+}
+
 /** Suma días a una fecha ISO (YYYY-MM-DD) sin depender de la zona local. */
 export function addDays(isoDate: string, days: number): string {
   const base = Date.parse(`${isoDate}T12:00:00Z`);
@@ -79,6 +90,20 @@ function useUserId(): string {
 
 function fail(error: { message: string } | null): void {
   if (error) throw new Error(error.message);
+}
+
+type PageResult<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
+
+/** Trae todas las filas paginando de a PAGE_SIZE (PostgREST corta en 1000 por defecto). */
+async function fetchAllRows<T>(page: (from: number, to: number) => PageResult<T>): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await page(from, from + PAGE_SIZE - 1);
+    fail(error);
+    const chunk = data ?? [];
+    rows.push(...chunk);
+    if (chunk.length < PAGE_SIZE) return rows;
+  }
 }
 
 // ---------------------------------------------------------------- clientes
@@ -109,15 +134,19 @@ export function useClientIndex() {
 
 export interface MrrSummary {
   total: number;
-  /** De dónde sale el número (se muestra al usuario). */
-  source: "subscriptions" | "client_billing";
+  /** Suma de suscripciones activas de clientes activos. */
+  fromSubscriptions: number;
+  subscriptionClients: number;
+  /** client_billing.mrr de clientes activos SIN suscripción activa. */
+  fromBilling: number;
+  billingClients: number;
 }
 
 /**
- * MRR actual en CLP.
- * Fuente 1: suma de `subscriptions.amount_clp` con status 'activa' (intervalo
- * siempre mensual por CHECK). Si no hay ninguna suscripción activa, fuente 2:
- * suma de `client_billing.mrr` de clientes con status 'activo'.
+ * MRR actual en CLP (intervalo de suscripción siempre mensual por CHECK).
+ * = Σ subscriptions.amount_clp (status 'activa', cliente con status 'activo')
+ * + Σ client_billing.mrr de clientes 'activo' que no tienen suscripción activa.
+ * Así un cliente nunca se cuenta dos veces.
  */
 export function useMrr() {
   const userId = useUserId();
@@ -125,22 +154,30 @@ export function useMrr() {
     queryKey: dashboardKeys.mrr(userId),
     enabled: Boolean(userId),
     queryFn: async (): Promise<MrrSummary> => {
-      const subs = await supabase.from("subscriptions").select("amount_clp").eq("status", "activa");
-      fail(subs.error);
-      if ((subs.data ?? []).length > 0) {
-        const total = (subs.data ?? []).reduce((acc, s) => acc + Number(s.amount_clp), 0);
-        return { total, source: "subscriptions" };
-      }
-      const [active, billing] = await Promise.all([
-        supabase.from("clients").select("id").eq("status", "activo"),
-        supabase.from("client_billing").select("client_id,mrr"),
+      const [active, subs, billing] = await Promise.all([
+        fetchAllRows((from, to) =>
+          supabase.from("clients").select("id").eq("status", "activo").order("id").range(from, to),
+        ),
+        fetchAllRows((from, to) =>
+          supabase.from("subscriptions").select("id,client_id,amount_clp").eq("status", "activa").order("id").range(from, to),
+        ),
+        fetchAllRows((from, to) =>
+          supabase.from("client_billing").select("client_id,mrr").order("client_id").range(from, to),
+        ),
       ]);
-      fail(active.error ?? billing.error);
-      const activeIds = new Set((active.data ?? []).map((c) => c.id));
-      const total = (billing.data ?? [])
-        .filter((b) => activeIds.has(b.client_id))
-        .reduce((acc, b) => acc + Number(b.mrr), 0);
-      return { total, source: "client_billing" };
+      const activeIds = new Set(active.map((c) => c.id));
+      const activeSubs = subs.filter((s) => activeIds.has(s.client_id));
+      const subscribed = new Set(activeSubs.map((s) => s.client_id));
+      const billed = billing.filter((b) => activeIds.has(b.client_id) && !subscribed.has(b.client_id));
+      const fromSubscriptions = activeSubs.reduce((acc, s) => acc + Number(s.amount_clp), 0);
+      const fromBilling = billed.reduce((acc, b) => acc + Number(b.mrr), 0);
+      return {
+        total: fromSubscriptions + fromBilling,
+        fromSubscriptions,
+        subscriptionClients: subscribed.size,
+        fromBilling,
+        billingClients: billed.length,
+      };
     },
   });
 }
@@ -153,23 +190,31 @@ export interface OpenPayment {
   amount: number;
   currency: string;
   due_date: string | null;
+  /** Estado efectivo: 'pending' con vencimiento < hoy (Chile) cuenta como 'overdue'. */
   status: PaymentStatus;
   payment_url: string | null;
   description: string | null;
 }
 
 export interface PaymentsSummary {
-  /** Pendientes con vencimiento ≤ hoy + 7 días. */
+  /** Pendientes con vencimiento entre hoy y hoy + 7 días (todos, sin truncar). */
   upcoming: OpenPayment[];
   upcomingTotals: MoneyByCurrency;
+  /** 'overdue' + 'pending' ya vencidos que el cron aún no marcó (todos, sin truncar). */
   overdue: OpenPayment[];
   overdueTotals: MoneyByCurrency;
-  /** Vencidos primero y luego próximos, por fecha. */
+  /** Vencidos primero y luego próximos, por fecha. La vista recorta solo esta lista. */
   agenda: OpenPayment[];
 }
 
+const PAYMENT_COLUMNS = "id,client_id,amount,currency,due_date,status,payment_url,description";
+
 function totals(rows: readonly OpenPayment[]): MoneyByCurrency {
   return rows.reduce<MoneyByCurrency>((acc, p) => addMoney(acc, p.currency, p.amount), {});
+}
+
+function byDueDate(a: OpenPayment, b: OpenPayment): number {
+  return (a.due_date ?? "").localeCompare(b.due_date ?? "");
 }
 
 export function useOpenPayments() {
@@ -178,19 +223,34 @@ export function useOpenPayments() {
     queryKey: dashboardKeys.payments(userId),
     enabled: Boolean(userId),
     queryFn: async (): Promise<PaymentsSummary> => {
-      const { data, error } = await supabase
-        .from("payments")
-        .select("id,client_id,amount,currency,due_date,status,payment_url,description")
-        .in("status", ["pending", "overdue"])
-        .order("due_date", { ascending: true, nullsFirst: false })
-        .limit(OPEN_PAYMENTS_LIMIT);
-      fail(error);
-      const rows: OpenPayment[] = (data ?? []).map((p) => ({ ...p, amount: Number(p.amount) }));
-      const limit = addDays(chileToday(), UPCOMING_DAYS);
-      const upcoming = rows.filter(
-        (p) => p.status === "pending" && p.due_date !== null && p.due_date.slice(0, 10) <= limit,
-      );
-      const overdue = rows.filter((p) => p.status === "overdue");
+      const today = chileToday();
+      const limit = addDays(today, UPCOMING_DAYS);
+      const [overdueRows, upcomingRows] = await Promise.all([
+        fetchAllRows((from, to) =>
+          supabase
+            .from("payments")
+            .select(PAYMENT_COLUMNS)
+            .or(`status.eq.overdue,and(status.eq.pending,due_date.lt.${today})`)
+            .order("due_date", { ascending: true, nullsFirst: false })
+            .order("id")
+            .range(from, to),
+        ),
+        fetchAllRows((from, to) =>
+          supabase
+            .from("payments")
+            .select(PAYMENT_COLUMNS)
+            .eq("status", "pending")
+            .gte("due_date", today)
+            .lte("due_date", limit)
+            .order("due_date", { ascending: true })
+            .order("id")
+            .range(from, to),
+        ),
+      ]);
+      const overdue = overdueRows
+        .map((p): OpenPayment => ({ ...p, amount: Number(p.amount), status: "overdue" }))
+        .sort(byDueDate);
+      const upcoming = upcomingRows.map((p): OpenPayment => ({ ...p, amount: Number(p.amount) }));
       return {
         upcoming,
         upcomingTotals: totals(upcoming),

@@ -2,13 +2,23 @@ import { Link } from "@tanstack/react-router";
 import { MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Panel, StatusBadge } from "@/components/app";
+import { ErrorState, Panel, StatusBadge } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { useReviewAlerts } from "@/hooks/use-review-alerts";
 
 /** Comentarios / aprobaciones de clientes sin leer (en todos los clientes). */
 export function ReviewActivity() {
-  const { alerts, loading, reload } = useReviewAlerts();
+  const { alerts, loading, error, reload, retrying } = useReviewAlerts();
+  if (error) {
+    return (
+      <ErrorState
+        title="No pudimos cargar las revisiones de clientes"
+        message={error}
+        onRetry={() => void reload()}
+        retrying={retrying}
+      />
+    );
+  }
   if (loading || alerts.length === 0) return null;
 
   const markRead = async () => {
