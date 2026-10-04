@@ -34,12 +34,17 @@ export function UpcomingBookings() {
       toast.error("No se pudo cargar la configuración de la agenda");
       return;
     }
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("bookings")
       .select("*")
       .eq("owner_user_id", user.id)
       .is("client_id", null)
       .order("scheduled_at", { ascending: true });
+    if (error) {
+      console.error("[bookings] load bookings failed", error.message);
+      toast.error("No se pudieron cargar las reservas");
+      return;
+    }
     setBookings((data ?? []) as Booking[]);
   };
 
@@ -53,7 +58,10 @@ export function UpcomingBookings() {
   const cancel = async (id: string) => {
     if (!confirm("¿Cancelar esta reserva?")) return;
     const { error } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      console.error("[bookings] cancel failed", error.message);
+      return toast.error("No se pudo cancelar la reserva. Inténtalo de nuevo.");
+    }
     load();
   };
 
