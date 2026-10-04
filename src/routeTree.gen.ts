@@ -24,6 +24,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AtChar123slugChar125LinksRouteImport } from './routes/@{$slug}.links'
 import { Route as AppApprovalsRouteImport } from './routes/_app/approvals'
+import { Route as AppBillingRouteImport } from './routes/_app/billing'
 import { Route as AppBookingsRouteImport } from './routes/_app/bookings'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
@@ -33,6 +34,7 @@ import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppStatsRouteImport } from './routes/_app/stats'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as LSlugRouteImport } from './routes/l.$slug'
+import { Route as PagoResultadoRouteImport } from './routes/pago.resultado'
 import { Route as ReviewTokenRouteImport } from './routes/review.$token'
 import { Route as AppAdminHealthRouteImport } from './routes/_app/admin/health'
 import { Route as AppAdminMetaDiagnosticsRouteImport } from './routes/_app/admin/meta-diagnostics'
@@ -67,6 +69,9 @@ import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/cl
 import { Route as AppClientsClientIdPlanRouteImport } from './routes/_app/clients/$clientId/plan'
 import { Route as AppClientsClientIdSetupRouteImport } from './routes/_app/clients/$clientId/setup'
 import { Route as AppClientsClientIdSitioRouteImport } from './routes/_app/clients/$clientId/sitio'
+import { Route as ApiPublicBillingChargeMonthlyRouteImport } from './routes/api/public/billing/charge-monthly'
+import { Route as ApiPublicFlowConfirmRouteImport } from './routes/api/public/flow/confirm'
+import { Route as ApiPublicFlowReturnRouteImport } from './routes/api/public/flow/return'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as ApiPublicMetaIngestDailyRouteImport } from './routes/api/public/meta/ingest-daily'
 import { Route as ApiPublicWhatsappDispatchRouteImport } from './routes/api/public/whatsapp/dispatch'
@@ -148,6 +153,11 @@ const AppApprovalsRoute = AppApprovalsRouteImport.update({
   path: '/approvals',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBillingRoute = AppBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppBookingsRoute = AppBookingsRouteImport.update({
   id: '/bookings',
   path: '/bookings',
@@ -191,6 +201,11 @@ const BookSlugRoute = BookSlugRouteImport.update({
 const LSlugRoute = LSlugRouteImport.update({
   id: '/l/$slug',
   path: '/l/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagoResultadoRoute = PagoResultadoRouteImport.update({
+  id: '/pago/resultado',
+  path: '/pago/resultado',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReviewTokenRoute = ReviewTokenRouteImport.update({
@@ -379,6 +394,22 @@ const AppClientsClientIdSitioRoute = AppClientsClientIdSitioRouteImport.update({
   path: '/sitio',
   getParentRoute: () => AppClientsClientIdRoute,
 } as any)
+const ApiPublicBillingChargeMonthlyRoute =
+  ApiPublicBillingChargeMonthlyRouteImport.update({
+    id: '/api/public/billing/charge-monthly',
+    path: '/api/public/billing/charge-monthly',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicFlowConfirmRoute = ApiPublicFlowConfirmRouteImport.update({
+  id: '/api/public/flow/confirm',
+  path: '/api/public/flow/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicFlowReturnRoute = ApiPublicFlowReturnRouteImport.update({
+  id: '/api/public/flow/return',
+  path: '/api/public/flow/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicInstagramWebhookRoute =
   ApiPublicInstagramWebhookRouteImport.update({
     id: '/api/public/instagram/webhook',
@@ -425,6 +456,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
   '/approvals': typeof AppApprovalsRoute
+  '/billing': typeof AppBillingRoute
   '/bookings': typeof AppBookingsRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
@@ -434,6 +466,7 @@ export interface FileRoutesByFullPath {
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/pago/resultado': typeof PagoResultadoRoute
   '/review/$token': typeof ReviewTokenRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
@@ -467,6 +500,9 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
   '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
+  '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
+  '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
+  '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
@@ -489,6 +525,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
   '/approvals': typeof AppApprovalsRoute
+  '/billing': typeof AppBillingRoute
   '/bookings': typeof AppBookingsRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
@@ -498,6 +535,7 @@ export interface FileRoutesByTo {
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/pago/resultado': typeof PagoResultadoRoute
   '/review/$token': typeof ReviewTokenRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
@@ -530,6 +568,9 @@ export interface FileRoutesByTo {
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
   '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
+  '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
+  '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
+  '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
@@ -554,6 +595,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
   '/_app/approvals': typeof AppApprovalsRoute
+  '/_app/billing': typeof AppBillingRoute
   '/_app/bookings': typeof AppBookingsRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
@@ -563,6 +605,7 @@ export interface FileRoutesById {
   '/_app/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/pago/resultado': typeof PagoResultadoRoute
   '/review/$token': typeof ReviewTokenRoute
   '/_app/admin/health': typeof AppAdminHealthRoute
   '/_app/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
@@ -596,6 +639,9 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
   '/_app/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/_app/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
+  '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
+  '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
+  '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
@@ -620,6 +666,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/@{$slug}/links'
     | '/approvals'
+    | '/billing'
     | '/bookings'
     | '/calendar'
     | '/dashboard'
@@ -629,6 +676,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/pago/resultado'
     | '/review/$token'
     | '/admin/health'
     | '/admin/meta-diagnostics'
@@ -662,6 +710,9 @@ export interface FileRouteTypes {
     | '/clients/$clientId/plan'
     | '/clients/$clientId/setup'
     | '/clients/$clientId/sitio'
+    | '/api/public/billing/charge-monthly'
+    | '/api/public/flow/confirm'
+    | '/api/public/flow/return'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
     | '/api/public/whatsapp/dispatch'
@@ -684,6 +735,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/@{$slug}/links'
     | '/approvals'
+    | '/billing'
     | '/bookings'
     | '/calendar'
     | '/dashboard'
@@ -693,6 +745,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/pago/resultado'
     | '/review/$token'
     | '/admin/health'
     | '/admin/meta-diagnostics'
@@ -725,6 +778,9 @@ export interface FileRouteTypes {
     | '/clients/$clientId/plan'
     | '/clients/$clientId/setup'
     | '/clients/$clientId/sitio'
+    | '/api/public/billing/charge-monthly'
+    | '/api/public/flow/confirm'
+    | '/api/public/flow/return'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
     | '/api/public/whatsapp/dispatch'
@@ -748,6 +804,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/@{$slug}/links'
     | '/_app/approvals'
+    | '/_app/billing'
     | '/_app/bookings'
     | '/_app/calendar'
     | '/_app/dashboard'
@@ -757,6 +814,7 @@ export interface FileRouteTypes {
     | '/_app/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/pago/resultado'
     | '/review/$token'
     | '/_app/admin/health'
     | '/_app/admin/meta-diagnostics'
@@ -790,6 +848,9 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/plan'
     | '/_app/clients/$clientId/setup'
     | '/_app/clients/$clientId/sitio'
+    | '/api/public/billing/charge-monthly'
+    | '/api/public/flow/confirm'
+    | '/api/public/flow/return'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
     | '/api/public/whatsapp/dispatch'
@@ -814,6 +875,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   BookSlugRoute: typeof BookSlugRoute
   LSlugRoute: typeof LSlugRoute
+  PagoResultadoRoute: typeof PagoResultadoRoute
   ReviewTokenRoute: typeof ReviewTokenRoute
   ApiMetaAdsArchiveRoute: typeof ApiMetaAdsArchiveRoute
   ApiMetaAdsCreateCampaignRoute: typeof ApiMetaAdsCreateCampaignRoute
@@ -821,6 +883,9 @@ export interface RootRouteChildren {
   ApiMetaAdsPublishFullRoute: typeof ApiMetaAdsPublishFullRoute
   ApiMetaAdsSyncRoute: typeof ApiMetaAdsSyncRoute
   ApiMetaAdsUpdateRoute: typeof ApiMetaAdsUpdateRoute
+  ApiPublicBillingChargeMonthlyRoute: typeof ApiPublicBillingChargeMonthlyRoute
+  ApiPublicFlowConfirmRoute: typeof ApiPublicFlowConfirmRoute
+  ApiPublicFlowReturnRoute: typeof ApiPublicFlowReturnRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicMetaIngestDailyRoute: typeof ApiPublicMetaIngestDailyRoute
   ApiPublicWhatsappDispatchRoute: typeof ApiPublicWhatsappDispatchRoute
@@ -935,6 +1000,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppApprovalsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/billing': {
+      id: '/_app/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AppBillingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/bookings': {
       id: '/_app/bookings'
       path: '/bookings'
@@ -996,6 +1068,13 @@ declare module '@tanstack/react-router' {
       path: '/l/$slug'
       fullPath: '/l/$slug'
       preLoaderRoute: typeof LSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pago/resultado': {
+      id: '/pago/resultado'
+      path: '/pago/resultado'
+      fullPath: '/pago/resultado'
+      preLoaderRoute: typeof PagoResultadoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/review/$token': {
@@ -1236,6 +1315,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdSitioRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/api/public/billing/charge-monthly': {
+      id: '/api/public/billing/charge-monthly'
+      path: '/api/public/billing/charge-monthly'
+      fullPath: '/api/public/billing/charge-monthly'
+      preLoaderRoute: typeof ApiPublicBillingChargeMonthlyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/flow/confirm': {
+      id: '/api/public/flow/confirm'
+      path: '/api/public/flow/confirm'
+      fullPath: '/api/public/flow/confirm'
+      preLoaderRoute: typeof ApiPublicFlowConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/flow/return': {
+      id: '/api/public/flow/return'
+      path: '/api/public/flow/return'
+      fullPath: '/api/public/flow/return'
+      preLoaderRoute: typeof ApiPublicFlowReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/instagram/webhook': {
       id: '/api/public/instagram/webhook'
       path: '/api/public/instagram/webhook'
@@ -1336,6 +1436,7 @@ const AppClientsClientIdRouteWithChildren =
 
 interface AppRouteChildren {
   AppApprovalsRoute: typeof AppApprovalsRoute
+  AppBillingRoute: typeof AppBillingRoute
   AppBookingsRoute: typeof AppBookingsRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
@@ -1354,6 +1455,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppApprovalsRoute: AppApprovalsRoute,
+  AppBillingRoute: AppBillingRoute,
   AppBookingsRoute: AppBookingsRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
@@ -1388,6 +1490,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   BookSlugRoute: BookSlugRoute,
   LSlugRoute: LSlugRoute,
+  PagoResultadoRoute: PagoResultadoRoute,
   ReviewTokenRoute: ReviewTokenRoute,
   ApiMetaAdsArchiveRoute: ApiMetaAdsArchiveRoute,
   ApiMetaAdsCreateCampaignRoute: ApiMetaAdsCreateCampaignRoute,
@@ -1395,6 +1498,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMetaAdsPublishFullRoute: ApiMetaAdsPublishFullRoute,
   ApiMetaAdsSyncRoute: ApiMetaAdsSyncRoute,
   ApiMetaAdsUpdateRoute: ApiMetaAdsUpdateRoute,
+  ApiPublicBillingChargeMonthlyRoute: ApiPublicBillingChargeMonthlyRoute,
+  ApiPublicFlowConfirmRoute: ApiPublicFlowConfirmRoute,
+  ApiPublicFlowReturnRoute: ApiPublicFlowReturnRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicMetaIngestDailyRoute: ApiPublicMetaIngestDailyRoute,
   ApiPublicWhatsappDispatchRoute: ApiPublicWhatsappDispatchRoute,
