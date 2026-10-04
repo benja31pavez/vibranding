@@ -15,6 +15,7 @@ import {
   type OrgTokenStatus,
 } from "@/lib/meta/connection.functions";
 import { validateOrgMetaToken } from "@/lib/meta/bulkConnect.functions";
+import { ConfirmDialog, ErrorState, ListSkeleton } from "@/components/app";
 
 export const Route = createFileRoute("/_app/settings/meta")({
   head: () => ({
@@ -43,6 +44,8 @@ function OrgMetaTokenPage() {
   const [busy, setBusy] = useState(false);
   const [validatedAt, setValidatedAt] = useState<string | null>(null);
   const [scopes, setScopes] = useState<string[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const fetchStatus = useServerFn(getOrgMetaTokenStatus);
   const save = useServerFn(saveOrgMetaToken);
@@ -54,8 +57,9 @@ function OrgMetaTokenPage() {
       const s = (await fetchStatus({} as any)) as OrgTokenStatus;
       setStatus(s);
       setScopes(s.scopes ?? []);
+      setLoadError(null);
     } catch (e: any) {
-      toast.error(e?.message ?? "No se pudo leer el estado del token");
+      setLoadError(e?.message ?? "No se pudo leer el estado del token");
     }
   };
 
@@ -95,8 +99,6 @@ function OrgMetaTokenPage() {
   };
 
   const doClear = async () => {
-    if (!confirm("¿Eliminar el token de la organización? Los tokens por cliente siguen activos."))
-      return;
     try {
       await clear({} as any);
       setScopes([]);
@@ -109,7 +111,7 @@ function OrgMetaTokenPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4">
+    <div className="max-w-3xl mx-auto px-4 py-8 sm:px-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <KeyRound className="w-5 h-5" /> Token de Meta de la organización
@@ -119,6 +121,22 @@ function OrgMetaTokenPage() {
         </Button>
       </div>
 
+      {loadError ? (
+        <ErrorState
+          title="No se pudo leer el estado del token"
+          message={loadError}
+          onRetry={() => {
+            setLoadError(null);
+            void load();
+          }}
+        />
+      ) : !status ? (
+        <Card>
+          <CardContent className="pt-6">
+            <ListSkeleton rows={3} label="Cargando estado del token" />
+          </CardContent>
+        </Card>
+      ) : (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Estado</CardTitle>
@@ -163,15 +181,29 @@ function OrgMetaTokenPage() {
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={doValidate} disabled={busy}>
                 <RefreshCw className={`w-3 h-3 mr-1 ${busy ? "animate-spin" : ""}`} />
-                Validar con /debug_token
+                Validar token
               </Button>
-              <Button size="sm" variant="ghost" onClick={doClear} disabled={busy}>
+              <Button size="sm" variant="ghost" onClick={() => setConfirmClear(true)} disabled={busy}>
                 <Trash2 className="w-3 h-3 mr-1" /> Eliminar
               </Button>
             </div>
           )}
         </CardContent>
       </Card>
+      )}
+
+      <ConfirmDialog
+        open={confirmClear}
+        onOpenChange={setConfirmClear}
+        title="¿Eliminar el token de la organización?"
+        description="Los tokens por cliente siguen activos. Para conectar clientes nuevos en bloque tendrás que pegar un token otra vez."
+        confirmLabel="Eliminar"
+        destructive
+        onConfirm={() => {
+          setConfirmClear(false);
+          void doClear();
+        }}
+      />
 
       <Card>
         <CardHeader>

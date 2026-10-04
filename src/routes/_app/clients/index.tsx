@@ -118,6 +118,11 @@ function ClientsList() {
           icon={Instagram}
           title="Aún no tienes clientes"
           description="Crea tu primer cliente para empezar."
+          action={
+            <Button onClick={() => setOpen(true)}>
+              <Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo cliente
+            </Button>
+          }
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
