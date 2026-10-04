@@ -13,6 +13,9 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const EMAIL_SCHEMA = z.string().email();
 
 const TIMEZONES = [
   "America/Santiago",
@@ -88,6 +91,9 @@ type Settings = {
 };
 
 
+/** Allowed appointment lengths, in minutes. */
+const SLOT_OPTIONS = [15, 30, 45, 60, 90] as const;
+
 const DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 export function BookingsPanel() {
@@ -120,7 +126,10 @@ export function BookingsPanel() {
       .from("booking_settings")
       .update(patch as any)
       .eq("id", settings.id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      console.error("[bookings] save settings failed", error.message);
+      return toast.error("No se pudo guardar el cambio. Inténtalo de nuevo.");
+    }
     setSettings({ ...settings, ...patch });
     toast.success("Guardado");
   };
@@ -134,7 +143,10 @@ export function BookingsPanel() {
       .update({ hours: draftHours as any })
       .eq("id", settings.id);
     setSavingHours(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      console.error("[bookings] save hours failed", error.message);
+      return toast.error("No se pudo guardar el horario. Inténtalo de nuevo.");
+    }
     setSettings({ ...settings, hours: draftHours });
     toast.success("Horario guardado");
   };
@@ -214,13 +226,51 @@ export function BookingsPanel() {
             <Label className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> Email para alertas</Label>
             <Input
               type="email"
-              placeholder="tucorreo@dominio.com"
-              defaultValue={settings.notification_email ?? user?.email ?? ""}
+              placeholder={user?.email ?? "tucorreo@dominio.com"}
+              defaultValue={settings.notification_email ?? ""}
               onBlur={(e) => {
                 const v = e.target.value.trim() || null;
-                if (v !== settings.notification_email) save({ notification_email: v });
+                if (v === settings.notification_email) return;
+                if (v && !EMAIL_SCHEMA.safeParse(v).success) {
+                  toast.error("Ingresa un email válido para las alertas.");
+                  return;
+                }
+                save({ notification_email: v });
               }}
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              {settings.notification_email
+                ? "Te avisaremos aquí de cada nueva reserva."
+                : "Sin email no recibirás avisos de nuevas reservas."}
+            </p>
+          </div>
+
+          <div>
+            <Label>Duración de cada cita</Label>
+            <Select
+              value={String(settings.slot_minutes)}
+              onValueChange={(v) => {
+                const minutes = Number(v);
+                if (minutes !== settings.slot_minutes) save({ slot_minutes: minutes });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(SLOT_OPTIONS as readonly number[]).includes(settings.slot_minutes)
+                  ? null
+                  : (
+                    <SelectItem value={String(settings.slot_minutes)}>{settings.slot_minutes} min</SelectItem>
+                  )}
+                {SLOT_OPTIONS.map((m) => (
+                  <SelectItem key={m} value={String(m)}>{m} min</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Las reservas ya agendadas mantienen su duración original.
+            </p>
           </div>
 
           <div className="md:col-span-2">
@@ -253,7 +303,7 @@ export function BookingsPanel() {
                   </SelectContent>
                 </Select>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">Las horas se expresan en esta zona horaria. Los bloques son de 30 minutos (ej. 09:00–09:30). Desactiva los días sin reuniones. Recuerda guardar.</p>
+              <p className="text-xs text-muted-foreground mt-2">Las horas se expresan en esta zona horaria. Los bloques son de {settings.slot_minutes} minutos desde la hora de inicio. Desactiva los días sin reuniones. Recuerda guardar.</p>
             </div>
             <div className="flex items-center gap-2">
               {hoursDirty && (

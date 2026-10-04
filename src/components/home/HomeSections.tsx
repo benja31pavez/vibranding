@@ -1,5 +1,5 @@
 import {
-  Bot, Camera, Megaphone, MonitorSmartphone, Palette, Search, ShieldCheck, ShoppingBag, Sparkles, ThumbsUp,
+  Bot, Camera, Megaphone, MonitorSmartphone, Palette, Search, ShoppingBag, Sparkles, ThumbsUp,
 } from "lucide-react";
 import { SectionHeading } from "./shared";
 import { translations } from "@/i18n/translations";
@@ -91,24 +91,3 @@ export function HowWeWorkSection() {
   );
 }
 
-export function GuaranteeSection() {
-  const t = translations.es; // The public home is Spanish-only (Chile).
-  const g = t.home.guarantee;
-  return (
-    <section aria-labelledby="garantia-title" className="mx-auto max-w-4xl px-4 pt-16 md:px-10 md:pt-24">
-      <div className="relative overflow-hidden rounded-3xl border bg-card p-6 md:p-10">
-        <div aria-hidden className="absolute inset-x-0 top-0 h-1 bg-gradient-brand" />
-        <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-brand-strong text-white">
-            <ShieldCheck aria-hidden className="h-7 w-7" />
-          </span>
-          <div>
-            <h2 id="garantia-title" className="text-2xl md:text-3xl font-semibold tracking-tight">{g.title}</h2>
-            <p className="mt-2 text-lg text-foreground/90">{g.desc}</p>
-            <p className="mt-3 text-sm text-muted-foreground">{g.fineprint}</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
