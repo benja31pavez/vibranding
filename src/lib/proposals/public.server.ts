@@ -80,9 +80,14 @@ async function rpcRaw(fn: string, args: Record<string, unknown>): Promise<{ data
   }).rpc(fn, args);
 }
 
-/** La función (o su firma con esos argumentos) no existe: migración v3 sin aplicar. */
-function isMissingFunction(error: DbError | null): boolean {
-  return Boolean(error) && (error?.code === "PGRST202" || error?.code === "42883");
+/**
+ * La función `fn` (o su firma con esos argumentos) no existe: migración v3 sin aplicar.
+ * Solo PGRST202, o 42883 que nombre a `fn`; cualquier otro error se propaga.
+ */
+function isMissingFunction(error: DbError | null, fn: string): boolean {
+  if (!error) return false;
+  if (error.code === "PGRST202") return true;
+  return error.code === "42883" && error.message.includes(fn);
 }
 
 /** La columna no existe (p. ej. payments.proposal_id antes de la v3). */
@@ -260,7 +265,7 @@ async function appendRecipientNote(row: ProposalRow, text: string): Promise<void
       if (data !== true) console.error("[proposals] no se encontró el prospecto para anotar", row.prospect_id);
       return;
     }
-    if (!isMissingFunction(error)) {
+    if (!isMissingFunction(error, "append_prospect_note")) {
       console.error("[proposals] no se pudo anotar", "prospects", row.prospect_id, error.message);
       return;
     }
@@ -368,7 +373,7 @@ async function callAcceptProposal(
   const base = { _token: input.token, _name: input.name, _ip_hash: input.ipHash };
   const { data, error } = await rpcRaw("accept_proposal", { ...base, _rut: input.rut, _extra_text: extraText });
   if (!error) return { res: data as AcceptRpcResult, legacy: false };
-  if (!isMissingFunction(error)) {
+  if (!isMissingFunction(error, "accept_proposal")) {
     console.error("[proposals] accept_proposal falló", error.message);
     throw new Error("No pudimos cargar la propuesta. Intenta de nuevo en unos minutos.");
   }
@@ -376,9 +381,8 @@ async function callAcceptProposal(
 }
 
 /** Condiciones aceptadas (texto adicional de accept_proposal). */
-async function conditionsText(token: string): Promise<string> {
-  const row = await loadRow(token);
-  return row ? `Condiciones aceptadas: ${proposalConditions(row.plan_key, parseItems(row.items)).join(" ")}` : "";
+function conditionsText(row: ProposalRow): string {
+  return `Condiciones aceptadas: ${proposalConditions(row.plan_key, parseItems(row.items)).join(" ")}`;
 }
 
 export type AcceptResult =
@@ -399,7 +403,10 @@ export async function acceptPublicProposal(input: {
   email: string | null;
   ipHash: string | null;
 }): Promise<AcceptResult> {
-  const { res, legacy } = await callAcceptProposal(input, await conditionsText(input.token));
+  // Una sola lectura: plan, ítems, cliente y prospecto no cambian al aceptar.
+  const loaded = await loadRow(input.token);
+  if (!loaded) return { ok: false, reason: "invalid" };
+  const { res, legacy } = await callAcceptProposal(input, conditionsText(loaded));
   if (!res?.ok) {
     const reason = res?.reason;
     if (reason === "invalid_rut") return { ok: false, reason: "error", message: "El RUT no es válido. Revísalo e intenta de nuevo." };
@@ -407,8 +414,7 @@ export async function acceptPublicProposal(input: {
     return { ok: false, reason: (known as readonly string[]).includes(reason ?? "") ? (reason as (typeof known)[number]) : "invalid" };
   }
   const already = Boolean(res.already);
-  const row = await loadRow(input.token);
-  if (!row) return { ok: false, reason: "invalid" };
+  const row: ProposalRow = { ...loaded, status: "aceptada" };
 
   if (!already) {
     if (legacy) await appendAcceptanceText(row, input.rut);

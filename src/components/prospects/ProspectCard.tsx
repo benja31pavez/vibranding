@@ -1,12 +1,13 @@
 import { useDraggable } from "@dnd-kit/core";
 import { Link } from "@tanstack/react-router";
-import { Ban, ExternalLink, GripVertical, RotateCcw, UserPlus } from "lucide-react";
+import { Ban, ExternalLink, GripVertical, UserPlus } from "lucide-react";
 import { StatusBadge } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { findPlan } from "@/lib/pricing/plans";
 import {
   COLD_STATE,
   PROSPECT_STATES,
+  RESUME_STATES,
   STATE_META,
   convertedClientId,
   isProspectState,
@@ -80,25 +81,38 @@ export function ConvertAction({ prospect, onConvert, label = "Convertir" }: {
   );
 }
 
-/** "Retomar" un prospecto frío: lo vuelve a "nuevo" (retomar es siempre manual). */
+/** "Retomar" un prospecto frío: a Nuevo o Contactado (retomar es siempre manual). */
 export function ResumeAction({ prospect, onMove }: { prospect: Prospect; onMove: CardActions["onMove"] }) {
   if (prospect.estado !== COLD_STATE) return null;
   return (
-    <Button
-      size="sm"
-      variant="outline"
-      className="h-8 shrink-0 px-2 text-xs"
-      onClick={() => onMove(prospect, "nuevo")}
-      aria-label={`Retomar ${prospect.nombre} (mover a Nuevo)`}
+    <select
+      aria-label={`Retomar ${prospect.nombre}`}
+      value=""
+      onChange={(e) => {
+        const next = e.target.value;
+        if ((RESUME_STATES as readonly string[]).includes(next)) onMove(prospect, next as ProspectState);
+      }}
+      className={cn(
+        "h-8 shrink-0 rounded-app-sm border border-border-subtle bg-surface px-2 text-xs text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      )}
     >
-      <RotateCcw aria-hidden className="mr-1 h-3.5 w-3.5" /> Retomar
-    </Button>
+      <option value="" disabled>
+        Retomar…
+      </option>
+      {RESUME_STATES.map((s) => (
+        <option key={s} value={s}>
+          {STATE_META[s].label}
+        </option>
+      ))}
+    </select>
   );
 }
 
 /** Aviso "No contactar hasta …" (perdido con plazo vigente o baja). Los fríos no tienen plazo. */
 export function NoContactBadge({ prospect }: { prospect: Prospect }) {
   if (prospect.estado === "baja") return <StatusBadge status="baja" label="No contactar" tone="danger" />;
+  if (prospect.estado === COLD_STATE) return null;
   const today = toDateInput(new Date().toISOString());
   // prospects.no_contactar_hasta (v3) o, en prospectos antiguos, la nota "No contactar antes de …".
   const column = prospect.no_contactar_hasta && prospect.no_contactar_hasta > today ? prospect.no_contactar_hasta : null;

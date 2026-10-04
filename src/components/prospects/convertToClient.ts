@@ -56,7 +56,7 @@ async function convertWithRpc(prospect: Prospect): Promise<RpcOutcome> {
     _plan_key: (plan?.key ?? null) as string,
     _mrr_clp: planMrr(plan),
   });
-  if (isMissingRpc(error)) return { kind: "missing" };
+  if (isMissingRpc(error, "convert_prospect_to_client")) return { kind: "missing" };
   if (error) return { kind: "done", result: { ok: false, error: `No se pudo crear el cliente: ${writeError(error)}` } };
   const res = data as { client_id?: string; created?: boolean } | null;
   const clientId = res?.client_id;

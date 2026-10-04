@@ -83,13 +83,17 @@ export function ProspectSheet({
   // Si no se pudo consultar el rol, se muestra el control y la RPC decide (muestra su error).
   const canRevoke = manager.data !== false;
 
+  // Se reinicia solo al abrir o al cambiar de prospecto (no en refetch): si la RPC
+  // falla tras guardar los campos, el motivo escrito se conserva para reintentar.
+  const prospectId = prospect?.id ?? null;
   useEffect(() => {
     if (!open) return;
     setForm(toForm(prospect));
     setErrors({});
     setConfirmUnbaja(false);
     setMotivo("");
-  }, [open, prospect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, prospectId]);
 
   const set = <K extends keyof ProspectFormInput>(key: K) => (value: ProspectFormInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }));

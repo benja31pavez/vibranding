@@ -27,10 +27,14 @@ export function writeError(error: { code?: string; message: string }): string {
   return error.message;
 }
 
-/** La RPC (o la columna) aún no existe: la migración v3 no está aplicada. */
-export function isMissingRpc(error: { code?: string; message?: string } | null | undefined): boolean {
+/**
+ * La RPC `fn` aún no existe (migración v3 sin aplicar): PGRST202, o 42883 que nombre a `fn`.
+ * Cualquier otro error se propaga (no se cae al flujo antiguo).
+ */
+export function isMissingRpc(error: { code?: string; message?: string } | null | undefined, fn: string): boolean {
   if (!error) return false;
-  return error.code === "PGRST202" || error.code === "42883" || /could not find the function/i.test(error.message ?? "");
+  if (error.code === "PGRST202") return true;
+  return error.code === "42883" && (error.message ?? "").includes(fn);
 }
 
 export function prospectsKey(userId: string) {
@@ -219,7 +223,7 @@ export function useRevokeBaja() {
         _estado: estado,
       });
       if (error) {
-        if (isMissingRpc(error)) throw new Error("Revocar una baja requiere la migración v3 de la base de datos.");
+        if (isMissingRpc(error, "revoke_prospect_baja")) throw new Error("Revocar una baja requiere la migración v3 de la base de datos.");
         throw new Error(writeError(error));
       }
     },
