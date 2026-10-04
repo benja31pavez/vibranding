@@ -11,6 +11,14 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DEFAULT_CURRENCY,
+  addMoney,
+  currencyDecimals,
+  formatMoney,
+  normalizeCurrency,
+  type MoneyByCurrency,
+} from "@/lib/pricing/plans";
 
 /** RLS hides rows instead of erroring: 0 affected rows means "not allowed". */
 const NO_PERMISSION = "No tienes permisos para esta acción";
@@ -41,10 +49,27 @@ const statusLabel: Record<Status, string> = {
   pending: "Pendiente", paid: "Pagado", overdue: "Vencido", cancelled: "Cancelado",
 };
 
+const amountStep = (currency: string) => (currencyDecimals(normalizeCurrency(currency)) === 0 ? 1 : 0.01);
+
+type Totals = MoneyByCurrency;
+const addTo = addMoney;
+
+function TotalsValue({ totals }: { totals: Totals }) {
+  const entries = Object.entries(totals).filter(([, v]) => v !== 0);
+  if (entries.length === 0) return <div className="text-3xl font-semibold mt-1">{formatMoney(DEFAULT_CURRENCY, 0)}</div>;
+  return (
+    <div className="mt-1 space-y-0.5">
+      {entries.map(([cur, v]) => (
+        <div key={cur} className="text-3xl font-semibold tabular-nums">{formatMoney(cur, v)}</div>
+      ))}
+    </div>
+  );
+}
+
 export function PaymentsPanel({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Payment[]>([]);
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState({ description: "", amount: "", currency: "USD", due_date: "" });
+  const [draft, setDraft] = useState({ description: "", amount: "", currency: DEFAULT_CURRENCY, due_date: "" });
   const [editing, setEditing] = useState<Payment | null>(null);
 
   const load = async () => {
@@ -66,11 +91,11 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
       client_id: clientId,
       description: draft.description || null,
       amount,
-      currency: draft.currency || "USD",
+      currency: normalizeCurrency(draft.currency),
       due_date: draft.due_date || null,
     });
     if (error) return toast.error(error.message);
-    setDraft({ description: "", amount: "", currency: "USD", due_date: "" });
+    setDraft({ description: "", amount: "", currency: DEFAULT_CURRENCY, due_date: "" });
     setAdding(false);
     load();
   };
@@ -91,13 +116,15 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
     load();
   };
 
-  const totals = items.reduce(
+  const totals = items.reduce<{ paid: Totals; pending: Totals }>(
     (acc, p) => {
-      if (p.status === "paid") acc.paid += Number(p.amount);
-      else if (p.status === "pending" || p.status === "overdue") acc.pending += Number(p.amount);
+      if (p.status === "paid") return { ...acc, paid: addTo(acc.paid, p.currency, Number(p.amount)) };
+      if (p.status === "pending" || p.status === "overdue") {
+        return { ...acc, pending: addTo(acc.pending, p.currency, Number(p.amount)) };
+      }
       return acc;
     },
-    { paid: 0, pending: 0 }
+    { paid: {}, pending: {} }
   );
 
   return (
@@ -105,11 +132,11 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border bg-surface p-5">
           <div className="text-xs text-muted-foreground uppercase tracking-wider">Cobrado</div>
-          <div className="text-3xl font-semibold mt-1">${totals.paid.toFixed(2)}</div>
+          <TotalsValue totals={totals.paid} />
         </div>
         <div className="rounded-2xl border bg-surface p-5">
           <div className="text-xs text-muted-foreground uppercase tracking-wider">Por cobrar</div>
-          <div className="text-3xl font-semibold mt-1">${totals.pending.toFixed(2)}</div>
+          <TotalsValue totals={totals.pending} />
         </div>
       </div>
 
@@ -126,8 +153,8 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
         <div className="rounded-2xl border bg-surface p-4 space-y-3">
           <Input placeholder="Concepto" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} autoFocus />
           <div className="flex gap-2">
-            <Input type="number" step="0.01" placeholder="Monto" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
-            <Input className="w-24" placeholder="USD" value={draft.currency} onChange={(e) => setDraft({ ...draft, currency: e.target.value.toUpperCase() })} />
+            <Input type="number" step={amountStep(draft.currency)} placeholder="Monto (IVA incluido)" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
+            <Input className="w-24" placeholder={DEFAULT_CURRENCY} aria-label="Moneda" value={draft.currency} onChange={(e) => setDraft({ ...draft, currency: e.target.value.toUpperCase() })} />
             <Input type="date" value={draft.due_date} onChange={(e) => setDraft({ ...draft, due_date: e.target.value })} />
           </div>
           <div className="flex justify-end gap-2">
@@ -148,12 +175,12 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{p.description || "Cobro"}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  {p.due_date ? `Vence ${new Date(p.due_date).toLocaleDateString("es")}` : "Sin fecha"}
-                  {p.paid_at && ` · Pagado ${new Date(p.paid_at).toLocaleDateString("es")}`}
+                  {p.due_date ? `Vence ${new Date(p.due_date).toLocaleDateString("es-CL")}` : "Sin fecha"}
+                  {p.paid_at && ` · Pagado ${new Date(p.paid_at).toLocaleDateString("es-CL")}`}
                 </div>
               </div>
               <div className="font-semibold tabular-nums">
-                {p.currency} {Number(p.amount).toFixed(2)}
+                {formatMoney(p.currency, Number(p.amount))}
               </div>
               <Select value={p.status} onValueChange={(v) => update(p.id, { status: v as Status })}>
                 <SelectTrigger className={`h-8 w-32 rounded-full border-0 text-xs font-medium ${statusCls[p.status]}`}>
@@ -206,7 +233,7 @@ function EditDialog({
     const patch: Partial<Payment> = {
       description: form.description?.trim() || null,
       amount,
-      currency: (form.currency || "USD").toUpperCase(),
+      currency: normalizeCurrency(form.currency),
       status: form.status,
       due_date: form.due_date || null,
       paid_at: form.status === "paid" ? (form.paid_at || new Date().toISOString().slice(0, 10)) : null,
@@ -232,7 +259,7 @@ function EditDialog({
           <div className="grid grid-cols-3 gap-2">
             <div className="space-y-1.5 col-span-2">
               <Label className="text-xs text-muted-foreground">Monto</Label>
-              <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
+              <Input type="number" step={amountStep(form.currency)} value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Moneda</Label>

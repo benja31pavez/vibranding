@@ -7,22 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import {
-  Sparkles,
-  Search,
-  Camera,
-  Megaphone,
-  MonitorSmartphone,
-  MessageCircle,
-  FileSignature,
-  Building2,
-  ChevronDown,
-} from "lucide-react";
+import { MessageCircle, MonitorSmartphone, FileSignature, Building2, ChevronDown } from "lucide-react";
+import { PlanCatalog, VatLines } from "@/components/pricing/PlanCatalog";
+import { AGENCY_DEFAULTS, DEFAULT_CURRENCY, currencyDecimals, formatMoney } from "@/lib/pricing/plans";
 
 const CURRENCY_OPTIONS = [
+  { code: "CLP", label: "CLP · Peso chileno" },
   { code: "USD", label: "USD · Dólar estadounidense" },
   { code: "EUR", label: "EUR · Euro" },
-  { code: "CLP", label: "CLP · Peso chileno" },
   { code: "MXN", label: "MXN · Peso mexicano" },
   { code: "ARS", label: "ARS · Peso argentino" },
   { code: "COP", label: "COP · Peso colombiano" },
@@ -32,51 +24,29 @@ const CURRENCY_OPTIONS = [
   { code: "UYU", label: "UYU · Peso uruguayo" },
 ];
 
-export type ServiceKey = "branding" | "optimization" | "content" | "ads" | "landing" | "chatbot";
+/**
+ * Servicios adicionales (sueltos) que se pueden sumar a un plan, con precio editable.
+ * Usan la tabla `service_pricing`, cuyo CHECK solo admite las claves antiguas
+ * ('branding','optimization','content','ads','landing','chatbot'); por eso los
+ * adicionales reutilizan 'chatbot' y 'landing'. Los planes viven en `@/lib/pricing/plans`.
+ */
+export type ServiceKey = "chatbot" | "landing";
 
 export const SERVICE_CATALOG: Array<{ key: ServiceKey; label: string; description: string; icon: any; tone: string }> =
   [
     {
-      key: "branding",
-      label: "Branding",
-      description: "Identidad visual, tono y estrategia clara.",
-      icon: Sparkles,
-      tone: "var(--brand-1)",
-    },
-    {
-      key: "optimization",
-      label: "Optimización",
-      description: "Perfil de Instagram y presencia digital optimizados.",
-      icon: Search,
-      tone: "var(--brand-2)",
-    },
-    {
-      key: "content",
-      label: "Contenido",
-      description: "Calendario, fotografía y copy semanal.",
-      icon: Camera,
+      key: "chatbot",
+      label: "Chatbot WhatsApp",
+      description: "Número de WhatsApp dedicado con chatbot que responde, califica y agenda.",
+      icon: MessageCircle,
       tone: "var(--brand-3)",
-    },
-    {
-      key: "ads",
-      label: "Anuncios",
-      description: "Campañas Meta Ads para captar nuevas audiencias.",
-      icon: Megaphone,
-      tone: "var(--brand-1)",
     },
     {
       key: "landing",
-      label: "Landing Page",
-      description: "Página clara que convierte curiosidad en interés real.",
+      label: "Landing extra",
+      description: "Página adicional para una campaña, producto o servicio específico.",
       icon: MonitorSmartphone,
       tone: "var(--brand-2)",
-    },
-    {
-      key: "chatbot",
-      label: "Chatbot",
-      description: "WhatsApp dedicado con chatbot que califica y cierra.",
-      icon: MessageCircle,
-      tone: "var(--brand-3)",
     },
   ];
 
@@ -124,7 +94,14 @@ export async function loadPricing(userId: string): Promise<PricingSettings | nul
   if (data) return data as PricingSettings;
   const { data: created, error: insertError } = await supabase
     .from("pricing_settings")
-    .insert({ user_id: userId })
+    .insert({
+      user_id: userId,
+      currency: DEFAULT_CURRENCY,
+      agency_legal_name: AGENCY_DEFAULTS.legal_name,
+      agency_tax_id: AGENCY_DEFAULTS.tax_id,
+      agency_address: AGENCY_DEFAULTS.address,
+      jurisdiction: AGENCY_DEFAULTS.jurisdiction,
+    })
     .select("*")
     .single();
   if (insertError) throw new Error(insertError.message);
@@ -135,11 +112,13 @@ export async function loadServicePricing(userId: string): Promise<Record<Service
   const { data, error } = await supabase.from("service_pricing").select("*").eq("user_id", userId);
   if (error) throw new Error(error.message);
   const byKey: Partial<Record<ServiceKey, ServicePricing>> = {};
+  const isAddon = (k: string): k is ServiceKey => SERVICE_CATALOG.some((s) => s.key === k);
   (data ?? []).forEach((row: any) => {
-    byKey[row.service_key as ServiceKey] = row as ServicePricing;
+    const key = String(row.service_key);
+    if (isAddon(key)) byKey[key] = row as ServicePricing;
   });
 
-  // Seed any missing catalog rows in a single round trip instead of six.
+  // Seed any missing add-on rows in a single round trip.
   const missing = SERVICE_CATALOG.filter((s) => !byKey[s.key]);
   if (missing.length > 0) {
     const { data: created, error: seedError } = await supabase
@@ -159,24 +138,27 @@ export async function loadServicePricing(userId: string): Promise<Record<Service
 function MoneyInput({
   label,
   value,
+  currency,
   onChange,
   onBlur,
   placeholder,
 }: {
   label: string;
   value: number;
+  currency: string;
   onChange: (v: number) => void;
   onBlur: (v: number) => void;
   placeholder?: string;
 }) {
+  const decimals = currencyDecimals(currency);
   return (
     <div className="space-y-1.5">
       <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{label}</Label>
       <Input
         type="number"
         min={0}
-        step="0.01"
-        inputMode="decimal"
+        step={decimals === 0 ? 1 : 0.01}
+        inputMode={decimals === 0 ? "numeric" : "decimal"}
         value={Number.isFinite(value) ? String(value) : ""}
         placeholder={placeholder ?? "0"}
         onChange={(e) => onChange(Math.max(0, Number(e.target.value || 0)))}
@@ -304,20 +286,34 @@ export function PricingPanel() {
           <SaveIndicator state={saveState} />
         </div>
         <p className="text-muted-foreground text-sm mt-1">
-          Define el precio estándar de cada uno de los 6 servicios. Estos valores son los mismos para todos tus clientes
-          y se usan al generar contratos.
+          Los 3 planes de VIBRANDING (precios en CLP con IVA incluido) y los servicios adicionales que puedes sumar.
+          Estos valores son los mismos para todos tus clientes y se usan al generar contratos.
         </p>
       </div>
 
+      {/* Plans (fixed, CLP, IVA incluido) */}
+      <div className="space-y-3">
+        <div className="flex items-baseline justify-between gap-3 flex-wrap">
+          <h2 className="text-lg font-semibold">Planes</h2>
+          <span className="text-xs text-muted-foreground">Precios en CLP · IVA (19%) incluido</span>
+        </div>
+        <PlanCatalog />
+      </div>
+
       {/* Currency */}
-      <div className="rounded-2xl border bg-card p-5 space-y-4">
+      <div className="rounded-2xl border bg-card p-5 space-y-2">
         <div className="space-y-1.5 max-w-xs">
           <Label className="text-xs text-muted-foreground">Moneda por defecto</Label>
           <Select
             value={p.currency}
             onValueChange={(v) => {
+              if (v === p.currency) return;
               setP_({ currency: v });
               saveP({ currency: v });
+              toast.warning(
+                `Moneda cambiada a ${v}. Los precios de los servicios adicionales no se convierten: revísalos y ajústalos a ${v}.`,
+                { duration: 8000 },
+              );
             }}
           >
             <SelectTrigger>
@@ -332,13 +328,24 @@ export function PricingPanel() {
             </SelectContent>
           </Select>
         </div>
+        <p className="text-[11px] text-muted-foreground">
+          Se usa para los servicios adicionales y los contratos. Los planes siempre se cobran en CLP. Cambiar la
+          moneda no convierte los precios ya guardados: revisa los adicionales después de cambiarla.
+        </p>
+        {p.currency !== DEFAULT_CURRENCY && (
+          <p className="text-[11px] text-destructive">
+            Tu moneda por defecto no es CLP: no podrás generar contratos con un plan hasta cambiarla a CLP.
+          </p>
+        )}
       </div>
 
-      {/* 6 Services */}
+      {/* Add-on services */}
       <div className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold">Catálogo estandarizado</h2>
-          <span className="text-xs text-muted-foreground">Setup = pago único · Mensualidad = recurrente</span>
+        <div className="flex items-baseline justify-between gap-3 flex-wrap">
+          <h2 className="text-lg font-semibold">Servicios adicionales</h2>
+          <span className="text-xs text-muted-foreground">
+            Precio con IVA incluido · Setup = pago único · Mensualidad = recurrente
+          </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {SERVICE_CATALOG.map((svc) => {
@@ -376,17 +383,26 @@ export function PricingPanel() {
                 <div className="grid grid-cols-2 gap-3">
                   <MoneyInput
                     label={`Setup (${p.currency})`}
+                    currency={p.currency}
                     value={Number(row.one_time_price)}
                     onChange={(v) => updateService(svc.key, { one_time_price: v })}
                     onBlur={(v) => saveService(row.id, { one_time_price: v })}
                   />
                   <MoneyInput
                     label={`Mensual (${p.currency})`}
+                    currency={p.currency}
                     value={Number(row.monthly_price)}
                     onChange={(v) => updateService(svc.key, { monthly_price: v })}
                     onBlur={(v) => saveService(row.id, { monthly_price: v })}
                   />
                 </div>
+                {p.currency === DEFAULT_CURRENCY &&
+                  (Number(row.one_time_price) > 0 || Number(row.monthly_price) > 0) && (
+                    <div className="space-y-0.5">
+                      {Number(row.one_time_price) > 0 && <VatLines label="Pago único" gross={Number(row.one_time_price)} />}
+                      {Number(row.monthly_price) > 0 && <VatLines label="Mensual" gross={Number(row.monthly_price)} />}
+                    </div>
+                  )}
 
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
@@ -404,7 +420,6 @@ export function PricingPanel() {
             );
           })}
         </div>
-        <ServiceTotals services={services} currency={p.currency} />
       </div>
 
       {/* Agency / contract template */}
@@ -419,21 +434,21 @@ export function PricingPanel() {
             value={p.agency_legal_name}
             onChange={(v) => setP_({ agency_legal_name: v })}
             onBlur={(v) => saveP({ agency_legal_name: v || null })}
-            placeholder="Ej: Vibranding S.L."
+            placeholder={`Ej: ${AGENCY_DEFAULTS.legal_name}`}
           />
           <TextLine
-            label="Identificación fiscal (NIF/CIF/RUT…)"
+            label="RUT"
             value={p.agency_tax_id}
             onChange={(v) => setP_({ agency_tax_id: v })}
             onBlur={(v) => saveP({ agency_tax_id: v || null })}
-            placeholder="Ej: B12345678"
+            placeholder={`Ej: ${AGENCY_DEFAULTS.tax_id}`}
           />
           <TextLine
             label="Dirección"
             value={p.agency_address}
             onChange={(v) => setP_({ agency_address: v })}
             onBlur={(v) => saveP({ agency_address: v || null })}
-            placeholder="Calle, ciudad, país"
+            placeholder={`Ej: ${AGENCY_DEFAULTS.address}`}
           />
           <TextLine
             label="Email de contacto"
@@ -444,11 +459,11 @@ export function PricingPanel() {
             placeholder="hola@tuagencia.com"
           />
           <TextLine
-            label="Jurisdicción / ley aplicable"
+            label="Jurisdicción (ley aplicable: Chile)"
             value={p.jurisdiction}
             onChange={(v) => setP_({ jurisdiction: v })}
             onBlur={(v) => saveP({ jurisdiction: v || null })}
-            placeholder="Ej: Tribunales de Madrid, España"
+            placeholder={`Ej: ${AGENCY_DEFAULTS.jurisdiction}`}
           />
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Días de plazo de pago</Label>
@@ -480,7 +495,7 @@ export function PricingPanel() {
         <ClauseField
           label="eSIM / teléfono dedicado"
           value={p.clause_esim}
-          fallback="El cliente asume el coste del número WhatsApp (eSIM o línea dedicada) destinado al chatbot. El servicio queda condicionado a que dicho número esté activo y al día."
+          fallback="El cliente asume el costo del número WhatsApp (eSIM o línea dedicada) destinado al chatbot. El servicio queda condicionado a que dicho número esté activo y al día."
           onChange={(v) => setP_({ clause_esim: v })}
           onSave={(v) => saveP({ clause_esim: v })}
         />
@@ -494,7 +509,7 @@ export function PricingPanel() {
         <ClauseField
           label="Mora / suspensión por impago"
           value={p.clause_late_payment}
-          fallback="Si el pago no se realiza dentro del plazo acordado, la agencia podrá suspender todos los servicios activos sin previo aviso y hasta la regularización del importe pendiente, sin que ello exima al cliente del pago."
+          fallback="Si el pago no se realiza dentro del plazo acordado, la agencia podrá suspender todos los servicios activos sin previo aviso y hasta la regularización del monto pendiente, sin que ello exima al cliente del pago."
           onChange={(v) => setP_({ clause_late_payment: v })}
           onSave={(v) => saveP({ clause_late_payment: v })}
         />
@@ -531,37 +546,6 @@ function SaveIndicator({ state }: { state: "idle" | "saving" | "saved" }) {
     <span className="text-xs text-muted-foreground" role="status" aria-live="polite">
       {state === "saving" ? "Guardando…" : "Guardado"}
     </span>
-  );
-}
-
-function ServiceTotals({ services, currency }: { services: Record<ServiceKey, ServicePricing>; currency: string }) {
-  const active = SERVICE_CATALOG.filter((s) => services[s.key]?.is_active);
-  const setup = active.reduce((n, s) => n + Number(services[s.key].one_time_price || 0), 0);
-  const monthly = active.reduce((n, s) => n + Number(services[s.key].monthly_price || 0), 0);
-  const unpriced = active.filter(
-    (s) => Number(services[s.key].one_time_price) === 0 && Number(services[s.key].monthly_price) === 0,
-  );
-
-  return (
-    <div className="rounded-2xl border bg-card p-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <div className="font-semibold">Si un cliente contrata todo</div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Suma de los {active.length} servicios activos · primer mes {fmtMoney(currency, setup + monthly)}
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold tabular-nums">{fmtMoney(currency, setup)}</div>
-          <div className="text-xs text-muted-foreground tabular-nums">+ {fmtMoney(currency, monthly)}/mes</div>
-        </div>
-      </div>
-      {unpriced.length > 0 && (
-        <p className="text-[11px] text-muted-foreground mt-3 border-t pt-3">
-          Todavía sin precio: {unpriced.map((s) => s.label).join(", ")}.
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -649,7 +633,7 @@ function ClauseField({
 // ───────── Money helpers + IG breakdown (kept for legacy callers) ─────────
 
 function fmtMoney(currency: string, n: number) {
-  return `${currency} ${Number(n).toLocaleString("es", { maximumFractionDigits: 2 })}`;
+  return formatMoney(currency, n);
 }
 
 export function PricingSummary({
@@ -664,7 +648,7 @@ export function PricingSummary({
   return (
     <div className="rounded-2xl border bg-card p-5">
       <div className="flex items-baseline justify-between mb-3">
-        <h3 className="font-semibold">Servicios estándar</h3>
+        <h3 className="font-semibold">Servicios adicionales</h3>
         <span className="text-xs text-muted-foreground">{pricing.currency}</span>
       </div>
       <div className="space-y-2 text-sm">
