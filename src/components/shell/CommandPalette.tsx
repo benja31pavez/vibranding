@@ -5,7 +5,8 @@ import {
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ClientAvatar } from "./ClientAvatar";
-import { PRIMARY_NAV, SETTINGS_NAV, type NavItem } from "./navConfig";
+import { PRIMARY_NAV, type NavItem } from "./navConfig";
+import { useSettingsNav } from "./useSettingsNav";
 import { useClientList } from "./useClientList";
 import { isApplePlatform, isEditableTarget } from "./platform";
 
@@ -42,6 +43,7 @@ function useCommandShortcut(onToggle: () => void) {
 
 export function CommandPalette({ open, onOpenChange, onToggle }: CommandPaletteProps) {
   const navigate = useNavigate();
+  const settingsNav = useSettingsNav();
   const { data: clients, isLoading, isError } = useClientList(open);
 
   useCommandShortcut(onToggle);
@@ -107,7 +109,7 @@ export function CommandPalette({ open, onOpenChange, onToggle }: CommandPaletteP
             <CommandSeparator />
             <CommandGroup heading="Ir a">{PRIMARY_NAV.map(renderNavItem)}</CommandGroup>
             <CommandSeparator />
-            <CommandGroup heading="Configuración">{SETTINGS_NAV.map(renderNavItem)}</CommandGroup>
+            <CommandGroup heading="Configuración">{settingsNav.map(renderNavItem)}</CommandGroup>
           </CommandList>
         </Command>
       </DialogContent>
