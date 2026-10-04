@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { ErrorState } from "@/components/app";
 
 
 type Source = "whatsapp" | "landing" | "meta_ads" | "multilink";
@@ -50,9 +51,11 @@ export function LeadsPage({ clientId }: { clientId: string }) {
   const [filterSource, setFilterSource] = useState<"all" | Source>("all");
   const [filterStatus, setFilterStatus] = useState<"all" | Status>("all");
   const [editing, setEditing] = useState<Lead | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
+    setLoadError(null);
     const [waRes, lpRes, extraRes, metaRes] = await Promise.all([
       supabase
         .from("whatsapp_conversations")
@@ -73,6 +76,13 @@ export function LeadsPage({ clientId }: { clientId: string }) {
         .select("source,source_id,status,notes,tags")
         .eq("client_id", clientId),
     ]);
+
+    const failed = [waRes, lpRes, extraRes, metaRes].find((r: any) => r.error) as any;
+    if (failed) {
+      setLoadError(failed.error.message);
+      setLoading(false);
+      return;
+    }
 
     const meta = new Map<string, { status: Status; notes: string | null; tags: string[] }>();
     for (const m of (metaRes.data ?? []) as any[]) {
@@ -121,7 +131,8 @@ export function LeadsPage({ clientId }: { clientId: string }) {
 
   const upsertMeta = async (lead: Lead, patch: Partial<Pick<Lead, "status" | "notes" | "tags">>) => {
     const next = { ...lead, ...patch };
-    setLeads((ls) => ls.map((l) => (l.source === lead.source && l.source_id === lead.source_id ? next : l)));
+    const same = (l: Lead) => l.source === lead.source && l.source_id === lead.source_id;
+    setLeads((ls) => ls.map((l) => (same(l) ? next : l)));
     const { error } = await (supabase.from("lead_meta" as any) as any).upsert({
       client_id: clientId,
       source: lead.source,
@@ -130,10 +141,14 @@ export function LeadsPage({ clientId }: { clientId: string }) {
       notes: next.notes,
       tags: next.tags,
     }, { onConflict: "client_id,source,source_id" });
-    if (error) toast.error(error.message);
-    if (editing && editing.source === lead.source && editing.source_id === lead.source_id) {
-      setEditing(next);
+    if (error) {
+      // Revertir el cambio optimista: el estado en pantalla no debe mentir.
+      setLeads((ls) => ls.map((l) => (same(l) ? lead : l)));
+      setEditing((cur) => (cur && same(cur) ? lead : cur));
+      toast.error(`No se pudo guardar el lead: ${error.message}`);
+      return;
     }
+    setEditing((cur) => (cur && same(cur) ? next : cur));
   };
 
   const filtered = useMemo(() => {
@@ -235,7 +250,14 @@ export function LeadsPage({ clientId }: { clientId: string }) {
         </Select>
       </div>
 
-      {loading ? (
+      {loadError ? (
+        <ErrorState
+          title="No pudimos cargar los leads"
+          message={loadError}
+          onRetry={() => void load()}
+          retrying={loading}
+        />
+      ) : loading ? (
         <div className="p-10 text-center text-muted-foreground">Cargando…</div>
       ) : filtered.length === 0 ? (
         <Card>
