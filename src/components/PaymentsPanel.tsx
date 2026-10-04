@@ -10,10 +10,6 @@ import {
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Trash2, Pencil, Receipt } from "lucide-react";
 import { toast } from "sonner";
@@ -25,7 +21,7 @@ import {
   type MoneyByCurrency,
 } from "@/lib/pricing/plans";
 import {
-  EmptyState, ErrorState, Money, StatCard, TableSkeleton, TONE_CLASSES, getStatus,
+  ConfirmDialog, EmptyState, ErrorState, Money, StatCard, TableSkeleton, TONE_CLASSES, getStatus,
 } from "@/components/app";
 import { PaymentLinkButton } from "@/components/billing/PaymentLinkButton";
 
@@ -263,29 +259,18 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
         </ul>
       )}
 
-      <AlertDialog open={toDelete !== null} onOpenChange={(o) => { if (!o) setToDelete(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar este cobro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Se borra «{toDelete?.description || "Cobro"}» de forma permanente. Si solo no se va a
-              cobrar, es mejor cambiar su estado a Cancelado para conservar el historial.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Volver</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (toDelete) void remove(toDelete.id);
-                setToDelete(null);
-              }}
-            >
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={toDelete !== null}
+        onOpenChange={(o) => { if (!o) setToDelete(null); }}
+        title="¿Eliminar este cobro?"
+        description={`Se borra «${toDelete?.description || "Cobro"}» de forma permanente. Si solo no se va a cobrar, es mejor cambiar su estado a Cancelado para conservar el historial.`}
+        confirmLabel="Eliminar"
+        destructive
+        onConfirm={() => {
+          if (toDelete) void remove(toDelete.id);
+          setToDelete(null);
+        }}
+      />
 
       <EditDialog
         payment={editing}

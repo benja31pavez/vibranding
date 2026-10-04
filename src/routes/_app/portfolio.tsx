@@ -12,9 +12,16 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { PortfolioClient, PortfolioWork } from "@/lib/portfolio";
+import { ConfirmDialog, EmptyState, ErrorState, ListSkeleton, PageHeader } from "@/components/app";
 
 export const Route = createFileRoute("/_app/portfolio")({
   component: PortfolioAdminPage,
+  head: () => ({
+    meta: [
+      { title: "Portafolio público · Vibranding" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
 });
 
 type ClientWithWorks = PortfolioClient & { works: PortfolioWork[] };
@@ -37,10 +44,11 @@ function PortfolioAdminPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<ClientWithWorks[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [toDelete, setToDelete] = useState<ClientWithWorks | null>(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    const [{ data: clients }, { data: works }] = await Promise.all([
+    const [clientsRes, worksRes] = await Promise.all([
       supabase
         .from("portfolio_clients")
         .select("*")
@@ -52,6 +60,16 @@ function PortfolioAdminPage() {
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true }),
     ]);
+    const error = clientsRes.error ?? worksRes.error;
+    if (error) {
+      console.error("[portfolio] error al cargar", error);
+      setLoadError(error.message);
+      setLoading(false);
+      return;
+    }
+    const clients = clientsRes.data;
+    const works = worksRes.data;
+    setLoadError(null);
     const grouped: ClientWithWorks[] = ((clients as PortfolioClient[]) ?? []).map((c) => ({
       ...c,
       works: ((works as PortfolioWork[]) ?? []).filter((w) => w.portfolio_client_id === c.id),
@@ -79,7 +97,6 @@ function PortfolioAdminPage() {
   };
 
   const removeClient = async (id: string) => {
-    if (!confirm("¿Eliminar este cliente y todos sus trabajos?")) return;
     const { error } = await supabase.from("portfolio_clients").delete().eq("id", id);
     if (error) {
       toast.error("Error", { description: error.message });
@@ -89,21 +106,31 @@ function PortfolioAdminPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-6 md:px-10 py-10">
-      <div className="flex items-end justify-between flex-wrap gap-3 mb-2">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Portafolio público</h1>
-          <p className="text-muted-foreground mt-2">Clientes y trabajos que se muestran en el landing.</p>
-        </div>
-        <Button onClick={addClient}><Plus className="w-4 h-4 mr-1" /> Añadir cliente</Button>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-10">
+      <PageHeader
+        title="Portafolio público"
+        description="Clientes y trabajos que se muestran en el landing."
+        actions={<Button onClick={addClient} disabled={loading || Boolean(loadError)}><Plus aria-hidden className="w-4 h-4 mr-1" /> Añadir cliente</Button>}
+      />
 
       {loading ? (
-        <div className="mt-10 text-muted-foreground inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Cargando…</div>
+        <ListSkeleton rows={3} label="Cargando portafolio" className="mt-8" />
+      ) : loadError ? (
+        <ErrorState
+          className="mt-8"
+          message={loadError}
+          onRetry={() => {
+            setLoading(true);
+            void load();
+          }}
+        />
       ) : items.length === 0 ? (
-        <div className="mt-10 rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
-          Aún no tienes clientes en tu portafolio.
-        </div>
+        <EmptyState
+          className="mt-8"
+          icon={ImageIcon}
+          title="Aún no tienes clientes en tu portafolio."
+          description="Añade un cliente y sube imágenes de los trabajos que quieres mostrar en el landing."
+        />
       ) : (
         <div className="mt-8 space-y-6">
           {items.map((c) => (
@@ -111,12 +138,25 @@ function PortfolioAdminPage() {
               key={c.id}
               userId={user?.id ?? ""}
               client={c}
-              onDelete={() => removeClient(c.id)}
+              onDelete={() => setToDelete(c)}
               onReload={load}
             />
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={toDelete !== null}
+        onOpenChange={(o) => { if (!o) setToDelete(null); }}
+        title="¿Eliminar este cliente del portafolio?"
+        description={`Se borran «${toDelete?.name ?? ""}» y todos sus trabajos del landing. No se puede deshacer.`}
+        confirmLabel="Eliminar"
+        destructive
+        onConfirm={() => {
+          if (toDelete) void removeClient(toDelete.id);
+          setToDelete(null);
+        }}
+      />
     </div>
   );
 }
@@ -248,7 +288,7 @@ function ClientCard({
           <Button size="sm" onClick={save} disabled={!dirty || saving}>
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-1" /> Guardar</>}
           </Button>
-          <Button size="sm" variant="ghost" onClick={onDelete} className="text-destructive hover:text-destructive">
+          <Button size="sm" variant="ghost" onClick={onDelete} aria-label="Eliminar cliente del portafolio" className="text-destructive hover:text-destructive">
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
@@ -306,8 +346,9 @@ function WorksManager({
     }
   };
 
+  const [workToDelete, setWorkToDelete] = useState<string | null>(null);
+
   const removeWork = async (id: string) => {
-    if (!confirm("¿Eliminar este trabajo?")) return;
     const { error } = await supabase.from("portfolio_works").delete().eq("id", id);
     if (error) {
       toast.error("Error", { description: error.message });
@@ -347,11 +388,24 @@ function WorksManager({
               key={w.id}
               work={w}
               onUpdate={(patch) => updateWork(w.id, patch)}
-              onDelete={() => removeWork(w.id)}
+              onDelete={() => setWorkToDelete(w.id)}
             />
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={workToDelete !== null}
+        onOpenChange={(o) => { if (!o) setWorkToDelete(null); }}
+        title="¿Eliminar este trabajo?"
+        description="La imagen deja de mostrarse en el landing. No se puede deshacer."
+        confirmLabel="Eliminar"
+        destructive
+        onConfirm={() => {
+          if (workToDelete) void removeWork(workToDelete);
+          setWorkToDelete(null);
+        }}
+      />
     </div>
   );
 }
@@ -424,7 +478,7 @@ function WorkCard({
             >
               <Save className="w-3.5 h-3.5" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" onClick={onDelete}>
+            <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" onClick={onDelete} aria-label="Eliminar trabajo">
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
           </div>
