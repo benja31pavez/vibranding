@@ -2777,6 +2777,41 @@ export type Database = {
           },
         ]
       }
+      onboarding_upload_reservations: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          path: string
+          token: string
+          used: boolean
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          path: string
+          token: string
+          used?: boolean
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          path?: string
+          token?: string
+          used?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_upload_reservations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_members: {
         Row: {
           created_at: string
@@ -4070,6 +4105,13 @@ export type Database = {
         Returns: Json
       }
       client_analytics_guard: { Args: { _client_id: string }; Returns: boolean }
+      cleanup_onboarding_orphans: {
+        Args: never
+        Returns: {
+          path: string
+          reason: string
+        }[]
+      }
       content_performance: {
         Args: { _client_id: string; _from: string; _to: string }
         Returns: Json
@@ -4173,6 +4215,7 @@ export type Database = {
         Args: { _account_id: string; _secret: string }
         Returns: string
       }
+      onboarding_client_id: { Args: { _token: string }; Returns: string }
       org_meta_get_secret: { Args: { _org_id: string }; Returns: string }
       org_meta_set_secret: {
         Args: {
@@ -4190,6 +4233,10 @@ export type Database = {
         Returns: string
       }
       reconcile_job_runs: { Args: never; Returns: undefined }
+      reserve_onboarding_upload: {
+        Args: { _path_suffix: string; _token: string }
+        Returns: Json
+      }
       review_link_comment: {
         Args: { _body: string; _kind: string; _name?: string; _token: string }
         Returns: Json
