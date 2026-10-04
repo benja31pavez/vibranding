@@ -75,7 +75,7 @@ export function OnboardingLinkPanel({ clientId, overview }: { clientId: string; 
     <Panel
       title="Link de onboarding"
       icon={Link2}
-      description="La página del formulario estará disponible pronto."
+      description="Compártelo con el cliente para que complete sus datos, redes y archivos. Sirve para un solo envío."
     >
       {url && link ? (
         <div className="space-y-2">

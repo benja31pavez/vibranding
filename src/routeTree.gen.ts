@@ -35,6 +35,7 @@ import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppStatsRouteImport } from './routes/_app/stats'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as LSlugRouteImport } from './routes/l.$slug'
+import { Route as OnboardingTokenRouteImport } from './routes/onboarding.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PagoResultadoRouteImport } from './routes/pago.resultado'
 import { Route as RTokenRouteImport } from './routes/r.$token'
@@ -212,6 +213,11 @@ const BookSlugRoute = BookSlugRouteImport.update({
 const LSlugRoute = LSlugRouteImport.update({
   id: '/l/$slug',
   path: '/l/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingTokenRoute = OnboardingTokenRouteImport.update({
+  id: '/onboarding/$token',
+  path: '/onboarding/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PTokenRoute = PTokenRouteImport.update({
@@ -503,6 +509,7 @@ export interface FileRoutesByFullPath {
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
@@ -578,6 +585,7 @@ export interface FileRoutesByTo {
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
@@ -654,6 +662,7 @@ export interface FileRoutesById {
   '/_app/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
@@ -731,6 +740,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
     | '/r/$token'
@@ -806,6 +816,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
     | '/r/$token'
@@ -881,6 +892,7 @@ export interface FileRouteTypes {
     | '/_app/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
     | '/r/$token'
@@ -947,6 +959,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   BookSlugRoute: typeof BookSlugRoute
   LSlugRoute: typeof LSlugRoute
+  OnboardingTokenRoute: typeof OnboardingTokenRoute
   PTokenRoute: typeof PTokenRoute
   PagoResultadoRoute: typeof PagoResultadoRoute
   RTokenRoute: typeof RTokenRoute
@@ -1150,6 +1163,13 @@ declare module '@tanstack/react-router' {
       path: '/l/$slug'
       fullPath: '/l/$slug'
       preLoaderRoute: typeof LSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding/$token': {
+      id: '/onboarding/$token'
+      path: '/onboarding/$token'
+      fullPath: '/onboarding/$token'
+      preLoaderRoute: typeof OnboardingTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$token': {
@@ -1613,6 +1633,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   BookSlugRoute: BookSlugRoute,
   LSlugRoute: LSlugRoute,
+  OnboardingTokenRoute: OnboardingTokenRoute,
   PTokenRoute: PTokenRoute,
   PagoResultadoRoute: PagoResultadoRoute,
   RTokenRoute: RTokenRoute,

@@ -66,8 +66,8 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   return brandedErrorResponse();
 }
 
-/** Rutas con datos privados por token (/p/* propuestas, /r/* reportes): sin caché, sin Referer y sin indexar. */
-const PRIVATE_TOKEN_PATH = /^\/(p|r)\//;
+/** Rutas con datos privados por token (/p/* propuestas, /r/* reportes, /onboarding/* formulario): sin caché, sin Referer y sin indexar. */
+const PRIVATE_TOKEN_PATH = /^\/(p|r|onboarding)\//;
 const PRIVATE_HEADERS: Readonly<Record<string, string>> = {
   "Cache-Control": "no-store",
   "Referrer-Policy": "no-referrer",
