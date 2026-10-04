@@ -23,7 +23,7 @@ export const Route = createFileRoute("/book/$slug")({
     <div className="min-h-screen grid place-items-center p-6 text-center">
       <div>
         <h1 className="text-2xl font-semibold">No pudimos cargar la agenda</h1>
-        <p className="text-muted-foreground mt-2">{error.message}</p>
+        <p className="text-muted-foreground mt-2">{error instanceof Error ? error.message : "Error inesperado"}</p>
       </div>
     </div>
   ),
