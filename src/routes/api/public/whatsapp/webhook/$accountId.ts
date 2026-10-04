@@ -91,6 +91,20 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
         for (const entry of entries) {
           for (const change of entry.changes ?? []) {
             const value = change.value ?? {};
+            // The signature only proves the payload came from our Meta app, which
+            // serves every client. Make sure this change belongs to the number
+            // configured for THIS account, so a signed payload for another
+            // client's number cannot be replayed against this URL.
+            const incomingPhoneId =
+              value?.metadata?.phone_number_id != null ? String(value.metadata.phone_number_id) : "";
+            const expectedPhoneId = acc.phone_number_id != null ? String(acc.phone_number_id) : "";
+            if (!expectedPhoneId || incomingPhoneId !== expectedPhoneId) {
+              console.warn("[whatsapp webhook] phone_number_id mismatch, change ignored", {
+                accountId,
+                hasExpected: Boolean(expectedPhoneId),
+              });
+              continue;
+            }
             const contacts = value.contacts ?? [];
             const messages = value.messages ?? [];
             const statuses = value.statuses ?? [];

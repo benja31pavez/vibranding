@@ -6,6 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+
+/** RLS hides rows instead of erroring: 0 affected rows means "not allowed". */
+const NO_PERMISSION = "No tienes permisos para esta acción";
+function writeDenied(error: unknown, rows: unknown[] | null): boolean {
+  return Boolean(error) || !rows || rows.length === 0;
+}
 import { FileSignature, Download, Trash2, Plus, FileText } from "lucide-react";
 import {
   loadPricing, loadServicePricing, SERVICE_CATALOG,
@@ -13,6 +19,9 @@ import {
 } from "@/components/PricingPanel";
 import { ContractDocument } from "@/components/contracts/ContractDocument";
 import { exportElementToPdf } from "@/lib/exportPdf";
+import {
+  AGENCY_DEFAULTS, DEFAULT_CURRENCY, PLANS, findPlan, formatMoney, planPriceLabel, type PlanKey,
+} from "@/lib/pricing/plans";
 
 
 interface ClientContract {
@@ -49,6 +58,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
   const [services, setServices] = useState<Record<ServiceKey, ServicePricing> | null>(null);
   const [contracts, setContracts] = useState<ClientContract[]>([]);
   const [selected, setSelected] = useState<Set<ServiceKey>>(new Set());
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey | null>(null);
   const [creating, setCreating] = useState(false);
   const [clientLegalName, setClientLegalName] = useState("");
   const [clientTaxId, setClientTaxId] = useState("");
@@ -60,8 +70,8 @@ export function ContractsPage({ clientId }: { clientId: string }) {
   useEffect(() => {
     if (!user) return;
     supabase.from("clients").select("id,name,instagram_handle,notes,business_description").eq("id", clientId).maybeSingle().then(({ data }) => setClient(data as any));
-    loadPricing(user.id).then(setPricing);
-    loadServicePricing(user.id).then(setServices);
+    loadPricing(user.id).then(setPricing).catch((e) => toast.error(e?.message ?? "No se pudieron cargar los precios"));
+    loadServicePricing(user.id).then(setServices).catch((e) => toast.error(e?.message ?? "No se pudieron cargar los servicios"));
     reloadContracts();
   }, [user, clientId]);
 
@@ -87,9 +97,24 @@ export function ContractsPage({ clientId }: { clientId: string }) {
 
   const createContract = async () => {
     if (!pricing || !services || !client) return;
-    if (selected.size === 0) { toast.error("Selecciona al menos un servicio"); return; }
+    if (selected.size === 0 && !selectedPlan) { toast.error("Selecciona un plan o al menos un servicio"); return; }
+    const plan = findPlan(selectedPlan);
+    if (plan && pricing.currency !== DEFAULT_CURRENCY) {
+      toast.error("Los planes se cobran en CLP. Cambia la moneda por defecto a CLP en Servicios.");
+      return;
+    }
     setCreating(true);
-    const servicesSnap = Array.from(selected).map((k) => {
+    const planSnap = plan
+      ? [{
+          service_key: plan.key,
+          label: plan.label,
+          one_time_price: plan.billing === "one_time" ? plan.price : 0,
+          monthly_price: plan.billing === "monthly" ? plan.price : 0,
+          included_text: [plan.description, plan.note].filter(Boolean).join(" "),
+          min_months: plan.minMonths,
+        }]
+      : [];
+    const addonSnap = Array.from(selected).map((k) => {
       const meta = SERVICE_CATALOG.find((s) => s.key === k)!;
       const row = services[k];
       return {
@@ -98,8 +123,10 @@ export function ContractsPage({ clientId }: { clientId: string }) {
         one_time_price: Number(row.one_time_price),
         monthly_price: Number(row.monthly_price),
         included_text: row.included_text,
+        min_months: null,
       };
     });
+    const servicesSnap = [...planSnap, ...addonSnap];
     const total_one_time = servicesSnap.reduce((s, x) => s + x.one_time_price, 0);
     const total_monthly = servicesSnap.reduce((s, x) => s + x.monthly_price, 0);
 
@@ -109,12 +136,14 @@ export function ContractsPage({ clientId }: { clientId: string }) {
       currency: pricing.currency,
       payment_due_days: pricing.payment_due_days,
       agency_snapshot: {
-        name: "Vibranding",
-        legal_name: pricing.agency_legal_name ?? "",
-        tax_id: pricing.agency_tax_id ?? "",
-        address: pricing.agency_address ?? "",
-        email: pricing.agency_email ?? "",
-        jurisdiction: pricing.jurisdiction ?? "",
+        name: AGENCY_DEFAULTS.name,
+        legal_name: pricing.agency_legal_name || AGENCY_DEFAULTS.legal_name,
+        tax_id: pricing.agency_tax_id || AGENCY_DEFAULTS.tax_id,
+        address: pricing.agency_address || AGENCY_DEFAULTS.address,
+        email: pricing.agency_email || AGENCY_DEFAULTS.email,
+        jurisdiction: pricing.jurisdiction || AGENCY_DEFAULTS.jurisdiction,
+        governing_law: AGENCY_DEFAULTS.governing_law,
+        vat_included: true,
       },
       client_snapshot: {
         name: client.name,
@@ -134,21 +163,22 @@ export function ContractsPage({ clientId }: { clientId: string }) {
     if (error) { toast.error(error.message); return; }
     toast.success("Contrato creado");
     setSelected(new Set());
+    setSelectedPlan(null);
     reloadContracts();
   };
 
   const deleteContract = async (id: string) => {
     if (!confirm("¿Eliminar este contrato?")) return;
-    const { error } = await supabase.from("client_contracts").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    const { data, error } = await supabase.from("client_contracts").delete().eq("id", id).select("id");
+    if (writeDenied(error, data)) return toast.error(NO_PERMISSION);
     reloadContracts();
   };
 
   const setStatus = async (id: string, status: ClientContract["status"]) => {
     const patch: any = { status };
     if (status === "signed") patch.signed_at = new Date().toISOString();
-    const { error } = await supabase.from("client_contracts").update(patch).eq("id", id);
-    if (error) return toast.error(error.message);
+    const { data, error } = await supabase.from("client_contracts").update(patch).eq("id", id).select("id");
+    if (writeDenied(error, data)) return toast.error(NO_PERMISSION);
     reloadContracts();
   };
 
@@ -166,6 +196,8 @@ export function ContractsPage({ clientId }: { clientId: string }) {
   };
 
   if (!client || !pricing || !services) return <div className="p-6 text-muted-foreground">Cargando…</div>;
+
+  const currencyIsClp = pricing.currency.toUpperCase() === DEFAULT_CURRENCY;
 
   return (
     <div className="max-w-5xl mx-auto px-6 md:px-10 py-8 space-y-8">
@@ -185,8 +217,41 @@ export function ContractsPage({ clientId }: { clientId: string }) {
           <h2 className="text-lg font-semibold">Nuevo contrato</h2>
         </div>
 
+        {!currencyIsClp && (
+          <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-xs">
+            Tu moneda por defecto es <strong>{pricing.currency}</strong>. Los planes se cobran en CLP, así que no
+            puedes crear contratos con plan hasta cambiar la moneda a CLP en Servicios.
+          </div>
+        )}
+
         <div>
-          <Label className="text-xs text-muted-foreground">Servicios incluidos</Label>
+          <Label className="text-xs text-muted-foreground">Plan (CLP, IVA incluido)</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2" role="radiogroup" aria-label="Plan">
+            {PLANS.map((plan) => {
+              const checked = selectedPlan === plan.key;
+              return (
+                <button
+                  key={plan.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={checked}
+                  disabled={!currencyIsClp}
+                  onClick={() => setSelectedPlan(checked ? null : plan.key)}
+                  className={`text-left rounded-xl border p-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    checked ? "border-primary/50 bg-primary/5" : "hover:bg-muted/30"
+                  }`}
+                >
+                  <div className="text-sm font-medium">{plan.label}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{planPriceLabel(plan)}</div>
+                  {plan.note && <div className="text-[11px] text-muted-foreground mt-0.5">{plan.note}</div>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-xs text-muted-foreground">Servicios adicionales</Label>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
             {SERVICE_CATALOG.map((s) => {
               const row = services[s.key];
@@ -202,9 +267,9 @@ export function ContractsPage({ clientId }: { clientId: string }) {
                   <div className="min-w-0">
                     <div className="text-sm font-medium">{s.label}</div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {Number(row.one_time_price) > 0 && <>Setup {pricing.currency} {Number(row.one_time_price)}</>}
+                      {Number(row.one_time_price) > 0 && <>Setup {formatMoney(pricing.currency, Number(row.one_time_price))}</>}
                       {Number(row.one_time_price) > 0 && Number(row.monthly_price) > 0 && " · "}
-                      {Number(row.monthly_price) > 0 && <>{pricing.currency} {Number(row.monthly_price)}/mes</>}
+                      {Number(row.monthly_price) > 0 && <>{formatMoney(pricing.currency, Number(row.monthly_price))}/mes</>}
                       {Number(row.one_time_price) === 0 && Number(row.monthly_price) === 0 && "Sin precio configurado"}
                     </div>
                   </div>
@@ -216,8 +281,8 @@ export function ContractsPage({ clientId }: { clientId: string }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Razón social del cliente" value={clientLegalName} onChange={setClientLegalName} placeholder={client.name} />
-          <Field label="ID fiscal del cliente" value={clientTaxId} onChange={setClientTaxId} placeholder="NIF / CIF / RUT…" />
-          <Field label="Dirección del cliente" value={clientAddress} onChange={setClientAddress} placeholder="Calle, ciudad, país" />
+          <Field label="RUT del cliente" value={clientTaxId} onChange={setClientTaxId} placeholder="12.345.678-9" />
+          <Field label="Dirección del cliente" value={clientAddress} onChange={setClientAddress} placeholder="Calle, número, comuna, ciudad" />
           <Field label="Email del cliente" value={clientEmail} onChange={setClientEmail} placeholder="cliente@email.com" type="email" />
         </div>
 
@@ -225,7 +290,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
           <div className="text-xs text-muted-foreground">
             Plazo de pago: <strong>{pricing.payment_due_days} días</strong> · Pagos por etapa, no acumulados.
           </div>
-          <Button onClick={createContract} disabled={creating || selected.size === 0}>
+          <Button onClick={createContract} disabled={creating || (selected.size === 0 && !selectedPlan) || (!!selectedPlan && !currencyIsClp)}>
             <Plus className="w-4 h-4 mr-1" /> Crear contrato
           </Button>
         </div>
@@ -245,8 +310,8 @@ export function ContractsPage({ clientId }: { clientId: string }) {
                 <div className="min-w-0 flex-1">
                   <div className="font-medium truncate">{c.title}</div>
                   <div className="text-xs text-muted-foreground">
-                    {new Date(c.created_at).toLocaleDateString()} · {c.services_snapshot?.length ?? 0} servicios ·{" "}
-                    Setup {c.currency} {Number(c.total_one_time).toFixed(0)} · {c.currency} {Number(c.total_monthly).toFixed(0)}/mes
+                    {new Date(c.created_at).toLocaleDateString("es-CL")} · {c.services_snapshot?.length ?? 0} servicios ·{" "}
+                    Pago único {formatMoney(c.currency, Number(c.total_one_time))} · {formatMoney(c.currency, Number(c.total_monthly))}/mes
                   </div>
                 </div>
                 <select
@@ -280,6 +345,8 @@ export function ContractsPage({ clientId }: { clientId: string }) {
             effective_date={previewing.effective_date ?? ""}
             payment_due_days={previewing.payment_due_days}
             jurisdiction={previewing.agency_snapshot?.jurisdiction ?? ""}
+            governingLaw={previewing.agency_snapshot?.governing_law ?? ""}
+            vatIncluded={previewing.agency_snapshot?.vat_included === true}
             agency={{
               name: previewing.agency_snapshot?.name ?? "",
               legal_name: previewing.agency_snapshot?.legal_name ?? "",

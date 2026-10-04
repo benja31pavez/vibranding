@@ -1,4 +1,5 @@
 import { graphBase } from "@/lib/meta/version";
+import { denyUnlessClientEditor } from "@/lib/auth/clientAccess.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
@@ -16,6 +17,10 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
 
           const { clientId } = (await request.json()) as { clientId?: string };
           if (!clientId) return json({ error: "clientId requerido" }, 400);
+          // Spending the agency's Meta token requires an editor role (owner/admin/agent)
+          // in the client's org; viewers and portal users are rejected.
+          const denied = await denyUnlessClientEditor(authHeader, clientId);
+          if (denied) return denied;
 
           const { data: account, error: aerr } = await userClient
             .from("meta_accounts").select("*").eq("client_id", clientId).maybeSingle();

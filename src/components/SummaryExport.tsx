@@ -1,5 +1,6 @@
 import type { IGProfile, IGPost, IGHighlight } from "./InstagramEditor";
 import type { PricingSettings } from "./PricingPanel";
+import { formatMoney } from "@/lib/pricing/plans";
 
 const fmt = (n: number | null | undefined) => {
   if (n == null) return "0";
@@ -312,7 +313,7 @@ export function SummaryExport({
 
       {pricing && (() => {
         const cur = pricing.currency;
-        const f = (n: number) => `${cur} ${Number(n).toLocaleString("es", { maximumFractionDigits: 2 })}`;
+        const f = (n: number) => formatMoney(cur, n);
         const Row = ({ k, v, sub }: any) => (
           <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.line}`, gap: 12 }}>
             <div>

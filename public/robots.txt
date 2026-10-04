@@ -1,10 +1,25 @@
 User-agent: *
 Allow: /
+
+# Acceso de clientes y autenticación
 Disallow: /login
+Disallow: /portal
+Disallow: /reset-password
+
+# Panel interno (rutas privadas _app)
 Disallow: /dashboard
 Disallow: /clients
 Disallow: /calendar
 Disallow: /reports
 Disallow: /settings
+Disallow: /admin
+Disallow: /bookings
+Disallow: /stats
+Disallow: /profile
+Disallow: /portfolio$
+
+# Revisiones privadas y API (/landing es preview con noindex, no se bloquea para que el noindex se lea)
+Disallow: /review/
+Disallow: /api/
 
 Sitemap: https://vibranding.pro/sitemap.xml

@@ -964,7 +964,7 @@ export function PostsEditor({
                               <MapPin className="w-3 h-3" /> Ubicación
                             </Label>
                             <Input
-                              placeholder="Ej: Madrid, España"
+                              placeholder="Ej: Las Condes, Santiago"
                               value={p.location ?? ""}
                               onChange={(e) => setLocal(p.id, { location: e.target.value })}
                               onBlur={(e) => saveRemote(p.id, { location: e.target.value || null })}

@@ -40,12 +40,10 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
     if (!email.trim()) return;
     setBusy(true);
     try {
-      const res = await invite({ data: { clientId, email: email.trim() } });
+      await invite({ data: { clientId, email: email.trim() } });
       setEmail("");
       toast.success(
-        res.alreadyRegistered
-          ? "Ya tenía cuenta. Le dimos acceso; entra con su contraseña de siempre."
-          : "Invitación enviada por correo",
+        "Listo. Si ese correo puede usar el portal, ya tiene acceso. Si no le llega, escríbenos y lo revisamos.",
       );
       load();
     } catch (err: any) {

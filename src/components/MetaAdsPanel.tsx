@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { updateMetaAccountAssets, type MetaAssetPatch } from "@/lib/meta/connection.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +49,7 @@ const CTAS: MetaCTA[] = ["LEARN_MORE", "SHOP_NOW", "SIGN_UP", "SUBSCRIBE", "CONT
 const PLACEMENTS: MetaPlacement[] = ["feed", "stories", "reels", "marketplace", "search", "audience_network"];
 
 export function MetaAdsPanel({ clientId }: { clientId: string }) {
+  const saveAssets = useServerFn(updateMetaAccountAssets);
   const [account, setAccount] = useState<Account | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [adsets, setAdsets] = useState<AdSet[]>([]);
@@ -127,10 +130,17 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
 
   useEffect(() => { load(); }, [clientId]);
 
-  const updateAccount = async (patch: Partial<Account>) => {
+  const updateAccount = async (patch: MetaAssetPatch) => {
     if (!account) return;
+    const previous = account;
     setAccount({ ...account, ...patch });
-    await supabase.from("meta_accounts").update(patch).eq("id", account.id);
+    try {
+      // Goes through the server so only agency editors can change linked ids.
+      await saveAssets({ data: { clientId, patch } });
+    } catch (e: any) {
+      setAccount(previous);
+      toast.error(e?.message ?? "No se pudo guardar la cuenta de Meta");
+    }
   };
 
   const updateCampaign = async (id: string, patch: Partial<Campaign>) => {
@@ -314,7 +324,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                         </Select>
                       </Field>
                       <Field label="Moneda">
-                        <Input defaultValue={c.currency ?? "USD"} onBlur={(e) => updateCampaign(c.id, { currency: e.target.value || null })} />
+                        <Input defaultValue={c.currency ?? "CLP"} onBlur={(e) => updateCampaign(c.id, { currency: e.target.value || null })} />
                       </Field>
                       <Field label="Presupuesto diario">
                         <Input type="number" defaultValue={c.daily_budget ?? ""} onBlur={(e) => updateCampaign(c.id, { daily_budget: e.target.value ? Number(e.target.value) : null })} />
