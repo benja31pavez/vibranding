@@ -2966,6 +2966,7 @@ export type Database = {
           paid_at: string | null
           payment_url: string | null
           period: string | null
+          proposal_id: string | null
           provider: string | null
           provider_ref: string | null
           status: Database["public"]["Enums"]["payment_status"]
@@ -2986,6 +2987,7 @@ export type Database = {
           paid_at?: string | null
           payment_url?: string | null
           period?: string | null
+          proposal_id?: string | null
           provider?: string | null
           provider_ref?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
@@ -3006,6 +3008,7 @@ export type Database = {
           paid_at?: string | null
           payment_url?: string | null
           period?: string | null
+          proposal_id?: string | null
           provider?: string | null
           provider_ref?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
@@ -3018,6 +3021,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
           {
@@ -3251,6 +3261,7 @@ export type Database = {
           accepted_at: string | null
           accepted_ip_hash: string | null
           accepted_name: string | null
+          accepted_rut: string | null
           accepted_text: string | null
           amount_clp: number
           client_id: string | null
@@ -3273,6 +3284,7 @@ export type Database = {
           accepted_at?: string | null
           accepted_ip_hash?: string | null
           accepted_name?: string | null
+          accepted_rut?: string | null
           accepted_text?: string | null
           amount_clp?: number
           client_id?: string | null
@@ -3295,6 +3307,7 @@ export type Database = {
           accepted_at?: string | null
           accepted_ip_hash?: string | null
           accepted_name?: string | null
+          accepted_rut?: string | null
           accepted_text?: string | null
           amount_clp?: number
           client_id?: string | null
@@ -4037,8 +4050,18 @@ export type Database = {
     }
     Functions: {
       accept_proposal: {
-        Args: { _ip_hash: string; _name: string; _token: string }
+        Args: {
+          _extra_text?: string
+          _ip_hash: string
+          _name: string
+          _rut?: string
+          _token: string
+        }
         Returns: Json
+      }
+      append_prospect_note: {
+        Args: { _note: string; _prospect_id: string }
+        Returns: boolean
       }
       can_edit_client: { Args: { _client_id: string }; Returns: boolean }
       can_edit_org: { Args: { _org_id: string }; Returns: boolean }

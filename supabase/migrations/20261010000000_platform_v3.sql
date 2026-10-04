@@ -866,3 +866,268 @@ END $$;
 
 REVOKE ALL ON FUNCTION public.convert_prospect_to_client(uuid, text, integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.convert_prospect_to_client(uuid, text, integer) TO authenticated, service_role;
+
+
+-- =====================================================================
+-- C11. append_prospect_note(): nota de sistema en prospects.notas
+-- =====================================================================
+-- Solo servidor (service_role), p. ej. "aceptó la propuesta X" cuando la
+-- propuesta es de un prospecto. Atómico (un solo UPDATE, sin leer-modificar-
+-- escribir en la app). La línea se sanea: sin \r \n \t ni caracteres de
+-- control, espacios colapsados, máx. 300 caracteres. notas guarda como mucho
+-- los últimos 20.000 caracteres. Devuelve false si el prospecto no existe.
+CREATE OR REPLACE FUNCTION public.append_prospect_note(_prospect_id uuid, _note text)
+RETURNS boolean
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = ''
+AS $$
+DECLARE line text; n integer;
+BEGIN
+  line := left(btrim(regexp_replace(coalesce(_note, ''), '[[:cntrl:]\s]+', ' ', 'g')), 300);
+  IF _prospect_id IS NULL OR line = '' THEN
+    RAISE EXCEPTION 'prospect_id y nota son obligatorios' USING ERRCODE = '22023';
+  END IF;
+  UPDATE public.prospects
+     SET notas = right(CASE WHEN coalesce(notas, '') = '' THEN line ELSE notas || E'\n' || line END, 20000)
+   WHERE id = _prospect_id;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  RETURN n > 0;
+END $$;
+
+REVOKE ALL ON FUNCTION public.append_prospect_note(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.append_prospect_note(uuid, text) TO service_role;
+
+
+-- =====================================================================
+-- D12. payments.proposal_id: un cobro por propuesta
+-- =====================================================================
+-- Lo escribe solo el servidor al aceptar (no está en los GRANT por columna
+-- de authenticated, sección B7).
+ALTER TABLE public.payments
+  ADD COLUMN IF NOT EXISTS proposal_id uuid REFERENCES public.proposals(id) ON DELETE SET NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS payments_proposal_uk
+  ON public.payments (proposal_id) WHERE proposal_id IS NOT NULL;
+
+-- La propuesta debe ser del mismo cliente del cobro (y por lo tanto de la misma org).
+CREATE OR REPLACE FUNCTION public.enforce_payment_proposal_client()
+RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $$
+BEGIN
+  IF NEW.proposal_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.proposals pr
+    WHERE pr.id = NEW.proposal_id AND pr.client_id = NEW.client_id
+  ) THEN
+    RAISE EXCEPTION 'proposal_id % no pertenece al cliente %', NEW.proposal_id, NEW.client_id;
+  END IF;
+  RETURN NEW;
+END $$;
+
+REVOKE ALL ON FUNCTION public.enforce_payment_proposal_client() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS t_payments_proposal_client ON public.payments;
+CREATE TRIGGER t_payments_proposal_client BEFORE INSERT OR UPDATE OF proposal_id, client_id ON public.payments
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_payment_proposal_client();
+
+
+-- =====================================================================
+-- D13. accepted_rut + accept_proposal extendida
+-- =====================================================================
+ALTER TABLE public.proposals ADD COLUMN IF NOT EXISTS accepted_rut text;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'proposals_accepted_rut_chk' AND conrelid = 'public.proposals'::regclass) THEN
+    ALTER TABLE public.proposals ADD CONSTRAINT proposals_accepted_rut_chk
+      CHECK (accepted_rut IS NULL OR accepted_rut ~ '^[0-9]{7,8}-[0-9K]$') NOT VALID;
+  END IF;
+END $$;
+ALTER TABLE public.proposals VALIDATE CONSTRAINT proposals_accepted_rut_chk;
+
+-- Mismo guard de v2 + accepted_rut: desde el navegador nadie lo escribe.
+CREATE OR REPLACE FUNCTION public.guard_proposal_acceptance()
+RETURNS trigger
+LANGUAGE plpgsql SET search_path = ''
+AS $$
+BEGIN
+  IF current_user NOT IN ('anon', 'authenticated') THEN
+    RETURN NEW;
+  END IF;
+
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.status = 'aceptada' OR NEW.accepted_at IS NOT NULL OR NEW.accepted_name IS NOT NULL
+       OR NEW.accepted_ip_hash IS NOT NULL OR NEW.accepted_text IS NOT NULL OR NEW.accepted_rut IS NOT NULL THEN
+      RAISE EXCEPTION 'la aceptación solo se registra vía accept_proposal()';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  IF OLD.status = 'aceptada' THEN
+    RAISE EXCEPTION 'una propuesta aceptada no se puede modificar';
+  END IF;
+
+  IF NEW.status = 'aceptada'
+     OR NEW.accepted_at IS DISTINCT FROM OLD.accepted_at
+     OR NEW.accepted_name IS DISTINCT FROM OLD.accepted_name
+     OR NEW.accepted_ip_hash IS DISTINCT FROM OLD.accepted_ip_hash
+     OR NEW.accepted_text IS DISTINCT FROM OLD.accepted_text
+     OR NEW.accepted_rut IS DISTINCT FROM OLD.accepted_rut THEN
+    RAISE EXCEPTION 'la aceptación solo se registra vía accept_proposal()';
+  END IF;
+  RETURN NEW;
+END $$;
+
+REVOKE ALL ON FUNCTION public.guard_proposal_acceptance() FROM PUBLIC, anon, authenticated;
+
+-- Se reemplaza la firma de 3 argumentos por una de 5 con DEFAULT: las
+-- llamadas existentes (rpc con _token/_name/_ip_hash) siguen funcionando.
+-- No pueden convivir las dos: una llamada con 3 argumentos sería ambigua.
+DROP FUNCTION IF EXISTS public.accept_proposal(text, text, text);
+
+CREATE OR REPLACE FUNCTION public.accept_proposal(
+  _token text,
+  _name text,
+  _ip_hash text,
+  _rut text DEFAULT NULL,
+  _extra_text text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = ''
+AS $$
+DECLARE p public.proposals%ROWTYPE; nm text; txt text; rut_norm text; extra text;
+BEGIN
+  IF _token IS NULL OR _token !~ '^[0-9a-f]{48}$' THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'invalid');
+  END IF;
+  nm := left(btrim(coalesce(_name, '')), 120);
+  IF length(nm) < 3 THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'name_required');
+  END IF;
+
+  IF nullif(btrim(coalesce(_rut, '')), '') IS NOT NULL THEN
+    IF NOT private.rut_is_valid(btrim(_rut)) THEN
+      RETURN jsonb_build_object('ok', false, 'reason', 'invalid_rut');
+    END IF;
+    rut_norm := upper(replace(replace(btrim(_rut), '.', ''), '-', ''));
+    rut_norm := left(rut_norm, length(rut_norm) - 1) || '-' || right(rut_norm, 1);
+  END IF;
+
+  -- Texto adicional (condiciones aceptadas): sin caracteres de control salvo
+  -- saltos de línea, máx. 4000.
+  extra := nullif(btrim(left(regexp_replace(coalesce(_extra_text, ''), '[\x01-\x09\x0B-\x1F\x7F]+', ' ', 'g'), 4000)), '');
+
+  SELECT * INTO p FROM public.proposals WHERE token = _token AND status <> 'borrador' FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'invalid');
+  END IF;
+  IF p.status = 'aceptada' THEN
+    RETURN jsonb_build_object('ok', true, 'already', true, 'accepted_at', p.accepted_at);
+  END IF;
+  IF p.status NOT IN ('enviada', 'vista') THEN
+    RETURN jsonb_build_object('ok', false, 'reason', p.status);
+  END IF;
+  IF p.expires_at IS NOT NULL AND p.expires_at <= now() THEN
+    UPDATE public.proposals SET status = 'expirada' WHERE id = p.id;
+    RETURN jsonb_build_object('ok', false, 'reason', 'expirada');
+  END IF;
+
+  txt := format(
+    'Yo, %s, acepto la propuesta "%s" (plan %s) por un total de %s CLP, con el detalle: %s. Aceptada el %s (America/Santiago).',
+    nm,
+    coalesce(p.title, 'Propuesta VIBRANDING'),
+    coalesce(p.plan_key, 'a medida'),
+    p.amount_clp,
+    p.items::text,
+    to_char(now() AT TIME ZONE 'America/Santiago', 'YYYY-MM-DD HH24:MI:SS')
+  );
+  IF rut_norm IS NOT NULL THEN
+    txt := txt || E'\nRUT declarado: ' || rut_norm || '.';
+  END IF;
+  IF extra IS NOT NULL THEN
+    txt := txt || E'\n' || extra;
+  END IF;
+
+  UPDATE public.proposals
+     SET status = 'aceptada',
+         accepted_at = now(),
+         accepted_name = nm,
+         accepted_rut = rut_norm,
+         accepted_ip_hash = left(nullif(btrim(coalesce(_ip_hash, '')), ''), 128),
+         accepted_text = txt
+   WHERE id = p.id;
+
+  RETURN jsonb_build_object('ok', true, 'already', false, 'accepted_at', now());
+END $$;
+
+REVOKE ALL ON FUNCTION public.accept_proposal(text, text, text, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.accept_proposal(text, text, text, text, text) TO service_role;
+
+
+-- =====================================================================
+-- D14. amount_clp se recalcula desde items
+-- =====================================================================
+-- Decisión: RECALCULAR (no rechazar). amount_clp = primer pago = suma de
+-- ítems 'one_time' + suma de ítems 'monthly' (mismo cálculo que
+-- computeTotals en src/lib/proposals/model.ts). Así el monto que se acepta y
+-- se cobra nunca se desalinea del detalle, venga de donde venga el write
+-- (navegador o servidor). Lo que se rechaza (22023) es un items mal formado:
+--   - más de 20 ítems; ítem que no sea objeto;
+--   - type distinto de plan|extra; label vacío o > 120;
+--   - amount no entero o fuera de ±50.000.000; billing distinto de one_time|monthly;
+--   - plan con monto negativo; total único o mensual negativo.
+-- items vacío => amount_clp = 0. No toca propuestas ya aceptadas (el guard
+-- de aceptación ya impide modificarlas desde el navegador; el servidor no
+-- cambia items al aceptar).
+CREATE OR REPLACE FUNCTION public.proposal_recalc_amount()
+RETURNS trigger
+LANGUAGE plpgsql SET search_path = ''
+AS $$
+DECLARE
+  it jsonb;
+  amt numeric;
+  one_time bigint := 0;
+  monthly bigint := 0;
+BEGIN
+  IF TG_OP = 'UPDATE' AND OLD.status = 'aceptada' THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.items IS NULL OR jsonb_typeof(NEW.items) <> 'array' THEN
+    RAISE EXCEPTION 'items debe ser una lista' USING ERRCODE = '22023';
+  END IF;
+  IF jsonb_array_length(NEW.items) > 20 THEN
+    RAISE EXCEPTION 'items: máximo 20 líneas' USING ERRCODE = '22023';
+  END IF;
+
+  FOR it IN SELECT * FROM jsonb_array_elements(NEW.items) LOOP
+    IF jsonb_typeof(it) <> 'object'
+       OR coalesce(it->>'type', '') NOT IN ('plan', 'extra')
+       OR jsonb_typeof(it->'label') IS DISTINCT FROM 'string'
+       OR length(btrim(it->>'label')) NOT BETWEEN 1 AND 120
+       OR jsonb_typeof(it->'amount') IS DISTINCT FROM 'number'
+       OR coalesce(it->>'billing', '') NOT IN ('one_time', 'monthly') THEN
+      RAISE EXCEPTION 'items: línea mal formada (%)', left(it::text, 200) USING ERRCODE = '22023';
+    END IF;
+    amt := (it->>'amount')::numeric;
+    IF amt <> trunc(amt) OR abs(amt) > 50000000 THEN
+      RAISE EXCEPTION 'items: monto inválido (%)', it->>'amount' USING ERRCODE = '22023';
+    END IF;
+    IF it->>'type' = 'plan' AND amt < 0 THEN
+      RAISE EXCEPTION 'items: el plan no puede tener monto negativo' USING ERRCODE = '22023';
+    END IF;
+    IF it->>'billing' = 'monthly' THEN monthly := monthly + amt::bigint;
+    ELSE one_time := one_time + amt::bigint;
+    END IF;
+  END LOOP;
+
+  IF one_time < 0 OR monthly < 0 THEN
+    RAISE EXCEPTION 'items: los descuentos no pueden dejar un total negativo' USING ERRCODE = '22023';
+  END IF;
+
+  NEW.amount_clp := (one_time + monthly)::integer;
+  RETURN NEW;
+END $$;
+
+REVOKE ALL ON FUNCTION public.proposal_recalc_amount() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS t_proposals_amount ON public.proposals;
+CREATE TRIGGER t_proposals_amount BEFORE INSERT OR UPDATE OF items, amount_clp ON public.proposals
+  FOR EACH ROW EXECUTE FUNCTION public.proposal_recalc_amount();
