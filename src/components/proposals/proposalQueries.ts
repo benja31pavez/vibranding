@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
+import { invalidateApprovalQueue } from "@/hooks/use-approval-queue";
 import { publicProposalPath, type ProposalItem } from "@/lib/proposals/model";
 
 export type ProposalRow = Pick<
@@ -38,6 +39,15 @@ export const proposalKeys = {
 function useUserKey(): string {
   const { user } = useAuth();
   return user?.id ?? "anon";
+}
+
+/** Tras guardar: lista/editor, bandeja de aprobaciones (borradores) y la ficha del cliente. */
+function refreshAfterWrite(queryClient: QueryClient, userKey: string) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: proposalKeys.all(userKey) }),
+    queryClient.invalidateQueries({ queryKey: ["ficha"] }),
+    invalidateApprovalQueue(queryClient),
+  ]);
 }
 
 function writeError(error: { code?: string; message: string }): Error {
@@ -159,7 +169,7 @@ export function useSaveProposal() {
       if (error) throw writeError(error);
       return data.id;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: proposalKeys.all(userKey) }),
+    onSuccess: () => refreshAfterWrite(queryClient, userKey),
   });
 }
 
@@ -179,7 +189,7 @@ export function useMarkProposalSent() {
       if (error) throw writeError(error);
       if (!data) throw new Error("La propuesta ya no está en borrador.");
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: proposalKeys.all(userKey) }),
+    onSuccess: () => refreshAfterWrite(queryClient, userKey),
   });
 }
 

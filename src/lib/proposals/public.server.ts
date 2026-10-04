@@ -211,7 +211,10 @@ async function markViewedIfHuman(token: string, status: string, signal: ViewSign
   }
 }
 
+const TOKEN_RE = /^[0-9a-f]{48}$/;
+
 export async function loadPublicProposal(token: string, signal: ViewSignal): Promise<PublicProposalResult> {
+  if (!TOKEN_RE.test(token)) return { ok: false };
   const res = (await rpc("get_proposal_by_token", { _token: token })) as
     | { ok?: boolean; proposal?: Record<string, unknown> }
     | null;

@@ -14,7 +14,6 @@ import { useState, type ComponentType } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ApprovalAction } from "@/hooks/use-approval-queue";
 import { APPROVAL_KIND_LABEL, type ApprovalItem, type ApprovalKind } from "@/lib/approvals";
 
@@ -115,7 +114,7 @@ function RowActions({ item, onAction }: ActionProps) {
         </>
       );
     case "propuesta":
-      return <ProposalSoonButton />;
+      return <OpenProposalButton item={item} />;
   }
 }
 
@@ -195,22 +194,13 @@ function OpenLink({ item }: { item: ApprovalItem }) {
   );
 }
 
-/** El editor de propuestas aún no existe: botón deshabilitado con explicación. */
-function ProposalSoonButton() {
+/** Abre el editor de la propuesta en borrador (/proposals/$proposalId). */
+function OpenProposalButton({ item }: { item: ApprovalItem }) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        {/* Un botón deshabilitado no recibe eventos: el span permite mostrar el tooltip y enfocarlo. */}
-        <span
-          tabIndex={0}
-          className="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Button size="sm" variant="outline" disabled className="pointer-events-none">
-            <ExternalLink aria-hidden className="mr-1 h-3.5 w-3.5" /> Abrir propuesta
-          </Button>
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>Próximamente</TooltipContent>
-    </Tooltip>
+    <Button size="sm" variant="outline" asChild>
+      <Link to="/proposals/$proposalId" params={{ proposalId: item.refId }} aria-label={`Abrir ${item.title}`}>
+        <ExternalLink aria-hidden className="mr-1 h-3.5 w-3.5" /> Abrir propuesta
+      </Link>
+    </Button>
   );
 }

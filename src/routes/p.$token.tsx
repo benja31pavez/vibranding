@@ -18,6 +18,7 @@ export const Route = createFileRoute("/p/$token")({
       { name: "description", content: "Revisa y acepta tu propuesta de Vibranding." },
       { property: "og:title", content: "Propuesta · VIBRANDING" },
       { property: "og:description", content: "Revisa y acepta tu propuesta de Vibranding." },
+      { name: "twitter:title", content: "Propuesta · VIBRANDING" },
       { name: "robots", content: "noindex, nofollow, noarchive" },
       // El token va en la URL: no se envía como Referer al salir (p. ej. a Flow).
       { name: "referrer", content: "no-referrer" },
