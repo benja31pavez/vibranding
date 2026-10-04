@@ -185,6 +185,18 @@ DECLARE
   _end timestamptz;
   _new_id uuid;
 BEGIN
+  -- Defensa en la BD: límites válidos y datos mínimos (el servidor ya valida).
+  IF _max_per_email_day IS NULL OR _max_per_email_day < 1
+     OR _max_per_agenda_hour IS NULL OR _max_per_agenda_hour < 1 THEN
+    RAISE EXCEPTION 'BOOKING_BAD_LIMITS';
+  END IF;
+  IF _scheduled_at IS NULL OR _scheduled_at <= now() THEN
+    RAISE EXCEPTION 'BOOKING_IN_PAST';
+  END IF;
+  IF coalesce(btrim(_name), '') = '' OR coalesce(btrim(_email), '') = '' THEN
+    RAISE EXCEPTION 'BOOKING_MISSING_FIELDS';
+  END IF;
+
   PERFORM pg_advisory_xact_lock(hashtext(_settings_id::text));
 
   SELECT * INTO _s FROM public.booking_settings bs
@@ -259,6 +271,9 @@ RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp
 AS $$
 BEGIN
+  IF _max_per_day IS NULL OR _max_per_day < 1 OR coalesce(_email_hash, '') = '' THEN
+    RAISE EXCEPTION 'BOOKING_BAD_LIMITS';
+  END IF;
   PERFORM pg_advisory_xact_lock(hashtext('booking_email:' || _email_hash));
   DELETE FROM public.booking_email_log l WHERE l.created_at < now() - interval '7 days';
   IF (

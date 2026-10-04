@@ -121,6 +121,8 @@ const ATOMIC_ERRORS: Record<string, string> = {
   BOOKING_AGENDA_NOT_FOUND: "Agenda no encontrada",
   BOOKING_RATE_LIMITED: "Demasiadas reservas en poco tiempo. Intenta más tarde.",
   BOOKING_SLOT_TAKEN: "Ese horario ya fue tomado",
+  BOOKING_IN_PAST: "Ese horario ya pasó. Elige otro.",
+  BOOKING_MISSING_FIELDS: "Completa tu nombre y tu email.",
 };
 
 const UNIQUE_VIOLATION = "23505";
