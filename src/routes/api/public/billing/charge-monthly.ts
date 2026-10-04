@@ -6,7 +6,8 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 /**
  * Cobro mensual recurrente. Lo llama el job programado (1 vez al día);
  * protegido con el mismo x-dispatch-secret que meta/ingest-daily.
- * ?date=YYYY-MM-DD permite simular otro "hoy" (solo para pruebas).
+ * ?date=YYYY-MM-DD permite re-ejecutar un día pasado; nunca una fecha futura
+ * (eso crearía cobros por adelantado).
  */
 export const Route = createFileRoute("/api/public/billing/charge-monthly")({
   server: {
@@ -29,6 +30,10 @@ export const Route = createFileRoute("/api/public/billing/charge-monthly")({
         const date = new URL(request.url).searchParams.get("date");
         if (date && !DATE_RE.test(date)) {
           return Response.json({ error: "date debe ser YYYY-MM-DD" }, { status: 400 });
+        }
+        const { todayInChile } = await import("@/lib/billing/dates");
+        if (date && date > todayInChile()) {
+          return Response.json({ error: "date no puede ser futura" }, { status: 400 });
         }
 
         const { runMonthlyCharges } = await import("@/lib/billing/recurring.server");

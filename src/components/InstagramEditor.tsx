@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateApprovalQueue } from "@/hooks/use-approval-queue";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -545,6 +547,9 @@ const FORMATS: { value: PostFormat; label: string; Icon: typeof ImageIcon }[] = 
   { value: "reel", label: "Reel", Icon: Film },
 ];
 
+/** Campos de instagram_posts que afectan la vista approval_queue (y el badge de Aprobaciones). */
+const APPROVAL_QUEUE_FIELDS = ["approval_status", "archived_at", "caption"] as const;
+
 export function PostsEditor({
   clientId, posts, setPosts, type, profile, setProfile, comments, setComments, versionId = null,
 }: {
@@ -559,6 +564,7 @@ export function PostsEditor({
   /** When editing a "current" grid version, rows are scoped to that version. */
   versionId?: string | null;
 }) {
+  const queryClient = useQueryClient();
   const { metrics } = usePostInsights(clientId);
   const inScope = (p: IGPost) =>
     p.type === type && (type === "proposed" ? !p.version_id : p.version_id === versionId);
@@ -596,6 +602,7 @@ export function PostsEditor({
   };
   const saveRemote = async (id: string, patch: Partial<IGPost>) => {
     await supabase.from("instagram_posts").update(patch).eq("id", id);
+    if (APPROVAL_QUEUE_FIELDS.some((f) => f in patch)) invalidateApprovalQueue(queryClient);
   };
 
   const addComment = async (postId: string) => {
@@ -643,6 +650,7 @@ export function PostsEditor({
       .sort((a, b) => a.position - b.position);
     setPosts((prev) => prev.filter((p) => p.id !== id));
     await supabase.from("instagram_posts").delete().eq("id", id);
+    invalidateApprovalQueue(queryClient);
     const updates = remaining.map((p, i) => ({ id: p.id, position: i }));
     setPosts((prev) =>
       prev.map((p) => {
