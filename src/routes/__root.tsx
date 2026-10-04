@@ -10,6 +10,10 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/use-auth";
 import { LanguageProvider } from "@/i18n/LanguageContext";
+import { translations } from "@/i18n/translations";
+import { LEGAL_NAME, SITE_URL, WHATSAPP_E164 } from "@/lib/site";
+
+const DEFAULT_SEO = translations.es.seo.home;
 
 import appCss from "../styles.css?url";
 
@@ -51,17 +55,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Vibranding — Plataforma para diseñadores" },
-      { name: "description", content: "Gestiona objetivos, entregables, propuestas de Instagram y pagos de tus clientes." },
-      { property: "og:title", content: "Vibranding — Plataforma para diseñadores" },
-      { name: "twitter:title", content: "Vibranding — Plataforma para diseñadores" },
-      { property: "og:description", content: "Gestiona objetivos, entregables, propuestas de Instagram y pagos de tus clientes." },
-      { name: "twitter:description", content: "Gestiona objetivos, entregables, propuestas de Instagram y pagos de tus clientes." },
+      { title: DEFAULT_SEO.title },
+      { name: "description", content: DEFAULT_SEO.description },
+      { property: "og:title", content: DEFAULT_SEO.title },
+      { name: "twitter:title", content: DEFAULT_SEO.title },
+      { property: "og:description", content: DEFAULT_SEO.description },
+      { name: "twitter:description", content: DEFAULT_SEO.description },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2930eeea-27b9-495c-932b-005c7b79e815/id-preview-f7ff2cc0--e7caaa14-14c5-42d8-b5b5-4cde48ca5360.lovable.app-1779051473659.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2930eeea-27b9-495c-932b-005c7b79e815/id-preview-f7ff2cc0--e7caaa14-14c5-42d8-b5b5-4cde48ca5360.lovable.app-1779051473659.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Vibranding" },
+      { property: "og:locale", content: "es_CL" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -80,14 +85,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@graph": [
             {
               "@type": "Organization",
+              "@id": `${SITE_URL}/#organization`,
               name: "Vibranding",
-              url: "https://vibranding.pro",
-              logo: "https://vibranding.pro/favicon.ico",
+              legalName: LEGAL_NAME,
+              url: SITE_URL,
+              logo: `${SITE_URL}/favicon.ico`,
+              telephone: WHATSAPP_E164,
+              address: { "@type": "PostalAddress", addressLocality: "Santiago", addressCountry: "CL" },
             },
             {
               "@type": "WebSite",
               name: "Vibranding",
-              url: "https://vibranding.pro",
+              url: SITE_URL,
+              inLanguage: "es-CL",
             },
           ],
         }),
@@ -102,7 +112,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es-CL">
       <head><HeadContent /></head>
       <body>
         {children}
