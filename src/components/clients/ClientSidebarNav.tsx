@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
-  BarChart3, Circle, Flag, Globe, Instagram, Lock, MessageCircle, Receipt, Settings2, UserPlus, Zap,
+  BarChart3, Circle, Flag, Globe, LayoutDashboard, Instagram, Lock, MessageCircle, Receipt, Settings2, UserPlus, Zap,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -137,6 +137,8 @@ export function ClientSidebarNav({
   const { caps } = useClientCapabilities(clientId);
   const { count: reviewCount } = useReviewAlerts(clientId);
   const setupHref = `/clients/${clientId}/setup`;
+  const fichaHref = `/clients/${clientId}`;
+  const onFicha = path === fichaHref || path === `${fichaHref}/`;
   const active = activeSectionCount(caps);
 
   const badgeFor = (key: string) => {
@@ -147,6 +149,15 @@ export function ClientSidebarNav({
 
   return (
     <nav aria-label="Secciones del cliente" className="space-y-5">
+      <Link
+        to="/clients/$clientId"
+        params={{ clientId }}
+        aria-current={onFicha ? "page" : undefined}
+        className={itemClass(onFicha)}
+      >
+        <LayoutDashboard className="h-4 w-4 shrink-0" />
+        <span className="min-w-0 flex-1 leading-tight">Ficha</span>
+      </Link>
       {GROUPS.map((group) => {
         const sections = CLIENT_SECTIONS.filter((s) => groupOf(s.key) === group.key);
         const isSettings = group.key === "ajustes";

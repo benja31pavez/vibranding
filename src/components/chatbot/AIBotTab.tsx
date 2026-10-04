@@ -89,6 +89,12 @@ export function AIBotTab({ clientId, account, onChange }: {
             </div>
             <Switch checked={enabled} onCheckedChange={setEnabled} />
           </div>
+          {enabled && (
+            <p className="text-xs text-muted-foreground">
+              Las respuestas con IA usan la clave de IA del servidor (LOVABLE_API_KEY). Si no está configurada,
+              el bot no responde con IA y solo funcionan las reglas; si notas que no contesta, pide revisarla en Lovable Cloud.
+            </p>
+          )}
 
           <div>
             <Label className="text-xs">Modelo de IA</Label>

@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Calendar, User, CheckCircle2, Circle, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { writeFailed } from "@/lib/writeCheck";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -31,7 +32,7 @@ const statusMeta: Record<Status, { label: string; icon: any; cls: string; badge:
 
 function fmtDate(d: string | null) {
   if (!d) return "Sin fecha";
-  return new Date(`${d}T00:00:00`).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(`${d}T00:00:00`).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function isLate(t: Task) {
@@ -75,14 +76,16 @@ export function ClientTasksList({ clientId }: { clientId: string }) {
   };
 
   const update = async (id: string, patch: Partial<Task>) => {
-    const { error } = await (supabase.from("client_tasks" as any) as any).update(patch).eq("id", id);
-    if (error) return toast.error(error.message);
+    const res = await (supabase.from("client_tasks" as any) as any).update(patch).eq("id", id).select("id");
+    if (writeFailed(res)) return;
     load();
   };
 
   const remove = async (id: string) => {
-    const { error } = await (supabase.from("client_tasks" as any) as any).delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    const title = items.find((t) => t.id === id)?.title;
+    if (!confirm(`¿Eliminar ${title ? `la tarea «${title}»` : "esta tarea"}?`)) return;
+    const res = await (supabase.from("client_tasks" as any) as any).delete().eq("id", id).select("id");
+    if (writeFailed(res, "No se pudo eliminar la tarea")) return;
     load();
   };
 

@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/select";
 import { Plus, Trash2, X, ChevronDown, ChevronRight, Check, Pencil, Workflow } from "lucide-react";
 import { toast } from "sonner";
+import { writeFailed } from "@/lib/writeCheck";
+import { ErrorState } from "@/components/app";
 import { BotKnowledgeSection } from "@/components/chatbot/BotKnowledgeSection";
 import {
   ActionEditor,
@@ -42,13 +44,19 @@ type Rule = {
 
 export function BotRulesTab({ clientId }: { clientId: string }) {
   const [rules, setRules] = useState<Rule[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await supabase
+    setLoadError(null);
+    const { data, error } = await supabase
       .from("whatsapp_bot_rules")
       .select("*")
       .eq("client_id", clientId)
       .order("priority", { ascending: false });
+    if (error) {
+      setLoadError(error.message);
+      return;
+    }
     const normalized = ((data ?? []) as any[]).map((r) => ({
       ...r,
       actions: Array.isArray(r.actions) ? r.actions : [],
@@ -70,23 +78,32 @@ export function BotRulesTab({ clientId }: { clientId: string }) {
   };
 
   const update = async (id: string, patch: Partial<Rule>) => {
+    const previous = rules.find((r) => r.id === id);
     setRules((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-    const { error } = await supabase
+    const res = await supabase
       .from("whatsapp_bot_rules")
       .update(patch as any)
-      .eq("id", id);
-    if (error) toast.error(error.message);
+      .eq("id", id)
+      .select("id");
+    if (writeFailed(res) && previous) {
+      setRules((rs) => rs.map((r) => (r.id === id ? previous : r)));
+    }
   };
 
   const remove = async (id: string) => {
     if (!confirm("¿Eliminar regla?")) return;
-    await supabase.from("whatsapp_bot_rules").delete().eq("id", id);
+    const res = await supabase.from("whatsapp_bot_rules").delete().eq("id", id).select("id");
+    if (writeFailed(res, "No se pudo eliminar la regla")) return;
     load();
   };
 
   return (
     <div className="space-y-4">
       <BotKnowledgeSection clientId={clientId} />
+
+      {loadError && (
+        <ErrorState title="No pudimos cargar las reglas" message={loadError} onRetry={() => void load()} />
+      )}
 
       <div className="flex items-center justify-between pt-2">
         <h2 className="font-semibold">Reglas de respuestas automáticas</h2>

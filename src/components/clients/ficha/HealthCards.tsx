@@ -5,20 +5,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MoneyTotals, TONE_CLASSES, type StatusTone } from "@/components/app";
 import { addMoney, type MoneyByCurrency } from "@/lib/pricing/plans";
 import { cn } from "@/lib/utils";
+import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import type { FichaHealth } from "./fichaQueries";
 
 interface HealthCardsProps {
   clientId: string;
   health: FichaHealth | undefined;
   loading: boolean;
+  /** Plan del cliente (client_billing.plan_key); define si Meta Ads está incluido. */
+  planKey?: string | null;
 }
+
+/** Planes que incluyen gestión de campañas en Meta Ads. */
+const PLANS_WITH_ADS: readonly string[] = ["crecimiento"];
 
 function totalsByCurrency(rows: FichaHealth["payments"]): MoneyByCurrency {
   return rows.reduce<MoneyByCurrency>((acc, p) => addMoney(acc, p.currency, Number(p.amount)), {});
 }
 
 /** Tres semáforos: entregas por aprobar, cobros abiertos y alertas de campañas. */
-export function HealthCards({ clientId, health, loading }: HealthCardsProps) {
+export function HealthCards({ clientId, health, loading, planKey = null }: HealthCardsProps) {
+  const { caps, loading: capsLoading } = useClientCapabilities(clientId);
   const approvals = health?.approvals.length ?? 0;
   const pending = health?.payments.filter((p) => p.status === "pending") ?? [];
   const overdue = health?.payments.filter((p) => p.status === "overdue") ?? [];
@@ -60,13 +67,30 @@ export function HealthCards({ clientId, health, loading }: HealthCardsProps) {
       <HealthCard
         icon={Megaphone}
         title="Campañas"
-        loading={loading}
-        tone={critical > 0 ? "danger" : alerts.length > 0 ? "warning" : "success"}
-        summary={alerts.length > 0 ? `${alerts.length} alerta${alerts.length === 1 ? "" : "s"} abierta${alerts.length === 1 ? "" : "s"}` : "Sin alertas abiertas"}
+        loading={loading || capsLoading}
+        {...campaignState({ alerts: alerts.length, critical, metaConnected: caps.meta_connected, planKey })}
         link={<Link to="/clients/$clientId/meta-ads" params={{ clientId }}>Ver campañas</Link>}
       />
     </div>
   );
+}
+
+/**
+ * Estado de la tarjeta "Campañas". Sin Meta conectado no hay alertas que revisar,
+ * así que se muestra en tono neutro en vez de un verde engañoso.
+ */
+function campaignState({ alerts, critical, metaConnected, planKey }: {
+  alerts: number; critical: number; metaConnected: boolean; planKey: string | null;
+}): { tone: StatusTone; summary: string } {
+  if (alerts > 0) {
+    return {
+      tone: critical > 0 ? "danger" : "warning",
+      summary: `${alerts} alerta${alerts === 1 ? "" : "s"} abierta${alerts === 1 ? "" : "s"}`,
+    };
+  }
+  if (planKey && !PLANS_WITH_ADS.includes(planKey)) return { tone: "neutral", summary: "No incluido en el plan" };
+  if (!metaConnected) return { tone: "neutral", summary: "Meta no conectado" };
+  return { tone: "success", summary: "Sin alertas abiertas" };
 }
 
 interface HealthCardProps {
@@ -79,8 +103,7 @@ interface HealthCardProps {
 }
 
 function HealthCard({ icon: Icon, title, summary, tone, loading, link }: HealthCardProps) {
-  const ok = tone === "success";
-  const StateIcon = ok ? CheckCircle2 : AlertTriangle;
+  const StateIcon = tone === "success" ? CheckCircle2 : tone === "neutral" ? Icon : AlertTriangle;
   return (
     <div className="flex items-start gap-3 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs">
       <div className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-full", TONE_CLASSES[tone].badge)}>

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { ErrorState } from "@/components/app";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { IdentityEditor, ConfigEditor, PostsEditor, HighlightsEditor } from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
@@ -12,7 +14,7 @@ import { loadGridVersions, type GridVersion } from "@/lib/instagram/gridVersions
 type View = "current" | "proposed" | "compare";
 
 export function InstagramPage({ clientId }: { clientId: string }) {
-  const { client, ig, setProfile, setPosts, setHighlights, setComments, reloadIG } = useActiveClient();
+  const { client, ig, setProfile, setPosts, setHighlights, setComments, reloadIG, igError } = useActiveClient();
   const [view, setView] = useState<View>("proposed");
   const [versions, setVersions] = useState<GridVersion[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -48,8 +50,24 @@ export function InstagramPage({ clientId }: { clientId: string }) {
     if (!profile.current_username) patch.current_username = handle;
     if (!profile.proposed_username) patch.proposed_username = handle;
     if (Object.keys(patch).length === 0) return;
+    const previous = profile;
     setProfile({ ...profile, ...patch });
-    supabase.from("instagram_profiles").update(patch).eq("client_id", clientId);
+    void (async () => {
+      // Sin await la petición de Supabase nunca se ejecuta (el builder es "lazy").
+      const { data, error } = await supabase
+        .from("instagram_profiles")
+        .update(patch)
+        .eq("client_id", clientId)
+        .select("id");
+      if (error || !data || data.length === 0) {
+        setProfile(previous);
+        toast.error(
+          error
+            ? `No se pudo guardar el usuario de Instagram: ${error.message}`
+            : "No se pudo guardar el usuario de Instagram (sin permisos)",
+        );
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client?.instagram_handle, profile?.id]);
 
@@ -63,6 +81,16 @@ export function InstagramPage({ clientId }: { clientId: string }) {
     view === "proposed"
       ? ig.posts.filter((p) => !p.version_id)
       : ig.posts.filter((p) => p.version_id === selectedId);
+
+  if (igError) {
+    return (
+      <ErrorState
+        title="No pudimos cargar los datos de Instagram"
+        message={igError}
+        onRetry={() => void reloadIG()}
+      />
+    );
+  }
 
   return (
     <div className="grid lg:grid-cols-[1fr_360px] gap-10">

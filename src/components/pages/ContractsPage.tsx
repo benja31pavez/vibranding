@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { chileToday } from "@/lib/dates/chile";
+import { ErrorState, ListSkeleton } from "@/components/app";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -66,17 +68,41 @@ export function ContractsPage({ clientId }: { clientId: string }) {
   const [clientEmail, setClientEmail] = useState("");
   const [previewing, setPreviewing] = useState<ClientContract | null>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadingAll, setLoadingAll] = useState(false);
+
+  /** Carga cliente, precios, servicios y contratos; si algo falla, se muestra con reintentar. */
+  const loadAll = async () => {
+    if (!user) return;
+    setLoadingAll(true);
+    setLoadError(null);
+    try {
+      const [clientRes, p, sv] = await Promise.all([
+        supabase.from("clients").select("id,name,instagram_handle,notes,business_description").eq("id", clientId).maybeSingle(),
+        loadPricing(user.id),
+        loadServicePricing(user.id),
+      ]);
+      if (clientRes.error) throw new Error(clientRes.error.message);
+      if (!clientRes.data) throw new Error("No se encontró el cliente o no tienes acceso.");
+      setClient(clientRes.data as ClientRow);
+      setPricing(p);
+      setServices(sv);
+      await reloadContracts();
+    } catch (e: any) {
+      setLoadError(e?.message ?? "No se pudo cargar la información de contratos");
+    } finally {
+      setLoadingAll(false);
+    }
+  };
 
   useEffect(() => {
-    if (!user) return;
-    supabase.from("clients").select("id,name,instagram_handle,notes,business_description").eq("id", clientId).maybeSingle().then(({ data }) => setClient(data as any));
-    loadPricing(user.id).then(setPricing).catch((e) => toast.error(e?.message ?? "No se pudieron cargar los precios"));
-    loadServicePricing(user.id).then(setServices).catch((e) => toast.error(e?.message ?? "No se pudieron cargar los servicios"));
-    reloadContracts();
+    void loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, clientId]);
 
   const reloadContracts = async () => {
-    const { data } = await supabase.from("client_contracts").select("*").eq("client_id", clientId).order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("client_contracts").select("*").eq("client_id", clientId).order("created_at", { ascending: false });
+    if (error) throw new Error(`No se pudieron cargar los contratos: ${error.message}`);
     setContracts((data ?? []) as any);
   };
 
@@ -157,21 +183,21 @@ export function ContractsPage({ clientId }: { clientId: string }) {
       clauses_snapshot: buildClauses(pricing),
       total_one_time,
       total_monthly,
-      effective_date: new Date().toISOString().slice(0, 10),
+      effective_date: chileToday(),
     });
     setCreating(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Contrato creado");
     setSelected(new Set());
     setSelectedPlan(null);
-    reloadContracts();
+    void reloadContracts().catch((e) => toast.error(e.message));
   };
 
   const deleteContract = async (id: string) => {
     if (!confirm("¿Eliminar este contrato?")) return;
     const { data, error } = await supabase.from("client_contracts").delete().eq("id", id).select("id");
     if (writeDenied(error, data)) return toast.error(NO_PERMISSION);
-    reloadContracts();
+    void reloadContracts().catch((e) => toast.error(e.message));
   };
 
   const setStatus = async (id: string, status: ClientContract["status"]) => {
@@ -179,13 +205,17 @@ export function ContractsPage({ clientId }: { clientId: string }) {
     if (status === "signed") patch.signed_at = new Date().toISOString();
     const { data, error } = await supabase.from("client_contracts").update(patch).eq("id", id).select("id");
     if (writeDenied(error, data)) return toast.error(NO_PERMISSION);
-    reloadContracts();
+    void reloadContracts().catch((e) => toast.error(e.message));
   };
 
   const downloadPdf = async (c: ClientContract) => {
     setPreviewing(c);
     await new Promise((r) => setTimeout(r, 80));
-    if (!pdfRef.current) return;
+    if (!pdfRef.current) {
+      setPreviewing(null);
+      toast.error("No se pudo preparar el contrato para el PDF");
+      return;
+    }
     try {
       await exportElementToPdf(pdfRef.current, `contrato-${(c.client_snapshot?.name ?? "cliente").toString().toLowerCase().replace(/\s+/g, "-")}.pdf`);
     } catch (e: any) {
@@ -195,12 +225,22 @@ export function ContractsPage({ clientId }: { clientId: string }) {
     }
   };
 
-  if (!client || !pricing || !services) return <div className="p-6 text-muted-foreground">Cargando…</div>;
+  if (loadError) {
+    return (
+      <ErrorState
+        title="No pudimos cargar los contratos"
+        message={loadError}
+        onRetry={() => void loadAll()}
+        retrying={loadingAll}
+      />
+    );
+  }
+  if (!client || !pricing || !services) return <ListSkeleton rows={4} label="Cargando contratos" />;
 
   const currencyIsClp = pricing.currency.toUpperCase() === DEFAULT_CURRENCY;
 
   return (
-    <div className="max-w-5xl mx-auto px-6 md:px-10 py-8 space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl md:text-4xl font-semibold tracking-tight inline-flex items-center gap-2">
           <FileSignature className="w-7 h-7 text-muted-foreground" />

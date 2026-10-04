@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ClientCapabilities {
@@ -43,6 +44,10 @@ export async function loadClientCapabilities(clientId: string): Promise<ClientCa
       .eq("client_id", clientId),
   ]);
 
+  // Meta y WhatsApp definen los candados del sidebar: si fallan, mejor mostrar error que "no conectado".
+  const failed = [meta, wa, ads, outcomes].find((r: { error?: { message: string } | null }) => r.error);
+  if (failed) throw new Error(failed.error.message);
+
   const m = meta.data ?? null;
   return {
     meta_connected: Boolean(m?.connected && m?.token_secret_id),
@@ -55,27 +60,33 @@ export async function loadClientCapabilities(clientId: string): Promise<ClientCa
   };
 }
 
+/** Key de React Query por cliente; invalidarla tras conectar Meta/WhatsApp actualiza el sidebar. */
+export const clientCapabilitiesKey = (clientId: string) => ["client-capabilities", clientId] as const;
+
 export function useClientCapabilities(clientId: string | null) {
-  const [caps, setCaps] = useState<ClientCapabilities>(EMPTY_CAPABILITIES);
-  const [loading, setLoading] = useState(true);
-
+  const query = useQuery({
+    queryKey: clientCapabilitiesKey(clientId ?? "none"),
+    queryFn: () => loadClientCapabilities(clientId as string),
+    enabled: Boolean(clientId),
+  });
+  const { refetch } = query;
   const reload = useCallback(async () => {
-    if (!clientId) {
-      setCaps(EMPTY_CAPABILITIES);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      setCaps(await loadClientCapabilities(clientId));
-    } finally {
-      setLoading(false);
-    }
-  }, [clientId]);
+    await refetch();
+  }, [refetch]);
 
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  return {
+    caps: query.data ?? EMPTY_CAPABILITIES,
+    loading: Boolean(clientId) && query.isLoading,
+    error: query.error as Error | null,
+    reload,
+  };
+}
 
-  return { caps, loading, reload };
+/** Devuelve una función que invalida las capacidades del cliente (p. ej. tras conectar Meta). */
+export function useInvalidateClientCapabilities() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (clientId: string) => queryClient.invalidateQueries({ queryKey: clientCapabilitiesKey(clientId) }),
+    [queryClient],
+  );
 }

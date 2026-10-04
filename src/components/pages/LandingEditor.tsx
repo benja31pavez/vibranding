@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { writeFailed } from "@/lib/writeCheck";
+import { ErrorState } from "@/components/app";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { uploadClientMedia } from "@/lib/uploadMedia";
 import {
@@ -112,6 +114,7 @@ export function LandingEditor({ clientId }: { clientId: string }) {
   const [lp, setLp] = useState<Landing | null>(null);
   const [subs, setSubs] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">("mobile");
   const [tab, setTab] = useState<"diseno" | "config" | "metricas">("diseno");
@@ -169,16 +172,23 @@ export function LandingEditor({ clientId }: { clientId: string }) {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("landing_pages").select("*").eq("client_id", clientId).maybeSingle();
+    setLoadError(null);
+    const { data, error } = await supabase.from("landing_pages").select("*").eq("client_id", clientId).maybeSingle();
+    if (error) {
+      setLoadError(error.message);
+      setLoading(false);
+      return;
+    }
     const normalized = data ? normalize(data) : null;
     setLp(normalized);
     setBaseline(normalized ? JSON.stringify(normalized) : "");
     if (data) {
-      const { data: s } = await supabase
+      const { data: s, error: subsError } = await supabase
         .from("landing_contact_submissions")
         .select("id,name,email,phone,message,created_at")
         .eq("client_id", clientId)
         .order("created_at", { ascending: false });
+      if (subsError) toast.error(`No se pudieron cargar los contactos: ${subsError.message}`);
       setSubs((s ?? []) as Submission[]);
     }
     setLoading(false);
@@ -326,11 +336,18 @@ export function LandingEditor({ clientId }: { clientId: string }) {
   };
 
   const deleteSub = async (id: string) => {
-    const { error } = await supabase.from("landing_contact_submissions").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    const who = subs.find((s) => s.id === id)?.name;
+    if (!confirm(`¿Eliminar el contacto${who ? ` de ${who}` : ""}? No se puede deshacer.`)) return;
+    const res = await supabase.from("landing_contact_submissions").delete().eq("id", id).select("id");
+    if (writeFailed(res, "No se pudo eliminar el contacto")) return;
     setSubs(subs.filter((s) => s.id !== id));
   };
 
+  if (loadError) {
+    return (
+      <ErrorState title="No pudimos cargar la landing" message={loadError} onRetry={() => void load()} retrying={loading} />
+    );
+  }
   if (loading) return <div className="p-10 text-muted-foreground">Cargando…</div>;
 
   if (!lp) {
@@ -781,7 +798,7 @@ export function LandingEditor({ clientId }: { clientId: string }) {
                           {s.phone ? ` · ${s.phone}` : ""}
                         </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString("es-CL")}</div>
                       <p className="mt-1 whitespace-pre-line">{s.message}</p>
                     </div>
                     <Button size="icon" variant="ghost" onClick={() => deleteSub(s.id)}>

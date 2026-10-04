@@ -14,6 +14,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { anyWriteFailed, writeFailed } from "@/lib/writeCheck";
+import { useOptionalActiveClient } from "@/contexts/ActiveClientContext";
 import { MediaMatchPopover } from "@/components/instagram/MediaMatchPopover";
 import { usePostInsights } from "@/hooks/use-post-insights";
 
@@ -222,10 +224,23 @@ function NumField({
   );
 }
 
+/**
+ * Vuelve a leer los datos de Instagram desde la base cuando una escritura falla,
+ * para que la pantalla no muestre cambios que no se guardaron.
+ */
+function useResyncIG() {
+  const ctx = useOptionalActiveClient();
+  return () => {
+    void ctx?.reloadIG();
+  };
+}
+
 function useProfileHelpers(profile: IGProfile, setProfile: (p: IGProfile) => void) {
+  const resync = useResyncIG();
   const set = (patch: Partial<IGProfile>) => setProfile({ ...profile, ...patch });
   const save = async (patch: Partial<IGProfile>) => {
-    await supabase.from("instagram_profiles").update(patch).eq("id", profile.id);
+    const res = await supabase.from("instagram_profiles").update(patch).eq("id", profile.id).select("id");
+    if (writeFailed(res)) resync();
   };
   return { set, save };
 }
@@ -565,6 +580,7 @@ export function PostsEditor({
   versionId?: string | null;
 }) {
   const queryClient = useQueryClient();
+  const resync = useResyncIG();
   const { metrics } = usePostInsights(clientId);
   const inScope = (p: IGPost) =>
     p.type === type && (type === "proposed" ? !p.version_id : p.version_id === versionId);
@@ -589,7 +605,8 @@ export function PostsEditor({
         }
       }
       if (missing.length) {
-        const { data } = await supabase.from("instagram_posts").insert(missing).select("*");
+        const { data, error } = await supabase.from("instagram_posts").insert(missing).select("*");
+        if (error) toast.error(`No se pudieron crear las casillas del grid: ${error.message}`);
         if (data) setPosts((prev) => [...prev, ...(data as IGPost[])]);
       }
     })();
@@ -601,7 +618,11 @@ export function PostsEditor({
     setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   };
   const saveRemote = async (id: string, patch: Partial<IGPost>) => {
-    await supabase.from("instagram_posts").update(patch).eq("id", id);
+    const res = await supabase.from("instagram_posts").update(patch).eq("id", id).select("id");
+    if (writeFailed(res)) {
+      resync();
+      return;
+    }
     if (APPROVAL_QUEUE_FIELDS.some((f) => f in patch)) invalidateApprovalQueue(queryClient);
   };
 
@@ -609,20 +630,29 @@ export function PostsEditor({
     const post = posts.find((p) => p.id === postId);
     if (!post) return;
     const position = comments.filter((c) => c.post_id === postId).length;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("instagram_post_comments")
       .insert({ post_id: postId, client_id: post.client_id, username: "", text: "", position })
       .select("*")
       .single();
+    if (error) toast.error(`No se pudo agregar el comentario: ${error.message}`);
     if (data) setComments((prev) => [...prev, data as IGComment]);
   };
   const updateComment = async (id: string, patch: Partial<IGComment>) => {
+    const previous = comments.find((c) => c.id === id);
     setComments((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
-    await supabase.from("instagram_post_comments").update(patch).eq("id", id);
+    const res = await supabase.from("instagram_post_comments").update(patch).eq("id", id).select("id");
+    if (writeFailed(res) && previous) {
+      setComments((prev) => prev.map((c) => (c.id === id ? previous : c)));
+    }
   };
   const removeComment = async (id: string) => {
+    const previous = comments.find((c) => c.id === id);
     setComments((prev) => prev.filter((c) => c.id !== id));
-    await supabase.from("instagram_post_comments").delete().eq("id", id);
+    const res = await supabase.from("instagram_post_comments").delete().eq("id", id).select("id");
+    if (writeFailed(res, "No se pudo eliminar") && previous) {
+      setComments((prev) => [...prev, previous]);
+    }
   };
 
   const countKey = (type === "proposed" ? "proposed_posts_count" : "current_posts_count") as keyof IGProfile;
@@ -631,16 +661,25 @@ export function PostsEditor({
     const existing = posts.filter(inScope);
     const position = existing.length;
     if (position >= 30) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("instagram_posts")
       .insert({ client_id: clientId, type, position, version_id: versionId })
       .select("*")
       .single();
-    if (data) setPosts((prev) => [...prev, data as IGPost]);
+    if (error || !data) {
+      toast.error(`No se pudo agregar la publicación${error ? `: ${error.message}` : ""}`);
+      return;
+    }
+    setPosts((prev) => [...prev, data as IGPost]);
     if (profile && setProfile) {
       const next = { ...profile, [countKey]: position + 1 } as IGProfile;
       setProfile(next);
-      await supabase.from("instagram_profiles").update({ [countKey]: position + 1 } as never).eq("id", profile.id);
+      const res = await supabase
+        .from("instagram_profiles")
+        .update({ [countKey]: position + 1 } as never)
+        .eq("id", profile.id)
+        .select("id");
+      if (writeFailed(res)) resync();
     }
   };
 
@@ -649,7 +688,11 @@ export function PostsEditor({
       .filter((p) => inScope(p) && p.id !== id)
       .sort((a, b) => a.position - b.position);
     setPosts((prev) => prev.filter((p) => p.id !== id));
-    await supabase.from("instagram_posts").delete().eq("id", id);
+    const delRes = await supabase.from("instagram_posts").delete().eq("id", id).select("id");
+    if (writeFailed(delRes, "No se pudo eliminar la publicación")) {
+      resync();
+      return;
+    }
     invalidateApprovalQueue(queryClient);
     const updates = remaining.map((p, i) => ({ id: p.id, position: i }));
     setPosts((prev) =>
@@ -658,16 +701,22 @@ export function PostsEditor({
         return u ? { ...p, position: u.position } : p;
       }),
     );
-    await Promise.all(
+    const posResults = await Promise.all(
       updates.map((u) =>
-        supabase.from("instagram_posts").update({ position: u.position }).eq("id", u.id),
+        supabase.from("instagram_posts").update({ position: u.position }).eq("id", u.id).select("id"),
       ),
     );
+    if (anyWriteFailed(posResults, "No se pudo reordenar")) resync();
     if (profile && setProfile) {
       const newCount = remaining.length;
       const next = { ...profile, [countKey]: newCount } as IGProfile;
       setProfile(next);
-      await supabase.from("instagram_profiles").update({ [countKey]: newCount } as never).eq("id", profile.id);
+      const res = await supabase
+        .from("instagram_profiles")
+        .update({ [countKey]: newCount } as never)
+        .eq("id", profile.id)
+        .select("id");
+      if (writeFailed(res)) resync();
     }
   };
 
@@ -692,11 +741,12 @@ export function PostsEditor({
         return u ? { ...p, position: u.position } : p;
       }),
     );
-    await Promise.all(
+    const results = await Promise.all(
       updates.map((u) =>
-        supabase.from("instagram_posts").update({ position: u.position }).eq("id", u.id),
+        supabase.from("instagram_posts").update({ position: u.position }).eq("id", u.id).select("id"),
       ),
     );
+    if (anyWriteFailed(results, "No se pudo reordenar")) resync();
   };
 
   const splitDateTime = (iso: string | null) => {
@@ -1368,28 +1418,38 @@ export function HighlightsEditor({
   setHighlights: (updater: (prev: IGHighlight[]) => IGHighlight[]) => void;
   type: "current" | "proposed";
 }) {
+  const resync = useResyncIG();
   const items = highlights
     .filter((h) => h.type === type)
     .sort((a, b) => a.position - b.position);
 
   const add = async () => {
     const position = items.length ? Math.max(...items.map((i) => i.position)) + 1 : 0;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("instagram_highlights")
       .insert({ client_id: clientId, type, position, title: "Nueva" })
       .select("*")
       .single();
+    if (error) toast.error(`No se pudo agregar la historia destacada: ${error.message}`);
     if (data) setHighlights((prev) => [...prev, data as IGHighlight]);
   };
 
   const update = async (id: string, patch: Partial<IGHighlight>) => {
+    const previous = highlights.find((h) => h.id === id);
     setHighlights((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)));
-    await supabase.from("instagram_highlights").update(patch).eq("id", id);
+    const res = await supabase.from("instagram_highlights").update(patch).eq("id", id).select("id");
+    if (writeFailed(res) && previous) {
+      setHighlights((prev) => prev.map((h) => (h.id === id ? previous : h)));
+    }
   };
 
   const remove = async (id: string) => {
+    const previous = highlights.find((h) => h.id === id);
     setHighlights((prev) => prev.filter((h) => h.id !== id));
-    await supabase.from("instagram_highlights").delete().eq("id", id);
+    const res = await supabase.from("instagram_highlights").delete().eq("id", id).select("id");
+    if (writeFailed(res, "No se pudo eliminar") && previous) {
+      setHighlights((prev) => [...prev, previous]);
+    }
   };
 
   const [dragId, setDragId] = useState<string | null>(null);
@@ -1409,11 +1469,12 @@ export function HighlightsEditor({
         return u ? { ...h, position: u.position } : h;
       }),
     );
-    await Promise.all(
+    const results = await Promise.all(
       updates.map((u) =>
-        supabase.from("instagram_highlights").update({ position: u.position }).eq("id", u.id),
+        supabase.from("instagram_highlights").update({ position: u.position }).eq("id", u.id).select("id"),
       ),
     );
+    if (anyWriteFailed(results, "No se pudo reordenar")) resync();
   };
 
   return (

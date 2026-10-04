@@ -28,7 +28,7 @@ const SHELL_CLASS = "max-w-7xl mx-auto px-6 md:px-10 py-8";
  */
 function ClientShell() {
   const { clientId } = Route.useParams();
-  const { client, reloadClient } = useActiveClient();
+  const { client, reloadClient, clientError } = useActiveClient();
   const userKey = useUserKey();
   const existence = useQuery({
     queryKey: fichaKeys.exists(userKey, clientId),
@@ -39,12 +39,12 @@ function ClientShell() {
     },
   });
 
-  if (existence.error) {
+  if (existence.error || clientError) {
     return (
       <div className={SHELL_CLASS}>
         <ErrorState
           title="No pudimos cargar este cliente"
-          message={existence.error.message}
+          message={existence.error?.message ?? clientError ?? undefined}
           onRetry={() => {
             void existence.refetch();
             void reloadClient();

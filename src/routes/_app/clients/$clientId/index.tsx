@@ -36,7 +36,7 @@ function ClientFichaPage() {
       {health.error && !health.isLoading ? (
         <ErrorState message={health.error.message} onRetry={() => void health.refetch()} retrying={health.isFetching} />
       ) : (
-        <HealthCards clientId={clientId} health={health.data} loading={health.isLoading} />
+        <HealthCards clientId={clientId} health={health.data} loading={health.isLoading} planKey={overview.data?.billing?.plan_key ?? null} />
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

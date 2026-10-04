@@ -16,17 +16,28 @@ export function ExportPdfButton() {
   const { user } = useAuth();
   const [pricing, setPricing] = useState<PricingSettings | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [pricingError, setPricingError] = useState<string | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) return;
     loadPricing(user.id)
-      .then(setPricing)
-      .catch(() => setPricing(null));
+      .then((p) => {
+        setPricing(p);
+        setPricingError(null);
+      })
+      .catch((e: unknown) => {
+        setPricing(null);
+        setPricingError(e instanceof Error ? e.message : "No se pudo cargar la tabla de precios");
+      });
   }, [user]);
 
   const handleExportPdf = async () => {
     if (!ig.profile || !client) return;
+    if (pricingError) {
+      // El PDF sale igual, pero sin precios: avisamos en vez de omitirlos en silencio.
+      toast.warning(`El PDF se generará sin precios: ${pricingError}`);
+    }
     setExporting(true);
     try {
       await new Promise((r) => requestAnimationFrame(() => r(null)));
