@@ -25,6 +25,8 @@ import {
   type BillingRow,
 } from "@/components/billing/billingData";
 import { periodLabel, todayInChile } from "@/lib/billing/dates";
+import { useMrr } from "@/lib/billing/mrr";
+import { UPCOMING_DAYS } from "@/lib/billing/openPayments";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/billing")({
@@ -46,6 +48,7 @@ const NO_PERMISSION = "No tienes permisos para esta acción";
 
 const FILTERS: ReadonlyArray<{ value: BillingFilter; label: string }> = [
   { value: "vencidos", label: "Vencidos" },
+  { value: "por_vencer", label: `Por vencer (${UPCOMING_DAYS} días)` },
   { value: "mes", label: "Este mes" },
   { value: "todos", label: "Todos" },
 ];
@@ -60,6 +63,7 @@ function BillingPage() {
   const [filter, setFilter] = useState<BillingFilter>("vencidos");
   const requestId = useRef(0);
   const today = todayInChile();
+  const mrr = useMrr();
 
   const load = async () => {
     const id = ++requestId.current;
@@ -116,9 +120,20 @@ function BillingPage() {
         <StatCard
           label="MRR"
           icon={Repeat}
-          loading={loading}
-          hint="Clientes activos"
-          value={<Money amount={data?.mrr ?? 0} currency="CLP" />}
+          loading={mrr.isPending && !mrr.isError}
+          hint="Suscripciones activas + facturación manual de clientes activos"
+          value={
+            mrr.isError ? (
+              <span role="alert" className="text-base text-danger-strong">
+                No disponible{" "}
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => void mrr.refetch()}>
+                  Reintentar
+                </Button>
+              </span>
+            ) : (
+              <Money amount={mrr.data?.total ?? 0} currency="CLP" />
+            )
+          }
         />
       </div>
 
@@ -150,7 +165,13 @@ function BillingPage() {
       ) : visible.length === 0 ? (
         <EmptyState
           icon={Receipt}
-          title={filter === "vencidos" ? "No hay cobros vencidos." : "Sin cobros para este filtro."}
+          title={
+            filter === "vencidos"
+              ? "No hay cobros vencidos."
+              : filter === "por_vencer"
+                ? `No hay cobros que venzan en los próximos ${UPCOMING_DAYS} días.`
+                : "Sin cobros para este filtro."
+          }
           description="Los cobros se registran desde la ficha de cada cliente, en Facturación."
         />
       ) : (

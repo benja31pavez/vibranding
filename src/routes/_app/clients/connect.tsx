@@ -22,6 +22,7 @@ import {
   type ClientConnectRow,
 } from "@/lib/meta/bulkConnect.functions";
 import { getOrgMetaTokenStatus, type OrgTokenStatus } from "@/lib/meta/connection.functions";
+import { ErrorState, ListSkeleton } from "@/components/app";
 
 export const Route = createFileRoute("/_app/clients/connect")({
   head: () => ({
@@ -89,6 +90,7 @@ function BulkConnectPage() {
   const [assets, setAssets] = useState<Assets | null>(null);
   const [orgStatus, setOrgStatus] = useState<OrgTokenStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, { ad: string; ig: string }>>({});
   const [validations, setValidations] = useState<Record<string, Validation>>({});
@@ -110,6 +112,7 @@ function BulkConnectPage() {
       ]);
       setRows(r);
       setOrgStatus(o);
+      setLoadError(null);
       setDraft(
         Object.fromEntries(
           r.map((c) => [c.clientId, { ad: c.adAccountId ?? NONE, ig: c.igAccountId ?? NONE }]),
@@ -123,7 +126,7 @@ function BulkConnectPage() {
         }
       }
     } catch (e: any) {
-      toast.error(e?.message ?? "No se pudo cargar la lista");
+      setLoadError(e?.message ?? "No se pudo cargar la lista");
     } finally {
       setLoading(false);
     }
@@ -218,7 +221,7 @@ function BulkConnectPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-4">
+    <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <Plug className="w-5 h-5" /> Conectar clientes con Meta
@@ -235,7 +238,18 @@ function BulkConnectPage() {
         </div>
       </div>
 
-      {!orgStatus?.has_token && (
+      <p className="text-sm text-muted-foreground">
+        La conexión de Meta (token de la organización) se administra en{" "}
+        <Link to="/settings/meta" className="underline underline-offset-2 hover:text-foreground">
+          Ajustes › Meta
+        </Link>
+        . Aquí asignas a cada cliente su cuenta publicitaria e Instagram.
+      </p>
+
+      {loadError && <ErrorState message={loadError} onRetry={() => void load()} retrying={loading} />}
+      {loading && !orgStatus && !loadError && <ListSkeleton rows={3} label="Cargando clientes y activos de Meta" />}
+
+      {!loading && !loadError && orgStatus && !orgStatus.has_token && (
         <Card>
           <CardContent className="p-4 text-sm">
             Todavía no hay un token de System User en la organización.{" "}

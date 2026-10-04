@@ -1,6 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
 import { Link } from "@tanstack/react-router";
-import { Ban, ExternalLink, GripVertical, UserPlus } from "lucide-react";
+import { Ban, ExternalLink, FilePlus2, GripVertical, UserPlus } from "lucide-react";
 import { StatusBadge } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { findPlan } from "@/lib/pricing/plans";
@@ -77,6 +77,18 @@ export function ConvertAction({ prospect, onConvert, label = "Convertir" }: {
   return (
     <Button size="sm" variant="outline" className="h-8 shrink-0 px-2 text-xs" onClick={() => onConvert(prospect)}>
       <UserPlus aria-hidden className="mr-1 h-3.5 w-3.5" /> {label}
+    </Button>
+  );
+}
+
+/** Atajo a una propuesta nueva para el prospecto (no para bajas ni convertidos: esos van por el cliente). */
+export function CreateProposalAction({ prospect }: { prospect: Prospect }) {
+  if (prospect.estado === "baja" || convertedClientId(prospect)) return null;
+  return (
+    <Button asChild size="icon" variant="outline" className="h-8 w-8 shrink-0">
+      <Link to="/proposals/new" search={{ prospectId: prospect.id }} aria-label={`Crear propuesta para ${prospect.nombre}`} title="Crear propuesta">
+        <FilePlus2 aria-hidden className="h-3.5 w-3.5" />
+      </Link>
     </Button>
   );
 }
@@ -175,6 +187,7 @@ export function ProspectCard({ prospect, actions }: { prospect: Prospect; action
         <StageSelect prospect={prospect} onMove={actions.onMove} className="min-w-0 flex-1" />
         <ConvertAction prospect={prospect} onConvert={actions.onConvert} />
         <ResumeAction prospect={prospect} onMove={actions.onMove} />
+        <CreateProposalAction prospect={prospect} />
       </div>
     </li>
   );

@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, Loader2, UserRound } from "lucide-react";
 import { toast } from "sonner";
+import { ErrorState, ListSkeleton } from "@/components/app";
+
+const AVATAR_BUCKET = "client-media";
+/** Las políticas de INSERT del bucket exigen que la 1.ª carpeta sea el uid del usuario. */
+const avatarPath = (userId: string, ext: string) => `${userId}/avatar-${Date.now()}.${ext}`;
 
 export type ProfileData = { full_name: string | null; phone: string | null; avatar_url: string | null };
 
@@ -18,39 +23,55 @@ export function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  // El formulario queda bloqueado hasta cargar: guardar antes borraría nombre y teléfono.
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
+    setLoaded(false);
+    setLoadError(null);
     supabase.from("user_profiles").select("full_name,phone,avatar_url").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("[profile] error al cargar", error);
+          setLoadError("No pudimos cargar tu perfil. Revisa tu conexión e inténtalo de nuevo.");
+          return;
+        }
         setFullName(data?.full_name ?? "");
         setPhone(data?.phone ?? "");
         setAvatarUrl(data?.avatar_url ?? null);
+        setLoaded(true);
       });
-  }, [user]);
+    return () => { cancelled = true; };
+  }, [user, reloadKey]);
 
   const uploadAvatar = async (file: File) => {
     if (!user) return;
     setUploading(true);
     const ext = file.name.split(".").pop() || "jpg";
-    const path = `avatars/${user.id}/${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("client-media").upload(path, file, { upsert: true, contentType: file.type });
+    const path = avatarPath(user.id, ext.toLowerCase());
+    const { error: upErr } = await supabase.storage.from(AVATAR_BUCKET).upload(path, file, { upsert: true, contentType: file.type });
     if (upErr) {
       setUploading(false);
-      return toast.error(upErr.message);
+      console.error("[profile] error al subir la foto", upErr);
+      return toast.error("No se pudo subir la foto", { description: upErr.message });
     }
-    const { data: pub } = supabase.storage.from("client-media").getPublicUrl(path);
+    const { data: pub } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
     setAvatarUrl(pub.publicUrl);
     setUploading(false);
   };
 
   const save = async () => {
-    if (!user) return;
+    if (!user || !loaded) return;
     setSaving(true);
     const payload = { user_id: user.id, full_name: fullName.trim() || null, phone: phone.trim() || null, avatar_url: avatarUrl, updated_at: new Date().toISOString() };
     const { error } = await supabase.from("user_profiles").upsert(payload, { onConflict: "user_id" });
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("No se pudo guardar el perfil", { description: error.message });
     toast.success("Perfil actualizado");
     window.dispatchEvent(new Event("profile-updated"));
   };
@@ -58,7 +79,7 @@ export function ProfilePage() {
   const initials = (fullName || user?.email || "?").slice(0, 2).toUpperCase();
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 py-10 md:px-10 md:py-14">
+    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 md:px-10 md:py-14">
       <header className="mb-10 border-b pb-6">
         <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <UserRound className="h-4 w-4" /> Cuenta
@@ -67,6 +88,11 @@ export function ProfilePage() {
         <p className="mt-2 text-sm text-muted-foreground">Actualiza tus datos personales y la imagen que verás en Vibranding.</p>
       </header>
 
+      {loadError ? (
+        <ErrorState message={loadError} onRetry={() => setReloadKey((k) => k + 1)} />
+      ) : !loaded ? (
+        <ListSkeleton rows={4} label="Cargando tu perfil" />
+      ) : (
       <div className="grid gap-10 md:grid-cols-[220px_minmax(0,1fr)]">
         <section>
           <Avatar className="h-32 w-32 border bg-surface shadow-sm">
@@ -108,6 +134,7 @@ export function ProfilePage() {
           </div>
         </section>
       </div>
+      )}
     </div>
   );
 }

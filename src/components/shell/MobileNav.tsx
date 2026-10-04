@@ -2,7 +2,8 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { VerticalNavList } from "./HeaderNav";
-import { PRIMARY_NAV, SETTINGS_NAV } from "./navConfig";
+import { PRIMARY_NAV } from "./navConfig";
+import { useSettingsNav } from "./useSettingsNav";
 
 interface MobileNavProps {
   path: string;
@@ -12,6 +13,7 @@ interface MobileNavProps {
 
 /** Menú hamburguesa (bajo md) con la gestión transversal de la agencia. */
 export function MobileNav({ path, open, onOpenChange }: MobileNavProps) {
+  const settingsNav = useSettingsNav();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
@@ -30,7 +32,7 @@ export function MobileNav({ path, open, onOpenChange }: MobileNavProps) {
             <div className="px-3 pb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Configuración
             </div>
-            <VerticalNavList items={SETTINGS_NAV} path={path} label="Configuración" />
+            <VerticalNavList items={settingsNav} path={path} label="Configuración" />
           </div>
         </div>
       </SheetContent>

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +11,7 @@ import {
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Trash2, Pencil, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -19,7 +22,7 @@ import {
   type MoneyByCurrency,
 } from "@/lib/pricing/plans";
 import {
-  EmptyState, ErrorState, Money, StatCard, TableSkeleton, TONE_CLASSES, getStatus,
+  ConfirmDialog, EmptyState, ErrorState, Money, StatCard, TableSkeleton, TONE_CLASSES, getStatus,
 } from "@/components/app";
 import { PaymentLinkButton } from "@/components/billing/PaymentLinkButton";
 
@@ -63,6 +66,33 @@ interface Payment {
   payment_url: string | null;
 }
 
+/** Los cobros nuevos son siempre en CLP; los antiguos en otra moneda se leen tal cual. */
+const NEW_PAYMENT_CURRENCY = DEFAULT_CURRENCY;
+const STATUS_LOCKED_HINT = "Solo un owner o admin de la organización puede cambiar el estado de un cobro.";
+const STATUS_UNVERIFIED_HINT = "No pudimos verificar permisos; si no corresponde, el cambio se rechazará.";
+
+const DATE_FMT = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeZone: "UTC" });
+/** YYYY-MM-DD (o timestamp) → "4 oct 2026" sin corrimiento de zona horaria. */
+const fmtDay = (iso: string) => DATE_FMT.format(new Date(`${iso.slice(0, 10)}T12:00:00Z`));
+/** Valor para <input type="date"> a partir de date o timestamptz. */
+const toDateInput = (iso: string | null) => (iso ? iso.slice(0, 10) : "");
+
+/** ¿Puede cambiar estados? Mismo criterio que la RPC set_payment_status (manages_client). */
+function useManagesClient(clientId: string) {
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
+  return useQuery({
+    queryKey: ["manages-client", userId, clientId],
+    enabled: Boolean(userId),
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<boolean> => {
+      const { data, error } = await supabase.rpc("manages_client", { _client_id: clientId });
+      if (error) throw new Error(error.message);
+      return data === true;
+    },
+  });
+}
+
 const STATUSES: readonly Status[] = ["pending", "paid", "overdue", "cancelled"];
 const statusLabel = (s: Status) => getStatus(s).label;
 const statusCls = (s: Status) => TONE_CLASSES[getStatus(s).tone].badge;
@@ -87,7 +117,15 @@ function TotalsValue({ totals }: { totals: Totals }) {
 export function PaymentsPanel({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Payment[]>([]);
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState({ description: "", amount: "", currency: DEFAULT_CURRENCY, due_date: "" });
+  const [draft, setDraft] = useState({ description: "", amount: "", due_date: "" });
+  const [toDelete, setToDelete] = useState<Payment | null>(null);
+  const manager = useManagesClient(clientId);
+  // Si no se pudo consultar el rol, se deja habilitado y la RPC decide (muestra su error).
+  const canChangeStatus = manager.data !== false;
+  useEffect(() => {
+    if (manager.isError) console.warn("[payments] no se pudo verificar manages_client", manager.error);
+  }, [manager.isError, manager.error]);
+  const statusHint = manager.isError ? STATUS_UNVERIFIED_HINT : STATUS_LOCKED_HINT;
   const [editing, setEditing] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -131,11 +169,11 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
       client_id: clientId,
       description: draft.description || null,
       amount,
-      currency: normalizeCurrency(draft.currency),
+      currency: NEW_PAYMENT_CURRENCY,
       due_date: draft.due_date || null,
     });
     if (error) return toast.error(error.message);
-    setDraft({ description: "", amount: "", currency: DEFAULT_CURRENCY, due_date: "" });
+    setDraft({ description: "", amount: "", due_date: "" });
     setAdding(false);
     load();
   };
@@ -184,8 +222,8 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
         <div className="space-y-3 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs">
           <Input placeholder="Concepto" aria-label="Concepto" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} autoFocus />
           <div className="flex gap-2">
-            <Input type="number" step={amountStep(draft.currency)} placeholder="Monto (IVA incluido)" aria-label="Monto (IVA incluido)" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
-            <Input className="w-24" placeholder={DEFAULT_CURRENCY} aria-label="Moneda" value={draft.currency} onChange={(e) => setDraft({ ...draft, currency: e.target.value.toUpperCase() })} />
+            <Input type="number" step={amountStep(NEW_PAYMENT_CURRENCY)} placeholder="Monto en CLP (IVA incluido)" aria-label="Monto en CLP (IVA incluido)" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
+            <span className="flex h-10 shrink-0 items-center rounded-app-sm border border-border-subtle px-3 text-sm text-muted-foreground" aria-label="Moneda: pesos chilenos">CLP</span>
             <Input type="date" aria-label="Fecha de vencimiento" value={draft.due_date} onChange={(e) => setDraft({ ...draft, due_date: e.target.value })} />
           </div>
           <div className="flex justify-end gap-2">
@@ -208,26 +246,22 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{p.description || "Cobro"}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  {p.due_date ? `Vence ${new Date(p.due_date).toLocaleDateString("es-CL")}` : "Sin fecha"}
-                  {p.paid_at && ` · Pagado ${new Date(p.paid_at).toLocaleDateString("es-CL")}`}
+                  {p.due_date ? `Vence ${fmtDay(p.due_date)}` : "Sin fecha"}
+                  {p.paid_at && ` · Pagado ${fmtDay(p.paid_at)}`}
                 </div>
               </div>
               <Money amount={Number(p.amount)} currency={p.currency} className="font-semibold" />
               <PaymentLinkButton payment={p} onChanged={load} />
-              <Select value={p.status} onValueChange={(v) => changeStatus(p.id, v as Status)}>
-                <SelectTrigger aria-label="Estado del pago" className={`h-8 w-32 rounded-full border-0 text-xs font-medium focus:ring-2 focus:ring-ring focus:ring-offset-1 ${statusCls(p.status)}`}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUSES.map((k) => (
-                    <SelectItem key={k} value={k}>{statusLabel(k)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <StatusSelect
+                status={p.status}
+                disabled={!canChangeStatus}
+                hint={manager.isError ? statusHint : null}
+                onChange={(v) => changeStatus(p.id, v)}
+              />
               <button type="button" onClick={() => setEditing(p)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-foreground" aria-label="Editar pago">
                 <Pencil aria-hidden className="h-4 w-4" />
               </button>
-              <button type="button" onClick={() => remove(p.id)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-danger" aria-label="Eliminar pago">
+              <button type="button" onClick={() => setToDelete(p)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-danger" aria-label="Eliminar pago">
                 <Trash2 aria-hidden className="h-4 w-4" />
               </button>
             </li>
@@ -235,8 +269,22 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
         </ul>
       )}
 
+      <ConfirmDialog
+        open={toDelete !== null}
+        onOpenChange={(o) => { if (!o) setToDelete(null); }}
+        title="¿Eliminar este cobro?"
+        description={`Se borra «${toDelete?.description || "Cobro"}» de forma permanente. Si solo no se va a cobrar, es mejor cambiar su estado a Cancelado para conservar el historial.`}
+        confirmLabel="Eliminar"
+        destructive
+        onConfirm={() => {
+          if (toDelete) void remove(toDelete.id);
+          setToDelete(null);
+        }}
+      />
+
       <EditDialog
         payment={editing}
+        canChangeStatus={canChangeStatus}
         onClose={() => setEditing(null)}
         onSaved={() => { setEditing(null); load(); }}
       />
@@ -244,10 +292,49 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
   );
 }
 
+function StatusSelect({
+  status,
+  disabled,
+  hint,
+  onChange,
+}: {
+  status: Status;
+  disabled: boolean;
+  /** Aviso en tooltip aunque esté habilitado (p. ej. permisos sin verificar). */
+  hint?: string | null;
+  onChange: (s: Status) => void;
+}) {
+  const select = (
+    <Select value={status} onValueChange={(v) => onChange(v as Status)} disabled={disabled}>
+      <SelectTrigger aria-label="Estado del pago" className={`h-8 w-32 rounded-full border-0 text-xs font-medium focus:ring-2 focus:ring-ring focus:ring-offset-1 ${statusCls(status)}`}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {STATUSES.map((k) => (
+          <SelectItem key={k} value={k}>{statusLabel(k)}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+  if (!disabled && !hint) return select;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        {/* El span recibe el foco/hover: un botón deshabilitado no dispara eventos. */}
+        <TooltipTrigger asChild>
+          <span tabIndex={0} className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{select}</span>
+        </TooltipTrigger>
+        <TooltipContent>{hint ?? STATUS_LOCKED_HINT}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function EditDialog({
-  payment, onClose, onSaved,
+  payment, canChangeStatus, onClose, onSaved,
 }: {
   payment: Payment | null;
+  canChangeStatus: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -271,7 +358,8 @@ function EditDialog({
     // Datos del cobro: UPDATE directo (solo columnas permitidas al navegador).
     const patch: Partial<Payment> = {
       description: form.description?.trim() || null,
-      ...(linkLocked ? {} : { amount, currency: normalizeCurrency(form.currency) }),
+      // La moneda no se edita: los cobros nuevos son CLP y los antiguos conservan la suya.
+      ...(linkLocked ? {} : { amount }),
       due_date: form.due_date || null,
     };
     const { data, error } = await supabase.from("payments").update(patch).eq("id", form.id).select("id");
@@ -282,12 +370,14 @@ function EditDialog({
     // Estado / fecha de pago: vía RPC, solo si cambiaron.
     const statusChanged = payment !== null && form.status !== payment.status;
     const paidAtChanged =
-      form.status === "paid" && payment !== null && (form.paid_at || null) !== payment.paid_at;
+      form.status === "paid" &&
+      payment !== null &&
+      toDateInput(form.paid_at) !== toDateInput(payment.paid_at);
     if (statusChanged || paidAtChanged) {
       const statusError = await setPaymentStatus(
         form.id,
         form.status,
-        form.status === "paid" ? form.paid_at : null,
+        form.status === "paid" ? toDateInput(form.paid_at) || null : null,
       );
       if (statusError) {
         setSaving(false);
@@ -318,9 +408,14 @@ function EditDialog({
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Moneda</Label>
-              <Input value={form.currency} disabled={linkLocked} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} />
+              <Input value={normalizeCurrency(form.currency)} readOnly disabled aria-describedby={normalizeCurrency(form.currency) !== NEW_PAYMENT_CURRENCY ? "legacy-currency" : undefined} />
             </div>
           </div>
+          {normalizeCurrency(form.currency) !== NEW_PAYMENT_CURRENCY && (
+            <p id="legacy-currency" className="text-xs text-warning-strong">
+              Cobro antiguo en {normalizeCurrency(form.currency)}. Los cobros nuevos se registran solo en CLP.
+            </p>
+          )}
           {linkLocked && (
             <p className="text-xs text-muted-foreground">
               {payment?.status === "paid"
@@ -336,12 +431,12 @@ function EditDialog({
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Fecha de pago</Label>
-              <Input type="date" value={form.paid_at ?? ""} onChange={(e) => setForm({ ...form, paid_at: e.target.value || null })} disabled={form.status !== "paid"} />
+              <Input type="date" value={toDateInput(form.paid_at)} onChange={(e) => setForm({ ...form, paid_at: e.target.value || null })} disabled={form.status !== "paid" || !canChangeStatus} />
             </div>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Estado</Label>
-            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })}>
+            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })} disabled={!canChangeStatus}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {STATUSES.map((k) => (
@@ -349,6 +444,7 @@ function EditDialog({
                 ))}
               </SelectContent>
             </Select>
+            {!canChangeStatus && <p className="text-xs text-muted-foreground">{STATUS_LOCKED_HINT}</p>}
           </div>
         </div>
         <DialogFooter>

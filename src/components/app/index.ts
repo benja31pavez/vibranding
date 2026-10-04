@@ -13,3 +13,4 @@ export {
   type StatusBadgeProps,
   type StatusTone,
 } from "./status-badge";
+export { ConfirmDialog, type ConfirmDialogProps } from "./confirm-dialog";

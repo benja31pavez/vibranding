@@ -1,11 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Activity, AlertTriangle, Instagram, RefreshCw } from "lucide-react";
+import { Activity, AlertTriangle, ChevronRight, CreditCard, Instagram, Plug, RefreshCw, ShieldAlert } from "lucide-react";
+import { toast } from "sonner";
+import { EmptyState, ErrorState, ListSkeleton } from "@/components/app";
+import { useIsPlatformAdmin } from "@/lib/auth/platformAdmin.functions";
+import { useFlowConfigured } from "@/lib/flow/config.functions";
 import { getJobHealth, setJobSchedule, type JobHealthRow } from "@/lib/admin/health.functions";
 import { getIgWebhookStatus } from "@/lib/instagram/webhook.functions";
 import { listIgSyncRuns } from "@/lib/admin/igSyncLog.functions";
@@ -52,12 +56,56 @@ function fmt(iso: string | null): string {
   return new Date(iso).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "medium" });
 }
 
+/** Estados de job_runs en español. */
+const RUN_STATUS_LABEL: Readonly<Record<string, string>> = {
+  succeeded: "OK",
+  failed: "Falló",
+  running: "En curso",
+  no_data: "Sin datos",
+};
+const runStatusLabel = (status: string) => RUN_STATUS_LABEL[status] ?? status;
+
+function errorText(e: unknown, fallback: string): string {
+  return e instanceof Error && e.message ? e.message : fallback;
+}
+
 function isStale(job: JobHealthRow): boolean {
   const h = hoursSince(job.last_success);
   return h === null || h > STALE_HOURS;
 }
 
+/** Salud del sistema: solo administradores de plataforma (el servidor también lo exige). */
 function HealthPage() {
+  const admin = useIsPlatformAdmin();
+  if (admin.isPending) {
+    return (
+      <div className="p-6 md:p-8 max-w-6xl mx-auto">
+        <ListSkeleton rows={4} label="Comprobando permisos" />
+      </div>
+    );
+  }
+  if (admin.isError) {
+    return (
+      <div className="p-6 md:p-8 max-w-6xl mx-auto">
+        <ErrorState message="No pudimos comprobar tus permisos." onRetry={() => void admin.refetch()} retrying={admin.isFetching} />
+      </div>
+    );
+  }
+  if (!admin.data) {
+    return (
+      <div className="p-6 md:p-8 max-w-6xl mx-auto">
+        <EmptyState
+          icon={ShieldAlert}
+          title="Solo para administradores"
+          description="El estado del sistema y los diagnósticos de integraciones están disponibles solo para los administradores de la plataforma."
+        />
+      </div>
+    );
+  }
+  return <HealthDashboard />;
+}
+
+function HealthDashboard() {
   const fetchHealth = useServerFn(getJobHealth);
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["job-health"],
@@ -76,7 +124,12 @@ function HealthPage() {
   const saveSchedule = useServerFn(setJobSchedule);
   const schedule = useMutation({
     mutationFn: saveSchedule,
-    onSuccess: () => void refetch(),
+    onSuccess: (res) => {
+      if (res.ok) toast.success("Frecuencia actualizada");
+      else toast.error("No se pudo cambiar la frecuencia: la tarea no existe en el programador.");
+      void refetch();
+    },
+    onError: (e) => toast.error("No se pudo cambiar la frecuencia", { description: errorText(e, "Error inesperado") }),
   });
   const igBlocked =
     !!igData &&
@@ -170,12 +223,15 @@ function HealthPage() {
       )}
 
       {isError && (
-        <Alert variant="destructive">
-          <AlertTriangle className="w-4 h-4" />
-          <AlertTitle>No se pudo leer el estado</AlertTitle>
-          <AlertDescription>{(error as Error)?.message}</AlertDescription>
-        </Alert>
+        <ErrorState
+          title="No se pudo leer el estado"
+          message={errorText(error, "Error inesperado")}
+          onRetry={() => void refetch()}
+          retrying={isFetching}
+        />
       )}
+
+      <DiagnosticsLinks />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
@@ -213,8 +269,8 @@ function HealthPage() {
           <CardTitle className="text-base">Trabajos programados</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
-          {!isLoading && jobs.length === 0 && (
+          {isLoading && <ListSkeleton rows={3} label="Cargando trabajos" />}
+          {!isLoading && !isError && jobs.length === 0 && (
             <p className="text-sm text-muted-foreground">No hay trabajos registrados.</p>
           )}
           {jobs.map((j) => (
@@ -255,11 +311,13 @@ function HealthPage() {
           <CardTitle className="text-base">Automatización de Instagram</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          {ig.isLoading && <p className="text-muted-foreground">Cargando…</p>}
+          {ig.isLoading && <ListSkeleton rows={2} label="Cargando estado de Instagram" />}
           {ig.isError && (
-            <p className="text-destructive text-xs">
-              {(ig.error as Error)?.message ?? "No se pudo leer el estado de Instagram."}
-            </p>
+            <ErrorState
+              message={errorText(ig.error, "No se pudo leer el estado de Instagram.")}
+              onRetry={() => void ig.refetch()}
+              retrying={ig.isFetching}
+            />
           )}
           {igData && (
             <>
@@ -365,7 +423,8 @@ function HealthPage() {
           <CardTitle className="text-base">Últimas ejecuciones</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {(data?.recent ?? []).length === 0 && (
+          {isLoading && <ListSkeleton rows={3} label="Cargando ejecuciones" />}
+          {!isLoading && !isError && (data?.recent ?? []).length === 0 && (
             <p className="text-sm text-muted-foreground">Sin registros todavía.</p>
           )}
           {(data?.recent ?? []).map((r) => {
@@ -385,12 +444,12 @@ function HealthPage() {
                     <span className="text-xs text-muted-foreground">HTTP {r.http_status}</span>
                   )}
                   {r.status === "failed" ? (
-                    <Badge variant="destructive">failed</Badge>
+                    <Badge variant="destructive">Falló</Badge>
                   ) : noData ? (
-                    <Badge className="bg-amber-500 text-white hover:bg-amber-500">sin datos</Badge>
+                    <Badge className="bg-amber-500 text-white hover:bg-amber-500">Sin datos</Badge>
                   ) : (
                     <Badge variant={r.status === "succeeded" ? "default" : "secondary"}>
-                      {r.status}
+                      {runStatusLabel(r.status)}
                     </Badge>
                   )}
                 </div>
@@ -415,7 +474,7 @@ function HealthPage() {
 /** Audit trail of Instagram sync runs: label swapped, media count and errors. */
 function IgSyncLogCard() {
   const fetchRuns = useServerFn(listIgSyncRuns);
-  const { data, isLoading, isFetching, refetch } = useQuery({
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: ["ig-sync-runs"],
     queryFn: () => fetchRuns(),
     refetchInterval: 120_000,
@@ -427,13 +486,20 @@ function IgSyncLogCard() {
         <CardTitle className="flex items-center gap-2 text-base">
           <Instagram className="h-4 w-4" /> Sincronizaciones de Instagram
         </CardTitle>
-        <Button size="sm" variant="ghost" onClick={() => refetch()} disabled={isFetching}>
+        <Button size="sm" variant="ghost" onClick={() => refetch()} disabled={isFetching} aria-label="Actualizar sincronizaciones">
           <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
-        {isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
-        {!isLoading && (data ?? []).length === 0 && (
+        {isLoading && <ListSkeleton rows={3} label="Cargando sincronizaciones" />}
+        {isError && (
+          <ErrorState
+            message={errorText(error, "No se pudieron leer las sincronizaciones.")}
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        )}
+        {!isLoading && !isError && (data ?? []).length === 0 && (
           <p className="text-sm text-muted-foreground">Todavía no hay sincronizaciones registradas.</p>
         )}
         {(data ?? []).map((r) => (
@@ -452,14 +518,59 @@ function IgSyncLogCard() {
               {r.media_count == null ? "publicaciones: —" : `${r.media_count} publicaciones`}
             </span>
             {r.status === "error" ? (
-              <Badge variant="destructive">error</Badge>
+              <Badge variant="destructive">Error</Badge>
             ) : (
-              <Badge variant="default">ok</Badge>
+              <Badge variant="default">OK</Badge>
             )}
             {r.note && <p className="w-full text-xs text-muted-foreground">{r.note}</p>}
             {r.error && <p className="w-full text-xs text-destructive break-all">{r.error}</p>}
           </div>
         ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Diagnósticos de integraciones (Meta y Flow) agrupados dentro de Salud. */
+function DiagnosticsLinks() {
+  const flow = useFlowConfigured();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Integraciones</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-3 sm:grid-cols-2">
+        <Link
+          to="/admin/meta-diagnostics"
+          className="flex items-center gap-3 rounded-lg border p-3 text-sm hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Plug aria-hidden className="h-4 w-4 text-muted-foreground" />
+          <span className="flex-1">
+            <span className="block font-medium">Diagnóstico de Meta</span>
+            <span className="block text-xs text-muted-foreground">Credenciales, permisos y prueba de ingesta.</span>
+          </span>
+          <ChevronRight aria-hidden className="h-4 w-4 text-muted-foreground" />
+        </Link>
+        <div id="flow" className="flex items-center gap-3 rounded-lg border p-3 text-sm">
+          <CreditCard aria-hidden className="h-4 w-4 text-muted-foreground" />
+          <span className="flex-1">
+            <span className="block font-medium">Flow (cobros online)</span>
+            <span className="block text-xs text-muted-foreground">
+              {flow.isPending
+                ? "Comprobando…"
+                : flow.isError
+                  ? "No se pudo comprobar."
+                  : flow.data?.configured
+                    ? "Configurado: se pueden generar links de pago."
+                    : `No configurado${flow.data?.missing?.length ? `: falta ${flow.data.missing.join(", ")}` : ""}. FLOW_API_URL debe ser https://www.flow.cl/api (producción) o https://sandbox.flow.cl/api (pruebas).`}
+            </span>
+          </span>
+          {flow.data && (
+            <Badge variant={flow.data.configured ? "default" : "destructive"}>
+              {flow.data.configured ? "OK" : "Falta configurar"}
+            </Badge>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

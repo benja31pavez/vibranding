@@ -6,7 +6,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SETTINGS_NAV } from "./navConfig";
+import { useSettingsNav } from "./useSettingsNav";
 import type { UserProfile } from "./useUserProfile";
 
 interface UserMenuProps {
@@ -26,6 +26,7 @@ function displayNameOf(user: User | null, profile: UserProfile | null): string {
 /** Menú del avatar: perfil, configuración de la agencia y cierre de sesión. */
 export function UserMenu({ user, profile, onSignOut }: UserMenuProps) {
   const name = displayNameOf(user, profile);
+  const settingsNav = useSettingsNav();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -55,7 +56,7 @@ export function UserMenu({ user, profile, onSignOut }: UserMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Configuración</DropdownMenuLabel>
-          {SETTINGS_NAV.map((item) => (
+          {settingsNav.map((item) => (
             <DropdownMenuItem key={item.to} asChild className="cursor-pointer">
               <Link to={item.to}>
                 <item.icon className="mr-2 h-4 w-4" /> {item.label}
