@@ -43,7 +43,7 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
       await invite({ data: { clientId, email: email.trim() } });
       setEmail("");
       toast.success(
-        "Acceso listo. Si es una cuenta nueva recibirá un correo para crear su contraseña; si ya tenía cuenta, entra con su contraseña de siempre.",
+        "Listo. Si ese correo puede usar el portal, ya tiene acceso. Si no le llega, escríbenos y lo revisamos.",
       );
       load();
     } catch (err: any) {
