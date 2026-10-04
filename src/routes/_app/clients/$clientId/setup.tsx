@@ -13,6 +13,13 @@ import { META_SCOPES } from "@/lib/meta/scopes";
 import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { captureInstagramGridVersion } from "@/lib/meta/igSync.functions";
 import { monthLabel } from "@/lib/instagram/gridVersions";
+import { chileDate } from "@/lib/dates/chile";
+import { HIDDEN_SECTIONS } from "@/lib/clientSections";
+import { supabase } from "@/integrations/supabase/client";
+import { ErrorState, ListSkeleton } from "@/components/app";
+
+/** Planes que incluyen Meta Ads (cuenta publicitaria e ingesta de anuncios). */
+const PLANS_WITH_ADS: readonly string[] = ["crecimiento"];
 
 export const Route = createFileRoute("/_app/clients/$clientId/setup")({
   head: () => ({
@@ -41,7 +48,7 @@ const fmtDate = (iso: string | null | undefined) =>
       })
     : "sin registro";
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+const iso = (d: Date) => chileDate(d);
 
 /** Instructions stay reachable behind a disclosure once a step is done. */
 function HowTo({ children }: { children: React.ReactNode }) {
@@ -106,14 +113,35 @@ function Facts({ lines }: { lines: string[] }) {
 
 function SetupPage() {
   const { clientId } = Route.useParams();
-  const { caps, reload } = useClientCapabilities(clientId);
+  const { caps, reload, loading: capsLoading, error: capsError } = useClientCapabilities(clientId);
   const fetchStatus = useServerFn(getSetupStatus);
   const runIngest = useServerFn(runSetupIngest);
 
-  const { data: status, refetch } = useQuery({
+  const {
+    data: status,
+    refetch,
+    isLoading: statusLoading,
+    error: statusError,
+    isFetching: statusFetching,
+  } = useQuery({
     queryKey: ["setup-status", clientId],
     queryFn: () => fetchStatus({ data: { clientId } }),
   });
+  const plan = useQuery({
+    queryKey: ["client-plan", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_billing")
+        .select("plan_key")
+        .eq("client_id", clientId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data?.plan_key ?? null;
+    },
+  });
+  const planKey = plan.data ?? null;
+  // Sin plan conocido mostramos todo; con plan sin Meta Ads se ocultan sus pasos.
+  const adsIncluded = !planKey || PLANS_WITH_ADS.includes(planKey);
   const account = status?.account ?? null;
   const ig = status?.instagram ?? null;
 
@@ -154,7 +182,7 @@ function SetupPage() {
     </>
   );
 
-  const steps: {
+  const allSteps: {
     n: number;
     title: string;
     unlocks: string;
@@ -165,7 +193,7 @@ function SetupPage() {
     {
       n: 1,
       title: "Conectar Meta",
-      unlocks: "No activa secciones por sí solo, pero los pasos 2 y 3 lo necesitan",
+      unlocks: "Necesario para vincular Instagram y la cuenta publicitaria",
       state: caps.meta_connected ? "done" : "available",
       body: caps.meta_connected ? (
         <div className="space-y-3">
@@ -210,7 +238,7 @@ function SetupPage() {
       title: "Asignar cuenta publicitaria",
       unlocks: "Desbloquea Meta Ads",
       state: caps.has_ad_account ? "done" : caps.meta_connected ? "available" : "blocked",
-      blockedBy: "Primero conecta Meta (paso 1)",
+      blockedBy: "Primero conecta Meta",
       body: caps.has_ad_account ? (
         <div className="space-y-3">
           <Facts
@@ -242,9 +270,9 @@ function SetupPage() {
     {
       n: 3,
       title: "Vincular Instagram",
-      unlocks: "Desbloquea Instagram y Automatización",
+      unlocks: "Desbloquea Instagram",
       state: caps.has_instagram ? "done" : caps.meta_connected ? "available" : "blocked",
-      blockedBy: "Primero conecta Meta (paso 1)",
+      blockedBy: "Primero conecta Meta",
       body: caps.has_instagram ? (
         <div className="space-y-3">
           <Facts
@@ -280,11 +308,11 @@ function SetupPage() {
     {
       n: 4,
       title: "Primera ingesta de anuncios",
-      unlocks: "Desbloquea Analítica",
+      unlocks: "Trae gasto, impresiones y conversaciones de los anuncios",
       // Completion is "ran successfully at least once", not "wrote rows":
       // an account without spend would stay pending forever.
       state: caps.ingest_ran ? "done" : caps.has_ad_account ? "available" : "blocked",
-      blockedBy: "Primero asigna la cuenta publicitaria (paso 2)",
+      blockedBy: "Primero asigna la cuenta publicitaria",
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
           {caps.ingest_ran && (
@@ -356,7 +384,7 @@ function SetupPage() {
       title: "Sincronizar Instagram",
       unlocks: "Llena el grid Actual con las publicaciones reales",
       state: account?.last_ig_sync_at ? "done" : caps.has_instagram ? "available" : "blocked",
-      blockedBy: "Primero vincula Instagram (paso 3)",
+      blockedBy: "Primero vincula Instagram",
       body: (
         <InstagramSyncStep
           clientId={clientId}
@@ -371,7 +399,7 @@ function SetupPage() {
     {
       n: 6,
       title: "Conectar WhatsApp",
-      unlocks: "Desbloquea Bandeja",
+      unlocks: "Opcional (servicio Chatbot) · desbloquea WhatsApp",
       state: caps.has_whatsapp ? "done" : "available",
       body: caps.has_whatsapp ? (
         <div className="space-y-3">
@@ -420,6 +448,34 @@ function SetupPage() {
     },
   ];
 
+  // Pasos ocultos: marcar conversaciones (Analítica está oculta) y Meta Ads si el plan no lo incluye.
+  const steps = allSteps.filter((s) => {
+    if (s.n === 7) return !HIDDEN_SECTIONS.has("analytics");
+    if (s.n === 2 || s.n === 4) return adsIncluded;
+    return true;
+  });
+
+  const loadError = statusError ?? capsError ?? plan.error;
+  if (loadError) {
+    return (
+      <div className="max-w-3xl">
+        <ErrorState
+          title="No pudimos cargar la configuración del cliente"
+          message={loadError.message}
+          onRetry={() => void Promise.all([refetch(), reload(), plan.refetch()])}
+          retrying={statusFetching}
+        />
+      </div>
+    );
+  }
+  if (statusLoading || capsLoading || plan.isLoading) {
+    return (
+      <div className="max-w-3xl">
+        <ListSkeleton rows={5} label="Cargando configuración" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl space-y-4">
       <div>
@@ -435,7 +491,7 @@ function SetupPage() {
       </div>
 
       <div className="space-y-2">
-        {steps.map((s) => (
+        {steps.map((s, index) => (
           <div key={s.n} className="rounded-xl border bg-card">
             <button
               onClick={() => setOpen(open === s.n ? null : s.n)}
@@ -450,7 +506,7 @@ function SetupPage() {
                       : "border border-primary text-primary"
                 }`}
               >
-                {s.state === "done" ? <Check className="h-4 w-4" /> : s.state === "blocked" ? <Lock className="h-3 w-3" /> : s.n}
+                {s.state === "done" ? <Check className="h-4 w-4" /> : s.state === "blocked" ? <Lock className="h-3 w-3" /> : index + 1}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{s.title}</span>
