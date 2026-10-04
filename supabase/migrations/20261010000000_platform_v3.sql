@@ -519,7 +519,7 @@ END $$;
 --   2. submit_onboarding() solo acepta archivos con reserva del mismo
 --      cliente y la marca used = true.
 --   3. Job (server, diario): cleanup_onboarding_orphans() borra reservas no
---      usadas de más de 48 h y devuelve los paths a borrar en storage
+--      usadas de más de 48 h con token ya no vigente y devuelve los paths a borrar en storage
 --      (reservas vencidas + objetos del bucket sin reserva de más de 48 h).
 --      El job los borra con supabaseAdmin.storage.from('onboarding').remove(paths).
 --      Desde SQL no se borra storage (los archivos los gestiona la API de Storage).
@@ -622,9 +622,10 @@ END $$;
 REVOKE ALL ON FUNCTION public.reserve_onboarding_upload(text, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.reserve_onboarding_upload(text, text) TO service_role;
 
--- Borra reservas no usadas de más de 48 h y devuelve los paths que el job
--- debe borrar de storage: los de esas reservas y los objetos del bucket
--- 'onboarding' de más de 48 h sin reserva (subidos por fuera del flujo).
+-- Borra reservas no usadas de más de 48 h cuyo token ya no está vigente
+-- (rotado o vencido) y devuelve los paths que el job debe borrar de storage:
+-- los de esas reservas y los objetos del bucket 'onboarding' de más de 48 h
+-- sin ninguna reserva (ni usada ni vigente: subidos por fuera del flujo).
 CREATE OR REPLACE FUNCTION public.cleanup_onboarding_orphans()
 RETURNS TABLE (path text, reason text)
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = ''
@@ -633,7 +634,16 @@ BEGIN
   RETURN QUERY
   WITH del AS (
     DELETE FROM public.onboarding_upload_reservations r
-     WHERE NOT r.used AND r.created_at < now() - interval '48 hours'
+     WHERE NOT r.used
+       AND r.created_at < now() - interval '48 hours'
+       -- solo si su token ya no está vigente (rotado o vencido): un cliente
+       -- que tarda días en completar el formulario no pierde sus archivos.
+       AND NOT EXISTS (
+         SELECT 1 FROM public.client_billing b
+         WHERE b.client_id = r.client_id
+           AND b.onboarding_token = r.token
+           AND b.onboarding_token_expires_at IS NOT NULL
+           AND b.onboarding_token_expires_at >= now())
     RETURNING r.path
   )
   SELECT del.path, 'reserva_vencida'::text FROM del;
