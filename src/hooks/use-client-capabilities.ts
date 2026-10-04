@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ClientCapabilities {
@@ -60,12 +61,23 @@ export async function loadClientCapabilities(clientId: string): Promise<ClientCa
   };
 }
 
-/** Key de React Query por cliente; invalidarla tras conectar Meta/WhatsApp actualiza el sidebar. */
-export const clientCapabilitiesKey = (clientId: string) => ["client-capabilities", clientId] as const;
+/**
+ * Key de React Query por usuario y cliente (no se comparte caché entre sesiones);
+ * invalidarla tras conectar Meta/WhatsApp actualiza el sidebar.
+ */
+export const clientCapabilitiesKey = (userId: string, clientId: string) =>
+  ["client-capabilities", userId, clientId] as const;
+
+/** Id del usuario actual para acotar la key ("anon" mientras carga la sesión). */
+function useCapabilitiesUserKey(): string {
+  const { user } = useAuth();
+  return user?.id ?? "anon";
+}
 
 export function useClientCapabilities(clientId: string | null) {
+  const userKey = useCapabilitiesUserKey();
   const query = useQuery({
-    queryKey: clientCapabilitiesKey(clientId ?? "none"),
+    queryKey: clientCapabilitiesKey(userKey, clientId ?? "none"),
     queryFn: () => loadClientCapabilities(clientId as string),
     enabled: Boolean(clientId),
   });
@@ -85,8 +97,9 @@ export function useClientCapabilities(clientId: string | null) {
 /** Devuelve una función que invalida las capacidades del cliente (p. ej. tras conectar Meta). */
 export function useInvalidateClientCapabilities() {
   const queryClient = useQueryClient();
+  const userKey = useCapabilitiesUserKey();
   return useCallback(
-    (clientId: string) => queryClient.invalidateQueries({ queryKey: clientCapabilitiesKey(clientId) }),
-    [queryClient],
+    (clientId: string) => queryClient.invalidateQueries({ queryKey: clientCapabilitiesKey(userKey, clientId) }),
+    [queryClient, userKey],
   );
 }
