@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, Loader2, UserRound } from "lucide-react";
 import { toast } from "sonner";
-import { ErrorState, ListSkeleton } from "@/components/app";
+import { ErrorState, ListSkeleton, PAGE_CONTAINER_CLASS } from "@/components/app";
+import { cn } from "@/lib/utils";
 
 const AVATAR_BUCKET = "client-media";
 /** Las políticas de INSERT del bucket exigen que la 1.ª carpeta sea el uid del usuario. */
@@ -79,7 +80,7 @@ export function ProfilePage() {
   const initials = (fullName || user?.email || "?").slice(0, 2).toUpperCase();
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 md:px-10 md:py-14">
+    <div className={cn(PAGE_CONTAINER_CLASS, "max-w-4xl")}>
       <header className="mb-10 border-b pb-6">
         <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <UserRound className="h-4 w-4" /> Cuenta

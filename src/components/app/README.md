@@ -10,6 +10,7 @@ import { PageHeader, StatCard, Panel, EmptyState, ErrorState,
 
 | Componente | Uso |
 | --- | --- |
+| `PageContainer` | Raíz de cada pantalla bajo `/_app` (padding de Prospectos, alineado a la izquierda, `max-w-[1600px]`). `className` solo para `space-y-*`. Las pantallas de cliente ya lo reciben del layout `clients/$clientId`. Formularios angostos: limita el contenido interno con `max-w-*` **sin** `mx-auto`. |
 | `PageHeader` | `title`, `description?`, `actions?`, `breadcrumb?: { label, to? }[]`. Un `h1` por pantalla. |
 | `StatCard` | KPI: `label`, `value`, `icon?`, `delta? { label, direction: "up"\|"down"\|"flat", invert? }`, `hint?`, `loading?`. |
 | `Panel` | Card estándar: `title?`, `description?`, `icon?`, `actions?`, `tone?: "default"\|"warning"`, `children`. |

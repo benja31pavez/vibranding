@@ -4,16 +4,7 @@ import { CheckCircle2, Receipt, Repeat, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  EmptyState,
-  ErrorState,
-  Money,
-  MoneyTotals,
-  PageHeader,
-  StatCard,
-  StatusBadge,
-  TableSkeleton,
-} from "@/components/app";
+import { EmptyState, ErrorState, Money, MoneyTotals, PageContainer, PageHeader, StatCard, StatusBadge, TableSkeleton } from "@/components/app";
 import { PaymentLinkButton } from "@/components/billing/PaymentLinkButton";
 import {
   computeTotals,
@@ -101,7 +92,7 @@ function BillingPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 md:px-10">
+    <PageContainer className="space-y-6">
       <PageHeader title="Cobros" description="Todos los cobros de tus clientes en un solo lugar." />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -177,7 +168,7 @@ function BillingPage() {
       ) : (
         <BillingTable rows={visible} today={today} onMarkPaid={markPaid} onChanged={load} />
       )}
-    </div>
+    </PageContainer>
   );
 }
 

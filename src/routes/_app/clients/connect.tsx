@@ -22,7 +22,7 @@ import {
   type ClientConnectRow,
 } from "@/lib/meta/bulkConnect.functions";
 import { getOrgMetaTokenStatus, type OrgTokenStatus } from "@/lib/meta/connection.functions";
-import { ErrorState, ListSkeleton } from "@/components/app";
+import { ErrorState, ListSkeleton, PageContainer } from "@/components/app";
 
 export const Route = createFileRoute("/_app/clients/connect")({
   head: () => ({
@@ -221,7 +221,7 @@ function BulkConnectPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 space-y-4">
+    <PageContainer className="max-w-5xl space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <Plug className="w-5 h-5" /> Conectar clientes con Meta
@@ -434,6 +434,6 @@ function BulkConnectPage() {
       {!loading && rows.length === 0 && (
         <p className="text-sm text-muted-foreground">No hay clientes todavía.</p>
       )}
-    </div>
+    </PageContainer>
   );
 }

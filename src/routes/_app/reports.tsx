@@ -11,14 +11,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  EmptyState,
-  ErrorState,
-  MoneyTotals,
-  PageHeader,
-  StatCard,
-  TableSkeleton,
-} from "@/components/app";
+import { EmptyState, ErrorState, MoneyTotals, PageContainer, PageHeader, StatCard, TableSkeleton } from "@/components/app";
 import { LatestReportsTable } from "@/components/reports/LatestReportsTable";
 import {
   DEFAULT_RANGE_DAYS,
@@ -71,7 +64,7 @@ function ReportsPage() {
   const totals = data?.totals;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 md:px-10">
+    <PageContainer className="space-y-8">
       <PageHeader
         title="Reportes"
         description="Métricas agregadas por cliente. Los montos se agrupan por moneda y nunca se suman entre monedas distintas."
@@ -179,7 +172,7 @@ function ReportsPage() {
           </>
         )}
       </section>
-    </div>
+    </PageContainer>
   );
 }
 
