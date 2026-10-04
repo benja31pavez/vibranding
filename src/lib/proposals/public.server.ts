@@ -12,6 +12,7 @@ import {
   proposalConditions,
   type ProposalItem,
 } from "./model";
+import { createRateLimiter } from "@/lib/security/ipRateLimit.server";
 import { decideMarkViewed, type ViewSignal } from "./viewTracking";
 
 type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
@@ -134,8 +135,24 @@ async function findProposalPayment(row: ProposalRow): Promise<PaymentRow | null>
   return data?.[0] ?? null;
 }
 
+export class AmountMismatchError extends Error {
+  constructor() {
+    super("El total de los ítems no coincide con el monto de la propuesta");
+    this.name = "AmountMismatchError";
+  }
+}
+
 async function createProposalPayment(row: ProposalRow & { client_id: string }): Promise<PaymentRow> {
   const totals = computeTotals(parseItems(row.items));
+  // Sin el trigger de la v3, amount_clp lo escribe el navegador: se valida contra los ítems.
+  if (totals.firstCharge !== row.amount_clp || totals.firstCharge <= 0) {
+    console.error("[proposals] [ALERTA] monto de la propuesta no coincide con sus ítems; no se crea el cobro", {
+      proposalId: row.id,
+      amountClp: row.amount_clp,
+      itemsTotal: totals.firstCharge,
+    });
+    throw new AmountMismatchError();
+  }
   const kind = chargeKind(totals);
   const today = todayInChile();
   const what = kind === "mensual" ? "primer mes" : "pago único";
@@ -144,13 +161,13 @@ async function createProposalPayment(row: ProposalRow & { client_id: string }): 
     .from("payments")
     .insert({
       client_id: row.client_id,
-      amount: row.amount_clp,
+      amount: totals.firstCharge,
       currency: "CLP",
       status: "pending",
       kind,
       period: kind === "mensual" ? firstDayOfMonth(today) : null,
       due_date: today,
-      description: `Propuesta "${(row.title ?? "Vibranding").slice(0, 80)}" (${what}) · ${paymentRef(row.id)}`,
+      description: `Propuesta "${noteSafe(row.title ?? "Vibranding", 80)}" (${what}) · ${paymentRef(row.id)}`,
     })
     .select("*")
     .single();
@@ -161,19 +178,35 @@ async function createProposalPayment(row: ProposalRow & { client_id: string }): 
   return data;
 }
 
-/** Deja una nota en el prospecto para que la agencia cree el cliente y el cobro. */
-async function noteOnProspect(row: ProposalRow, acceptedName: string): Promise<void> {
-  if (!row.prospect_id) return;
+/** Texto apto para notas: sin caracteres de control ni saltos de línea, recortado. */
+function noteSafe(text: string, max: number): string {
+  return text.replace(/[\p{Cc}\p{Cf}\u2028\u2029]+/gu, " ").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+const NOTE_MAX = 400;
+
+/**
+ * Agrega una nota al destinatario (prospects.notas o clients.notes), prefijada
+ * con "[Propuesta AAAA-MM-DD]" y recortada. proposals no tiene columna de notas.
+ */
+async function appendRecipientNote(row: ProposalRow, text: string): Promise<void> {
+  const note = `[Propuesta ${todayInChile()}] ${noteSafe(text, NOTE_MAX)}`;
   const db = await admin();
-  const { data, error } = await db.from("prospects").select("notas").eq("id", row.prospect_id).maybeSingle();
+  const target = row.client_id
+    ? ({ table: "clients", column: "notes", id: row.client_id } as const)
+    : row.prospect_id
+      ? ({ table: "prospects", column: "notas", id: row.prospect_id } as const)
+      : null;
+  if (!target) return;
+  const { data, error } = await (db.from(target.table) as any).select(target.column).eq("id", target.id).maybeSingle();
   if (error) {
-    console.error("[proposals] no se pudo leer el prospecto", row.prospect_id, error.message);
+    console.error("[proposals] no se pudo leer las notas", target.table, target.id, error.message);
     return;
   }
-  const note = `[${todayInChile()}] Aceptó la propuesta "${row.title ?? ""}" (${acceptedName}). Falta crear el cliente y el cobro.`;
-  const notas = data?.notas ? `${data.notas}\n${note}` : note;
-  const { error: upErr } = await db.from("prospects").update({ notas }).eq("id", row.prospect_id);
-  if (upErr) console.error("[proposals] no se pudo anotar el prospecto", row.prospect_id, upErr.message);
+  const current = ((data as Record<string, string | null> | null)?.[target.column] ?? "").trim();
+  const next = current ? `${current}\n${note}` : note;
+  const { error: upErr } = await (db.from(target.table) as any).update({ [target.column]: next }).eq("id", target.id);
+  if (upErr) console.error("[proposals] no se pudo anotar", target.table, target.id, upErr.message);
 }
 
 async function isFlowEnabled(): Promise<boolean> {
@@ -188,20 +221,34 @@ function paymentState(payment: PaymentRow | null, flow: boolean): PublicPaymentS
   return { state: "flow", paymentUrl: payment.provider === "flow" ? payment.payment_url : null };
 }
 
+/**
+ * Estado del pago. `create` SOLO es true para una aceptación nueva
+ * (accept_proposal con already=false): su FOR UPDATE serializa, así que un
+ * único request crea el cobro. Con already=true solo se busca, nunca se crea.
+ */
 async function resolvePayment(row: ProposalRow, opts: { create: boolean }): Promise<PublicPaymentState> {
   if (row.amount_clp <= 0) return { state: "none" };
   if (!row.client_id) return { state: "contact" };
   const flow = await isFlowEnabled();
-  let payment = await findProposalPayment(row);
-  if (!payment && opts.create) payment = await createProposalPayment({ ...row, client_id: row.client_id });
+  const existing = await findProposalPayment(row);
+  const payment =
+    existing ?? (opts.create ? await createProposalPayment({ ...row, client_id: row.client_id }) : null);
   return paymentState(payment, flow);
 }
 
 // ------------------------------------------------------------------ API
 
+const TEN_MINUTES = 10 * 60 * 1000;
+const HOUR = 60 * 60 * 1000;
+/** Como máximo 1 intento de marcar "vista" por token cada 10 min (en memoria). */
+const viewMarkLimiter = createRateLimiter(1, TEN_MINUTES);
+/** Como máximo 3 intentos de link de Flow por token por hora (en memoria). */
+const flowLinkLimiter = createRateLimiter(3, HOUR);
+
 /** enviada → vista solo si parece una persona (ver viewTracking.ts). */
 async function markViewedIfHuman(token: string, status: string, signal: ViewSignal): Promise<boolean> {
   if (status !== "enviada" || !decideMarkViewed(signal).mark) return false;
+  if (!viewMarkLimiter.allow(`view-mark:${token}`)) return false;
   try {
     return (await rpc("mark_proposal_viewed", { _token: token })) === true;
   } catch (e) {
@@ -262,42 +309,67 @@ export async function acceptPublicProposal(input: {
 
   if (!already) {
     await appendAcceptanceText(row, input.rut);
-    if (!row.client_id) await noteOnProspect(row, input.name);
+    if (!row.client_id) {
+      await appendRecipientNote(row, `Aceptó "${row.title ?? ""}" (${input.name}). Falta crear el cliente y el cobro.`);
+    }
   }
 
   try {
-    const payment = await resolvePayment(row, { create: true });
+    const payment = await resolvePayment(row, { create: !already });
     if (payment.state === "flow" && !payment.paymentUrl) {
-      const url = await tryCreateFlowLink(row, input.email);
+      const url = await tryCreateFlowLink(input.token, row, input.email);
       return { ok: true, already, payment: { state: "flow", paymentUrl: url } };
     }
     return { ok: true, already, payment };
   } catch (e) {
-    console.error("[proposals] aceptada pero falló el cobro", row.id, e);
+    console.error("[proposals] aceptada pero falló el cobro", row.id, e instanceof Error ? e.message : e);
     return { ok: true, already, payment: { state: "transfer" } };
   }
 }
 
+/**
+ * Agrega condiciones y RUT al texto aceptado (update condicionado al texto
+ * leído). Reintenta una vez; si sigue fallando deja una nota en el
+ * destinatario y un log [ALERTA]. La migración v3 (PR #17) lo hace atómico
+ * dentro de accept_proposal.
+ */
 async function appendAcceptanceText(row: ProposalRow, rut: string | null): Promise<void> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    if (await tryAppendAcceptanceText(row, rut)) return;
+  }
+  console.error("[proposals] [ALERTA] no se pudo completar el texto aceptado", row.id);
+  await appendRecipientNote(
+    row,
+    `No se pudo guardar el detalle de condiciones${rut ? ` y RUT ${rut}` : ""} en la aceptación de "${row.title ?? ""}". Revisar.`,
+  );
+}
+
+async function tryAppendAcceptanceText(row: ProposalRow, rut: string | null): Promise<boolean> {
   const db = await admin();
   const { data, error: readErr } = await db.from("proposals").select("accepted_text").eq("id", row.id).single();
   if (readErr || !data?.accepted_text) {
     console.error("[proposals] no se pudo leer el texto aceptado", row.id, readErr?.message);
-    return;
+    return false;
   }
-  const { error } = await db
+  if (data.accepted_text.includes(" Condiciones aceptadas: ")) return true;
+  const { data: updated, error } = await db
     .from("proposals")
     .update({ accepted_text: `${data.accepted_text}${acceptanceAddendum(row, rut)}` })
     .eq("id", row.id)
     .eq("status", "aceptada")
-    .eq("accepted_text", data.accepted_text);
-  if (error) console.error("[proposals] no se pudo completar el texto aceptado", row.id, error.message);
+    .eq("accepted_text", data.accepted_text)
+    .select("id");
+  if (error) {
+    console.error("[proposals] no se pudo completar el texto aceptado", row.id, error.message);
+    return false;
+  }
+  return (updated?.length ?? 0) > 0;
 }
 
 /** Crea (o reutiliza) el link de Flow. null si no se pudo (p. ej. falta email). */
-async function tryCreateFlowLink(row: ProposalRow, email: string | null): Promise<string | null> {
+async function tryCreateFlowLink(token: string, row: ProposalRow, email: string | null): Promise<string | null> {
   try {
-    const result = await startPaymentForRow(row, email);
+    const result = await startPaymentForRow(token, row, email);
     return result.state === "link" ? result.paymentUrl : null;
   } catch (e) {
     console.error("[proposals] no se pudo crear el link de Flow", row.id, e instanceof Error ? e.message : e);
@@ -310,7 +382,11 @@ export type StartPaymentResult =
   | { state: "already_paid" }
   | { state: "unavailable"; message: string };
 
-async function startPaymentForRow(row: ProposalRow, email: string | null): Promise<StartPaymentResult> {
+/**
+ * Pagador: el email del portal del cliente si existe; el escrito en la página
+ * solo si no hay ninguno. Máximo 3 intentos de link por token por hora.
+ */
+async function startPaymentForRow(token: string, row: ProposalRow, email: string | null): Promise<StartPaymentResult> {
   if (row.status !== "aceptada") return { state: "unavailable", message: "La propuesta aún no está aceptada." };
   if (!(await isFlowEnabled())) {
     return { state: "unavailable", message: "El pago en línea no está disponible. Te enviaremos los datos de pago." };
@@ -318,8 +394,12 @@ async function startPaymentForRow(row: ProposalRow, email: string | null): Promi
   const payment = await findProposalPayment(row);
   if (!payment) return { state: "unavailable", message: "Aún no hay un cobro asociado. Te contactaremos para el pago." };
   if (payment.status === "paid") return { state: "already_paid" };
-  const { ensurePaymentLink } = await import("@/lib/flow/payments.server");
-  const result = await ensurePaymentLink(payment, email);
+  if (!flowLinkLimiter.allow(`flow-link:${token}`)) {
+    return { state: "unavailable", message: "Ya generamos varios links de pago. Intenta de nuevo en una hora o escríbenos." };
+  }
+  const { ensurePaymentLink, defaultPayerEmail } = await import("@/lib/flow/payments.server");
+  const payer = (await defaultPayerEmail(payment.client_id)) ?? email;
+  const result = await ensurePaymentLink(payment, payer);
   return result.state === "link" ? { state: "link", paymentUrl: result.paymentUrl } : { state: "already_paid" };
 }
 
@@ -328,7 +408,7 @@ export async function startProposalPayment(token: string, email: string | null):
   const row = await loadRow(token);
   if (!row) return { state: "unavailable", message: "Este link no es válido." };
   try {
-    return await startPaymentForRow(row, email);
+    return await startPaymentForRow(token, row, email);
   } catch (e) {
     const message = e instanceof Error ? e.message : "";
     console.error("[proposals] falló Pagar ahora", row.id, message);

@@ -66,12 +66,27 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   return brandedErrorResponse();
 }
 
+/** Rutas con datos privados por token: sin caché, sin Referer y sin indexar. */
+const PRIVATE_TOKEN_PATH = /^\/p\//;
+const PRIVATE_HEADERS: Readonly<Record<string, string>> = {
+  "Cache-Control": "no-store",
+  "Referrer-Policy": "no-referrer",
+  "X-Robots-Tag": "noindex, nofollow, noarchive",
+};
+
+function withPrivateHeaders(request: Request, response: Response): Response {
+  if (!PRIVATE_TOKEN_PATH.test(new URL(request.url).pathname)) return response;
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(PRIVATE_HEADERS)) headers.set(name, value);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return withPrivateHeaders(request, await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
       return brandedErrorResponse();
