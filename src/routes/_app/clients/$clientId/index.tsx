@@ -14,6 +14,7 @@ import { OnboardingLinkPanel } from "@/components/clients/ficha/OnboardingLinkPa
 import { HealthCards } from "@/components/clients/ficha/HealthCards";
 import { PendingApprovalPanel, UpcomingContentPanel } from "@/components/clients/ficha/MainPanels";
 import { ContractPanel } from "@/components/clients/ficha/ContractPanel";
+import { ProposalsPanel } from "@/components/proposals/ProposalsPanel";
 import { PERMISSION_DENIED_MSG, useFichaHealth, useFichaOverview } from "@/components/clients/ficha/fichaQueries";
 
 export const Route = createFileRoute("/_app/clients/$clientId/")({
@@ -45,6 +46,7 @@ function ClientFichaPage() {
             error={health.error}
             onRetry={() => void health.refetch()}
           />
+          <ProposalsPanel clientId={clientId} canEdit={Boolean(overview.data?.canEdit)} />
           <UpcomingContentPanel clientId={clientId} />
           <BusinessDescription
             clientId={clientId}
