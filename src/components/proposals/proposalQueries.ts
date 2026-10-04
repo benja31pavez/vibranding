@@ -32,6 +32,7 @@ const COLUMNS =
 export const proposalKeys = {
   all: (userId: string) => ["proposals", userId] as const,
   byClient: (userId: string, clientId: string) => ["proposals", userId, "client", clientId] as const,
+  byProspect: (userId: string, prospectId: string) => ["proposals", userId, "prospect", prospectId] as const,
   one: (userId: string, id: string) => ["proposals", userId, "one", id] as const,
   recipient: (userId: string, kind: string, id: string) => ["proposals", userId, "recipient", kind, id] as const,
 };
@@ -57,19 +58,49 @@ function writeError(error: { code?: string; message: string }): Error {
   return new Error(error.message);
 }
 
-export function useClientProposals(clientId: string) {
+const PROPOSALS_LIST_LIMIT = 50;
+
+/** Propuestas de un cliente o de un prospecto, de la más nueva a la más antigua. */
+export function useRecipientProposals(target: { kind: "client" | "prospect"; id: string }) {
   const userKey = useUserKey();
+  const column = target.kind === "client" ? "client_id" : "prospect_id";
   return useQuery({
-    queryKey: proposalKeys.byClient(userKey, clientId),
+    queryKey:
+      target.kind === "client"
+        ? proposalKeys.byClient(userKey, target.id)
+        : proposalKeys.byProspect(userKey, target.id),
+    enabled: Boolean(target.id),
     queryFn: async (): Promise<ProposalRow[]> => {
       const { data, error } = await supabase
         .from("proposals")
         .select(COLUMNS)
-        .eq("client_id", clientId)
+        .eq(column, target.id)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(PROPOSALS_LIST_LIMIT);
       if (error) throw new Error(error.message);
       return data ?? [];
+    },
+  });
+}
+
+export function useClientProposals(clientId: string) {
+  return useRecipientProposals({ kind: "client", id: clientId });
+}
+
+/** ¿Puede el usuario editar propuestas de este destinatario? La BD revalida cada escritura (RLS). */
+export function useCanEditRecipient(recipient: Pick<Recipient, "kind" | "id" | "orgId"> | null | undefined) {
+  const userKey = useUserKey();
+  return useQuery({
+    queryKey: ["proposals", userKey, "can-edit", recipient?.kind, recipient?.id],
+    enabled: Boolean(recipient),
+    queryFn: async () => {
+      if (!recipient) return false;
+      const { data, error } =
+        recipient.kind === "client"
+          ? await supabase.rpc("can_edit_client", { _client_id: recipient.id })
+          : await supabase.rpc("can_edit_org", { _org_id: recipient.orgId });
+      if (error) return false;
+      return Boolean(data);
     },
   });
 }

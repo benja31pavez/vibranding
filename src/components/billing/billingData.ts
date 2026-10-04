@@ -1,9 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { addMoney, type MoneyByCurrency } from "@/lib/pricing/plans";
 import { firstDayOfMonth } from "@/lib/billing/dates";
+import { fetchAllRows } from "@/lib/db/fetchAllRows";
+import { isDueSoon, isPastDue } from "@/lib/billing/openPayments";
 
 export type BillingStatus = "pending" | "paid" | "overdue" | "cancelled";
-export type BillingFilter = "vencidos" | "mes" | "todos";
+export type BillingFilter = "vencidos" | "por_vencer" | "mes" | "todos";
 
 export interface BillingRow {
   id: string;
@@ -21,40 +23,33 @@ export interface BillingRow {
 
 export interface BillingData {
   rows: BillingRow[];
-  mrr: number;
 }
 
-/** Límite de seguridad: la vista global no pagina todavía. */
-const MAX_ROWS = 500;
+const PAYMENT_COLUMNS =
+  "id,client_id,description,amount,currency,status,due_date,paid_at,period,payment_url,clients(name)";
 
+/**
+ * Todos los cobros, paginados de a 1000: así "Vencidos", "Por vencer" y los
+ * totales nunca se truncan. El MRR viene de `useMrr` (mismo cálculo que "Hoy").
+ */
 export async function loadBillingData(): Promise<BillingData> {
-  const [payments, billing] = await Promise.all([
+  const payments = await fetchAllRows((from, to) =>
     supabase
       .from("payments")
-      .select(
-        "id,client_id,description,amount,currency,status,due_date,paid_at,period,payment_url,clients(name)",
-      )
+      .select(PAYMENT_COLUMNS)
       .order("due_date", { ascending: false, nullsFirst: false })
-      .limit(MAX_ROWS),
-    supabase
-      .from("client_billing")
-      .select("mrr,clients!inner(status)")
-      .eq("clients.status", "activo"),
-  ]);
-  if (payments.error) throw new Error(payments.error.message);
-  if (billing.error) throw new Error(billing.error.message);
-
-  const rows: BillingRow[] = (payments.data ?? []).map((p) => {
+      .order("id")
+      .range(from, to),
+  );
+  const rows: BillingRow[] = payments.map((p) => {
     const { clients, ...rest } = p as typeof p & { clients: { name: string } | null };
     return { ...rest, amount: Number(rest.amount), client_name: clients?.name ?? "—" };
   });
-  const mrr = (billing.data ?? []).reduce((acc, r) => acc + Number(r.mrr ?? 0), 0);
-  return { rows, mrr };
+  return { rows };
 }
 
 export function isOverdue(row: BillingRow, today: string): boolean {
-  if (row.status === "overdue") return true;
-  return row.status === "pending" && Boolean(row.due_date) && (row.due_date as string) < today;
+  return isPastDue(row, today);
 }
 
 function inMonth(date: string | null, month: string): boolean {
@@ -64,6 +59,11 @@ function inMonth(date: string | null, month: string): boolean {
 export function filterRows(rows: readonly BillingRow[], filter: BillingFilter, today: string) {
   const month = firstDayOfMonth(today);
   if (filter === "vencidos") return rows.filter((r) => isOverdue(r, today));
+  if (filter === "por_vencer") {
+    return rows
+      .filter((r) => isDueSoon(r, today))
+      .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
+  }
   if (filter === "mes") {
     return rows.filter((r) => inMonth(r.due_date, month) || inMonth(r.period, month));
   }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
+import { ErrorState, ListSkeleton, PageHeader } from "@/components/app";
 import { AlertTriangle, CheckCircle2, Copy, XCircle } from "lucide-react";
 import {
   debugMetaConnection,
@@ -51,10 +52,30 @@ function Flag({ ok, label }: { ok: boolean; label: string }) {
   );
 }
 
+/** Para quien no es admin de plataforma: estado general sin nombres de variables. */
+function ConfigSummary({ ok }: { ok: boolean }) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      {ok ? (
+        <CheckCircle2 aria-hidden className="w-4 h-4 text-primary" />
+      ) : (
+        <XCircle aria-hidden className="w-4 h-4 text-destructive" />
+      )}
+      <span>
+        {ok
+          ? "La configuración del servidor está completa."
+          : "Falta parte de la configuración del servidor. Avisa a un administrador de la plataforma."}
+      </span>
+    </div>
+  );
+}
+
 function MetaDiagnosticsPage() {
   const [env, setEnv] = useState<MetaEnvStatus | null>(null);
   const [accounts, setAccounts] = useState<MetaAccountDiag[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canSeeConfig, setCanSeeConfig] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [date, setDate] = useState(new Date(Date.now() - 86400000).toISOString().slice(0, 10));
   const [result, setResult] = useState<unknown>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -66,11 +87,16 @@ function MetaDiagnosticsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = (await fetchDiag({} as any)) as { env: MetaEnvStatus; accounts: MetaAccountDiag[] };
+        const res = (await fetchDiag({} as any)) as {
+          env: MetaEnvStatus;
+          accounts: MetaAccountDiag[];
+          canSeeConfig: boolean;
+        };
         setEnv(res.env);
         setAccounts(res.accounts);
+        setCanSeeConfig(res.canSeeConfig);
       } catch (e: any) {
-        toast.error(e?.message ?? "No se pudo cargar el diagnóstico");
+        setLoadError(e?.message ?? "No se pudo cargar el diagnóstico");
       } finally {
         setLoading(false);
       }
@@ -109,9 +135,14 @@ function MetaDiagnosticsPage() {
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-4">
-      <h1 className="text-2xl font-semibold">Diagnóstico de Meta</h1>
+      <PageHeader
+        title="Diagnóstico de Meta"
+        description="Credenciales, permisos y prueba de ingesta de la integración con Meta."
+        breadcrumb={canSeeConfig ? [{ label: "Salud", to: "/admin/health" }, { label: "Diagnóstico de Meta" }] : undefined}
+      />
 
-      {loading && <p className="text-sm text-muted-foreground">Cargando…</p>}
+      {loading && <ListSkeleton rows={4} label="Cargando diagnóstico" />}
+      {loadError && <ErrorState message={loadError} onRetry={() => window.location.reload()} />}
 
       {env && (
         <>
@@ -120,10 +151,18 @@ function MetaDiagnosticsPage() {
               <CardTitle className="text-base">Configuración del servidor</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Flag ok={env.META_APP_ID} label="META_APP_ID" />
-              <Flag ok={env.META_APP_SECRET} label="META_APP_SECRET" />
-              <Flag ok={env.PUBLIC_SITE_URL} label="PUBLIC_SITE_URL" />
-              <Flag ok={env.DISPATCH_SECRET} label="DISPATCH_SECRET" />
+              {canSeeConfig ? (
+                <>
+                  <Flag ok={env.META_APP_ID} label="META_APP_ID" />
+                  <Flag ok={env.META_APP_SECRET} label="META_APP_SECRET" />
+                  <Flag ok={env.PUBLIC_SITE_URL} label="PUBLIC_SITE_URL" />
+                  <Flag ok={env.DISPATCH_SECRET} label="DISPATCH_SECRET" />
+                </>
+              ) : (
+                <ConfigSummary
+                  ok={env.META_APP_ID && env.META_APP_SECRET && env.PUBLIC_SITE_URL && env.DISPATCH_SECRET}
+                />
+              )}
               <p className="text-xs text-muted-foreground pt-2">
                 Versión de Graph API en uso: <span className="font-mono">{env.META_GRAPH_VERSION}</span>
               </p>

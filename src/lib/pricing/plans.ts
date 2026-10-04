@@ -13,6 +13,12 @@
 export const DEFAULT_CURRENCY = "CLP";
 export const VAT_RATE = 0.19;
 
+/**
+ * Meta mensual de MRR de la agencia (CLP, IVA incluido). La usa la pantalla
+ * "Hoy" para la barra de avance. Cambia este valor cuando se redefina la meta.
+ */
+export const META_MRR_CLP = 1_000_000;
+
 export const AGENCY_DEFAULTS = {
   name: "VIBRANDING",
   legal_name: "VIBRANDING SpA",

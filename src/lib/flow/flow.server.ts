@@ -13,9 +13,19 @@
  *  - GET /payment/getStatus?apiKey&token&s → PaymentStatus
  *    (status 1 pendiente, 2 pagada, 3 rechazada, 4 anulada).
  *  - Errores: HTTP 400/401 con { code, message }.
+ *
+ * Variables de entorno (las tres son obligatorias; si falta alguna, Flow se
+ * considera NO configurado y la app no ofrece "Generar link de pago"):
+ *  - FLOW_API_KEY / FLOW_SECRET_KEY: credenciales del comercio en Flow.
+ *  - FLOW_API_URL: a qué ambiente se habla. Valores válidos:
+ *      producción → https://www.flow.cl/api
+ *      pruebas    → https://sandbox.flow.cl/api
+ *    No hay valor por defecto a propósito: antes caía en sandbox y en
+ *    producción eso generaba links de prueba que el cliente no podía pagar.
  */
 import { hmacSha256Hex } from "@/lib/crypto";
 
+export const FLOW_PRODUCTION_URL = "https://www.flow.cl/api";
 export const FLOW_SANDBOX_URL = "https://sandbox.flow.cl/api";
 
 /** Estados de una orden en Flow (PaymentStatus.status). */
@@ -29,10 +39,21 @@ export const FLOW_STATUS = {
 /** Sin timeout explícito una orden de Flow no expira nunca. */
 const REQUEST_TIMEOUT_MS = 15_000;
 
+/** Mensaje para cualquier usuario: no nombra variables de entorno. */
+export const FLOW_NOT_CONFIGURED_MESSAGE =
+  "Flow no está conectado. Pide a un administrador que lo configure para cobrar online.";
+
 export class FlowNotConfiguredError extends Error {
-  constructor() {
-    super("Flow no está configurado (faltan FLOW_API_KEY / FLOW_SECRET_KEY)");
+  /** Variables que faltan (solo para logs y administradores de plataforma). */
+  readonly missing: readonly string[];
+  constructor(missing: readonly string[]) {
+    super(FLOW_NOT_CONFIGURED_MESSAGE);
     this.name = "FlowNotConfiguredError";
+    this.missing = missing;
+  }
+  /** Detalle técnico, p. ej. "Falta FLOW_API_URL". */
+  get adminDetail(): string {
+    return `Falta ${this.missing.join(", ")}`;
   }
 }
 
@@ -53,16 +74,29 @@ interface FlowConfig {
   apiUrl: string;
 }
 
+const FLOW_ENV_VARS = ["FLOW_API_KEY", "FLOW_SECRET_KEY", "FLOW_API_URL"] as const;
+
+/** Variables de Flow ausentes o vacías (FLOW_API_URL además debe ser https). */
+export function missingFlowConfig(): string[] {
+  return FLOW_ENV_VARS.filter((name) => {
+    const value = process.env[name]?.trim();
+    if (!value) return true;
+    return name === "FLOW_API_URL" && !/^https:\/\//i.test(value);
+  });
+}
+
 export function isFlowConfigured(): boolean {
-  return Boolean(process.env.FLOW_API_KEY?.trim() && process.env.FLOW_SECRET_KEY?.trim());
+  return missingFlowConfig().length === 0;
 }
 
 function flowConfig(): FlowConfig {
-  const apiKey = process.env.FLOW_API_KEY?.trim();
-  const secretKey = process.env.FLOW_SECRET_KEY?.trim();
-  if (!apiKey || !secretKey) throw new FlowNotConfiguredError();
-  const apiUrl = (process.env.FLOW_API_URL?.trim() || FLOW_SANDBOX_URL).replace(/\/$/, "");
-  return { apiKey, secretKey, apiUrl };
+  const missing = missingFlowConfig();
+  if (missing.length > 0) throw new FlowNotConfiguredError(missing);
+  return {
+    apiKey: (process.env.FLOW_API_KEY ?? "").trim(),
+    secretKey: (process.env.FLOW_SECRET_KEY ?? "").trim(),
+    apiUrl: (process.env.FLOW_API_URL ?? "").trim().replace(/\/$/, ""),
+  };
 }
 
 type FlowParams = Readonly<Record<string, string | number | undefined | null>>;

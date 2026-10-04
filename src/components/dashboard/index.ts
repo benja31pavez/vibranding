@@ -5,4 +5,4 @@ export { UpcomingPayments } from "./upcoming-payments";
 export { PipelineFunnel } from "./pipeline-funnel";
 export { OperationsPanels } from "./operations";
 export { ReviewActivity } from "./review-activity";
-export { MRR_GOAL_CLP, chileToday } from "./queries";
+export { chileToday } from "./queries";

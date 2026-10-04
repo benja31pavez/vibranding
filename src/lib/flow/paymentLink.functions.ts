@@ -26,5 +26,15 @@ export const generatePaymentLink = createServerFn({ method: "POST" })
     if (!payment) throw new Error("No tienes acceso a este cliente");
     await assertCanEditClient(context.userId, payment.client_id);
 
-    return ensurePaymentLink(payment, data.email || null);
+    try {
+      return await ensurePaymentLink(payment, data.email || null);
+    } catch (e) {
+      const { FlowNotConfiguredError } = await import("@/lib/flow/flow.server");
+      if (!(e instanceof FlowNotConfiguredError)) throw e;
+      console.error("[flow] link de pago sin configuración:", e.adminDetail);
+      // El nombre de la variable solo se muestra a administradores de plataforma.
+      const { isPlatformAdmin } = await import("@/lib/auth/platformAdmin.server");
+      if (await isPlatformAdmin(context.userId)) throw new Error(`${e.message} (${e.adminDetail})`);
+      throw new Error(e.message);
+    }
   });

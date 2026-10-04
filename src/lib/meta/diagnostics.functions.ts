@@ -85,7 +85,7 @@ export const getMetaDiagnostics = createServerFn({ method: "POST" })
         diag.tokenValid = false;
         diag.tokenError = "No hay token guardado";
       } else if (!appToken) {
-        diag.tokenError = "Falta META_APP_ID / META_APP_SECRET para validar";
+        diag.tokenError = "No se puede validar: falta configurar la app de Meta en el servidor";
       } else {
         try {
           const res = await fetch(
@@ -114,7 +114,18 @@ export const getMetaDiagnostics = createServerFn({ method: "POST" })
       accounts.push(diag);
     }
 
-    return { env, accounts };
+    // Los nombres de variables de entorno solo se muestran a administradores de plataforma.
+    const { isPlatformAdmin } = await import("@/lib/auth/platformAdmin.server");
+    const canSeeConfig = await isPlatformAdmin(context.userId);
+    const safeEnv: MetaEnvStatus = canSeeConfig
+      ? env
+      : {
+          ...env,
+          redirectUriError: env.redirectUriError
+            ? "Falta configurar el origen público del sitio. Avisa a un administrador."
+            : null,
+        };
+    return { env: safeEnv, accounts, canSeeConfig };
   });
 
 /** Runs ingestion for one account/date and returns the raw result for inspection. */
