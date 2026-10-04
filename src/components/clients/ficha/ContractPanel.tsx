@@ -3,12 +3,13 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, FileSignature } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { EmptyState, ErrorState, ListSkeleton, Money, Panel, StatusBadge } from "@/components/app";
-import { fichaKeys, formatDate } from "./fichaQueries";
+import { fichaKeys, formatDate, useUserKey } from "./fichaQueries";
 
 /** Último contrato del cliente con su estado y montos. */
 export function ContractPanel({ clientId }: { clientId: string }) {
+  const userKey = useUserKey();
   const query = useQuery({
-    queryKey: [...fichaKeys.all(clientId), "contract"],
+    queryKey: fichaKeys.contract(userKey, clientId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_contracts")

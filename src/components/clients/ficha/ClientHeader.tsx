@@ -25,6 +25,9 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  // Mientras se verifica el permiso, las acciones destructivas quedan deshabilitadas.
+  const canEdit = overview?.canEdit ?? false;
+
   if (!client) return null;
   const avatar = ig.profile?.current_avatar_url;
 
@@ -67,11 +70,14 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
+            {!canEdit && (
+              <p className="px-2 py-1.5 text-xs text-muted-foreground">Solo lectura: no puedes editar este cliente.</p>
+            )}
+            <DropdownMenuItem disabled={!canEdit} onSelect={() => setRenameOpen(true)}>
               <Pencil aria-hidden className="mr-2 h-4 w-4" /> Renombrar
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setDeleteOpen(true)} className="text-danger-strong focus:text-danger-strong">
+            <DropdownMenuItem disabled={!canEdit} onSelect={() => setDeleteOpen(true)} className="text-danger-strong focus:text-danger-strong">
               <Trash2 aria-hidden className="mr-2 h-4 w-4" /> Eliminar cliente
             </DropdownMenuItem>
           </DropdownMenuContent>

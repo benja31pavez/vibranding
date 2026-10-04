@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Copy, Link2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { fichaKeys, formatDate, type FichaOverview } from "./fichaQueries";
+import { fichaKeys, formatDate, useUserKey, type FichaOverview } from "./fichaQueries";
 
 const TOKEN_PATTERN = /^[0-9a-f]{48}$/;
 
@@ -34,6 +34,12 @@ export function OnboardingLinkPanel({ clientId, overview }: { clientId: string; 
   const queryClient = useQueryClient();
   const [generated, setGenerated] = useState<LinkState | null>(null);
   const [busy, setBusy] = useState(false);
+  const userKey = useUserKey();
+
+  // Un link recién generado pertenece a este cliente: no debe sobrevivir a un cambio de cliente.
+  useEffect(() => {
+    setGenerated(null);
+  }, [clientId]);
   const link = generated ?? currentLink(overview);
   const url = link && typeof window !== "undefined" ? `${window.location.origin}/onboarding/${link.token}` : null;
 
@@ -51,7 +57,7 @@ export function OnboardingLinkPanel({ clientId, overview }: { clientId: string; 
       return;
     }
     setGenerated(parsed);
-    void queryClient.invalidateQueries({ queryKey: fichaKeys.overview(clientId) });
+    void queryClient.invalidateQueries({ queryKey: fichaKeys.overview(userKey, clientId) });
     toast.success(link ? "Link renovado; el anterior dejó de funcionar" : "Link de onboarding generado");
   };
 

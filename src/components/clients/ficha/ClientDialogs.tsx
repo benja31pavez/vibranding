@@ -112,7 +112,7 @@ export function DeleteClientDialog({ open, onOpenChange, name, onConfirm }: Dele
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={(next) => { if (!deleting) onOpenChange(next); }}>
       <AlertDialogContent>
         <form onSubmit={confirm} className="space-y-4">
           <AlertDialogHeader>
@@ -125,10 +125,10 @@ export function DeleteClientDialog({ open, onOpenChange, name, onConfirm }: Dele
             <Label htmlFor="delete-confirm">
               Escribe <span className="font-semibold text-foreground">{name}</span> para confirmar
             </Label>
-            <Input id="delete-confirm" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
+            <Input id="delete-confirm" disabled={deleting} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel type="button">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel type="button" disabled={deleting}>Cancelar</AlertDialogCancel>
             <Button type="submit" variant="destructive" disabled={!matches || deleting}>
               {deleting ? "Eliminando…" : "Eliminar cliente"}
             </Button>

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import type { StatusTone } from "@/components/app";
+import { useAuth } from "@/hooks/use-auth";
 
 /** Etapas comerciales de `clients.status` (CHECK clients_status_chk). */
 export const CLIENT_STATUSES = ["prospecto", "onboarding", "activo", "pausado", "terminado"] as const;
@@ -19,11 +20,28 @@ export function isClientStatus(value: string | null | undefined): value is Clien
   return (CLIENT_STATUSES as readonly string[]).includes(value ?? "");
 }
 
+/** Keys de React Query de la ficha, acotadas por usuario (no se comparte caché entre sesiones). */
 export const fichaKeys = {
-  all: (clientId: string) => ["ficha", clientId] as const,
-  overview: (clientId: string) => ["ficha", clientId, "overview"] as const,
-  health: (clientId: string) => ["ficha", clientId, "health"] as const,
+  all: (userId: string, clientId: string) => ["ficha", userId, clientId] as const,
+  overview: (userId: string, clientId: string) => ["ficha", userId, clientId, "overview"] as const,
+  health: (userId: string, clientId: string) => ["ficha", userId, clientId, "health"] as const,
+  contract: (userId: string, clientId: string) => ["ficha", userId, clientId, "contract"] as const,
+  exists: (userId: string, clientId: string) => ["client-exists", userId, clientId] as const,
 };
+
+/** Id del usuario actual para acotar las keys ("anon" mientras carga la sesión). */
+export function useUserKey(): string {
+  const { user } = useAuth();
+  return user?.id ?? "anon";
+}
+
+/** Mensaje legible para errores de escritura; los de RLS/privilegios → "sin permisos". */
+export function writeErrorMessage(error: { code?: string; message: string }): string {
+  if (error.code === "42501" || /row-level security|permission denied/i.test(error.message)) {
+    return PERMISSION_DENIED_MSG;
+  }
+  return error.message;
+}
 
 export type ClientBilling = Pick<
   Tables<"client_billing">,
@@ -39,8 +57,9 @@ export interface FichaOverview {
 
 /** Datos comerciales del cliente: etapa, inicio, facturación y si el usuario puede editar. */
 export function useFichaOverview(clientId: string) {
+  const userKey = useUserKey();
   return useQuery({
-    queryKey: fichaKeys.overview(clientId),
+    queryKey: fichaKeys.overview(userKey, clientId),
     queryFn: async (): Promise<FichaOverview> => {
       const [clientRes, billingRes, editRes] = await Promise.all([
         supabase.from("clients").select("status,started_at").eq("id", clientId).maybeSingle(),
@@ -76,8 +95,9 @@ export interface FichaHealth {
 
 /** Lo que está pendiente con el cliente: aprobaciones, cobros abiertos y alertas de campañas. */
 export function useFichaHealth(clientId: string) {
+  const userKey = useUserKey();
   return useQuery({
-    queryKey: fichaKeys.health(clientId),
+    queryKey: fichaKeys.health(userKey, clientId),
     queryFn: async (): Promise<FichaHealth> => {
       const [approvalsRes, paymentsRes, alertsRes] = await Promise.all([
         supabase
