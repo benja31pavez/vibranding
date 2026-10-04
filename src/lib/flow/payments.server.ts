@@ -1,0 +1,197 @@
+/**
+ * Lógica de cobro online con Flow sobre la tabla `payments`.
+ * Solo servidor: usa el service role, así que quien llame debe haber validado
+ * antes el acceso (assertCanEditClient) o la autenticidad (getStatus firmado).
+ */
+import type { Database } from "@/integrations/supabase/types";
+import { todayInChile } from "@/lib/billing/dates";
+import { publicOrigin } from "@/lib/meta/oauth.server";
+import {
+  FLOW_STATUS,
+  createFlowPayment,
+  getFlowPaymentStatus,
+  type FlowPaymentStatus,
+} from "./flow.server";
+
+type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
+
+const OPEN_STATUSES: readonly PaymentRow["status"][] = ["pending", "overdue"];
+
+export const FLOW_CONFIRM_PATH = "/api/public/flow/confirm";
+export const FLOW_RETURN_PATH = "/api/public/flow/return";
+
+/**
+ * commerceOrder = payment.id. Si hay que regenerar el link (orden rechazada o
+ * anulada en Flow) se agrega un sufijo ".xxxx", porque no está verificado que
+ * Flow acepte repetir un commerceOrder.
+ */
+export function commerceOrderMatches(commerceOrder: string, paymentId: string): boolean {
+  return commerceOrder === paymentId || commerceOrder.startsWith(`${paymentId}.`);
+}
+
+async function admin() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
+}
+
+export async function loadPayment(paymentId: string): Promise<PaymentRow | null> {
+  const db = await admin();
+  const { data, error } = await db.from("payments").select("*").eq("id", paymentId).maybeSingle();
+  if (error) {
+    console.error("[flow] no se pudo leer el pago", paymentId, error.message);
+    throw new Error("No se pudo leer el cobro");
+  }
+  return data;
+}
+
+/** "2026-10-04 12:32:11" → "2026-10-04"; si no viene, hoy en Chile. */
+function paidDate(status: FlowPaymentStatus): string {
+  const raw = status.paymentData?.date ?? "";
+  return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : todayInChile();
+}
+
+export type ApplyResult = "paid" | "already_paid" | "pending" | "rejected" | "mismatch";
+
+/**
+ * Aplica a `payment` el estado que Flow reportó para su orden. Nunca se llama
+ * con datos del navegador: `status` sale de getStatus firmado.
+ * Idempotente: un cobro ya pagado no se vuelve a tocar.
+ */
+export async function applyFlowStatus(
+  payment: PaymentRow,
+  status: FlowPaymentStatus,
+): Promise<ApplyResult> {
+  if (!commerceOrderMatches(String(status.commerceOrder ?? ""), payment.id)) {
+    console.error("[flow] commerceOrder no coincide", payment.id, status.commerceOrder);
+    return "mismatch";
+  }
+  if (status.status !== FLOW_STATUS.PAID) {
+    return status.status === FLOW_STATUS.PENDING ? "pending" : "rejected";
+  }
+  if (payment.status === "paid") return "already_paid";
+
+  const sameAmount = Math.round(Number(status.amount)) === Math.round(Number(payment.amount));
+  if (!sameAmount || String(status.currency).toUpperCase() !== "CLP") {
+    console.error("[flow] monto/moneda no coinciden; no se marca pagado", {
+      paymentId: payment.id,
+      flow: { amount: status.amount, currency: status.currency },
+      local: { amount: payment.amount, currency: payment.currency },
+    });
+    return "mismatch";
+  }
+
+  const db = await admin();
+  const { data, error } = await db
+    .from("payments")
+    .update({
+      status: "paid",
+      paid_at: paidDate(status),
+      provider: "flow",
+      provider_ref: String(status.flowOrder),
+    })
+    .eq("id", payment.id)
+    .neq("status", "paid")
+    .select("id");
+  if (error) {
+    console.error("[flow] no se pudo marcar pagado", payment.id, error.message);
+    throw new Error("No se pudo registrar el pago");
+  }
+  return data && data.length > 0 ? "paid" : "already_paid";
+}
+
+/** Email del portal del cliente, si existe, como pagador por defecto. */
+async function defaultPayerEmail(clientId: string): Promise<string | null> {
+  const db = await admin();
+  const { data, error } = await db
+    .from("client_users")
+    .select("email")
+    .eq("client_id", clientId)
+    .not("email", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (error) {
+    console.error("[flow] no se pudo leer el email del portal", clientId, error.message);
+    return null;
+  }
+  return data?.[0]?.email ?? null;
+}
+
+export type PaymentLinkResult =
+  { state: "link"; paymentUrl: string; reused: boolean } | { state: "already_paid" };
+
+function assertChargeable(payment: PaymentRow): number {
+  if (!OPEN_STATUSES.includes(payment.status)) {
+    throw new Error("Solo se puede generar link para cobros pendientes o vencidos");
+  }
+  if ((payment.currency ?? "").toUpperCase() !== "CLP") {
+    throw new Error("Flow solo se usa para cobros en CLP");
+  }
+  const amount = Number(payment.amount);
+  if (!Number.isInteger(amount) || amount <= 0) {
+    throw new Error("El monto debe ser un entero positivo en CLP");
+  }
+  return amount;
+}
+
+/**
+ * Devuelve el link de pago de un cobro, creándolo en Flow si hace falta.
+ * Idempotente: si ya hay una orden de Flow pendiente, reutiliza su link.
+ */
+export async function ensurePaymentLink(
+  payment: PaymentRow,
+  email: string | null,
+): Promise<PaymentLinkResult> {
+  const amount = assertChargeable(payment);
+
+  let regenerate = false;
+  if (payment.provider === "flow" && payment.flow_token && payment.payment_url) {
+    const current = await getFlowPaymentStatus(payment.flow_token);
+    if (current.status === FLOW_STATUS.PENDING) {
+      return { state: "link", paymentUrl: payment.payment_url, reused: true };
+    }
+    if (current.status === FLOW_STATUS.PAID) {
+      const applied = await applyFlowStatus(payment, current);
+      if (applied === "paid" || applied === "already_paid") return { state: "already_paid" };
+      throw new Error("Flow reporta un pago que no coincide con este cobro; revísalo en Flow");
+    }
+    regenerate = true; // rechazada o anulada: se crea una orden nueva
+  }
+
+  const payer = email?.trim() || (await defaultPayerEmail(payment.client_id));
+  if (!payer) {
+    throw new Error("Flow exige el email del pagador: ingrésalo para generar el link");
+  }
+
+  const origin = publicOrigin();
+  const created = await createFlowPayment({
+    commerceOrder: regenerate ? `${payment.id}.${Date.now().toString(36)}` : payment.id,
+    subject: payment.description?.trim() || "Servicios VIBRANDING",
+    amount,
+    email: payer,
+    urlConfirmation: `${origin}${FLOW_CONFIRM_PATH}`,
+    urlReturn: `${origin}${FLOW_RETURN_PATH}`,
+  });
+
+  const db = await admin();
+  // Guardado condicional: si otro clic guardó un link entre medio, gana el primero.
+  const base = db
+    .from("payments")
+    .update({ provider: "flow", flow_token: created.token, payment_url: created.paymentUrl })
+    .eq("id", payment.id)
+    .in("status", [...OPEN_STATUSES]);
+  const guarded = payment.flow_token
+    ? base.eq("flow_token", payment.flow_token)
+    : base.is("flow_token", null);
+  const { data, error } = await guarded.select("id");
+  if (error) {
+    console.error("[flow] no se pudo guardar el link", payment.id, error.message);
+    throw new Error("Se creó la orden en Flow pero no se pudo guardar el link");
+  }
+  if (!data || data.length === 0) {
+    const latest = await loadPayment(payment.id);
+    if (latest?.status === "paid") return { state: "already_paid" };
+    if (latest?.payment_url) return { state: "link", paymentUrl: latest.payment_url, reused: true };
+    throw new Error("El cobro cambió mientras se generaba el link; vuelve a intentarlo");
+  }
+  return { state: "link", paymentUrl: created.paymentUrl, reused: false };
+}
