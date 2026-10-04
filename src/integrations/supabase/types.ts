@@ -3283,6 +3283,7 @@ export type Database = {
       }
     }
     Functions: {
+      can_edit_client: { Args: { _client_id: string }; Returns: boolean }
       client_analytics: {
         Args: { _client_id: string; _from: string; _to: string }
         Returns: Json
