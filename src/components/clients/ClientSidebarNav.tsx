@@ -1,15 +1,40 @@
 import { Link } from "@tanstack/react-router";
 import {
-  BarChart3, Flag, Globe, Instagram, Lock, MessageCircle, Settings2, UserPlus, Zap,
+  BarChart3, Circle, Flag, Globe, Instagram, Lock, MessageCircle, Receipt, Settings2, UserPlus, Zap,
 } from "lucide-react";
+import type { ComponentType } from "react";
 import { Badge } from "@/components/ui/badge";
 import { MetaIcon } from "@/components/icons/MetaIcon";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { useReviewAlerts } from "@/hooks/use-review-alerts";
-import { CLIENT_SECTIONS, activeSectionCount, type SectionKey } from "@/lib/clientSections";
+import { cn } from "@/lib/utils";
+import { CLIENT_SECTIONS, activeSectionCount, type SectionDef } from "@/lib/clientSections";
 
-const ICONS: Record<SectionKey, React.ComponentType<{ className?: string }>> = {
+type IconComponent = ComponentType<{ className?: string }>;
+type GroupKey = "operacion" | "negocio" | "ajustes";
+
+const GROUPS: readonly { key: GroupKey; label: string }[] = [
+  { key: "operacion", label: "Operación" },
+  { key: "negocio", label: "Negocio" },
+  { key: "ajustes", label: "Ajustes" },
+];
+
+/** Grupo de cada sección; una key que no esté aquí cae en "Operación". */
+const SECTION_GROUP: Partial<Record<string, GroupKey>> = {
+  plan: "operacion",
+  instagram: "operacion",
+  automatizacion: "operacion",
+  bandeja: "operacion",
+  sitio: "operacion",
+  "meta-ads": "negocio",
+  leads: "negocio",
+  facturacion: "negocio",
+  analytics: "negocio",
+};
+
+/** Un icono distinto por sección (Facturación ≠ Analítica). */
+const ICONS: Partial<Record<string, IconComponent>> = {
   plan: Flag,
   instagram: Instagram,
   "meta-ads": MetaIcon,
@@ -17,29 +42,27 @@ const ICONS: Record<SectionKey, React.ComponentType<{ className?: string }>> = {
   sitio: Globe,
   bandeja: MessageCircle,
   leads: UserPlus,
-  facturacion: BarChart3,
+  facturacion: Receipt,
   analytics: BarChart3,
 };
 
+const groupOf = (key: string): GroupKey => SECTION_GROUP[key] ?? "operacion";
 
-const ROUTES: Record<SectionKey, string> = {
-  plan: "/clients/$clientId/plan",
-  instagram: "/clients/$clientId/instagram",
-  "meta-ads": "/clients/$clientId/meta-ads",
-  automatizacion: "/clients/$clientId/automatizacion",
-  sitio: "/clients/$clientId/sitio",
-  bandeja: "/clients/$clientId/bandeja",
-  leads: "/clients/$clientId/leads",
-  facturacion: "/clients/$clientId/facturacion",
-  analytics: "/clients/$clientId/analytics",
-};
+const itemClass = (isActive: boolean) =>
+  cn(
+    "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    isActive
+      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+      : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+  );
 
 function ProgressRing({ done, total }: { done: number; total: number }) {
   const r = 9;
   const c = 2 * Math.PI * r;
   const pct = total === 0 ? 0 : done / total;
   return (
-    <svg width="22" height="22" viewBox="0 0 22 22" className="shrink-0">
+    <svg width="22" height="22" viewBox="0 0 22 22" className="shrink-0" aria-hidden="true">
       <circle cx="11" cy="11" r={r} className="stroke-border" strokeWidth="2.5" fill="none" />
       <circle
         cx="11" cy="11" r={r}
@@ -48,6 +71,57 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
         transform="rotate(-90 11 11)"
       />
     </svg>
+  );
+}
+
+interface SectionLinkProps {
+  section: SectionDef;
+  clientId: string;
+  path: string;
+  lockedReason: string | null;
+  badge: number;
+}
+
+function SectionLink({ section, clientId, path, lockedReason, badge }: SectionLinkProps) {
+  const Icon = ICONS[section.key] ?? Circle;
+  const href = `/clients/${clientId}/${section.key}`;
+  const isActive = path === href || path.startsWith(`${href}/`);
+
+  if (lockedReason) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            to="/clients/$clientId/setup"
+            params={{ clientId }}
+            className={cn(itemClass(false), "text-muted-foreground/60")}
+          >
+            <Icon className="h-4 w-4 shrink-0" /> {section.label}
+            <span className="sr-only">(bloqueada: {lockedReason})</span>
+            <Lock className="ml-auto h-3 w-3 shrink-0" aria-hidden="true" />
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent side="right">{lockedReason}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Link
+      // Las rutas de sección siguen el patrón /clients/$clientId/<key>.
+      to={`/clients/$clientId/${section.key}` as "/clients/$clientId"}
+      params={{ clientId }}
+      aria-current={isActive ? "page" : undefined}
+      className={itemClass(isActive)}
+    >
+      <Icon className="h-4 w-4 shrink-0" /> {section.label}
+      {badge > 0 && (
+        <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-xs">
+          {badge}
+          <span className="sr-only"> pendientes</span>
+        </Badge>
+      )}
+    </Link>
   );
 }
 
@@ -62,78 +136,62 @@ export function ClientSidebarNav({
 }) {
   const { caps } = useClientCapabilities(clientId);
   const { count: reviewCount } = useReviewAlerts(clientId);
-  const base = `/clients/${clientId}`;
+  const setupHref = `/clients/${clientId}/setup`;
   const active = activeSectionCount(caps);
 
-  const itemClass = (isActive: boolean) =>
-    `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-      isActive
-        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-        : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60"
-    }`;
+  const badgeFor = (key: string) => {
+    if (key === "plan") return reviewCount;
+    if (key === "bandeja") return staleOutcomes;
+    return 0;
+  };
 
   return (
-    <TooltipProvider delayDuration={150}>
-      <div className="space-y-1.5 pt-2">
-        <Link
-          to="/clients/$clientId/setup"
-          params={{ clientId }}
-          className={`${itemClass(path === `${base}/setup`)} border border-dashed border-border`}
-        >
-          <ProgressRing done={active} total={CLIENT_SECTIONS.length} />
-          <span className="min-w-0">
-            <span className="block leading-tight">Configurar</span>
-            <span className="block text-[11px] font-normal leading-tight">
-              {active} de {CLIENT_SECTIONS.length} secciones activas
-            </span>
-          </span>
-        </Link>
-
-        {CLIENT_SECTIONS.map((s) => {
-          const Icon = ICONS[s.key];
-          const reason = s.lockedReason(caps);
-          const isActive = path.startsWith(`${base}/${s.key}`);
-
-          if (reason) {
-            return (
-              <Tooltip key={s.key}>
-                <TooltipTrigger asChild>
+    <nav aria-label="Secciones del cliente" className="space-y-5">
+      {GROUPS.map((group) => {
+        const sections = CLIENT_SECTIONS.filter((s) => groupOf(s.key) === group.key);
+        const isSettings = group.key === "ajustes";
+        if (sections.length === 0 && !isSettings) return null;
+        const headingId = `client-nav-${group.key}`;
+        return (
+          <div key={group.key} role="group" aria-labelledby={headingId}>
+            <div id={headingId} className="px-3 pb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {group.label}
+            </div>
+            <ul className="space-y-0.5">
+              {sections.map((s) => (
+                <li key={s.key}>
+                  <SectionLink
+                    section={s}
+                    clientId={clientId}
+                    path={path}
+                    lockedReason={s.lockedReason(caps)}
+                    badge={badgeFor(s.key)}
+                  />
+                </li>
+              ))}
+              {isSettings && (
+                <li>
                   <Link
                     to="/clients/$clientId/setup"
                     params={{ clientId }}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground/50 hover:text-muted-foreground/80"
+                    aria-current={path === setupHref ? "page" : undefined}
+                    className={itemClass(path === setupHref)}
                   >
-                    <Icon className="w-4 h-4 shrink-0" /> {s.label}
-                    <Lock className="w-3 h-3 ml-auto shrink-0" />
+                    <Settings2 className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block leading-tight">Configurar</span>
+                      <span className="block text-xs font-normal leading-tight">
+                        {active} de {CLIENT_SECTIONS.length} secciones activas
+                      </span>
+                    </span>
+                    <ProgressRing done={active} total={CLIENT_SECTIONS.length} />
                   </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">{reason}</TooltipContent>
-              </Tooltip>
-            );
-          }
-
-          return (
-            <Link
-              key={s.key}
-              to={ROUTES[s.key] as any}
-              params={{ clientId } as any}
-              className={itemClass(isActive)}
-            >
-              <Icon className="w-4 h-4 shrink-0" /> {s.label}
-              {s.key === "plan" && reviewCount > 0 && (
-                <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-[10px]">
-                  {reviewCount}
-                </Badge>
+                </li>
               )}
-              {s.key === "bandeja" && staleOutcomes > 0 && (
-                <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-[10px]">
-                  {staleOutcomes}
-                </Badge>
-              )}
-            </Link>
-          );
-        })}
-      </div>
-    </TooltipProvider>
+            </ul>
+          </div>
+        );
+      })}
+    </nav>
   );
 }
