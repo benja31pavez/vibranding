@@ -21,21 +21,21 @@ export function clientIp(req: Request | undefined = getRequest()): string | null
 
 export class MissingSaltError extends Error {
   constructor() {
-    super("Falta SUPABASE_PROJECT_SALT: no se puede calcular el hash de IP");
+    super("Falta IP_HASH_SALT: no se puede calcular el hash de IP");
     this.name = "MissingSaltError";
   }
 }
 
 /**
  * Hash salado de la IP para GUARDAR (nunca se guarda la IP en claro).
- * Sin SUPABASE_PROJECT_SALT falla: un hash sin sal secreta es reversible
+ * Sin IP_HASH_SALT (secret de Lovable Cloud; el prefijo SUPABASE_ está reservado) falla: un hash sin sal secreta es reversible
  * probando IPs. (El contacto de landings y las reservas mantienen su fallback
  * histórico; no se tocaron aquí.)
  */
 export async function clientIpHash(req?: Request): Promise<string | null> {
   const ip = clientIp(req);
   if (!ip) return null;
-  const salt = process.env["SUPABASE_PROJECT_SALT"]?.trim();
+  const salt = (process.env["IP_HASH_SALT"] ?? process.env["SUPABASE_PROJECT_SALT"])?.trim();
   if (!salt) throw new MissingSaltError();
   const { createHash } = await import("crypto");
   return createHash("sha256").update(`${ip}:${salt}`).digest("hex");

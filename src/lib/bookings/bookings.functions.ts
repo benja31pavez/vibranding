@@ -96,7 +96,7 @@ async function clientIpHash(): Promise<string | null> {
   if (!ip) return null;
   const { createHash } = await import("crypto");
   return createHash("sha256")
-    .update(`${ip}:${process.env["SUPABASE_PROJECT_SALT"] ?? "landing"}`)
+    .update(`${ip}:${process.env["IP_HASH_SALT"] ?? process.env["SUPABASE_PROJECT_SALT"] ?? "landing"}`)
     .digest("hex");
 }
 

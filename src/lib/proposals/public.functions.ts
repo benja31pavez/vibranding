@@ -99,7 +99,7 @@ export const acceptProposal = createServerFn({ method: "POST" })
     try {
       ipHash = await clientIpHash();
     } catch (e) {
-      console.error("[proposals] [ALERTA] no se puede aceptar sin SUPABASE_PROJECT_SALT", e);
+      console.error("[proposals] [ALERTA] no se puede aceptar sin IP_HASH_SALT", e);
       return { ok: false, reason: "error", message: "No pudimos registrar tu aceptación. Escríbenos y lo resolvemos." };
     }
 
