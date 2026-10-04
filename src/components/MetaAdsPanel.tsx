@@ -79,7 +79,12 @@ function safeHostname(url: string): string | null {
 
 export function MetaAdsPanel({ clientId }: { clientId: string }) {
   const saveAssets = useServerFn(updateMetaAccountAssets);
-  const { caps, loading: capsLoading } = useClientCapabilities(clientId);
+  const {
+    caps,
+    loading: capsLoading,
+    error: capsError,
+    reload: reloadCaps,
+  } = useClientCapabilities(clientId);
   const [account, setAccount] = useState<Account | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [adsets, setAdsets] = useState<AdSet[]>([]);
@@ -180,7 +185,11 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     setAccount({ ...account, ...patch });
     try {
       // Goes through the server so only agency editors can change linked ids.
-      await saveAssets({ data: { clientId, patch } });
+      const res = await saveAssets({ data: { clientId, patch } });
+      // El servidor normaliza (p. ej. "123" → "act_123"): mostramos lo que quedó guardado.
+      setAccount((cur) => (cur ? { ...cur, ...res.patch } : cur));
+      // La fila pudo crearse recién (upsert): recargamos para tener su id real.
+      if (!previous.id) void load();
       return true;
     } catch (e: any) {
       setAccount(previous);
@@ -305,6 +314,16 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
         message={loadError}
         onRetry={() => void load()}
         retrying={loading}
+      />
+    );
+  }
+
+  if (capsError) {
+    return (
+      <ErrorState
+        title="No pudimos revisar la conexión con Meta"
+        message={capsError.message}
+        onRetry={() => void reloadCaps()}
       />
     );
   }

@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { useReviewAlerts } from "@/hooks/use-review-alerts";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/app";
 import { CLIENT_SECTIONS, activeSectionCount, type SectionDef } from "@/lib/clientSections";
 
 type IconComponent = ComponentType<{ className?: string }>;
@@ -134,7 +135,7 @@ export function ClientSidebarNav({
   path: string;
   staleOutcomes: number;
 }) {
-  const { caps } = useClientCapabilities(clientId);
+  const { caps, error: capsError, reload: reloadCaps, loading: capsLoading } = useClientCapabilities(clientId);
   const { count: reviewCount } = useReviewAlerts(clientId);
   const setupHref = `/clients/${clientId}/setup`;
   const fichaHref = `/clients/${clientId}`;
@@ -149,6 +150,14 @@ export function ClientSidebarNav({
 
   return (
     <nav aria-label="Secciones del cliente" className="space-y-5">
+      {capsError && (
+        <ErrorState
+          title="No pudimos revisar las conexiones"
+          message="Los candados del menú pueden no estar al día."
+          onRetry={() => void reloadCaps()}
+          retrying={capsLoading}
+        />
+      )}
       <Link
         to="/clients/$clientId"
         params={{ clientId }}
@@ -175,7 +184,8 @@ export function ClientSidebarNav({
                     section={s}
                     clientId={clientId}
                     path={path}
-                    lockedReason={s.lockedReason(caps)}
+                    // Si no se pudo leer la conexión, no bloqueamos: cada pantalla muestra su estado.
+                    lockedReason={capsError ? null : s.lockedReason(caps)}
                     badge={badgeFor(s.key)}
                   />
                 </li>
