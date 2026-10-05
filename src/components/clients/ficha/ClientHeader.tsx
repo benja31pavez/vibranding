@@ -18,6 +18,7 @@ import { ExportPdfButton } from "./ExportPdfButton";
 import { MeetingBriefButton } from "./MeetingBriefDialog";
 import { DeleteClientDialog, RenameClientDialog } from "./ClientDialogs";
 import { useClientActions } from "./useClientActions";
+import { EngagementChip } from "@/components/instagram/EngagementCard";
 
 interface ClientHeaderProps {
   clientId: string;
@@ -52,16 +53,19 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
             <h1 className="truncate text-2xl font-semibold tracking-tight">{client.name}</h1>
             {overview && <ClientStatusBadge status={overview.status} />}
           </div>
-          {client.instagram_handle && (
-            <a
-              href={`https://instagram.com/${encodeURIComponent(client.instagram_handle)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <Instagram aria-hidden className="h-3.5 w-3.5" /> @{client.instagram_handle}
-            </a>
-          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {client.instagram_handle && (
+              <a
+                href={`https://instagram.com/${encodeURIComponent(client.instagram_handle)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <Instagram aria-hidden className="h-3.5 w-3.5" /> @{client.instagram_handle}
+              </a>
+            )}
+            <EngagementChip clientId={clientId} />
+          </div>
           <HeaderFacts overview={overview} loading={loading} />
         </div>
       </div>
