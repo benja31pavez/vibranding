@@ -1,6 +1,7 @@
 import { Info } from "lucide-react";
 import { DiagnosticoLink } from "@/components/home/GrowthSections";
 import { WhatsAppCta } from "@/components/home/shared";
+import { PlanNotIncluded } from "@/components/pricing/PlanNotIncluded";
 import { PLAN_SUMMARY, type ServiceContent } from "@/lib/services/content";
 import { servicePlans } from "@/lib/services/seo";
 import { formatClp } from "@/lib/site";
@@ -37,6 +38,10 @@ export function ServicePricingSection({ service }: { service: ServiceContent }) 
                     <span className="text-base font-medium text-muted-foreground"> + IVA</span>
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">{planPeriod(plan)}</p>
+                  <PlanNotIncluded
+                    items={plan.notIncluded}
+                    className="mt-5 border-t border-border/60 pt-4"
+                  />
                   <div className="mt-auto pt-6">
                     <DiagnosticoLink plan={plan.key} variant="outline" className="w-full">
                       Quiero este plan

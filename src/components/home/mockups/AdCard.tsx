@@ -19,7 +19,6 @@ export function AdCard({ className }: { className?: string }) {
         </div>
       </div>
       <div className="relative aspect-[5/4]" style={{ background: SWATCHES[1] }}>
-        <span className="absolute -left-4 bottom-3 h-20 w-20 rounded-full bg-white/20" />
         <span className="absolute right-3 top-3 rounded-full bg-white/85 px-2 py-0.5 text-[0.6rem] font-semibold text-neutral-900">
           Agenda tu hora
         </span>

@@ -17,7 +17,14 @@ import { cn } from "@/lib/utils";
 import { ProposalLines } from "../ProposalLines";
 import { AcceptProposalForm } from "./AcceptProposalForm";
 import { PaymentBox } from "./PaymentBox";
-import { first30Days, planFeatures, proposalFaq, proposalOutcome } from "./proposalContent";
+import { PlanNotIncluded } from "@/components/pricing/PlanNotIncluded";
+import {
+  first30Days,
+  planFeatures,
+  planNotIncluded,
+  proposalFaq,
+  proposalOutcome,
+} from "./proposalContent";
 import {
   ACCEPT_ANCHOR,
   Card,
@@ -102,6 +109,11 @@ export function PublicProposalView({ token, proposal, payment }: Props) {
 
       <Card title={hasMonthly ? "Qué incluye cada mes" : "Qué incluye"}>
         <FeatureList features={planFeatures(planKey)} />
+        <PlanNotIncluded
+          items={planNotIncluded(planKey)}
+          className="mb-5"
+          listClassName="grid gap-x-4 gap-y-1.5 space-y-0 sm:grid-cols-2"
+        />
         <ProposalLines items={proposal.items} />
       </Card>
 

@@ -55,6 +55,11 @@ export interface Plan {
   isPublic: boolean;
   /** Solo para ex clientes: la recomendación automática nunca la propone a prospectos nuevos. */
   returningClientsOnly: boolean;
+  /**
+   * Lo que el plan NO incluye (frases cortas). Única fuente para la home, las
+   * páginas de servicio y la propuesta pública. Lo revisa `npm run check:plan-not-included`.
+   */
+  notIncluded: readonly string[];
 }
 
 export const PLANS: readonly Plan[] = [
@@ -68,6 +73,11 @@ export const PLANS: readonly Plan[] = [
     note: null,
     isPublic: true,
     returningClientsOnly: false,
+    notIncluded: [
+      "Contenido mensual para redes",
+      "Campañas de anuncios",
+      "Cambios a la web después de la entrega (se cotizan aparte)",
+    ],
   },
   {
     key: "contenido",
@@ -79,6 +89,12 @@ export const PLANS: readonly Plan[] = [
     note: null,
     isPublic: true,
     returningClientsOnly: false,
+    notIncluded: [
+      "Campañas de Meta Ads y Google Ads",
+      "Inversión en publicidad (pauta)",
+      "Landing o sitio web nuevo",
+      "Chatbot de WhatsApp (servicio adicional)",
+    ],
   },
   {
     key: "crecimiento",
@@ -90,6 +106,11 @@ export const PLANS: readonly Plan[] = [
     note: "La inversión en pauta (Meta Ads) la paga directamente el cliente.",
     isPublic: true,
     returningClientsOnly: false,
+    notIncluded: [
+      "Inversión en publicidad (pauta): la pagas directo a Meta y Google",
+      "Landing o sitio web nuevo (servicio adicional)",
+      "Chatbot de WhatsApp (servicio adicional)",
+    ],
   },
   {
     key: "mantencion",
@@ -102,6 +123,12 @@ export const PLANS: readonly Plan[] = [
     note: "Solo para clientes que ya trabajaron con Vibranding.",
     isPublic: false,
     returningClientsOnly: true,
+    notIncluded: [
+      "Campañas de anuncios",
+      "Publicaciones en Google Business",
+      "Reunión mensual",
+      "Landing o sitio web nuevo",
+    ],
   },
 ];
 
@@ -118,6 +145,11 @@ export const PLAN_KEYS = PLANS.map((p) => p.key) as [PlanKey, ...PlanKey[]];
 
 export function isPlanKey(value: unknown): value is PlanKey {
   return typeof value === "string" && (PLAN_KEYS as readonly string[]).includes(value);
+}
+
+/** Lo que el plan no incluye; vacío si no hay plan. */
+export function planNotIncluded(key: string | null | undefined): readonly string[] {
+  return findPlan(key)?.notIncluded ?? [];
 }
 
 export function findPlan(key: string | null | undefined): Plan | null {

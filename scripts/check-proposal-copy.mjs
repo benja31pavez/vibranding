@@ -8,6 +8,7 @@
  *  - El chatbot de WhatsApp solo aparece como adicional con costo aparte.
  *  - Precios netos + IVA: nunca "IVA incluido"; la FAQ de pago explica que se suma IVA.
  *  - Mantención: sin pauta ni campañas incluidas.
+ *  - Cada plan (PLANS en plans.ts) tiene al menos un ítem "No incluye", sin "garant".
  */
 import { build } from "esbuild";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -17,19 +18,23 @@ import { pathToFileURL } from "node:url";
 
 const root = resolve(import.meta.dirname, "..");
 const outDir = mkdtempSync(join(tmpdir(), "proposal-copy-"));
-const outFile = join(outDir, "content.mjs");
 
 await build({
-  entryPoints: [join(root, "src/components/proposals/public/proposalContent.ts")],
+  entryPoints: {
+    content: join(root, "src/components/proposals/public/proposalContent.ts"),
+    plans: join(root, "src/lib/pricing/plans.ts"),
+  },
   bundle: true,
   format: "esm",
   platform: "node",
-  outfile: outFile,
+  outdir: outDir,
+  outExtension: { ".js": ".mjs" },
   alias: { "@": join(root, "src") },
   logLevel: "error",
 });
 
-const content = await import(pathToFileURL(outFile).href);
+const content = await import(pathToFileURL(join(outDir, "content.mjs")).href);
+const { PLANS } = await import(pathToFileURL(join(outDir, "plans.mjs")).href);
 rmSync(outDir, { recursive: true, force: true });
 
 const PLAN_KEYS = ["marca-web", "contenido", "crecimiento", "mantencion", null];
@@ -39,6 +44,19 @@ const CHATBOT = /chatbot/i;
 const ADDON = /adicional|costo aparte/i;
 
 const failures = [];
+
+for (const plan of PLANS) {
+  const items = plan.notIncluded ?? [];
+  if (items.length === 0) failures.push(`[${plan.key}] sin ítems en "No incluye" (notIncluded)`);
+  for (const text of items) {
+    if (/garant/i.test(text))
+      failures.push(`[${plan.key}] "No incluye" menciona garantía: "${text}"`);
+  }
+  const fromProposal = content.planNotIncluded(plan.key);
+  if (fromProposal.join("|") !== items.join("|")) {
+    failures.push(`[${plan.key}] la propuesta no usa la lista "No incluye" de plans.ts`);
+  }
+}
 
 for (const key of PLAN_KEYS) {
   const texts = [

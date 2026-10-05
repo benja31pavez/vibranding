@@ -8,7 +8,7 @@
  *  - Montos siempre en CLP con `formatMoney` (aquí no hay montos).
  */
 import { translations } from "@/i18n/translations";
-import type { PlanKey } from "@/lib/pricing/plans";
+import { planNotIncluded as planNotIncludedFromPlans, type PlanKey } from "@/lib/pricing/plans";
 
 export const TIMELINE_NOTE =
   "Calendario referencial: los plazos dependen de que tengamos tu información y aprobaciones a tiempo.";
@@ -51,7 +51,6 @@ const MANTENCION_FEATURES: readonly string[] = [
   "Calendario mensual de contenido",
   "Aprobación de cada pieza en tu portal de cliente",
   "Reporte mensual",
-  "No incluye pauta ni campañas pagadas",
 ];
 
 /** Lo que incluye el plan: misma lista que la home (una sola fuente). */
@@ -59,6 +58,11 @@ export function planFeatures(planKey: PlanKey | null): readonly string[] {
   if (!planKey) return [];
   if (planKey === "mantencion") return MANTENCION_FEATURES;
   return translations.es.home.plans.items.find((p) => p.id === planKey)?.features ?? [];
+}
+
+/** Lo que el plan no incluye: misma lista que la home y las páginas de servicio. */
+export function planNotIncluded(planKey: PlanKey | null): readonly string[] {
+  return planNotIncludedFromPlans(planKey);
 }
 
 const KICKOFF: WeekStep = {
