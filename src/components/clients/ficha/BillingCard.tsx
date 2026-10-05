@@ -39,6 +39,7 @@ import {
   type ClientStatus,
   type FichaOverview,
 } from "./fichaQueries";
+import { seedPlanTemplates } from "@/components/plan/planTemplates";
 
 const NO_PLAN = "none";
 const MIN_BILLING_DAY = 1;
@@ -203,6 +204,12 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
       }
       setDirty(false);
       toast.success("Plan y facturación guardados");
+      // Tareas y objetivos estándar del plan (idempotente; el Plan también lo hace al abrirse).
+      if (parsed.planKey) {
+        seedPlanTemplates(clientId, parsed.planKey).catch((err: Error) =>
+          toast.error(`No se pudieron crear las tareas estándar del plan: ${err.message}`),
+        );
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo guardar");
     } finally {

@@ -1,4 +1,4 @@
-import { Plus, Target } from "lucide-react";
+import { LayoutTemplate, Plus, Target } from "lucide-react";
 import { FitList, Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,6 +46,8 @@ export interface ObjectivesColumnProps {
   /** Abre el objetivo para editarlo (o eliminarlo). */
   onOpen: (id: string) => void;
   onCreate: () => void;
+  /** Objetivo estándar del plan del cliente (se marca con el ícono de plantilla). */
+  isTemplate: (objective: PlanObjective) => boolean;
 }
 
 /** Objetivos en tarjetas compactas: meta vs actual, fecha y si va en camino. Un clic lo edita. */
@@ -57,6 +59,7 @@ export function ObjectivesColumn({
   today,
   onOpen,
   onCreate,
+  isTemplate,
 }: ObjectivesColumnProps) {
   const rows = [...(objectives ?? [])]
     .map((o) => ({ o, health: objectiveHealth(o, today) }))
@@ -110,7 +113,12 @@ export function ObjectivesColumn({
           gap={8}
           divided={false}
           renderItem={({ o, health }) => (
-            <ObjectiveCard objective={o} health={health} onOpen={() => onOpen(o.id)} />
+            <ObjectiveCard
+              objective={o}
+              health={health}
+              template={isTemplate(o)}
+              onOpen={() => onOpen(o.id)}
+            />
           )}
         />
       )}
@@ -121,10 +129,12 @@ export function ObjectivesColumn({
 function ObjectiveCard({
   objective: o,
   health,
+  template,
   onOpen,
 }: {
   objective: PlanObjective;
   health: ObjectiveHealth;
+  template: boolean;
   onOpen: () => void;
 }) {
   const progress = objectiveProgress(o);
@@ -138,6 +148,15 @@ function ObjectiveCard({
     >
       <span className="flex items-start justify-between gap-2">
         <span className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
+          {template && (
+            <span title="Plantilla: objetivo estándar del plan" className="mr-1 inline-block">
+              <LayoutTemplate
+                aria-hidden
+                className="inline h-3 w-3 -translate-y-px text-muted-foreground/70"
+              />
+              <span className="sr-only">Plantilla: </span>
+            </span>
+          )}
           {o.title}
         </span>
         <span

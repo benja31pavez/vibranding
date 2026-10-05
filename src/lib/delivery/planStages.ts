@@ -13,6 +13,7 @@
  * o de palabras del título, y "entregada" se lee del estado `in_review`.
  */
 import { readMarker, type MonthPlanKey } from "./monthPlan";
+import { readTemplateMarker } from "./planChecklists";
 import type { TeamMemberKey } from "./team";
 
 // ─── Catálogo de etapas ─────────────────────────────────────────────────────
@@ -325,6 +326,8 @@ const MONTH_PLAN_KIND_STAGE: Readonly<Record<string, StageKey>> = {
 };
 
 function stageFromMarker(description: string | null | undefined): StageKey | null {
+  const template = readTemplateMarker(description);
+  if (template && isStageKey(template.stage)) return template.stage;
   const marker = readMarker(description);
   if (!marker) return null;
   const kind = marker.key in MONTH_PLAN_KIND_STAGE ? marker.key : marker.key.replace(/-\d+$/, "");
@@ -361,7 +364,7 @@ export interface StageTaskLike {
 
 /**
  * Etapa de una tarea dentro del plan del cliente: columna `stage_key` →
- * marcador del plan del mes → palabras del título; luego se ajusta al plan.
+ * marcador de plantilla o del plan del mes → palabras del título; luego se ajusta al plan.
  */
 export function taskStageKey(
   task: StageTaskLike,
