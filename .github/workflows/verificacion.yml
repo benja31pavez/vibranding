@@ -42,6 +42,10 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit -p .
 
+      # Errores de ESLint fallan el job; las advertencias no (--max-warnings=-1).
+      - name: Lint
+        run: npx eslint . --max-warnings=-1
+
       - name: Checks (check:*)
         run: npm run check:all
 
