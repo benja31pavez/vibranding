@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MessageCircle, MousePointerClick } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { EmptyState, ErrorState, PageHeader, StatCard, TableSkeleton } from "@/components/app";
+import { EmptyState, ErrorState, PageContainer, PageHeader, StatCard, TableSkeleton } from "@/components/app";
 
 export const Route = createFileRoute("/_app/stats")({
   component: StatsPage,
@@ -111,7 +111,7 @@ function StatsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 px-4 py-8 sm:px-6 md:px-10">
+    <PageContainer className="space-y-8">
       <PageHeader
         title="Estadísticas del landing"
         description="Clics registrados desde la landing pública."
@@ -199,6 +199,6 @@ function StatsPage() {
           </div>
         )}
       </section>
-    </div>
+    </PageContainer>
   );
 }

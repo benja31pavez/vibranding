@@ -252,7 +252,7 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
     : [];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-6 md:p-8">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Analítica</h1>

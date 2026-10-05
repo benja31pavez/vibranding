@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ErrorState, ListSkeleton, PageHeader } from "@/components/app";
+import { ErrorState, ListSkeleton, PageContainer, PageHeader } from "@/components/app";
 import { AlertTriangle, CheckCircle2, Copy, XCircle } from "lucide-react";
 import {
   debugMetaConnection,
@@ -134,7 +134,7 @@ function MetaDiagnosticsPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-4">
+    <PageContainer className="space-y-4">
       <PageHeader
         title="Diagnóstico de Meta"
         description="Credenciales, permisos y prueba de ingesta de la integración con Meta."
@@ -296,6 +296,6 @@ function MetaDiagnosticsPage() {
           </Card>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

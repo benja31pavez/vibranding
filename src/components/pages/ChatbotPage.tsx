@@ -79,7 +79,7 @@ export function ChatbotPage({ clientId }: { clientId: string }) {
   if (loading && !acc) return <ListSkeleton rows={3} label="Cargando WhatsApp" />;
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6">
       <header className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
           <MessageCircle className="w-5 h-5" />

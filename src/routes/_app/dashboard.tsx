@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageHeader } from "@/components/app";
+import { PageContainer, PageHeader } from "@/components/app";
 import {
   ApprovalsToday,
   CampaignAlerts,
@@ -31,7 +31,7 @@ function todayLabel(): string {
  */
 function Dashboard() {
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 md:px-10 md:py-8">
+    <PageContainer className="space-y-6">
       <PageHeader title="Hoy" description={`${todayLabel()} · cobros, aprobaciones y alertas del día.`} />
 
       <KpiStrip />
@@ -51,6 +51,6 @@ function Dashboard() {
       </section>
 
       <OperationsPanels />
-    </div>
+    </PageContainer>
   );
 }

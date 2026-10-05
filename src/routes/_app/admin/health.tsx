@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Activity, AlertTriangle, ChevronRight, CreditCard, Instagram, Plug, RefreshCw, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
-import { EmptyState, ErrorState, ListSkeleton } from "@/components/app";
+import { EmptyState, ErrorState, ListSkeleton, PageContainer } from "@/components/app";
 import { useIsPlatformAdmin } from "@/lib/auth/platformAdmin.functions";
 import { useFlowConfigured } from "@/lib/flow/config.functions";
 import { getJobHealth, setJobSchedule, type JobHealthRow } from "@/lib/admin/health.functions";
@@ -79,27 +79,27 @@ function HealthPage() {
   const admin = useIsPlatformAdmin();
   if (admin.isPending) {
     return (
-      <div className="p-6 md:p-8 max-w-6xl mx-auto">
+      <PageContainer>
         <ListSkeleton rows={4} label="Comprobando permisos" />
-      </div>
+      </PageContainer>
     );
   }
   if (admin.isError) {
     return (
-      <div className="p-6 md:p-8 max-w-6xl mx-auto">
+      <PageContainer>
         <ErrorState message="No pudimos comprobar tus permisos." onRetry={() => void admin.refetch()} retrying={admin.isFetching} />
-      </div>
+      </PageContainer>
     );
   }
   if (!admin.data) {
     return (
-      <div className="p-6 md:p-8 max-w-6xl mx-auto">
+      <PageContainer>
         <EmptyState
           icon={ShieldAlert}
           title="Solo para administradores"
           description="El estado del sistema y los diagnósticos de integraciones están disponibles solo para los administradores de la plataforma."
         />
-      </div>
+      </PageContainer>
     );
   }
   return <HealthDashboard />;
@@ -150,7 +150,7 @@ function HealthDashboard() {
   );
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
+    <PageContainer className="space-y-6">
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -466,7 +466,7 @@ function HealthDashboard() {
       </Card>
 
       <IgSyncLogCard />
-    </div>
+    </PageContainer>
 
   );
 }

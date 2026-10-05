@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { PortfolioClient, PortfolioWork } from "@/lib/portfolio";
-import { ConfirmDialog, EmptyState, ErrorState, ListSkeleton, PageHeader } from "@/components/app";
+import { ConfirmDialog, EmptyState, ErrorState, ListSkeleton, PageContainer, PageHeader } from "@/components/app";
 
 export const Route = createFileRoute("/_app/portfolio")({
   component: PortfolioAdminPage,
@@ -106,7 +106,7 @@ function PortfolioAdminPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-10">
+    <PageContainer>
       <PageHeader
         title="Portafolio público"
         description="Clientes y trabajos que se muestran en el landing."
@@ -157,7 +157,7 @@ function PortfolioAdminPage() {
           setToDelete(null);
         }}
       />
-    </div>
+    </PageContainer>
   );
 }
 

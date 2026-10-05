@@ -8,7 +8,7 @@ import {
   RotateCw,
 } from "lucide-react";
 import { useMemo } from "react";
-import { ErrorState, PageHeader, Panel } from "@/components/app";
+import { ErrorState, PageContainer, PageHeader, Panel } from "@/components/app";
 import { AgendaCalendar, AgendaCalendarSkeleton } from "@/components/agenda/AgendaCalendar";
 import { AgendaFilters } from "@/components/agenda/AgendaFilters";
 import { AgendaLegend } from "@/components/agenda/AgendaLegend";
@@ -87,7 +87,7 @@ function AgendaPage() {
     navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6 md:px-10">
+    <PageContainer className="space-y-6">
       <PageHeader
         title="Agenda"
         description="Todo lo que tiene fecha: publicaciones, entregas, cobros, contratos y reservas."
@@ -116,7 +116,7 @@ function AgendaPage() {
           <BookingsPanel />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContainer>
   );
 }
 
