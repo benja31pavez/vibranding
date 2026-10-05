@@ -41,14 +41,14 @@ const homeEs = {
     titleLead: "Marketing digital para pymes chilenas que quieren",
     titleAccent: "más clientes",
     subtitle:
-      "Creamos tu marca, tu contenido y tus campañas en Meta Ads y Google Ads, y las optimizamos mes a mes para que más personas te encuentren y te escriban por WhatsApp.",
+      "Te apoyamos con la imagen visual de tu marca, la planificación de tu contenido, campañas en Meta Ads y Google Ads y un embudo de ventas, para que más personas te encuentren y te escriban por WhatsApp.",
     priceLine: "Planes desde $129.990 + IVA/mes.",
     ctaPrimary: "Cotiza por WhatsApp",
     ctaSecondary: "Ver planes",
     trust: ["Precios claros en pesos", "Factura o boleta"],
   },
   niches: {
-    title: "Trabajamos sobre todo con",
+    title: "Algunos rubros con los que trabajamos",
     items: [
       {
         title: "Servicios y oficios del hogar",
@@ -122,7 +122,7 @@ const homeEs = {
         name: "Marca + Web",
         price: 149990,
         period: "pago único",
-        terms: "Entrega en 72 horas hábiles",
+        terms: "Entrega en 2 a 3 semanas",
         desc: "Para partir con una presencia profesional desde cero.",
         features: [
           "Kit de marca básico (logo, colores y tipografías)",
@@ -296,11 +296,11 @@ const es: Dict = {
       },
       {
         q: "¿Cuánto se demoran?",
-        a: "Marca + Web se entrega en 72 horas hábiles desde que recibimos tu información y el pago. En los planes mensuales te enviamos el calendario de contenido durante la primera semana, y las campañas parten apenas apruebas los anuncios.",
+        a: "Marca + Web toma entre 2 y 3 semanas desde que recibimos tu información y el pago, con revisiones contigo antes de publicar. En los planes mensuales te enviamos el calendario de contenido durante la primera semana, y las campañas parten apenas apruebas los anuncios.",
       },
       {
         q: "¿Con qué tipo de negocios trabajan?",
-        a: "Con pymes y profesionales de todo Chile. Trabajamos sobre todo con servicios y oficios del hogar (paisajismo, piscinas, remodelación), salud y profesionales, gimnasios y estética. Si tu rubro es otro, escríbenos igual y te decimos con honestidad si te podemos ayudar.",
+        a: "Con pymes, emprendimientos y profesionales de todo Chile, de cualquier rubro: servicios, comercio, salud, gimnasios, estética, gastronomía y más. Si tienes dudas, escríbenos y te decimos con honestidad cómo te podemos ayudar.",
       },
       {
         q: "¿Cómo se paga?",
