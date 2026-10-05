@@ -218,8 +218,8 @@ export interface ChecklistObjective {
 
 /** Horas máximas para que el cliente apruebe (objetivo de Contenido). */
 export const APPROVAL_MAX_HOURS = 48;
-/** Horas hábiles de entrega del kit + landing (Marca + Web). */
-export const MARCA_WEB_DELIVERY_HOURS = 72;
+/** Plazo de entrega del kit + landing (Marca + Web). */
+export const MARCA_WEB_DELIVERY_LABEL = "2 a 3 semanas";
 
 const PIECES_OBJECTIVE = (pieces: number): ChecklistObjective => ({
   key: "piezas-mes",
@@ -261,7 +261,7 @@ export const PLAN_OBJECTIVES: Readonly<Record<PlanKey, readonly ChecklistObjecti
   "marca-web": [
     {
       key: "entrega-72h",
-      title: `Entregar kit de marca y landing en ${MARCA_WEB_DELIVERY_HOURS} h hábiles`,
+      title: `Entregar kit de marca y landing en ${MARCA_WEB_DELIVERY_LABEL}`,
       metric: "horas hábiles",
       category: "branding",
       target: null,

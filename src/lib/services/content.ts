@@ -124,7 +124,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
       "Diseño adaptado a celular, tablet y computador",
       "Ficha de Google Business optimizada (categorías, servicios, horarios y fotos)",
       "Títulos y descripciones básicas para que Google entienda tu página",
-      "Entrega en 72 horas hábiles desde que tenemos tu información",
+      "Entrega en 2 a 3 semanas, con revisiones contigo",
     ],
     pricing: {
       kind: "plans",
@@ -156,7 +156,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
       },
       {
         q: "¿En cuánto tiempo está lista?",
-        a: "En 72 horas hábiles desde que tenemos tu información (textos base, fotos y datos de contacto). Si falta algo, te lo pedimos al inicio para no atrasarnos.",
+        a: "Entre 2 y 3 semanas desde que tenemos tu información (textos base, fotos y datos de contacto). Te mostramos avances en el camino y ajustamos contigo antes de publicar.",
       },
       {
         q: "¿La página aparece en Google?",

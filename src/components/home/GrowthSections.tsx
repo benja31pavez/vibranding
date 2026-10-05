@@ -27,7 +27,7 @@ const FOR_YOU_IF = [
   "Quieres verte profesional en internet sin armar un equipo de marketing propio",
 ];
 
-/** Proceso de Marca + Web: 72 horas hábiles desde que recibimos tu información y el pago. */
+/** Proceso de Marca + Web: 2 a 3 semanas desde que recibimos tu información y el pago. */
 const PROCESS = [
   {
     title: "Diagnóstico o conversación",
@@ -42,8 +42,8 @@ const PROCESS = [
     desc: "Lo que tengas: servicios, fotos, datos de contacto y, si existe, tu logo actual. Te guiamos con un formulario simple.",
   },
   {
-    title: "Entrega en 72 horas hábiles",
-    desc: "Para Marca + Web: kit de marca, landing con botón de WhatsApp y formulario, y tu ficha de Google Business optimizada.",
+    title: "Diseñamos contigo",
+    desc: "Nuestro equipo trabaja tu kit de marca, tu landing y tu ficha de Google Business. Te mostramos avances, ajustamos y publicamos.",
   },
 ];
 
@@ -166,7 +166,7 @@ export function WorkWithUsSection() {
         id="como-title"
         title="Cómo es trabajar"
         accent="con nosotros"
-        subtitle="Marca + Web se entrega en 72 horas hábiles desde que recibimos tu información y el pago."
+        subtitle="Marca + Web toma entre 2 y 3 semanas desde que recibimos tu información y el pago, con revisiones de por medio."
       />
       <ol data-reveal-stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {PROCESS.map((step, i) => (

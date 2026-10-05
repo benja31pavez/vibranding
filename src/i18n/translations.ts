@@ -122,7 +122,7 @@ const homeEs = {
         name: "Marca + Web",
         price: 149990,
         period: "pago único",
-        terms: "Entrega en 72 horas hábiles",
+        terms: "Entrega en 2 a 3 semanas",
         desc: "Para partir con una presencia profesional desde cero.",
         features: [
           "Kit de marca básico (logo, colores y tipografías)",
@@ -296,7 +296,7 @@ const es: Dict = {
       },
       {
         q: "¿Cuánto se demoran?",
-        a: "Marca + Web se entrega en 72 horas hábiles desde que recibimos tu información y el pago. En los planes mensuales te enviamos el calendario de contenido durante la primera semana, y las campañas parten apenas apruebas los anuncios.",
+        a: "Marca + Web toma entre 2 y 3 semanas desde que recibimos tu información y el pago, con revisiones contigo antes de publicar. En los planes mensuales te enviamos el calendario de contenido durante la primera semana, y las campañas parten apenas apruebas los anuncios.",
       },
       {
         q: "¿Con qué tipo de negocios trabajan?",
