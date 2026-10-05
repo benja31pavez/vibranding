@@ -80,7 +80,8 @@ SELECT cron.schedule('google_ads_ingest_16', '46 6 * * *',
   $cron$SELECT public.run_http_cron_job('google_ads_ingest_16',
     'https://vibranding.pro/api/public/google/ingest-daily?offset=16&limit=8&last=1');$cron$);
 
--- monthly_reports_30 (20261004220837_548a293a-…)
-SELECT cron.schedule('monthly_reports_30', '10 12 1 * *',
-  $cron$SELECT public.run_http_cron_job('monthly_reports_30',
-    'https://vibranding.pro/api/public/reports/monthly?offset=30&limit=15&last=1');$cron$);
+-- Reporte mensual: en producción corre en 10 lotes de 5 (monthly_reports_0..45,
+-- ver 20261012000550_cron_reportes_lotes.sql); el último lleva &last=1.
+SELECT cron.schedule('monthly_reports_45', '18 12 1 * *',
+  $cron$SELECT public.run_http_cron_job('monthly_reports_45',
+    'https://vibranding.pro/api/public/reports/monthly?offset=45&limit=5&last=1');$cron$);
