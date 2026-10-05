@@ -1,7 +1,7 @@
 /*
  * Home sections "Tres cosas…" (bx-*) and "Lo que hacemos por ti" (svc-*). Same rules as
  * motion.css: transform/opacity only, the default render is the finished static frame, and
- * pieces are hidden only after hydration (data-bx-armed) or while their animation runs.
+ * pieces are hidden only after hydration (data-reveal-pending) or while their animation runs.
  */
 
 @keyframes bx-in {
@@ -22,7 +22,26 @@
   }
 }
 
-/* Active step: spinning brand gradient border drawn on a masked layer above the card border. */
+@keyframes bx-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes bx-typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translate3d(0, 0, 0);
+  }
+  30% {
+    opacity: 1;
+    transform: translate3d(0, -3px, 0);
+  }
+}
+
+/* Hovered service tile: spinning brand gradient border drawn on a masked layer above the card border. */
 .bx-glow::before {
   content: "";
   position: absolute;
@@ -48,18 +67,40 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  [data-bx-armed] :is(.bx-in, .bx-pop) {
+  /* "Tres cosas": each card's mockup assembles once the card reveals; on desktop the row
+     reveals at once, so --bx-start staggers the cards. */
+  .bx-card {
+    --bx-start: 0.3s;
+  }
+  /* Outranks motion.css's [data-reveal][data-revealed] shorthand, which resets the delay. */
+  .bx-grid > .bx-card[data-revealed] {
+    animation-delay: calc(var(--bx-start) - 0.3s);
+  }
+  @media (min-width: 1024px) {
+    .bx-card:nth-child(2) {
+      --bx-start: 0.55s;
+    }
+    .bx-card:nth-child(3) {
+      --bx-start: 0.8s;
+    }
+  }
+  .bx-card[data-reveal-pending]:not([data-revealed]) :is(.bx-in, .bx-pop) {
     opacity: 0;
   }
-  [data-bx-play] .bx-in {
-    animation: bx-in 0.7s var(--ease-out-expo) var(--d, 0s) both;
+  .bx-card[data-revealed] .bx-in {
+    animation: bx-in 0.7s var(--ease-out-expo) calc(var(--d, 0s) + var(--bx-start)) both;
   }
-  [data-bx-play] .bx-pop {
-    animation: bx-pop 0.7s var(--ease-out-expo) var(--d, 0s) both;
+  .bx-card[data-revealed] .bx-pop {
+    animation: bx-pop 0.7s var(--ease-out-expo) calc(var(--d, 0s) + var(--bx-start)) both;
   }
-  .bx-glow[data-on]::before {
-    opacity: 1;
-    animation: plan-spin 6s linear infinite;
+  .bx-grid:has(> [data-reveal-pending]:first-child:not([data-revealed])) + .bx-line > span {
+    transform: scaleX(0);
+  }
+  .bx-grid:has(> [data-revealed]:first-child) + .bx-line > span {
+    animation: bx-draw 1.2s var(--ease-out-soft) 0.3s both;
+  }
+  .bx-typing {
+    animation: bx-typing 1.2s ease-in-out calc(var(--i, 0) * 0.15s) infinite;
   }
 }
 
