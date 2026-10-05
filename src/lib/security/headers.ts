@@ -26,7 +26,12 @@
 const SAME_ORIGIN_FRAMED_PATHS: readonly string[] = [];
 
 /** Zonas donde todo host es vista previa del editor de Lovable. */
-const PREVIEW_ONLY_ZONES = ["lovableproject.com", "lovableproject-dev.com", "gpt-eng.com", "gptengineer.run"];
+const PREVIEW_ONLY_ZONES = [
+  "lovableproject.com",
+  "lovableproject-dev.com",
+  "gpt-eng.com",
+  "gptengineer.run",
+];
 /** En lovable.app solo son vista previa los hosts id-preview--, preview--, project-- o <uuid>-. */
 const LOVABLE_APP_PREVIEW_LABEL =
   /^(?:id-preview(?:-[a-z0-9]+)?--|preview--|project--|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:-|$))/i;
@@ -45,13 +50,18 @@ export function isLovablePreviewHost(hostname: string): boolean {
 }
 
 function isSameOriginFramed(pathname: string): boolean {
-  return SAME_ORIGIN_FRAMED_PATHS.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  return SAME_ORIGIN_FRAMED_PATHS.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 /** Cabeceras de seguridad para una URL (función pura, ver scripts/check-security-headers.mjs). */
 export function securityHeadersFor(url: URL): Record<string, string> {
   if (isLovablePreviewHost(url.hostname)) {
-    return { ...BASE_HEADERS, "Content-Security-Policy": `frame-ancestors ${LOVABLE_EDITOR_ANCESTORS}` };
+    return {
+      ...BASE_HEADERS,
+      "Content-Security-Policy": `frame-ancestors ${LOVABLE_EDITOR_ANCESTORS}`,
+    };
   }
   if (isSameOriginFramed(url.pathname)) {
     return {

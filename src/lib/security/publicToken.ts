@@ -7,7 +7,8 @@ import { setResponseHeaders } from "@tanstack/react-start/server";
 
 const MINUTE = 60 * 1000;
 
-export const RATE_LIMITED = "Demasiados intentos desde tu conexión. Espera un rato y vuelve a intentarlo.";
+export const RATE_LIMITED =
+  "Demasiados intentos desde tu conexión. Espera un rato y vuelve a intentarlo.";
 
 /** Respuestas con datos privados por token: nunca en caché, sin Referer ni indexación. */
 export function privateHeaders() {
