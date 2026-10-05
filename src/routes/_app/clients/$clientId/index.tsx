@@ -13,6 +13,7 @@ import { BillingCard } from "@/components/clients/ficha/BillingCard";
 import { OnboardingLinkPanel } from "@/components/clients/ficha/OnboardingLinkPanel";
 import { OnboardingIntakePanel } from "@/components/clients/ficha/OnboardingIntakePanel";
 import { HealthCards } from "@/components/clients/ficha/HealthCards";
+import { CampaignAlertsPanel } from "@/components/clients/ficha/CampaignAlertsPanel";
 import { PendingApprovalPanel, UpcomingContentPanel } from "@/components/clients/ficha/MainPanels";
 import { ContractPanel } from "@/components/clients/ficha/ContractPanel";
 import { ProposalsPanel } from "@/components/proposals/ProposalsPanel";
@@ -41,6 +42,9 @@ function ClientFichaPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
+          {health.data && (
+            <CampaignAlertsPanel alerts={health.data.alerts} canEdit={Boolean(overview.data?.canEdit)} />
+          )}
           <PendingApprovalPanel
             clientId={clientId}
             health={health.data}

@@ -86,7 +86,10 @@ export function useFichaOverview(clientId: string) {
 
 export type ApprovalItem = Pick<Tables<"approval_queue">, "kind" | "ref_id" | "title" | "created_at" | "url_hint">;
 export type OpenPayment = Pick<Tables<"payments">, "id" | "amount" | "currency" | "status" | "due_date" | "description">;
-export type OpenAlert = Pick<Tables<"campaign_alerts">, "id" | "severity" | "message" | "platform" | "created_at">;
+export type OpenAlert = Pick<
+  Tables<"campaign_alerts">,
+  "id" | "client_id" | "severity" | "message" | "platform" | "created_at" | "data"
+>;
 
 export interface FichaHealth {
   approvals: ApprovalItem[];
@@ -116,7 +119,7 @@ export function useFichaHealth(clientId: string) {
           .limit(100),
         supabase
           .from("campaign_alerts")
-          .select("id,severity,message,platform,created_at")
+          .select("id,client_id,severity,message,platform,created_at,data")
           .eq("client_id", clientId)
           .is("resolved_at", null)
           .order("created_at", { ascending: false })

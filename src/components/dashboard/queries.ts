@@ -3,7 +3,7 @@ import type { LinkProps } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { EMPTY_CLP_TOTALS, addClp, type ClpTotals } from "@/lib/pricing/plans";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { fetchAllRows } from "@/lib/db/fetchAllRows";
 import { UPCOMING_DAYS, addIsoDays, upcomingUntil } from "@/lib/billing/openPayments";
 
@@ -255,6 +255,7 @@ export interface CampaignAlert {
   severity: string;
   message: string;
   created_at: string;
+  data: Json;
 }
 
 const SEVERITY_RANK: Readonly<Record<string, number>> = { critical: 0, warning: 1, info: 2 };
@@ -280,7 +281,7 @@ export function useOpenCampaignAlerts() {
       const [open, ever] = await Promise.all([
         supabase
           .from("campaign_alerts")
-          .select("id,client_id,platform,kind,severity,message,created_at")
+          .select("id,client_id,platform,kind,severity,message,created_at,data")
           .is("resolved_at", null)
           .order("created_at", { ascending: false })
           .limit(ALERTS_LIMIT),

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { BellRing, BellOff } from "lucide-react";
 import { EmptyState, Panel, StatusBadge, type StatusTone } from "@/components/app";
+import { AlertActions } from "@/components/alerts/AlertActions";
 import { BlockState } from "./block-state";
 import { formatShortDate, useClientIndex, useOpenCampaignAlerts } from "./queries";
 
@@ -15,9 +16,10 @@ const SEVERITY: Readonly<Record<string, { label: string; tone: StatusTone }>> = 
 const PLATFORM_LABEL: Readonly<Record<string, string>> = { meta: "Meta", google: "Google" };
 
 /**
- * Alertas de campañas abiertas, de más a menos severa.
- * Hoy ningún proceso automático escribe en campaign_alerts: si la tabla nunca
- * tuvo filas el bloque se oculta, para no sugerir que algo está vigilando.
+ * Alertas de campañas abiertas, de más a menos severa. Las crea y auto-resuelve
+ * el job diario 'campaign_alerts' (/api/public/alerts/run). Si la tabla nunca
+ * tuvo filas el bloque se oculta (aún no corrió o no hay clientes con Meta).
+ * "Marcar como resuelta" valida en el servidor que el usuario pueda editar el cliente.
  */
 export function CampaignAlerts() {
   const query = useOpenCampaignAlerts();
@@ -39,7 +41,7 @@ export function CampaignAlerts() {
               size="compact"
               icon={BellOff}
               title="Sin alertas abiertas."
-              description="Las alertas automáticas de campañas aún no están activas: aquí solo aparecen las que se registren a mano o por integraciones."
+              description="Las campañas se revisan cada mañana: gasto sin resultados, costo por resultado al alza, campañas detenidas y problemas con la conexión de Meta."
             />
           ) : (
             <ul className="divide-y divide-border-subtle">
@@ -56,6 +58,7 @@ export function CampaignAlerts() {
                         </Link>{" "}
                         · {PLATFORM_LABEL[a.platform] ?? a.platform} · {formatShortDate(a.created_at)}
                       </p>
+                      <AlertActions alert={a} />
                     </div>
                   </li>
                 );
