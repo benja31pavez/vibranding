@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 const LINKS = [
   { href: "#pendientes", label: "Por aprobar" },
   { href: "#calendario", label: "Calendario" },
@@ -9,13 +11,21 @@ const LINKS = [
 /** Atajos a cada sección; en móvil se desplaza horizontalmente sin romper el ancho. */
 export function PortalNav({ pending }: { pending: number }) {
   return (
-    <nav aria-label="Secciones del portal" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+    <nav
+      aria-label="Secciones del portal"
+      className="sticky top-14 z-20 -mx-4 overflow-x-auto bg-bg/95 px-4 py-2 backdrop-blur [scrollbar-width:none] md:top-16 md:-mx-6 md:px-6 [&::-webkit-scrollbar]:hidden"
+    >
       <ul className="flex w-max gap-2">
         {LINKS.map((link) => (
           <li key={link.href}>
             <a
               href={link.href}
-              className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-border-subtle bg-surface px-3.5 text-sm font-medium hover:bg-surface-2"
+              className={cn(
+                "inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-sm font-medium shadow-app-xs transition-colors",
+                link.href === "#pendientes" && pending > 0
+                  ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15"
+                  : "border-border-subtle bg-surface text-foreground hover:bg-surface-2",
+              )}
             >
               {link.label}
               {link.href === "#pendientes" && pending > 0 && (

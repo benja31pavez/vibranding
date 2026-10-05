@@ -39,9 +39,13 @@ export function ResultsSection({ loading, result, onRetry, retrying }: ResultsSe
                 <span className="font-medium text-foreground">{periodLabel(report.period)}</span>
               </p>
               {report.figures.length > 0 ? (
-                <ul className="grid gap-3 sm:grid-cols-3">
-                  {report.figures.map((figure) => (
-                    <FigureCard key={figure.label} figure={figure} />
+                <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {report.figures.map((figure, i) => (
+                    <FigureCard
+                      key={figure.label}
+                      figure={figure}
+                      wide={i === 0 && report.figures.length % 2 === 1}
+                    />
                   ))}
                 </ul>
               ) : (
@@ -50,7 +54,7 @@ export function ResultsSection({ loading, result, onRetry, retrying }: ResultsSe
                 </p>
               )}
               {report.summary && (
-                <p className="line-clamp-4 whitespace-pre-line text-sm text-foreground/90">
+                <p className="line-clamp-4 whitespace-pre-line text-sm leading-relaxed text-foreground/90">
                   {report.summary}
                 </p>
               )}
@@ -74,20 +78,27 @@ const TREND_CLASS = {
   flat: "text-muted-foreground",
 } as const;
 
-function FigureCard({ figure }: { figure: KeyFigure }) {
+function FigureCard({ figure, wide }: { figure: KeyFigure; wide: boolean }) {
   const Icon = figure.trend ? TREND_ICON[figure.trend] : null;
   return (
-    <li className="rounded-app-lg border border-border-subtle bg-bg p-4">
-      <p className="text-xs font-medium text-muted-foreground">{figure.label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{figure.value}</p>
+    <li
+      className={cn(
+        "flex flex-col rounded-app-lg border border-border-subtle bg-bg p-3.5 shadow-app-xs sm:p-4",
+        wide && "col-span-2 sm:col-span-1",
+      )}
+    >
+      <p className="text-xs font-medium leading-snug text-muted-foreground">{figure.label}</p>
+      <p className="mt-1.5 text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
+        {figure.value}
+      </p>
       {figure.detail && (
         <p
           className={cn(
-            "mt-1 inline-flex items-center gap-1 text-xs",
+            "mt-auto flex items-start gap-1 pt-1.5 text-xs leading-snug",
             figure.trend ? TREND_CLASS[figure.trend] : "text-muted-foreground",
           )}
         >
-          {Icon && <Icon aria-hidden className="h-3.5 w-3.5" />}
+          {Icon && <Icon aria-hidden className="mt-px h-3.5 w-3.5 shrink-0" />}
           {figure.detail}
         </p>
       )}
