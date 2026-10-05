@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { MARKETING_META, MARKETING_ORG_SCRIPT } from "@/lib/marketingSeo";
 import { useState } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -22,10 +23,13 @@ type Search = { plan?: PlanInterest };
 
 export const Route = createFileRoute("/diagnostico")({
   validateSearch: (s: Record<string, unknown>): Search => ({
-    plan: (PLAN_INTERESTS as readonly unknown[]).includes(s["plan"]) ? (s["plan"] as PlanInterest) : undefined,
+    plan: (PLAN_INTERESTS as readonly unknown[]).includes(s["plan"])
+      ? (s["plan"] as PlanInterest)
+      : undefined,
   }),
   head: () => ({
     meta: [
+      ...MARKETING_META,
       { title: TITLE },
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
@@ -37,6 +41,7 @@ export const Route = createFileRoute("/diagnostico")({
     ],
     links: [{ rel: "canonical", href: URL }],
     scripts: [
+      MARKETING_ORG_SCRIPT,
       {
         type: "application/ld+json",
         children: JSON.stringify({
@@ -64,9 +69,14 @@ function DiagnosticoPage() {
       <header className="border-b border-border/50">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 md:px-10">
           <Link to="/" aria-label="Vibranding, inicio">
-            <span className="font-brand text-2xl tracking-tight text-gradient-brand-strong md:text-3xl">Vibranding</span>
+            <span className="font-brand text-2xl tracking-tight text-gradient-brand-strong md:text-3xl">
+              Vibranding
+            </span>
           </Link>
-          <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft aria-hidden className="h-4 w-4" /> Volver al inicio
           </Link>
         </div>
@@ -80,19 +90,25 @@ function DiagnosticoPage() {
         ) : (
           <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:gap-14">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-widest text-[color:color-mix(in_oklab,var(--brand-2)_70%,black)] dark:text-[color:var(--brand-2)]">Gratis · sin compromiso</p>
+              <p className="text-sm font-semibold uppercase tracking-widest text-[color:color-mix(in_oklab,var(--brand-2)_70%,black)] dark:text-[color:var(--brand-2)]">
+                Gratis · sin compromiso
+              </p>
               <h1 className="mt-3 text-[2rem] font-semibold leading-[1.1] tracking-tight text-balance md:text-5xl">
-                Diagnóstico gratis <span className="font-brand text-gradient-brand-strong">de tu marca</span>
+                Diagnóstico gratis{" "}
+                <span className="font-brand text-gradient-brand-strong">de tu marca</span>
               </h1>
               <p className="mt-4 text-base text-muted-foreground text-pretty md:text-lg">
-                Cuéntanos de tu negocio en 1 minuto. Revisamos cómo te ve hoy un cliente en internet y te escribimos con
-                lo que haríamos primero.
+                Cuéntanos de tu negocio en 1 minuto. Revisamos cómo te ve hoy un cliente en internet
+                y te escribimos con lo que haríamos primero.
               </p>
               <h2 className="mt-8 text-base font-semibold">Qué incluye</h2>
               <ul className="mt-3 space-y-3">
                 {INCLUDES.map((item) => (
                   <li key={item} className="flex items-start gap-2 text-sm md:text-base">
-                    <Check aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--brand-1)]" />
+                    <Check
+                      aria-hidden
+                      className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--brand-1)]"
+                    />
                     <span>{item}</span>
                   </li>
                 ))}

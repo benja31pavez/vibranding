@@ -1,11 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { MARKETING_META, MARKETING_ORG_SCRIPT } from "@/lib/marketingSeo";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteFooter } from "@/components/SiteFooter";
 import { HomeHeader } from "@/components/home/HomeHeader";
 import { HomeHero } from "@/components/home/HomeHero";
 import { BenefitsSection, ServicesSection } from "@/components/home/HomeSections";
-import { DiagnosticoBanner, ForWhomSection, WorkWithUsSection } from "@/components/home/GrowthSections";
+import {
+  DiagnosticoBanner,
+  ForWhomSection,
+  WorkWithUsSection,
+} from "@/components/home/GrowthSections";
 import { PlansSection } from "@/components/home/PlansSection";
 import { AboutSection } from "@/components/home/AboutSection";
 import { PortfolioSection } from "@/components/home/PortfolioSection";
@@ -22,6 +27,7 @@ export const Route = createFileRoute("/")({
   loader: () => fetchPublicPortfolio(),
   head: () => ({
     meta: [
+      ...MARKETING_META,
       { title: SEO.title },
       { name: "description", content: SEO.description },
       { property: "og:title", content: SEO.title },
@@ -32,7 +38,7 @@ export const Route = createFileRoute("/")({
       { name: "twitter:description", content: SEO.description },
     ],
     links: [{ rel: "canonical", href: `${SITE_URL}/` }],
-    scripts: [{ type: "application/ld+json", children: buildHomeJsonLd() }],
+    scripts: [MARKETING_ORG_SCRIPT, { type: "application/ld+json", children: buildHomeJsonLd() }],
   }),
   component: HomeRoute,
 });

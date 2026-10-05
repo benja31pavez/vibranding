@@ -1,12 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { MARKETING_META, MARKETING_ORG_SCRIPT } from "@/lib/marketingSeo";
 import { LegalPage } from "@/components/LegalPage";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useLang } from "@/i18n/LanguageContext";
 import { translations } from "@/i18n/translations";
 
 export const Route = createFileRoute("/faq")({
   head: () => ({
     meta: [
+      ...MARKETING_META,
       { title: translations.es.seo.faq.title },
       { name: "description", content: translations.es.seo.faq.description },
       { property: "og:title", content: translations.es.seo.faq.title },
@@ -14,18 +21,21 @@ export const Route = createFileRoute("/faq")({
       { property: "og:url", content: "https://vibranding.pro/faq" },
     ],
     links: [{ rel: "canonical", href: "https://vibranding.pro/faq" }],
-    scripts: [{
-      type: "application/ld+json",
-      children: JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        mainEntity: translations.es.faq.items.map((it) => ({
-          "@type": "Question",
-          name: it.q,
-          acceptedAnswer: { "@type": "Answer", text: it.a },
-        })),
-      }),
-    }],
+    scripts: [
+      MARKETING_ORG_SCRIPT,
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: translations.es.faq.items.map((it) => ({
+            "@type": "Question",
+            name: it.q,
+            acceptedAnswer: { "@type": "Answer", text: it.a },
+          })),
+        }),
+      },
+    ],
   }),
   component: FAQPage,
 });
@@ -38,7 +48,9 @@ function FAQPage() {
         {t.faq.items.map((f, i) => (
           <AccordionItem key={i} value={`item-${i}`}>
             <AccordionTrigger className="text-left">{f.q}</AccordionTrigger>
-            <AccordionContent className="text-muted-foreground leading-relaxed">{f.a}</AccordionContent>
+            <AccordionContent className="text-muted-foreground leading-relaxed">
+              {f.a}
+            </AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>

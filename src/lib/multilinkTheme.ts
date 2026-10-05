@@ -1,4 +1,6 @@
 /** Presentation layer for the public multilink page. No data-model changes. */
+import { bestOn, readableOn } from "@/lib/landingTheme";
+import { safeImageSrc } from "@/lib/site/safeUrl";
 
 export type ButtonStyle = "solid" | "outline" | "soft" | "hard-shadow" | "glass";
 export type ButtonShape = "rounded" | "pill" | "square";
@@ -25,10 +27,26 @@ export const BUTTON_SHAPE_LABEL: Record<ButtonShape, string> = {
 };
 
 export const FONTS: Record<FontKey, { label: string; family: string; googleFamily: string }> = {
-  geometric: { label: "Geométrica (Poppins)", family: "'Poppins', system-ui, sans-serif", googleFamily: "Poppins:wght@400;500;600;700" },
-  grotesque: { label: "Grotesca (Space Grotesk)", family: "'Space Grotesk', system-ui, sans-serif", googleFamily: "Space+Grotesk:wght@400;500;600;700" },
-  serif: { label: "Serif (Playfair Display)", family: "'Playfair Display', Georgia, serif", googleFamily: "Playfair+Display:wght@400;500;600;700" },
-  rounded: { label: "Redondeada (Nunito)", family: "'Nunito', system-ui, sans-serif", googleFamily: "Nunito:wght@400;500;600;700" },
+  geometric: {
+    label: "Geométrica (Poppins)",
+    family: "'Poppins', system-ui, sans-serif",
+    googleFamily: "Poppins:wght@400;500;600;700",
+  },
+  grotesque: {
+    label: "Grotesca (Space Grotesk)",
+    family: "'Space Grotesk', system-ui, sans-serif",
+    googleFamily: "Space+Grotesk:wght@400;500;600;700",
+  },
+  serif: {
+    label: "Serif (Playfair Display)",
+    family: "'Playfair Display', Georgia, serif",
+    googleFamily: "Playfair+Display:wght@400;500;600;700",
+  },
+  rounded: {
+    label: "Redondeada (Nunito)",
+    family: "'Nunito', system-ui, sans-serif",
+    googleFamily: "Nunito:wght@400;500;600;700",
+  },
 };
 
 export function fontKey(raw: string | null | undefined): FontKey {
@@ -47,22 +65,27 @@ export function buttonShapeKey(raw: string | null | undefined): ButtonShape {
   return raw && raw in BUTTON_SHAPE_LABEL ? (raw as ButtonShape) : "rounded";
 }
 
+/** Sólo colores #rrggbb llegan a estilos CSS (evita inyectar url() u otras funciones). */
+function isHex(v: unknown): v is string {
+  return typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
+}
+
 export function parseBackground(raw: unknown): Background {
   const b = (raw ?? null) as any;
   if (!b || typeof b !== "object") return { type: "flat" };
-  if (b.type === "solid" && typeof b.color === "string") return { type: "solid", color: b.color };
+  if (b.type === "solid" && isHex(b.color)) return { type: "solid", color: b.color };
   if (b.type === "gradient")
     return {
       type: "gradient",
-      from: typeof b.from === "string" ? b.from : "#6d28d9",
-      to: typeof b.to === "string" ? b.to : "#db2777",
-      angle: Number.isFinite(b.angle) ? Number(b.angle) : 160,
+      from: isHex(b.from) ? b.from : "#6d28d9",
+      to: isHex(b.to) ? b.to : "#db2777",
+      angle: Number.isFinite(b.angle) ? Math.round(Number(b.angle)) % 361 : 160,
     };
   if (b.type === "image")
     return {
       type: "image",
-      url: typeof b.url === "string" ? b.url : null,
-      overlay: Number.isFinite(b.overlay) ? Number(b.overlay) : 0.45,
+      url: typeof b.url === "string" ? safeImageSrc(b.url) : null,
+      overlay: Number.isFinite(b.overlay) ? Math.min(Math.max(Number(b.overlay), 0), 0.9) : 0.45,
     };
   return { type: "flat" };
 }
@@ -103,12 +126,27 @@ export type SurfaceTheme = {
 
 export function surfaceTheme(mode: string, bg: Background): SurfaceTheme {
   const isDark = mode === "dark";
-  const base = { color: isDark ? "#fafafa" : "#0a0a0a", isDark, overlay: null as string | null, imageUrl: null as string | null };
+  const base = {
+    color: isDark ? "#fafafa" : "#0a0a0a",
+    isDark,
+    overlay: null as string | null,
+    imageUrl: null as string | null,
+  };
   switch (bg.type) {
     case "solid":
-      return { ...base, background: bg.color, color: isLight(bg.color) ? "#0a0a0a" : "#fafafa", isDark: !isLight(bg.color) };
+      return {
+        ...base,
+        background: bg.color,
+        color: isLight(bg.color) ? "#0a0a0a" : "#fafafa",
+        isDark: !isLight(bg.color),
+      };
     case "gradient":
-      return { ...base, background: `linear-gradient(${bg.angle}deg, ${bg.from}, ${bg.to})`, color: "#fafafa", isDark: true };
+      return {
+        ...base,
+        background: `linear-gradient(${bg.angle}deg, ${bg.from}, ${bg.to})`,
+        color: "#fafafa",
+        isDark: true,
+      };
     case "image":
       return {
         ...base,
@@ -136,17 +174,28 @@ export function itemVisual(
   theme: SurfaceTheme,
 ): ItemVisual {
   const radius = SHAPE_RADIUS[shape];
-  const onAccent = isLight(accent) ? "#0a0a0a" : "#ffffff";
+  // Texto de botón siempre con contraste AA (antes el blanco sobre colores medios no llegaba a 4.5:1).
+  const onAccent = bestOn(accent);
+  const ink = theme.isDark ? "#fafafa" : "#0a0a0a";
   switch (style) {
     case "outline":
       return {
         className: "transition hover:scale-[1.02]",
-        style: { borderRadius: radius, border: `2px solid ${accent}`, color: theme.color, background: "transparent" },
+        style: {
+          borderRadius: radius,
+          border: `2px solid ${accent}`,
+          color: theme.color,
+          background: "transparent",
+        },
       };
     case "soft":
       return {
         className: "transition hover:scale-[1.02]",
-        style: { borderRadius: radius, background: withAlpha(accent, theme.isDark ? 0.22 : 0.14), color: theme.isDark ? "#fafafa" : accent },
+        style: {
+          borderRadius: radius,
+          background: withAlpha(accent, theme.isDark ? 0.22 : 0.14),
+          color: theme.isDark ? "#fafafa" : readableOn(accent, "#f1efe9"),
+        },
       };
     case "hard-shadow":
       return {
@@ -155,8 +204,8 @@ export function itemVisual(
           borderRadius: radius,
           background: accent,
           color: onAccent,
-          border: "2px solid #0a0a0a",
-          boxShadow: "5px 5px 0 0 #0a0a0a",
+          border: `2px solid ${ink}`,
+          boxShadow: `5px 5px 0 0 ${ink}`,
         },
       };
     case "glass":
