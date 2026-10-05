@@ -8,7 +8,7 @@
 // and its content is generic: no visitor-supplied text at all.
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
-const DEFAULT_FROM = "Vibranding <reservas@vibranding.pro>";
+export const DEFAULT_FROM = "Vibranding <reservas@vibranding.pro>";
 const SEND_TIMEOUT_MS = 8000;
 
 export function isBookingEmailEnabled(): boolean {
@@ -26,7 +26,7 @@ type BookingEmailInput = {
   sendCustomerConfirmation: boolean;
 };
 
-type Email = { kind: "dueño" | "cliente"; to: string; subject: string; text: string; html: string; replyTo?: string };
+export type Email = { kind: "dueño" | "cliente"; to: string; subject: string; text: string; html: string; replyTo?: string };
 
 function escapeHtml(s: string): string {
   return s
@@ -37,7 +37,7 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function toHtml(lines: string[]): string {
+export function toHtml(lines: string[]): string {
   return `<div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.5">${lines
     .map((l) => (l ? `<p style="margin:0 0 8px">${escapeHtml(l)}</p>` : ""))
     .join("")}</div>`;
@@ -90,7 +90,7 @@ function buildCustomerEmail(input: BookingEmailInput, when: string): Email {
   };
 }
 
-async function sendViaResend(apiKey: string, from: string, email: Email): Promise<void> {
+export async function sendViaResend(apiKey: string, from: string, email: Email): Promise<void> {
   const res = await fetch(RESEND_ENDPOINT, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },

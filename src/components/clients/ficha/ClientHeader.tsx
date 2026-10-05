@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ExternalLink, Instagram, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Eye, Instagram, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -58,9 +59,13 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
 
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="outline" asChild>
-          <a href="/portal" target="_blank" rel="noreferrer" title="Abre el portal en otra pestaña (se ve con la cuenta del cliente)">
-            <ExternalLink aria-hidden className="mr-1.5 h-4 w-4" /> Abrir portal
-          </a>
+          <Link
+            to="/clients/$clientId/portal-preview"
+            params={{ clientId }}
+            title="Muestra el portal tal como lo ve este cliente, en modo solo lectura"
+          >
+            <Eye aria-hidden className="mr-1.5 h-4 w-4" /> Vista previa del portal
+          </Link>
         </Button>
         <ExportPdfButton />
         <DropdownMenu modal={false}>

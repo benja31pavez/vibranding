@@ -1,8 +1,7 @@
-import { Check, Dumbbell, HeartPulse, Home as HomeIcon, MapPin } from "lucide-react";
+import { Check, MapPin } from "lucide-react";
 import { WhatsAppCta } from "./shared";
+import { DiagnosticoLink } from "./GrowthSections";
 import { translations } from "@/i18n/translations";
-
-const NICHE_ICONS = [HomeIcon, HeartPulse, Dumbbell];
 
 export function HomeHero() {
   const t = translations.es; // The public home is Spanish-only (Chile).
@@ -38,14 +37,19 @@ export function HomeHero() {
         <p className="mt-4 text-sm font-semibold text-foreground md:text-base">{hero.priceLine}</p>
 
         <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-          <WhatsAppCta>{hero.ctaPrimary}</WhatsAppCta>
+          <DiagnosticoLink />
           <a
             href="#planes"
-            className="inline-flex h-12 items-center justify-center rounded-full border border-foreground/15 bg-background px-7 text-base font-semibold hover:bg-secondary"
+            className="inline-flex h-12 items-center justify-center rounded-full border border-foreground/15 bg-background px-7 text-base font-semibold hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             {hero.ctaSecondary}
           </a>
         </div>
+        <p className="mt-4 flex justify-center">
+          <WhatsAppCta variant="outline" size="sm" className="border-transparent hover:border-foreground/15">
+            {hero.ctaPrimary}
+          </WhatsAppCta>
+        </p>
 
         <ul className="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
           {hero.trust.map((item) => (
@@ -55,36 +59,6 @@ export function HomeHero() {
           ))}
         </ul>
       </div>
-
-      <NichesStrip />
     </section>
-  );
-}
-
-function NichesStrip() {
-  const t = translations.es; // The public home is Spanish-only (Chile).
-  const niches = t.home.niches;
-  return (
-    <div className="mx-auto max-w-6xl px-4 pb-16 md:px-10 md:pb-20">
-      <p className="mb-4 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        {niches.title}
-      </p>
-      <ul className="grid gap-3 sm:grid-cols-3">
-        {niches.items.map((n, i) => {
-          const Icon = NICHE_ICONS[i] ?? HomeIcon;
-          return (
-            <li key={n.title} className="flex items-start gap-3 rounded-2xl border bg-card/80 p-4 backdrop-blur">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary">
-                <Icon aria-hidden className="h-5 w-5 text-[color:var(--brand-1)]" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">{n.title}</span>
-                <span className="block text-sm text-muted-foreground">{n.desc}</span>
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
   );
 }

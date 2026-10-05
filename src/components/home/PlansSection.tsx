@@ -2,6 +2,7 @@ import { Check, Info } from "lucide-react";
 import { formatClp } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { SectionHeading, WhatsAppCta } from "./shared";
+import { DiagnosticoLink } from "./GrowthSections";
 import { translations, type PlanItem } from "@/i18n/translations";
 
 export function PlansSection() {
@@ -64,6 +65,10 @@ function PlanCard({ plan, popularLabel, ctaLabel }: { plan: PlanItem; popularLab
           {ctaLabel}
           <span className="sr-only">: {plan.name}</span>
         </WhatsAppCta>
+        <DiagnosticoLink plan={plan.id} variant="outline" size="sm" className="mt-3 w-full border-transparent hover:border-foreground/15">
+          Agenda un diagnóstico
+          <span className="sr-only"> gratis para {plan.name}</span>
+        </DiagnosticoLink>
       </div>
     </li>
   );
