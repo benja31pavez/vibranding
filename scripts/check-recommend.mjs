@@ -82,8 +82,8 @@ check("plan de interés desconocido se ignora", () =>
   ),
 );
 
-const rec = (productoSugerido, signals) =>
-  r.recommendPlan({ productoSugerido, signals: { ...none, ...signals } });
+const rec = (productoSugerido, signals, wasClient) =>
+  r.recommendPlan({ productoSugerido, signals: { ...none, ...signals }, wasClient });
 
 check("ficha manda sobre todo (sin tope)", () => {
   const out = rec("crecimiento", { planInteres: "contenido", presupuesto: "menos-150" });
@@ -123,6 +123,37 @@ check("sin datos → sin plan", () => {
   assert.equal(out.planKey, null);
   assert.equal(out.source, "sin_datos");
 });
+// Plan Mantención: solo ex clientes, nunca recomendado a prospectos nuevos.
+check("mantención en la ficha sin señal de ex cliente → se ignora", () => {
+  assert.equal(rec("mantencion", {}).planKey, null);
+  assert.equal(rec("mantencion", { objetivo: "consultas" }).planKey, "crecimiento");
+  assert.equal(rec("mantencion", {}, false).source, "sin_datos");
+});
+check("mantención en la ficha y ya fue cliente → se respeta", () => {
+  const out = rec("mantencion", {}, true);
+  assert.equal(out.planKey, "mantencion");
+  assert.equal(out.source, "ficha");
+});
+check("el ajuste por presupuesto nunca baja a Mantención", () => {
+  for (const presupuesto of ["menos-150", "150-300", "mas-300", null]) {
+    for (const planInteres of ["crecimiento", "contenido", "marca-web"]) {
+      for (const wasClient of [false, true]) {
+        const out = rec(null, { planInteres, presupuesto }, wasClient);
+        assert.notEqual(out.planKey, "mantencion", `${planInteres}/${presupuesto}/${wasClient}`);
+      }
+    }
+  }
+});
+check("el diagnóstico nunca trae Mantención como plan de interés", () =>
+  assert.equal(
+    r.readDiagnosticoSignals("Diagnóstico web · plan de interés: mantencion").planInteres,
+    null,
+  ),
+);
+check("ningún objetivo lleva a Mantención", () => {
+  for (const goal of Object.keys(r.GOAL_TO_PLAN))
+    assert.notEqual(rec(null, { objetivo: goal }).planKey, "mantencion", goal);
+});
 check("todos los objetivos tienen plan válido", () => {
   for (const goal of Object.keys(r.GOAL_TO_PLAN))
     assert.ok(rec(null, { objetivo: goal }).planKey, goal);
@@ -130,7 +161,7 @@ check("todos los objetivos tienen plan válido", () => {
 
 const FORBIDDEN = /garant|reembols|devoluci|asegura|\d+\s?%|x\d|duplic|tripl/i;
 const goals = [null, ...Object.keys(r.GOAL_PHRASE)];
-const plans = [null, "marca-web", "contenido", "crecimiento"];
+const plans = [null, "marca-web", "contenido", "crecimiento", "mantencion"];
 for (const objetivo of goals) {
   for (const planKey of plans) {
     const intro = r.buildProposalIntro({
@@ -165,7 +196,7 @@ check("intro usa rubro, comuna y precio del plan", () => {
   });
   assert.match(intro, /cafetería en Ñuñoa/);
   assert.match(intro, /vender más/);
-  assert.match(intro, /\$129\.990\/mes/);
+  assert.match(intro, /\$129\.990 \+ IVA\/mes/);
 });
 check("intro acorta datos largos sin cortar el mensaje", () => {
   const long = "x".repeat(500);

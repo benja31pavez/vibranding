@@ -9,13 +9,13 @@ export function planPeriod(plan: Plan): string {
   return plan.minMonths ? `al mes · mínimo ${plan.minMonths} meses` : "al mes";
 }
 
-/** Frase de precio del hero: "Desde $129.990 al mes, IVA incluido." */
+/** Frase de precio del hero: "Desde $129.990 + IVA al mes." (precio neto). */
 export function priceHeadline(service: ServiceContent): string {
   if (service.pricing.kind === "quote") return `${service.pricing.label} · servicio adicional`;
   const plans = servicePlans(service);
   if (plans.length === 0) return "";
-  const cheapest = plans.reduce((min, p) => (p.price < min.price ? p : min));
+  const cheapest = plans.reduce((min, p) => (p.netPrice < min.netPrice ? p : min));
   const period = cheapest.billing === "one_time" ? "pago único" : "al mes";
   const lead = plans.length > 1 ? "Desde " : "";
-  return `${lead}${formatClp(cheapest.price)} ${period}, IVA incluido.`;
+  return `${lead}${formatClp(cheapest.netPrice)} + IVA ${period}.`;
 }

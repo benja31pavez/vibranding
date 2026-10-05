@@ -143,7 +143,7 @@ export function AIBotTab({
               value={context}
               onChange={(e) => setContext(e.target.value)}
               rows={6}
-              placeholder={`Ej:\n- Servicios: Plan Contenido $129.990/mes, Plan Crecimiento $249.990/mes (IVA incluido)\n- Horario: L-V 9-18h\n- No realizamos diseño de logos`}
+              placeholder={`Ej:\n- Servicios: Plan Contenido $129.990 + IVA/mes, Plan Crecimiento $249.990 + IVA/mes\n- Horario: L-V 9-18h\n- No realizamos diseño de logos`}
             />
             <p className="text-[11px] text-muted-foreground mt-1">
               Toda esta info se inyecta al prompt del sistema para que el bot responda con datos

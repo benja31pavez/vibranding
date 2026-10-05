@@ -160,10 +160,10 @@ function BillingPage() {
           value={<MoneyTotals totals={totals.receivable} />}
         />
         <StatCard
-          label="MRR"
+          label="MRR neto"
           icon={Repeat}
           loading={mrr.isPending && !mrr.isError}
-          hint="Suscripciones activas + facturación manual de clientes activos"
+          hint="Sin IVA · suscripciones activas + facturación manual de clientes activos"
           value={
             mrr.isError ? (
               <span role="alert" className="text-base text-danger-strong">

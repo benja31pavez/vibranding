@@ -24,23 +24,36 @@ export const CONTENIDO = {
   monthlyMeeting: true,
 } as const;
 
+/** Forma común de los planes de contenido mensual. */
+interface ContentSpec {
+  readonly postsPerWeek: number;
+  readonly reelsPerWeek: number;
+  readonly googleBusinessPerMonth: number;
+  readonly monthlyReport: boolean;
+  readonly monthlyMeeting: boolean;
+}
+
+/**
+ * Plan Mantención (solo ex clientes): 8 piezas al mes (2 por semana) con
+ * calendario y reporte mensual. Sin reels aparte, sin Google Business, sin
+ * campañas ni reunión mensual. La aprobación es en el portal.
+ */
+export const MANTENCION = {
+  postsPerWeek: 2,
+  reelsPerWeek: 0,
+  googleBusinessPerMonth: 0,
+  monthlyReport: true,
+  monthlyMeeting: false,
+} as const satisfies ContentSpec;
+
 /** Plan Crecimiento: todo lo de Contenido + revisión semanal de campañas. */
 export const CRECIMIENTO = {
   ...CONTENIDO,
   campaignReviewsPerWeek: 1,
 } as const;
 
-/**
- * Plan Mantención: 8 piezas al mes (6 posts/carruseles + 2 reels) más el
- * calendario. Sin reporte ni reunión. Etapas: Diseño y Planificación de contenido.
- */
-export const MANTENCION = {
-  postsPerMonth: 6,
-  reelsPerMonth: 2,
-} as const;
-
-/** Claves con plan del mes: las de `PlanKey` más "mantencion" (plan nuevo). */
-export type MonthPlanKey = PlanKey | "mantencion";
+/** Claves con plan del mes: todas las de `PlanKey` (incluye "mantencion"). */
+export type MonthPlanKey = PlanKey;
 
 /** Marca + Web (pago único): pasos del proyecto, repartidos en el mes de entrega. */
 export const MARCA_WEB_STEPS = [
@@ -285,13 +298,20 @@ export function prorate(count: number, ratio: number): number {
   return Math.max(1, Math.round(count * Math.min(Math.max(ratio, 0), 1)));
 }
 
+function contentSpec(planKey: PlanKey): ContentSpec {
+  if (planKey === "crecimiento") return CRECIMIENTO;
+  if (planKey === "mantencion") return MANTENCION;
+  return CONTENIDO;
+}
+
 function contentItems(
   days: readonly string[],
   month: string,
-  withCampaigns: boolean,
+  planKey: PlanKey,
   ratio: number,
 ): MonthPlanItem[] {
-  const plan = withCampaigns ? CRECIMIENTO : CONTENIDO;
+  const withCampaigns = planKey === "crecimiento";
+  const plan = contentSpec(planKey);
   const items: MonthPlanItem[] = [
     single(
       "calendario",
@@ -365,33 +385,6 @@ function contentItems(
   return items;
 }
 
-function mantencionItems(days: readonly string[], month: string, ratio: number): MonthPlanItem[] {
-  return [
-    single(
-      "calendario",
-      "calendario",
-      "Calendario de contenido y copy del mes",
-      "Definir temas, formatos y textos; dejarlo listo para aprobación.",
-      dayAt(days, 0),
-      month,
-    ),
-    ...numbered(
-      "post",
-      "Post / carrusel",
-      "Diseño y copy de la pieza, en borrador para aprobación.",
-      spreadEvenly(days, prorate(MANTENCION.postsPerMonth, ratio)),
-      month,
-    ),
-    ...numbered(
-      "reel",
-      "Reel",
-      "Guion, edición y copy del reel, en borrador para aprobación.",
-      spreadEvenly(days, prorate(MANTENCION.reelsPerMonth, ratio)),
-      month,
-    ),
-  ];
-}
-
 function projectItems(days: readonly string[], month: string): MonthPlanItem[] {
   return MARCA_WEB_STEPS.map((step) =>
     single(
@@ -427,11 +420,7 @@ export function buildMonthPlan({ planKey, month, today }: BuildMonthPlanInput): 
   // Mes en curso: cuotas proporcionales a los días hábiles que quedan.
   const ratio = days.length / businessDays(month).length;
   const items =
-    planKey === "marca-web"
-      ? projectItems(days, month)
-      : planKey === "mantencion"
-        ? mantencionItems(days, month, ratio)
-        : contentItems(days, month, planKey === "crecimiento", ratio);
+    planKey === "marca-web" ? projectItems(days, month) : contentItems(days, month, planKey, ratio);
   return [...items].sort((a, b) =>
     a.dueDate === b.dueDate
       ? KIND_ORDER[a.kind] - KIND_ORDER[b.kind]

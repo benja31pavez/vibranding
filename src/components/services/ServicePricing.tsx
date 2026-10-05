@@ -33,11 +33,10 @@ export function ServicePricingSection({ service }: { service: ServiceContent }) 
                   <h3 className="text-lg font-semibold">{plan.label}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{PLAN_SUMMARY[plan.key]}</p>
                   <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
-                    {formatClp(plan.price)}
+                    {formatClp(plan.netPrice)}
+                    <span className="text-base font-medium text-muted-foreground"> + IVA</span>
                   </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {planPeriod(plan)} · IVA incluido
-                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">{planPeriod(plan)}</p>
                   <div className="mt-auto pt-6">
                     <DiagnosticoLink plan={plan.key} variant="outline" className="w-full">
                       Quiero este plan

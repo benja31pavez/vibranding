@@ -41,6 +41,7 @@ const isWeekend = (d) => [0, 6].includes(new Date(`${d}T00:00:00Z`).getUTCDay())
 const count = (items, kind) => items.filter((i) => i.kind === kind).length;
 const contenido = m.buildMonthPlan({ planKey: "contenido", month: MONTH });
 const crecimiento = m.buildMonthPlan({ planKey: "crecimiento", month: MONTH });
+const mantencion = m.buildMonthPlan({ planKey: "mantencion", month: MONTH });
 const marcaWeb = m.buildMonthPlan({ planKey: "marca-web", month: MONTH });
 
 // Fechas
@@ -92,6 +93,24 @@ check("crecimiento: reporte de resultados", () =>
   assert.match(crecimiento.find((i) => i.kind === "reporte").title, /resultados/),
 );
 
+// Mantención (solo ex clientes)
+check("mantención: 8 piezas al mes, calendario y reporte", () => {
+  assert.equal(count(mantencion, "post"), 8);
+  assert.equal(count(mantencion, "reel"), 0);
+  assert.equal(count(mantencion, "calendario"), 1);
+  assert.equal(count(mantencion, "reporte"), 1);
+});
+check("mantención: sin campañas, sin Google Business ni reunión", () => {
+  assert.equal(count(mantencion, "campanas"), 0);
+  assert.equal(count(mantencion, "google"), 0);
+  assert.equal(count(mantencion, "reunion"), 0);
+});
+check("mantención: mes en curso prorratea las 8 piezas", () => {
+  const items = m.buildMonthPlan({ planKey: "mantencion", month: MONTH, today: "2026-11-18" });
+  assert.equal(count(items, "post"), 3); // 9 de 21 días hábiles
+  assert.equal(count(items, "reporte"), 1);
+});
+
 // Marca + Web
 check("marca-web: pasos del proyecto, del primer al último día hábil", () => {
   assert.equal(marcaWeb.length, m.MARCA_WEB_STEPS.length);
@@ -100,7 +119,7 @@ check("marca-web: pasos del proyecto, del primer al último día hábil", () => 
 });
 
 // Reglas generales
-const all = [...contenido, ...crecimiento, ...marcaWeb];
+const all = [...contenido, ...crecimiento, ...mantencion, ...marcaWeb];
 check("nunca fines de semana y siempre dentro del mes", () => {
   for (const i of all) {
     assert.equal(isWeekend(i.dueDate), false, i.dueDate);
@@ -108,13 +127,13 @@ check("nunca fines de semana y siempre dentro del mes", () => {
   }
 });
 check("ordenado por fecha", () => {
-  for (const list of [contenido, crecimiento, marcaWeb]) {
+  for (const list of [contenido, crecimiento, mantencion, marcaWeb]) {
     const dates = list.map((i) => i.dueDate);
     assert.deepEqual([...dates].sort(), dates);
   }
 });
 check("claves únicas y marcador estable en la descripción", () => {
-  for (const list of [contenido, crecimiento, marcaWeb]) {
+  for (const list of [contenido, crecimiento, mantencion, marcaWeb]) {
     assert.equal(new Set(list.map((i) => i.key)).size, list.length);
     for (const i of list)
       assert.deepEqual(m.readMarker(i.description), { month: MONTH, key: i.key });
@@ -153,20 +172,21 @@ check("excluye feriados nacionales (incluidos los movidos)", () => {
   assert.equal(m.businessDays("2027-09").includes("2027-09-17"), false);
   assert.equal(m.businessDays("2026-10").includes("2026-10-12"), false);
 });
-check("mantención: 8 piezas al mes + calendario, sin reporte ni reunión", () => {
+check("mantención: 8 piezas al mes + calendario + reporte, sin reunión", () => {
   const items = m.buildMonthPlan({ planKey: "mantencion", month: MONTH });
   const pieces = items.filter((i) => i.kind === "post" || i.kind === "reel");
-  assert.equal(pieces.length, m.MANTENCION.postsPerMonth + m.MANTENCION.reelsPerMonth);
+  assert.equal(pieces.length, m.MANTENCION.postsPerWeek * m.WEEKS_PER_MONTH);
   assert.equal(pieces.length, 8);
   assert.equal(items.filter((i) => i.kind === "calendario").length, 1);
+  assert.equal(items.filter((i) => i.kind === "reporte").length, 1);
   assert.equal(
-    items.some((i) => i.kind === "reporte" || i.kind === "reunion"),
+    items.some((i) => i.kind === "reunion"),
     false,
   );
 });
 check("ninguna tarea cae en feriado", () => {
   for (const month of ["2026-12", "2027-09", "2027-10"]) {
-    for (const planKey of ["contenido", "crecimiento", "marca-web", "mantencion"]) {
+    for (const planKey of ["contenido", "crecimiento", "mantencion", "marca-web"]) {
       for (const i of m.buildMonthPlan({ planKey, month }))
         assert.equal(m.CL_HOLIDAYS.has(i.dueDate), false, i.dueDate);
     }

@@ -71,7 +71,10 @@ function ProposalRow({ proposal }: { proposal: PortalProposal }) {
         <StatusBadge status={status} label={meta?.label} tone={meta?.tone} className="shrink-0" />
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <Money amount={proposal.amountClp} className="text-2xl font-semibold tracking-tight" />
+        <p className="flex items-baseline gap-1.5">
+          <Money amount={proposal.amountClp} className="text-2xl font-semibold tracking-tight" />
+          <span className="text-xs text-muted-foreground">total con IVA</span>
+        </p>
         <Button asChild variant={open ? "default" : "outline"} className="h-11 w-full sm:w-auto">
           <a href={`/p/${encodeURIComponent(proposal.token)}`} target="_blank" rel="noreferrer">
             {open ? "Revisar y aceptar" : "Ver propuesta"}{" "}

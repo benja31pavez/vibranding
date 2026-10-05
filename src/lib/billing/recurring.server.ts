@@ -22,6 +22,7 @@ const PLAN_LABEL: Readonly<Record<string, string>> = {
   "marca-web": "Marca + Web",
   contenido: "Contenido",
   crecimiento: "Crecimiento",
+  mantencion: "Mantención",
 };
 
 interface SubscriptionRow {

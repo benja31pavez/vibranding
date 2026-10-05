@@ -32,6 +32,8 @@ const OUTCOME: Readonly<Record<PlanKey, string>> = {
     "Redes activas y profesionales todo el mes, sin que tengas que preocuparte de qué publicar.",
   crecimiento:
     "Contenido constante y campañas en Meta y Google para que más personas te encuentren y te escriban.",
+  mantencion:
+    "Tus redes siguen activas y ordenadas cada mes, con el método que ya conoces de trabajar con nosotros.",
 };
 
 const GENERIC_OUTCOME = "Todo lo que acordamos, por escrito, con precios claros en pesos chilenos.";
@@ -40,9 +42,22 @@ export function proposalOutcome(planKey: PlanKey | null): string {
   return planKey ? OUTCOME[planKey] : GENERIC_OUTCOME;
 }
 
+/**
+ * Plan Mantención: solo para ex clientes, no está en la home (por eso su lista
+ * vive aquí y no en translations).
+ */
+const MANTENCION_FEATURES: readonly string[] = [
+  "8 piezas al mes (posts, carruseles o historias)",
+  "Calendario mensual de contenido",
+  "Aprobación de cada pieza en tu portal de cliente",
+  "Reporte mensual",
+  "No incluye pauta ni campañas pagadas",
+];
+
 /** Lo que incluye el plan: misma lista que la home (una sola fuente). */
 export function planFeatures(planKey: PlanKey | null): readonly string[] {
   if (!planKey) return [];
+  if (planKey === "mantencion") return MANTENCION_FEATURES;
   return translations.es.home.plans.items.find((p) => p.id === planKey)?.features ?? [];
 }
 
@@ -156,6 +171,33 @@ const FIRST_30_DAYS: Readonly<Record<PlanKey, readonly WeekStep[]>> = {
       ],
     },
   ],
+  mantencion: [
+    {
+      ...KICKOFF,
+      items: [
+        "Breve reunión para retomar: qué cambió en tu negocio desde que trabajamos juntos.",
+        "Revisamos tus accesos y la línea gráfica que ya tienes.",
+      ],
+    },
+    {
+      week: "Semana 2",
+      title: "Calendario y piezas",
+      items: [
+        "Te enviamos el calendario del mes con las 8 piezas.",
+        "Apruebas cada pieza en tu portal antes de publicarla.",
+      ],
+    },
+    {
+      week: "Semana 3",
+      title: "Publicamos",
+      items: ["Publicamos lo que apruebas, según el calendario."],
+    },
+    {
+      week: "Semana 4",
+      title: "Reporte",
+      items: ["Reporte mensual con lo publicado y cómo le fue.", "Planificamos el mes siguiente."],
+    },
+  ],
 };
 
 const GENERIC_30_DAYS: readonly WeekStep[] = [
@@ -198,6 +240,12 @@ export function proposalFaq(
       a: `Sí, ${minMonths} meses: es el tiempo que se necesita para construir y medir de verdad. Después sigue mes a mes y puedes cancelar avisando con 30 días de anticipación.`,
     });
   }
+  if (planKey === "mantencion") {
+    faq.push({
+      q: "¿Incluye anuncios o campañas?",
+      a: "No. El Plan Mantención es solo contenido orgánico. Si más adelante quieres campañas, te proponemos el Plan Crecimiento.",
+    });
+  }
   if (planKey === "crecimiento") {
     faq.push({
       q: "¿La inversión en anuncios está incluida?",
@@ -207,7 +255,7 @@ export function proposalFaq(
   faq.push(
     {
       q: "¿Cómo pago?",
-      a: "Después de aceptar puedes pagar con link de pago o por transferencia. Todos los precios están en pesos chilenos e incluyen IVA, y recibes factura o boleta.",
+      a: "Después de aceptar puedes pagar con link de pago o por transferencia. Los precios están en pesos chilenos y son netos, más IVA (19%); el total a pagar que ves en la propuesta ya incluye el IVA. Recibes factura o boleta.",
     },
     {
       q: "¿Qué necesitan de mí?",

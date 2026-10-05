@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PLANS, findPlan, planPriceLabel, type PlanKey } from "@/lib/pricing/plans";
+import { PLANS, findPlan, formatMoney, planPriceLabel, type PlanKey } from "@/lib/pricing/plans";
 import {
   DEFAULT_VALIDITY_DAYS,
   PROPOSAL_STATUS_META,
@@ -22,6 +22,7 @@ import {
   endOfChileDayIso,
   formatChileDate,
   parseItems,
+  isStalePlanItem,
   planItem,
   proposalConditions,
   toChileDate,
@@ -65,6 +66,7 @@ function prospectInsights(
     recommendation: recommendPlan({
       productoSugerido: recipient.prospect.productoSugerido,
       signals,
+      wasClient: recipient.prospect.wasClient,
     }),
   };
 }
@@ -82,6 +84,8 @@ function initialState(
     title: existing?.title ?? `Propuesta para ${recipient.name}`,
     planKey: (startPlan ?? NO_PLAN) as PlanKey | typeof NO_PLAN,
     extras: items.filter((i) => i.type === "extra").map(toExtraRow),
+    // Línea del plan tal como se guardó: no se re-precia sola (propuestas con precio anterior).
+    savedPlanItem: plan ?? null,
     expiresDate: existing
       ? toChileDate(existing.expires_at)
       : chileDatePlusDays(DEFAULT_VALIDITY_DAYS),
@@ -89,10 +93,16 @@ function initialState(
   };
 }
 
-function buildItems(planKey: string, extras: readonly ExtraRow[]): ProposalItem[] {
+function buildItems(
+  planKey: string,
+  extras: readonly ExtraRow[],
+  savedPlanItem: ProposalItem | null,
+): ProposalItem[] {
   const plan = findPlan(planKey);
   const extraItems = extras.map(({ item }) => ({ ...item, label: item.label.trim() }));
-  return plan ? [planItem(plan.key), ...extraItems] : extraItems;
+  if (!plan) return extraItems;
+  const planLine = savedPlanItem?.key === plan.key ? savedPlanItem : planItem(plan.key);
+  return [planLine, ...extraItems];
 }
 
 /** Editor de propuesta: título, plan + adicionales, vencimiento y estado. */
@@ -107,9 +117,10 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
   const locked = !canEdit || existing?.status === "aceptada" || (!existing && save.isSuccess);
 
   const items = useMemo(
-    () => buildItems(state.planKey, state.extras),
-    [state.planKey, state.extras],
+    () => buildItems(state.planKey, state.extras, state.savedPlanItem),
+    [state.planKey, state.extras, state.savedPlanItem],
   );
+  const stalePlanItem = items.find(isStalePlanItem) ?? null;
   const totals = computeTotals(items);
   const errors = validateDraft({ title: state.title, items });
   const statusOptions = MANUAL_STATUSES.includes(state.status as ProposalStatus)
@@ -233,7 +244,10 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
           </fieldset>
         </Panel>
 
-        <Panel title="Plan" description="Precios con IVA incluido (src/lib/pricing/plans.ts).">
+        <Panel
+          title="Plan"
+          description="Precios netos + IVA 19% (src/lib/pricing/plans.ts). El cliente paga el total con IVA."
+        >
           <Select
             value={state.planKey}
             onValueChange={(v) => set("planKey", v as PlanKey)}
@@ -253,6 +267,28 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
           </Select>
           {selectedPlan && (
             <p className="mt-2 text-sm text-muted-foreground">{selectedPlan.description}</p>
+          )}
+          {selectedPlan?.returningClientsOnly && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {selectedPlan.note} No aparece en el sitio público.
+            </p>
+          )}
+          {stalePlanItem && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 rounded-app-md bg-surface-2 px-3 py-2 text-xs text-muted-foreground">
+              <span>
+                {`Esta propuesta tiene el precio anterior del plan (${formatMoney(stalePlanItem.amount)} a pagar, con IVA). Se mantiene tal cual mientras no lo actualices.`}
+              </span>
+              {!locked && state.status === "borrador" && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => set("savedPlanItem", null)}
+                >
+                  Usar precio vigente
+                </Button>
+              )}
+            </div>
           )}
           {insights && !existing && (
             <p className="mt-2 text-xs text-muted-foreground">

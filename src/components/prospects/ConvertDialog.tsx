@@ -107,8 +107,8 @@ export function ConvertDialog({
                 Plan:{" "}
                 {plan ? (
                   <>
-                    <strong>{plan.label}</strong> · <Money amount={plan.price} />
-                    {plan.billing === "monthly" ? " al mes" : " (pago único)"}
+                    <strong>{plan.label}</strong> · <Money amount={plan.netPrice} />
+                    {plan.billing === "monthly" ? " + IVA al mes" : " + IVA (pago único)"}
                   </>
                 ) : (
                   "sin plan sugerido (lo asignas en la ficha)"

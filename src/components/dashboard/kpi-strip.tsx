@@ -63,8 +63,7 @@ export function KpiStrip() {
 function MrrBlock({ query }: { query: UseQueryResult<MrrSummary> }) {
   const label = (
     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-      <Target aria-hidden className="h-3.5 w-3.5" /> MRR actual · meta{" "}
-      <Money amount={META_MRR_CLP} />
+      <Target aria-hidden className="h-3.5 w-3.5" /> MRR neto · meta <Money amount={META_MRR_CLP} />
     </span>
   );
   if (query.isError) {

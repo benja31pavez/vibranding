@@ -3,19 +3,19 @@
  *
  * `items` (jsonb) guarda TODAS las líneas de la propuesta, incluido el plan,
  * para que el texto de aceptación que arma la BD (`accept_proposal`) tenga el
- * detalle completo. Montos en CLP con IVA incluido (como `plans.ts`).
+ * detalle completo.
  *
- * `amount_clp` = total del primer pago = pagos únicos + primer mes de lo mensual.
+ * Montos guardados: cada `amount` es el TOTAL a pagar de la línea (con IVA), como
+ * siempre. Desde 2026-10 los precios de lista son netos: el editor trabaja en
+ * neto y guarda `withIva(neto)`; las propuestas anteriores (precio "IVA
+ * incluido") se leen tal cual. El neto de cada línea se obtiene con `netOfTotal`.
+ *
+ * `amount_clp` = total del primer pago (con IVA) = pagos únicos + primer mes de
+ * lo mensual. Es lo que se cobra (payments.amount → Flow).
  */
 import { z } from "zod";
-import {
-  PLANS,
-  findPlan,
-  splitVat,
-  type Billing,
-  type PlanKey,
-  type VatBreakdown,
-} from "@/lib/pricing/plans";
+import { PLAN_KEYS, findPlan, planTotal, type Billing, type PlanKey } from "@/lib/pricing/plans";
+import { IVA_LABEL, netOfTotal, withIva } from "@/lib/pricing/iva";
 import type { StatusTone } from "@/components/app/status-badge";
 
 export const PROPOSAL_STATUSES = [
@@ -49,13 +49,11 @@ export const DEFAULT_VALIDITY_DAYS = 14;
 export const MAX_ITEM_AMOUNT = 50_000_000;
 export const MAX_ITEMS = 20;
 
-const PLAN_KEYS = PLANS.map((p) => p.key) as [PlanKey, ...PlanKey[]];
-
 export const ProposalItemSchema = z.object({
   type: z.enum(["plan", "extra"]),
   key: z.enum(PLAN_KEYS).optional(),
   label: z.string().trim().min(1).max(120),
-  /** CLP con IVA incluido. Negativo solo para descuentos (líneas "extra"). */
+  /** Total de la línea en CLP, con IVA (lo que se cobra). Negativo solo para descuentos ("extra"). */
   amount: z.number().int().min(-MAX_ITEM_AMOUNT).max(MAX_ITEM_AMOUNT),
   billing: z.enum(["one_time", "monthly"]),
 });
@@ -69,6 +67,7 @@ export function parseItems(value: unknown): ProposalItem[] {
   return parsed.success ? parsed.data : [];
 }
 
+/** Línea del plan al precio vigente: neto de lista + IVA. */
 export function planItem(key: PlanKey): ProposalItem {
   const plan = findPlan(key);
   if (!plan) throw new Error(`Plan desconocido: ${key}`);
@@ -76,26 +75,66 @@ export function planItem(key: PlanKey): ProposalItem {
     type: "plan",
     key: plan.key,
     label: plan.label,
-    amount: plan.price,
+    amount: planTotal(plan),
     billing: plan.billing,
   };
 }
 
+/** true si la línea del plan no tiene el precio vigente (p. ej. propuesta con precio anterior). */
+export function isStalePlanItem(item: ProposalItem): boolean {
+  if (item.type !== "plan" || !item.key) return false;
+  const plan = findPlan(item.key);
+  return plan !== null && item.amount !== planTotal(plan);
+}
+
+/** Línea "extra" a partir de un monto NETO (lo que se escribe en el editor). */
+export function extraItemFromNet(
+  item: Omit<ProposalItem, "amount" | "type">,
+  net: number,
+): ProposalItem {
+  return { ...item, type: "extra", amount: withIva(net) };
+}
+
+/** Neto de una línea guardada (su total / 1,19). */
+export function itemNet(item: Pick<ProposalItem, "amount">): number {
+  return netOfTotal(item.amount);
+}
+
 export interface ProposalTotals {
+  /** Totales con IVA (lo que se cobra). */
   oneTime: number;
   monthly: number;
-  /** Primer pago = único + primer mes. Es lo que se guarda en `amount_clp`. */
+  /** Primer pago = único + primer mes, con IVA. Es lo que se guarda en `amount_clp`. */
   firstCharge: number;
-  vat: VatBreakdown;
+  /** Netos (suma del neto de cada línea). */
+  oneTimeNet: number;
+  monthlyNet: number;
+  firstChargeNet: number;
+  /** IVA del primer pago = firstCharge − firstChargeNet. */
+  firstChargeIva: number;
+  /** IVA de cada mes = monthly − monthlyNet. */
+  monthlyIva: number;
 }
 
 export function computeTotals(items: readonly ProposalItem[]): ProposalTotals {
-  const sum = (billing: Billing) =>
-    items.filter((i) => i.billing === billing).reduce((acc, i) => acc + i.amount, 0);
-  const oneTime = sum("one_time");
-  const monthly = sum("monthly");
+  const sum = (billing: Billing, value: (i: ProposalItem) => number) =>
+    items.filter((i) => i.billing === billing).reduce((acc, i) => acc + value(i), 0);
+  const oneTime = sum("one_time", (i) => i.amount);
+  const monthly = sum("monthly", (i) => i.amount);
+  const oneTimeNet = sum("one_time", itemNet);
+  const monthlyNet = sum("monthly", itemNet);
   const firstCharge = oneTime + monthly;
-  return { oneTime, monthly, firstCharge, vat: splitVat(firstCharge) };
+  const firstChargeNet = oneTimeNet + monthlyNet;
+  return {
+    oneTime,
+    monthly,
+    firstCharge,
+    oneTimeNet,
+    monthlyNet,
+    firstChargeNet,
+    firstChargeIva: firstCharge - firstChargeNet,
+    monthlyIva: monthly - monthlyNet,
+  };
 }
 
 /** Tipo de cobro (`payments.kind`) del primer pago: con parte mensual es "mensual". */
@@ -141,12 +180,19 @@ export function proposalConditions(
       `Los planes mensuales tienen una permanencia mínima de ${minMonths} meses. Después continúan mes a mes y se cancelan avisando con 30 días de anticipación.`,
     );
   }
+  if (plan?.key === "mantencion") {
+    conditions.push(
+      "El Plan Mantención es para clientes que ya trabajaron con VIBRANDING: incluye 8 piezas al mes, calendario, aprobación en el portal y reporte mensual, sin pauta ni campañas.",
+    );
+  }
   if (plan?.key === "crecimiento") {
     conditions.push(
       "La inversión en pauta (Meta Ads) no está incluida: la paga directamente el cliente a Meta con su propio medio de pago.",
     );
   }
-  conditions.push("Todos los precios están en pesos chilenos (CLP) e incluyen IVA.");
+  conditions.push(
+    `Los precios están en pesos chilenos (CLP) y son netos: se suma IVA (${IVA_LABEL}). El total a pagar ya incluye el IVA.`,
+  );
   return conditions;
 }
 

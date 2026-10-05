@@ -14,7 +14,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PLANS, findPlan, formatMoney, type PlanKey } from "@/lib/pricing/plans";
+import {
+  PLANS,
+  findPlan,
+  formatMoney,
+  planNetLabel,
+  planTotal,
+  type PlanKey,
+} from "@/lib/pricing/plans";
+import {
+  PLAN_KEY_PENDING_MIGRATION_MSG,
+  isPlanKeyRejected,
+  needsNewPlanMigration,
+} from "@/lib/pricing/planKeyDb";
 import { invalidateShellClients } from "@/components/shell/shellQueries";
 import {
   CLIENT_STATUSES,
@@ -81,21 +93,40 @@ function parseDraft(d: Draft): Parsed {
   return { ok: true, mrr, billingDay, planKey: d.planKey === NO_PLAN ? null : d.planKey };
 }
 
+type BillingValues = { plan_key: PlanKey | null; mrr: number; billing_day: number | null };
+type DbError = { code?: string; message: string };
+
 /** Escribe client_billing: actualiza la fila 1:1 y, si no existiera, la crea. */
-async function saveBilling(
-  clientId: string,
-  values: { plan_key: PlanKey | null; mrr: number; billing_day: number | null },
-) {
+async function writeBilling(clientId: string, values: BillingValues): Promise<DbError | null> {
   const upd = await supabase
     .from("client_billing")
     .update(values)
     .eq("client_id", clientId)
     .select("client_id");
-  if (upd.error) return writeErrorMessage(upd.error);
+  if (upd.error) return upd.error;
   if (upd.data && upd.data.length > 0) return null;
   // 0 filas: o falta la fila (cliente antiguo) o no hay permisos; el INSERT lo distingue vía RLS.
   const ins = await supabase.from("client_billing").insert({ client_id: clientId, ...values });
-  return ins.error ? writeErrorMessage(ins.error) : null;
+  return ins.error;
+}
+
+/**
+ * Guarda client_billing. Si la BD aún no acepta el plan (Mantención sin la
+ * migración 20261012001100) guarda sin plan y lo avisa en `warning`.
+ */
+async function saveBilling(
+  clientId: string,
+  values: BillingValues,
+): Promise<{ error: string | null; warning: string | null }> {
+  const first = await writeBilling(clientId, values);
+  if (!first) return { error: null, warning: null };
+  if (!needsNewPlanMigration(values.plan_key) || !isPlanKeyRejected(first)) {
+    return { error: writeErrorMessage(first), warning: null };
+  }
+  const retry = await writeBilling(clientId, { ...values, plan_key: null });
+  return retry
+    ? { error: writeErrorMessage(retry), warning: null }
+    : { error: null, warning: PLAN_KEY_PENDING_MIGRATION_MSG };
 }
 
 export function BillingCard({ clientId, overview }: { clientId: string; overview: FichaOverview }) {
@@ -123,13 +154,15 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
     const plan = findPlan(value);
     setDirty(true);
     if (plan?.billing === "monthly") {
-      setDraft((d) => ({ ...d, planKey: plan.key, mrr: String(plan.price) }));
-      setMrrHint(`Sugerido: ${formatMoney(plan.price)} al mes según ${plan.label}.`);
+      setDraft((d) => ({ ...d, planKey: plan.key, mrr: String(plan.netPrice) }));
+      setMrrHint(
+        `Sugerido: ${formatMoney(plan.netPrice)} neto al mes según ${plan.label} (el cliente paga ${formatMoney(planTotal(plan))} con IVA).`,
+      );
       return;
     }
     setDraft((d) => ({ ...d, planKey: plan?.key ?? NO_PLAN }));
     setMrrHint(
-      plan ? `${plan.label} es un pago único (${formatMoney(plan.price)}); no suma MRR.` : null,
+      plan ? `${plan.label} es un pago único (${planNetLabel(plan)}); no suma MRR.` : null,
     );
   };
 
@@ -142,11 +175,12 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
     }
     setSaving(true);
     try {
-      const billingError = await saveBilling(clientId, {
+      const { error: billingError, warning } = await saveBilling(clientId, {
         plan_key: parsed.planKey,
         mrr: parsed.mrr,
         billing_day: parsed.billingDay,
       });
+      if (warning) toast.warning(warning);
       if (billingError) {
         toast.error(`No se guardó nada: ${billingError}`);
         return;
@@ -204,14 +238,18 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
                 <SelectItem value={NO_PLAN}>Sin plan</SelectItem>
                 {PLANS.map((p) => (
                   <SelectItem key={p.key} value={p.key}>
-                    {p.label} · {formatMoney(p.price)}
-                    {p.billing === "monthly" ? "/mes" : " único"}
+                    {p.label} · {planNetLabel(p)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </Field>
-          <Field label="MRR (CLP)" htmlFor="billing-mrr" className="sm:col-span-2" hint={mrrHint}>
+          <Field
+            label="MRR neto (CLP, sin IVA)"
+            htmlFor="billing-mrr"
+            className="sm:col-span-2"
+            hint={mrrHint}
+          >
             <Input
               id="billing-mrr"
               inputMode="numeric"
