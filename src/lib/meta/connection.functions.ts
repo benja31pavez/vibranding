@@ -183,11 +183,12 @@ export const startMetaOAuth = createServerFn({ method: "POST" })
     const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
     await assertCanEditClient(context.userId, data.clientId);
 
-    const { META_SCOPES, redirectUri, signState, metaGraphVersion } = await import(
+    const { META_SCOPES, redirectUri, createOAuthState, metaGraphVersion } = await import(
       "@/lib/meta/oauth.server",
     );
-    const state = await signState(
-      { clientId: data.clientId, userId: context.userId, exp: Date.now() + 10 * 60 * 1000 },
+    // State firmado + nonce en cookie HttpOnly: el callback exige el mismo navegador.
+    const state = await createOAuthState(
+      { clientId: data.clientId, userId: context.userId, purpose: "meta" },
       appSecret,
     );
 

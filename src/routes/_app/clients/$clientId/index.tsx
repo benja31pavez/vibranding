@@ -18,6 +18,7 @@ import { PendingApprovalPanel, UpcomingContentPanel } from "@/components/clients
 import { ContractPanel } from "@/components/clients/ficha/ContractPanel";
 import { ProposalsPanel } from "@/components/proposals/ProposalsPanel";
 import { ReportsPanel } from "@/components/clients/ficha/ReportsPanel";
+import { FollowupsPanel } from "@/components/followups/FollowupsPanel";
 import { PERMISSION_DENIED_MSG, useFichaHealth, useFichaOverview } from "@/components/clients/ficha/fichaQueries";
 
 export const Route = createFileRoute("/_app/clients/$clientId/")({
@@ -42,6 +43,7 @@ function ClientFichaPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
+          <FollowupsPanel scope={{ clientId }} hideWhenEmpty />
           {health.data && (
             <CampaignAlertsPanel alerts={health.data.alerts} canEdit={Boolean(overview.data?.canEdit)} />
           )}
