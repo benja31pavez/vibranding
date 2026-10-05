@@ -30,7 +30,8 @@
     "check:reviews": "node scripts/check-reviews.mjs",
     "check:security-headers": "node scripts/check-security-headers.mjs",
     "check:fit-list": "node scripts/check-fit-list.mjs",
-    "check:plan-stages": "node scripts/check-plan-stages.mjs"
+    "check:plan-stages": "node scripts/check-plan-stages.mjs",
+    "check:profile": "node scripts/check-profile.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

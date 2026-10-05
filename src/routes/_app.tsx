@@ -24,7 +24,7 @@ function AppLayout() {
   const { session, loading, signOut, user } = useAuth();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { activeClient, clearActive } = useShellActiveClient(path, session?.user?.id);
+  const { activeClient } = useShellActiveClient(path, session?.user?.id);
   const profile = useUserProfile(session?.user?.id);
   const { stale: unmarkedStale } = useUnmarkedOutcomes(activeClient?.id ?? null);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -69,7 +69,6 @@ function AppLayout() {
     activeClient,
     path,
     staleOutcomes: unmarkedStale,
-    onDisconnect: clearActive,
   };
 
   return (

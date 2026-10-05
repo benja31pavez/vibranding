@@ -7,21 +7,15 @@ interface ClientSidebarProps {
   activeClient: ClientSummary | null;
   path: string;
   staleOutcomes: number;
-  onDisconnect: () => void;
 }
 
 /** Contenido del panel izquierdo (gestión de UN cliente). Se usa en el aside y en el Sheet móvil. */
-export function ClientSidebar({
-  activeClient,
-  path,
-  staleOutcomes,
-  onDisconnect,
-}: ClientSidebarProps) {
+export function ClientSidebar({ activeClient, path, staleOutcomes }: ClientSidebarProps) {
   return (
     <TooltipProvider delayDuration={150}>
       <div className="flex h-full min-h-0 flex-col">
         <div className="border-b px-3 py-3">
-          <ClientSwitcher activeClient={activeClient} onDisconnect={onDisconnect} />
+          <ClientSwitcher activeClient={activeClient} />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
           {activeClient ? (
