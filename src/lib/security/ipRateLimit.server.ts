@@ -1,7 +1,6 @@
 /**
  * IP del cliente, hash de IP y límites de intentos en memoria para endpoints
- * públicos. Mismo origen de IP que la reserva pública y el contacto de landings
- * (cf-connecting-ip / x-real-ip / x-forwarded-for).
+ * públicos (reserva pública, contacto de landings, propuestas, reportes…).
  *
  * Los límites viven en memoria de la instancia del Worker: son una primera
  * barrera (best effort), no una garantía global. Para un límite global usar
@@ -9,12 +8,33 @@
  */
 import { getRequest } from "@tanstack/react-start/server";
 
-/** IP del cliente según las cabeceras del proxy (Cloudflare primero). */
+/**
+ * true cuando el código corre en el runtime de Cloudflare Workers (producción
+ * y `wrangler dev`). Es la detección documentada por Cloudflare.
+ */
+function isCloudflareRuntime(): boolean {
+  return typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers";
+}
+
+/**
+ * IP del cliente.
+ *
+ * - En Cloudflare solo se confía en `cf-connecting-ip`: lo pone el edge de
+ *   Cloudflare y sobrescribe cualquier valor del cliente. `x-real-ip` y
+ *   `x-forwarded-for` llegan tal cual los manda el navegador, así que un
+ *   atacante podría rotarlos para saltarse los límites por IP. Si falta
+ *   (no debería en producción) se devuelve null y `limitKey` usa el bucket
+ *   por recurso.
+ * - Fuera de Cloudflare (vite dev en Node, tests) se acepta
+ *   `x-real-ip` / `x-forwarded-for` como respaldo.
+ */
 export function clientIp(req: Request | undefined = getRequest()): string | null {
+  const cfIp = req?.headers.get("cf-connecting-ip")?.trim();
+  if (cfIp) return cfIp;
+  if (isCloudflareRuntime()) return null;
   return (
-    req?.headers.get("cf-connecting-ip") ??
-    req?.headers.get("x-real-ip") ??
-    req?.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    req?.headers.get("x-real-ip")?.trim() ||
+    req?.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     null
   );
 }
