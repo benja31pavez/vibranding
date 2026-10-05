@@ -1,12 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { AnalyticsDashboard } from "@/components/analytics/AnalyticsDashboard";
-import { Button } from "@/components/ui/button";
-import { LogOut, Target, CheckSquare, Eye } from "lucide-react";
-import { ReviewThread, type ReviewComment, type ReviewDeliverable } from "@/components/deliverables/ReviewThread";
-import { toast } from "sonner";
+import { PortalShell, PortalView, usePortalSnapshot, type PortalMode } from "@/components/portal";
 
 export const Route = createFileRoute("/portal")({
   ssr: false,
@@ -17,226 +12,41 @@ export const Route = createFileRoute("/portal")({
       {
         name: "description",
         content:
-          "Consulta la analítica, las etapas y los objetivos de tu cuenta gestionada por Vibranding.",
+          "Aprueba contenidos, revisa tu calendario, tus resultados, pagos y propuestas con Vibranding.",
       },
       { property: "og:title", content: "Portal del cliente | Vibranding" },
       {
         property: "og:description",
-        content: "Analítica, etapas y objetivos de tu cuenta en modo lectura.",
+        content: "Todo lo de tu marca con Vibranding en un solo lugar.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "noindex" },
     ],
   }),
 });
 
-interface Item {
-  id: string;
-  title: string;
-  status: string;
-  due_date: string | null;
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: "Pendiente",
-  in_progress: "En curso",
-  in_review: "En revisión",
-  done: "Listo",
-};
+const CLIENT_MODE: PortalMode = { kind: "client" };
 
 function ClientPortal() {
   const { session, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  const [clientId, setClientId] = useState<string | null>(null);
-  const [clientName, setClientName] = useState<string>("");
-  const [ready, setReady] = useState(false);
-  const [deliverables, setDeliverables] = useState<Item[]>([]);
-  const [objectives, setObjectives] = useState<Item[]>([]);
-  const [reviews, setReviews] = useState<ReviewDeliverable[]>([]);
-  const [threads, setThreads] = useState<Record<string, ReviewComment[]>>({});
-  const [busy, setBusy] = useState(false);
-
-  const loadReviews = async (cid: string) => {
-    const { data: d } = await supabase
-      .from("deliverables")
-      .select("id,title,description,status,due_date,file_url,file_name,mime_type")
-      .eq("client_id", cid)
-      .eq("status", "in_review")
-      .order("sort_order");
-    const rows = (d ?? []) as ReviewDeliverable[];
-    setReviews(rows);
-    if (rows.length === 0) return setThreads({});
-    const { data: c } = await supabase
-      .from("deliverable_comments")
-      .select("id,deliverable_id,kind,body,author_role,author_name,created_at")
-      .in("deliverable_id", rows.map((r) => r.id))
-      .order("created_at");
-    const map: Record<string, ReviewComment[]> = {};
-    for (const row of (c ?? []) as any[]) {
-      (map[row.deliverable_id] ||= []).push(row as ReviewComment);
-    }
-    setThreads(map);
-  };
-
-  const submitReview = async (d: ReviewDeliverable, kind: ReviewComment["kind"], body: string) => {
-    if (!clientId) return;
-    setBusy(true);
-    const { error } = await supabase.from("deliverable_comments").insert({
-      deliverable_id: d.id,
-      client_id: clientId,
-      author: "client",
-      author_role: "client",
-      author_user_id: session?.user?.id ?? null,
-      author_name: (session?.user?.user_metadata?.full_name as string | undefined) || session?.user?.email || "Cliente",
-      read_by_agency: false,
-      kind,
-      body: body.trim(),
-    });
-    if (!error && kind !== "comment") {
-      await supabase
-        .from("deliverables")
-        .update({ status: kind === "approval" ? "done" : "in_progress" })
-        .eq("id", d.id);
-    }
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success(kind === "approval" ? "Entregable aprobado" : kind === "change_request" ? "Cambios enviados" : "Comentario enviado");
-    loadReviews(clientId);
-  };
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
   }, [loading, session, navigate]);
 
-  useEffect(() => {
-    if (!session) return;
-    (async () => {
-      const { data: cid } = await supabase.rpc("user_client_id");
-      if (!cid) {
-        setReady(true);
-        return;
-      }
-      setClientId(cid as string);
-      const [{ data: c }, { data: d }, { data: o }] = await Promise.all([
-        supabase.from("clients").select("name").eq("id", cid as string).maybeSingle(),
-        supabase
-          .from("deliverables")
-          .select("id,title,status,due_date")
-          .eq("client_id", cid as string)
-          .order("sort_order"),
-        supabase
-          .from("objectives")
-          .select("id,title,status,due_date")
-          .eq("client_id", cid as string)
-          .order("sort_order"),
-      ]);
-      setClientName(c?.name ?? "");
-      setDeliverables((d ?? []) as Item[]);
-      setObjectives((o ?? []) as Item[]);
-      await loadReviews(cid as string);
-      setReady(true);
-    })();
-  }, [session?.user?.id]);
-
-  if (loading || !session) return <div className="min-h-screen" />;
-
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 border-b bg-sidebar/95 backdrop-blur">
-        <div className="max-w-6xl mx-auto flex items-center gap-4 px-6 h-16">
-          <span className="font-brand text-2xl tracking-tight text-gradient-brand bg-gradient-brand-animated">
-            Vibranding
-          </span>
-          <div className="ml-auto flex items-center gap-3">
-            {clientName && <span className="text-sm text-muted-foreground">{clientName}</span>}
-            <Button variant="ghost" size="sm" onClick={() => signOut()}>
-              <LogOut className="w-4 h-4 mr-1" /> Salir
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-        {!ready ? (
-          <div className="text-muted-foreground">Cargando…</div>
-        ) : !clientId ? (
-          <div className="rounded-2xl border bg-surface p-6 text-sm text-muted-foreground">
-            Tu cuenta todavía no tiene un cliente asignado. Contacta con tu equipo de Vibranding.
-          </div>
-        ) : (
-          <>
-            <h1 className="text-3xl font-semibold tracking-tight">Tu cuenta</h1>
-            <AnalyticsDashboard clientId={clientId} />
-
-            <section className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Eye className="w-4 h-4" /> Pendientes de tu revisión
-              </div>
-              {reviews.length === 0 ? (
-                <div className="rounded-2xl border bg-surface p-5 text-sm text-muted-foreground">
-                  No hay entregables esperando tu revisión.
-                </div>
-              ) : (
-                reviews.map((d) => (
-                  <ReviewThread
-                    key={d.id}
-                    deliverable={d}
-                    comments={threads[d.id] ?? []}
-                    busy={busy}
-                    onSubmit={async (kind, body) => { await submitReview(d, kind, body); }}
-                  />
-                ))
-              )}
-            </section>
-
-            <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <ReadOnlyList
-                icon={<CheckSquare className="w-4 h-4" />}
-                title="Etapas"
-                items={deliverables}
-              />
-              <ReadOnlyList
-                icon={<Target className="w-4 h-4" />}
-                title="Objetivos"
-                items={objectives}
-              />
-            </section>
-          </>
-        )}
-      </main>
-    </div>
-  );
+  if (loading || !session) return <div className="min-h-screen bg-bg" />;
+  return <AuthedPortal onSignOut={() => void signOut()} />;
 }
 
-function ReadOnlyList({
-  icon,
-  title,
-  items,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  items: Item[];
-}) {
+function AuthedPortal({ onSignOut }: { onSignOut: () => void }) {
+  // Misma query que PortalView (se comparte la caché): solo para el nombre en la cabecera.
+  const snapshot = usePortalSnapshot(CLIENT_MODE);
+  const clientName = snapshot.data?.status === "ok" ? snapshot.data.snapshot.clientName : undefined;
   return (
-    <div className="rounded-2xl border bg-surface p-5">
-      <div className="flex items-center gap-2 text-sm font-medium mb-3">
-        {icon} {title}
-      </div>
-      {items.length === 0 ? (
-        <div className="text-sm text-muted-foreground">Sin registros por ahora.</div>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((i) => (
-            <li key={i.id} className="flex items-center justify-between gap-2 text-sm">
-              <span className="truncate">{i.title}</span>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                {STATUS_LABEL[i.status] ?? i.status}
-                {i.due_date ? ` · ${i.due_date}` : ""}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <PortalShell clientName={clientName} onSignOut={onSignOut}>
+      <PortalView mode={CLIENT_MODE} />
+    </PortalShell>
   );
 }

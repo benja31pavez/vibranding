@@ -69,25 +69,3 @@ export function ServicesSection() {
     </section>
   );
 }
-
-export function HowWeWorkSection() {
-  const t = translations.es; // The public home is Spanish-only (Chile).
-  const h = t.home.how;
-  return (
-    <section id="como" aria-labelledby="como-title" className="scroll-mt-20 mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24">
-      <SectionHeading id="como-title" title={h.title} accent={h.titleAccent} />
-      <ol className="grid gap-5 md:grid-cols-3">
-        {h.steps.map((step, i) => (
-          <li key={step.title} className="relative rounded-3xl border bg-card p-6 md:p-7">
-            <span className="font-brand text-4xl leading-none text-gradient-brand-strong" aria-hidden>
-              {i + 1}
-            </span>
-            <h3 className="mt-3 text-xl font-semibold">{step.title}</h3>
-            <p className="mt-2 text-muted-foreground leading-relaxed">{step.desc}</p>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
