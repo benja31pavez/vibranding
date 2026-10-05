@@ -90,15 +90,21 @@ export async function runDmAutomation(args: {
 
   if (!res.ok) return { ok: false as const, error: res.error };
 
-  await insertIgMessage({
-    conversationId: args.conversationId,
-    clientId: args.clientId,
-    messageId: null,
-    direction: "outbound",
-    fromBot: true,
-    body: trigger.message,
-    at: new Date().toISOString(),
-  });
+  // The DM is already sent: a logging failure must not abort the
+  // welcome_sent_at update below (that would resend the welcome).
+  try {
+    await insertIgMessage({
+      conversationId: args.conversationId,
+      clientId: args.clientId,
+      messageId: null,
+      direction: "outbound",
+      fromBot: true,
+      body: trigger.message,
+      at: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    console.error("[ig dm automation] DM sent but inbox logging failed", err?.message);
+  }
 
   await supabaseAdmin
     .from("whatsapp_conversations")

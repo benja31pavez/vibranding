@@ -4,6 +4,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { graphUrl } from "@/lib/meta/version";
 import { getMetaToken } from "@/lib/meta/tokens.server";
+import { classifyInsert, type InsertOutcome } from "@/lib/messaging/delivery";
 
 export type IgTrigger = {
   id: string;
@@ -42,10 +43,12 @@ export function matchesTrigger(text: string, t: IgTrigger): boolean {
 
 /** Resolves the client + token for an incoming IG account id (webhook entry id). */
 export async function resolveIgAccount(igAccountId: string) {
-  const { data: account } = await (supabaseAdmin.from("meta_accounts" as any) as any)
+  const { data: account, error } = await (supabaseAdmin.from("meta_accounts" as any) as any)
     .select("id,client_id,ig_account_id,page_id")
     .eq("ig_account_id", igAccountId)
     .maybeSingle();
+  // A DB error is not "unknown account": throw so the webhook asks for a retry.
+  if (error) throw new Error(`resolveIgAccount: ${error.message}`);
   if (!account?.id) return null;
   const token = await getMetaToken(account.id);
   if (!token) return null;
@@ -119,16 +122,17 @@ export async function upsertIgConversation(args: {
   inbound: boolean;
   isLead?: boolean;
 }) {
-  const { data: existing } = await supabaseAdmin
+  const { data: existing, error: findError } = await supabaseAdmin
     .from("whatsapp_conversations")
     .select("id,unread_count")
     .eq("client_id", args.clientId)
     .eq("channel", "instagram")
     .eq("contact_wa_id", args.contactId)
     .maybeSingle();
+  if (findError) throw new Error(`upsertIgConversation select: ${findError.message}`);
 
   if (existing?.id) {
-    await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from("whatsapp_conversations")
       .update({
         contact_name: args.username ?? undefined,
@@ -140,10 +144,11 @@ export async function upsertIgConversation(args: {
         ...(args.isLead ? { is_lead: true } : {}),
       })
       .eq("id", existing.id);
+    if (updateError) throw new Error(`upsertIgConversation update: ${updateError.message}`);
     return existing.id as string;
   }
 
-  const { data: created } = await supabaseAdmin
+  const { data: created, error: insertError } = await supabaseAdmin
     .from("whatsapp_conversations")
     .insert({
       client_id: args.clientId,
@@ -161,6 +166,7 @@ export async function upsertIgConversation(args: {
     })
     .select("id")
     .single();
+  if (insertError) throw new Error(`upsertIgConversation insert: ${insertError.message}`);
   return (created?.id as string) ?? null;
 }
 
@@ -172,8 +178,10 @@ export async function insertIgMessage(args: {
   fromBot: boolean;
   body: string | null;
   at: string;
-}) {
-  await supabaseAdmin.from("whatsapp_messages").insert({
+}): Promise<InsertOutcome> {
+  // A repeated Meta mid hits idx_wa_msg_waid (unique on wa_message_id) and
+  // comes back as "duplicate"; any other DB error throws.
+  const { error } = await supabaseAdmin.from("whatsapp_messages").insert({
     conversation_id: args.conversationId,
     client_id: args.clientId,
     channel: "instagram",
@@ -184,6 +192,7 @@ export async function insertIgMessage(args: {
     body: args.body,
     timestamp: args.at,
   });
+  return classifyInsert(error, "insertIgMessage");
 }
 
 /** True when the contact wrote within the last 24 hours. */

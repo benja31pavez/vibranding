@@ -1,5 +1,6 @@
 // Server-only: incoming Instagram DMs land in the shared inbox so Instagram and
 // WhatsApp share one funnel and one outcome selector.
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   insertIgMessage,
   resolveIgAccount,
@@ -41,6 +42,19 @@ export async function handleIgMessage(igAccountId: string, event: MessagingEvent
     msg.text ??
     (msg.attachments?.length ? `[${msg.attachments[0]?.type ?? "adjunto"}]` : null);
 
+  // Idempotency: Meta redelivers the same mid when we answered non-200. If it
+  // is already stored, skip everything (no second unread bump, no second DM).
+  const mid = msg.mid ? String(msg.mid) : null;
+  if (mid) {
+    const { data: seen, error: seenError } = await supabaseAdmin
+      .from("whatsapp_messages")
+      .select("id")
+      .eq("wa_message_id", mid)
+      .limit(1);
+    if (seenError) throw new Error(`handleIgMessage dedup: ${seenError.message}`);
+    if (seen && seen.length > 0) return { skipped: "duplicate" as const };
+  }
+
   const conversationId = await upsertIgConversation({
     clientId: resolved.clientId,
     igAccountId: resolved.igAccountId,
@@ -53,15 +67,17 @@ export async function handleIgMessage(igAccountId: string, event: MessagingEvent
   });
   if (!conversationId) return { skipped: "no_conversation" as const };
 
-  await insertIgMessage({
+  const stored = await insertIgMessage({
     conversationId,
     clientId: resolved.clientId,
-    messageId: msg.mid ?? null,
+    messageId: mid,
     direction: isEcho ? "outbound" : "inbound",
     fromBot: false,
     body,
     at,
   });
+  // Lost a race with a concurrent delivery of the same mid: it owns the reply.
+  if (stored === "duplicate") return { skipped: "duplicate" as const };
 
   if (!isEcho) {
     await runDmAutomation({

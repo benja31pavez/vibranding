@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
+import { webhookStatus } from "@/lib/messaging/delivery";
 
 /**
  * Instagram webhook: `comments` for comment-to-DM automation and `messages`
@@ -45,17 +46,20 @@ export const Route = createFileRoute("/api/public/instagram/webhook")({
           return new Response("Forbidden", { status: 403 });
         }
 
-        let payload: any = null;
+        let payload: any;
         try {
           payload = JSON.parse(rawBody);
         } catch {
-          payload = null;
+          return new Response("Bad Request", { status: 400 });
         }
         if (!payload?.entry) return new Response("ok");
 
         const { handleIgComment } = await import("@/lib/instagram/handleComment.server");
         const { handleIgMessage } = await import("@/lib/instagram/handleMessage.server");
 
+        // Process every event even if one fails, then report: a non-200 makes
+        // Meta redeliver, and the handlers are idempotent (comment_id / mid).
+        let failures = 0;
         for (const entry of payload.entry as any[]) {
           const igAccountId = String(entry.id ?? "");
           if (!igAccountId) continue;
@@ -76,6 +80,7 @@ export const Route = createFileRoute("/api/public/instagram/webhook")({
                 at: v.timestamp ? new Date(v.timestamp).toISOString() : at,
               });
             } catch (err: any) {
+              failures++;
               console.error("[ig webhook] comment handling failed", err?.message);
             }
           }
@@ -84,12 +89,17 @@ export const Route = createFileRoute("/api/public/instagram/webhook")({
             try {
               await handleIgMessage(igAccountId, m);
             } catch (err: any) {
+              failures++;
               console.error("[ig webhook] message handling failed", err?.message);
             }
           }
         }
 
-        // Always 200: Meta retries aggressively on anything else.
+        const status = webhookStatus(failures);
+        if (status !== 200) {
+          console.error(`[ig webhook] ${failures} event(s) failed — asking Meta to retry`);
+          return new Response("retry", { status });
+        }
         return new Response("ok");
       },
     },
