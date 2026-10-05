@@ -37,6 +37,7 @@ export const updateBodySchema = z.object({
   id: z.string().min(1),
   patch: z
     .object({
+      status: z.enum(["ACTIVE", "PAUSED", "ARCHIVED", "DELETED"]).optional(),
       daily_budget: money.nullable().optional(),
       lifetime_budget: money.nullable().optional(),
       spend_cap: money.nullable().optional(),

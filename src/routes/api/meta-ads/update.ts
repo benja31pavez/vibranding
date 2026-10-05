@@ -16,6 +16,9 @@ import {
   type MoneyPatchField,
 } from "@/lib/meta-ads/apiSchemas";
 
+/** Estados que detienen el gasto: no necesitan pago verificado. */
+const STOPPING_STATUSES: ReadonlySet<string> = new Set(["PAUSED", "ARCHIVED", "DELETED"]);
+
 export const Route = createFileRoute("/api/meta-ads/update")({
   server: {
     handlers: {
@@ -164,8 +167,9 @@ export const Route = createFileRoute("/api/meta-ads/update")({
           const { token } = await requireClientMetaToken(rowClientId!);
           params.set("access_token", token);
 
-          // Pago de pauta: activar algo exige cuenta con medio de pago y al día.
-          if (patch.status === "ACTIVE") {
+          // Pago de pauta: cualquier estado que no detenga el gasto exige cuenta
+          // con medio de pago y al día (deny-by-default).
+          if (patch.status && !STOPPING_STATUSES.has(patch.status)) {
             const { data: billingAcc } = await supa
               .from("meta_accounts")
               .select("ad_account_id")

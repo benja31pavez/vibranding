@@ -45,6 +45,12 @@ async function optionalRows(table: string, clientId: string): Promise<Row[]> {
   return data ?? [];
 }
 
+/** "123-456-7890" → "1234567890"; null si no queda nada. */
+const digitsOnly = (v: unknown): string | null => {
+  const d = typeof v === "string" ? v.replace(/\D/g, "") : "";
+  return d || null;
+};
+
 const newestFirst = (a: Row, b: Row) =>
   String(b.checked_at ?? b.updated_at ?? "").localeCompare(
     String(a.checked_at ?? a.updated_at ?? ""),
@@ -60,7 +66,7 @@ async function loadSources(clientId: string): Promise<AdsBillingSources> {
       .maybeSingle(),
     supabase
       .from("google_ads_accounts")
-      .select("customer_id")
+      .select("customer_id,status")
       .eq("client_id", clientId)
       .maybeSingle(),
     optionalRows("meta_billing_status", clientId),
@@ -73,6 +79,9 @@ async function loadSources(clientId: string): Promise<AdsBillingSources> {
   const metaAdAccountId = meta.data?.connected
     ? normalizeAdAccountId(meta.data.ad_account_id)
     : null;
+  // Google solo cuenta si la cuenta está conectada; el chequeo debe ser de esa misma cuenta.
+  const googleCustomerId =
+    google.data?.status === "conectada" ? digitsOnly(google.data.customer_id) : null;
   const metaRow = metaStatus
     .filter((r) => r.ad_account_id === metaAdAccountId)
     .sort(newestFirst)[0];
@@ -86,8 +95,12 @@ async function loadSources(clientId: string): Promise<AdsBillingSources> {
           has_funding: typeof metaRow.has_funding === "boolean" ? metaRow.has_funding : null,
         }
       : null,
-    googleCustomerId: google.data?.customer_id ?? null,
-    googleStatus: [...googleStatus].sort(newestFirst)[0] ?? null,
+    googleCustomerId,
+    googleStatus: googleCustomerId
+      ? (googleStatus
+          .filter((r) => digitsOnly(r.customer_id) === googleCustomerId)
+          .sort(newestFirst)[0] ?? null)
+      : null,
   };
 }
 

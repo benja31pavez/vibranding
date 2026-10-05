@@ -16,6 +16,7 @@ import {
   BILLING_META_KIND,
   billingAlertDedupeKey,
   metaBillingAlertCandidate,
+  staleBillingAlertIds,
 } from "@/lib/ads-billing/alert";
 import {
   evaluateMetaBilling,
@@ -249,6 +250,8 @@ export interface BillingBatchSummary {
   succeeded: number;
   failed: number;
   problems: number;
+  /** Alertas de cuentas que ya no son la del cliente (solo en el lote offset=0). */
+  stale_alerts_resolved: number;
   next_offset: number | null;
   results: BillingOutcome[];
 }
@@ -271,6 +274,59 @@ async function checkOne(account: AccountRow, clientName: string): Promise<Billin
     console.error("[meta billing] cuenta falló", { accountId: account.id, message });
     return { accountId: account.id, clientId: account.client_id, error: message };
   }
+}
+
+/**
+ * Cierra las alertas billing_meta abiertas cuya cuenta ya no es la cuenta
+ * conectada del cliente (el lote solo revisa cuentas conectadas, así que esas
+ * alertas no se cerrarían nunca). Devuelve cuántas cerró.
+ */
+export async function resolveStaleBillingAlerts(now = new Date()): Promise<number> {
+  const { data: open, error } = await supabaseAdmin
+    .from("campaign_alerts")
+    .select("id,client_id,dedupe_key")
+    .eq("kind", BILLING_META_KIND)
+    .is("resolved_at", null)
+    .limit(1000);
+  if (error) throw new Error(`[meta billing] alertas abiertas: ${error.message}`);
+  if (!open?.length) return 0;
+  const clientIds = [...new Set(open.map((a) => a.client_id))];
+  const { data: accounts, error: accErr } = await (
+    supabaseAdmin.from("meta_accounts" as never) as unknown as {
+      select: (c: string) => {
+        in: (
+          k: string,
+          v: string[],
+        ) => Promise<{
+          data: Array<{
+            client_id: string;
+            ad_account_id: string | null;
+            connected: boolean;
+          }> | null;
+          error: { message: string } | null;
+        }>;
+      };
+    }
+  )
+    .select("client_id,ad_account_id,connected")
+    .in("client_id", clientIds);
+  if (accErr) throw new Error(`[meta billing] cuentas actuales: ${accErr.message}`);
+  const current = new Map<string, string | null>(
+    (accounts ?? []).map((a) => [
+      a.client_id,
+      a.connected ? normalizeAdAccountId(a.ad_account_id) : null,
+    ]),
+  );
+  const stale = staleBillingAlertIds(open, current);
+  if (stale.length === 0) return 0;
+  const { data, error: resErr } = await supabaseAdmin
+    .from("campaign_alerts")
+    .update({ resolved_at: now.toISOString(), resolved_by: null })
+    .in("id", stale)
+    .is("resolved_at", null)
+    .select("id");
+  if (resErr) throw new Error(`[meta billing] cerrar alertas viejas: ${resErr.message}`);
+  return data?.length ?? 0;
 }
 
 async function clientNames(ids: string[]): Promise<Map<string, string>> {
@@ -298,7 +354,7 @@ export async function runMetaBillingBatch(opts: {
 
   const { batch, nextOffset } = splitBatch((data ?? []) as AccountRow[], offset, limit);
   const names = await clientNames([...new Set(batch.map((a) => a.client_id))]);
-  const results = await Promise.all(
+  const checked = await Promise.all(
     batch.map((account) =>
       withDeadline<BillingOutcome>(
         checkOne(account, names.get(account.client_id) ?? "el cliente"),
@@ -311,14 +367,27 @@ export async function runMetaBillingBatch(opts: {
       ),
     ),
   );
+  let staleResolved = 0;
+  let cleanupFailure: BillingOutcome[] = [];
+  if (offset === 0) {
+    try {
+      staleResolved = await resolveStaleBillingAlerts();
+    } catch (e) {
+      const message = (e as Error)?.message ?? "Error inesperado";
+      console.error("[meta billing] limpieza de alertas falló", message);
+      cleanupFailure = [{ accountId: "alertas-viejas", error: message }];
+    }
+  }
+  const results = [...checked, ...cleanupFailure];
   const failed = results.filter((r) => r.error).length;
   const problems = results.filter((r) => "reason" in r && r.reason !== "ok").length;
   return {
     offset,
-    accounts: results.length,
-    succeeded: results.length - failed,
+    accounts: checked.length,
+    succeeded: checked.length - checked.filter((r) => r.error).length,
     failed,
     problems,
+    stale_alerts_resolved: staleResolved,
     next_offset: nextOffset,
     results,
   };

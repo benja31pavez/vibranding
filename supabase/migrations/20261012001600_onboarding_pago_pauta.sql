@@ -13,15 +13,14 @@
 --   3. meta_billing_status: último chequeo diario por cuenta publicitaria de
 --      Meta (account_status, disable_reason, funding_source_details…). Lee
 --      quien es dueño del cliente (owns_client); escribe solo service_role.
---   4. Jobs del cron 'meta_billing_check_<offset>' (06:50 UTC, lotes de 10)
---      → /api/public/meta/billing-check con x-dispatch-secret.
+--   Los jobs del cron del chequeo diario van aparte, en
+--   20261012001610_cron_meta_billing.sql (aplicar después de publicar).
 --
 -- campaign_alerts.kind no tiene CHECK: el tipo 'billing_meta' no requiere
 -- cambios de esquema.
 --
--- Aplicar DESPUÉS de desplegar el código (el endpoint del cron debe existir).
--- Idempotente: IF NOT EXISTS, CREATE OR REPLACE, DROP POLICY IF EXISTS y
--- cron.schedule con nombre fijo (actualiza el job si ya existe).
+-- Se puede aplicar antes o después de desplegar: el código tolera ambos casos.
+-- Idempotente: IF NOT EXISTS, CREATE OR REPLACE y DROP POLICY IF EXISTS.
 -- =====================================================================
 
 
@@ -245,26 +244,3 @@ CREATE POLICY "meta_billing_status select" ON public.meta_billing_status FOR SEL
 DROP TRIGGER IF EXISTS t_meta_billing_status_u ON public.meta_billing_status;
 CREATE TRIGGER t_meta_billing_status_u BEFORE UPDATE ON public.meta_billing_status
   FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
-
-
--- =====================================================================
--- 4. Chequeo diario (cron por lotes de 10, después de la ingesta de Meta)
---
---   meta_billing_check_0    06:50 UTC  cuentas 1–10
---   meta_billing_check_10   06:52 UTC  cuentas 11–20
---   meta_billing_check_20   06:54 UTC  cuentas 21–30  (&last=1)
---
--- Si el último lote deja cuentas sin revisar responde 500 "faltan lotes":
--- copia el último bloque con el offset nuevo y quita &last=1 del anterior.
--- =====================================================================
-SELECT cron.schedule('meta_billing_check_0', '50 6 * * *',
-  $cron$SELECT public.run_http_cron_job('meta_billing_check_0',
-    'https://vibranding.pro/api/public/meta/billing-check?offset=0&limit=10');$cron$);
-
-SELECT cron.schedule('meta_billing_check_10', '52 6 * * *',
-  $cron$SELECT public.run_http_cron_job('meta_billing_check_10',
-    'https://vibranding.pro/api/public/meta/billing-check?offset=10&limit=10');$cron$);
-
-SELECT cron.schedule('meta_billing_check_20', '54 6 * * *',
-  $cron$SELECT public.run_http_cron_job('meta_billing_check_20',
-    'https://vibranding.pro/api/public/meta/billing-check?offset=20&limit=10&last=1');$cron$);

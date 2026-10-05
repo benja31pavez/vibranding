@@ -70,3 +70,20 @@ export function parseBillingAlertData(data: unknown): {
     billingUrl: metaBillingHubUrl(adAccountId),
   };
 }
+
+/**
+ * Alertas billing_meta abiertas que ya no corresponden a la cuenta publicitaria
+ * actual del cliente (cambió de cuenta, se desconectó o se borró): se cierran.
+ * `currentByClient`: client_id → id de la cuenta conectada (solo dígitos) o null.
+ */
+export function staleBillingAlertIds(
+  open: ReadonlyArray<{ id: string; client_id: string; dedupe_key: string | null }>,
+  currentByClient: ReadonlyMap<string, string | null>,
+): string[] {
+  return open
+    .filter((a) => {
+      const current = currentByClient.get(a.client_id) ?? null;
+      return !current || a.dedupe_key !== billingAlertDedupeKey(current);
+    })
+    .map((a) => a.id);
+}

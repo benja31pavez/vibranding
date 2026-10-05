@@ -147,14 +147,32 @@ test("metaVerification", () => {
   assert.equal(combined.metaVerification({ account_status: 1, has_funding: false }), "rejected");
   assert.equal(combined.metaVerification({ account_status: 3, has_funding: true }), "rejected");
 });
-test("googleVerification tolerante a la forma de la fila", () => {
-  assert.equal(combined.googleVerification(null), null);
-  assert.equal(combined.googleVerification({ verified: true }), "verified");
-  assert.equal(combined.googleVerification({ ok: false }), "rejected");
-  assert.equal(combined.googleVerification({ status: "APPROVED" }), "verified");
-  assert.equal(combined.googleVerification({ billing_status: "suspended" }), "rejected");
-  assert.equal(combined.googleVerification({ has_funding: false }), "rejected");
-  assert.equal(combined.googleVerification({ status: "raro" }), null);
+test("googleVerification: columnas reales de google_ads_billing_status", () => {
+  const now = new Date("2026-10-05T12:00:00Z");
+  const fresh = "2026-10-04T12:00:00Z";
+  const stale = "2026-10-01T11:00:00Z";
+  const g = (row) => combined.googleVerification(row, now);
+  assert.equal(g(null), null);
+  assert.equal(
+    g({ verdict: "rechazado", has_valid_billing: true, last_success_at: fresh }),
+    "rejected",
+  );
+  assert.equal(
+    g({ verdict: "verificado", has_valid_billing: true, last_success_at: fresh }),
+    "verified",
+  );
+  assert.equal(
+    g({ verdict: "verificado", has_valid_billing: false, last_success_at: fresh }),
+    null,
+  );
+  assert.equal(g({ verdict: "verificado", has_valid_billing: true, last_success_at: stale }), null);
+  assert.equal(g({ verdict: "verificado", has_valid_billing: true, last_success_at: null }), null);
+  assert.equal(g({ verdict: "pendiente", has_valid_billing: true, last_success_at: fresh }), null);
+  assert.equal(g({ verdict: "sin_cuenta" }), null);
+  assert.equal(
+    g({ verdict: "verificado", has_valid_billing: true, last_success_at: "2026-10-06T00:00:00Z" }),
+    null,
+  );
 });
 test("parseSelfReported / parsePlatforms", () => {
   assert.deepEqual(combined.parseSelfReported(undefined), { google: null, meta: null });
@@ -183,6 +201,19 @@ test("adsBillingRows: Meta verificada + Google declarado", () => {
   assert.equal(by.google.state, "pendiente");
   assert.equal(by.google.chosen, true);
 });
+test("adsBillingRows: Google sin cuenta enlazada ignora la verificación", () => {
+  const rows = combined.adsBillingRows(
+    {
+      intake: null,
+      metaAdAccountId: null,
+      metaStatus: null,
+      googleCustomerId: null,
+      googleStatus: { verdict: "rechazado" },
+    },
+    new Date("2026-10-05T12:00:00Z"),
+  );
+  assert.equal(rows.find((r) => r.platform === "google").state, "sin_cuenta");
+});
 test("adsBillingRows: sin intake ni cuentas → Sin cuenta", () => {
   const rows = combined.adsBillingRows({
     intake: null,
@@ -208,6 +239,20 @@ test("alerta billing_meta solo para impago / deshabilitada / sin tarjeta", () =>
   assert.equal(a.dedupeKey, "billing_meta:123");
   assert.match(a.message, /^Pago de pauta: revisar Meta Ads de Café Lalo/);
   assert.equal(alert.metaBillingAlertCandidate("X", "1", ev(1, false)).severity, "warning");
+});
+test("staleBillingAlertIds: cierra alertas de cuentas que ya no son la del cliente", () => {
+  const open = [
+    { id: "a", client_id: "c1", dedupe_key: "billing_meta:111" },
+    { id: "b", client_id: "c1", dedupe_key: "billing_meta:222" },
+    { id: "c", client_id: "c2", dedupe_key: "billing_meta:333" },
+    { id: "d", client_id: "c3", dedupe_key: "billing_meta:444" },
+  ];
+  const current = new Map([
+    ["c1", "111"],
+    ["c2", null],
+  ]);
+  assert.deepEqual(alert.staleBillingAlertIds(open, current), ["b", "c", "d"]);
+  assert.deepEqual(alert.staleBillingAlertIds([], current), []);
 });
 test("parseBillingAlertData reconstruye el link y tolera datos raros", () => {
   const d = alert.parseBillingAlertData({

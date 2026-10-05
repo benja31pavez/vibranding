@@ -89,42 +89,26 @@ export function metaVerification(
   return "rejected";
 }
 
-const GOOGLE_OK = new Set(["ok", "verified", "verificado", "approved", "active", "enabled"]);
-const GOOGLE_BAD = new Set([
-  "rejected",
-  "rechazado",
-  "problem",
-  "error",
-  "suspended",
-  "cancelled",
-  "canceled",
-  "no_funding",
-  "sin_medio_de_pago",
-  "unpaid",
-]);
+/** Un chequeo de Google más viejo que esto ya no cuenta como verificación. */
+export const GOOGLE_BILLING_FRESH_MS = 72 * 3_600_000;
 
 /**
- * Fila de google_ads_billing_status (la crea otro PR; su forma exacta puede
- * variar). Se aceptan `verified`/`ok` booleanos, `has_funding`/`has_billing`
- * y `status`/`billing_status` en texto. Lo que no se entiende = sin dato.
+ * Fila de google_ads_billing_status (PR #83): verdict
+ * ('verificado'|'pendiente'|'rechazado'|'sin_cuenta'), has_valid_billing y
+ * last_success_at. Rechazado manda; verificado solo si además hay facturación
+ * válida y un chequeo exitoso de las últimas 72 h. Lo demás = sin dato.
  */
-export function googleVerification(row: Record<string, unknown> | null): AdsVerification {
+export function googleVerification(
+  row: Record<string, unknown> | null,
+  now: Date = new Date(),
+): AdsVerification {
   if (!row) return null;
-  for (const key of ["verified", "ok", "billing_ok"]) {
-    if (typeof row[key] === "boolean") return row[key] ? "verified" : "rejected";
-  }
-  for (const key of ["status", "billing_status", "state"]) {
-    const v = row[key];
-    if (typeof v !== "string") continue;
-    const s = v.trim().toLowerCase();
-    if (GOOGLE_OK.has(s)) return "verified";
-    if (GOOGLE_BAD.has(s)) return "rejected";
-  }
-  for (const key of ["has_funding", "has_billing", "has_payment_method"]) {
-    if (row[key] === false) return "rejected";
-    if (row[key] === true) return "verified";
-  }
-  return null;
+  if (row.verdict === "rechazado") return "rejected";
+  if (row.verdict !== "verificado" || row.has_valid_billing !== true) return null;
+  const last = typeof row.last_success_at === "string" ? Date.parse(row.last_success_at) : NaN;
+  if (!Number.isFinite(last)) return null;
+  const age = now.getTime() - last;
+  return age >= 0 && age <= GOOGLE_BILLING_FRESH_MS ? "verified" : null;
 }
 
 // ------------------------------------------------------------------ vista de la ficha
@@ -146,7 +130,7 @@ export interface AdsBillingRow {
 }
 
 /** Una fila por plataforma con el estado combinado. */
-export function adsBillingRows(src: AdsBillingSources): AdsBillingRow[] {
+export function adsBillingRows(src: AdsBillingSources, now: Date = new Date()): AdsBillingRow[] {
   const reported = parseSelfReported(src.intake?.ads_billing_self_reported);
   const chosen = parsePlatforms(src.intake?.ads_platforms);
   const inputs: Record<AdsPlatform, CombineInput> = {
@@ -158,7 +142,7 @@ export function adsBillingRows(src: AdsBillingSources): AdsBillingRow[] {
     google: {
       selfReportedAt: reported.google,
       linked: Boolean(src.googleCustomerId),
-      verification: googleVerification(src.googleStatus),
+      verification: src.googleCustomerId ? googleVerification(src.googleStatus, now) : null,
     },
   };
   return ADS_PLATFORMS.map((platform) => {
