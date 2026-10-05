@@ -49,6 +49,7 @@ import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PagoResultadoRouteImport } from './routes/pago.resultado'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as ReviewTokenRouteImport } from './routes/review.$token'
+import { Route as AppAdminAutomatizacionesRouteImport } from './routes/_app/admin/automatizaciones'
 import { Route as AppAdminHealthRouteImport } from './routes/_app/admin/health'
 import { Route as AppAdminMetaDiagnosticsRouteImport } from './routes/_app/admin/meta-diagnostics'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
@@ -301,6 +302,12 @@ const ReviewTokenRoute = ReviewTokenRouteImport.update({
   path: '/review/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppAdminAutomatizacionesRoute =
+  AppAdminAutomatizacionesRouteImport.update({
+    id: '/admin/automatizaciones',
+    path: '/admin/automatizaciones',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppAdminHealthRoute = AppAdminHealthRouteImport.update({
   id: '/admin/health',
   path: '/admin/health',
@@ -619,6 +626,7 @@ export interface FileRoutesByFullPath {
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
   '/review/$token': typeof ReviewTokenRoute
+  '/admin/automatizaciones': typeof AppAdminAutomatizacionesRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
@@ -710,6 +718,7 @@ export interface FileRoutesByTo {
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
   '/review/$token': typeof ReviewTokenRoute
+  '/admin/automatizaciones': typeof AppAdminAutomatizacionesRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/clients/connect': typeof AppClientsConnectRoute
@@ -802,6 +811,7 @@ export interface FileRoutesById {
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
   '/review/$token': typeof ReviewTokenRoute
+  '/_app/admin/automatizaciones': typeof AppAdminAutomatizacionesRoute
   '/_app/admin/health': typeof AppAdminHealthRoute
   '/_app/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
@@ -895,6 +905,7 @@ export interface FileRouteTypes {
     | '/pago/resultado'
     | '/r/$token'
     | '/review/$token'
+    | '/admin/automatizaciones'
     | '/admin/health'
     | '/admin/meta-diagnostics'
     | '/clients/$clientId'
@@ -986,6 +997,7 @@ export interface FileRouteTypes {
     | '/pago/resultado'
     | '/r/$token'
     | '/review/$token'
+    | '/admin/automatizaciones'
     | '/admin/health'
     | '/admin/meta-diagnostics'
     | '/clients/connect'
@@ -1077,6 +1089,7 @@ export interface FileRouteTypes {
     | '/pago/resultado'
     | '/r/$token'
     | '/review/$token'
+    | '/_app/admin/automatizaciones'
     | '/_app/admin/health'
     | '/_app/admin/meta-diagnostics'
     | '/_app/clients/$clientId'
@@ -1460,6 +1473,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/review/$token'
       preLoaderRoute: typeof ReviewTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/admin/automatizaciones': {
+      id: '/_app/admin/automatizaciones'
+      path: '/admin/automatizaciones'
+      fullPath: '/admin/automatizaciones'
+      preLoaderRoute: typeof AppAdminAutomatizacionesRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/admin/health': {
       id: '/_app/admin/health'
@@ -1890,6 +1910,7 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppReportsRoute: typeof AppReportsRoute
   AppStatsRoute: typeof AppStatsRoute
+  AppAdminAutomatizacionesRoute: typeof AppAdminAutomatizacionesRoute
   AppAdminHealthRoute: typeof AppAdminHealthRoute
   AppAdminMetaDiagnosticsRoute: typeof AppAdminMetaDiagnosticsRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRouteWithChildren
@@ -1913,6 +1934,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppReportsRoute: AppReportsRoute,
   AppStatsRoute: AppStatsRoute,
+  AppAdminAutomatizacionesRoute: AppAdminAutomatizacionesRoute,
   AppAdminHealthRoute: AppAdminHealthRoute,
   AppAdminMetaDiagnosticsRoute: AppAdminMetaDiagnosticsRoute,
   AppClientsClientIdRoute: AppClientsClientIdRouteWithChildren,
