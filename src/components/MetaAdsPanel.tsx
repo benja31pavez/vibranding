@@ -18,6 +18,7 @@ import { EmptyState, ErrorState } from "@/components/app";
 import { DEFAULT_CURRENCY, normalizeCurrency } from "@/lib/pricing/plans";
 import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { MediaUpload } from "./MediaUpload";
+import { BUDGET_CONFIRMATION_REQUIRED } from "@/lib/meta/currency";
 import { CampaignWizard } from "./meta-ads/CampaignWizard";
 
 interface DiscoverPage {
@@ -113,13 +114,23 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       body: JSON.stringify(body),
     });
     const json = await res.json();
-    if (!res.ok) throw new Error(json.error || "Error");
+    if (!res.ok) throw Object.assign(new Error(json.error || "Error"), { code: json.code as string | undefined });
     return json;
   };
 
   const pushToMeta = async (entity: "campaign" | "adset" | "ad", id: string, patch: Record<string, any>) => {
     try {
-      await authedFetch("/api/meta-ads/update", { entity, id, patch });
+      try {
+        await authedFetch("/api/meta-ads/update", { entity, id, patch });
+      } catch (e: any) {
+        // High daily budgets need an explicit, human confirmation before reaching Meta.
+        if (e?.code !== BUDGET_CONFIRMATION_REQUIRED) throw e;
+        if (!confirm(`${e.message}\n\n¿Enviar este presupuesto a Meta de todas formas?`)) {
+          toast.warning("Presupuesto no enviado a Meta");
+          return;
+        }
+        await authedFetch("/api/meta-ads/update", { entity, id, patch, confirmHighBudget: true });
+      }
     } catch (e: any) {
       toast.error(`Meta: ${e.message}`);
     }

@@ -2,6 +2,8 @@ import { graphBase } from "@/lib/meta/version";
 import { denyUnlessClientEditor } from "@/lib/auth/clientAccess.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
+import { fromMetaAmountOrNull, MetaCurrencyError } from "@/lib/meta/currency";
+import { resolveAdAccountCurrency } from "@/lib/meta/accountCurrency.server";
 
 export const Route = createFileRoute("/api/meta-ads/sync")({
   server: {
@@ -33,6 +35,9 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
           const adAcc = account.ad_account_id.startsWith("act_") ? account.ad_account_id : `act_${account.ad_account_id}`;
           const tok = encodeURIComponent(token);
           const base = graphBase();
+          // Budgets come back in minimum units per the account currency offset.
+          const currency = await resolveAdAccountCurrency(adAcc, token, account.currency);
+          const money = (v: unknown) => fromMetaAmountOrNull(v as string | number | null | undefined, currency);
 
           // 1) Campaigns
           const cFields = "id,name,objective,status,daily_budget,lifetime_budget,start_time,stop_time,bid_strategy,spend_cap,buying_type";
@@ -49,9 +54,10 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
               client_id: clientId, meta_account_id: account.id, fb_campaign_id: c.id, name: c.name ?? "Campaña",
               objective: mapObjective(c.objective),
               status: (c.status ?? "DRAFT") as string,
-              daily_budget: c.daily_budget ? Number(c.daily_budget) / 100 : null,
-              lifetime_budget: c.lifetime_budget ? Number(c.lifetime_budget) / 100 : null,
-              spend_cap: c.spend_cap ? Number(c.spend_cap) / 100 : null,
+              daily_budget: money(c.daily_budget),
+              lifetime_budget: money(c.lifetime_budget),
+              spend_cap: money(c.spend_cap),
+              currency,
               bid_strategy: c.bid_strategy ?? null,
               buying_type: c.buying_type ?? "AUCTION",
               start_time: c.start_time ? c.start_time.slice(0, 10) : null,
@@ -90,11 +96,11 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
                 const payload = {
                   client_id: clientId, meta_account_id: account.id, campaign_id: campLocal, fb_adset_id: a.id,
                   name: a.name ?? "Conjunto", status: a.status ?? "DRAFT",
-                  daily_budget: a.daily_budget ? Number(a.daily_budget) / 100 : null,
-                  lifetime_budget: a.lifetime_budget ? Number(a.lifetime_budget) / 100 : null,
+                  daily_budget: money(a.daily_budget),
+                  lifetime_budget: money(a.lifetime_budget),
                   optimization_goal: a.optimization_goal ?? null,
                   billing_event: a.billing_event ?? null,
-                  bid_amount: a.bid_amount ? Number(a.bid_amount) / 100 : null,
+                  bid_amount: money(a.bid_amount),
                   start_time: a.start_time ?? null, end_time: a.end_time ?? null,
                   age_min: t.age_min ?? null, age_max: t.age_max ?? null,
                   genders: gender, countries: (t.geo_locations?.countries ?? []).join(","),
@@ -153,6 +159,7 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
           await userClient.from("meta_accounts").update({ last_synced_at: new Date().toISOString() }).eq("id", account.id);
           return json({ campaigns: campaignsCount, adsets: adsetsCount, ads: adsCount });
         } catch (e: any) {
+          if (e instanceof MetaCurrencyError) return json({ error: e.message }, 400);
           return json({ error: e?.message ?? "Error inesperado" }, 500);
         }
       },

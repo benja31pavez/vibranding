@@ -2,6 +2,12 @@ import { graphBase } from "@/lib/meta/version";
 import { denyUnlessClientEditor } from "@/lib/auth/clientAccess.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
+import { toMetaAmount, dailyBudgetConfirmationMessage, BUDGET_CONFIRMATION_REQUIRED, MetaCurrencyError } from "@/lib/meta/currency";
+import { resolveAdAccountCurrency } from "@/lib/meta/accountCurrency.server";
+
+/** Fields Meta expresses in the currency's minimum unit (see src/lib/meta/currency.ts). */
+const MONEY_FIELDS = ["daily_budget", "lifetime_budget", "spend_cap", "bid_amount"] as const;
+type MoneyField = (typeof MONEY_FIELDS)[number];
 
 type Entity = "campaign" | "adset" | "ad";
 
@@ -17,11 +23,15 @@ export const Route = createFileRoute("/api/meta-ads/update")({
             global: { headers: { Authorization: authHeader } },
           });
 
-          const { entity, id, patch } = (await request.json()) as { entity: Entity; id: string; patch: Record<string, any> };
+          const { entity, id, patch, confirmHighBudget } = (await request.json()) as {
+            entity: Entity; id: string; patch: Record<string, any>; confirmHighBudget?: boolean;
+          };
           if (!entity || !id) return j({ error: "Datos incompletos" }, 400);
 
           const base = graphBase();
           const params = new URLSearchParams();
+          // Money is converted once the account currency is known (after auth).
+          const money: Partial<Record<MoneyField, number>> = {};
           let fbId: string | null = null;
           let rowClientId: string | null = null;
 
@@ -34,9 +44,9 @@ export const Route = createFileRoute("/api/meta-ads/update")({
             if (patch.name) params.set("name", patch.name);
             if (patch.status) params.set("status", patch.status);
             if (patch.objective) params.set("objective", patch.objective);
-            if (patch.daily_budget != null) params.set("daily_budget", String(Math.round(Number(patch.daily_budget) * 100)));
-            if (patch.lifetime_budget != null) params.set("lifetime_budget", String(Math.round(Number(patch.lifetime_budget) * 100)));
-            if (patch.spend_cap != null) params.set("spend_cap", String(Math.round(Number(patch.spend_cap) * 100)));
+            if (patch.daily_budget != null) money.daily_budget = Number(patch.daily_budget);
+            if (patch.lifetime_budget != null) money.lifetime_budget = Number(patch.lifetime_budget);
+            if (patch.spend_cap != null) money.spend_cap = Number(patch.spend_cap);
             if (patch.bid_strategy) params.set("bid_strategy", patch.bid_strategy);
           } else if (entity === "adset") {
             const { data: row } = await supa.from("meta_ads_adsets").select("*").eq("id", id).maybeSingle();
@@ -46,11 +56,11 @@ export const Route = createFileRoute("/api/meta-ads/update")({
             if (!fbId) return j({ ok: true, skipped: "local-only" });
             if (patch.name) params.set("name", patch.name);
             if (patch.status) params.set("status", patch.status);
-            if (patch.daily_budget != null) params.set("daily_budget", String(Math.round(Number(patch.daily_budget) * 100)));
-            if (patch.lifetime_budget != null) params.set("lifetime_budget", String(Math.round(Number(patch.lifetime_budget) * 100)));
+            if (patch.daily_budget != null) money.daily_budget = Number(patch.daily_budget);
+            if (patch.lifetime_budget != null) money.lifetime_budget = Number(patch.lifetime_budget);
             if (patch.optimization_goal) params.set("optimization_goal", patch.optimization_goal);
             if (patch.billing_event) params.set("billing_event", patch.billing_event);
-            if (patch.bid_amount != null) params.set("bid_amount", String(Math.round(Number(patch.bid_amount) * 100)));
+            if (patch.bid_amount != null) money.bid_amount = Number(patch.bid_amount);
             if (patch.start_time) params.set("start_time", new Date(patch.start_time).toISOString());
             if (patch.end_time) params.set("end_time", new Date(patch.end_time).toISOString());
             // Targeting rebuild si vienen campos de segmentación
@@ -99,7 +109,7 @@ export const Route = createFileRoute("/api/meta-ads/update")({
             return j({ error: "Entidad inválida" }, 400);
           }
 
-          if ([...params.keys()].length === 0) return j({ ok: true, skipped: "no-meta-fields" });
+          if ([...params.keys()].length === 0 && Object.keys(money).length === 0) return j({ ok: true, skipped: "no-meta-fields" });
 
           // Spending the agency's Meta token requires an editor role (owner/admin/agent)
           // in the client's org; viewers and portal users are rejected.
@@ -110,12 +120,29 @@ export const Route = createFileRoute("/api/meta-ads/update")({
           const { token } = await requireClientMetaToken(rowClientId!);
           params.set("access_token", token);
 
+          if (Object.keys(money).length > 0) {
+            const { data: acc } = await supa
+              .from("meta_accounts").select("ad_account_id,currency").eq("client_id", rowClientId!).maybeSingle();
+            if (!acc?.ad_account_id) return j({ error: "Configura la cuenta publicitaria" }, 400);
+            const adAcc = acc.ad_account_id.startsWith("act_") ? acc.ad_account_id : `act_${acc.ad_account_id}`;
+            const currency = await resolveAdAccountCurrency(adAcc, token, acc.currency);
+            const confirmMsg = dailyBudgetConfirmationMessage({
+              dailyBudget: money.daily_budget, currency, confirmed: confirmHighBudget === true,
+            });
+            if (confirmMsg) return j({ error: confirmMsg, code: BUDGET_CONFIRMATION_REQUIRED }, 409);
+            for (const field of MONEY_FIELDS) {
+              const amount = money[field];
+              if (amount !== undefined) params.set(field, String(toMetaAmount(amount, currency)));
+            }
+          }
+
           const res = await fetch(`${base}/${fbId}`, { method: "POST", body: params });
           const body = await res.json();
           if (!res.ok) return j({ error: body?.error?.error_user_msg ?? body?.error?.message ?? "Error Meta API" }, 502);
 
           return j({ ok: true });
         } catch (e: any) {
+          if (e instanceof MetaCurrencyError) return j({ error: e.message }, 400);
           return j({ error: e?.message ?? "Error inesperado" }, 500);
         }
       },

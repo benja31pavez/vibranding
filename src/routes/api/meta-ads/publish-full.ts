@@ -2,6 +2,8 @@ import { graphBase } from "@/lib/meta/version";
 import { denyUnlessClientEditor } from "@/lib/auth/clientAccess.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
+import { toMetaAmount, dailyBudgetConfirmationMessage, BUDGET_CONFIRMATION_REQUIRED, MetaCurrencyError } from "@/lib/meta/currency";
+import { resolveAdAccountCurrency } from "@/lib/meta/accountCurrency.server";
 
 export const Route = createFileRoute("/api/meta-ads/publish-full")({
   server: {
@@ -15,7 +17,7 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
             global: { headers: { Authorization: authHeader } },
           });
 
-          const { clientId, campaign, adset, ad } = (await request.json()) as any;
+          const { clientId, campaign, adset, ad, confirmHighBudget } = (await request.json()) as any;
           if (!clientId || !campaign || !adset || !ad) return j({ error: "Datos incompletos" }, 400);
           // Spending the agency's Meta token requires an editor role (owner/admin/agent)
           // in the client's org; viewers and portal users are rejected.
@@ -32,6 +34,18 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
 
           const adAcc = acc.ad_account_id.startsWith("act_") ? acc.ad_account_id : `act_${acc.ad_account_id}`;
           const base = graphBase();
+
+          // Budgets go to Meta in minimum units per the account currency offset
+          // (CLP = 1, USD = 100). Resolve and validate BEFORE creating anything.
+          const currency = await resolveAdAccountCurrency(adAcc, token, acc.currency);
+          const dailyBudget = campaign.cboEnabled
+            ? (campaign.budgetType === "daily" ? campaign.budgetAmount : null)
+            : (adset.budgetType === "daily" ? adset.budgetAmount : null);
+          const confirmMsg = dailyBudgetConfirmationMessage({
+            dailyBudget, currency, confirmed: confirmHighBudget === true,
+          });
+          if (confirmMsg) return j({ error: confirmMsg, code: BUDGET_CONFIRMATION_REQUIRED }, 409);
+          const metaMoney = (amount: number) => String(toMetaAmount(amount, currency));
 
           // 1) Image upload (if URL present)
           let imageHash: string | undefined;
@@ -61,10 +75,10 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
             access_token: token,
           };
           if (campaign.cboEnabled) {
-            if (campaign.budgetType === "daily") campaignParams.daily_budget = String(Math.round(campaign.budgetAmount * 100));
-            else campaignParams.lifetime_budget = String(Math.round(campaign.budgetAmount * 100));
+            if (campaign.budgetType === "daily") campaignParams.daily_budget = metaMoney(campaign.budgetAmount);
+            else campaignParams.lifetime_budget = metaMoney(campaign.budgetAmount);
           }
-          if (campaign.spendCap) campaignParams.spend_cap = String(Math.round(campaign.spendCap * 100));
+          if (campaign.spendCap) campaignParams.spend_cap = metaMoney(campaign.spendCap);
           const cRes = await fetch(`${base}/${adAcc}/campaigns`, { method: "POST", body: new URLSearchParams(campaignParams) });
           const cBody = await cRes.json();
           if (!cRes.ok) return j({ error: `Campaña: ${cBody?.error?.error_user_msg ?? cBody?.error?.message ?? "error"}` }, 502);
@@ -99,10 +113,10 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
             targeting: JSON.stringify(targeting), access_token: token,
           };
           if (!campaign.cboEnabled && adset.budgetAmount) {
-            if (adset.budgetType === "daily") adsetParams.daily_budget = String(Math.round(adset.budgetAmount * 100));
-            else adsetParams.lifetime_budget = String(Math.round(adset.budgetAmount * 100));
+            if (adset.budgetType === "daily") adsetParams.daily_budget = metaMoney(adset.budgetAmount);
+            else adsetParams.lifetime_budget = metaMoney(adset.budgetAmount);
           }
-          if (adset.bidAmount) adsetParams.bid_amount = String(Math.round(adset.bidAmount * 100));
+          if (adset.bidAmount) adsetParams.bid_amount = metaMoney(adset.bidAmount);
           if (adset.startTime) adsetParams.start_time = new Date(adset.startTime).toISOString();
           else if (campaign.startTime) adsetParams.start_time = new Date(campaign.startTime).toISOString();
           if (adset.endTime) adsetParams.end_time = new Date(adset.endTime).toISOString();
@@ -166,7 +180,7 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
             status: campaign.status, daily_budget: campaign.cboEnabled && campaign.budgetType === "daily" ? campaign.budgetAmount : null,
             lifetime_budget: campaign.cboEnabled && campaign.budgetType === "lifetime" ? campaign.budgetAmount : null,
             start_time: campaign.startTime?.slice(0, 10), stop_time: campaign.endTime?.slice(0, 10),
-            spend_cap: campaign.spendCap, cbo_enabled: campaign.cboEnabled,
+            spend_cap: campaign.spendCap, cbo_enabled: campaign.cboEnabled, currency,
             bid_strategy: campaign.bidStrategy, buying_type: "AUCTION",
           }).select().single();
           const { data: dbAdset } = await supa.from("meta_ads_adsets").insert({
@@ -190,6 +204,7 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
 
           return j({ ok: true, fb_campaign_id: fbCampaignId, adAccountId: adAcc });
         } catch (e: any) {
+          if (e instanceof MetaCurrencyError) return j({ error: e.message }, 400);
           return j({ error: e?.message ?? "Error inesperado" }, 500);
         }
       },
