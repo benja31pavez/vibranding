@@ -1,12 +1,30 @@
 import { useState, type ReactNode } from "react";
 import { useRouter } from "@tanstack/react-router";
-import { CalendarClock, CheckCircle2, CircleSlash, Clock3, ShieldCheck } from "lucide-react";
-import { findPlan, planPriceLabel } from "@/lib/pricing/plans";
-import { formatChileDate, proposalConditions } from "@/lib/proposals/model";
-import type { AcceptResult, PublicPaymentState, PublicProposal } from "@/lib/proposals/public.server";
+import { CheckCircle2, CircleSlash, Clock3, ShieldCheck } from "lucide-react";
+import { findPlan } from "@/lib/pricing/plans";
+import { computeTotals, formatChileDate, proposalConditions } from "@/lib/proposals/model";
+import type {
+  AcceptResult,
+  PublicPaymentState,
+  PublicProposal,
+} from "@/lib/proposals/public.server";
+import { cn } from "@/lib/utils";
 import { ProposalLines } from "../ProposalLines";
 import { AcceptProposalForm } from "./AcceptProposalForm";
 import { PaymentBox } from "./PaymentBox";
+import { first30Days, planFeatures, proposalFaq, proposalOutcome } from "./proposalContent";
+import {
+  ACCEPT_ANCHOR,
+  Card,
+  ContactCard,
+  Faq,
+  FeatureList,
+  ProcessSteps,
+  ProposalHero,
+  StickyAcceptBar,
+  Timeline,
+  ValidityNote,
+} from "./ProposalSections";
 
 interface Props {
   token: string;
@@ -14,27 +32,39 @@ interface Props {
   payment: PublicPaymentState | null;
 }
 
-export function PublicShell({ children }: { children: ReactNode }) {
+export function PublicShell({
+  children,
+  stickyBar,
+}: {
+  children: ReactNode;
+  stickyBar?: ReactNode;
+}) {
   return (
-    <div className="min-h-screen bg-bg">
+    <div className={cn("min-h-screen bg-bg", stickyBar && "pb-24 sm:pb-0")}>
       <header className="border-b border-border-subtle bg-surface">
         <div className="mx-auto flex h-14 max-w-2xl items-center px-4 sm:px-6">
-          <span className="font-brand text-2xl tracking-tight text-gradient-brand-strong">Vibranding</span>
+          <span className="font-brand text-2xl tracking-tight text-gradient-brand-strong">
+            Vibranding
+          </span>
         </div>
       </header>
       <main className="mx-auto max-w-2xl space-y-5 px-4 py-8 sm:px-6 sm:py-12">{children}</main>
       <footer className="mx-auto max-w-2xl px-4 pb-10 text-xs text-muted-foreground sm:px-6">
         VIBRANDING SpA · Santiago de Chile
       </footer>
+      {stickyBar}
     </div>
   );
 }
 
-/** Propuesta pública: detalle, condiciones y aceptación (o su estado final). */
+/** Propuesta pública: resultado, qué incluye, primeros 30 días, proceso, FAQ y aceptación. */
 export function PublicProposalView({ token, proposal, payment }: Props) {
   const router = useRouter();
   const [accepted, setAccepted] = useState<Extract<AcceptResult, { ok: true }> | null>(null);
   const plan = findPlan(proposal.planKey);
+  const planKey = plan?.key ?? null;
+  const totals = computeTotals(proposal.items);
+  const hasMonthly = totals.monthly > 0 || plan?.billing === "monthly";
   const conditions = proposalConditions(proposal.planKey, proposal.items);
   const status = accepted ? "aceptada" : proposal.status;
   const open = status === "enviada" || status === "vista";
@@ -46,29 +76,35 @@ export function PublicProposalView({ token, proposal, payment }: Props) {
   };
 
   return (
-    <PublicShell>
-      <section className="space-y-2">
-        <p className="text-sm text-muted-foreground">
-          Propuesta para <span className="font-medium text-foreground">{proposal.recipientName ?? "ti"}</span>
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          {proposal.title ?? "Propuesta Vibranding"}
-        </h1>
-        {plan && (
-          <p className="text-sm text-muted-foreground">
-            {plan.label} · {planPriceLabel(plan)}
-          </p>
-        )}
-      </section>
-
+    <PublicShell stickyBar={open ? <StickyAcceptBar totals={totals} /> : undefined}>
       <StatusNotice status={status} proposal={proposal} justAccepted={Boolean(accepted)} />
 
       {status === "aceptada" && paymentState && <PaymentBox token={token} payment={paymentState} />}
 
-      <Card title="Qué incluye">
-        {plan && <p className="mb-2 text-sm text-muted-foreground">{plan.description}</p>}
+      <ProposalHero
+        recipientName={proposal.recipientName}
+        title={proposal.title}
+        planLabel={plan?.label ?? null}
+        outcome={proposalOutcome(planKey)}
+        totals={totals}
+        expiresAt={open ? proposal.expiresAt : null}
+        open={open}
+      />
+
+      <Card title={hasMonthly ? "Qué incluye cada mes" : "Qué incluye"}>
+        <FeatureList features={planFeatures(planKey)} />
         <ProposalLines items={proposal.items} />
       </Card>
+
+      <Card title="Tus primeros 30 días">
+        <Timeline steps={first30Days(planKey)} />
+      </Card>
+
+      {open && (
+        <Card title="Cómo seguimos">
+          <ProcessSteps />
+        </Card>
+      )}
 
       <Card title="Condiciones">
         <ul className="space-y-2 text-sm text-muted-foreground">
@@ -79,29 +115,23 @@ export function PublicProposalView({ token, proposal, payment }: Props) {
             </li>
           ))}
         </ul>
-        {proposal.expiresAt && (
-          <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-            <CalendarClock aria-hidden className="h-4 w-4" />
-            Válida hasta el {formatChileDate(proposal.expiresAt)}.
-          </p>
-        )}
+      </Card>
+
+      <Card title="Preguntas frecuentes">
+        <Faq items={proposalFaq(planKey, hasMonthly, plan?.minMonths ?? 3)} />
       </Card>
 
       {open && (
-        <Card title="Aceptar la propuesta">
+        <Card title="Aceptar la propuesta" id={ACCEPT_ANCHOR}>
+          <div className="mb-4">
+            <ValidityNote expiresAt={proposal.expiresAt} />
+          </div>
           <AcceptProposalForm token={token} onAccepted={onAccepted} />
         </Card>
       )}
-    </PublicShell>
-  );
-}
 
-function Card({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs sm:p-6">
-      <h2 className="mb-3 text-base font-semibold text-foreground">{title}</h2>
-      {children}
-    </section>
+      <ContactCard title={proposal.title} />
+    </PublicShell>
   );
 }
 
@@ -119,7 +149,9 @@ function StatusNotice({
     const who = proposal.acceptedName ? ` por ${proposal.acceptedName}` : "";
     return (
       <Banner tone="success" icon={CheckCircle2}>
-        {justAccepted ? "¡Listo! Propuesta aceptada. Gracias por confiar en nosotros." : `Propuesta aceptada${who}${when}.`}
+        {justAccepted
+          ? "¡Listo! Propuesta aceptada. Gracias por confiar en nosotros."
+          : `Propuesta aceptada${who}${when}.`}
       </Banner>
     );
   }
@@ -156,7 +188,10 @@ function Banner({
   children: ReactNode;
 }) {
   return (
-    <div role="status" className={`flex items-start gap-3 rounded-app-lg px-4 py-3 text-sm font-medium ${BANNER_TONE[tone]}`}>
+    <div
+      role="status"
+      className={`flex items-start gap-3 rounded-app-lg px-4 py-3 text-sm font-medium ${BANNER_TONE[tone]}`}
+    >
       <Icon aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
       <p>{children}</p>
     </div>
