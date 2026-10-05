@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { DiagnosticoInput, isHoneypotHit, type DiagnosticoResult } from "./diagnostico.schema";
+import { resultForOutcome } from "./diagnostico.outcome";
 
 const MAX_PER_CLIENT = 5;
 /** Tope global (todas las IPs) por hora: freno ante abuso distribuido. */
@@ -69,6 +70,7 @@ async function allowGlobal(): Promise<boolean> {
  * Formulario público "Diagnóstico gratis": crea (o anota) un prospecto en la
  * org del administrador de la plataforma, registra el consentimiento y avisa
  * por correo si hay Resend. Honeypot (cualquier largo) → ok sin guardar nada.
+ * Si el lead no queda guardado → { ok: false, reason: "not_saved" } (fallback WhatsApp).
  * Límites: 5/h por cliente y 60/h global.
  */
 export const submitDiagnostico = createServerFn({ method: "POST" })
@@ -91,7 +93,6 @@ export const submitDiagnostico = createServerFn({ method: "POST" })
     const { saveDiagnosticoLead, notifyDiagnosticoLead } = await import("./diagnostico.server");
     const { outcome, ownerEmail } = await saveDiagnosticoLead(data, ipHash);
     await notifyDiagnosticoLead(data, outcome, ownerEmail);
-    // El visitante ve "gracias" aunque falle el guardado: queda en logs y en el correo,
-    // y la página de gracias ofrece WhatsApp.
-    return { ok: true };
+    // Si no quedó guardado, el visitante ve el aviso con WhatsApp (no un "gracias" falso).
+    return resultForOutcome(outcome);
   });

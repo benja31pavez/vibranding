@@ -9,6 +9,7 @@ import {
   GOALS,
   type PlanInterest,
 } from "@/lib/leads/diagnostico.schema";
+import { whatsappUrl } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 type FieldName =
@@ -26,6 +27,13 @@ const FIELD_ORDER: FieldName[] = [
   "negocio", "rubro", "comuna", "presencia", "whatsapp", "email", "objetivo", "presupuesto", "consentimiento",
 ];
 
+const NOT_SAVED_MESSAGE = "No pudimos registrar tu solicitud. Escríbenos por WhatsApp.";
+const RATE_LIMITED_MESSAGE = "Recibimos varios envíos desde tu conexión. Espera un rato o escríbenos por WhatsApp.";
+const INVALID_MESSAGE = "Revisa los datos del formulario e inténtalo de nuevo.";
+const NETWORK_MESSAGE = "No pudimos enviar el formulario. Inténtalo de nuevo o escríbenos por WhatsApp.";
+
+type FormError = { text: string; whatsapp: boolean };
+
 const inputCls =
   "block h-12 w-full rounded-xl border border-input bg-background px-4 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-[invalid=true]:border-destructive";
 
@@ -42,7 +50,7 @@ export function DiagnosticoForm({ plan, onDone }: { plan?: PlanInterest; onDone:
   const [values, setValues] = useState<Values>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [status, setStatus] = useState<"idle" | "sending">("idle");
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<FormError | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   const set = <K extends keyof Values>(key: K, value: Values[K]) => {
@@ -81,13 +89,11 @@ export function DiagnosticoForm({ plan, onDone }: { plan?: PlanInterest; onDone:
         onDone(parsed.data.negocio);
         return;
       }
-      setFormError(
-        res.reason === "rate_limited"
-          ? "Recibimos varios envíos desde tu conexión. Espera un rato o escríbenos por WhatsApp."
-          : "Revisa los datos del formulario e inténtalo de nuevo.",
-      );
+      if (res.reason === "not_saved") setFormError({ text: NOT_SAVED_MESSAGE, whatsapp: true });
+      else if (res.reason === "rate_limited") setFormError({ text: RATE_LIMITED_MESSAGE, whatsapp: true });
+      else setFormError({ text: INVALID_MESSAGE, whatsapp: false });
     } catch {
-      setFormError("No pudimos enviar el formulario. Inténtalo de nuevo o escríbenos por WhatsApp.");
+      setFormError({ text: NETWORK_MESSAGE, whatsapp: true });
     } finally {
       setStatus("idle");
     }
@@ -233,7 +239,20 @@ export function DiagnosticoForm({ plan, onDone }: { plan?: PlanInterest; onDone:
 
       {formError && (
         <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm font-medium text-red-700 dark:text-red-300">
-          {formError}
+          {formError.text}
+          {formError.whatsapp && (
+            <>
+              {" "}
+              <a
+                href={whatsappUrl(`Hola Vibranding, quiero el diagnóstico gratis. Mi negocio es: ${values.negocio}`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold underline underline-offset-2"
+              >
+                Abrir WhatsApp
+              </a>
+            </>
+          )}
         </p>
       )}
 

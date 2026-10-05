@@ -6,9 +6,14 @@
  *      CONFIRMADO;
  *   2. su org: org_members con role = 'owner' (la más antigua).
  * Si no se puede resolver (variable vacía, usuario inexistente o sin org), el
- * lead NO se guarda en otra tabla: se registra el error en el log del Worker y
- * se intenta igual el aviso por correo a PLATFORM_ADMIN_EMAILS, para no perderlo.
- * El visitante siempre ve la página de gracias (con botón de WhatsApp).
+ * lead NO se guarda en otra tabla: se registra el error en el log del Worker
+ * (tag [diagnostico][LEAD_PERDIDO]) y se intenta igual el aviso por correo a
+ * PLATFORM_ADMIN_EMAILS. El visitante ve un aviso para escribir por WhatsApp.
+ *
+ * Consentimiento (Ley 21.719): un prospecto NUEVO solo queda creado si su
+ * consentimiento quedó registrado; si el registro falla, se borra el prospecto
+ * recién creado y el resultado es "error". Si el prospecto ya existía, se
+ * intenta registrar el consentimiento igual y, si falla, solo se loguea.
  *
  * Duplicados: prospects tiene índices únicos (org, email) y (org, nombre+comuna).
  * Se inserta y, si choca (23505), se busca el existente y se le agrega una nota
@@ -26,6 +31,9 @@ import {
   splitPresence,
   type DiagnosticoInput,
 } from "./diagnostico.schema";
+import { leadLostLine, safeSnippet, type SaveOutcome } from "./diagnostico.outcome";
+
+export type { SaveOutcome } from "./diagnostico.outcome";
 
 const ORG_CACHE_MS = 10 * 60 * 1000;
 /** Si no se pudo resolver la org, no reintenta listUsers en cada envío. */
@@ -136,6 +144,7 @@ async function findExisting(admin: Admin, orgId: string, input: DiagnosticoInput
     .ilike("email_publico", likeLiteral(input.email))
     .limit(1)
     .maybeSingle();
+  if (byEmail.error) throw new DbError("buscar duplicado por correo", byEmail.error.code);
   if (byEmail.data) return byEmail.data.id;
   const byName = await admin
     .from("prospects")
@@ -145,10 +154,9 @@ async function findExisting(admin: Admin, orgId: string, input: DiagnosticoInput
     .ilike("comuna", likeLiteral(input.comuna))
     .limit(1)
     .maybeSingle();
+  if (byName.error) throw new DbError("buscar duplicado por nombre", byName.error.code);
   return byName.data?.id ?? null;
 }
-
-export type SaveOutcome = "created" | "noted" | "no_org" | "error";
 
 /** Columnas de las tablas nuevas (aún no están en types.ts hasta aplicar la migración). */
 type UntypedAdmin = {
@@ -163,9 +171,15 @@ async function sha256(value: string): Promise<string> {
   return createHash("sha256").update(value).digest("hex");
 }
 
+/** Hash salado del correo (mismo formato que prospect_consents.email_hash). */
+async function emailHash(input: DiagnosticoInput): Promise<string> {
+  const salt = process.env["IP_HASH_SALT"]?.trim() ?? "";
+  return sha256(`${input.email.trim().toLowerCase()}:${salt}`);
+}
+
 /**
- * Registra el consentimiento (Ley 21.719) en prospect_consents. Tolera que la
- * migración 20261012000200 aún no esté aplicada: log y sigue. Nunca lanza.
+ * Registra el consentimiento (Ley 21.719) en prospect_consents. Lanza DbError
+ * si no queda registrado (incluido que falte la migración 20261012000200).
  */
 async function recordConsent(
   admin: Admin,
@@ -174,26 +188,34 @@ async function recordConsent(
   input: DiagnosticoInput,
   ipHash: string | null,
 ): Promise<void> {
-  try {
-    const salt = process.env["IP_HASH_SALT"]?.trim() ?? "";
-    const { error } = await (admin as unknown as UntypedAdmin).from("prospect_consents").insert({
-      org_id: orgId,
-      prospect_id: prospectId,
-      email_hash: await sha256(`${input.email.trim().toLowerCase()}:${salt}`),
-      channel: "web_diagnostico",
-      consent_text: CONSENT_TEXT,
-      consent_version: CONSENT_VERSION,
-      ip_hash: ipHash,
-    });
-    if (!error) return;
-    if (MISSING_TABLE.has(error.code ?? "")) {
-      console.error("[diagnostico] prospect_consents no existe aún: aplica la migración 20261012000200");
-      return;
-    }
-    throw new DbError("insert prospect_consents", error.code);
-  } catch (e) {
-    logError(e);
+  const { error } = await (admin as unknown as UntypedAdmin).from("prospect_consents").insert({
+    org_id: orgId,
+    prospect_id: prospectId,
+    email_hash: await emailHash(input),
+    channel: "web_diagnostico",
+    consent_text: CONSENT_TEXT,
+    consent_version: CONSENT_VERSION,
+    ip_hash: ipHash,
+  });
+  if (!error) return;
+  if (MISSING_TABLE.has(error.code ?? "")) {
+    console.error("[diagnostico] prospect_consents no existe aún: aplica la migración 20261012000200");
   }
+  throw new DbError("insert prospect_consents", error.code);
+}
+
+/** Sin consentimiento registrado no se deja un prospecto nuevo: se borra el recién creado. */
+async function rollbackProspect(admin: Admin, prospectId: string): Promise<void> {
+  const { error } = await admin.from("prospects").delete().eq("id", prospectId);
+  if (error) console.error(`[diagnostico] no se pudo borrar el prospecto sin consentimiento (code ${error.code ?? "?"})`);
+}
+
+/** Log con tag LEAD_PERDIDO (sin PII: paso, código y prefijo del hash del correo). */
+async function logLeadLost(outcome: SaveOutcome, e: unknown, input: DiagnosticoInput): Promise<void> {
+  const step = e instanceof DbError ? e.step : `inesperado (${(e as Error)?.name ?? "desconocido"})`;
+  const code = e instanceof DbError ? e.code : undefined;
+  const hash = await emailHash(input).catch(() => null);
+  console.error(leadLostLine({ outcome, step, code, emailHash: hash }));
 }
 
 /** Crea el prospecto o agrega la nota al existente, y registra el consentimiento. Nunca lanza. */
@@ -206,6 +228,7 @@ export async function saveDiagnosticoLead(
     const target = await resolveLeadsTarget(admin);
     if (!target) {
       console.error("[diagnostico] sin org destino: revisa PLATFORM_ADMIN_EMAILS y que ese usuario sea owner de una org");
+      await logLeadLost("no_org", new DbError("resolver org destino", "no_org"), input);
       return { outcome: "no_org", ownerEmail: null };
     }
     const presence = splitPresence(input.presencia);
@@ -230,14 +253,19 @@ export async function saveDiagnosticoLead(
       .select("id")
       .single();
     if (!error) {
-      await recordConsent(admin, target.orgId, created.id, input, ipHash);
+      try {
+        await recordConsent(admin, target.orgId, created.id, input, ipHash);
+      } catch (consentError) {
+        await rollbackProspect(admin, created.id);
+        throw consentError;
+      }
       return { outcome: "created", ownerEmail: target.ownerEmail };
     }
     if (error.code !== UNIQUE_VIOLATION) throw new DbError("insert prospects", error.code);
 
     const existingId = await findExisting(admin, target.orgId, input);
-    // El consentimiento se guarda igual (con o sin prospecto encontrado).
-    await recordConsent(admin, target.orgId, existingId, input, ipHash);
+    // Prospecto ya existente: el consentimiento se intenta igual; si falla, solo log.
+    await recordConsent(admin, target.orgId, existingId, input, ipHash).catch(logError);
     if (!existingId) throw new DbError("buscar duplicado", "not_found");
     const { error: noteError } = await admin.rpc("append_prospect_note", {
       _prospect_id: existingId,
@@ -247,6 +275,7 @@ export async function saveDiagnosticoLead(
     return { outcome: "noted", ownerEmail: target.ownerEmail };
   } catch (e) {
     logError(e);
+    await logLeadLost("error", e, input);
     return { outcome: "error", ownerEmail: null };
   }
 }
@@ -263,6 +292,15 @@ const OUTCOME_LABEL: Record<SaveOutcome, string> = {
   error: "ATENCIÓN: no se guardó en la plataforma (error de base de datos, ver logs).",
 };
 
+let warnedNoMail = false;
+
+/** Avisa una sola vez por Worker que el correo de leads está desactivado. */
+function warnNoMailOnce(reason: string): void {
+  if (warnedNoMail) return;
+  warnedNoMail = true;
+  console.warn(`[diagnostico][SIN_AVISO_CORREO] ${reason}: los leads no se avisan por correo`);
+}
+
 /** Aviso al dueño por Resend si RESEND_API_KEY existe. Nunca lanza. */
 export async function notifyDiagnosticoLead(
   input: DiagnosticoInput,
@@ -270,9 +308,9 @@ export async function notifyDiagnosticoLead(
   ownerEmail: string | null,
 ): Promise<void> {
   const apiKey = process.env["RESEND_API_KEY"]?.trim();
-  if (!apiKey) return;
+  if (!apiKey) return warnNoMailOnce("falta RESEND_API_KEY");
   const to = ownerEmail ?? [...platformAdminEmails()][0];
-  if (!to) return;
+  if (!to) return warnNoMailOnce("sin destinatario (PLATFORM_ADMIN_EMAILS vacía)");
   const lines = [
     `Nuevo pedido de diagnóstico gratis desde vibranding.pro.`,
     OUTCOME_LABEL[outcome],
@@ -297,8 +335,9 @@ export async function notifyDiagnosticoLead(
       replyTo: input.email,
     });
   } catch (e) {
-    // Solo el estado HTTP (el mensaje de Resend puede traer la dirección).
-    const status = /Resend (\d+)/.exec((e as Error)?.message ?? "")?.[1] ?? "?";
-    console.error(`[diagnostico] aviso por correo falló (status ${status})`);
+    // Estado HTTP + fragmento del error con los correos ocultos.
+    const message = (e as Error)?.message ?? "";
+    const status = /Resend (\d+)/.exec(message)?.[1] ?? "?";
+    console.error(`[diagnostico][AVISO_CORREO_FALLO] status ${status} · ${safeSnippet(message) || "sin detalle"}`);
   }
 }
