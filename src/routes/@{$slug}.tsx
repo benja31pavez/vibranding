@@ -1,6 +1,5 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { trackEvent } from "@/lib/track";
 import { PublicLandingView } from "@/components/landing/PublicLandingView";
 import { LANDING_PUBLIC_COLUMNS } from "@/lib/site/publicColumns";
@@ -9,6 +8,7 @@ import { landingCanonicalUrl, landingSeoDescription, landingSeoTitle } from "@/l
 
 export const Route = createFileRoute("/@{$slug}")({
   loader: async ({ params }) => {
+    const { supabase } = await import("@/integrations/supabase/client");
     const { data, error } = await supabase
       .from("landing_pages")
       .select(LANDING_PUBLIC_COLUMNS)
