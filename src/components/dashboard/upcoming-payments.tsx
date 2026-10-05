@@ -1,10 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { Copy, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import { EmptyState, Money, Panel, StatusBadge, TableSkeleton } from "@/components/app";
+import { EmptyState, Money, MoneyTotals, Panel, StatusBadge } from "@/components/app";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { BlockState } from "./block-state";
-import { UPCOMING_DAYS, formatShortDate, useClientIndex, useOpenPayments, type OpenPayment } from "./queries";
+import {
+  UPCOMING_DAYS,
+  formatShortDate,
+  useClientIndex,
+  useOpenPayments,
+  type OpenPayment,
+  type PaymentsSummary,
+} from "./queries";
 
 const VISIBLE_ROWS = 8;
 
@@ -18,40 +26,72 @@ async function copyLink(url: string) {
   }
 }
 
-/** Vencidos + pendientes de los próximos 7 días. */
+/** Resumen en una línea: vencidos (en rojo si hay) y próximos, con su total en CLP. */
+function PaymentsSummaryLine({ data }: { data: PaymentsSummary }) {
+  const overdue = data.overdue.length;
+  return (
+    <dl className="grid grid-cols-2 gap-2">
+      <div
+        className={cn(
+          "rounded-app-md px-3 py-2",
+          overdue > 0 ? "bg-danger-subtle" : "bg-surface-2",
+        )}
+      >
+        <dt className="text-xs text-muted-foreground">Pagos vencidos</dt>
+        <dd className="flex flex-wrap items-baseline gap-x-2 tabular-nums">
+          <span className={cn("text-lg font-semibold", overdue > 0 && "text-danger-strong")}>
+            {overdue}
+          </span>
+          <MoneyTotals totals={data.overdueTotals} className="text-xs text-muted-foreground" />
+        </dd>
+      </div>
+      <div className="rounded-app-md bg-surface-2 px-3 py-2">
+        <dt className="text-xs text-muted-foreground">Cobros próximos {UPCOMING_DAYS} días</dt>
+        <dd className="flex flex-wrap items-baseline gap-x-2 tabular-nums">
+          <span className="text-lg font-semibold">{data.upcoming.length}</span>
+          <MoneyTotals totals={data.upcomingTotals} className="text-xs text-muted-foreground" />
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
+/** Vencidos + pendientes de los próximos 7 días (también resume sus totales). */
 export function UpcomingPayments() {
   const query = useOpenPayments();
   const clients = useClientIndex();
   const nameOf = (id: string) => clients.data?.nameById.get(id) ?? "Cliente";
 
   return (
-    <Panel icon={Wallet} title="Próximos cobros" description={`Vencidos y por vencer en ${UPCOMING_DAYS} días`}>
-      <BlockState
-        query={query}
-        loadingLabel="Cargando cobros"
-        skeleton={<TableSkeleton rows={3} columns={4} label="Cargando cobros" />}
-      >
+    <Panel
+      className="min-w-0"
+      icon={Wallet}
+      title="Próximos cobros"
+      description={`Vencidos y por vencer en ${UPCOMING_DAYS} días`}
+    >
+      <BlockState query={query} loadingLabel="Cargando cobros">
         {(data) =>
           data.agenda.length === 0 ? (
-            <EmptyState size="compact" icon={Wallet} title="Sin cobros esta semana." description="No hay pagos vencidos ni por vencer." />
+            <EmptyState
+              size="compact"
+              className="py-3"
+              icon={Wallet}
+              title="Sin cobros esta semana."
+              description="No hay pagos vencidos ni por vencer."
+            />
           ) : (
-            <div className="-mx-5 overflow-x-auto">
-              <table className="w-full min-w-[32rem] text-sm">
-                <thead>
-                  <tr className="border-b border-border-subtle text-left text-xs text-muted-foreground">
-                    <th scope="col" className="px-5 py-2 font-medium">Cliente</th>
-                    <th scope="col" className="px-2 py-2 text-right font-medium">Monto</th>
-                    <th scope="col" className="px-2 py-2 font-medium">Vence</th>
-                    <th scope="col" className="px-2 py-2 font-medium">Estado</th>
-                    <th scope="col" className="px-5 py-2"><span className="sr-only">Acciones</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.agenda.slice(0, VISIBLE_ROWS).map((p) => (
-                    <PaymentRow key={p.id} payment={p} clientName={nameOf(p.client_id)} />
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              <PaymentsSummaryLine data={data} />
+              <ul className="divide-y divide-border-subtle">
+                {data.agenda.slice(0, VISIBLE_ROWS).map((p) => (
+                  <PaymentRow key={p.id} payment={p} clientName={nameOf(p.client_id)} />
+                ))}
+              </ul>
+              {data.agenda.length > VISIBLE_ROWS && (
+                <p className="text-xs text-muted-foreground">
+                  y {data.agenda.length - VISIBLE_ROWS} más…
+                </p>
+              )}
             </div>
           )
         }
@@ -61,24 +101,47 @@ export function UpcomingPayments() {
 }
 
 function PaymentRow({ payment: p, clientName }: { payment: OpenPayment; clientName: string }) {
+  const overdue = p.status === "overdue";
   return (
-    <tr className="border-b border-border-subtle last:border-0">
-      <td className="max-w-[12rem] px-5 py-2">
-        <Link to="/clients/$clientId/payments" params={{ clientId: p.client_id }} className="block truncate font-medium hover:underline">
+    <li className="flex items-center gap-3 py-2 text-sm last:pb-0">
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <Link
+          to="/clients/$clientId/payments"
+          params={{ clientId: p.client_id }}
+          className="block truncate font-medium hover:underline"
+        >
           {clientName}
         </Link>
-        {p.description && <span className="block truncate text-xs text-muted-foreground">{p.description}</span>}
-      </td>
-      <td className="px-2 py-2 text-right"><Money amount={p.amount} currency={p.currency} /></td>
-      <td className="whitespace-nowrap px-2 py-2 tabular-nums text-muted-foreground">{formatShortDate(p.due_date)}</td>
-      <td className="px-2 py-2"><StatusBadge status={p.status} /></td>
-      <td className="px-5 py-2 text-right">
-        {p.payment_url && (
-          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => void copyLink(p.payment_url ?? "")}>
-            <Copy aria-hidden className="mr-1 h-3.5 w-3.5" /> Copiar link
-          </Button>
-        )}
-      </td>
-    </tr>
+        <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          <StatusBadge status={p.status} className="shrink-0" />
+          {p.description && <span className="truncate">{p.description}</span>}
+        </div>
+      </div>
+      <div className="shrink-0 text-right">
+        <Money amount={p.amount} currency={p.currency} className="block font-medium" />
+        <span
+          className={cn(
+            "text-xs tabular-nums",
+            overdue ? "text-danger-strong" : "text-muted-foreground",
+          )}
+        >
+          Vence {formatShortDate(p.due_date)}
+        </span>
+      </div>
+      {p.payment_url ? (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 shrink-0"
+          aria-label={`Copiar link de pago de ${clientName}`}
+          title="Copiar link"
+          onClick={() => void copyLink(p.payment_url ?? "")}
+        >
+          <Copy aria-hidden className="h-4 w-4" />
+        </Button>
+      ) : (
+        <span aria-hidden className="w-8 shrink-0" />
+      )}
+    </li>
   );
 }

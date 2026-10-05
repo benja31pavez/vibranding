@@ -20,7 +20,14 @@ const CAPTION_CHARS = 60;
  * Notas que los clientes dejaron en posts de Instagram desde el portal y que
  * el equipo aún no lee. Sin `clientId` muestra todos los clientes (dashboard).
  */
-export function PostFeedbackPanel({ clientId }: { clientId?: string }) {
+export function PostFeedbackPanel({
+  clientId,
+  tone = "warning",
+}: {
+  clientId?: string;
+  /** "default" en Inicio, donde el bloque ya está dentro de "Para hacer hoy". */
+  tone?: "default" | "warning";
+}) {
   const feedback = usePostFeedback(clientId);
   const queryClient = useQueryClient();
   const [marking, setMarking] = useState(false);
@@ -53,7 +60,7 @@ export function PostFeedbackPanel({ clientId }: { clientId?: string }) {
 
   return (
     <Panel
-      tone="warning"
+      tone={tone}
       icon={MessageSquareText}
       title={`Notas de clientes en posts (${items.length})`}
       actions={
