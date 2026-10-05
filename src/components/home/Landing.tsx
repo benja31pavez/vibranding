@@ -6,11 +6,7 @@ import { HomeHeader } from "@/components/home/HomeHeader";
 import { HomeHero } from "@/components/home/HomeHero";
 import { BenefitsSection } from "@/components/home/BenefitsSection";
 import { ServicesSection } from "@/components/home/ServicesSection";
-import {
-  DiagnosticoBanner,
-  ForWhomSection,
-  WorkWithUsSection,
-} from "@/components/home/GrowthSections";
+import { ForWhomSection, WorkWithUsSection } from "@/components/home/GrowthSections";
 import { PlansSection } from "@/components/home/PlansSection";
 import { AboutSection } from "@/components/home/AboutSection";
 import { PortfolioSection } from "@/components/home/PortfolioSection";
@@ -49,7 +45,6 @@ export function Landing({
       <HomeHeader />
       <main id="contenido">
         <HomeHero />
-        <DiagnosticoBanner />
         <BenefitsSection />
         <ForWhomSection />
         <ServicesSection />
