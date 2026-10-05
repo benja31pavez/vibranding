@@ -5,7 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Field, ImageUploadButton } from "@/components/site/fields";
-import { SortableList, useSortableRow } from "@/components/site/SortableSections";
+import {
+  MoveButtons,
+  moveBy,
+  SortableList,
+  useSortableRow,
+} from "@/components/site/SortableSections";
 import { LinkIcon } from "@/components/multilink/LinkIcon";
 import { scheduleState, type Multilink, type MultilinkItem } from "@/lib/multilink";
 import { LINK_KIND_LABEL } from "@/lib/site/linkKind";
@@ -85,9 +90,10 @@ export function LinkListEditor({ ml, items, onChange, errors, clientId, landingU
         <SortableList
           ids={items.map((i) => i.id)}
           onReorder={(ids) => onChange(ids.map((id) => items.find((i) => i.id === id)!))}
+          getLabel={(id) => items.find((i) => i.id === id)?.title.trim() || "enlace sin título"}
         >
           <ul className="space-y-2">
-            {items.map((i) => (
+            {items.map((i, idx) => (
               <LinkRow
                 key={i.id}
                 item={i}
@@ -97,6 +103,9 @@ export function LinkListEditor({ ml, items, onChange, errors, clientId, landingU
                 onToggle={() => setExpanded(expanded === i.id ? null : i.id)}
                 onPatch={(p) => patch(i.id, p)}
                 onRemove={() => remove(i.id)}
+                onMove={(dir) => onChange(moveBy(items, idx, dir))}
+                canMoveUp={idx > 0}
+                canMoveDown={idx < items.length - 1}
               />
             ))}
           </ul>
@@ -133,6 +142,9 @@ function LinkRow({
   onToggle,
   onPatch,
   onRemove,
+  onMove,
+  canMoveUp,
+  canMoveDown,
 }: {
   item: MultilinkItem;
   errors: ItemErrors;
@@ -141,6 +153,9 @@ function LinkRow({
   onToggle: () => void;
   onPatch: (p: Partial<MultilinkItem>) => void;
   onRemove: () => void;
+  onMove: (dir: -1 | 1) => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
 }) {
   const label = i.title.trim() || "enlace sin título";
   const { setNodeRef, style, handle, isDragging } = useSortableRow(i.id, label);
@@ -193,6 +208,7 @@ function LinkRow({
             {i.click_count > 0 ? ` · ${i.click_count} clics` : ""}
           </span>
         </button>
+        <MoveButtons label={label} onMove={onMove} canUp={canMoveUp} canDown={canMoveDown} />
         <Switch
           checked={i.is_active}
           onCheckedChange={(v) => onPatch({ is_active: v })}

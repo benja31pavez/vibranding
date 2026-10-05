@@ -1,4 +1,4 @@
-import { ChevronDown, GripVertical } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, GripVertical } from "lucide-react";
 import {
   DndContext,
   KeyboardSensor,
@@ -6,7 +6,9 @@ import {
   closestCenter,
   useSensor,
   useSensors,
+  type Announcements,
   type DragEndEvent,
+  type UniqueIdentifier,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -34,12 +36,31 @@ export type SectionRow = {
 export function SortableList<T extends string>({
   ids,
   onReorder,
+  getLabel,
   children,
 }: {
   ids: T[];
   onReorder: (next: T[]) => void;
+  /** Nombre legible de cada fila para los anuncios del lector de pantalla. */
+  getLabel?: (id: T) => string;
   children: React.ReactNode;
 }) {
+  const label = (id: UniqueIdentifier) => (getLabel ? getLabel(id as T) : String(id));
+  const position = (id: UniqueIdentifier | undefined) =>
+    id === undefined ? "" : `posición ${ids.indexOf(id as T) + 1} de ${ids.length}`;
+  const announcements: Announcements = {
+    onDragStart: ({ active }) => `Tomaste ${label(active.id)}, ${position(active.id)}.`,
+    onDragOver: ({ active, over }) =>
+      over
+        ? `${label(active.id)} está sobre la ${position(over.id)}.`
+        : `${label(active.id)} está fuera de la lista.`,
+    onDragEnd: ({ active, over }) =>
+      over
+        ? `Soltaste ${label(active.id)} en la ${position(over.id)}.`
+        : `Soltaste ${label(active.id)}.`,
+    onDragCancel: ({ active }) =>
+      `Cancelaste el movimiento. ${label(active.id)} vuelve a su lugar.`,
+  };
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -57,6 +78,7 @@ export function SortableList<T extends string>({
       collisionDetection={closestCenter}
       onDragEnd={onDragEnd}
       accessibility={{
+        announcements,
         screenReaderInstructions: {
           draggable:
             "Para reordenar, presiona espacio, muévete con las flechas y presiona espacio otra vez para soltar.",
@@ -101,6 +123,9 @@ export function SectionCard({
   open,
   onToggleOpen,
   onToggleEnabled,
+  onMove,
+  canMoveUp,
+  canMoveDown,
   handle,
   nodeRef,
   style,
@@ -110,6 +135,10 @@ export function SectionCard({
   open: boolean;
   onToggleOpen: () => void;
   onToggleEnabled?: (on: boolean) => void;
+  /** Botones Subir/Bajar (alternativa accesible al arrastre). */
+  onMove?: (dir: -1 | 1) => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
   handle?: React.ReactNode;
   nodeRef?: (el: HTMLElement | null) => void;
   style?: React.CSSProperties;
@@ -144,6 +173,14 @@ export function SectionCard({
             aria-hidden="true"
           />
         </button>
+        {onMove && (
+          <MoveButtons
+            label={row.title}
+            onMove={onMove}
+            canUp={!!canMoveUp}
+            canDown={!!canMoveDown}
+          />
+        )}
         {row.toggleable && onToggleEnabled && (
           <Switch
             checked={row.enabled}
@@ -177,4 +214,49 @@ export function SortableSectionCard(
       dragging={isDragging}
     />
   );
+}
+
+/** Subir / Bajar con botones: funciona con teclado y lector de pantalla sin arrastrar. */
+export function MoveButtons({
+  label,
+  onMove,
+  canUp,
+  canDown,
+}: {
+  label: string;
+  onMove: (dir: -1 | 1) => void;
+  canUp: boolean;
+  canDown: boolean;
+}) {
+  const btn =
+    "grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30";
+  return (
+    <span className="flex shrink-0 items-center">
+      <button
+        type="button"
+        className={btn}
+        disabled={!canUp}
+        onClick={() => onMove(-1)}
+        aria-label={`Subir ${label}`}
+      >
+        <ArrowUp className="h-4 w-4" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        className={btn}
+        disabled={!canDown}
+        onClick={() => onMove(1)}
+        aria-label={`Bajar ${label}`}
+      >
+        <ArrowDown className="h-4 w-4" aria-hidden="true" />
+      </button>
+    </span>
+  );
+}
+
+/** Mueve un elemento una posición sin mutar la lista. */
+export function moveBy<T>(list: T[], index: number, dir: -1 | 1): T[] {
+  const to = index + dir;
+  if (index < 0 || to < 0 || to >= list.length) return list;
+  return arrayMove(list, index, to);
 }

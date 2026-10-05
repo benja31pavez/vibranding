@@ -14,6 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDialog, ErrorState, ListSkeleton } from "@/components/app";
 import { uniqueSlug, slugify } from "@/lib/slug";
+import { writeError, writeFailed } from "@/lib/writeCheck";
 import { EventsPanel } from "@/components/landing/EventsPanel";
 import { LandingAnalytics } from "@/components/landing/LandingAnalytics";
 import { PublicLandingView } from "@/components/landing/PublicLandingView";
@@ -22,6 +23,7 @@ import { PublishBar } from "@/components/site/PublishBar";
 import { SaveStatus, useSaveShortcut } from "@/components/site/SaveStatus";
 import { useSaveState } from "@/components/site/useSaveState";
 import {
+  moveBy,
   SectionCard,
   SortableList,
   SortableSectionCard,
@@ -185,10 +187,12 @@ export function LandingEditor({
       return false;
     }
     const payload = landingUpdatePayload(lp, slug);
-    const { error } = await supabase.from("landing_pages").update(payload).eq("id", lp.id);
-    if (error) {
-      save.fail(error.message);
-      toast.error(`No se pudo guardar: ${error.message}`);
+    const err = writeError(
+      await supabase.from("landing_pages").update(payload).eq("id", lp.id).select("id"),
+    );
+    if (err) {
+      save.fail(err);
+      toast.error(`No se pudo guardar: ${err}`);
       return false;
     }
     const next = normalizeLanding({ ...lp, ...payload });
@@ -203,12 +207,13 @@ export function LandingEditor({
   const setPublished = async (published: boolean) => {
     if (!lp || !saved) return;
     setToggling(true);
-    const { error } = await supabase.from("landing_pages").update({ published }).eq("id", lp.id);
+    const res = await supabase
+      .from("landing_pages")
+      .update({ published })
+      .eq("id", lp.id)
+      .select("id");
     setToggling(false);
-    if (error) {
-      toast.error(`No se pudo ${published ? "publicar" : "pasar a borrador"}: ${error.message}`);
-      return;
-    }
+    if (writeFailed(res, published ? "No se pudo publicar" : "No se pudo pasar a borrador")) return;
     setLp((cur) => (cur ? { ...cur, published } : cur));
     setSaved((cur) => (cur ? { ...cur, published } : cur));
     toast.success(published ? "Landing publicada" : "La landing quedó como borrador");
@@ -407,14 +412,20 @@ export function LandingEditor({
               <SortableList
                 ids={lp.section_order}
                 onReorder={(section_order) => update({ ...lp, section_order })}
+                getLabel={(k) => LANDING_SECTION_LABEL[k]}
               >
                 <div className="space-y-3">
-                  {lp.section_order.map((key) => (
+                  {lp.section_order.map((key, idx) => (
                     <SortableSectionCard
                       key={key}
                       row={sectionRows[key]}
                       open={openSection === key}
                       onToggleOpen={() => toggleOpen(key)}
+                      onMove={(dir) =>
+                        update({ ...lp, section_order: moveBy(lp.section_order, idx, dir) })
+                      }
+                      canMoveUp={idx > 0}
+                      canMoveDown={idx < lp.section_order.length - 1}
                       onToggleEnabled={(on) => {
                         update(setSectionEnabled(lp, key, on));
                         if (on) requestAnimationFrame(() => scrollPreviewTo(key));

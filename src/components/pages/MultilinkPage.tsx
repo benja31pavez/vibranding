@@ -19,9 +19,10 @@ import { SaveStatus, useSaveShortcut } from "@/components/site/SaveStatus";
 import { SectionCard } from "@/components/site/SortableSections";
 import { useSaveState } from "@/components/site/useSaveState";
 import { multilinkPath, type Multilink, type MultilinkItem as Item } from "@/lib/multilink";
-import { diffItems, validateItems, validateProfile } from "@/lib/site/multilinkDraft";
+import { validateItems, validateProfile } from "@/lib/site/multilinkDraft";
+import { fetchMultilinkSnapshot, saveMultilink } from "@/lib/site/multilinkSave";
+import { writeFailed } from "@/lib/writeCheck";
 import type { IGProfile } from "@/components/InstagramEditor";
-import type { Json } from "@/integrations/supabase/types";
 
 type TabKey = "editar" | "compartir" | "metricas";
 
@@ -137,69 +138,33 @@ export function MultilinkPage({
       return false;
     }
     save.start();
-    const { ml, items } = draft;
-    const slug = slugify(ml.slug);
-    const taken = await supabase
-      .from("multilinks")
-      .select("id")
-      .eq("slug", slug)
-      .neq("id", ml.id)
-      .maybeSingle();
-    if (taken.data) {
-      save.fail("Esa dirección ya está en uso");
-      toast.error(`La dirección /l/${slug} ya la usa otro multienlace.`);
-      return false;
+    const result = await saveMultilink(saved, draft, avatarFallback);
+    if (result.ok) {
+      setDraft(result.snapshot);
+      setSaved(result.snapshot);
+      save.succeed();
+      return true;
     }
-    const mlRow = {
-      title: ml.title.trim(),
-      bio: ml.bio?.trim() || null,
-      avatar_url: ml.avatar_url ?? avatarFallback,
-      theme_color: ml.theme_color,
-      theme_mode: ml.theme_mode,
-      button_style: ml.button_style,
-      button_shape: ml.button_shape,
-      font_family: ml.font_family,
-      background: ml.background as Json,
-      slug,
-    };
-    const plan = diffItems(saved.items, items);
-    const fail = (msg: string) => {
-      save.fail(msg);
-      toast.error(`No se pudo guardar: ${msg}`);
-      return false;
-    };
-
-    const mlRes = await supabase.from("multilinks").update(mlRow).eq("id", ml.id);
-    if (mlRes.error) return fail(mlRes.error.message);
-
-    if (plan.deletes.length) {
-      const del = await supabase.from("multilink_items").delete().in("id", plan.deletes);
-      if (del.error) return fail(del.error.message);
+    save.fail(result.message);
+    toast.error(`No se pudo guardar: ${result.message}`);
+    // Lo que alcanzó a guardarse pasa a ser la base; los enlaces ya insertados conservan su id real.
+    const fresh = await fetchMultilinkSnapshot(draft.ml.id);
+    if (fresh) {
+      setSaved(fresh);
+      setDraft((d) =>
+        d
+          ? {
+              ...d,
+              items: d.items.map((i) =>
+                result.idMap.has(i.id)
+                  ? { ...result.idMap.get(i.id)!, ...i, id: result.idMap.get(i.id)!.id }
+                  : i,
+              ),
+            }
+          : d,
+      );
     }
-    const idMap = new Map<string, Item>();
-    if (plan.inserts.length) {
-      const ins = await supabase
-        .from("multilink_items")
-        .insert(
-          plan.inserts.map((x) => ({ ...x.row, multilink_id: ml.id, client_id: ml.client_id })),
-        )
-        .select("*");
-      if (ins.error) return fail(ins.error.message);
-      // insert().select() devuelve las filas en el mismo orden enviado.
-      (ins.data ?? []).forEach((row, k) => idMap.set(plan.inserts[k].tempId, row as Item));
-    }
-    const upd = await Promise.all(
-      plan.updates.map((u) => supabase.from("multilink_items").update(u.row).eq("id", u.id)),
-    );
-    const updError = upd.find((r) => r.error)?.error;
-    if (updError) return fail(updError.message);
-
-    const nextItems = items.map((i, idx) => idMap.get(i.id) ?? { ...i, sort_order: idx });
-    const next: Snapshot = { ml: { ...ml, ...mlRow }, items: nextItems };
-    setDraft(next);
-    setSaved(next);
-    save.succeed();
-    return true;
+    return false;
   }, [draft, saved, errorCount, save, avatarFallback]);
 
   useSaveShortcut(() => void persist(), dirty, rootRef);
@@ -213,9 +178,13 @@ export function MultilinkPage({
       return;
     }
     setToggling(true);
-    const { error } = await supabase.from("multilinks").update({ published }).eq("id", draft.ml.id);
+    const res = await supabase
+      .from("multilinks")
+      .update({ published })
+      .eq("id", draft.ml.id)
+      .select("id");
     setToggling(false);
-    if (error) return toast.error(error.message);
+    if (writeFailed(res, published ? "No se pudo publicar" : "No se pudo pasar a borrador")) return;
     setDraft((d) => (d ? { ...d, ml: { ...d.ml, published } } : d));
     setSaved((s) => (s ? { ...s, ml: { ...s.ml, published } } : s));
     toast.success(published ? "Multienlace publicado" : "El multienlace quedó como borrador");
