@@ -6,7 +6,7 @@
 
 /* Pieces that only make sense while animating start hidden. */
 .mk-dots,
-.mk-ig-heart,
+.mk-ig-siguiendo,
 .mk-swap-a {
   opacity: 0;
 }
@@ -30,8 +30,8 @@
 
 /*
  * Instagram profile grid (PhoneFeed), one 9s loop: the grid fades in as it was, a new post lands
- * in the first cell while the others slide one cell forward, the new post gets a like, and the
- * grid fades out to restart. The static frame is the grid after publishing.
+ * in the first cell while the others slide one cell forward, and the grid fades out to restart.
+ * The static frame is the grid after publishing.
  */
 @keyframes mk-ig-grid {
   0% {
@@ -70,25 +70,48 @@
   }
 }
 
-@keyframes mk-ig-heart {
+/* "Seguir" is tapped once the new post has landed, shows "Siguiendo", then resets with the loop. */
+@keyframes mk-ig-tap {
   0%,
-  46% {
+  54% {
+    transform: none;
+  }
+  56% {
+    transform: scale(0.92);
+  }
+  59%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes mk-ig-seguir {
+  0%,
+  56% {
+    opacity: 1;
+  }
+  57%,
+  88% {
     opacity: 0;
-    transform: scale(0.3);
   }
-  51% {
+  91%,
+  100% {
     opacity: 1;
-    transform: scale(1.2);
   }
-  55%,
-  62% {
+}
+
+@keyframes mk-ig-siguiendo {
+  0%,
+  56% {
+    opacity: 0;
+  }
+  57%,
+  88% {
     opacity: 1;
-    transform: scale(1);
   }
-  68%,
+  91%,
   100% {
     opacity: 0;
-    transform: scale(1);
   }
 }
 
@@ -198,8 +221,14 @@
   .mk-ig-new {
     animation: mk-ig-new 9s var(--ease-out-expo) infinite both;
   }
-  .mk-ig-heart {
-    animation: mk-ig-heart 9s var(--ease-out-soft) infinite both;
+  .mk-ig-follow {
+    animation: mk-ig-tap 9s var(--ease-out-soft) infinite both;
+  }
+  .mk-ig-seguir {
+    animation: mk-ig-seguir 9s linear infinite both;
+  }
+  .mk-ig-siguiendo {
+    animation: mk-ig-siguiendo 9s linear infinite both;
   }
   .mk-dots {
     animation: mk-typing 9s linear infinite;

@@ -1,11 +1,11 @@
 import {
   Bell,
+  ChevronDown,
   ChevronLeft,
   Clapperboard,
   Copy,
   Ellipsis,
   Grid3x3,
-  Heart,
   SquareUser,
   UserPlus,
 } from "lucide-react";
@@ -14,7 +14,7 @@ import { Bar, BrandAvatar } from "./parts";
 import { SWATCHES, vars } from "./tokens";
 
 const STATS = ["publicaciones", "seguidores", "seguidos"];
-const HIGHLIGHTS = ["Servicios", "Precios", "Equipo", "Ubicación"];
+const HIGHLIGHTS = ["Servicios", "Precios", "Equipo", "Ubicación", "Opiniones"];
 /** Swatch per grid post, in grid order; the first one is the post that gets published. */
 const POSTS = [0, 3, 1, 5, 2, 4, 1, 0, 3, 5, 4, 2];
 /** Corner badge per post (reel / carousel), like the real grid. */
@@ -49,21 +49,18 @@ function PostTile({ index }: { index: number }) {
       className={cn("relative aspect-square", isNew ? "mk-ig-new" : "mk-ig-shift")}
       style={{ ...(isNew ? {} : previousCell(index)), background: SWATCHES[POSTS[index]] }}
     >
-      {isNew && <span className="absolute left-2 top-2 h-5 w-5 rounded-full bg-white/30" />}
       {badge === "reel" && (
         <Clapperboard className="absolute right-1 top-1 h-2.5 w-2.5 text-white" />
       )}
       {badge === "carousel" && <Copy className="absolute right-1 top-1 h-2.5 w-2.5 text-white" />}
-      {isNew && (
-        <Heart className="mk-ig-heart absolute left-1/2 top-1/2 -ml-4 -mt-4 h-8 w-8 fill-white text-white drop-shadow-lg" />
-      )}
     </span>
   );
 }
 
 /**
  * Phone with an Instagram profile for the fictional brand "Tu marca", as a visitor sees it.
- * Loop: a new post lands in the first grid cell (the rest shift one cell) and gets a like.
+ * Loop: a new post lands in the first grid cell (the rest shift one cell), then "Seguir" is
+ * tapped and shows "Siguiendo" for a few seconds.
  * No real metrics: the counters are skeleton bars.
  */
 export function PhoneFeed({ className }: { className?: string }) {
@@ -105,22 +102,30 @@ export function PhoneFeed({ className }: { className?: string }) {
           </p>
         </div>
         <div className="flex gap-1 px-3 pt-2.5 text-[0.6rem] font-semibold">
-          <span className="flex-1 rounded-md bg-[#0095F6] py-1 text-center text-white">Seguir</span>
+          <span className="mk-ig-follow relative flex-1">
+            <span className="mk-ig-seguir block rounded-md bg-[#0095F6] py-1 text-center text-white">
+              Seguir
+            </span>
+            <span className="mk-ig-siguiendo absolute inset-0 flex items-center justify-center gap-0.5 rounded-md bg-secondary text-foreground">
+              Siguiendo
+              <ChevronDown className="h-2.5 w-2.5" />
+            </span>
+          </span>
           <span className="flex-1 rounded-md bg-secondary py-1 text-center">Mensaje</span>
           <span className="grid place-items-center rounded-md bg-secondary px-1.5">
             <UserPlus className="h-3 w-3" />
           </span>
         </div>
-        <div className="flex gap-3 px-3 pt-3">
+        <div className="flex justify-between px-3 pt-3">
           {HIGHLIGHTS.map((label, i) => (
-            <span key={label} className="flex w-10 flex-col items-center gap-1">
+            <span key={label} className="flex w-[2.1rem] flex-col items-center gap-1 sm:w-10">
               <span className="rounded-full p-[2px] ring-1 ring-foreground/20">
                 <span
-                  className="block h-8 w-8 rounded-full"
+                  className="block h-7 w-7 rounded-full sm:h-8 sm:w-8"
                   style={{ background: SWATCHES[(i + 1) % SWATCHES.length] }}
                 />
               </span>
-              <span className="w-full truncate text-center text-[0.45rem] leading-none">
+              <span className="w-full truncate text-center text-[0.4rem] leading-none sm:text-[0.45rem]">
                 {label}
               </span>
             </span>

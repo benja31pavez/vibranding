@@ -84,7 +84,7 @@ export const PLAN_SUMMARY: Readonly<Record<PublicPlanKey, string>> = {
 };
 
 const AD_SPEND_NOTE =
-  "La inversión en anuncios (pauta) no está incluida: la pagas directo a Meta o Google con tu tarjeta. Sugerimos partir desde $150.000 al mes y ajustarla según lo que veamos en los reportes.";
+  "Para la pauta sugerimos partir desde $150.000 al mes, pagados directo a Meta o Google con tu tarjeta, y ajustarla según los reportes.";
 
 export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
   "pagina-web-para-pymes": {

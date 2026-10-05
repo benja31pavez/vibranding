@@ -115,7 +115,7 @@ const homeEs = {
     popular: "Más completo",
     cta: "Lo quiero",
     adSpendNote:
-      "La inversión en anuncios (pauta) no está incluida en el Plan Crecimiento: la pagas directo a Meta y Google con tu tarjeta. Sugerimos partir desde $150.000 al mes.",
+      "Para la pauta sugerimos partir desde $150.000 al mes, pagados directo a Meta y Google con tu tarjeta.",
     items: [
       {
         id: "marca-web",
@@ -188,22 +188,10 @@ const homeEs = {
       },
     ],
   },
-  about: {
-    title: "Quién está",
-    titleAccent: "detrás",
-    name: "Benjamín Pavez",
-    initials: "BP",
-    role: "Fundador de VIBRANDING · Santiago de Chile",
-    paragraphs: [
-      "Soy Benjamín, publicista. Antes de fundar VIBRANDING trabajé de forma independiente con las marcas que ves en esta página.",
-      "Hoy dirijo un equipo apoyado en inteligencia artificial. Para ti eso significa entregas en días, no semanas, y precios que una pyme puede pagar. Cada entrega la revisa una persona antes de llegar a ti.",
-    ],
-    highlights: ["Santiago de Chile", "Equipo con IA", "Entregas en días, no semanas"],
-  },
   portfolio: {
     title: "Marcas con las que",
     titleAccent: "hemos trabajado",
-    subtitle: "Proyectos de branding, contenido y campañas realizados por Benjamín.",
+    subtitle: "Proyectos de branding, contenido y campañas.",
     empty: "Muy pronto compartiremos nuestros casos.",
   },
   faq: {
@@ -234,7 +222,6 @@ type Dict = {
     links: {
       services: string;
       how: string;
-      about: string;
       clients: string;
       contact: string;
       plans: string;
@@ -282,7 +269,6 @@ const es: Dict = {
     links: {
       services: "Servicios",
       how: "Cómo trabajamos",
-      about: "Quién está detrás",
       clients: "Clientes",
       contact: "Cotiza por WhatsApp",
       plans: "Planes y precios",
@@ -563,7 +549,6 @@ const en: Dict = {
     links: {
       services: "Services",
       how: "How it works",
-      about: "About",
       clients: "Clients",
       contact: "Contact",
       plans: "Plans & pricing",

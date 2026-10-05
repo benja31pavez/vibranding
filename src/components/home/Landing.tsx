@@ -8,7 +8,6 @@ import { BenefitsSection } from "@/components/home/BenefitsSection";
 import { ServicesSection } from "@/components/home/ServicesSection";
 import { ForWhomSection, WorkWithUsSection } from "@/components/home/GrowthSections";
 import { PlansSection } from "@/components/home/PlansSection";
-import { AboutSection } from "@/components/home/AboutSection";
 import { PortfolioSection } from "@/components/home/PortfolioSection";
 import { FaqSection, FinalCtaSection, WhatsAppFloat } from "@/components/home/FaqAndCta";
 import type { PortfolioClientWithWorks } from "@/lib/portfolio";
@@ -50,7 +49,6 @@ export function Landing({
         <ServicesSection />
         <PlansSection />
         <WorkWithUsSection />
-        <AboutSection />
         <PortfolioSection portfolio={portfolio} />
         <FaqSection />
         <FinalCtaSection />

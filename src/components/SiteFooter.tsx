@@ -47,7 +47,6 @@ export function SiteFooter() {
           <FooterLink href="/#servicios">{t.footer.links.services}</FooterLink>
           <FooterLink href="/#planes">{t.footer.links.plans}</FooterLink>
           <FooterLink href="/#como">{t.footer.links.how}</FooterLink>
-          <FooterLink href="/#nosotros">{t.footer.links.about}</FooterLink>
           <FooterLink
             href="/#contacto"
             onClick={() => trackLandingEvent("contact_click", lang, "contacto:footer")}

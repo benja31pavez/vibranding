@@ -1,4 +1,6 @@
 import { Check, Info } from "lucide-react";
+import { PlanNotIncluded } from "@/components/pricing/PlanNotIncluded";
+import { planNotIncluded } from "@/lib/pricing/plans";
 import { formatClp } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { SectionHeading, WhatsAppCta } from "./shared";
@@ -76,6 +78,10 @@ function PlanCard({
           </li>
         ))}
       </ul>
+      <PlanNotIncluded
+        items={planNotIncluded(plan.id)}
+        className="mt-6 border-t border-border/60 pt-5"
+      />
       <div className="mt-auto pt-8">
         <WhatsAppCta
           message={plan.whatsappMessage}
