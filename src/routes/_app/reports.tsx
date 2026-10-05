@@ -11,7 +11,17 @@ import {
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EmptyState, ErrorState, MoneyTotals, PageContainer, PageHeader, StatCard, TableSkeleton } from "@/components/app";
+import {
+  EmptyState,
+  ErrorState,
+  MoneyTotals,
+  PageContainer,
+  PageHeader,
+  StatCard,
+  TableSkeleton,
+} from "@/components/app";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GrowthView } from "@/components/reports/growth/GrowthView";
 import { LatestReportsTable } from "@/components/reports/LatestReportsTable";
 import {
   DEFAULT_RANGE_DAYS,
@@ -67,111 +77,124 @@ function ReportsPage() {
     <PageContainer className="space-y-8">
       <PageHeader
         title="Reportes"
-        description="Métricas agregadas por cliente. Montos en CLP; si una cuenta de Meta usa otra moneda, ese gasto no se suma y se indica."
+        description="Métricas por cliente y crecimiento de la agencia. Montos en CLP; si una cuenta de Meta usa otra moneda, ese gasto no se suma y se indica."
       />
 
-      <LatestReportsTable />
+      <Tabs defaultValue="clientes" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="clientes">Por cliente</TabsTrigger>
+          <TabsTrigger value="crecimiento">Crecimiento</TabsTrigger>
+        </TabsList>
 
-      <section className="space-y-4" aria-labelledby="metrics-title">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 id="metrics-title" className="text-lg font-semibold">
-              Resultados por cliente
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {data
-                ? `Del ${fmtDay(data.from)} al ${fmtDay(data.to)} (hora de Chile). "Pendiente" es todo lo abierto hoy.`
-                : "Publicaciones, Ads y cobros del período elegido."}
-            </p>
-          </div>
-          <div role="group" aria-label="Rango de fechas" className="flex flex-wrap gap-2">
-            {REPORT_RANGES.map((r) => (
-              <Button
-                key={r.days}
-                size="sm"
-                variant={days === r.days ? "default" : "outline"}
-                aria-pressed={days === r.days}
-                onClick={() => setDays(r.days)}
-              >
-                {r.label}
-              </Button>
-            ))}
-          </div>
-        </div>
+        <TabsContent value="crecimiento">
+          <GrowthView />
+        </TabsContent>
 
-        {metrics.isError ? (
-          <ErrorState
-            message={metrics.error instanceof Error ? metrics.error.message : undefined}
-            onRetry={() => void metrics.refetch()}
-            retrying={metrics.isFetching}
-          />
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <StatCard
-                icon={Images}
-                label="Publicaciones"
-                loading={loading}
-                value={NUM.format(totals?.posts ?? 0)}
-              />
-              <StatCard
-                icon={Heart}
-                label="Likes IG"
-                loading={loading}
-                value={NUM.format(totals?.likes ?? 0)}
-              />
-              <StatCard
-                icon={Megaphone}
-                label="Inversión Ads"
-                loading={loading}
-                value={<MoneyCell money={totals?.spend ?? EMPTY_CLP_TOTALS} />}
-              />
-              <StatCard
-                icon={Percent}
-                label="CTR"
-                loading={loading}
-                value={fmtPct(ctrPercent(totals?.clicks ?? 0, totals?.impressions ?? 0))}
-              />
-              <StatCard
-                icon={Eye}
-                label="Impresiones"
-                loading={loading}
-                value={NUM.format(totals?.impressions ?? 0)}
-              />
-              <StatCard
-                icon={MousePointerClick}
-                label="Clicks"
-                loading={loading}
-                value={NUM.format(totals?.clicks ?? 0)}
-              />
-              <StatCard
-                icon={Wallet}
-                label="Cobrado"
-                loading={loading}
-                value={<MoneyCell money={totals?.paid ?? EMPTY_CLP_TOTALS} />}
-              />
-              <StatCard
-                icon={Wallet}
-                label="Pendiente"
-                loading={loading}
-                value={<MoneyCell money={totals?.pending ?? EMPTY_CLP_TOTALS} />}
-              />
+        <TabsContent value="clientes" className="space-y-8">
+          <LatestReportsTable />
+
+          <section className="space-y-4" aria-labelledby="metrics-title">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 id="metrics-title" className="text-lg font-semibold">
+                  Resultados por cliente
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {data
+                    ? `Del ${fmtDay(data.from)} al ${fmtDay(data.to)} (hora de Chile). "Pendiente" es todo lo abierto hoy.`
+                    : "Publicaciones, Ads y cobros del período elegido."}
+                </p>
+              </div>
+              <div role="group" aria-label="Rango de fechas" className="flex flex-wrap gap-2">
+                {REPORT_RANGES.map((r) => (
+                  <Button
+                    key={r.days}
+                    size="sm"
+                    variant={days === r.days ? "default" : "outline"}
+                    aria-pressed={days === r.days}
+                    onClick={() => setDays(r.days)}
+                  >
+                    {r.label}
+                  </Button>
+                ))}
+              </div>
             </div>
 
-            {loading ? (
-              <TableSkeleton rows={5} columns={10} label="Cargando métricas por cliente" />
-            ) : !data || data.rows.length === 0 ? (
-              <EmptyState
-                icon={BarChart3}
-                title="Aún no hay clientes."
-                description="Cuando agregues clientes verás aquí sus resultados."
+            {metrics.isError ? (
+              <ErrorState
+                message={metrics.error instanceof Error ? metrics.error.message : undefined}
+                onRetry={() => void metrics.refetch()}
+                retrying={metrics.isFetching}
               />
             ) : (
-              <MetricsTable rows={data.rows} />
+              <>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <StatCard
+                    icon={Images}
+                    label="Publicaciones"
+                    loading={loading}
+                    value={NUM.format(totals?.posts ?? 0)}
+                  />
+                  <StatCard
+                    icon={Heart}
+                    label="Likes IG"
+                    loading={loading}
+                    value={NUM.format(totals?.likes ?? 0)}
+                  />
+                  <StatCard
+                    icon={Megaphone}
+                    label="Inversión Ads"
+                    loading={loading}
+                    value={<MoneyCell money={totals?.spend ?? EMPTY_CLP_TOTALS} />}
+                  />
+                  <StatCard
+                    icon={Percent}
+                    label="CTR"
+                    loading={loading}
+                    value={fmtPct(ctrPercent(totals?.clicks ?? 0, totals?.impressions ?? 0))}
+                  />
+                  <StatCard
+                    icon={Eye}
+                    label="Impresiones"
+                    loading={loading}
+                    value={NUM.format(totals?.impressions ?? 0)}
+                  />
+                  <StatCard
+                    icon={MousePointerClick}
+                    label="Clicks"
+                    loading={loading}
+                    value={NUM.format(totals?.clicks ?? 0)}
+                  />
+                  <StatCard
+                    icon={Wallet}
+                    label="Cobrado"
+                    loading={loading}
+                    value={<MoneyCell money={totals?.paid ?? EMPTY_CLP_TOTALS} />}
+                  />
+                  <StatCard
+                    icon={Wallet}
+                    label="Pendiente"
+                    loading={loading}
+                    value={<MoneyCell money={totals?.pending ?? EMPTY_CLP_TOTALS} />}
+                  />
+                </div>
+
+                {loading ? (
+                  <TableSkeleton rows={5} columns={10} label="Cargando métricas por cliente" />
+                ) : !data || data.rows.length === 0 ? (
+                  <EmptyState
+                    icon={BarChart3}
+                    title="Aún no hay clientes."
+                    description="Cuando agregues clientes verás aquí sus resultados."
+                  />
+                ) : (
+                  <MetricsTable rows={data.rows} />
+                )}
+              </>
             )}
-          </>
-        )}
-      </section>
+          </section>
+        </TabsContent>
+      </Tabs>
     </PageContainer>
   );
 }
