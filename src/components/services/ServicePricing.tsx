@@ -16,7 +16,7 @@ export function ServicePricingSection({ service }: { service: ServiceContent }) 
           {plans.length > 1 ? "Planes y precios" : "Cuánto cuesta"}
         </SectionTitle>
         {service.pricing.kind === "quote" ? (
-          <div className="max-w-xl rounded-3xl border bg-card p-6 md:p-8">
+          <div data-reveal className="max-w-xl rounded-3xl border bg-card p-6 md:p-8">
             <p className="text-3xl font-semibold tracking-tight">{service.pricing.label}</p>
             <p className="mt-3 text-base text-muted-foreground">{service.pricing.note}</p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -27,9 +27,9 @@ export function ServicePricingSection({ service }: { service: ServiceContent }) 
           </div>
         ) : (
           <>
-            <ul className="grid gap-4 md:grid-cols-3">
+            <ul data-reveal-stagger className="grid gap-4 md:grid-cols-3">
               {plans.map((plan) => (
-                <li key={plan.key} className="flex flex-col rounded-3xl border bg-card p-6">
+                <li key={plan.key} className="card-fx flex flex-col rounded-3xl border bg-card p-6">
                   <h3 className="text-lg font-semibold">{plan.label}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{PLAN_SUMMARY[plan.key]}</p>
                   <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">

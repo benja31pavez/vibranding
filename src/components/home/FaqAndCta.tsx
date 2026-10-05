@@ -20,14 +20,14 @@ export function FaqSection() {
     >
       <div className="mx-auto max-w-3xl px-4 md:px-10">
         <SectionHeading id="preguntas-title" title={copy.title} accent={copy.titleAccent} />
-        <div className="divide-y rounded-3xl border bg-card">
+        <div data-reveal className="divide-y rounded-3xl border bg-card">
           {t.faq.items.map((item) => (
-            <details key={item.q} className="group px-5 md:px-7">
+            <details key={item.q} className="faq-item group px-5 md:px-7">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-left font-semibold [&::-webkit-details-marker]:hidden">
                 {item.q}
                 <ChevronDown
                   aria-hidden
-                  className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                  className="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300 group-open:rotate-180 motion-reduce:transition-none"
                 />
               </summary>
               <p className="pb-5 -mt-1 text-muted-foreground leading-relaxed">{item.a}</p>
@@ -56,7 +56,10 @@ export function FinalCtaSection() {
       aria-labelledby="contacto-title"
       className="scroll-mt-20 px-4 py-16 md:px-10 md:py-24"
     >
-      <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-[oklch(0.22_0.05_268)] px-6 py-14 text-center text-white md:px-12 md:py-20">
+      <div
+        data-reveal
+        className="relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-[oklch(0.22_0.05_268)] px-6 py-14 text-center text-white md:px-12 md:py-20"
+      >
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-60">
           <div className="blob absolute -top-20 -left-10 h-72 w-72 rounded-full bg-[color:var(--brand-1)]/50" />
           <div

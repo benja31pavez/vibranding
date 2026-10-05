@@ -12,23 +12,19 @@ export function RelatedServices({ service }: { service: ServiceContent }) {
         <SectionTitle id="relacionados-titulo" eyebrow="Otros servicios">
           También te puede servir
         </SectionTitle>
-        <ul className="grid gap-4 md:grid-cols-3">
+        <ul data-reveal-stagger className="grid gap-4 md:grid-cols-3">
           {service.related.map((slug) => {
             const other = SERVICES[slug];
             return (
               <li key={slug}>
                 <Link
                   to={other.path}
-                  className="group flex h-full flex-col rounded-2xl border bg-card p-5 transition hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="card-fx group flex h-full flex-col rounded-2xl border bg-card p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="text-lg font-semibold">{other.navLabel}</span>
                   <span className="mt-2 text-sm text-muted-foreground">{other.eyebrow}</span>
                   <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold">
-                    Ver servicio{" "}
-                    <ArrowRight
-                      aria-hidden
-                      className="h-4 w-4 transition group-hover:translate-x-0.5"
-                    />
+                    Ver servicio <ArrowRight aria-hidden className="btn-arrow h-4 w-4" />
                   </span>
                 </Link>
               </li>
@@ -48,7 +44,10 @@ export function RelatedServices({ service }: { service: ServiceContent }) {
 export function ServiceFinalCta({ service }: { service: ServiceContent }) {
   return (
     <section aria-labelledby="cta-titulo" className="px-4 pb-16 md:px-10 md:pb-24">
-      <div className="mx-auto max-w-6xl rounded-3xl bg-gradient-brand-strong px-5 py-10 text-center text-white sm:px-6 sm:py-12 md:px-12 md:py-16">
+      <div
+        data-reveal
+        className="mx-auto max-w-6xl rounded-3xl bg-gradient-brand-strong px-5 py-10 text-center text-white sm:px-6 sm:py-12 md:px-12 md:py-16"
+      >
         <h2
           id="cta-titulo"
           className="mx-auto max-w-2xl text-2xl font-semibold leading-tight tracking-tight text-balance md:text-4xl"

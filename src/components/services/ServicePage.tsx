@@ -1,4 +1,5 @@
 import { SiteFooter } from "@/components/SiteFooter";
+import { useScrollReveal } from "@/hooks/use-motion";
 import type { ServiceContent } from "@/lib/services/content";
 import { ServiceFaqSection } from "./ServiceFaq";
 import { ServiceHeader } from "./ServiceHeader";
@@ -9,8 +10,12 @@ import { IncludesSection, ProblemSolutionSection, ProcessSection } from "./Servi
 
 /** Página pública de servicio (SEO local): problema → solución → precio → proceso → FAQ → CTA. */
 export function ServicePage({ service }: { service: ServiceContent }) {
+  useScrollReveal();
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden bg-background text-foreground">
+    <div
+      data-smooth-scroll
+      className="flex min-h-screen flex-col overflow-x-clip bg-background text-foreground"
+    >
       <a
         href="#contenido"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-foreground focus:px-4 focus:py-2 focus:text-background"

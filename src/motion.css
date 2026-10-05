@@ -1,0 +1,235 @@
+/*
+ * Motion layer for the public pages (home + service pages).
+ * Rules: only transform/opacity move; everything is static under prefers-reduced-motion;
+ * content is never hidden in the server HTML (reveal states are set by JS after hydration).
+ */
+
+@property --plan-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+:root {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-soft: cubic-bezier(0.22, 0.7, 0.25, 1);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+}
+
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(-4%, -2%, 0) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, 3%, 0) rotate(8deg) scale(1.08);
+  }
+}
+
+@keyframes gentle-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0);
+  }
+}
+
+@keyframes plan-spin {
+  to {
+    --plan-angle: 360deg;
+  }
+}
+
+/* Highlighted plan: brand gradient border (static under reduced motion, spinning otherwise). */
+.plan-glow {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    conic-gradient(
+        from var(--plan-angle),
+        var(--brand-1),
+        var(--brand-2),
+        var(--brand-3),
+        var(--brand-2),
+        var(--brand-1)
+      )
+      border-box;
+}
+
+/* Soft aurora behind the hero: gradients only (no filter), moved with transform. */
+.aurora {
+  background:
+    radial-gradient(
+      40% 50% at 25% 35%,
+      color-mix(in oklab, var(--brand-1) 22%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      35% 45% at 75% 30%,
+      color-mix(in oklab, var(--brand-2) 18%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      30% 40% at 55% 80%,
+      color-mix(in oklab, var(--brand-3) 16%, transparent),
+      transparent 70%
+    );
+}
+
+/* Buttons: lift + (primary) light sweep + arrow nudge. */
+.btn-fx {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition:
+    transform 0.25s var(--ease-out-soft),
+    box-shadow 0.25s var(--ease-out-soft),
+    background-color 0.2s,
+    border-color 0.2s,
+    filter 0.2s;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgb(255 255 255 / 0.32) 50%,
+    transparent 70%
+  );
+  transform: translateX(-120%);
+}
+.btn-arrow {
+  transition: transform 0.25s var(--ease-out-soft);
+}
+
+/* Cards: lift + brand-tinted border and shadow. */
+.card-fx {
+  transition:
+    transform 0.35s var(--ease-out-soft),
+    box-shadow 0.35s var(--ease-out-soft),
+    border-color 0.35s var(--ease-out-soft);
+}
+
+/* FAQ (<details>): answer fades in; height animates where the browser supports it. */
+.faq-item > summary {
+  transition: color 0.2s;
+}
+.faq-item > summary:hover {
+  color: color-mix(in oklab, var(--brand-1) 70%, var(--foreground));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:has([data-smooth-scroll]) {
+    scroll-behavior: smooth;
+  }
+
+  /* Hero entrance: plays once from the server HTML (no JS needed), short delays for LCP. */
+  .hero-in {
+    animation: rise-in 0.8s var(--ease-out-expo) backwards;
+    animation-delay: var(--d, 0ms);
+  }
+
+  .aurora {
+    animation: aurora-drift 22s ease-in-out infinite;
+  }
+  .animate-gentle-float {
+    animation: gentle-float 7s ease-in-out infinite;
+  }
+  .text-shimmer {
+    background-size: 200% auto;
+    animation: brand-pan 10s ease-in-out infinite;
+  }
+  .plan-glow {
+    animation: plan-spin 7s linear infinite;
+  }
+
+  /* Scroll reveal (see useScrollReveal). Hidden only while JS has marked it pending. */
+  [data-reveal][data-reveal-pending]:not([data-revealed]),
+  [data-reveal-stagger][data-reveal-pending]:not([data-revealed]) > * {
+    opacity: 0;
+  }
+  [data-reveal][data-revealed],
+  [data-reveal-stagger][data-revealed] > * {
+    animation: rise-in 0.75s var(--ease-out-expo) backwards;
+  }
+  [data-reveal-stagger][data-revealed] > :nth-child(2) {
+    animation-delay: 80ms;
+  }
+  [data-reveal-stagger][data-revealed] > :nth-child(3) {
+    animation-delay: 160ms;
+  }
+  [data-reveal-stagger][data-revealed] > :nth-child(4) {
+    animation-delay: 240ms;
+  }
+  [data-reveal-stagger][data-revealed] > :nth-child(5) {
+    animation-delay: 320ms;
+  }
+  [data-reveal-stagger][data-revealed] > :nth-child(n + 6) {
+    animation-delay: 400ms;
+  }
+
+  @media (hover: hover) {
+    .btn-fx:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px -12px color-mix(in oklab, var(--brand-2) 55%, transparent);
+    }
+    .btn-fx:active {
+      transform: translateY(0);
+    }
+    .btn-shine:hover::after {
+      transform: translateX(120%);
+      transition: transform 0.8s var(--ease-out-soft);
+    }
+    .btn-fx:hover .btn-arrow,
+    .group:hover .btn-arrow {
+      transform: translateX(3px);
+    }
+
+    .card-fx:hover {
+      transform: translateY(-4px);
+      border-color: color-mix(in oklab, var(--brand-1) 35%, var(--border));
+      box-shadow: 0 22px 44px -24px color-mix(in oklab, var(--brand-1) 45%, transparent);
+    }
+  }
+
+  @supports (interpolate-size: allow-keywords) {
+    .faq-item {
+      interpolate-size: allow-keywords;
+    }
+    .faq-item::details-content {
+      height: 0;
+      overflow: clip;
+      transition:
+        height 0.35s var(--ease-out-soft),
+        content-visibility 0.35s allow-discrete;
+    }
+    .faq-item[open]::details-content {
+      height: auto;
+    }
+  }
+  .faq-item > :not(summary) {
+    transition:
+      opacity 0.35s var(--ease-out-soft),
+      transform 0.35s var(--ease-out-soft);
+  }
+  .faq-item:not([open]) > :not(summary) {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* The gradient border lives in the background; keep the border itself transparent on hover. */
+.plan-glow.card-fx:hover {
+  border-color: transparent;
+}

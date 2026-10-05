@@ -1,11 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
-import { WhatsAppCta } from "@/components/home/shared";
+import { stickyHeaderClass, WhatsAppCta } from "@/components/home/shared";
+import { useScrolled } from "@/hooks/use-motion";
 import type { ServiceContent } from "@/lib/services/content";
 
 export function ServiceHeader({ service }: { service: ServiceContent }) {
+  const scrolled = useScrolled();
   return (
-    <header className="sticky top-0 z-40 border-b border-border/50 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
+    <header className={stickyHeaderClass(scrolled)}>
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-10">
         <Link to="/" className="shrink-0" aria-label="Vibranding, inicio">
           <span className="font-brand text-2xl tracking-tight text-gradient-brand-strong md:text-3xl">
