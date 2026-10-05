@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { CalendarDays, Clock, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { NOINDEX_META } from "@/lib/site/robots";
 import { TurnstileWidget } from "@/components/bookings/TurnstileWidget";
 
 export const Route = createFileRoute("/book/$slug")({
@@ -18,6 +19,8 @@ export const Route = createFileRoute("/book/$slug")({
     meta: [
       { title: `Agendar cita · ${params.slug}` },
       { name: "description", content: "Reserva una cita en mi agenda" },
+      // Agenda privada compartida por enlace directo: no es contenido para buscadores.
+      NOINDEX_META,
     ],
   }),
   errorComponent: ({ error }) => (

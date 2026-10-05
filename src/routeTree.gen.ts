@@ -23,10 +23,12 @@ import { Route as LandingRouteImport } from './routes/landing'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PaginaWebParaPymesRouteImport } from './routes/pagina-web-para-pymes'
 import { Route as PortalRouteImport } from './routes/portal'
+import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PublicidadMetaAdsRouteImport } from './routes/publicidad-meta-ads'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AtChar123slugChar125LinksRouteImport } from './routes/@{$slug}.links'
 import { Route as AppAgendaRouteImport } from './routes/_app/agenda'
@@ -168,6 +170,11 @@ const PortalRoute = PortalRouteImport.update({
   path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacidadRoute = PrivacidadRouteImport.update({
+  id: '/privacidad',
+  path: '/privacidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -186,6 +193,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerminosRoute = TerminosRouteImport.update({
+  id: '/terminos',
+  path: '/terminos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -581,10 +593,12 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/pagina-web-para-pymes': typeof PaginaWebParaPymesRoute
   '/portal': typeof PortalRoute
+  '/privacidad': typeof PrivacidadRoute
   '/privacy': typeof PrivacyRoute
   '/publicidad-meta-ads': typeof PublicidadMetaAdsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terminos': typeof TerminosRoute
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
   '/agenda': typeof AppAgendaRoute
@@ -670,10 +684,12 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/pagina-web-para-pymes': typeof PaginaWebParaPymesRoute
   '/portal': typeof PortalRoute
+  '/privacidad': typeof PrivacidadRoute
   '/privacy': typeof PrivacyRoute
   '/publicidad-meta-ads': typeof PublicidadMetaAdsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terminos': typeof TerminosRoute
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
   '/agenda': typeof AppAgendaRoute
@@ -760,10 +776,12 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/pagina-web-para-pymes': typeof PaginaWebParaPymesRoute
   '/portal': typeof PortalRoute
+  '/privacidad': typeof PrivacidadRoute
   '/privacy': typeof PrivacyRoute
   '/publicidad-meta-ads': typeof PublicidadMetaAdsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terminos': typeof TerminosRoute
   '/terms': typeof TermsRoute
   '/@{$slug}/links': typeof AtChar123slugChar125LinksRoute
   '/_app/agenda': typeof AppAgendaRoute
@@ -851,10 +869,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/pagina-web-para-pymes'
     | '/portal'
+    | '/privacidad'
     | '/privacy'
     | '/publicidad-meta-ads'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/terminos'
     | '/terms'
     | '/@{$slug}/links'
     | '/agenda'
@@ -940,10 +960,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/pagina-web-para-pymes'
     | '/portal'
+    | '/privacidad'
     | '/privacy'
     | '/publicidad-meta-ads'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/terminos'
     | '/terms'
     | '/@{$slug}/links'
     | '/agenda'
@@ -1029,10 +1051,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/pagina-web-para-pymes'
     | '/portal'
+    | '/privacidad'
     | '/privacy'
     | '/publicidad-meta-ads'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/terminos'
     | '/terms'
     | '/@{$slug}/links'
     | '/_app/agenda'
@@ -1120,10 +1144,12 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PaginaWebParaPymesRoute: typeof PaginaWebParaPymesRoute
   PortalRoute: typeof PortalRoute
+  PrivacidadRoute: typeof PrivacidadRoute
   PrivacyRoute: typeof PrivacyRoute
   PublicidadMetaAdsRoute: typeof PublicidadMetaAdsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TerminosRoute: typeof TerminosRoute
   TermsRoute: typeof TermsRoute
   BookSlugRoute: typeof BookSlugRoute
   LSlugRoute: typeof LSlugRoute
@@ -1253,6 +1279,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacidad': {
+      id: '/privacidad'
+      path: '/privacidad'
+      fullPath: '/privacidad'
+      preLoaderRoute: typeof PrivacidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -1279,6 +1312,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terminos': {
+      id: '/terminos'
+      path: '/terminos'
+      fullPath: '/terminos'
+      preLoaderRoute: typeof TerminosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -1901,10 +1941,12 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PaginaWebParaPymesRoute: PaginaWebParaPymesRoute,
   PortalRoute: PortalRoute,
+  PrivacidadRoute: PrivacidadRoute,
   PrivacyRoute: PrivacyRoute,
   PublicidadMetaAdsRoute: PublicidadMetaAdsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TerminosRoute: TerminosRoute,
   TermsRoute: TermsRoute,
   BookSlugRoute: BookSlugRoute,
   LSlugRoute: LSlugRoute,

@@ -11,12 +11,20 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/use-auth";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { translations } from "@/i18n/translations";
+import { NOINDEX_META } from "@/lib/site/robots";
 
 const DEFAULT_SEO = translations.es.seo.home;
 const FRAUNCES_CSS =
   "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&display=swap";
 
 import appCss from "../styles.css?url";
+
+const NOT_FOUND_TITLE = "Página no encontrada · Vibranding";
+
+/** Un match marcado como no encontrado (ruta inexistente o `notFound()` en un loader). */
+function isNotFoundMatch(match: { status: string; _notFound?: boolean }) {
+  return match.status === "notFound" || match._notFound === true;
+}
 
 function NotFoundComponent() {
   return (
@@ -60,12 +68,13 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
+  head: ({ matches }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: DEFAULT_SEO.title },
-      { name: "description", content: DEFAULT_SEO.description },
+      ...(matches.some(isNotFoundMatch)
+        ? [{ title: NOT_FOUND_TITLE }, NOINDEX_META]
+        : [{ title: DEFAULT_SEO.title }, { name: "description", content: DEFAULT_SEO.description }]),
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
