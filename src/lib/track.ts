@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export type LandingEventName =
   | "page_view"
   | "link_click"
@@ -30,26 +32,21 @@ export function trackEvent(name: LandingEventName, source: EventSource, lang?: s
   if (typeof window === "undefined") return;
   const utm = readUtm();
   // Fire and forget — never block navigation
-  void import("@/integrations/supabase/client")
-    .then(({ supabase }) =>
-      (supabase.rpc as any)("log_landing_event", {
-        _event_name: name,
-        _source_type: source.type,
-        _source_id: source.type === "site" ? null : source.id,
-        _item_id: source.type === "multilink" ? (source.itemId ?? null) : null,
-        _lang: lang ?? null,
-        _path: window.location.pathname + window.location.search,
-        _referrer: document.referrer || null,
-        _user_agent: navigator.userAgent,
-        _utm_source: utm.source,
-        _utm_medium: utm.medium,
-        _utm_campaign: utm.campaign,
-      }),
-    )
-    .then(({ error }: { error: { message: string } | null }) => {
-      if (error) console.warn("[track]", name, error.message);
-    })
-    .catch((err: unknown) => console.warn("[track]", name, err));
+  void (supabase.rpc as any)("log_landing_event", {
+    _event_name: name,
+    _source_type: source.type,
+    _source_id: source.type === "site" ? null : source.id,
+    _item_id: source.type === "multilink" ? source.itemId ?? null : null,
+    _lang: lang ?? null,
+    _path: window.location.pathname + window.location.search,
+    _referrer: document.referrer || null,
+    _user_agent: navigator.userAgent,
+    _utm_source: utm.source,
+    _utm_medium: utm.medium,
+    _utm_campaign: utm.campaign,
+  }).then(({ error }: { error: { message: string } | null }) => {
+    if (error) console.warn("[track]", name, error.message);
+  });
 }
 
 /** Agency marketing site events. */

@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 import { isPlaceholderName } from "@/lib/site";
 
 export type PortfolioClient = {
@@ -31,8 +32,6 @@ export type PortfolioClientWithWorks = PortfolioClient & { works: PortfolioWork[
  */
 export async function fetchPublicPortfolio(): Promise<PortfolioClientWithWorks[]> {
   try {
-    // Lazy: keeps the supabase SDK out of the entry chunk.
-    const { supabase } = await import("@/integrations/supabase/client");
     const [clientsRes, worksRes] = await Promise.all([
       supabase
         .from("portfolio_clients")
