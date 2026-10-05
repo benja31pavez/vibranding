@@ -6,6 +6,14 @@ import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
 import { zonedParts } from "@/lib/bookings/tz";
 import { getWaSecret } from "@/lib/whatsapp/tokens.server";
 import { getActiveRun, resumeFlowRun, type FlowRun } from "@/lib/whatsapp/flow.server";
+import {
+  DISPATCH_LEASE_MS,
+  OUTBOUND_TIMEOUT_MS,
+  dbError,
+  escalationReason,
+  planDispatchRetry,
+  redactDigits,
+} from "@/lib/messaging/delivery";
 
 const META = graphBase();
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -96,9 +104,12 @@ async function sendWhatsApp(
         type: "text",
         text: { body },
       }),
+      signal: AbortSignal.timeout(OUTBOUND_TIMEOUT_MS),
     });
-    const data: any = await res.json();
-    if (!res.ok) return { ok: false, error: data?.error?.message ?? "error" };
+    // A 2xx means Meta accepted the message even if the body is unreadable:
+    // treat it as sent (retrying would double-message the customer).
+    const data: any = await res.json().catch(() => null);
+    if (!res.ok) return { ok: false, error: data?.error?.message ?? `HTTP ${res.status}` };
     return { ok: true, wa_id: data?.messages?.[0]?.id };
   } catch (e: any) {
     return { ok: false, error: e?.message ?? "fetch failed" };
@@ -122,10 +133,12 @@ async function callAI(
         model,
         messages: [{ role: "system", content: systemPrompt }, ...history],
       }),
+      signal: AbortSignal.timeout(OUTBOUND_TIMEOUT_MS),
     });
     if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      return { ok: false, status: res.status, error: txt };
+      // Status only: the gateway body may echo conversation content.
+      await res.body?.cancel().catch(() => {});
+      return { ok: false, status: res.status, error: `HTTP ${res.status}` };
     }
     const data: any = await res.json();
     const text = data?.choices?.[0]?.message?.content?.trim() ?? "";
@@ -135,12 +148,49 @@ async function callAI(
   }
 }
 
+/**
+ * A claimed reply that failed (send error or exception) is put back in the
+ * queue with a counter; after DISPATCH_MAX_ATTEMPTS it goes to a human.
+ * `dispatch_attempts` comes from migration 20261012000700 (if the column were
+ * missing the row has no counter and we just reschedule, never escalate).
+ */
+async function scheduleDispatchRetry(conv: Record<string, any>, reason: string) {
+  const hasCounter = typeof conv.dispatch_attempts === "number";
+  const plan = planDispatchRetry(hasCounter ? conv.dispatch_attempts : 0, new Date());
+  const patch: Record<string, unknown> = plan.escalate
+    ? {
+        pending_response_at: null,
+        needs_human_followup: true,
+        human_followup_reason: escalationReason(reason),
+        human_followup_at: new Date().toISOString(),
+        // Same as the AI handoff path: the human takes over, the bot stops.
+        ai_paused: true,
+      }
+    : { pending_response_at: plan.pendingResponseAt };
+  if (hasCounter) patch.dispatch_attempts = plan.escalate ? 0 : plan.attempts;
+  const { error } = await supabaseAdmin
+    .from("whatsapp_conversations")
+    .update(patch as any)
+    .eq("id", conv.id);
+  if (error) {
+    console.error("[ALERTA][dispatch] could not reschedule reply", conv.id, redactDigits(error.message));
+    throw dbError("reschedule failed", error);
+  }
+  console.error(
+    plan.escalate
+      ? `[dispatch] reply failed ${plan.attempts}x, escalated to human: ${conv.id}`
+      : `[dispatch] reply failed (attempt ${plan.attempts}), retrying: ${conv.id}`,
+    redactDigits(reason),
+  );
+}
+
 async function processConversation(convId: string) {
-  const { data: conv } = await supabaseAdmin
+  const { data: conv, error: convError } = await supabaseAdmin
     .from("whatsapp_conversations")
     .select("*")
     .eq("id", convId)
     .maybeSingle();
+  if (convError) throw dbError("load conversation", convError);
   if (!conv) return;
   if (conv.ai_paused) {
     await supabaseAdmin
@@ -153,52 +203,92 @@ async function processConversation(convId: string) {
     return;
   }
 
-  // Atomically claim the conversation: only one runner may proceed.
-  const { data: claimed } = await supabaseAdmin
+  // Atomically claim the conversation: only one runner may proceed. The claim
+  // is a lease (now + 5 min), not null: if this runner dies mid-reply the
+  // conversation becomes due again instead of being lost.
+  const lease = new Date(Date.now() + DISPATCH_LEASE_MS).toISOString();
+  const { data: claimed, error: claimError } = await supabaseAdmin
     .from("whatsapp_conversations")
-    .update({ pending_response_at: null })
+    .update({ pending_response_at: lease })
     .eq("id", convId)
     .eq("pending_response_at", conv.pending_response_at)
     .select("id");
+  // Nothing was changed on error, so the reply stays queued for the next run.
+  if (claimError) throw dbError("claim", claimError);
   if (!claimed || claimed.length === 0) {
     // Another dispatch run already took this conversation.
     return;
   }
 
   // Instagram DM conversations have no WhatsApp account and no AI auto-reply.
-  if (!conv.account_id) return;
+  if (!conv.account_id) {
+    await releaseLease(convId, lease);
+    return;
+  }
 
-  const { data: acc } = await supabaseAdmin
+  // From here the reply is leased: any failure must re-queue it, or the
+  // customer's message goes unanswered.
+  try {
+    const sent = await answerConversation({ ...conv, lease });
+    if (!sent.ok) await scheduleDispatchRetry(conv, sent.error);
+  } catch (e: any) {
+    await scheduleDispatchRetry(conv, e?.message ?? "exception");
+  }
+}
+
+/**
+ * Clears our lease only if it is still ours: a new inbound message may have
+ * re-queued the conversation meanwhile, and that must survive.
+ */
+async function releaseLease(convId: string, lease: string) {
+  const { error } = await supabaseAdmin
+    .from("whatsapp_conversations")
+    .update({ pending_response_at: null })
+    .eq("id", convId)
+    .eq("pending_response_at", lease);
+  if (error) {
+    console.error("[ALERTA][dispatch] could not release lease", convId, redactDigits(error.message));
+  }
+}
+
+type AnswerResult = { ok: true } | { ok: false; error: string };
+
+async function answerConversation(conv: Record<string, any>): Promise<AnswerResult> {
+  const convId = conv.id as string;
+  const { data: acc, error: accError } = await supabaseAdmin
     .from("whatsapp_accounts")
     .select(
       "id,client_id,phone_number_id,ai_enabled,ai_system_prompt,ai_model,ai_max_history,ai_business_context,website_url,social_links,catalog,business_name,business_hours,timezone",
     )
     .eq("id", conv.account_id)
     .maybeSingle<WAAccount>();
+  if (accError) throw dbError("load account", accError);
   const accessToken = acc?.phone_number_id ? await getWaSecret(acc.id, "access_token") : null;
   if (!acc || !acc.ai_enabled || !acc.phone_number_id || !accessToken) {
-    await supabaseAdmin
-      .from("whatsapp_conversations")
-      .update({ pending_response_at: null })
-      .eq("id", convId);
-    return;
+    await releaseLease(convId, conv.lease as string);
+    return { ok: true };
   }
 
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) {
     console.error("[dispatch] LOVABLE_API_KEY missing");
-    return;
+    return { ok: false, error: "LOVABLE_API_KEY missing" };
   }
 
   const limit = Math.max(4, acc.ai_max_history ?? 20);
-  const { data: msgs } = await supabaseAdmin
+  const { data: msgs, error: msgsError } = await supabaseAdmin
     .from("whatsapp_messages")
-    .select("direction,body,from_bot,type,timestamp")
+    .select("direction,body,from_bot,type,timestamp,status")
     .eq("conversation_id", convId)
     .order("timestamp", { ascending: true })
     .limit(200);
+  if (msgsError) throw dbError("load messages", msgsError);
 
-  const recent = (msgs ?? []).slice(-limit);
+  // Failed sends never reached the customer: keep them out of the AI history
+  // so a retry does not treat its previous attempt as already said.
+  const recent = (msgs ?? [])
+    .filter((m) => !(m.direction === "outbound" && m.status === "failed"))
+    .slice(-limit);
   const history = recent
     .filter((m) => (m.body ?? "").trim().length > 0)
     .map((m) => ({
@@ -207,11 +297,8 @@ async function processConversation(convId: string) {
     }));
 
   if (history.length === 0) {
-    await supabaseAdmin
-      .from("whatsapp_conversations")
-      .update({ pending_response_at: null })
-      .eq("id", convId);
-    return;
+    await releaseLease(convId, conv.lease as string);
+    return { ok: true };
   }
 
   const socials = (acc.social_links ?? []).filter((s) => s?.url?.trim());
@@ -243,21 +330,23 @@ async function processConversation(convId: string) {
   // Booking context — let the AI know how the agenda works and what's already taken.
 
   // Look up the client's owner via the clients table to find the right agenda
-  const { data: cli } = await supabaseAdmin
+  const { data: cli, error: cliError } = await supabaseAdmin
     .from("clients")
     .select("user_id")
     .eq("id", acc.client_id)
     .maybeSingle();
+  if (cliError) throw dbError("load client", cliError);
 
   let bookingBlock = "";
   if (cli?.user_id) {
-    const { data: settings } = await supabaseAdmin
+    const { data: settings, error: settingsError } = await supabaseAdmin
       .from("booking_settings")
       .select("id,slug,display_name,hours,slot_minutes,timezone,enabled")
       .eq("owner_user_id", cli.user_id)
       // Only this client's agenda — never the agency's own or another client's.
       .eq("client_id", acc.client_id)
       .eq("enabled", true);
+    if (settingsError) throw dbError("load booking settings", settingsError);
 
     if (settings && settings.length > 0) {
       const siteOrigin = process.env["PUBLIC_SITE_URL"]?.trim().replace(/\/+$/, "") || null;
@@ -267,13 +356,14 @@ async function processConversation(convId: string) {
       const now = new Date();
       const in14d = new Date(now.getTime() + 14 * 86_400_000);
       const ids = settings.map((s) => s.id);
-      const { data: upcoming } = await supabaseAdmin
+      const { data: upcoming, error: upcomingError } = await supabaseAdmin
         .from("bookings")
         .select("scheduled_at,settings_id")
         .in("settings_id", ids)
         .eq("status", "confirmed")
         .gte("scheduled_at", now.toISOString())
         .lte("scheduled_at", in14d.toISOString());
+      if (upcomingError) throw dbError("load bookings", upcomingError);
 
       const lines = settings.map((s) => {
         const hrs = (s.hours as any as { day: number; enabled: boolean; open: string; close: string }[])
@@ -292,12 +382,13 @@ async function processConversation(convId: string) {
   }
 
   // Knowledge base — answered Q&A from the owner enriches the bot's understanding.
-  const { data: knowledge } = await (supabaseAdmin.from("bot_knowledge" as any) as any)
+  const { data: knowledge, error: knowledgeError } = await (supabaseAdmin.from("bot_knowledge" as any) as any)
     .select("question,answer")
     .eq("account_id", acc.id)
     .eq("status", "answered")
     .order("sort_order", { ascending: true })
     .limit(60);
+  if (knowledgeError) throw dbError("load knowledge", knowledgeError);
 
   const knowledgeBlock = ((knowledge ?? []) as Array<{ question: string; answer: string }>)
     .filter((k) => k.answer && k.answer.trim())
@@ -324,20 +415,14 @@ async function processConversation(convId: string) {
 
   const ai = await callAI(apiKey, acc.ai_model, systemPrompt, history);
   if (!ai.ok || !ai.text) {
-    console.error("[dispatch] AI failed", ai.status, ai.error);
-    await supabaseAdmin
-      .from("whatsapp_conversations")
-      .update({
-        pending_response_at: new Date(Date.now() + 30_000).toISOString(),
-      })
-      .eq("id", convId);
-    return;
+    // Goes through scheduleDispatchRetry: capped attempts, then a human.
+    return { ok: false, error: `AI failed ${ai.status ?? (ai.ok ? "empty" : "network")}` };
   }
 
   const text = ai.text.slice(0, 3500);
   const sent = await sendWhatsApp(acc.phone_number_id, accessToken, conv.contact_wa_id, text);
 
-  await supabaseAdmin.from("whatsapp_messages").insert({
+  const { error: logError } = await supabaseAdmin.from("whatsapp_messages").insert({
     conversation_id: convId,
     client_id: acc.client_id,
     wa_message_id: sent.wa_id ?? null,
@@ -348,12 +433,38 @@ async function processConversation(convId: string) {
     timestamp: new Date().toISOString(),
     status: sent.ok ? "sent" : "failed",
   });
+  if (logError) {
+    // Never throw here: after a successful send a retry would double-message.
+    console.error("[ALERTA][dispatch] reply not logged in inbox", convId, redactDigits(logError.message));
+  }
+  if (!sent.ok) return { ok: false, error: `send failed: ${redactDigits(sent.error ?? "error")}` };
+
+  // Sent: drop the lease right away so nothing can re-send this reply.
+  await releaseLease(convId, conv.lease as string);
+
+  // Everything below runs after the customer got the reply: log, don't throw.
+  try {
+    await finishAfterSend(conv, acc, apiKey, text, history);
+  } catch (e: any) {
+    console.error("[dispatch] post-send bookkeeping failed", convId, redactDigits(String(e?.message)));
+  }
+  return { ok: true };
+}
+
+async function finishAfterSend(
+  conv: Record<string, any>,
+  acc: WAAccount,
+  apiKey: string,
+  text: string,
+  history: Array<{ role: "user" | "assistant"; content: string }>,
+) {
+  const convId = conv.id as string;
 
   // Detect AI handoff to a human → flag conversation as needing follow-up
   // and pause the bot so the human takes over.
   const handoff = detectHandoff(text);
+  // pending_response_at was already released (only if still our lease).
   const updatePatch: Record<string, unknown> = {
-    pending_response_at: null,
     last_bot_at: new Date().toISOString(),
     last_message_at: new Date().toISOString(),
     last_message_preview: text.slice(0, 140),
@@ -365,11 +476,16 @@ async function processConversation(convId: string) {
     updatePatch.is_lead = true;
     updatePatch.ai_paused = true;
   }
+  // Reset the retry counter once a reply went out (only if the column exists).
+  if (typeof conv.dispatch_attempts === "number" && conv.dispatch_attempts > 0) {
+    updatePatch.dispatch_attempts = 0;
+  }
 
-  await supabaseAdmin
+  const { error: patchError } = await supabaseAdmin
     .from("whatsapp_conversations")
     .update(updatePatch as any)
     .eq("id", convId);
+  if (patchError) console.error("[dispatch] conversation update after send failed", convId, redactDigits(patchError.message));
 
   // Dynamic learning: when we had to hand off, ask the AI to identify ONE
   // missing piece of info the owner should provide so the bot can answer
@@ -398,7 +514,7 @@ async function processConversation(convId: string) {
         }
       }
     } catch (e: any) {
-      console.error("[dispatch] knowledge-gap generation failed", e?.message);
+      console.error("[dispatch] knowledge-gap generation failed", redactDigits(String(e?.message)));
     }
   }
 }
@@ -427,12 +543,17 @@ export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
         const nowIso = new Date().toISOString();
 
         // 1) Resume flows whose "espera" step is due.
-        const { data: dueRuns } = await (supabaseAdmin.from("whatsapp_flow_runs" as any) as any)
+        const { data: dueRuns, error: dueRunsError } = await (supabaseAdmin.from("whatsapp_flow_runs" as any) as any)
           .select("*")
           .eq("status", "running")
           .not("next_run_at", "is", null)
           .lte("next_run_at", nowIso)
           .limit(25);
+        // A failed queue read must not look like an empty queue (job_runs green).
+        if (dueRunsError) {
+          console.error("[dispatch] due flow runs query failed", dueRunsError.message);
+          return Response.json({ error: "flow_runs_query_failed" }, { status: 500 });
+        }
 
         let flowsResumed = 0;
         for (const run of (dueRuns ?? []) as FlowRun[]) {
@@ -462,17 +583,21 @@ export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
             });
             flowsResumed++;
           } catch (e: any) {
-            console.error("[dispatch] flow resume failed", run.id, e?.message);
+            console.error("[dispatch] flow resume failed", run.id, redactDigits(String(e?.message)));
           }
         }
 
-        const { data: due } = await supabaseAdmin
+        const { data: due, error: dueError } = await supabaseAdmin
           .from("whatsapp_conversations")
           .select("id")
           .not("pending_response_at", "is", null)
           .lte("pending_response_at", nowIso)
           .eq("ai_paused", false)
           .limit(25);
+        if (dueError) {
+          console.error("[dispatch] due conversations query failed", dueError.message);
+          return Response.json({ error: "due_query_failed", flows_resumed: flowsResumed }, { status: 500 });
+        }
 
         const ids = (due ?? []).map((r) => r.id);
         let aiProcessed = 0;
@@ -490,7 +615,7 @@ export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
             aiProcessed++;
             await processConversation(id);
           } catch (e: any) {
-            console.error("[dispatch] error on", id, e?.message);
+            console.error("[dispatch] error on", id, redactDigits(String(e?.message)));
           }
         }
         return Response.json({ processed: aiProcessed, flows_resumed: flowsResumed });

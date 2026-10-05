@@ -36,11 +36,15 @@ async function pickTrigger(
   text: string | null,
   isFirstMessage: boolean,
 ): Promise<DmTrigger | null> {
-  const { data } = await (supabaseAdmin.from("ig_dm_triggers" as any) as any)
+  const { data, error } = await (supabaseAdmin.from("ig_dm_triggers" as any) as any)
     .select("id,kind,keywords,match_type,message,priority")
     .eq("client_id", clientId)
     .eq("is_active", true)
     .order("priority", { ascending: false });
+  if (error) {
+    console.error("[ig-dm-automation] triggers query failed", clientId, error.message);
+    return null;
+  }
   const rows = (data ?? []) as DmTrigger[];
 
   if (text) {
@@ -66,11 +70,16 @@ export async function runDmAutomation(args: {
   contactId: string;
   text: string | null;
 }) {
-  const { data: conv } = await supabaseAdmin
+  const { data: conv, error: convError } = await supabaseAdmin
     .from("whatsapp_conversations")
     .select("welcome_sent_at,ai_paused,needs_human_followup")
     .eq("id", args.conversationId)
     .maybeSingle();
+  // Unknown state: do not risk talking over a human or re-sending the welcome.
+  if (convError) {
+    console.error("[ig-dm-automation] conversation query failed", args.conversationId, convError.message);
+    return { skipped: "db_error" as const };
+  }
 
   // A human took over: never talk on top of them.
   if ((conv as any)?.ai_paused || (conv as any)?.needs_human_followup)
@@ -90,15 +99,21 @@ export async function runDmAutomation(args: {
 
   if (!res.ok) return { ok: false as const, error: res.error };
 
-  await insertIgMessage({
-    conversationId: args.conversationId,
-    clientId: args.clientId,
-    messageId: null,
-    direction: "outbound",
-    fromBot: true,
-    body: trigger.message,
-    at: new Date().toISOString(),
-  });
+  // The DM is already sent: a logging failure must not abort the
+  // welcome_sent_at update below (that would resend the welcome).
+  try {
+    await insertIgMessage({
+      conversationId: args.conversationId,
+      clientId: args.clientId,
+      messageId: null,
+      direction: "outbound",
+      fromBot: true,
+      body: trigger.message,
+      at: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    console.error("[ig dm automation] DM sent but inbox logging failed", err?.message);
+  }
 
   await supabaseAdmin
     .from("whatsapp_conversations")

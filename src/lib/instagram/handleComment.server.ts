@@ -2,6 +2,7 @@
 // Every attempt is logged in ig_automation_events, which is also the
 // idempotency guard against Meta's webhook retries.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { dbError, isUniqueViolation } from "@/lib/messaging/delivery";
 import {
   bumpTrigger,
   insertIgMessage,
@@ -27,6 +28,19 @@ export async function handleIgComment(igAccountId: string, c: IncomingComment) {
   if (!resolved) return { skipped: "no_account" as const };
   const { clientId, token } = resolved;
 
+  // Load triggers before claiming: a read failure here throws and Meta's
+  // retry can still process the comment (nothing was claimed yet).
+  const { data: triggerRows, error: triggersError } = await supabaseAdmin
+    .from("ig_comment_triggers")
+    .select("*")
+    .eq("client_id", clientId)
+    .eq("is_active", true)
+    .order("priority", { ascending: false });
+  if (triggersError) throw dbError("handleIgComment triggers", triggersError);
+  const triggers = ((triggerRows ?? []) as unknown as IgTrigger[]).filter(
+    (t) => !t.ig_media_id || (c.mediaId && t.ig_media_id === c.mediaId),
+  );
+
   // Claim the comment first: a duplicate webhook delivery hits the unique
   // index on comment_id and exits without sending a second DM.
   const { data: claim, error: claimError } = await supabaseAdmin
@@ -41,7 +55,11 @@ export async function handleIgComment(igAccountId: string, c: IncomingComment) {
     })
     .select("id")
     .single();
-  if (claimError || !claim?.id) return { skipped: "duplicate" as const };
+  if (claimError) {
+    if (isUniqueViolation(claimError)) return { skipped: "duplicate" as const };
+    throw dbError("handleIgComment claim", claimError);
+  }
+  if (!claim?.id) throw new Error("handleIgComment claim: no id returned");
   const eventId = claim.id as string;
 
   // Never automate the brand's own replies.
@@ -50,16 +68,6 @@ export async function handleIgComment(igAccountId: string, c: IncomingComment) {
     return { skipped: "self" as const };
   }
 
-  const { data: triggerRows } = await supabaseAdmin
-    .from("ig_comment_triggers")
-    .select("*")
-    .eq("client_id", clientId)
-    .eq("is_active", true)
-    .order("priority", { ascending: false });
-
-  const triggers = ((triggerRows ?? []) as unknown as IgTrigger[]).filter(
-    (t) => !t.ig_media_id || (c.mediaId && t.ig_media_id === c.mediaId),
-  );
   // Post-specific triggers win over catch-all ones.
   triggers.sort((a, b) => Number(Boolean(b.ig_media_id)) - Number(Boolean(a.ig_media_id)));
 
@@ -77,26 +85,32 @@ export async function handleIgComment(igAccountId: string, c: IncomingComment) {
 
   let conversationId: string | null = null;
   if (dm.ok && c.fromId) {
-    conversationId = await upsertIgConversation({
-      clientId,
-      igAccountId: resolved.igAccountId,
-      contactId: c.fromId,
-      username: c.fromUsername,
-      preview: trigger.dm_message.slice(0, 120),
-      at: c.at,
-      inbound: false,
-      isLead: true,
-    });
-    if (conversationId) {
-      await insertIgMessage({
-        conversationId,
+    // The DM already went out and the comment is claimed, so a retry would not
+    // resend it: log inbox failures instead of throwing past the event update.
+    try {
+      conversationId = await upsertIgConversation({
         clientId,
-        messageId: null,
-        direction: "outbound",
-        fromBot: true,
-        body: trigger.dm_message,
+        igAccountId: resolved.igAccountId,
+        contactId: c.fromId,
+        username: c.fromUsername,
+        preview: trigger.dm_message.slice(0, 120),
         at: c.at,
+        inbound: false,
+        isLead: true,
       });
+      if (conversationId) {
+        await insertIgMessage({
+          conversationId,
+          clientId,
+          messageId: null,
+          direction: "outbound",
+          fromBot: true,
+          body: trigger.dm_message,
+          at: c.at,
+        });
+      }
+    } catch (err: any) {
+      console.error("[ig comment] DM sent but inbox logging failed", c.commentId, err?.message);
     }
   }
 
