@@ -47,4 +47,7 @@ jobs:
 
       # VITE_* public values come from the committed .env; no secrets needed.
       - name: Build
+        # El build SSR + Worker supera el heap por defecto (~2 GB) del runner.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: npm run build
