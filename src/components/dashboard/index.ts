@@ -5,4 +5,5 @@ export { UpcomingPayments } from "./upcoming-payments";
 export { PipelineFunnel } from "./pipeline-funnel";
 export { OperationsPanels } from "./operations";
 export { ReviewActivity } from "./review-activity";
+export { FollowupsToday } from "./followups-today";
 export { chileToday } from "./queries";

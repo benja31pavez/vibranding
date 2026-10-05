@@ -15,16 +15,16 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
           return new Response("Server misconfigured", { status: 500 });
         }
 
-        const { verifyState, redirectUri, graph, META_SCOPES } = await import(
-          "@/lib/meta/oauth.server"
-        );
+        const { verifyState, redirectUri, graph, META_SCOPES, redirectClearingOAuthCookie } =
+          await import("@/lib/meta/oauth.server");
 
         const url = new URL(request.url);
         const code = url.searchParams.get("code");
         const rawState = url.searchParams.get("state") ?? "";
         const denied = url.searchParams.get("error");
 
-        const state = await verifyState(rawState, appSecret);
+        // Firma, vigencia, flujo "meta" y nonce == cookie del navegador que inició.
+        const state = await verifyState(rawState, appSecret, "meta", request);
         if (!state) {
           console.error("[meta oauth] invalid or expired state");
           return new Response("Forbidden", { status: 403 });
@@ -33,7 +33,7 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
           const target = new URL(`${url.origin}/clients/${state.clientId}/meta-ads`);
           target.searchParams.set("meta", status);
           if (errorMsg) target.searchParams.set("meta_error", errorMsg.slice(0, 300));
-          return Response.redirect(target.toString(), 302);
+          return redirectClearingOAuthCookie(target.toString(), "meta");
         };
 
         if (denied || !code) return back("cancelado");
