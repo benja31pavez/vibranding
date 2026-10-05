@@ -49,7 +49,14 @@ async function assertClpAccount(
     account.manager_customer_id,
   );
   const currency = flattenSearchStream(body)[0]?.customer?.currencyCode ?? null;
-  if (currency && currency !== "CLP") {
+  // Falla cerrado: sin moneda confirmada no se guarda nada en cost_clp.
+  if (!currency) {
+    throw new GoogleAdsError(
+      "Google Ads no informó la moneda de la cuenta; no se guardaron métricas.",
+      502,
+    );
+  }
+  if (currency !== "CLP") {
     throw new GoogleAdsError(
       `La cuenta factura en ${currency}. La plataforma trabaja solo en pesos chilenos (CLP).`,
       400,

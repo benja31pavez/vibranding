@@ -211,21 +211,17 @@ export function isLinkable(opt: CustomerOption): boolean {
 }
 
 /**
- * Elige la cuenta tras el OAuth. `taken` = cuentas ya vinculadas a otros clientes.
- * - Si la cuenta que ya tenía el cliente sigue accesible, se mantiene.
+ * Elige la cuenta en la PRIMERA conexión de un cliente (sin cuenta previa).
+ * `taken` = cuentas ya vinculadas a otros clientes.
  * - Si hay exactamente una cuenta elegible libre, se vincula sola.
  * - Si hay varias, se reserva la primera como "pendiente" hasta que se elija.
+ * Al reconectar nunca se usa: el callback mantiene la cuenta que ya tenía.
  */
 export function chooseInitialCustomer(
   options: CustomerOption[],
   taken: ReadonlySet<string>,
-  currentCustomerId: string | null,
 ): { option: CustomerOption; confirmed: boolean } | null {
   const free = options.filter((o) => isLinkable(o) && !taken.has(o.customerId));
-  const current = currentCustomerId
-    ? free.find((o) => o.customerId === currentCustomerId)
-    : undefined;
-  if (current) return { option: current, confirmed: true };
   if (free.length === 0) return null;
   return { option: free[0], confirmed: free.length === 1 };
 }

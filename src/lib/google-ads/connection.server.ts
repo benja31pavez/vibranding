@@ -18,6 +18,18 @@ export type GoogleAdsAccountRow = {
   last_sync_error: string | null;
 };
 
+type ConnectionErrorCode = "account_taken" | "save_failed";
+
+/** Error con código corto (ver oauthErrors.ts) para no exponer texto crudo en URLs. */
+export class ConnectionError extends Error {
+  readonly code: ConnectionErrorCode;
+  constructor(code: ConnectionErrorCode, message: string) {
+    super(message);
+    this.name = "ConnectionError";
+    this.code = code;
+  }
+}
+
 const ACCOUNT_COLUMNS =
   "id,client_id,org_id,customer_id,manager_customer_id,status,token_secret_id,last_synced_at,last_sync_error";
 
@@ -93,12 +105,32 @@ export async function saveConnection(input: {
     .select(ACCOUNT_COLUMNS)
     .single();
   if (isUniqueViolation(error)) {
-    throw new Error("Esa cuenta de Google Ads ya está vinculada a otro cliente.");
+    throw new ConnectionError(
+      "account_taken",
+      "Esa cuenta de Google Ads ya está vinculada a otro cliente.",
+    );
   }
-  if (error || !data) throw new Error("No se pudo guardar la conexión de Google Ads");
-  if (input.refreshToken)
-    await setGoogleAdsRefreshToken((data as GoogleAdsAccountRow).id, input.refreshToken);
-  return data as GoogleAdsAccountRow;
+  if (error || !data) {
+    throw new ConnectionError("save_failed", "No se pudo guardar la conexión de Google Ads");
+  }
+  const row = data as GoogleAdsAccountRow;
+  if (input.refreshToken) {
+    try {
+      await setGoogleAdsRefreshToken(row.id, input.refreshToken);
+    } catch (e) {
+      // Sin token en Vault la fila no sirve: queda en "error" para que se vea "Reconectar".
+      console.error("[google-ads] google_ads_set_secret falló", (e as Error).message);
+      await supabaseAdmin
+        .from("google_ads_accounts")
+        .update({
+          status: "error",
+          last_sync_error: "No se pudo guardar el acceso. Vuelve a conectar.",
+        })
+        .eq("id", row.id);
+      throw new ConnectionError("save_failed", "No se pudo guardar el token en Vault");
+    }
+  }
+  return row;
 }
 
 /** Borra el token de Vault y la conexión. Las métricas descargadas se conservan. */

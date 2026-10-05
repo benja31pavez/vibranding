@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog, ErrorState, ListSkeleton, Panel } from "@/components/app";
 import { useUserKey } from "@/components/clients/ficha/fichaQueries";
 import { formatCustomerId } from "@/lib/google-ads/gaql";
+import { googleOAuthErrorMessage } from "@/lib/google-ads/oauthErrors";
 import {
   disconnectGoogleAds,
   getGoogleAdsOverview,
@@ -24,13 +25,14 @@ function useOAuthReturnToast() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const status = params.get("gads");
-    const detail = params.get("gads_error");
-    if (status === "conectado" && detail) toast.warning(detail);
-    if (status === "conectado" && !detail) toast.success("Google Ads conectado");
+    // Solo códigos cortos en la URL; el texto se arma aquí.
+    const code = params.get("gads_error");
+    if (status === "conectado" && code) toast.warning(googleOAuthErrorMessage(code));
+    if (status === "conectado" && !code) toast.success("Google Ads conectado");
     if (status === "elegir")
       toast.info("Conectado. Elige cuál cuenta de Google Ads es de este cliente.");
     if (status === "cancelado") toast.info("Conexión con Google cancelada");
-    if (status === "error") toast.error(detail ?? "No se pudo conectar con Google");
+    if (status === "error") toast.error(googleOAuthErrorMessage(code));
   }, []);
 }
 

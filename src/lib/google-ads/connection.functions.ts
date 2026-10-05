@@ -4,8 +4,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-/** Vigencia del state firmado del OAuth. */
-const STATE_TTL_MS = 10 * 60 * 1000;
 
 function validateClientInput(input: unknown): { clientId: string } {
   const clientId = (input as { clientId?: unknown } | null)?.clientId;
@@ -81,9 +79,10 @@ export const startGoogleAdsOAuth = createServerFn({ method: "POST" })
     const { requireGoogleAdsConfig, googleRedirectUri, GOOGLE_ADS_SCOPE, GOOGLE_AUTH_URL } =
       await import("@/lib/google-ads/config.server");
     const cfg = requireGoogleAdsConfig();
-    const { signState } = await import("@/lib/oauthState.server");
-    const state = await signState(
-      { clientId: data.clientId, userId: context.userId, exp: Date.now() + STATE_TTL_MS },
+    // State firmado + nonce en cookie HttpOnly: el callback exige el mismo navegador.
+    const { createOAuthState } = await import("@/lib/oauthState.server");
+    const state = await createOAuthState(
+      { clientId: data.clientId, userId: context.userId, purpose: "google_ads" },
       cfg.clientSecret,
     );
     const params = new URLSearchParams({

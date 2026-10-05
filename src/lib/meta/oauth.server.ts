@@ -22,7 +22,12 @@ export function redirectUri(): string {
 }
 
 // El state firmado se comparte con Google Ads (src/lib/oauthState.server.ts).
-export { signState, verifyState, type OAuthState } from "@/lib/oauthState.server";
+export {
+  createOAuthState,
+  verifyState,
+  redirectClearingOAuthCookie,
+  type OAuthState,
+} from "@/lib/oauthState.server";
 
 export async function graph<T = any>(
   path: string,
