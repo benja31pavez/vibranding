@@ -95,8 +95,8 @@ function Column({
       {...FIT_COLUMN}
       className={
         nested
-          ? "flex min-w-0 flex-col gap-2 xl:min-h-0 xl:overflow-y-auto"
-          : "flex min-w-0 flex-col gap-2 md:min-h-0 md:overflow-y-auto"
+          ? "flex min-w-0 flex-col gap-3 xl:min-h-0 xl:overflow-y-auto"
+          : "flex min-w-0 flex-col gap-3 md:min-h-0 md:overflow-y-auto"
       }
     >
       {children}
@@ -154,7 +154,7 @@ export function FichaPage({ clientId }: { clientId: string }) {
       header={
         <ClientHeader clientId={clientId} overview={overview.data} loading={overview.isLoading} />
       }
-      contentClassName="flex flex-col gap-3"
+      contentClassName="flex flex-col gap-4"
     >
       <div className="shrink-0">
         <StatusStrip
@@ -171,7 +171,7 @@ export function FichaPage({ clientId }: { clientId: string }) {
 
       <div
         ref={gridRef}
-        className="grid grid-cols-1 gap-3 md:min-h-0 md:flex-1 md:grid-cols-2 md:grid-rows-[minmax(0,1fr)] xl:grid-cols-3"
+        className="grid grid-cols-1 gap-4 md:min-h-0 md:flex-1 md:grid-cols-2 md:grid-rows-[minmax(0,1fr)] xl:grid-cols-3"
       >
         <Column label="Pendientes">
           <FichaSection
@@ -203,7 +203,7 @@ export function FichaPage({ clientId }: { clientId: string }) {
         {/* Bajo xl, las columnas 2 y 3 comparten una celda: ahí la celda es la que no debe crecer. */}
         <div
           {...FIT_COLUMN}
-          className="flex min-w-0 flex-col gap-2 md:min-h-0 md:overflow-y-auto xl:contents"
+          className="flex min-w-0 flex-col gap-3 md:min-h-0 md:overflow-y-auto xl:contents"
         >
           <Column label="Cliente" nested>
             {scored && (
