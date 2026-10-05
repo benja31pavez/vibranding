@@ -1,0 +1,50 @@
+name: Verificacion
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verificacion-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verificacion:
+    name: tsc + checks + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # No engines/.nvmrc in the repo; @types/node ^22 -> Node 22 LTS.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The repo uses bun.lock (Lovable default), so install with bun against it.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.x
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install (frozen lockfile)
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: npx tsc --noEmit -p .
+
+      - name: Checks (check:*)
+        run: npm run check:all
+
+      # VITE_* public values come from the committed .env; no secrets needed.
+      - name: Build
+        run: npm run build
