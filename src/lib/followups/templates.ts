@@ -5,6 +5,7 @@
  * siempre con salida fácil ("si no es buen momento, me dices") y con la firma
  * de Benjamín. El texto se copia o se abre en WhatsApp; nunca se envía solo.
  */
+import { buildReviewRequest } from "@/lib/reviews/requestReview";
 import type { FollowupKind, TemplateData } from "./types";
 
 export const SIGNATURE = "Benjamín · Vibranding";
@@ -73,6 +74,10 @@ const BUILDERS: Readonly<Record<FollowupKind, Builder>> = {
     `con lo que hicimos y cómo se movieron sus redes.` +
     linkLine(d.link, "Reporte") +
     `\n\nSi quieren lo revisamos juntos en una llamada corta.`,
+
+  // El link (si hay) es el de reseñas de Google; sin link solo se pide el testimonio.
+  pedir_resena: (d) =>
+    buildReviewRequest({ businessName: d.businessName, googleReviewUrl: d.link }).body,
 };
 
 /** Mensaje final listo para copiar, con firma. */

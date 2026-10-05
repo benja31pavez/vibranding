@@ -10,6 +10,7 @@ export const FOLLOWUP_KINDS = [
   "onboarding_pendiente",
   "prospecto_sin_respuesta",
   "reporte_sin_enviar",
+  "pedir_resena",
 ] as const;
 export type FollowupKind = (typeof FOLLOWUP_KINDS)[number];
 
