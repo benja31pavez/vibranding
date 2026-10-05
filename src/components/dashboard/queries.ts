@@ -16,7 +16,8 @@ export { useMrr, type MrrSummary } from "@/lib/billing/mrr";
  */
 
 const CHILE_TZ = "America/Santiago";
-const RECENT_APPROVALS = 5;
+/** Ítems recientes de la cola que se listan en Inicio ("Ver todos" y /approvals para el resto). */
+const RECENT_APPROVALS = 30;
 const ALERTS_LIMIT = 50;
 
 export const PIPELINE_STAGES = [

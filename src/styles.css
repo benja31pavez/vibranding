@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
 @import "./motion.css";
+@import "./components/home/mockups/mockups.css";
 @source "../src";
 
 @font-face {

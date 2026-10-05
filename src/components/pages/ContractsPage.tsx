@@ -1,20 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { chileToday } from "@/lib/dates/chile";
-import { ErrorState, ListSkeleton, Money } from "@/components/app";
+import { ErrorState, ListSkeleton } from "@/components/app";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-
-/** RLS hides rows instead of erroring: 0 affected rows means "not allowed". */
-const NO_PERMISSION = "No tienes permisos para esta acción";
-function writeDenied(error: unknown, rows: unknown[] | null): boolean {
-  return Boolean(error) || !rows || rows.length === 0;
-}
-import { FileSignature, Download, Trash2, Plus, FileText } from "lucide-react";
 import {
   loadPricing,
   loadServicePricing,
@@ -24,34 +13,54 @@ import {
   type ServiceKey,
 } from "@/components/PricingPanel";
 import { ContractDocument } from "@/components/contracts/ContractDocument";
-import { exportElementToPdf } from "@/lib/exportPdf";
+import { NewContractForm } from "@/components/contracts/NewContractForm";
+import { ContractHistory } from "@/components/contracts/ContractHistory";
 import {
-  AGENCY_DEFAULTS,
-  DEFAULT_CURRENCY,
-  PLANS,
-  findPlan,
-  formatMoney,
-  planPriceLabel,
-  type PlanKey,
-} from "@/lib/pricing/plans";
+  addonHasPrice,
+  EMPTY_LEGAL_DATA,
+  type ClientContract,
+  type ClientLegalData,
+} from "@/components/contracts/contractModel";
+import { exportElementToPdf } from "@/lib/exportPdf";
+import { AGENCY_DEFAULTS, DEFAULT_CURRENCY, findPlan, type PlanKey } from "@/lib/pricing/plans";
 
-interface ClientContract {
-  id: string;
-  client_id: string;
-  title: string;
-  status: "draft" | "sent" | "signed" | "cancelled";
-  currency: string;
-  payment_due_days: number;
-  agency_snapshot: any;
-  client_snapshot: any;
-  services_snapshot: any[];
-  clauses_snapshot: any[];
-  total_one_time: number;
-  total_monthly: number;
-  effective_date: string | null;
-  signed_at: string | null;
-  notes: string | null;
-  created_at: string;
+/** RLS hides rows instead of erroring: 0 affected rows means "not allowed". */
+const NO_PERMISSION = "No tienes permisos para esta acción";
+function writeDenied(error: unknown, rows: unknown[] | null): boolean {
+  return Boolean(error) || !rows || rows.length === 0;
+}
+
+/**
+ * Datos legales de la ficha de onboarding (client_intake), para precargar el contrato.
+ * Es opcional: si falla la lectura se avisa en consola y el formulario queda vacío.
+ */
+async function loadIntakeLegalData(clientId: string): Promise<Partial<ClientLegalData>> {
+  const { data, error } = await supabase
+    .from("client_intake")
+    .select("razon_social,rut,direccion,email_facturacion,contacto_email")
+    .eq("client_id", clientId)
+    .maybeSingle();
+  if (error) {
+    console.warn("[contratos] no se pudo leer la ficha de onboarding", clientId, error.message);
+    return {};
+  }
+  if (!data) return {};
+  return {
+    legalName: data.razon_social?.trim() ?? "",
+    taxId: data.rut?.trim() ?? "",
+    address: data.direccion?.trim() ?? "",
+    email: data.email_facturacion?.trim() || data.contacto_email?.trim() || "",
+  };
+}
+
+/** Completa solo los campos que el usuario aún no escribió. */
+function fillEmpty(prev: ClientLegalData, prefill: Partial<ClientLegalData>): ClientLegalData {
+  return {
+    legalName: prev.legalName || prefill.legalName || "",
+    taxId: prev.taxId || prefill.taxId || "",
+    address: prev.address || prefill.address || "",
+    email: prev.email || prefill.email || "",
+  };
 }
 
 interface ClientRow {
@@ -71,10 +80,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
   const [selected, setSelected] = useState<Set<ServiceKey>>(new Set());
   const [selectedPlan, setSelectedPlan] = useState<PlanKey | null>(null);
   const [creating, setCreating] = useState(false);
-  const [clientLegalName, setClientLegalName] = useState("");
-  const [clientTaxId, setClientTaxId] = useState("");
-  const [clientAddress, setClientAddress] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
+  const [legal, setLegal] = useState<ClientLegalData>(EMPTY_LEGAL_DATA);
   const [previewing, setPreviewing] = useState<ClientContract | null>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -92,7 +98,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
     setLoadingAll(true);
     setLoadError(null);
     try {
-      const [clientRes, p, sv] = await Promise.all([
+      const [clientRes, p, sv, intake] = await Promise.all([
         supabase
           .from("clients")
           .select("id,name,instagram_handle,notes,business_description")
@@ -100,6 +106,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
           .maybeSingle(),
         loadPricing(user.id),
         loadServicePricing(user.id),
+        loadIntakeLegalData(clientId),
       ]);
       if (isStale()) return;
       if (clientRes.error) throw new Error(clientRes.error.message);
@@ -107,6 +114,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
       setClient(clientRes.data as ClientRow);
       setPricing(p);
       setServices(sv);
+      setLegal((prev) => fillEmpty(prev, intake));
       await reloadContracts();
     } catch (e: any) {
       if (!isStale()) setLoadError(e?.message ?? "No se pudo cargar la información de contratos");
@@ -121,10 +129,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
     setContracts([]);
     setSelected(new Set());
     setSelectedPlan(null);
-    setClientLegalName("");
-    setClientTaxId("");
-    setClientAddress("");
-    setClientEmail("");
+    setLegal(EMPTY_LEGAL_DATA);
     setPreviewing(null);
     setLoadError(null);
   };
@@ -148,6 +153,8 @@ export function ContractsPage({ clientId }: { clientId: string }) {
   };
 
   const toggleService = (k: ServiceKey) => {
+    // Un adicional sin precio no se puede sumar: se configura primero en Precios.
+    if (!selected.has(k) && !addonHasPrice(services?.[k])) return;
     const s = new Set(selected);
     if (s.has(k)) s.delete(k);
     else s.add(k);
@@ -219,10 +226,10 @@ export function ContractsPage({ clientId }: { clientId: string }) {
       client_snapshot: {
         name: client.name,
         handle: client.instagram_handle ?? "",
-        legal_name: clientLegalName,
-        tax_id: clientTaxId,
-        address: clientAddress,
-        email: clientEmail,
+        legal_name: legal.legalName,
+        tax_id: legal.taxId,
+        address: legal.address,
+        email: legal.email,
       },
       services_snapshot: servicesSnap,
       clauses_snapshot: buildClauses(pricing),
@@ -297,187 +304,29 @@ export function ContractsPage({ clientId }: { clientId: string }) {
   if (!client || !pricing || !services) return <ListSkeleton rows={4} label="Cargando contratos" />;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl md:text-4xl font-semibold tracking-tight inline-flex items-center gap-2">
-          <FileSignature className="w-7 h-7 text-muted-foreground" />
-          Contratos
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Genera contratos para <span className="font-medium text-foreground">{client.name}</span>{" "}
-          usando tu plantilla, datos de agencia y precios estándar.
-        </p>
-      </div>
-
-      <div className="rounded-2xl border bg-card p-5 space-y-5">
-        <div className="flex items-center gap-2">
-          <Plus className="w-5 h-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Nuevo contrato</h2>
-        </div>
-
-        <div>
-          <Label className="text-xs text-muted-foreground">Plan (CLP, IVA incluido)</Label>
-          <div
-            className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2"
-            role="radiogroup"
-            aria-label="Plan"
-          >
-            {PLANS.map((plan) => {
-              const checked = selectedPlan === plan.key;
-              return (
-                <button
-                  key={plan.key}
-                  type="button"
-                  role="radio"
-                  aria-checked={checked}
-                  onClick={() => setSelectedPlan(checked ? null : plan.key)}
-                  className={`text-left rounded-xl border p-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                    checked ? "border-primary/50 bg-primary/5" : "hover:bg-muted/30"
-                  }`}
-                >
-                  <div className="text-sm font-medium">{plan.label}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    {planPriceLabel(plan)}
-                  </div>
-                  {plan.note && (
-                    <div className="text-[11px] text-muted-foreground mt-0.5">{plan.note}</div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <Label className="text-xs text-muted-foreground">Servicios adicionales</Label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
-            {SERVICE_CATALOG.map((s) => {
-              const row = services[s.key];
-              const checked = selected.has(s.key);
-              return (
-                <label
-                  key={s.key}
-                  className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-colors ${
-                    checked ? "border-primary/50 bg-primary/5" : "hover:bg-muted/30"
-                  }`}
-                >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={() => toggleService(s.key)}
-                    className="mt-0.5"
-                  />
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium">{s.label}</div>
-                    <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {Number(row.one_time_price) > 0 && (
-                        <>Setup {formatMoney(Number(row.one_time_price))}</>
-                      )}
-                      {Number(row.one_time_price) > 0 && Number(row.monthly_price) > 0 && " · "}
-                      {Number(row.monthly_price) > 0 && (
-                        <>{formatMoney(Number(row.monthly_price))}/mes</>
-                      )}
-                      {Number(row.one_time_price) === 0 &&
-                        Number(row.monthly_price) === 0 &&
-                        "Sin precio configurado"}
-                    </div>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field
-            label="Razón social del cliente"
-            value={clientLegalName}
-            onChange={setClientLegalName}
-            placeholder={client.name}
-          />
-          <Field
-            label="RUT del cliente"
-            value={clientTaxId}
-            onChange={setClientTaxId}
-            placeholder="12.345.678-9"
-          />
-          <Field
-            label="Dirección del cliente"
-            value={clientAddress}
-            onChange={setClientAddress}
-            placeholder="Calle, número, comuna, ciudad"
-          />
-          <Field
-            label="Email del cliente"
-            value={clientEmail}
-            onChange={setClientEmail}
-            placeholder="cliente@email.com"
-            type="email"
-          />
-        </div>
-
-        <div className="flex items-center justify-between pt-2">
-          <div className="text-xs text-muted-foreground">
-            Plazo de pago: <strong>{pricing.payment_due_days} días</strong> · Pagos por etapa, no
-            acumulados.
-          </div>
-          <Button
-            onClick={createContract}
-            disabled={creating || (selected.size === 0 && !selectedPlan)}
-          >
-            <Plus className="w-4 h-4 mr-1" /> Crear contrato
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Historial</h2>
-        {contracts.length === 0 ? (
-          <div className="rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-            Aún no hay contratos generados para este cliente.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {contracts.map((c) => (
-              <div
-                key={c.id}
-                className="rounded-2xl border bg-card p-4 flex flex-wrap items-center gap-3"
-              >
-                <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium truncate">{c.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(c.created_at).toLocaleDateString("es-CL")} ·{" "}
-                    {c.services_snapshot?.length ?? 0} servicios · Pago único{" "}
-                    <Money amount={Number(c.total_one_time)} currency={c.currency} /> ·{" "}
-                    <Money amount={Number(c.total_monthly)} currency={c.currency} />
-                    /mes
-                  </div>
-                </div>
-                <select
-                  value={c.status}
-                  onChange={(e) => setStatus(c.id, e.target.value as any)}
-                  className="text-xs rounded-md border bg-background px-2 py-1"
-                >
-                  <option value="draft">Borrador</option>
-                  <option value="sent">Enviado</option>
-                  <option value="signed">Firmado</option>
-                  <option value="cancelled">Cancelado</option>
-                </select>
-                <Button variant="outline" size="sm" onClick={() => downloadPdf(c)}>
-                  <Download className="w-4 h-4 mr-1" /> PDF
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => deleteContract(c.id)}
-                  className="text-destructive"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.85fr)_minmax(0,1fr)]">
+      <NewContractForm
+        clientName={client.name}
+        services={services}
+        selectedPlan={selectedPlan}
+        onSelectPlan={setSelectedPlan}
+        selectedAddons={selected}
+        onToggleAddon={toggleService}
+        legal={legal}
+        onLegalChange={(field, value) => setLegal((prev) => ({ ...prev, [field]: value }))}
+        paymentDueDays={pricing.payment_due_days}
+        creating={creating}
+        onCreate={() => void createContract()}
+      />
+      {/* En escritorio el historial no estira la fila: ocupa el alto del formulario y hace scroll. */}
+      <div className="relative min-h-64">
+        <ContractHistory
+          contracts={contracts}
+          onSetStatus={(id, status) => void setStatus(id, status)}
+          onDownload={(c) => void downloadPdf(c)}
+          onDelete={(id) => void deleteContract(id)}
+          className="h-full lg:absolute lg:inset-0"
+        />
       </div>
 
       {previewing && (
@@ -514,32 +363,6 @@ export function ContractsPage({ clientId }: { clientId: string }) {
           />
         </div>
       )}
-    </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Input
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-      />
     </div>
   );
 }

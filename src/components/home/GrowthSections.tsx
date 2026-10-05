@@ -11,11 +11,15 @@ import { trackLandingEvent } from "@/lib/track";
 import { cn } from "@/lib/utils";
 import { SectionHeading } from "./shared";
 import { translations } from "@/i18n/translations";
+import { PhotoSlot } from "./mockups/PhotoSlot";
+import { NICHE_PHOTOS } from "./mockups/photo-slots";
+import { ProcessPanel } from "./mockups/ProcessPanel";
 
 /** Copy del embudo de diagnóstico (la home pública es solo en español). */
 export const DIAGNOSTICO_CTA = "Pide tu diagnóstico gratis";
 
 const NICHE_ICONS = [HomeIcon, HeartPulse, Dumbbell];
+const NICHE_TONES = ["var(--brand-1)", "var(--brand-2)", "var(--brand-3)"];
 
 const FOR_YOU_IF = [
   "Tienes una pyme o emprendimiento en Chile y vendes servicios o productos",
@@ -106,12 +110,29 @@ export function ForWhomSection() {
         {niches.items.map((n, i) => {
           const Icon = NICHE_ICONS[i] ?? HomeIcon;
           return (
-            <li key={n.title} className="card-fx rounded-3xl border bg-card p-6">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-secondary">
-                <Icon aria-hidden className="h-5 w-5 text-[color:var(--brand-1)]" />
-              </span>
-              <h3 className="mt-4 text-lg font-semibold">{n.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{n.desc}</p>
+            <li
+              key={n.title}
+              className="card-fx group relative overflow-hidden rounded-3xl border bg-card"
+            >
+              <PhotoSlot
+                images={NICHE_PHOTOS[i]}
+                tone={NICHE_TONES[i]}
+                sizes="(min-width: 640px) 33vw, 100vw"
+                imageClassName="object-[center_30%]"
+                className="aspect-[4/3] sm:aspect-[4/5]"
+              >
+                <div
+                  aria-hidden
+                  className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent"
+                />
+              </PhotoSlot>
+              <div className="absolute inset-x-0 bottom-0 p-6 text-white">
+                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/15 backdrop-blur">
+                  <Icon aria-hidden className="h-5 w-5" />
+                </span>
+                <h3 className="mt-4 text-lg font-semibold">{n.title}</h3>
+                <p className="mt-1 text-sm text-white/85">{n.desc}</p>
+              </div>
             </li>
           );
         })}
@@ -158,6 +179,7 @@ export function WorkWithUsSection() {
           </li>
         ))}
       </ol>
+      <ProcessPanel />
       <p data-reveal className="mx-auto mt-8 max-w-3xl text-center text-sm text-muted-foreground">
         En los planes mensuales te enviamos el calendario de contenido durante la primera semana y
         las campañas parten apenas apruebas los anuncios.
