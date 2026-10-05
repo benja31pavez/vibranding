@@ -1,4 +1,5 @@
 /** Presentation layer for the public multilink page. No data-model changes. */
+import { bestOn, readableOn } from "@/lib/landingTheme";
 
 export type ButtonStyle = "solid" | "outline" | "soft" | "hard-shadow" | "glass";
 export type ButtonShape = "rounded" | "pill" | "square";
@@ -25,10 +26,26 @@ export const BUTTON_SHAPE_LABEL: Record<ButtonShape, string> = {
 };
 
 export const FONTS: Record<FontKey, { label: string; family: string; googleFamily: string }> = {
-  geometric: { label: "Geométrica (Poppins)", family: "'Poppins', system-ui, sans-serif", googleFamily: "Poppins:wght@400;500;600;700" },
-  grotesque: { label: "Grotesca (Space Grotesk)", family: "'Space Grotesk', system-ui, sans-serif", googleFamily: "Space+Grotesk:wght@400;500;600;700" },
-  serif: { label: "Serif (Playfair Display)", family: "'Playfair Display', Georgia, serif", googleFamily: "Playfair+Display:wght@400;500;600;700" },
-  rounded: { label: "Redondeada (Nunito)", family: "'Nunito', system-ui, sans-serif", googleFamily: "Nunito:wght@400;500;600;700" },
+  geometric: {
+    label: "Geométrica (Poppins)",
+    family: "'Poppins', system-ui, sans-serif",
+    googleFamily: "Poppins:wght@400;500;600;700",
+  },
+  grotesque: {
+    label: "Grotesca (Space Grotesk)",
+    family: "'Space Grotesk', system-ui, sans-serif",
+    googleFamily: "Space+Grotesk:wght@400;500;600;700",
+  },
+  serif: {
+    label: "Serif (Playfair Display)",
+    family: "'Playfair Display', Georgia, serif",
+    googleFamily: "Playfair+Display:wght@400;500;600;700",
+  },
+  rounded: {
+    label: "Redondeada (Nunito)",
+    family: "'Nunito', system-ui, sans-serif",
+    googleFamily: "Nunito:wght@400;500;600;700",
+  },
 };
 
 export function fontKey(raw: string | null | undefined): FontKey {
@@ -103,12 +120,27 @@ export type SurfaceTheme = {
 
 export function surfaceTheme(mode: string, bg: Background): SurfaceTheme {
   const isDark = mode === "dark";
-  const base = { color: isDark ? "#fafafa" : "#0a0a0a", isDark, overlay: null as string | null, imageUrl: null as string | null };
+  const base = {
+    color: isDark ? "#fafafa" : "#0a0a0a",
+    isDark,
+    overlay: null as string | null,
+    imageUrl: null as string | null,
+  };
   switch (bg.type) {
     case "solid":
-      return { ...base, background: bg.color, color: isLight(bg.color) ? "#0a0a0a" : "#fafafa", isDark: !isLight(bg.color) };
+      return {
+        ...base,
+        background: bg.color,
+        color: isLight(bg.color) ? "#0a0a0a" : "#fafafa",
+        isDark: !isLight(bg.color),
+      };
     case "gradient":
-      return { ...base, background: `linear-gradient(${bg.angle}deg, ${bg.from}, ${bg.to})`, color: "#fafafa", isDark: true };
+      return {
+        ...base,
+        background: `linear-gradient(${bg.angle}deg, ${bg.from}, ${bg.to})`,
+        color: "#fafafa",
+        isDark: true,
+      };
     case "image":
       return {
         ...base,
@@ -136,17 +168,28 @@ export function itemVisual(
   theme: SurfaceTheme,
 ): ItemVisual {
   const radius = SHAPE_RADIUS[shape];
-  const onAccent = isLight(accent) ? "#0a0a0a" : "#ffffff";
+  // Texto de botón siempre con contraste AA (antes el blanco sobre colores medios no llegaba a 4.5:1).
+  const onAccent = bestOn(accent);
+  const ink = theme.isDark ? "#fafafa" : "#0a0a0a";
   switch (style) {
     case "outline":
       return {
         className: "transition hover:scale-[1.02]",
-        style: { borderRadius: radius, border: `2px solid ${accent}`, color: theme.color, background: "transparent" },
+        style: {
+          borderRadius: radius,
+          border: `2px solid ${accent}`,
+          color: theme.color,
+          background: "transparent",
+        },
       };
     case "soft":
       return {
         className: "transition hover:scale-[1.02]",
-        style: { borderRadius: radius, background: withAlpha(accent, theme.isDark ? 0.22 : 0.14), color: theme.isDark ? "#fafafa" : accent },
+        style: {
+          borderRadius: radius,
+          background: withAlpha(accent, theme.isDark ? 0.22 : 0.14),
+          color: theme.isDark ? "#fafafa" : readableOn(accent, "#f1efe9"),
+        },
       };
     case "hard-shadow":
       return {
@@ -155,8 +198,8 @@ export function itemVisual(
           borderRadius: radius,
           background: accent,
           color: onAccent,
-          border: "2px solid #0a0a0a",
-          boxShadow: "5px 5px 0 0 #0a0a0a",
+          border: `2px solid ${ink}`,
+          boxShadow: `5px 5px 0 0 ${ink}`,
         },
       };
     case "glass":

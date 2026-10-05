@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -10,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Activity, MousePointerClick, Users } from "lucide-react";
+import { Activity, MessageCircle, MousePointerClick, Users } from "lucide-react";
 import type { MultilinkItem } from "@/lib/multilink";
 
 type EventRow = {
@@ -123,10 +124,14 @@ export function MultilinkAnalytics({
       const k = sourceLabel(r);
       m.set(k, (m.get(k) ?? 0) + 1);
     }
-    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    return Array.from(m.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
   }, [rows]);
 
   const totalCtr = views > 0 ? (clickRows.length / views) * 100 : null;
+  const waClicks = clickRows.filter((r) => r.event_name === "whatsapp_click").length;
+  const maxClicks = Math.max(1, ...perItem.map((p) => p.clicks));
 
   return (
     <section className="rounded-2xl border bg-surface p-5 space-y-5">
@@ -157,12 +162,13 @@ export function MultilinkAnalytics({
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Kpi icon={Users} label="Visitas" value={views} />
-            <Kpi icon={MousePointerClick} label="Clics" value={clickRows.length} />
+            <Kpi icon={MousePointerClick} label="Clics en enlaces" value={clickRows.length} />
+            <Kpi icon={MessageCircle} label="Clics a WhatsApp" value={waClicks} />
             <Kpi
               icon={Activity}
-              label="CTR global"
+              label="Visitas que hacen clic"
               value={totalCtr === null ? "—" : `${totalCtr.toFixed(1)}%`}
             />
           </div>
@@ -173,40 +179,58 @@ export function MultilinkAnalytics({
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis
                   dataKey="date"
-                  tickFormatter={(v: string) => v.slice(5)}
+                  tickFormatter={(v: string) => `${v.slice(8, 10)}/${v.slice(5, 7)}`}
                   fontSize={11}
                   tickLine={false}
                 />
                 <YAxis allowDecimals={false} fontSize={11} tickLine={false} />
-                <Tooltip />
-                <Line type="monotone" dataKey="visitas" stroke="hsl(var(--primary))" dot={false} />
-                <Line type="monotone" dataKey="clics" stroke="#25D366" dot={false} />
+                <Tooltip
+                  labelFormatter={(v) => new Date(`${v}T12:00:00`).toLocaleDateString("es-CL")}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Line
+                  type="monotone"
+                  name="Visitas"
+                  dataKey="visitas"
+                  stroke="#2563eb"
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  name="Clics"
+                  dataKey="clics"
+                  stroke="#16a34a"
+                  strokeWidth={2}
+                  dot={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <div className="text-xs text-muted-foreground mb-2">CTR por enlace</div>
+              <div className="text-xs text-muted-foreground mb-2">
+                Clics por enlace (y % de visitas que lo tocaron)
+              </div>
               {perItem.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Aún no hay enlaces.</p>
               ) : (
                 <ul className="space-y-2">
                   {perItem.map(({ item, clicks }) => {
                     const ctr = views > 0 ? (clicks / views) * 100 : null;
+                    const width = (clicks / maxClicks) * 100;
                     return (
                       <li key={item.id} className="space-y-1">
                         <div className="flex justify-between gap-3 text-sm">
                           <span className="truncate">{item.title}</span>
                           <span className="text-muted-foreground shrink-0">
-                            {clicks} · {ctr === null ? "—" : `${ctr.toFixed(1)}%`}
+                            <span className="font-medium text-foreground">{clicks}</span> clic
+                            {clicks === 1 ? "" : "s"} · {ctr === null ? "—" : `${ctr.toFixed(1)}%`}
                           </span>
                         </div>
                         <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-                          <div
-                            className="h-full bg-primary"
-                            style={{ width: `${Math.min(100, ctr ?? 0)}%` }}
-                          />
+                          <div className="h-full bg-primary" style={{ width: `${width}%` }} />
                         </div>
                       </li>
                     );
@@ -216,7 +240,7 @@ export function MultilinkAnalytics({
             </div>
 
             <div>
-              <div className="text-xs text-muted-foreground mb-2">Fuentes de tráfico</div>
+              <div className="text-xs text-muted-foreground mb-2">De dónde llegan las visitas</div>
               {sources.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Sin visitas registradas.</p>
               ) : (

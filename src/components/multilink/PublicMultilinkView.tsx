@@ -1,5 +1,8 @@
 import { useEffect, useMemo } from "react";
 import { trackEvent } from "@/lib/track";
+import { bestOn } from "@/lib/landingTheme";
+import { itemLinkKind } from "@/lib/site/multilinkDraft";
+import { LinkIcon } from "@/components/multilink/LinkIcon";
 import {
   itemHref,
   itemIsLive,
@@ -109,7 +112,9 @@ export function PublicMultilinkView({
   // the account to its social presence.
   const structuredData = useMemo(() => {
     if (preview || !ml.title) return null;
-    const sameAs = socials.map((i) => itemHref(i)).filter((h): h is string => !!h && h.startsWith("http"));
+    const sameAs = socials
+      .map((i) => itemHref(i))
+      .filter((h): h is string => !!h && h.startsWith("http"));
     return {
       "@context": "https://schema.org",
       "@type": "ProfilePage",
@@ -142,17 +147,31 @@ export function PublicMultilinkView({
       {structuredData && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+          }}
         />
       )}
 
       <div className={`relative ${preview ? "" : "px-3 sm:px-5 py-5 sm:py-10"}`}>
         <main
           className={`mx-auto overflow-hidden text-center ${preview ? "w-full" : "max-w-[440px] shadow-2xl sm:rounded-[2rem]"}`}
-          style={preview ? { background: panelBackground } : { background: panelBackground, border: `1px solid ${subtleBorder}` }}
+          style={
+            preview
+              ? { background: panelBackground }
+              : { background: panelBackground, border: `1px solid ${subtleBorder}` }
+          }
         >
-          <div className="relative h-40 sm:h-44 overflow-hidden" style={{ background: coverBackground }}>
-            {bg.type === "image" && <div className="absolute inset-0" style={{ background: theme.overlay ?? "transparent" }} />}
+          <div
+            className="relative h-40 sm:h-44 overflow-hidden"
+            style={{ background: coverBackground }}
+          >
+            {bg.type === "image" && (
+              <div
+                className="absolute inset-0"
+                style={{ background: theme.overlay ?? "transparent" }}
+              />
+            )}
             <div
               className="absolute inset-x-0 bottom-0 h-24"
               style={{ background: `linear-gradient(to top, ${panelBackground}, transparent)` }}
@@ -160,25 +179,48 @@ export function PublicMultilinkView({
           </div>
 
           <div className="relative -mt-14 px-5 sm:px-7 pb-9">
-            <div className="inline-grid rounded-full p-1.5 shadow-xl" style={{ background: panelBackground }}>
+            <div
+              className="inline-grid rounded-full p-1.5 shadow-xl"
+              style={{ background: panelBackground }}
+            >
               <div
                 className="w-24 h-24 rounded-full overflow-hidden grid place-items-center text-3xl font-semibold"
-                style={ml.avatar_url ? { border: `2px solid ${subtleBorder}` } : avatarFallbackStyle(theme, ml.theme_color)}
+                style={
+                  ml.avatar_url
+                    ? { border: `2px solid ${subtleBorder}` }
+                    : avatarFallbackStyle(theme, ml.theme_color)
+                }
               >
                 {ml.avatar_url ? (
-                  <img src={ml.avatar_url} alt={`Foto de ${ml.title}`} className="w-full h-full object-cover" />
+                  <img
+                    src={ml.avatar_url}
+                    alt={`Foto de ${ml.title}`}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   ml.title[0] || "?"
                 )}
               </div>
             </div>
-            <h1 className="mt-4 text-[1.35rem] sm:text-[1.7rem] leading-tight font-bold tracking-tight">{ml.title}</h1>
-            {ml.bio && <p className="mt-2 mx-auto max-w-xs text-sm leading-relaxed opacity-70 whitespace-pre-line">{ml.bio}</p>}
+            <h1 className="mt-4 text-[1.35rem] sm:text-[1.7rem] leading-tight font-bold tracking-tight">
+              {ml.title}
+            </h1>
+            {ml.bio && (
+              <p className="mt-2 mx-auto max-w-xs text-sm leading-relaxed opacity-70 whitespace-pre-line">
+                {ml.bio}
+              </p>
+            )}
 
             {socials.length > 0 && (
               <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
                 {socials.map((i) => (
-                  <SocialIcon key={i.id} item={i} theme={theme} accent={ml.theme_color} onClick={onClick} />
+                  <SocialIcon
+                    key={i.id}
+                    item={i}
+                    theme={theme}
+                    accent={ml.theme_color}
+                    onClick={onClick}
+                  />
                 ))}
               </div>
             )}
@@ -278,7 +320,12 @@ function PublicItem({
         {embed ? (
           <div className="aspect-video">
             {/\.(mp4|webm|mov)(\?|$)/i.test(embed) ? (
-              <video src={embed} controls preload="metadata" className="w-full h-full object-cover" />
+              <video
+                src={embed}
+                controls
+                preload="metadata"
+                className="w-full h-full object-cover"
+              />
             ) : (
               <iframe
                 src={embed}
@@ -317,15 +364,26 @@ function PublicItem({
         target={external ? "_blank" : undefined}
         rel={external ? "noreferrer noopener" : undefined}
         onClick={href ? () => onClick(item) : undefined}
-        className="group block overflow-hidden shadow-xl transition duration-300 hover:-translate-y-0.5"
-        style={{ background: accent, color: "#fff", borderRadius: SHAPE_RADIUS[shape] }}
+        className="group block overflow-hidden shadow-xl transition duration-300 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4"
+        style={{
+          background: accent,
+          color: bestOn(accent),
+          borderRadius: SHAPE_RADIUS[shape],
+          outlineColor: accent,
+        }}
       >
         {item.thumbnail_url && (
-          <img src={item.thumbnail_url} alt="" loading="lazy" decoding="async" className="w-full h-40 object-cover" />
+          <img
+            src={item.thumbnail_url}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="w-full h-40 object-cover"
+          />
         )}
         <div className="px-4 py-3.5 relative text-left">
           <div className="text-[0.95rem] font-semibold tracking-tight flex items-center gap-2 pr-8">
-            {isWa && <MessageCircle className="w-[18px] h-[18px] shrink-0" />}
+            <LinkIcon kind={itemLinkKind(item)} className="w-[18px] h-[18px] shrink-0" />
             {item.title}
           </div>
           {item.subtitle && <div className="text-[0.72rem] opacity-90 mt-0.5">{item.subtitle}</div>}
@@ -336,7 +394,6 @@ function PublicItem({
   }
 
   const visual = itemVisual(style, shape, accent, theme);
-  const hasLead = !!item.thumbnail_url || isWa;
 
   // Editorial row: leading media/icon, left-aligned label, trailing arrow.
   return (
@@ -345,8 +402,8 @@ function PublicItem({
       target={external ? "_blank" : undefined}
       rel={external ? "noreferrer noopener" : undefined}
       onClick={href ? () => onClick(item) : undefined}
-      className={`group relative flex min-h-14 items-center gap-3 py-3 pr-10 ${hasLead ? "pl-3" : "pl-4"} text-left shadow-sm ${visual.className}`}
-      style={visual.style}
+      className={`group relative flex min-h-14 items-center gap-3 py-3 pr-10 pl-3.5 text-left shadow-sm focus-visible:outline-2 focus-visible:outline-offset-4 ${visual.className}`}
+      style={{ ...visual.style, outlineColor: theme.color }}
     >
       {item.thumbnail_url ? (
         <img
@@ -356,12 +413,16 @@ function PublicItem({
           decoding="async"
           className="shrink-0 w-9 h-9 rounded-lg object-cover"
         />
-      ) : isWa ? (
-        <MessageCircle className="shrink-0 w-5 h-5" />
-      ) : null}
+      ) : (
+        <LinkIcon kind={itemLinkKind(item)} className="shrink-0 w-5 h-5" />
+      )}
       <span className="min-w-0 flex-1">
-        <span className="block text-[0.95rem] font-semibold leading-snug tracking-tight">{item.title}</span>
-        {item.subtitle && <span className="block text-[0.7rem] leading-snug opacity-75">{item.subtitle}</span>}
+        <span className="block text-[0.95rem] font-semibold leading-snug tracking-tight">
+          {item.title}
+        </span>
+        {item.subtitle && (
+          <span className="block text-[0.7rem] leading-snug opacity-75">{item.subtitle}</span>
+        )}
       </span>
       <ArrowUpRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-45 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />
     </a>

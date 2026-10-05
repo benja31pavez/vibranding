@@ -52,8 +52,8 @@ export function QrCodeCard({ url, fileBase }: { url: string; fileBase: string })
         <QrCode className="w-4 h-4" /> Código QR
       </h3>
       <p className="text-xs text-muted-foreground">
-        Apunta a {url}. Descárgalo en PNG (1024 px) para flyers y packaging, o en SVG para
-        imprentas y gráfica de gran formato.
+        Apunta a {url}. Descárgalo en PNG (1024 px) para flyers y packaging, o en SVG para imprentas
+        y gráfica de gran formato.
       </p>
       <div className="flex flex-wrap items-center gap-5">
         <div className="rounded-xl border p-3 bg-white">
