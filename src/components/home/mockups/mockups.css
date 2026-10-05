@@ -1,0 +1,244 @@
+/*
+ * Animated product mockups (decorative, aria-hidden). The default render is the final, static
+ * frame, so the server HTML and prefers-reduced-motion show a complete picture. Motion only uses
+ * transform/opacity and lives inside the no-preference query.
+ */
+
+/* Pieces that only make sense while animating start hidden. */
+.mk-dots,
+.mk-heart,
+.mk-swap-a {
+  opacity: 0;
+}
+
+@keyframes mk-in-loop {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.96);
+  }
+  8%,
+  86% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes mk-carousel {
+  0%,
+  28% {
+    transform: translate3d(0, 0, 0);
+  }
+  33%,
+  61% {
+    transform: translate3d(-33.333%, 0, 0);
+  }
+  66%,
+  94% {
+    transform: translate3d(-66.666%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes mk-dot {
+  0%,
+  28% {
+    transform: translate3d(0, 0, 0);
+  }
+  33%,
+  61% {
+    transform: translate3d(10px, 0, 0);
+  }
+  66%,
+  94% {
+    transform: translate3d(20px, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes mk-typing {
+  0%,
+  6% {
+    opacity: 0;
+  }
+  10%,
+  28% {
+    opacity: 1;
+  }
+  32%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes mk-msg {
+  0%,
+  30% {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.96);
+  }
+  36%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes mk-bounce {
+  0%,
+  60%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: translate3d(0, -3px, 0);
+  }
+}
+
+@keyframes mk-heart {
+  0%,
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  76% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  84% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  92% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes mk-bar {
+  0% {
+    transform: scaleY(0.2);
+  }
+  25%,
+  88% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(0.2);
+  }
+}
+
+@keyframes mk-swap-a {
+  0%,
+  40% {
+    opacity: 1;
+  }
+  46%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes mk-swap-b {
+  0%,
+  42% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50%,
+  94% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes mk-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+.mk-bar {
+  transform-origin: bottom;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mk-loop {
+    animation: mk-in-loop var(--dur, 10s) var(--ease-out-soft) calc(var(--i, 0) * var(--gap, 0.6s))
+      infinite both;
+  }
+  .mk-carousel {
+    animation: mk-carousel 12s var(--ease-out-expo) infinite;
+  }
+  .mk-dot {
+    animation: mk-dot 12s var(--ease-out-expo) infinite;
+  }
+  .mk-heart {
+    animation: mk-heart 4s var(--ease-out-soft) 1.5s infinite;
+  }
+  .mk-dots {
+    animation: mk-typing 9s linear infinite;
+  }
+  .mk-dots > * {
+    animation: mk-bounce 0.9s ease-in-out infinite;
+  }
+  .mk-dots > :nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .mk-dots > :nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  .mk-msg {
+    animation: mk-msg 9s var(--ease-out-soft) infinite both;
+  }
+  .mk-bar {
+    animation: mk-bar 7s var(--ease-out-expo) calc(var(--i, 0) * 0.12s) infinite both;
+  }
+  .mk-swap-a {
+    animation: mk-swap-a 6s linear infinite both;
+  }
+  .mk-swap-b {
+    animation: mk-swap-b 6s var(--ease-out-soft) infinite both;
+  }
+  .mk-caret {
+    animation: mk-caret 1s steps(1) infinite;
+  }
+}
+
+/* Second photo of a slot: hidden in the static frame, cross-fades in a loop otherwise. */
+.mk-xfade {
+  opacity: 0;
+}
+@keyframes mk-xfade {
+  0%,
+  40% {
+    opacity: 0;
+  }
+  50%,
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mk-xfade {
+    animation: mk-xfade 12s ease-in-out infinite;
+  }
+}
