@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
+import { batchStatus } from "@/lib/cron/batch";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -8,6 +9,8 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
  * protegido con el mismo x-dispatch-secret que meta/ingest-daily.
  * ?date=YYYY-MM-DD permite re-ejecutar un día pasado; nunca una fecha futura
  * (eso crearía cobros por adelantado).
+ * 200 si todo salió bien; 500 si falló alguna suscripción (job_runs toma
+ * cualquier 2xx, incluido 207, como éxito). El detalle va en el cuerpo.
  */
 export const Route = createFileRoute("/api/public/billing/charge-monthly")({
   server: {
@@ -39,9 +42,10 @@ export const Route = createFileRoute("/api/public/billing/charge-monthly")({
         const { runMonthlyCharges } = await import("@/lib/billing/recurring.server");
         try {
           const summary = await runMonthlyCharges(date ?? undefined);
-          const ok = summary.subscriptions - summary.failed;
-          const status = summary.failed === 0 ? 200 : ok > 0 ? 207 : 500;
-          return Response.json({ ...summary, rowsWritten: summary.paymentsCreated }, { status });
+          return Response.json(
+            { ...summary, rowsWritten: summary.paymentsCreated },
+            { status: batchStatus(summary.failed) },
+          );
         } catch (e) {
           console.error("[billing monthly] error", (e as Error).message);
           return Response.json({ error: (e as Error).message }, { status: 500 });

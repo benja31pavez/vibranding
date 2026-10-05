@@ -2,6 +2,7 @@ import { graphBase } from "@/lib/meta/version";
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
+import { batchStatus } from "@/lib/cron/batch";
 
 import { zonedParts } from "@/lib/bookings/tz";
 import { getWaSecret } from "@/lib/whatsapp/tokens.server";
@@ -556,6 +557,9 @@ export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
         }
 
         let flowsResumed = 0;
+        // Cuenta los ítems que lanzaron error: job_runs toma cualquier 2xx como
+        // éxito, así que con failed > 0 la corrida responde 500.
+        let failed = 0;
         for (const run of (dueRuns ?? []) as FlowRun[]) {
           try {
             const { data: conv } = await supabaseAdmin
@@ -583,6 +587,7 @@ export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
             });
             flowsResumed++;
           } catch (e: any) {
+            failed++;
             console.error("[dispatch] flow resume failed", run.id, redactDigits(String(e?.message)));
           }
         }
@@ -615,10 +620,14 @@ export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
             aiProcessed++;
             await processConversation(id);
           } catch (e: any) {
+            failed++;
             console.error("[dispatch] error on", id, redactDigits(String(e?.message)));
           }
         }
-        return Response.json({ processed: aiProcessed, flows_resumed: flowsResumed });
+        return Response.json(
+          { processed: aiProcessed, flows_resumed: flowsResumed, failed },
+          { status: batchStatus(failed) },
+        );
       },
       GET: async () => {
         return Response.json({ ok: true, hint: "POST to trigger dispatch" });
