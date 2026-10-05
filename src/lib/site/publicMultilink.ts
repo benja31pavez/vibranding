@@ -1,6 +1,5 @@
 /** Carga y metadatos compartidos por /l/$slug y la URL antigua /@slug/links. */
 import { notFound } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
 import type { Multilink, MultilinkItem } from "@/lib/multilink";
 import { fontHref, fontKey } from "@/lib/multilinkTheme";
 import { SITE_URL } from "@/lib/site";
@@ -11,6 +10,7 @@ import { MULTILINK_ITEM_PUBLIC_COLUMNS, MULTILINK_PUBLIC_COLUMNS } from "@/lib/s
 export type PublicMultilinkData = { ml: Multilink; items: MultilinkItem[] };
 
 export async function loadPublicMultilink(slug: string): Promise<PublicMultilinkData> {
+  const { supabase } = await import("@/integrations/supabase/client");
   const { data: ml, error } = await supabase
     .from("multilinks")
     .select(MULTILINK_PUBLIC_COLUMNS)
