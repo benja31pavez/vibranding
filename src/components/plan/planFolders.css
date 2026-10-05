@@ -1,0 +1,155 @@
+/*
+ * Carpetas de las etapas del Plan (StageTrack / TeamTrack).
+ * Cada carpeta recibe su tono con `--fh` (hue OKLCH, ver stagePalette.ts): pestaña arriba
+ * a la izquierda que fluye al cuerpo con una esquina cóncava y un degradado suave.
+ * Solo se animan transform y sombra; todo queda estático con prefers-reduced-motion.
+ */
+
+@layer components {
+  .plan-folder {
+    --fh: 255;
+    --f-tab: oklch(0.905 0.065 var(--fh));
+    --f-end: oklch(0.972 0.022 var(--fh));
+    --f-ink: oklch(0.4 0.11 var(--fh));
+    --f-accent: oklch(0.6 0.16 var(--fh));
+    --f-track: oklch(0.88 0.04 var(--fh));
+    --f-shadow: oklch(0.35 0.06 var(--fh) / 0.14);
+    --f-r: 12px;
+    --f-tab-h: 24px;
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    text-align: left;
+    filter: drop-shadow(0 1px 1px var(--f-shadow)) drop-shadow(0 3px 6px var(--f-shadow));
+    transition: filter 220ms var(--ease-out-soft);
+  }
+
+  /* El <li> se levanta (así el "⋯" se mueve con la carpeta). */
+  .plan-folder-item {
+    transition: transform 220ms var(--ease-out-soft);
+  }
+
+  .plan-folder-item:hover {
+    transform: translateY(-2px);
+  }
+
+  .plan-folder-item:has(.plan-folder[aria-pressed="true"]) {
+    transform: translateY(-3px);
+  }
+
+  .plan-folder[aria-pressed="true"] {
+    --f-tab: oklch(0.835 0.11 var(--fh));
+    --f-end: oklch(0.94 0.045 var(--fh));
+    --f-ink: oklch(0.33 0.12 var(--fh));
+    --f-track: oklch(0.8 0.06 var(--fh));
+    --f-shadow: oklch(0.45 0.12 var(--fh) / 0.28);
+  }
+
+  .plan-folder:focus-visible {
+    outline: none;
+  }
+
+  .plan-folder:focus-visible .plan-folder__body,
+  .plan-folder:focus-visible .plan-folder__tab {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  .plan-folder__tab {
+    position: relative;
+    display: flex;
+    height: var(--f-tab-h);
+    max-width: calc(100% - var(--f-r) - 10px);
+    align-items: center;
+    gap: 5px;
+    align-self: flex-start;
+    border-radius: 10px 10px 0 0;
+    background: var(--f-tab);
+    padding: 0 9px;
+    color: var(--f-ink);
+    font-size: 11.5px;
+    font-weight: 650;
+    line-height: 1;
+    transition: background-color 220ms var(--ease-out-soft);
+  }
+
+  /* Esquina cóncava donde la pestaña se une al cuerpo. */
+  .plan-folder__tab::after {
+    content: "";
+    position: absolute;
+    right: -10px;
+    bottom: 0;
+    width: 10px;
+    height: 10px;
+    background: radial-gradient(circle at 100% 0, transparent 9.5px, var(--f-tab) 10px);
+  }
+
+  .plan-folder__body {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    border-radius: 0 var(--f-r) var(--f-r) var(--f-r);
+    background: linear-gradient(180deg, var(--f-tab) 0%, var(--f-end) 78%);
+    transition: background-color 220ms var(--ease-out-soft);
+  }
+
+  .plan-folder__ink {
+    color: var(--f-ink);
+  }
+
+  .dark .plan-folder {
+    --f-tab: oklch(0.31 0.05 var(--fh));
+    --f-end: oklch(0.235 0.022 var(--fh));
+    --f-ink: oklch(0.86 0.08 var(--fh));
+    --f-accent: oklch(0.72 0.14 var(--fh));
+    --f-track: oklch(0.38 0.05 var(--fh));
+    --f-shadow: oklch(0 0 0 / 0.35);
+  }
+
+  .dark .plan-folder[aria-pressed="true"] {
+    --f-tab: oklch(0.4 0.09 var(--fh));
+    --f-end: oklch(0.28 0.045 var(--fh));
+    --f-ink: oklch(0.93 0.06 var(--fh));
+    --f-track: oklch(0.48 0.07 var(--fh));
+    --f-shadow: oklch(0.6 0.14 var(--fh) / 0.35);
+  }
+
+  /* Fila de carpetas: si no caben, scroll horizontal solo aquí, con snap y bordes difuminados. */
+  .plan-folder-row {
+    scrollbar-width: thin;
+    --fade-start: 0px;
+    --fade-end: 0px;
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 var(--fade-start),
+      #000 calc(100% - var(--fade-end)),
+      transparent 100%
+    );
+  }
+
+  .plan-folder-row[data-fade-start="true"] {
+    --fade-start: 28px;
+  }
+
+  .plan-folder-row[data-fade-end="true"] {
+    --fade-end: 28px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .plan-folder,
+    .plan-folder-item,
+    .plan-folder__tab,
+    .plan-folder__body {
+      transition: none;
+    }
+
+    .plan-folder-item:hover,
+    .plan-folder-item:has(.plan-folder[aria-pressed="true"]) {
+      transform: none;
+    }
+  }
+}

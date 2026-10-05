@@ -3,7 +3,6 @@ import type { User } from "@supabase/supabase-js";
 import type { ReactNode } from "react";
 import { HeaderNav } from "./HeaderNav";
 import { MobileNav } from "./MobileNav";
-import { SearchButton } from "./SearchButton";
 import { UserMenu } from "./UserMenu";
 import type { UserProfile } from "./useUserProfile";
 
@@ -12,7 +11,8 @@ interface AppHeaderProps {
   user: User | null;
   profile: UserProfile | null;
   onSignOut: () => void;
-  onOpenSearch: () => void;
+  /** Buscador anclado al botón "Buscar" (HeaderSearch). */
+  search: ReactNode;
   mobileNavOpen: boolean;
   onMobileNavOpenChange: (open: boolean) => void;
   /** Botón del panel del cliente en móvil. */
@@ -25,7 +25,7 @@ export function AppHeader({
   user,
   profile,
   onSignOut,
-  onOpenSearch,
+  search,
   mobileNavOpen,
   onMobileNavOpenChange,
   clientTrigger,
@@ -51,7 +51,7 @@ export function AppHeader({
         </div>
         <HeaderNav path={path} />
         <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0 md:gap-2 xl:justify-self-end">
-          <SearchButton onClick={onOpenSearch} />
+          {search}
           {clientTrigger}
           <UserMenu user={user} profile={profile} onSignOut={onSignOut} />
         </div>
