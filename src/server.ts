@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { mergeSecurityHeaders } from "./lib/security/headers";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -74,11 +75,23 @@ const PRIVATE_HEADERS: Readonly<Record<string, string>> = {
   "X-Robots-Tag": "noindex, nofollow, noarchive",
 };
 
-function withPrivateHeaders(request: Request, response: Response): Response {
-  if (!PRIVATE_TOKEN_PATH.test(new URL(request.url).pathname)) return response;
+/**
+ * Cabeceras finales de toda respuesta: las privadas de /p, /r y /onboarding
+ * (mandan) y luego las de seguridad globales (nosniff, Referrer-Policy,
+ * anti-clickjacking; ver src/lib/security/headers.ts), sin pisar las existentes.
+ * Se crea una Response nueva porque las de redirect traen cabeceras inmutables.
+ */
+function withResponseHeaders(request: Request, response: Response): Response {
+  const url = new URL(request.url);
   const headers = new Headers(response.headers);
-  for (const [name, value] of Object.entries(PRIVATE_HEADERS)) headers.set(name, value);
-  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+  if (PRIVATE_TOKEN_PATH.test(url.pathname)) {
+    for (const [name, value] of Object.entries(PRIVATE_HEADERS)) headers.set(name, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: mergeSecurityHeaders(headers, url),
+  });
 }
 
 export default {
@@ -86,10 +99,10 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return withPrivateHeaders(request, await normalizeCatastrophicSsrResponse(response));
+      return withResponseHeaders(request, await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
-      return brandedErrorResponse();
+      return withResponseHeaders(request, brandedErrorResponse());
     }
   },
 };

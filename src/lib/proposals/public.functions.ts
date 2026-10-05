@@ -9,41 +9,22 @@
  *  - links de Flow: máximo 3 por token por hora (en public.server.ts)
  */
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest, setResponseHeaders } from "@tanstack/react-start/server";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { isValidRut, formatRut } from "./rut";
+import { allowPublicView, privateHeaders, RATE_LIMITED } from "@/lib/security/publicToken";
 import type { AcceptResult, PublicProposalResult, StartPaymentResult } from "./public.server";
 
 const Token = z.string().regex(/^[0-9a-f]{48}$/, "Link inválido");
 const OptionalEmail = z.string().trim().email().max(200).optional().or(z.literal(""));
 
 const MINUTE = 60 * 1000;
-const RATE_LIMITED = "Demasiados intentos desde tu conexión. Espera un rato y vuelve a intentarlo.";
-
-type Limiters = {
-  view: import("@/lib/security/ipRateLimit.server").RateLimiter;
-  write: import("@/lib/security/ipRateLimit.server").RateLimiter;
-};
-let limiters: Limiters | undefined;
+let writeLimiter: import("@/lib/security/ipRateLimit.server").RateLimiter | undefined;
 
 async function security() {
   const mod = await import("@/lib/security/ipRateLimit.server");
-  limiters ??= {
-    view: mod.createRateLimiter(60, 10 * MINUTE),
-    write: mod.createRateLimiter(10, 60 * MINUTE),
-  };
-  return { ...limiters, limitKey: mod.limitKey, clientIpHash: mod.clientIpHash };
-}
-
-/** Respuestas con datos de la propuesta: nunca en caché ni indexables. */
-function privateHeaders() {
-  setResponseHeaders(
-    new Headers({
-      "Cache-Control": "no-store",
-      "Referrer-Policy": "no-referrer",
-      "X-Robots-Tag": "noindex, nofollow, noarchive",
-    }),
-  );
+  writeLimiter ??= mod.createRateLimiter(10, 60 * MINUTE);
+  return { write: writeLimiter, limitKey: mod.limitKey, clientIpHash: mod.clientIpHash };
 }
 
 const GetInput = z.object({ token: z.string().max(128), vista: z.string().max(20).optional() });
@@ -53,8 +34,7 @@ export const getPublicProposal = createServerFn({ method: "POST" })
   .inputValidator((d: { token: string; vista?: string }) => GetInput.parse(d))
   .handler(async ({ data }): Promise<PublicProposalResult> => {
     privateHeaders();
-    const { view, limitKey } = await security();
-    if (!view.allow(limitKey("view", data.token))) throw new Error(RATE_LIMITED);
+    if (!(await allowPublicView("view", data.token))) throw new Error(RATE_LIMITED);
 
     const { loadPublicProposal } = await import("./public.server");
     const req = getRequest();

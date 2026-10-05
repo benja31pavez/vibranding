@@ -22,3 +22,14 @@ export function timingSafeEqualHex(a: string, b: string): boolean {
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
 }
+
+/**
+ * Compara un secreto recibido con el esperado en tiempo constante: HMAC de
+ * ambos con el esperado como clave (longitud fija) y comparación constante.
+ * Vacíos nunca coinciden.
+ */
+export async function secretsMatch(provided: string | null | undefined, expected: string): Promise<boolean> {
+  if (!provided || !expected) return false;
+  const [a, b] = await Promise.all([hmacSha256Hex(expected, provided), hmacSha256Hex(expected, expected)]);
+  return timingSafeEqualHex(a, b);
+}

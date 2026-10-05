@@ -24,7 +24,8 @@
     "check:diagnostico-outcome": "node scripts/check-diagnostico-outcome.mjs",
     "check:all": "node scripts/check-all.mjs",
     "smoke:public": "node scripts/smoke-public.mjs",
-    "check:reviews": "node scripts/check-reviews.mjs"
+    "check:reviews": "node scripts/check-reviews.mjs",
+    "check:security-headers": "node scripts/check-security-headers.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

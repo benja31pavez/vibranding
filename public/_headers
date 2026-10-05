@@ -1,0 +1,8 @@
+# Cabeceras para assets estáticos (los sirve Cloudflare sin pasar por el Worker).
+# Las respuestas del Worker las pone src/lib/security/headers.ts. Nitro agrega
+# debajo sus reglas de caché (/assets/*) al construir; Cloudflare combina ambas.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'

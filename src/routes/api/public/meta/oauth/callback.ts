@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type { MetaOAuthErrorCode } from "@/lib/meta/oauthErrors";
 
 /**
  * Meta redirects the browser here after consent, so there is no app session:
  * the tenant travels in an HMAC-signed `state` created by startMetaOAuth.
+ *
+ * En la URL de regreso solo van códigos cortos (?meta_error=<código>); el
+ * navegador los traduce (src/lib/meta/oauthErrors.ts). El detalle técnico se
+ * guarda en meta_accounts.last_sync_error, nunca en la URL.
  */
 export const Route = createFileRoute("/api/public/meta/oauth/callback")({
   server: {
@@ -29,15 +34,26 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
           console.error("[meta oauth] invalid or expired state");
           return new Response("Forbidden", { status: 403 });
         }
-        const back = (status: string, errorMsg?: string) => {
+        const back = (status: string, errorCode?: MetaOAuthErrorCode) => {
           const target = new URL(`${url.origin}/clients/${state.clientId}/meta-ads`);
           target.searchParams.set("meta", status);
-          if (errorMsg) target.searchParams.set("meta_error", errorMsg.slice(0, 300));
+          if (errorCode) target.searchParams.set("meta_error", errorCode);
           return redirectClearingOAuthCookie(target.toString(), "meta");
         };
 
         if (denied || !code) return back("cancelado");
 
+        // El usuario podría haber perdido el rol entre el inicio y el regreso:
+        // se verifica antes de cualquier escritura con service role.
+        try {
+          const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+          await assertCanEditClient(state.userId, state.clientId);
+        } catch {
+          return back("error", "forbidden");
+        }
+
+        let token: string;
+        let expiresIn: number;
         try {
           // 1. Code -> short-lived token, then a long-lived (60-day) user token.
           const short = await graph<any>("oauth/access_token", {
@@ -52,9 +68,14 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
             client_secret: appSecret,
             fb_exchange_token: short.access_token,
           });
-          const token: string = long.access_token ?? short.access_token;
-          const expiresIn = Number(long.expires_in ?? short.expires_in ?? 0);
+          token = long.access_token ?? short.access_token;
+          expiresIn = Number(long.expires_in ?? short.expires_in ?? 0);
+        } catch (e: any) {
+          console.error("[meta oauth] token exchange failed", e?.message);
+          return back("error", "token_exchange");
+        }
 
+        try {
           // 2. Discover the first ad account, page and linked IG account.
           // Errors are captured, never swallowed: without them the flow fails silently.
           const [adAccountsRes, pagesRes] = await Promise.all([
@@ -96,7 +117,22 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
               { client_id: state.clientId, connected: false, last_sync_error: msg },
               { onConflict: "client_id" },
             );
-            return back("error", msg);
+            return back("error", "no_assets");
+          }
+
+          // Un activo de Meta (cuenta publicitaria / IG) pertenece a un solo cliente.
+          try {
+            const { assertMetaAssetsFree } = await import("@/lib/auth/clientAccess.server");
+            await assertMetaAssetsFree(state.clientId, {
+              adAccountId: adAccount?.id ?? null,
+              igAccountId: igAccount?.id ?? null,
+            });
+          } catch (e: any) {
+            console.error("[meta oauth] asset check failed", {
+              clientId: state.clientId,
+              msg: e?.message,
+            });
+            return back("error", /ya está asignada/.test(e?.message ?? "") ? "asset_taken" : "save_failed");
           }
 
           // 3. Persist the connection (one per client) and vault the token.
@@ -127,13 +163,10 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
           const { setMetaToken } = await import("@/lib/meta/tokens.server");
           await setMetaToken(saved.id, token);
 
-          return back(
-            "conectado",
-            discoveryErrors ? `Conectado con advertencias: ${discoveryErrors}` : undefined,
-          );
+          return back("conectado", discoveryErrors ? "partial" : undefined);
         } catch (e: any) {
-          console.error("[meta oauth] exchange failed", e?.message);
-          return back("error", e?.message ?? "Error al intercambiar el token con Meta");
+          console.error("[meta oauth] save failed", e?.message);
+          return back("error", "save_failed");
         }
       },
     },
