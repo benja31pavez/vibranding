@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Activity, AlertTriangle, ChevronRight, CreditCard, Instagram, Plug, RefreshCw, ShieldAlert } from "lucide-react";
+import { Activity, AlertTriangle, Bot, ChevronRight, CreditCard, Instagram, Plug, RefreshCw, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState, ErrorState, ListSkeleton, PageContainer } from "@/components/app";
 import { useIsPlatformAdmin } from "@/lib/auth/platformAdmin.functions";
@@ -540,6 +540,17 @@ function DiagnosticsLinks() {
         <CardTitle className="text-base">Integraciones</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2">
+        <Link
+          to="/admin/automatizaciones"
+          className="flex items-center gap-3 rounded-lg border p-3 text-sm hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:col-span-2"
+        >
+          <Bot aria-hidden className="h-4 w-4 text-muted-foreground" />
+          <span className="flex-1">
+            <span className="block font-medium">Automatizaciones</span>
+            <span className="block text-xs text-muted-foreground">Alertas, reportes, cobros e ingestas: última ejecución y resultado, en simple.</span>
+          </span>
+          <ChevronRight aria-hidden className="h-4 w-4 text-muted-foreground" />
+        </Link>
         <Link
           to="/admin/meta-diagnostics"
           className="flex items-center gap-3 rounded-lg border p-3 text-sm hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
