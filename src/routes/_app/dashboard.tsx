@@ -4,6 +4,7 @@ import { PostFeedbackPanel } from "@/components/instagram/PostFeedbackPanel";
 import {
   ApprovalsToday,
   CampaignAlerts,
+  FollowupsToday,
   KpiStrip,
   OperationsPanels,
   PipelineFunnel,
@@ -33,9 +34,11 @@ function todayLabel(): string {
 function Dashboard() {
   return (
     <PageContainer className="space-y-6">
-      <PageHeader title="Hoy" description={`${todayLabel()} · cobros, aprobaciones y alertas del día.`} />
+      <PageHeader title="Hoy" description={`${todayLabel()} · seguimientos, cobros, aprobaciones y alertas del día.`} />
 
       <KpiStrip />
+
+      <FollowupsToday />
 
       <ReviewActivity />
       <PostFeedbackPanel />

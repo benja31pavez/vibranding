@@ -12,14 +12,19 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AtChar123slugChar125RouteImport } from './routes/@{$slug}'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AgenciaMarketingDigitalSantiagoRouteImport } from './routes/agencia-marketing-digital-santiago'
+import { Route as ChatbotWhatsappRouteImport } from './routes/chatbot-whatsapp'
 import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as DataDeletionRouteImport } from './routes/data-deletion'
 import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as GoogleAdsPymesRouteImport } from './routes/google-ads-pymes'
 import { Route as LandingRouteImport } from './routes/landing'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PaginaWebParaPymesRouteImport } from './routes/pagina-web-para-pymes'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PublicidadMetaAdsRouteImport } from './routes/publicidad-meta-ads'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -67,6 +72,7 @@ import { Route as AppClientsClientIdContentRouteImport } from './routes/_app/cli
 import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
 import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
 import { Route as AppClientsClientIdFacturacionRouteImport } from './routes/_app/clients/$clientId/facturacion'
+import { Route as AppClientsClientIdGoogleAdsRouteImport } from './routes/_app/clients/$clientId/google-ads'
 import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
 import { Route as AppClientsClientIdLandingRouteImport } from './routes/_app/clients/$clientId/landing'
 import { Route as AppClientsClientIdLeadsRouteImport } from './routes/_app/clients/$clientId/leads'
@@ -82,11 +88,13 @@ import { Route as ApiPublicAlertsRunRouteImport } from './routes/api/public/aler
 import { Route as ApiPublicBillingChargeMonthlyRouteImport } from './routes/api/public/billing/charge-monthly'
 import { Route as ApiPublicFlowConfirmRouteImport } from './routes/api/public/flow/confirm'
 import { Route as ApiPublicFlowReturnRouteImport } from './routes/api/public/flow/return'
+import { Route as ApiPublicGoogleIngestDailyRouteImport } from './routes/api/public/google/ingest-daily'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as ApiPublicMetaIngestDailyRouteImport } from './routes/api/public/meta/ingest-daily'
 import { Route as ApiPublicOnboardingCleanupRouteImport } from './routes/api/public/onboarding/cleanup'
 import { Route as ApiPublicReportsMonthlyRouteImport } from './routes/api/public/reports/monthly'
 import { Route as ApiPublicWhatsappDispatchRouteImport } from './routes/api/public/whatsapp/dispatch'
+import { Route as ApiPublicGoogleOauthCallbackRouteImport } from './routes/api/public/google/oauth/callback'
 import { Route as ApiPublicMetaOauthCallbackRouteImport } from './routes/api/public/meta/oauth/callback'
 import { Route as ApiPublicWhatsappWebhookAccountIdRouteImport } from './routes/api/public/whatsapp/webhook/$accountId'
 
@@ -102,6 +110,17 @@ const AtChar123slugChar125Route = AtChar123slugChar125RouteImport.update({
 } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgenciaMarketingDigitalSantiagoRoute =
+  AgenciaMarketingDigitalSantiagoRouteImport.update({
+    id: '/agencia-marketing-digital-santiago',
+    path: '/agencia-marketing-digital-santiago',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ChatbotWhatsappRoute = ChatbotWhatsappRouteImport.update({
+  id: '/chatbot-whatsapp',
+  path: '/chatbot-whatsapp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CookiesRoute = CookiesRouteImport.update({
@@ -124,6 +143,11 @@ const FaqRoute = FaqRouteImport.update({
   path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GoogleAdsPymesRoute = GoogleAdsPymesRouteImport.update({
+  id: '/google-ads-pymes',
+  path: '/google-ads-pymes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LandingRoute = LandingRouteImport.update({
   id: '/landing',
   path: '/landing',
@@ -134,6 +158,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PaginaWebParaPymesRoute = PaginaWebParaPymesRouteImport.update({
+  id: '/pagina-web-para-pymes',
+  path: '/pagina-web-para-pymes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
   path: '/portal',
@@ -142,6 +171,11 @@ const PortalRoute = PortalRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicidadMetaAdsRoute = PublicidadMetaAdsRouteImport.update({
+  id: '/publicidad-meta-ads',
+  path: '/publicidad-meta-ads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -390,6 +424,12 @@ const AppClientsClientIdFacturacionRoute =
     path: '/facturacion',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdGoogleAdsRoute =
+  AppClientsClientIdGoogleAdsRouteImport.update({
+    id: '/google-ads',
+    path: '/google-ads',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdInstagramRoute =
   AppClientsClientIdInstagramRouteImport.update({
     id: '/instagram',
@@ -473,6 +513,12 @@ const ApiPublicFlowReturnRoute = ApiPublicFlowReturnRouteImport.update({
   path: '/api/public/flow/return',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicGoogleIngestDailyRoute =
+  ApiPublicGoogleIngestDailyRouteImport.update({
+    id: '/api/public/google/ingest-daily',
+    path: '/api/public/google/ingest-daily',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicInstagramWebhookRoute =
   ApiPublicInstagramWebhookRouteImport.update({
     id: '/api/public/instagram/webhook',
@@ -502,6 +548,12 @@ const ApiPublicWhatsappDispatchRoute =
     path: '/api/public/whatsapp/dispatch',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicGoogleOauthCallbackRoute =
+  ApiPublicGoogleOauthCallbackRouteImport.update({
+    id: '/api/public/google/oauth/callback',
+    path: '/api/public/google/oauth/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMetaOauthCallbackRoute =
   ApiPublicMetaOauthCallbackRouteImport.update({
     id: '/api/public/meta/oauth/callback',
@@ -518,14 +570,19 @@ const ApiPublicWhatsappWebhookAccountIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
+  '/agencia-marketing-digital-santiago': typeof AgenciaMarketingDigitalSantiagoRoute
+  '/chatbot-whatsapp': typeof ChatbotWhatsappRoute
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
   '/diagnostico': typeof DiagnosticoRoute
   '/faq': typeof FaqRoute
+  '/google-ads-pymes': typeof GoogleAdsPymesRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/pagina-web-para-pymes': typeof PaginaWebParaPymesRoute
   '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
+  '/publicidad-meta-ads': typeof PublicidadMetaAdsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -572,6 +629,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/facturacion': typeof AppClientsClientIdFacturacionRoute
+  '/clients/$clientId/google-ads': typeof AppClientsClientIdGoogleAdsRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
   '/clients/$clientId/leads': typeof AppClientsClientIdLeadsRoute
@@ -587,26 +645,33 @@ export interface FileRoutesByFullPath {
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
+  '/api/public/google/ingest-daily': typeof ApiPublicGoogleIngestDailyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/clients/$clientId/': typeof AppClientsClientIdIndexRoute
+  '/api/public/google/oauth/callback': typeof ApiPublicGoogleOauthCallbackRoute
   '/api/public/meta/oauth/callback': typeof ApiPublicMetaOauthCallbackRoute
   '/api/public/whatsapp/webhook/$accountId': typeof ApiPublicWhatsappWebhookAccountIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
+  '/agencia-marketing-digital-santiago': typeof AgenciaMarketingDigitalSantiagoRoute
+  '/chatbot-whatsapp': typeof ChatbotWhatsappRoute
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
   '/diagnostico': typeof DiagnosticoRoute
   '/faq': typeof FaqRoute
+  '/google-ads-pymes': typeof GoogleAdsPymesRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/pagina-web-para-pymes': typeof PaginaWebParaPymesRoute
   '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
+  '/publicidad-meta-ads': typeof PublicidadMetaAdsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -652,6 +717,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/facturacion': typeof AppClientsClientIdFacturacionRoute
+  '/clients/$clientId/google-ads': typeof AppClientsClientIdGoogleAdsRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
   '/clients/$clientId/leads': typeof AppClientsClientIdLeadsRoute
@@ -667,12 +733,14 @@ export interface FileRoutesByTo {
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
+  '/api/public/google/ingest-daily': typeof ApiPublicGoogleIngestDailyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/clients/$clientId': typeof AppClientsClientIdIndexRoute
+  '/api/public/google/oauth/callback': typeof ApiPublicGoogleOauthCallbackRoute
   '/api/public/meta/oauth/callback': typeof ApiPublicMetaOauthCallbackRoute
   '/api/public/whatsapp/webhook/$accountId': typeof ApiPublicWhatsappWebhookAccountIdRoute
 }
@@ -681,14 +749,19 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
   '/_app': typeof AppRouteWithChildren
+  '/agencia-marketing-digital-santiago': typeof AgenciaMarketingDigitalSantiagoRoute
+  '/chatbot-whatsapp': typeof ChatbotWhatsappRoute
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
   '/diagnostico': typeof DiagnosticoRoute
   '/faq': typeof FaqRoute
+  '/google-ads-pymes': typeof GoogleAdsPymesRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/pagina-web-para-pymes': typeof PaginaWebParaPymesRoute
   '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
+  '/publicidad-meta-ads': typeof PublicidadMetaAdsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -735,6 +808,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/_app/clients/$clientId/facturacion': typeof AppClientsClientIdFacturacionRoute
+  '/_app/clients/$clientId/google-ads': typeof AppClientsClientIdGoogleAdsRoute
   '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/_app/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
   '/_app/clients/$clientId/leads': typeof AppClientsClientIdLeadsRoute
@@ -750,12 +824,14 @@ export interface FileRoutesById {
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
+  '/api/public/google/ingest-daily': typeof ApiPublicGoogleIngestDailyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/_app/clients/$clientId/': typeof AppClientsClientIdIndexRoute
+  '/api/public/google/oauth/callback': typeof ApiPublicGoogleOauthCallbackRoute
   '/api/public/meta/oauth/callback': typeof ApiPublicMetaOauthCallbackRoute
   '/api/public/whatsapp/webhook/$accountId': typeof ApiPublicWhatsappWebhookAccountIdRoute
 }
@@ -764,14 +840,19 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/@{$slug}'
+    | '/agencia-marketing-digital-santiago'
+    | '/chatbot-whatsapp'
     | '/cookies'
     | '/data-deletion'
     | '/diagnostico'
     | '/faq'
+    | '/google-ads-pymes'
     | '/landing'
     | '/login'
+    | '/pagina-web-para-pymes'
     | '/portal'
     | '/privacy'
+    | '/publicidad-meta-ads'
     | '/reset-password'
     | '/sitemap.xml'
     | '/terms'
@@ -818,6 +899,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/facturacion'
+    | '/clients/$clientId/google-ads'
     | '/clients/$clientId/instagram'
     | '/clients/$clientId/landing'
     | '/clients/$clientId/leads'
@@ -833,26 +915,33 @@ export interface FileRouteTypes {
     | '/api/public/billing/charge-monthly'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
+    | '/api/public/google/ingest-daily'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
     | '/api/public/onboarding/cleanup'
     | '/api/public/reports/monthly'
     | '/api/public/whatsapp/dispatch'
     | '/clients/$clientId/'
+    | '/api/public/google/oauth/callback'
     | '/api/public/meta/oauth/callback'
     | '/api/public/whatsapp/webhook/$accountId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/@{$slug}'
+    | '/agencia-marketing-digital-santiago'
+    | '/chatbot-whatsapp'
     | '/cookies'
     | '/data-deletion'
     | '/diagnostico'
     | '/faq'
+    | '/google-ads-pymes'
     | '/landing'
     | '/login'
+    | '/pagina-web-para-pymes'
     | '/portal'
     | '/privacy'
+    | '/publicidad-meta-ads'
     | '/reset-password'
     | '/sitemap.xml'
     | '/terms'
@@ -898,6 +987,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/facturacion'
+    | '/clients/$clientId/google-ads'
     | '/clients/$clientId/instagram'
     | '/clients/$clientId/landing'
     | '/clients/$clientId/leads'
@@ -913,12 +1003,14 @@ export interface FileRouteTypes {
     | '/api/public/billing/charge-monthly'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
+    | '/api/public/google/ingest-daily'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
     | '/api/public/onboarding/cleanup'
     | '/api/public/reports/monthly'
     | '/api/public/whatsapp/dispatch'
     | '/clients/$clientId'
+    | '/api/public/google/oauth/callback'
     | '/api/public/meta/oauth/callback'
     | '/api/public/whatsapp/webhook/$accountId'
   id:
@@ -926,14 +1018,19 @@ export interface FileRouteTypes {
     | '/'
     | '/@{$slug}'
     | '/_app'
+    | '/agencia-marketing-digital-santiago'
+    | '/chatbot-whatsapp'
     | '/cookies'
     | '/data-deletion'
     | '/diagnostico'
     | '/faq'
+    | '/google-ads-pymes'
     | '/landing'
     | '/login'
+    | '/pagina-web-para-pymes'
     | '/portal'
     | '/privacy'
+    | '/publicidad-meta-ads'
     | '/reset-password'
     | '/sitemap.xml'
     | '/terms'
@@ -980,6 +1077,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/contracts'
     | '/_app/clients/$clientId/deliverables'
     | '/_app/clients/$clientId/facturacion'
+    | '/_app/clients/$clientId/google-ads'
     | '/_app/clients/$clientId/instagram'
     | '/_app/clients/$clientId/landing'
     | '/_app/clients/$clientId/leads'
@@ -995,12 +1093,14 @@ export interface FileRouteTypes {
     | '/api/public/billing/charge-monthly'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
+    | '/api/public/google/ingest-daily'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
     | '/api/public/onboarding/cleanup'
     | '/api/public/reports/monthly'
     | '/api/public/whatsapp/dispatch'
     | '/_app/clients/$clientId/'
+    | '/api/public/google/oauth/callback'
     | '/api/public/meta/oauth/callback'
     | '/api/public/whatsapp/webhook/$accountId'
   fileRoutesById: FileRoutesById
@@ -1009,14 +1109,19 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AtChar123slugChar125Route: typeof AtChar123slugChar125RouteWithChildren
   AppRoute: typeof AppRouteWithChildren
+  AgenciaMarketingDigitalSantiagoRoute: typeof AgenciaMarketingDigitalSantiagoRoute
+  ChatbotWhatsappRoute: typeof ChatbotWhatsappRoute
   CookiesRoute: typeof CookiesRoute
   DataDeletionRoute: typeof DataDeletionRoute
   DiagnosticoRoute: typeof DiagnosticoRoute
   FaqRoute: typeof FaqRoute
+  GoogleAdsPymesRoute: typeof GoogleAdsPymesRoute
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
+  PaginaWebParaPymesRoute: typeof PaginaWebParaPymesRoute
   PortalRoute: typeof PortalRoute
   PrivacyRoute: typeof PrivacyRoute
+  PublicidadMetaAdsRoute: typeof PublicidadMetaAdsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
@@ -1037,11 +1142,13 @@ export interface RootRouteChildren {
   ApiPublicBillingChargeMonthlyRoute: typeof ApiPublicBillingChargeMonthlyRoute
   ApiPublicFlowConfirmRoute: typeof ApiPublicFlowConfirmRoute
   ApiPublicFlowReturnRoute: typeof ApiPublicFlowReturnRoute
+  ApiPublicGoogleIngestDailyRoute: typeof ApiPublicGoogleIngestDailyRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicMetaIngestDailyRoute: typeof ApiPublicMetaIngestDailyRoute
   ApiPublicOnboardingCleanupRoute: typeof ApiPublicOnboardingCleanupRoute
   ApiPublicReportsMonthlyRoute: typeof ApiPublicReportsMonthlyRoute
   ApiPublicWhatsappDispatchRoute: typeof ApiPublicWhatsappDispatchRoute
+  ApiPublicGoogleOauthCallbackRoute: typeof ApiPublicGoogleOauthCallbackRoute
   ApiPublicMetaOauthCallbackRoute: typeof ApiPublicMetaOauthCallbackRoute
   ApiPublicWhatsappWebhookAccountIdRoute: typeof ApiPublicWhatsappWebhookAccountIdRoute
 }
@@ -1067,6 +1174,20 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agencia-marketing-digital-santiago': {
+      id: '/agencia-marketing-digital-santiago'
+      path: '/agencia-marketing-digital-santiago'
+      fullPath: '/agencia-marketing-digital-santiago'
+      preLoaderRoute: typeof AgenciaMarketingDigitalSantiagoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chatbot-whatsapp': {
+      id: '/chatbot-whatsapp'
+      path: '/chatbot-whatsapp'
+      fullPath: '/chatbot-whatsapp'
+      preLoaderRoute: typeof ChatbotWhatsappRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cookies': {
@@ -1097,6 +1218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/google-ads-pymes': {
+      id: '/google-ads-pymes'
+      path: '/google-ads-pymes'
+      fullPath: '/google-ads-pymes'
+      preLoaderRoute: typeof GoogleAdsPymesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/landing': {
       id: '/landing'
       path: '/landing'
@@ -1111,6 +1239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pagina-web-para-pymes': {
+      id: '/pagina-web-para-pymes'
+      path: '/pagina-web-para-pymes'
+      fullPath: '/pagina-web-para-pymes'
+      preLoaderRoute: typeof PaginaWebParaPymesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/portal': {
       id: '/portal'
       path: '/portal'
@@ -1123,6 +1258,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/publicidad-meta-ads': {
+      id: '/publicidad-meta-ads'
+      path: '/publicidad-meta-ads'
+      fullPath: '/publicidad-meta-ads'
+      preLoaderRoute: typeof PublicidadMetaAdsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -1454,6 +1596,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdFacturacionRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/google-ads': {
+      id: '/_app/clients/$clientId/google-ads'
+      path: '/google-ads'
+      fullPath: '/clients/$clientId/google-ads'
+      preLoaderRoute: typeof AppClientsClientIdGoogleAdsRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/instagram': {
       id: '/_app/clients/$clientId/instagram'
       path: '/instagram'
@@ -1559,6 +1708,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicFlowReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/google/ingest-daily': {
+      id: '/api/public/google/ingest-daily'
+      path: '/api/public/google/ingest-daily'
+      fullPath: '/api/public/google/ingest-daily'
+      preLoaderRoute: typeof ApiPublicGoogleIngestDailyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/instagram/webhook': {
       id: '/api/public/instagram/webhook'
       path: '/api/public/instagram/webhook'
@@ -1592,6 +1748,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/whatsapp/dispatch'
       fullPath: '/api/public/whatsapp/dispatch'
       preLoaderRoute: typeof ApiPublicWhatsappDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/google/oauth/callback': {
+      id: '/api/public/google/oauth/callback'
+      path: '/api/public/google/oauth/callback'
+      fullPath: '/api/public/google/oauth/callback'
+      preLoaderRoute: typeof ApiPublicGoogleOauthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/meta/oauth/callback': {
@@ -1632,6 +1795,7 @@ interface AppClientsClientIdRouteChildren {
   AppClientsClientIdContractsRoute: typeof AppClientsClientIdContractsRoute
   AppClientsClientIdDeliverablesRoute: typeof AppClientsClientIdDeliverablesRoute
   AppClientsClientIdFacturacionRoute: typeof AppClientsClientIdFacturacionRoute
+  AppClientsClientIdGoogleAdsRoute: typeof AppClientsClientIdGoogleAdsRoute
   AppClientsClientIdInstagramRoute: typeof AppClientsClientIdInstagramRoute
   AppClientsClientIdLandingRoute: typeof AppClientsClientIdLandingRoute
   AppClientsClientIdLeadsRoute: typeof AppClientsClientIdLeadsRoute
@@ -1656,6 +1820,7 @@ const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdContractsRoute: AppClientsClientIdContractsRoute,
   AppClientsClientIdDeliverablesRoute: AppClientsClientIdDeliverablesRoute,
   AppClientsClientIdFacturacionRoute: AppClientsClientIdFacturacionRoute,
+  AppClientsClientIdGoogleAdsRoute: AppClientsClientIdGoogleAdsRoute,
   AppClientsClientIdInstagramRoute: AppClientsClientIdInstagramRoute,
   AppClientsClientIdLandingRoute: AppClientsClientIdLandingRoute,
   AppClientsClientIdLeadsRoute: AppClientsClientIdLeadsRoute,
@@ -1725,14 +1890,19 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AtChar123slugChar125Route: AtChar123slugChar125RouteWithChildren,
   AppRoute: AppRouteWithChildren,
+  AgenciaMarketingDigitalSantiagoRoute: AgenciaMarketingDigitalSantiagoRoute,
+  ChatbotWhatsappRoute: ChatbotWhatsappRoute,
   CookiesRoute: CookiesRoute,
   DataDeletionRoute: DataDeletionRoute,
   DiagnosticoRoute: DiagnosticoRoute,
   FaqRoute: FaqRoute,
+  GoogleAdsPymesRoute: GoogleAdsPymesRoute,
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
+  PaginaWebParaPymesRoute: PaginaWebParaPymesRoute,
   PortalRoute: PortalRoute,
   PrivacyRoute: PrivacyRoute,
+  PublicidadMetaAdsRoute: PublicidadMetaAdsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
@@ -1753,11 +1923,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBillingChargeMonthlyRoute: ApiPublicBillingChargeMonthlyRoute,
   ApiPublicFlowConfirmRoute: ApiPublicFlowConfirmRoute,
   ApiPublicFlowReturnRoute: ApiPublicFlowReturnRoute,
+  ApiPublicGoogleIngestDailyRoute: ApiPublicGoogleIngestDailyRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicMetaIngestDailyRoute: ApiPublicMetaIngestDailyRoute,
   ApiPublicOnboardingCleanupRoute: ApiPublicOnboardingCleanupRoute,
   ApiPublicReportsMonthlyRoute: ApiPublicReportsMonthlyRoute,
   ApiPublicWhatsappDispatchRoute: ApiPublicWhatsappDispatchRoute,
+  ApiPublicGoogleOauthCallbackRoute: ApiPublicGoogleOauthCallbackRoute,
   ApiPublicMetaOauthCallbackRoute: ApiPublicMetaOauthCallbackRoute,
   ApiPublicWhatsappWebhookAccountIdRoute:
     ApiPublicWhatsappWebhookAccountIdRoute,
