@@ -85,6 +85,7 @@ export function MonthPlanPanel({ clientId, planKey, canEdit }: MonthPlanPanelPro
           clientId={clientId}
           userKey={userKey}
           month={month}
+          today={today}
           planLabel={plan.label}
           items={items}
           onClose={() => setOpen(false)}

@@ -66,6 +66,11 @@ export interface CreateResult {
 /**
  * Crea las tareas elegidas. Vuelve a leer lo existente justo antes de insertar
  * para no duplicar si otra pestaña ya generó el plan.
+ *
+ * Riesgo residual aceptado: si dos pestañas confirman casi al mismo tiempo,
+ * ambas pueden leer "no existe" antes de que la otra inserte y duplicar. No hay
+ * índice único sobre el marcador (sería una migración); el marcador permite
+ * detectar y borrar los duplicados a mano en Plan › Tareas.
  */
 export async function createMonthTasks(
   clientId: string,

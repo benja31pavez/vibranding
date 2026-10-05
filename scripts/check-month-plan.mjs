@@ -118,11 +118,46 @@ check("claves únicas y marcador estable en la descripción", () => {
 });
 check("determinista", () =>
   assert.deepEqual(m.buildMonthPlan({ planKey: "crecimiento", month: MONTH }), crecimiento));
-check("mes en curso: nada antes de hoy", () => {
+check("mes en curso: nada antes de hoy y cuotas prorrateadas", () => {
   const items = m.buildMonthPlan({ planKey: "contenido", month: MONTH, today: "2026-11-18" });
   assert.ok(items.length > 0);
   assert.ok(items.every((i) => i.dueDate >= "2026-11-18"));
+  // Quedan 9 de 21 días hábiles: 8 posts → 3, 4 reels → 2, 4 Google → 2.
+  assert.equal(count(items, "post"), 3);
+  assert.equal(count(items, "reel"), 2);
+  assert.equal(count(items, "google"), 2);
+  assert.equal(count(items, "reporte"), 1);
+});
+check("prorrateo: mínimo 1 y nunca más que la cuota", () => {
+  assert.equal(m.prorate(8, 0.01), 1);
+  assert.equal(m.prorate(8, 1.5), 8);
+  assert.equal(m.prorate(0, 0.5), 0);
+});
+check("mes siguiente va completo aunque hoy sea otro mes", () => {
+  const items = m.buildMonthPlan({ planKey: "contenido", month: MONTH, today: "2026-10-28" });
   assert.equal(count(items, "post") + count(items, "reel"), 12);
+});
+
+// Feriados
+check("excluye feriados nacionales (incluidos los movidos)", () => {
+  assert.equal(m.businessDays("2026-12").includes("2026-12-08"), false);
+  assert.equal(m.businessDays("2026-12").includes("2026-12-25"), false);
+  assert.equal(m.businessDays("2027-10").includes("2027-10-11"), false);
+  assert.equal(m.businessDays("2027-10").includes("2027-10-12"), true);
+  assert.equal(m.businessDays("2027-06").includes("2027-06-28"), false);
+  assert.equal(m.businessDays("2027-09").includes("2027-09-17"), false);
+  assert.equal(m.businessDays("2026-10").includes("2026-10-12"), false);
+});
+check("ninguna tarea cae en feriado", () => {
+  for (const month of ["2026-12", "2027-09", "2027-10"]) {
+    for (const planKey of ["contenido", "crecimiento", "marca-web"]) {
+      for (const i of m.buildMonthPlan({ planKey, month })) assert.equal(m.CL_HOLIDAYS.has(i.dueDate), false, i.dueDate);
+    }
+  }
+});
+check("la lista de feriados cubre el año actual (actualizar CL_HOLIDAYS)", () => {
+  const year = Number(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago", year: "numeric" }).format(new Date()));
+  assert.ok(year <= m.CL_HOLIDAYS_LAST_YEAR, `año ${year} > ${m.CL_HOLIDAYS_LAST_YEAR}`);
 });
 check("mes pasado o inválido = vacío", () => {
   assert.deepEqual(m.buildMonthPlan({ planKey: "contenido", month: "2026-09", today: "2026-10-05" }), []);

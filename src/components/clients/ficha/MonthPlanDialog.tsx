@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { ErrorState, ListSkeleton } from "@/components/app";
@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { periodLabel } from "@/lib/billing/dates";
 import {
+  FEW_BUSINESS_DAYS,
+  businessDays,
   isDuplicate,
   monthBounds,
   summarizeExisting,
@@ -37,6 +39,8 @@ interface MonthPlanDialogProps {
   clientId: string;
   userKey: string;
   month: string;
+  /** Hoy en Chile ("YYYY-MM-DD"). */
+  today: string;
   planLabel: string;
   items: readonly MonthPlanItem[];
   onClose: () => void;
@@ -48,13 +52,17 @@ function toDraft(row: Row): MonthPlanItem {
 }
 
 /** Vista previa editable: el dueño desmarca, renombra o mueve fechas antes de crear. */
-export function MonthPlanDialog({ clientId, userKey, month, planLabel, items, onClose, onCreated }: MonthPlanDialogProps) {
+export function MonthPlanDialog({ clientId, userKey, month, today, planLabel, items, onClose, onCreated }: MonthPlanDialogProps) {
   const existing = useExistingMonthTasks(userKey, clientId, month, true);
   const [rows, setRows] = useState<Row[]>(() =>
     items.map((item) => ({ item, include: true, title: item.title, dueDate: item.dueDate })),
   );
   const [saving, setSaving] = useState(false);
+  // Evita doble envío (doble clic o Enter) antes de que `saving` se pinte.
+  const inFlight = useRef(false);
   const { first, last } = monthBounds(month);
+  const minDate = today > first ? today : first;
+  const remainingDays = useMemo(() => businessDays(month, today).length, [month, today]);
   const label = periodLabel(`${month}-01`);
 
   const existingRows = existing.data ?? NO_TASKS;
@@ -64,13 +72,15 @@ export function MonthPlanDialog({ clientId, userKey, month, planLabel, items, on
     [rows, month, existingRows],
   );
   const toCreate = rows.filter(
-    (r) => r.include && !duplicateKeys.has(r.item.key) && r.title.trim() && r.dueDate >= first && r.dueDate <= last,
+    (r) => r.include && !duplicateKeys.has(r.item.key) && r.title.trim() && r.dueDate >= minDate && r.dueDate <= last,
   );
 
   const patch = (key: string, change: Partial<Omit<Row, "item">>) =>
     setRows((prev) => prev.map((r) => (r.item.key === key ? { ...r, ...change } : r)));
 
   const confirm = async () => {
+    if (saving || inFlight.current) return;
+    inFlight.current = true;
     setSaving(true);
     try {
       const res = await createMonthTasks(clientId, month, toCreate.map(toDraft));
@@ -85,6 +95,7 @@ export function MonthPlanDialog({ clientId, userKey, month, planLabel, items, on
     } catch (e) {
       toast.error((e as Error).message || "No se pudieron crear las tareas");
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   };
@@ -106,6 +117,12 @@ export function MonthPlanDialog({ clientId, userKey, month, planLabel, items, on
           <ErrorState message={existing.error.message} onRetry={() => void existing.refetch()} retrying={existing.isFetching} />
         ) : (
           <>
+            {remainingDays < FEW_BUSINESS_DAYS && (
+              <p role="status" className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+                Quedan pocos días hábiles este mes ({remainingDays}). Las cantidades se ajustaron a los días que
+                quedan; revisa si conviene generar el mes siguiente.
+              </p>
+            )}
             {summary.total > 0 && (
               <div role="status" className="flex gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
                 <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
@@ -119,12 +136,10 @@ export function MonthPlanDialog({ clientId, userKey, month, planLabel, items, on
             <ul className="divide-y rounded-md border">
               {rows.map((row) => {
                 const dup = duplicateKeys.has(row.item.key);
-                const id = `mp-${row.item.key}`;
                 return (
                   <li key={row.item.key} className={`flex flex-col gap-2 p-2 sm:flex-row sm:items-center ${dup ? "opacity-60" : ""}`}>
                     <div className="flex min-w-0 flex-1 items-center gap-2">
                       <Checkbox
-                        id={id}
                         checked={row.include && !dup}
                         disabled={dup}
                         onCheckedChange={(v) => patch(row.item.key, { include: v === true })}
@@ -135,7 +150,7 @@ export function MonthPlanDialog({ clientId, userKey, month, planLabel, items, on
                         maxLength={TITLE_MAX}
                         disabled={dup || !row.include}
                         onChange={(e) => patch(row.item.key, { title: e.target.value })}
-                        aria-label="Título de la tarea"
+                        aria-label={`Título: ${row.title}`}
                         className="h-8"
                       />
                     </div>
@@ -143,11 +158,11 @@ export function MonthPlanDialog({ clientId, userKey, month, planLabel, items, on
                       <Input
                         type="date"
                         value={row.dueDate}
-                        min={first}
+                        min={minDate}
                         max={last}
                         disabled={dup || !row.include}
                         onChange={(e) => patch(row.item.key, { dueDate: e.target.value })}
-                        aria-label="Fecha"
+                        aria-label={`Fecha de ${row.title}`}
                         className="h-8 w-[150px]"
                       />
                       {dup && <span className="text-xs text-muted-foreground">Ya creada</span>}
@@ -164,7 +179,11 @@ export function MonthPlanDialog({ clientId, userKey, month, planLabel, items, on
             Cancelar
           </Button>
           <Button onClick={confirm} disabled={saving || existing.isLoading || Boolean(existing.error) || toCreate.length === 0}>
-            {saving ? "Creando…" : `Crear ${toCreate.length} ${toCreate.length === 1 ? "tarea" : "tareas"}`}
+            {saving ? (
+              <span role="status">Creando…</span>
+            ) : (
+              `Crear ${toCreate.length} ${toCreate.length === 1 ? "tarea" : "tareas"}`
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

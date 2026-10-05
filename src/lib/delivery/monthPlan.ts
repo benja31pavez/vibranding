@@ -4,7 +4,9 @@
  *
  * Funciones puras: sin Supabase ni reloj. Las fechas son "YYYY-MM-DD" ya
  * expresadas en America/Santiago (el llamador entrega `today` con chileToday()).
- * No considera feriados: el dueño ajusta la fecha en la vista previa.
+ * Días hábiles = lun–vie sin feriados nacionales de Chile (CL_HOLIDAYS, cubre
+ * 2026–2027; actualizar cada año). Si se genera el mes en curso, las cantidades
+ * se prorratean según los días hábiles que quedan; el mes siguiente va completo.
  */
 import type { PlanKey } from "@/lib/pricing/plans";
 
@@ -47,6 +49,29 @@ const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MIN_YEAR = 2000;
 const MAX_YEAR = 2100;
 const DAY_MS = 86_400_000;
+
+/**
+ * Feriados nacionales de Chile (todos, aunque caigan en fin de semana; los
+ * regionales no se incluyen). Fuente: feriados.cl (2026.htm y 2027.php),
+ * revisado el 2026-10-05. Feriados movidos por ley: en 2026 el 12-oct cae
+ * lunes y el 31-oct sábado (sin traslado); en 2027 San Pedro y San Pablo pasa
+ * al lun 28-jun, Encuentro de Dos Mundos al lun 11-oct, y el vie 17-sep es
+ * feriado adicional. Cubre 2026–2027: ampliar antes de 2028 (check:month-plan falla).
+ */
+export const CL_HOLIDAYS_LAST_YEAR = 2027;
+export const CL_HOLIDAYS: ReadonlySet<string> = new Set([
+  // 2026
+  "2026-01-01", "2026-04-03", "2026-04-04", "2026-05-01", "2026-05-21", "2026-06-21",
+  "2026-06-29", "2026-07-16", "2026-08-15", "2026-09-18", "2026-09-19", "2026-10-12",
+  "2026-10-31", "2026-11-01", "2026-12-08", "2026-12-25",
+  // 2027
+  "2027-01-01", "2027-03-26", "2027-03-27", "2027-05-01", "2027-05-21", "2027-06-21",
+  "2027-06-28", "2027-07-16", "2027-08-15", "2027-09-17", "2027-09-18", "2027-09-19",
+  "2027-10-11", "2027-10-31", "2027-11-01", "2027-12-08", "2027-12-25",
+]);
+
+/** Bajo este número de días hábiles restantes se avisa en la vista previa. */
+export const FEW_BUSINESS_DAYS = 5;
 const SATURDAY = 6;
 const SUNDAY = 0;
 
@@ -111,7 +136,7 @@ export function nextMonth(month: string): string {
   return ymd(new Date(Date.UTC(y, m, 1))).slice(0, 7);
 }
 
-/** Días hábiles (lun–vie) del mes, desde `from` inclusive si cae dentro del mes. */
+/** Días hábiles (lun–vie, sin feriados CL_HOLIDAYS) del mes, desde `from` inclusive si cae dentro del mes. */
 export function businessDays(month: string, from?: string): string[] {
   const { first, last } = monthBounds(month);
   const start = from && DAY_RE.test(from) && from > first ? from : first;
@@ -119,7 +144,8 @@ export function businessDays(month: string, from?: string): string[] {
   for (let t = utc(start).getTime(); t <= utc(last).getTime(); t += DAY_MS) {
     const day = new Date(t);
     const weekday = day.getUTCDay();
-    if (weekday !== SATURDAY && weekday !== SUNDAY) out.push(ymd(day));
+    const key = ymd(day);
+    if (weekday !== SATURDAY && weekday !== SUNDAY && !CL_HOLIDAYS.has(key)) out.push(key);
   }
   return out;
 }
@@ -198,7 +224,18 @@ function single(
   return { key, kind, title, description: describe(`${detail} ${INTERNAL_NOTE}`, month, key), dueDate };
 }
 
-function contentItems(days: readonly string[], month: string, withCampaigns: boolean): MonthPlanItem[] {
+/** Cantidad proporcional a los días que quedan (al menos 1 si la cuota es > 0). */
+export function prorate(count: number, ratio: number): number {
+  if (count <= 0) return 0;
+  return Math.max(1, Math.round(count * Math.min(Math.max(ratio, 0), 1)));
+}
+
+function contentItems(
+  days: readonly string[],
+  month: string,
+  withCampaigns: boolean,
+  ratio: number,
+): MonthPlanItem[] {
   const plan = withCampaigns ? CRECIMIENTO : CONTENIDO;
   const items: MonthPlanItem[] = [
     single(
@@ -213,21 +250,21 @@ function contentItems(days: readonly string[], month: string, withCampaigns: boo
       "post",
       "Post / carrusel",
       "Diseño y copy de la pieza, en borrador para aprobación.",
-      spreadEvenly(days, plan.postsPerWeek * WEEKS_PER_MONTH),
+      spreadEvenly(days, prorate(plan.postsPerWeek * WEEKS_PER_MONTH, ratio)),
       month,
     ),
     ...numbered(
       "reel",
       "Reel",
       "Guion, edición y copy del reel, en borrador para aprobación.",
-      spreadEvenly(days, plan.reelsPerWeek * WEEKS_PER_MONTH),
+      spreadEvenly(days, prorate(plan.reelsPerWeek * WEEKS_PER_MONTH, ratio)),
       month,
     ),
     ...numbered(
       "google",
       "Publicación Google Business",
       "Preparar la publicación de la ficha de Google Business.",
-      spreadEvenly(days, plan.googleBusinessPerMonth),
+      spreadEvenly(days, prorate(plan.googleBusinessPerMonth, ratio)),
       month,
     ),
   ];
@@ -298,8 +335,12 @@ export function buildMonthPlan({ planKey, month, today }: BuildMonthPlanInput): 
   if (!isMonthKey(month)) return [];
   const days = businessDays(month, today);
   if (days.length === 0) return [];
+  // Mes en curso: cuotas proporcionales a los días hábiles que quedan.
+  const ratio = days.length / businessDays(month).length;
   const items =
-    planKey === "marca-web" ? projectItems(days, month) : contentItems(days, month, planKey === "crecimiento");
+    planKey === "marca-web"
+      ? projectItems(days, month)
+      : contentItems(days, month, planKey === "crecimiento", ratio);
   return [...items].sort((a, b) =>
     a.dueDate === b.dueDate ? KIND_ORDER[a.kind] - KIND_ORDER[b.kind] : a.dueDate < b.dueDate ? -1 : 1,
   );
