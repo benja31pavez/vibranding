@@ -2,9 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { FileJson, KanbanSquare, Plus, Table2, Target } from "lucide-react";
 import { toast } from "sonner";
-import { EmptyState, ErrorState, PageContainer, PageHeader, TableSkeleton } from "@/components/app";
+import { EmptyState, ErrorState, FitPage, PageHeader, TableSkeleton } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { ConvertDialog } from "@/components/prospects/ConvertDialog";
+import { FunnelSummary } from "@/components/prospects/FunnelSummary";
 import { ImportDialog } from "@/components/prospects/ImportDialog";
 import { KanbanBoard } from "@/components/prospects/KanbanBoard";
 import type { CardActions } from "@/components/prospects/ProspectCard";
@@ -136,7 +137,7 @@ function PipelinePage() {
         <EmptyState
           icon={Target}
           title="Aún no hay prospectos"
-          description="Crea uno a mano o importa el archivo de prospectos de la oficina de agentes."
+          description="Créalo a mano o importa el JSON de la oficina de agentes."
           action={
             <Button onClick={() => setImportOpen(true)}>
               <FileJson aria-hidden className="mr-1 h-4 w-4" /> Importar JSON
@@ -145,33 +146,44 @@ function PipelinePage() {
         />
       );
     }
-    return view === "kanban" ? (
-      <KanbanBoard prospects={prospects} actions={actions} />
-    ) : (
-      <ProspectsTable prospects={prospects} actions={actions} />
+    return (
+      <>
+        <FunnelSummary prospects={prospects} />
+        <div className="md:min-h-0 md:flex-1">
+          {view === "kanban" ? (
+            <KanbanBoard prospects={prospects} actions={actions} />
+          ) : (
+            <ProspectsTable prospects={prospects} actions={actions} />
+          )}
+        </div>
+      </>
     );
   };
 
   return (
-    <PageContainer className="space-y-6">
-      <PageHeader
-        title="Prospectos"
-        description="Embudo comercial: de nuevo a ganado. Arrastra las tarjetas o usa el selector de estado."
-        actions={
-          <>
-            <ViewToggle
-              view={view}
-              onChange={(v) => void navigate({ search: v === "tabla" ? { vista: "tabla" } : {} })}
-            />
-            <Button variant="outline" onClick={() => setImportOpen(true)}>
-              <FileJson aria-hidden className="mr-1 h-4 w-4" /> Importar JSON
-            </Button>
-            <Button onClick={() => setEditing({ open: true, prospect: null })}>
-              <Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo prospecto
-            </Button>
-          </>
-        }
-      />
+    <FitPage
+      contentClassName="flex flex-col gap-3"
+      header={
+        <PageHeader
+          size="compact"
+          title="Prospectos"
+          actions={
+            <>
+              <ViewToggle
+                view={view}
+                onChange={(v) => void navigate({ search: v === "tabla" ? { vista: "tabla" } : {} })}
+              />
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
+                <FileJson aria-hidden className="mr-1 h-4 w-4" /> Importar JSON
+              </Button>
+              <Button onClick={() => setEditing({ open: true, prospect: null })}>
+                <Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo prospecto
+              </Button>
+            </>
+          }
+        />
+      }
+    >
       {content()}
       <ProspectSheet
         open={editing.open}
@@ -184,6 +196,6 @@ function PipelinePage() {
       />
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} existing={prospects} />
       <ConvertDialog prospect={converting} onClose={() => setConverting(null)} />
-    </PageContainer>
+    </FitPage>
   );
 }

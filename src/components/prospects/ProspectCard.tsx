@@ -16,7 +16,7 @@ import {
   type ProspectState,
 } from "@/lib/prospects/schema";
 import { canCreateProposalFor } from "@/lib/proposals/recommend";
-import { formatShortDate, toDateInput } from "./format";
+import { formatContactAge, formatShortDate, toDateInput } from "./format";
 import { cn } from "@/lib/utils";
 import type { Prospect } from "./prospectsData";
 
@@ -188,6 +188,7 @@ export function MarketingBadge({ prospect }: { prospect: Prospect }) {
 export function CardBody({ prospect }: { prospect: Prospect }) {
   const plan = findPlan(prospect.producto_sugerido);
   const meta = [prospect.rubro, prospect.comuna].filter(Boolean).join(" · ");
+  const contactAge = formatContactAge(prospect.ultimo_contacto);
   return (
     <>
       <p className="truncate text-sm font-semibold text-foreground">{prospect.nombre}</p>
@@ -197,9 +198,14 @@ export function CardBody({ prospect }: { prospect: Prospect }) {
         {isWebLead(prospect) && <StatusBadge status="web" label="Web" tone="success" />}
         <MarketingBadge prospect={prospect} />
         {plan && <StatusBadge status={plan.key} label={plan.label} tone="info" />}
-        <span className="text-xs tabular-nums text-muted-foreground">
-          Últ. contacto: {formatShortDate(prospect.ultimo_contacto)}
-        </span>
+        {contactAge && (
+          <span
+            className="text-xs tabular-nums text-muted-foreground"
+            title={`Último contacto: ${formatShortDate(prospect.ultimo_contacto)}`}
+          >
+            Contacto {contactAge}
+          </span>
+        )}
       </div>
     </>
   );

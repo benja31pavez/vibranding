@@ -139,8 +139,8 @@ export function ProspectsTable({
   const hasFilters = JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS);
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] lg:items-end">
+    <div className="flex flex-col gap-3 md:h-full md:min-h-0">
+      <div className="grid shrink-0 gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] lg:items-end">
         <div className="space-y-1">
           <Label htmlFor="pf-q" className="text-xs">
             Buscar
@@ -192,16 +192,16 @@ export function ProspectsTable({
         </Button>
       </div>
 
-      <p className="text-xs text-muted-foreground" aria-live="polite">
+      <p className="shrink-0 text-xs text-muted-foreground" aria-live="polite">
         {rows.length} de {prospects.length} prospectos
       </p>
 
       {rows.length === 0 ? (
         <EmptyState size="compact" title="Sin resultados" description="Prueba con otros filtros." />
       ) : (
-        <div className="overflow-x-auto rounded-app-lg border border-border-subtle bg-surface">
+        <div className="overflow-x-auto rounded-app-lg border border-border-subtle bg-surface md:min-h-0 md:flex-1 md:overflow-y-auto">
           <table className="w-full min-w-[760px] text-sm">
-            <thead className="bg-surface-2 text-left text-xs text-muted-foreground">
+            <thead className="sticky top-0 z-10 bg-surface-2 text-left text-xs text-muted-foreground">
               <tr>
                 <th scope="col" className="px-3 py-2 font-medium">
                   Negocio
