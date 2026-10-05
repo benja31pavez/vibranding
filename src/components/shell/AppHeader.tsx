@@ -33,11 +33,15 @@ export function AppHeader({
   return (
     <header className="sticky top-0 z-30 border-b bg-sidebar/95 backdrop-blur">
       {/*
-        Logo y nav a la izquierda, acciones a la derecha: así el buscador tiene espacio para
+        Logo sobre el sidebar, nav desde donde termina el sidebar, acciones a la derecha: así el buscador tiene espacio para
         expandirse (~360px) sin tapar la navegación.
       */}
       <div className="flex h-14 items-center gap-1.5 px-2 sm:gap-2 sm:px-3 md:px-4 lg:gap-4 lg:px-6">
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        {/*
+          Desde md el bloque del logo mide lo justo para que la nav parta 8px después del borde
+          del sidebar (w-60 = 240px): padding + ancho + gap = 248px (md: 16+224+8, lg: 24+208+16).
+        */}
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 md:w-56 lg:w-52">
           <MobileNav path={path} open={mobileNavOpen} onOpenChange={onMobileNavOpenChange} />
           <Link
             to="/dashboard"
