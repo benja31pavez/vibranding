@@ -9,6 +9,7 @@ import { Step2AdSet } from "./Step2AdSet";
 import { Step3Ad } from "./Step3Ad";
 import { PublishConfirmModal } from "./PublishConfirmModal";
 import { campaignSchema, adsetSchema, adSchema, safeValidate, type CampaignDraft, type AdsetDraft, type AdDraft } from "@/lib/meta-ads/schemas";
+import { BUDGET_CONFIRMATION_REQUIRED } from "@/lib/meta/currency";
 import { adsManagerUrl } from "@/lib/meta-ads/constants";
 import { applyUtm } from "./UtmBuilder";
 
@@ -138,16 +139,22 @@ export function CampaignWizard({
     } finally { setSaving(false); }
   };
 
-  const publish = async () => {
+  const publish = async (confirmedAmounts?: Record<string, number>) => {
     setPublishing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch("/api/meta-ads/publish-full", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
-        body: JSON.stringify({ clientId, campaign, adset, ad: { ...ad, linkUrl: applyUtm(ad.linkUrl, ad.utmParams) } }),
+        body: JSON.stringify({ clientId, campaign, adset, ad: { ...ad, linkUrl: applyUtm(ad.linkUrl, ad.utmParams) }, confirmedAmounts }),
       });
       const json = await res.json();
+      if (!res.ok && json.code === BUDGET_CONFIRMATION_REQUIRED && json.requiresConfirmation && !confirmedAmounts) {
+        // High amounts need an explicit, human confirmation of the exact amounts before reaching Meta.
+        setPublishing(false);
+        if (confirm(`${json.error}\n\n¿Publicar con estos montos de todas formas?`)) await publish(json.requiresConfirmation);
+        return;
+      }
       if (!res.ok) throw new Error(json.error || "Error al publicar");
       toast.success(`Campaña publicada en Meta`, {
         description: `ID: ${json.fb_campaign_id}`,
@@ -208,7 +215,7 @@ export function CampaignWizard({
         <PublishConfirmModal
           open={confirmOpen} onOpenChange={setConfirmOpen}
           campaign={campaign} adset={adset} ad={ad}
-          publishing={publishing} onConfirm={publish}
+          publishing={publishing} onConfirm={() => publish()}
         />
       </DialogContent>
     </Dialog>
