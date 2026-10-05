@@ -1,0 +1,104 @@
+/*
+ * Home sections "Tres cosas…" (bx-*) and "Lo que hacemos por ti" (svc-*). Same rules as
+ * motion.css: transform/opacity only, the default render is the finished static frame, and
+ * pieces are hidden only after hydration (data-bx-armed) or while their animation runs.
+ */
+
+@keyframes bx-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.96);
+  }
+}
+
+@keyframes bx-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-18deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+/* Active step: spinning brand gradient border drawn on a masked layer above the card border. */
+.bx-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 2px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--plan-angle),
+    var(--brand-1),
+    var(--brand-2),
+    var(--brand-3),
+    var(--brand-2),
+    var(--brand-1)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.5s var(--ease-out-soft);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-bx-armed] :is(.bx-in, .bx-pop) {
+    opacity: 0;
+  }
+  [data-bx-play] .bx-in {
+    animation: bx-in 0.7s var(--ease-out-expo) var(--d, 0s) both;
+  }
+  [data-bx-play] .bx-pop {
+    animation: bx-pop 0.7s var(--ease-out-expo) var(--d, 0s) both;
+  }
+  .bx-glow[data-on]::before {
+    opacity: 1;
+    animation: plan-spin 6s linear infinite;
+  }
+}
+
+/* Service tiles: pointer tilt (vars from useTilt), lift, gradient border, mockup comes forward. */
+.svc {
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition:
+    transform 0.5s var(--ease-out-soft),
+    box-shadow 0.35s var(--ease-out-soft);
+}
+.svc-mock {
+  transition: transform 0.6s var(--ease-out-expo);
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .svc:hover {
+    transition-duration: 0.15s, 0.35s;
+    box-shadow: 0 26px 50px -28px color-mix(in oklab, var(--brand-1) 50%, transparent);
+  }
+  .svc:hover::before {
+    opacity: 1;
+    animation: plan-spin 6s linear infinite;
+  }
+  .svc:hover .svc-mock {
+    transform: translate3d(0, -4px, 0) scale(1.04);
+  }
+  .svc:hover .bx-in {
+    animation: bx-in 0.6s var(--ease-out-expo) var(--d, 0s) both;
+  }
+  .svc:hover .bx-pop {
+    animation: bx-pop 0.6s var(--ease-out-expo) var(--d, 0s) both;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: none) {
+  .svc-grid[data-revealed] .bx-in {
+    animation: bx-in 0.7s var(--ease-out-expo) calc(var(--d, 0s) + 0.4s) both;
+  }
+  .svc-grid[data-revealed] .bx-pop {
+    animation: bx-pop 0.7s var(--ease-out-expo) calc(var(--d, 0s) + 0.4s) both;
+  }
+}

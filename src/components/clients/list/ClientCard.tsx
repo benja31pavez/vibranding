@@ -86,9 +86,6 @@ export function ClientCard({
       </div>
       <div className="mt-2 flex min-h-5 items-center gap-2">
         <HealthBadge health={h} loading={healthLoading} />
-        {h && h.reasons[0] && (
-          <span className="truncate text-xs text-muted-foreground">{h.reasons[0].label}</span>
-        )}
       </div>
     </div>
   );
