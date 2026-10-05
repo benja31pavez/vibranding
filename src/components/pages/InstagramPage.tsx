@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ErrorState } from "@/components/app";
+import { Images } from "lucide-react";
+import { EmptyState, ErrorState } from "@/components/app";
 import {
   Accordion,
   AccordionContent,
@@ -22,6 +23,13 @@ import { VersionCompare } from "@/components/instagram/VersionCompare";
 import { loadGridVersions, type GridVersion } from "@/lib/instagram/gridVersions";
 
 type View = "current" | "proposed" | "compare";
+
+/** Una línea bajo el selector: qué es cada pista. */
+const VIEW_HINT: Record<View, string> = {
+  current: "Actual: lo publicado, sincronizado desde Instagram.",
+  proposed: "Propuesta: tu plan de contenido, editable.",
+  compare: "Actual (publicado) frente a la Propuesta (plan).",
+};
 
 export function InstagramPage({ clientId }: { clientId: string }) {
   const { client, ig, setProfile, setPosts, setHighlights, setComments, reloadIG, igError } =
@@ -115,12 +123,6 @@ export function InstagramPage({ clientId }: { clientId: string }) {
     <div className="grid lg:grid-cols-[1fr_360px] gap-10">
       <div className="space-y-4">
         {view !== "proposed" && (
-          <p className="text-xs text-muted-foreground">
-            <strong className="text-foreground">Actual · sincronizado desde Instagram</strong> — el
-            estado real de la cuenta, guardado por fecha. Es una pista aparte de la propuesta.
-          </p>
-        )}
-        {view !== "proposed" && (
           <GridVersionBar
             clientId={clientId}
             versions={versions}
@@ -143,10 +145,12 @@ export function InstagramPage({ clientId }: { clientId: string }) {
           />
         ) : view === "current" ? (
           versions.length === 0 ? (
-            <p className="text-sm text-muted-foreground rounded-xl border bg-surface px-4 py-6 text-center">
-              Todavía no hay versiones del grid Actual. Crea la primera con "Capturar estado actual"
-              o "Subir manualmente".
-            </p>
+            <EmptyState
+              icon={Images}
+              title="Aún no hay versiones del grid Actual"
+              description="Captura el estado actual o súbelo manualmente."
+              className="py-8"
+            />
           ) : versionEditable ? (
             <div className="border rounded-xl bg-surface px-4 py-3">
               <PostsEditor
@@ -167,10 +171,6 @@ export function InstagramPage({ clientId }: { clientId: string }) {
         ) : (
           profile && (
             <>
-              <p className="text-xs text-muted-foreground">
-                <strong className="text-accent">Propuesta · plan editable</strong> — tu plan de
-                contenido. Vive en una pista aparte del grid Actual sincronizado.
-              </p>
               <Accordion
                 type="single"
                 collapsible
@@ -245,6 +245,8 @@ export function InstagramPage({ clientId }: { clientId: string }) {
           ).map(([v, label]) => (
             <button
               key={v}
+              type="button"
+              aria-pressed={view === v}
               onClick={() => setView(v)}
               className={`flex-1 text-xs py-1.5 px-3 rounded-full font-medium transition-colors ${
                 view === v ? "bg-surface shadow-sm" : "text-muted-foreground"
@@ -254,6 +256,7 @@ export function InstagramPage({ clientId }: { clientId: string }) {
             </button>
           ))}
         </div>
+        <p className="text-center text-xs text-muted-foreground">{VIEW_HINT[view]}</p>
         {profile && view !== "compare" && (
           <IphonePreview
             profile={profile}
