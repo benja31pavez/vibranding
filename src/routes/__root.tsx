@@ -79,9 +79,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "preload", as: "style", href: FRAUNCES_CSS },
-      { rel: "stylesheet", href: FRAUNCES_CSS },
       { rel: "stylesheet", href: appCss },
+    ],
+    // La hoja de Google Fonts no debe bloquear el primer render: se inyecta al cargar y usa display=swap.
+    scripts: [
+      {
+        children: `(function(){var l=document.createElement("link");l.rel="stylesheet";l.href=${JSON.stringify(FRAUNCES_CSS)};document.head.appendChild(l)})()`,
+      },
     ],
   }),
   shellComponent: RootShell,

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MARKETING_META, MARKETING_ORG_SCRIPT } from "@/lib/marketingSeo";
-import { Landing } from "./index";
+import { Landing } from "@/components/home/Landing";
 import { fetchPublicPortfolio } from "@/lib/portfolio";
 
 export const Route = createFileRoute("/landing")({
