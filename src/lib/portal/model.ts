@@ -230,6 +230,7 @@ const DATETIME_FMT = new Intl.DateTimeFormat("es-CL", {
   month: "short",
   hour: "2-digit",
   minute: "2-digit",
+  hourCycle: "h23",
   timeZone: "America/Santiago",
 });
 const DAY_KEY_FMT = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago" });
@@ -251,6 +252,7 @@ export function formatDateTime(instant: string | null): string {
 const TIME_FMT = new Intl.DateTimeFormat("es-CL", {
   hour: "2-digit",
   minute: "2-digit",
+  hourCycle: "h23",
   timeZone: "America/Santiago",
 });
 

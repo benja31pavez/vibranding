@@ -58,8 +58,9 @@ export function CalendarSection({ mode, enabled }: { mode: PortalMode; enabled: 
       icon={CalendarDays}
       description="Lo que se publica y lo que te entregamos."
       actions={
-        <div className="flex items-center gap-1">
+        <div className="flex w-full items-center justify-between gap-1 rounded-full border border-border-subtle bg-bg p-0.5 sm:w-auto">
           <Button
+            className="h-9 w-9 rounded-full"
             size="icon"
             variant="ghost"
             aria-label="Mes anterior"
@@ -67,10 +68,14 @@ export function CalendarSection({ mode, enabled }: { mode: PortalMode; enabled: 
           >
             <ChevronLeft aria-hidden className="h-4 w-4" />
           </Button>
-          <span className="min-w-[7.5rem] text-center text-sm font-medium" aria-live="polite">
+          <span
+            className="min-w-[8.5rem] text-center text-sm font-semibold tabular-nums"
+            aria-live="polite"
+          >
             {monthTitle(month)}
           </span>
           <Button
+            className="h-9 w-9 rounded-full"
             size="icon"
             variant="ghost"
             aria-label="Mes siguiente"
@@ -98,13 +103,13 @@ export function CalendarSection({ mode, enabled }: { mode: PortalMode; enabled: 
           description="Cuando programemos publicaciones o entregas, las verás aquí."
         />
       ) : (
-        <ol className="space-y-4">
+        <ol className="space-y-5">
           {groupCalendar(calendar.data).map((day) => (
             <li key={day.day}>
-              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {dayTitle(day.day)}
               </h3>
-              <ul className="divide-y divide-border-subtle rounded-app-md border border-border-subtle bg-bg">
+              <ul className="divide-y divide-border-subtle overflow-hidden rounded-app-md border border-border-subtle bg-bg">
                 {day.entries.map((entry) => (
                   <CalendarRow
                     key={`${entry.kind}:${entry.kind === "post" ? entry.post.id : entry.deliverable.id}`}
@@ -127,40 +132,45 @@ function CalendarRow({ entry }: { entry: CalendarEntry }) {
     const caption = post.caption?.trim() ?? "";
     const badge = post.approvalStatus ? POST_APPROVAL_BADGE[post.approvalStatus] : undefined;
     return (
-      <li className="flex items-start gap-3 px-3 py-2.5">
-        <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-app-md bg-primary/10 text-primary">
+      <li className="flex items-start gap-3 px-3 py-3">
+        <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-app-md bg-primary/10 text-primary">
           <Icon aria-hidden className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">
-            {POST_FORMAT_LABEL[post.format] ?? "Post"} en Instagram ·{" "}
-            <span className="font-normal text-muted-foreground">
-              {formatTime(post.scheduledAt)}
-            </span>
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+            <p className="min-w-0 text-sm font-medium">
+              {POST_FORMAT_LABEL[post.format] ?? "Post"} en Instagram
+              <span className="font-normal tabular-nums text-muted-foreground">
+                {" "}
+                · {formatTime(post.scheduledAt)}
+              </span>
+            </p>
+            {badge && <StatusBadge status={badge.status} label={badge.label} />}
+          </div>
           {caption && (
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="mt-0.5 line-clamp-1 break-words text-xs text-muted-foreground">
               {caption.length > CAPTION_CHARS ? `${caption.slice(0, CAPTION_CHARS)}…` : caption}
             </p>
           )}
         </div>
-        {badge && <StatusBadge status={badge.status} label={badge.label} className="shrink-0" />}
       </li>
     );
   }
   const { deliverable } = entry;
   return (
-    <li className="flex items-start gap-3 px-3 py-2.5">
-      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-app-md bg-surface-2 text-muted-foreground">
+    <li className="flex items-start gap-3 px-3 py-3">
+      <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-app-md bg-surface-2 text-muted-foreground">
         <PackageCheck aria-hidden className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="break-words text-sm font-medium">{deliverable.title}</p>
-        <p className="text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+          <p className="min-w-0 break-words text-sm font-medium">{deliverable.title}</p>
+          <StatusBadge status={deliverable.status} />
+        </div>
+        <p className="mt-0.5 text-xs text-muted-foreground">
           {DELIVERABLE_TYPE_LABEL[deliverable.type] ?? "Entrega"}
         </p>
       </div>
-      <StatusBadge status={deliverable.status} className="shrink-0" />
     </li>
   );
 }
