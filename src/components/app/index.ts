@@ -19,3 +19,5 @@ export { FitPage, type FitPageProps } from "./FitPage";
 export { FitList, type FitListProps, type FitListRenderContext } from "./FitList";
 export { FitPager, type FitPagerProps } from "./FitPager";
 export { CompactStats, type CompactStat, type CompactStatsProps } from "./CompactStats";
+export { InfoHint, type InfoHintProps } from "./InfoHint";
+export { BarePanelProvider, useBarePanel, type BarePanelSlots } from "./bare-panel";

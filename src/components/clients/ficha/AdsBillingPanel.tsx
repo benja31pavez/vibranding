@@ -116,6 +116,19 @@ async function loadSources(clientId: string): Promise<AdsBillingSources> {
  * onboarding + verificación automática) y, si hay un problema, el mensaje
  * listo para el cliente. El detalle de Google vive en la sección Google Ads.
  */
+/** Fuentes del pago de pauta (compartido por el panel y el resumen de la ficha). */
+export function useAdsBillingSources(clientId: string) {
+  const userKey = useUserKey();
+  return useQuery({
+    queryKey: ["ficha", userKey, clientId, "ads-billing"],
+    queryFn: () => loadSources(clientId),
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Tono de cada estado (para el panel y el resumen). */
+export const ADS_BILLING_TONE = TONE;
+
 export function AdsBillingPanel({
   clientId,
   clientName,
@@ -125,13 +138,8 @@ export function AdsBillingPanel({
   clientName: string;
   canEdit: boolean;
 }) {
-  const userKey = useUserKey();
   const [dialog, setDialog] = useState<AdsPlatform | null>(null);
-  const query = useQuery({
-    queryKey: ["ficha", userKey, clientId, "ads-billing"],
-    queryFn: () => loadSources(clientId),
-    staleTime: 5 * 60_000,
-  });
+  const query = useAdsBillingSources(clientId);
   const rows = query.data ? adsBillingRows(query.data) : [];
   const metaReason = query.data?.metaStatus
     ? evaluateMetaBilling(query.data.metaStatus).reason

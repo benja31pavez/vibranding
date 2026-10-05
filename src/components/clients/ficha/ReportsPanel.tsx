@@ -4,7 +4,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { Copy, Eye, FileBarChart, Pencil, RefreshCw, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { EmptyState, ErrorState, ListSkeleton, Panel, StatusBadge } from "@/components/app";
+import {
+  EmptyState,
+  ErrorState,
+  FitList,
+  ListSkeleton,
+  Panel,
+  StatusBadge,
+} from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -36,6 +43,9 @@ import { generateMonthlyReportNow } from "@/lib/reports/monthly.functions";
 import { periodLabel } from "@/lib/billing/dates";
 import { defaultReportPeriod } from "@/lib/reports/period";
 import { formatDate, useUserKey, writeErrorMessage } from "./fichaQueries";
+
+/** Filas antes de medir (SSR) y por página en móvil. */
+const REPORTS_PAGE_SIZE = 6;
 
 interface ReportsPanelProps {
   clientId: string;
@@ -86,12 +96,7 @@ export function ReportsPanel({ clientId, clientName, canEdit }: ReportsPanelProp
   ) : null;
 
   return (
-    <Panel
-      title="Reportes"
-      icon={FileBarChart}
-      description="Se generan solos el día 1 de cada mes con los resultados del mes anterior."
-      actions={actions}
-    >
+    <Panel title="Reportes" icon={FileBarChart} actions={actions}>
       {reports.isLoading ? (
         <ListSkeleton rows={3} label="Cargando reportes" />
       ) : reports.error ? (
@@ -111,18 +116,21 @@ export function ReportsPanel({ clientId, clientName, canEdit }: ReportsPanelProp
           }
         />
       ) : (
-        <ul className="divide-y divide-border-subtle">
-          {reports.data.map((r) => (
+        <FitList
+          items={reports.data}
+          getKey={(r) => r.id}
+          label="Reportes"
+          defaultPageSize={REPORTS_PAGE_SIZE}
+          renderItem={(r) => (
             <ReportRow
-              key={r.id}
               report={r}
               canEdit={canEdit}
               onEdit={() => setEditing(r)}
               onPreview={() => setPreview(r)}
               onChanged={refresh}
             />
-          ))}
-        </ul>
+          )}
+        />
       )}
 
       <AlertDialog open={confirmForce} onOpenChange={setConfirmForce}>
@@ -202,7 +210,7 @@ function ReportRow({ report, canEdit, onEdit, onPreview, onChanged }: ReportRowP
   };
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
       <div className="min-w-0">
         <p className="text-sm font-medium capitalize">{periodLabel(report.period)}</p>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
@@ -238,7 +246,7 @@ function ReportRow({ report, canEdit, onEdit, onPreview, onChanged }: ReportRowP
           </Button>
         )}
       </div>
-    </li>
+    </div>
   );
 }
 

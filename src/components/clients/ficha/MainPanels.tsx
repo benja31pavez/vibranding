@@ -1,11 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, CalendarClock, ClipboardCheck } from "lucide-react";
-import { EmptyState, ErrorState, ListSkeleton, Panel, StatusBadge } from "@/components/app";
+import {
+  EmptyState,
+  ErrorState,
+  FitList,
+  ListSkeleton,
+  Panel,
+  StatusBadge,
+} from "@/components/app";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { formatDate, type FichaHealth } from "./fichaQueries";
 
-const MAX_UPCOMING = 5;
-const MAX_APPROVALS = 6;
+/** Filas antes de medir (SSR) y por página en móvil. */
+const MOBILE_PAGE_SIZE = 5;
 
 const KIND_LABEL: Readonly<Record<string, string>> = {
   entregable: "Entregable",
@@ -58,12 +65,13 @@ export function PendingApprovalPanel({
           description="Cuando envíes un entregable o post a revisión, aparecerá aquí."
         />
       ) : (
-        <ul className="divide-y divide-border-subtle">
-          {items.slice(0, MAX_APPROVALS).map((item) => (
-            <li
-              key={`${item.kind}-${item.ref_id}`}
-              className="flex items-center justify-between gap-3 py-2.5"
-            >
+        <FitList
+          items={items}
+          getKey={(item) => `${item.kind}-${item.ref_id}`}
+          label="Pendiente de aprobación"
+          defaultPageSize={MOBILE_PAGE_SIZE}
+          renderItem={(item) => (
+            <div className="flex items-center justify-between gap-3 py-2">
               <div className="min-w-0">
                 {item.kind === "propuesta" && item.ref_id ? (
                   <Link
@@ -92,9 +100,9 @@ export function PendingApprovalPanel({
                 </div>
               </div>
               <StatusBadge status="in_review" />
-            </li>
-          ))}
-        </ul>
+            </div>
+          )}
+        />
       )}
     </Panel>
   );
@@ -108,8 +116,7 @@ export function UpcomingContentPanel({ clientId }: { clientId: string }) {
     // Excluye archivados (el contexto los conserva si pertenecen a una versión del grid).
     .filter((p) => !(p as { archived_at?: string | null }).archived_at)
     .filter((p) => p.scheduled_at && !p.published_at && new Date(p.scheduled_at).getTime() >= now)
-    .sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime())
-    .slice(0, MAX_UPCOMING);
+    .sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime());
 
   return (
     <Panel
@@ -133,9 +140,13 @@ export function UpcomingContentPanel({ clientId }: { clientId: string }) {
           description="Programa posts desde la sección Instagram."
         />
       ) : (
-        <ul className="divide-y divide-border-subtle">
-          {upcoming.map((p) => (
-            <li key={p.id} className="flex items-center gap-3 py-2.5">
+        <FitList
+          items={upcoming}
+          getKey={(p) => p.id}
+          label="Próximo contenido"
+          defaultPageSize={MOBILE_PAGE_SIZE}
+          renderItem={(p) => (
+            <div className="flex items-center gap-3 py-2">
               <div className="h-10 w-10 shrink-0 overflow-hidden rounded-app-sm bg-surface-2">
                 {(p.cover_url ?? p.image_url) && (
                   <img
@@ -160,9 +171,9 @@ export function UpcomingContentPanel({ clientId }: { clientId: string }) {
                 </div>
               </div>
               <StatusBadge status="scheduled" />
-            </li>
-          ))}
-        </ul>
+            </div>
+          )}
+        />
       )}
     </Panel>
   );

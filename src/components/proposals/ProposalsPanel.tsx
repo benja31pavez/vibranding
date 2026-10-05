@@ -1,6 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { FileText, Plus } from "lucide-react";
-import { EmptyState, ErrorState, ListSkeleton, Money, Panel, StatusBadge } from "@/components/app";
+import {
+  EmptyState,
+  ErrorState,
+  FitList,
+  ListSkeleton,
+  Money,
+  Panel,
+  StatusBadge,
+  useBarePanel,
+} from "@/components/app";
 import { Button } from "@/components/ui/button";
 import {
   effectiveStatus,
@@ -88,32 +97,74 @@ export function ProposalsPanel({
           description="Arma una propuesta con plan, adicionales y vencimiento, y compártela por link."
         />
       ) : (
-        <ul className="divide-y divide-border-subtle">
-          {proposals.map((p) => (
-            <li
-              key={p.id}
-              className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Link
-                    to="/proposals/$proposalId"
-                    params={{ proposalId: p.id }}
-                    className="truncate text-sm font-medium hover:underline"
-                  >
-                    {p.title || "Propuesta sin título"}
-                  </Link>
-                  <ProposalStatusBadge status={p.status} expiresAt={p.expires_at} />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  <Money amount={p.amount_clp} /> · {statusHint(p)}
-                </p>
-              </div>
-              {canEdit && <ProposalLinkActions proposal={p} />}
-            </li>
-          ))}
-        </ul>
+        <ProposalList proposals={proposals} canEdit={canEdit} />
       )}
     </Panel>
+  );
+}
+
+function ProposalRowView({
+  proposal: p,
+  canEdit,
+  stacked = false,
+}: {
+  proposal: ProposalRow;
+  canEdit: boolean;
+  /** Columna angosta (ficha): acciones debajo. */
+  stacked?: boolean;
+}) {
+  return (
+    <div
+      className={
+        stacked
+          ? "flex flex-col gap-1 py-2"
+          : "flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
+      }
+    >
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/proposals/$proposalId"
+            params={{ proposalId: p.id }}
+            className="truncate text-sm font-medium hover:underline"
+          >
+            {p.title || "Propuesta sin título"}
+          </Link>
+          <ProposalStatusBadge status={p.status} expiresAt={p.expires_at} />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          <Money amount={p.amount_clp} /> · {statusHint(p)}
+        </p>
+      </div>
+      {canEdit && <ProposalLinkActions proposal={p} />}
+    </div>
+  );
+}
+
+/** Filas antes de medir (SSR) y por página en móvil, dentro de la ficha. */
+const FIT_PAGE_SIZE = 4;
+
+/** En la ficha (sección que llena el alto) usa `FitList`; en otros paneles, lista completa. */
+function ProposalList({ proposals, canEdit }: { proposals: ProposalRow[]; canEdit: boolean }) {
+  const bare = useBarePanel();
+  if (bare?.fill) {
+    return (
+      <FitList
+        items={proposals}
+        getKey={(p) => p.id}
+        label="Propuestas"
+        defaultPageSize={FIT_PAGE_SIZE}
+        renderItem={(p) => <ProposalRowView proposal={p} canEdit={canEdit} stacked />}
+      />
+    );
+  }
+  return (
+    <ul className="divide-y divide-border-subtle">
+      {proposals.map((p) => (
+        <li key={p.id}>
+          <ProposalRowView proposal={p} canEdit={canEdit} />
+        </li>
+      ))}
+    </ul>
   );
 }
