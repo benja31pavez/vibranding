@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BellRing, Copy, Mail, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -36,7 +36,13 @@ async function loadClientContact(clientId: string): Promise<ClientContact> {
       .select("contacto_nombre,contacto_telefono,contacto_email,email_facturacion")
       .eq("client_id", clientId)
       .maybeSingle(),
-    supabase.from("client_users").select("email").eq("client_id", clientId).not("email", "is", null).limit(1),
+    supabase
+      .from("client_users")
+      .select("email")
+      .eq("client_id", clientId)
+      .not("email", "is", null)
+      .order("created_at", { ascending: true })
+      .limit(1),
   ]);
   if (intake.error) throw intake.error;
   if (portalUser.error) console.warn("[cobros] no se pudo leer el correo del portal", portalUser.error);
@@ -93,16 +99,23 @@ export function PaymentReminderDialog({
     () => buildReminder({ payment, clientName, contactName: contact.data?.name, today }),
     [payment, clientName, contact.data?.name, today],
   );
-  const [text, setText] = useState(reminder.body);
-  useEffect(() => setText(reminder.body), [reminder.body]);
+  // Borrador del usuario; mientras no edite, se muestra el mensaje generado.
+  const [draft, setDraft] = useState<string | null>(null);
+  const text = draft ?? reminder.body;
 
   const waHref = reminderWhatsappHref(contact.data?.phone, text);
-  const mailHref = reminderMailtoHref(contact.data?.email, reminder.subject, text);
+  const email = contact.data?.email ?? null;
+  // mailHref es null si no hay correo válido.
+  const mailHref = reminderMailtoHref(email, reminder.subject, text);
+  const missingPhone = contact.isSuccess && !waHref;
 
   const copy = async () => {
-    if (await copyText(text)) toast.success("Mensaje copiado");
-    else toast.error("No se pudo copiar. Selecciona el texto y cópialo a mano.");
-    onReminded();
+    if (await copyText(text)) {
+      toast.success("Mensaje copiado");
+      onReminded();
+    } else {
+      toast.error("No se pudo copiar. Selecciona el texto y cópialo a mano.");
+    }
   };
 
   return (
@@ -123,7 +136,7 @@ export function PaymentReminderDialog({
           <Textarea
             id={`reminder-${payment.id}`}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => setDraft(e.target.value)}
             rows={10}
             className="text-sm"
           />
@@ -131,9 +144,13 @@ export function PaymentReminderDialog({
             <p role="alert" className="text-xs text-danger-strong">
               No se pudo cargar el contacto del cliente. Puedes copiar el mensaje igual.
             </p>
-          ) : contact.data && !contact.data.phone && !contact.data.email ? (
+          ) : contact.isSuccess && (missingPhone || !mailHref) ? (
             <p className="text-xs text-muted-foreground">
-              Este cliente no tiene teléfono ni correo en su ficha de onboarding.
+              {missingPhone && !mailHref
+                ? "Este cliente no tiene teléfono ni correo en su ficha de onboarding: copia el mensaje."
+                : missingPhone
+                  ? "Sin teléfono válido en la ficha de onboarding: WhatsApp no disponible."
+                  : "Sin correo en la ficha ni en el portal: correo no disponible."}
             </p>
           ) : null}
         </div>
@@ -151,17 +168,24 @@ export function PaymentReminderDialog({
               </a>
             </Button>
           ) : (
-            <Button variant="outline" disabled title="El cliente no tiene un teléfono válido">
+            <Button variant="outline" disabled>
               <MessageCircle className="mr-1 h-4 w-4" aria-hidden />
               Abrir WhatsApp
             </Button>
           )}
-          <Button asChild variant="outline">
-            <a href={mailHref} onClick={onReminded}>
+          {mailHref ? (
+            <Button asChild variant="outline">
+              <a href={mailHref} onClick={onReminded}>
+                <Mail className="mr-1 h-4 w-4" aria-hidden />
+                Abrir correo
+              </a>
+            </Button>
+          ) : (
+            <Button variant="outline" disabled>
               <Mail className="mr-1 h-4 w-4" aria-hidden />
               Abrir correo
-            </a>
-          </Button>
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

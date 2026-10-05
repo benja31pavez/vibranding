@@ -72,9 +72,11 @@ function BillingPage() {
   }, [today, userId]);
 
   const markReminded = (paymentId: string) => {
-    const next = withReminded(reminded, paymentId, today);
-    setReminded(next);
-    writeReminded(next, userId);
+    setReminded((prev) => {
+      const next = withReminded(prev, paymentId, today);
+      writeReminded(next, userId);
+      return next;
+    });
   };
 
   const load = async () => {
@@ -105,6 +107,16 @@ function BillingPage() {
     return [...pending, ...done];
   }, [data, filter, today, reminded]);
   const loading = data === null && error === null;
+
+  // Primera carga sin nada por recordar: mostrar todos en vez de una lista vacía.
+  const defaultFilterChecked = useRef(false);
+  useEffect(() => {
+    if (!data || defaultFilterChecked.current) return;
+    defaultFilterChecked.current = true;
+    if (filter === "por_recordar" && filterRows(data.rows, "por_recordar", today).length === 0) {
+      setFilter("todos");
+    }
+  }, [data, filter, today]);
 
   const markPaid = async (row: BillingRow) => {
     // set_payment_status valida permisos y transición, y registra provider='manual'.
@@ -194,7 +206,11 @@ function BillingPage() {
                 ? `No hay cobros que venzan en los próximos ${UPCOMING_DAYS} días.`
                 : "Sin cobros para este filtro."
           }
-          description="Los cobros se registran desde la ficha de cada cliente, en Facturación."
+          description={
+            filter === "por_recordar"
+              ? `Aquí aparecen los cobros atrasados o que vencen en los próximos ${UPCOMING_DAYS} días. Al día por ahora.`
+              : "Los cobros se registran desde la ficha de cada cliente, en Facturación."
+          }
         />
       ) : (
         <BillingTable
@@ -319,6 +335,15 @@ function RemindButton({
   onReminded: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const remindedWhileOpen = useRef(false);
+  // La marca se aplica al cerrar: la tabla no se reordena con el diálogo abierto.
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (!next && remindedWhileOpen.current) {
+      remindedWhileOpen.current = false;
+      onReminded();
+    }
+  };
   return (
     <>
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
@@ -328,12 +353,14 @@ function RemindButton({
       {open && (
         <PaymentReminderDialog
           open={open}
-          onOpenChange={setOpen}
+          onOpenChange={handleOpenChange}
           payment={row}
           clientId={row.client_id}
           clientName={row.client_name}
           today={today}
-          onReminded={onReminded}
+          onReminded={() => {
+            remindedWhileOpen.current = true;
+          }}
         />
       )}
     </>

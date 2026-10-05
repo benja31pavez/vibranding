@@ -41,6 +41,8 @@ const pay = (over = {}) => ({
   id: "p1",
   status: "pending",
   amount: 149990,
+  currency: "CLP",
+  created_at: "2026-10-18T15:00:00Z",
   description: "Plan Crecimiento octubre",
   due_date: TODAY,
   payment_url: null,
@@ -66,13 +68,36 @@ check("incluye cliente, concepto, monto CLP, fecha y link", () => {
   assert.match(m.body, /20 de octubre de 2026/);
   assert.match(m.body, /https:\/\/vibranding\.pro\/portal#pagos/);
 });
-check("usa el link de Flow si existe", () => {
-  const m = msg({ payment_url: "https://www.flow.cl/app/web/pay.php?token=abc" });
-  assert.equal(m.link, "https://www.flow.cl/app/web/pay.php?token=abc");
+const FLOW = "https://www.flow.cl/app/web/pay.php?token=abc";
+check("usa el link de Flow si aún no vence y es reciente", () => {
+  const m = msg({ payment_url: FLOW });
+  assert.equal(m.link, FLOW);
   assert.match(m.body, /flow\.cl/);
+  assert.equal(msg({ payment_url: FLOW, due_date: "2026-10-25" }).link, FLOW);
+});
+check("atrasado usa el portal aunque haya link de Flow", () => {
+  for (const due of ["2026-10-19", "2026-10-10", "2026-09-01"]) {
+    const m = msg({ payment_url: FLOW, due_date: due, created_at: "2026-10-19T12:00:00Z" });
+    assert.equal(m.link, r.PORTAL_PAYMENTS_URL);
+    assert.doesNotMatch(m.body, /flow\.cl/);
+  }
+});
+check("link de Flow viejo (>= 6 días) o sin fecha usa el portal", () => {
+  assert.equal(msg({ payment_url: FLOW, created_at: "2026-10-14T12:00:00Z" }).link, r.PORTAL_PAYMENTS_URL);
+  assert.equal(msg({ payment_url: FLOW, created_at: null }).link, r.PORTAL_PAYMENTS_URL);
 });
 check("ignora links no https", () => assert.equal(msg({ payment_url: "javascript:alert(1)" }).link, r.PORTAL_PAYMENTS_URL));
-check("saluda al contacto por su nombre", () => assert.match(msg({}, { contactName: "María José Pérez" }).body, /^Hola María,/));
+check("saluda al contacto por su nombre", () => {
+  const b = msg({}, { contactName: "María José Pérez" }).body;
+  assert.match(b, /^Hola María,/);
+  assert.match(b, /el cobro de Panadería Sol por/);
+});
+check("sin contacto saluda al equipo del cliente sin repetirlo", () => {
+  const b = msg({}).body;
+  assert.match(b, /^Hola, equipo de Panadería Sol/);
+  assert.match(b, /el cobro por "Plan/);
+  assert.doesNotMatch(b, /cobro de Panadería Sol/);
+});
 check("aviso de pausa a +15", () => {
   const m = msg({ due_date: "2026-10-01", status: "overdue" });
   assert.equal(m.stage, "pausa");
@@ -98,6 +123,7 @@ check("ordena por urgencia y excluye lejanos/pagados", () => {
     pay({ id: "pagado", status: "paid", due_date: "2026-09-01" }),
     pay({ id: "atrasado", due_date: "2026-10-01" }),
     pay({ id: "hoy", due_date: TODAY }),
+    pay({ id: "usd", currency: "USD", due_date: "2026-09-01" }),
   ];
   assert.deepEqual(r.sortByUrgency(rows, TODAY).map((x) => x.id), ["atrasado", "hoy", "pronto"]);
 });
@@ -105,11 +131,19 @@ check("ordena por urgencia y excluye lejanos/pagados", () => {
 // Links
 check("wa.me con teléfono chileno y texto codificado", () =>
   assert.equal(r.reminderWhatsappHref("+56 9 1234 5678", "Hola & chao"), "https://wa.me/56912345678?text=Hola%20%26%20chao"));
+check("excluye cobros que no son CLP", () => {
+  assert.equal(r.needsReminder(pay({ currency: "USD", status: "overdue" }), TODAY), false);
+  assert.equal(r.needsReminder(pay({ currency: "clp" }), TODAY), true);
+});
+check("teléfono con 0 inicial (10 dígitos)", () => assert.match(r.reminderWhatsappHref("0912345678", "x"), /wa\.me\/56912345678\?/));
 check("celular sin código de país", () => assert.match(r.reminderWhatsappHref("912345678", "x"), /wa\.me\/56912345678/));
 check("teléfono inválido = null", () => assert.equal(r.reminderWhatsappHref("123", "x"), null));
 check("mailto codificado", () =>
   assert.equal(r.reminderMailtoHref("a@b.cl", "Pago & más", "L1\nL2"), "mailto:a%40b.cl?subject=Pago%20%26%20m%C3%A1s&body=L1%0AL2"));
-check("mailto descarta correo inválido", () => assert.match(r.reminderMailtoHref("no es correo?x", "s", "b"), /^mailto:\?subject=/));
+check("mailto sin correo válido = null", () => {
+  assert.equal(r.reminderMailtoHref("no es correo?x", "s", "b"), null);
+  assert.equal(r.reminderMailtoHref(null, "s", "b"), null);
+});
 
 // localStorage
 check("recordado solo vale hoy", () => {

@@ -20,6 +20,7 @@ export interface BillingRow {
   paid_at: string | null;
   period: string | null;
   payment_url: string | null;
+  created_at: string;
 }
 
 export interface BillingData {
@@ -27,7 +28,7 @@ export interface BillingData {
 }
 
 const PAYMENT_COLUMNS =
-  "id,client_id,description,amount,currency,status,due_date,paid_at,period,payment_url,clients(name)";
+  "id,client_id,description,amount,currency,status,due_date,paid_at,period,payment_url,created_at,clients(name)";
 
 /**
  * Todos los cobros, paginados de a 1000: así "Vencidos", "Por vencer" y los

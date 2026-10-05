@@ -21,6 +21,10 @@ export const PAUSE_AFTER_DAYS = 15;
 export const REMIND_BEFORE_DAYS = UPCOMING_DAYS;
 /** Firma de los mensajes. */
 export const REMINDER_SIGNATURE = "Equipo Vibranding";
+/** Antigüedad máxima (días) para confiar en el link de Flow guardado; después puede haber expirado. */
+export const FLOW_LINK_MAX_AGE_DAYS = 6;
+/** Única moneda que se cobra/recuerda. */
+export const REMINDER_CURRENCY = "CLP";
 /** Link de respaldo cuando el cobro no tiene link de Flow: sección Pagos del portal. */
 export const PORTAL_PAYMENTS_URL = `${SITE_URL}/portal#pagos`;
 
@@ -34,9 +38,12 @@ export interface ReminderPayment {
   id: string;
   status: string;
   amount: number;
+  currency: string;
   description: string | null;
   due_date: string | null;
   payment_url: string | null;
+  /** Timestamp de creación del cobro; si falta, el link de Flow no se usa. */
+  created_at?: string | null;
 }
 
 export interface ReminderInput {
@@ -92,6 +99,10 @@ export function isOpenPayment(p: { status: string }): boolean {
   return p.status === "pending" || p.status === "overdue";
 }
 
+export function isClp(p: { currency: string | null }): boolean {
+  return (p.currency ?? "").trim().toUpperCase() === REMINDER_CURRENCY;
+}
+
 export function reminderStage(p: Pick<ReminderPayment, "status" | "due_date">, today: string): ReminderStage {
   const days = daysUntilDue(p.due_date, today);
   if (days === null) return p.status === "overdue" ? "vencido" : "amable";
@@ -104,8 +115,11 @@ export function reminderStage(p: Pick<ReminderPayment, "status" | "due_date">, t
 }
 
 /** Abierto y (atrasado o vence dentro de la ventana). */
-export function needsReminder(p: Pick<ReminderPayment, "status" | "due_date">, today: string): boolean {
-  if (!isOpenPayment(p)) return false;
+export function needsReminder(
+  p: Pick<ReminderPayment, "status" | "due_date" | "currency">,
+  today: string,
+): boolean {
+  if (!isOpenPayment(p) || !isClp(p)) return false;
   if (p.status === "overdue") return true;
   const days = daysUntilDue(p.due_date, today);
   return days !== null && days <= REMIND_BEFORE_DAYS;
@@ -127,10 +141,25 @@ export function sortByUrgency<T extends ReminderPayment>(rows: readonly T[], tod
 
 // ------------------------------------------------------------------ mensaje
 
-/** Link de Flow del cobro si existe y es https; si no, la sección Pagos del portal. */
-export function paymentLinkFor(p: Pick<ReminderPayment, "payment_url">): string {
+function isRecent(createdAt: string | null | undefined, today: string): boolean {
+  const created = createdAt ? Date.parse(createdAt) : Number.NaN;
+  if (!Number.isFinite(created)) return false;
+  return isoToUtcNoon(today) - created < FLOW_LINK_MAX_AGE_DAYS * DAY_MS;
+}
+
+/**
+ * Link de Flow solo si el cobro aún no vence (antes / el día), es https y es reciente
+ * (los links de Flow expiran). Atrasado o dudoso → sección Pagos del portal.
+ */
+export function paymentLinkFor(
+  p: Pick<ReminderPayment, "payment_url" | "created_at">,
+  stage: ReminderStage,
+  today: string,
+): string {
   const url = p.payment_url?.trim();
-  return url && /^https:\/\//i.test(url) ? url : PORTAL_PAYMENTS_URL;
+  const notYetDue = stage === "amable" || stage === "hoy";
+  if (notYetDue && url && /^https:\/\//i.test(url) && isRecent(p.created_at, today)) return url;
+  return PORTAL_PAYMENTS_URL;
 }
 
 function firstName(name: string): string {
@@ -204,12 +233,16 @@ const SUBJECTS: Readonly<Record<ReminderStage, string>> = {
 export function buildReminder({ payment, clientName, contactName, today }: ReminderInput): ReminderMessage {
   const stage = reminderStage(payment, today);
   const days = daysUntilDue(payment.due_date, today);
-  const who = firstName(contactName?.trim() || clientName) || clientName.trim();
+  const contact = firstName(contactName?.trim() ?? "");
+  const client = clientName.trim();
   const concept = payment.description?.trim() || "servicios Vibranding";
-  const link = paymentLinkFor(payment);
+  const link = paymentLinkFor(payment, stage, today);
+  // Con contacto: "Hola María" + "el cobro de {cliente}". Sin contacto: el saludo ya nombra al cliente.
+  const greeting = contact ? `Hola ${contact}` : client ? `Hola, equipo de ${client}` : "Hola";
+  const ofClient = contact && client ? ` de ${client}` : "";
   const ctx: TemplateCtx = {
-    greeting: who ? `Hola ${who}` : "Hola",
-    detail: `el cobro de ${clientName.trim()} por "${concept}" de ${formatMoney(payment.amount)}`,
+    greeting,
+    detail: `el cobro${ofClient} por "${concept}" de ${formatMoney(payment.amount)}`,
     when: whenText(payment.due_date, today),
     link,
     late: days !== null && days < 0 ? -days : 0,
@@ -228,10 +261,15 @@ export function reminderWhatsappHref(phone: string | null | undefined, text: str
 
 const EMAIL = /^[^\s@<>()",;:]+@[^\s@<>()",;:]+\.[^\s@<>()",;:]+$/;
 
-/** mailto: con asunto y cuerpo codificados; destinatario vacío si el correo no es válido. */
-export function reminderMailtoHref(email: string | null | undefined, subject: string, body: string): string {
-  const to = email?.trim() && EMAIL.test(email.trim()) ? encodeURIComponent(email.trim()) : "";
-  return `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+/** mailto: con asunto y cuerpo codificados; null si no hay un correo válido. */
+export function reminderMailtoHref(
+  email: string | null | undefined,
+  subject: string,
+  body: string,
+): string | null {
+  const to = email?.trim() ?? "";
+  if (!EMAIL.test(to)) return null;
+  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 // ------------------------------------------------------------------ "Recordado hoy" (localStorage)
