@@ -58,11 +58,7 @@ async function graphGet<T>(path: string, params: Record<string, string>): Promis
 
 function isMissingTable(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
-  return (
-    error.code === "42P01" ||
-    error.code === "PGRST205" ||
-    /ig_engagement_snapshots/.test(error.message ?? "")
-  );
+  return error.code === "42P01" || error.code === "PGRST205";
 }
 
 function num(v: unknown): number | null {
