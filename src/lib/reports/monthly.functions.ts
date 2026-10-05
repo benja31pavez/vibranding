@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { allowPublicView, privateHeaders, RATE_LIMITED } from "@/lib/security/publicToken";
 import type { GeneratedReport } from "./monthly.server";
 import { isReportData, type MonthlyReportData } from "./types";
 
@@ -51,7 +52,8 @@ export interface PublicMonthlyReport {
 
 /**
  * Lectura pública por token (página /r/$token). Usa get_monthly_report_by_token,
- * que solo devuelve reportes ya enviados (sent_at no nulo).
+ * que solo devuelve reportes ya enviados (sent_at no nulo). Mismas cabeceras
+ * privadas y límite de lecturas por IP que la propuesta pública (/p/$token).
  */
 export const getPublicMonthlyReport = createServerFn({ method: "GET" })
   .inputValidator((d: { token: string }) => {
@@ -59,6 +61,8 @@ export const getPublicMonthlyReport = createServerFn({ method: "GET" })
     return { token: parsed.success ? parsed.data.token : "" };
   })
   .handler(async ({ data }): Promise<PublicMonthlyReport | null> => {
+    privateHeaders();
+    if (!(await allowPublicView("report-view", data.token || "invalid"))) throw new Error(RATE_LIMITED);
     if (!data.token) return null;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: res, error } = await supabaseAdmin.rpc("get_monthly_report_by_token", { _token: data.token });
