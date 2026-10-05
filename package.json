@@ -14,7 +14,8 @@
     "check:growth": "node scripts/check-growth.mjs",
     "check:health": "node scripts/check-health.mjs",
     "check:recommend": "node scripts/check-recommend.mjs",
-    "check:reminders": "node scripts/check-reminders.mjs"
+    "check:reminders": "node scripts/check-reminders.mjs",
+    "check:month-plan": "node scripts/check-month-plan.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

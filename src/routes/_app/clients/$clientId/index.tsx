@@ -18,6 +18,7 @@ import { PendingApprovalPanel, UpcomingContentPanel } from "@/components/clients
 import { ContractPanel } from "@/components/clients/ficha/ContractPanel";
 import { ProposalsPanel } from "@/components/proposals/ProposalsPanel";
 import { ReportsPanel } from "@/components/clients/ficha/ReportsPanel";
+import { MonthPlanPanel } from "@/components/clients/ficha/MonthPlanPanel";
 import { FollowupsPanel } from "@/components/followups/FollowupsPanel";
 import { ClientHealthCard } from "@/components/clients/health";
 import { PERMISSION_DENIED_MSG, useFichaHealth, useFichaOverview } from "@/components/clients/ficha/fichaQueries";
@@ -59,6 +60,13 @@ function ClientFichaPage() {
           <ProposalsPanel clientId={clientId} canEdit={Boolean(overview.data?.canEdit)} />
           {overview.data && <OnboardingIntakePanel clientId={clientId} canEdit={overview.data.canEdit} />}
           <UpcomingContentPanel clientId={clientId} />
+          {overview.data && (
+            <MonthPlanPanel
+              clientId={clientId}
+              planKey={overview.data.billing?.plan_key ?? null}
+              canEdit={overview.data.canEdit}
+            />
+          )}
           <ReportsPanel clientId={clientId} clientName={client?.name ?? ""} canEdit={overview.data?.canEdit ?? false} />
           <BusinessDescription
             clientId={clientId}
