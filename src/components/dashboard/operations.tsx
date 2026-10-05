@@ -4,6 +4,7 @@ import { CalendarClock, CheckSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { EmptyState, Panel } from "@/components/app";
+import { cn } from "@/lib/utils";
 import { BlockState } from "./block-state";
 import {
   UPCOMING_DAYS,
@@ -64,79 +65,119 @@ function useScheduledPosts() {
   });
 }
 
-export function OperationsPanels() {
+/** Etapas por vencer (incluye atrasadas). */
+export function UpcomingDeliverablesPanel() {
   const deliverables = useUpcomingDeliverables();
+  const clients = useClientIndex();
+  const nameOf = (id: string) => clients.data?.nameById.get(id) ?? "—";
+  const today = chileToday();
+
+  return (
+    <Panel
+      className="min-w-0"
+      icon={CheckSquare}
+      title="Próximas etapas"
+      description={`Vencen en ${UPCOMING_DAYS} días o antes`}
+    >
+      <BlockState query={deliverables} loadingLabel="Cargando etapas">
+        {(rows) =>
+          rows.length === 0 ? (
+            <EmptyState
+              size="compact"
+              className="py-3"
+              icon={CheckSquare}
+              title="Nada pendiente esta semana."
+            />
+          ) : (
+            <ul className="divide-y divide-border-subtle">
+              {rows.map((d) => {
+                const late = Boolean(d.due_date && d.due_date < today);
+                return (
+                  <li
+                    key={d.id}
+                    className="flex items-baseline justify-between gap-3 py-2 text-sm first:pt-0 last:pb-0"
+                  >
+                    <Link
+                      to="/clients/$clientId/deliverables"
+                      params={{ clientId: d.client_id }}
+                      className="min-w-0 hover:underline"
+                    >
+                      <span className="block truncate font-medium">{d.title}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {nameOf(d.client_id)}
+                      </span>
+                    </Link>
+                    <span
+                      className={cn(
+                        "shrink-0 text-xs tabular-nums",
+                        late ? "font-medium text-danger-strong" : "text-muted-foreground",
+                      )}
+                    >
+                      {formatShortDate(d.due_date)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )
+        }
+      </BlockState>
+    </Panel>
+  );
+}
+
+function formatPostTime(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("es-CL", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Santiago",
+  });
+}
+
+/** Publicaciones programadas desde hoy. */
+export function ScheduledPostsPanel() {
   const posts = useScheduledPosts();
   const clients = useClientIndex();
   const nameOf = (id: string) => clients.data?.nameById.get(id) ?? "—";
 
   return (
-    <section className="grid gap-4 lg:grid-cols-2">
-      <Panel
-        icon={CheckSquare}
-        title="Próximas etapas"
-        description={`Vencen en ${UPCOMING_DAYS} días o antes`}
-      >
-        <BlockState query={deliverables} loadingLabel="Cargando etapas">
-          {(rows) =>
-            rows.length === 0 ? (
-              <EmptyState size="compact" title="Nada pendiente esta semana." />
-            ) : (
-              <ul className="space-y-2">
-                {rows.map((d) => (
-                  <li key={d.id} className="flex items-center justify-between gap-3 text-sm">
-                    <Link
-                      to="/clients/$clientId/deliverables"
-                      params={{ clientId: d.client_id }}
-                      className="min-w-0 truncate hover:underline"
-                    >
-                      <span className="font-medium">{d.title}</span>{" "}
-                      <span className="text-muted-foreground">· {nameOf(d.client_id)}</span>
-                    </Link>
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {formatShortDate(d.due_date)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )
-          }
-        </BlockState>
-      </Panel>
-
-      <Panel icon={CalendarClock} title="Próximas publicaciones">
-        <BlockState query={posts} loadingLabel="Cargando publicaciones">
-          {(rows) =>
-            rows.length === 0 ? (
-              <EmptyState size="compact" title="Sin publicaciones programadas." />
-            ) : (
-              <ul className="space-y-2">
-                {rows.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
-                    <Link
-                      to="/clients/$clientId/instagram"
-                      params={{ clientId: p.client_id }}
-                      className="min-w-0 truncate hover:underline"
-                    >
-                      <span className="font-medium">{nameOf(p.client_id)}</span>{" "}
-                      <span className="text-muted-foreground">· {p.type}</span>
-                    </Link>
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {p.scheduled_at
-                        ? new Date(p.scheduled_at).toLocaleString("es-CL", {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                            timeZone: "America/Santiago",
-                          })
-                        : "—"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )
-          }
-        </BlockState>
-      </Panel>
-    </section>
+    <Panel className="min-w-0" icon={CalendarClock} title="Próximas publicaciones">
+      <BlockState query={posts} loadingLabel="Cargando publicaciones">
+        {(rows) =>
+          rows.length === 0 ? (
+            <EmptyState
+              size="compact"
+              className="py-3"
+              icon={CalendarClock}
+              title="Sin publicaciones programadas."
+            />
+          ) : (
+            <ul className="divide-y divide-border-subtle">
+              {rows.map((p) => (
+                <li
+                  key={p.id}
+                  className="flex items-baseline justify-between gap-3 py-2 text-sm first:pt-0 last:pb-0"
+                >
+                  <Link
+                    to="/clients/$clientId/instagram"
+                    params={{ clientId: p.client_id }}
+                    className="min-w-0 hover:underline"
+                  >
+                    <span className="block truncate font-medium">{nameOf(p.client_id)}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{p.type}</span>
+                  </Link>
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    {formatPostTime(p.scheduled_at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </BlockState>
+    </Panel>
   );
 }

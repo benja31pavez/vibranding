@@ -146,7 +146,7 @@ function FollowupRow({
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{item.reason}</p>
       </div>
-      <div className="flex flex-wrap items-center gap-1 sm:shrink-0 sm:justify-end">
+      <div className="grid grid-cols-2 gap-1 sm:flex sm:shrink-0 sm:flex-wrap sm:items-center sm:justify-end [&>*:last-child]:col-span-2 [&>*:last-child]:justify-center [&>*]:justify-start sm:[&>*]:justify-center">
         {showOpen && <OpenLink target={item.target} />}
         <Button
           size="sm"

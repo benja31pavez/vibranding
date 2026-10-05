@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ErrorState, Panel, StatusBadge } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { useReviewAlerts } from "@/hooks/use-review-alerts";
+import { formatShortDate } from "./queries";
 
 /** Comentarios / aprobaciones de clientes sin leer (en todos los clientes). */
 export function ReviewActivity() {
@@ -39,7 +40,6 @@ export function ReviewActivity() {
 
   return (
     <Panel
-      tone="warning"
       icon={MessageSquare}
       title={`Revisiones de clientes (${alerts.length})`}
       actions={
@@ -48,25 +48,23 @@ export function ReviewActivity() {
         </Button>
       }
     >
-      <ul className="space-y-2">
+      <ul className="divide-y divide-border-subtle">
         {alerts.map((a) => (
-          <li key={a.id} className="flex items-start gap-2 text-sm">
-            <StatusBadge status={a.kind} className="mt-0.5 shrink-0" />
-            <span className="min-w-0">
-              <Link
-                to="/clients/$clientId/plan"
-                params={{ clientId: a.client_id }}
-                className="font-medium hover:underline"
-              >
-                {a.deliverable_title}
-              </Link>
-              <span className="text-muted-foreground">
-                {" "}
-                · {a.author_name ?? "Cliente"} ·{" "}
-                {new Date(a.created_at).toLocaleDateString("es-CL")}
+          <li key={a.id} className="space-y-1 py-2 text-sm first:pt-0 last:pb-0">
+            <Link
+              to="/clients/$clientId/plan"
+              params={{ clientId: a.client_id }}
+              className="block truncate font-medium hover:underline"
+            >
+              {a.deliverable_title}
+            </Link>
+            {a.body && <p className="line-clamp-2 break-words text-muted-foreground">{a.body}</p>}
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <StatusBadge status={a.kind} />
+              <span>
+                {a.author_name ?? "Cliente"} · {formatShortDate(a.created_at)}
               </span>
-              {a.body && <span className="block truncate text-muted-foreground">{a.body}</span>}
-            </span>
+            </p>
           </li>
         ))}
       </ul>

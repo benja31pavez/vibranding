@@ -30,6 +30,7 @@ export function CampaignAlerts() {
 
   return (
     <Panel
+      className="min-w-0"
       icon={BellRing}
       title={count ? `Alertas de campañas (${count})` : "Alertas de campañas"}
       tone={query.data?.open.some((a) => a.severity === "critical") ? "warning" : "default"}
@@ -48,16 +49,11 @@ export function CampaignAlerts() {
               {alerts.slice(0, VISIBLE_ALERTS).map((a) => {
                 const sev = SEVERITY[a.severity] ?? { label: a.severity, tone: "neutral" as const };
                 return (
-                  <li key={a.id} className="flex items-start gap-3 py-2 text-sm">
-                    <StatusBadge
-                      status={a.severity}
-                      label={sev.label}
-                      tone={sev.tone}
-                      className="mt-0.5 shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="break-words">{a.message}</p>
-                      <p className="text-xs text-muted-foreground">
+                  <li key={a.id} className="space-y-1 py-2 text-sm first:pt-0">
+                    <p className="break-words">{a.message}</p>
+                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                      <StatusBadge status={a.severity} label={sev.label} tone={sev.tone} />
+                      <span>
                         <Link
                           to="/clients/$clientId"
                           params={{ clientId: a.client_id }}
@@ -67,9 +63,9 @@ export function CampaignAlerts() {
                         </Link>{" "}
                         · {PLATFORM_LABEL[a.platform] ?? a.platform} ·{" "}
                         {formatShortDate(a.created_at)}
-                      </p>
-                      <AlertActions alert={a} canResolve={editableClientIds.has(a.client_id)} />
-                    </div>
+                      </span>
+                    </p>
+                    <AlertActions alert={a} canResolve={editableClientIds.has(a.client_id)} />
                   </li>
                 );
               })}

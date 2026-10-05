@@ -8,7 +8,7 @@ export function PipelineFunnel() {
   const query = usePipelineCounts();
 
   return (
-    <Panel icon={Filter} title="Pipeline" description="Prospectos por etapa">
+    <Panel className="min-w-0" icon={Filter} title="Pipeline" description="Prospectos por etapa">
       <BlockState query={query} loadingLabel="Cargando pipeline">
         {(counts) => {
           const max = Math.max(0, ...PIPELINE_STAGES.map((s) => counts[s.key] ?? 0));
@@ -16,6 +16,7 @@ export function PipelineFunnel() {
             return (
               <EmptyState
                 size="compact"
+                className="py-3"
                 icon={Filter}
                 title="Sin prospectos todavía."
                 description="Cuando agregues prospectos verás aquí el embudo."

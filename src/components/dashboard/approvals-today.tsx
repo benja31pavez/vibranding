@@ -27,6 +27,7 @@ export function ApprovalsToday() {
 
   return (
     <Panel
+      className="min-w-0"
       icon={Inbox}
       title={total ? `Por aprobar hoy (${total})` : "Por aprobar hoy"}
       actions={
@@ -45,19 +46,23 @@ export function ApprovalsToday() {
           data.total === 0 ? (
             <EmptyState
               size="compact"
+              className="py-3"
               icon={Inbox}
               title="Nada esperando tu aprobación."
               description="Todo al día por ahora."
             />
           ) : (
             <div className="space-y-3">
-              <ul className="grid grid-cols-3 gap-2">
+              <ul className="flex flex-wrap gap-2">
                 {APPROVAL_KINDS.map((k) => (
-                  <li key={k.key} className="rounded-app-md bg-surface-2 px-3 py-2">
-                    <p className="text-xl font-semibold tabular-nums">
+                  <li
+                    key={k.key}
+                    className="inline-flex items-baseline gap-1.5 rounded-app-md bg-surface-2 px-2.5 py-1 text-xs text-muted-foreground"
+                  >
+                    <span className="text-sm font-semibold tabular-nums text-foreground">
                       {data.countByKind[k.key] ?? 0}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">{k.label}</p>
+                    </span>
+                    {k.label}
                   </li>
                 ))}
               </ul>
@@ -67,24 +72,21 @@ export function ApprovalsToday() {
                   const client = item.client_id
                     ? clients.data?.nameById.get(item.client_id)
                     : undefined;
-                  const label = (
-                    <>
-                      <span className="font-medium">{item.title}</span>
-                      {client && <span className="text-muted-foreground"> · {client}</span>}
-                    </>
-                  );
+                  const kind = KIND_LABEL[item.kind] ?? item.kind;
                   return (
-                    <li key={item.key} className="flex items-center gap-3 py-2 text-sm">
-                      <span className="w-20 shrink-0 text-xs text-muted-foreground">
-                        {KIND_LABEL[item.kind] ?? item.kind}
-                      </span>
-                      {to ? (
-                        <Link to={to} className="min-w-0 flex-1 truncate hover:underline">
-                          {label}
-                        </Link>
-                      ) : (
-                        <span className="min-w-0 flex-1 truncate">{label}</span>
-                      )}
+                    <li key={item.key} className="flex items-baseline gap-3 py-2 text-sm last:pb-0">
+                      <div className="min-w-0 flex-1">
+                        {to ? (
+                          <Link to={to} className="block truncate font-medium hover:underline">
+                            {item.title}
+                          </Link>
+                        ) : (
+                          <span className="block truncate font-medium">{item.title}</span>
+                        )}
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {client ? `${kind} · ${client}` : kind}
+                        </span>
+                      </div>
                       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                         {formatShortDate(item.created_at)}
                       </span>
