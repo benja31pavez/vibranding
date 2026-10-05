@@ -7,7 +7,7 @@ const BENEFIT_ICONS = [Search, ThumbsUp, ShoppingBag];
 const TONES = ["var(--brand-1)", "var(--brand-2)", "var(--brand-3)"];
 
 /**
- * "Tres cosas que tu negocio necesita en internet": three numbered cards side by side
+ * "Tres pilares para que tu negocio venda": three numbered cards side by side
  * (stacked on mobile), each with its mockup. When a card scrolls into view (useScrollReveal
  * marks it `data-revealed`) it rises in and its mockup assembles; on desktop the three reveal
  * together, staggered, while the connector draws 1 → 2 → 3 (sections.css).
