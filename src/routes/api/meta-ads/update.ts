@@ -164,6 +164,23 @@ export const Route = createFileRoute("/api/meta-ads/update")({
           const { token } = await requireClientMetaToken(rowClientId!);
           params.set("access_token", token);
 
+          // Pago de pauta: activar algo exige cuenta con medio de pago y al día.
+          if (patch.status === "ACTIVE") {
+            const { data: billingAcc } = await supa
+              .from("meta_accounts")
+              .select("ad_account_id")
+              .eq("client_id", rowClientId!)
+              .maybeSingle();
+            const { verifyMetaBillingForActivation } = await import("@/lib/meta/billing.server");
+            const billing = await verifyMetaBillingForActivation({
+              clientId: rowClientId!,
+              adAccountId: billingAcc?.ad_account_id ?? null,
+              token,
+            });
+            if (!billing.ok)
+              return j({ error: billing.message, code: "BILLING_NOT_VERIFIED" }, 409);
+          }
+
           if (Object.keys(money).length > 0) {
             const { data: acc } = await supa
               .from("meta_accounts")

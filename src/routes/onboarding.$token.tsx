@@ -3,6 +3,7 @@ import { useState } from "react";
 import { PublicShell } from "@/components/proposals/public/PublicProposalView";
 import { OnboardingDone } from "@/components/onboarding/OnboardingDone";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { STEPS } from "@/components/onboarding/formState";
 import { getOnboarding } from "@/lib/onboarding/public.functions";
 import { formatChileDate } from "@/lib/proposals/model";
 
@@ -80,8 +81,8 @@ function OnboardingRoute() {
           Hola, {data.clientName}. Cuéntanos de tu negocio
         </h1>
         <p className="text-muted-foreground">
-          Son 5 pasos cortos (unos 10 minutos). Solo la razón social es obligatoria: completa lo que
-          tengas a mano y lo demás lo vemos juntos.
+          Son {STEPS.length} pasos cortos (unos 10 minutos). Solo la razón social es obligatoria:
+          completa lo que tengas a mano y lo demás lo vemos juntos.
         </p>
         {data.expiresAt && (
           <p className="text-xs text-muted-foreground">

@@ -16,6 +16,7 @@ import { HealthCards } from "@/components/clients/ficha/HealthCards";
 import { CampaignAlertsPanel } from "@/components/clients/ficha/CampaignAlertsPanel";
 import { PendingApprovalPanel, UpcomingContentPanel } from "@/components/clients/ficha/MainPanels";
 import { ContractPanel } from "@/components/clients/ficha/ContractPanel";
+import { AdsBillingPanel } from "@/components/clients/ficha/AdsBillingPanel";
 import { ProposalsPanel } from "@/components/proposals/ProposalsPanel";
 import { ReportsPanel } from "@/components/clients/ficha/ReportsPanel";
 import { MonthPlanPanel } from "@/components/clients/ficha/MonthPlanPanel";
@@ -116,6 +117,7 @@ function ClientFichaPage() {
               <OnboardingLinkPanel clientId={clientId} overview={overview.data} />
             </>
           ) : null}
+          <AdsBillingPanel clientId={clientId} />
           <ContractPanel clientId={clientId} />
           <ClientAccessCard clientId={clientId} />
         </aside>

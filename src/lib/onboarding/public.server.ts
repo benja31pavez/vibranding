@@ -14,7 +14,9 @@ import type { Database } from "@/integrations/supabase/types";
 import {
   MAX_FILES,
   TOKEN_RE,
+  isAdsFieldUnsupported,
   mapDbError,
+  withoutAdsFields,
   safeFileName,
   type FieldError,
   type OnboardingPayload,
@@ -134,28 +136,60 @@ export async function submitOnboardingPayload(
   token: string,
   payload: OnboardingPayload,
 ): Promise<SubmitResult> {
+  const first = await callSubmit(token, payload);
+  // BD sin la migración onboarding_pago_pauta: rechaza las claves del paso
+  // Publicidad. El rechazo ocurre antes de guardar (el link sigue vigente), así
+  // que se reenvía sin ellas para no bloquear el onboarding.
+  const trimmed = withoutAdsFields(payload);
+  if (
+    first.kind === "invalid_payload" &&
+    isAdsFieldUnsupported(first.raw) &&
+    Object.keys(trimmed).length < Object.keys(payload).length
+  ) {
+    console.warn("[onboarding] BD sin columnas de publicidad: se envía sin el paso Publicidad");
+    return toResult(await callSubmit(token, trimmed));
+  }
+  return toResult(first);
+}
+
+type RawSubmit =
+  | { kind: "ok" }
+  | { kind: "invalid" }
+  | { kind: "invalid_payload"; raw: string | null }
+  | { kind: "error" };
+
+async function callSubmit(token: string, payload: OnboardingPayload): Promise<RawSubmit> {
   const { data, error } = await anonClient().rpc("submit_onboarding", {
     _token: token,
     _payload: payload,
   });
   if (error) {
     // 22023 se captura dentro de la función; por si alguna versión lo deja escapar:
-    if (error.code === "22023")
-      return { ok: false, reason: "invalid_payload", error: mapDbError(error.message) };
+    if (error.code === "22023") return { kind: "invalid_payload", raw: error.message };
     console.error("[onboarding] submit_onboarding falló", error.code, error.message);
-    return { ok: false, reason: "error", message: SUBMIT_FAILED };
+    return { kind: "error" };
   }
   const res = data as { ok?: boolean; reason?: string; error?: string } | null;
-  if (res?.ok) return { ok: true };
-  if (res?.reason === "invalid_payload")
-    return { ok: false, reason: "invalid_payload", error: mapDbError(res.error) };
-  if (res?.reason === "invalid") {
-    return {
-      ok: false,
-      reason: "invalid",
-      message: "Este link ya se usó o venció. Si necesitas cambiar algo, escríbenos.",
-    };
-  }
+  if (res?.ok) return { kind: "ok" };
+  if (res?.reason === "invalid_payload") return { kind: "invalid_payload", raw: res.error ?? null };
+  if (res?.reason === "invalid") return { kind: "invalid" };
   console.error("[onboarding] respuesta inesperada de submit_onboarding", res);
-  return { ok: false, reason: "error", message: SUBMIT_FAILED };
+  return { kind: "error" };
+}
+
+function toResult(r: RawSubmit): SubmitResult {
+  switch (r.kind) {
+    case "ok":
+      return { ok: true };
+    case "invalid_payload":
+      return { ok: false, reason: "invalid_payload", error: mapDbError(r.raw) };
+    case "invalid":
+      return {
+        ok: false,
+        reason: "invalid",
+        message: "Este link ya se usó o venció. Si necesitas cambiar algo, escríbenos.",
+      };
+    default:
+      return { ok: false, reason: "error", message: SUBMIT_FAILED };
+  }
 }

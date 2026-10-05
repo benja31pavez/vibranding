@@ -18,6 +18,7 @@ import {
   type FormState,
 } from "./formState";
 import { AccessStepFields } from "./steps/AccessStepFields";
+import { AdsStepFields } from "./steps/AdsStepFields";
 import { BillingStepFields } from "./steps/BillingStepFields";
 import { BusinessStepFields } from "./steps/BusinessStepFields";
 import { FilesStepFields } from "./steps/FilesStepFields";
@@ -163,7 +164,8 @@ export function OnboardingWizard({ token, onDone }: Props) {
         {step === 1 && <BusinessStepFields {...stepProps} />}
         {step === 2 && <SocialStepFields {...stepProps} />}
         {step === 3 && <AccessStepFields {...stepProps} />}
-        {step === 4 && <FilesStepFields {...stepProps} token={token} updateFiles={updateFiles} />}
+        {step === 4 && <AdsStepFields {...stepProps} />}
+        {step === 5 && <FilesStepFields {...stepProps} token={token} updateFiles={updateFiles} />}
       </section>
 
       {formError && (

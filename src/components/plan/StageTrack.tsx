@@ -1,5 +1,6 @@
-import { AlertTriangle, CalendarDays, CheckCircle2, Circle, Timer } from "lucide-react";
+import { CheckCircle2, ChevronRight, Circle, Timer } from "lucide-react";
 import type { ComponentType } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import {
   STAGE_STATUS_LABELS,
@@ -8,12 +9,9 @@ import {
   type StageStatus,
   type StageSummary,
 } from "@/lib/delivery/planStages";
-import { TEAM } from "@/lib/delivery/team";
+import { TEAM, initials, type TeamMemberKey } from "@/lib/delivery/team";
 import { formatShortDate } from "./planFormat";
-import { FolderButton, OwnerAvatar } from "./StageFolder";
 import { StageMenu, type StageMenuActions } from "./StageMenu";
-import { MEMBER_HUE, STAGE_HUE } from "./stagePalette";
-import { useEdgeFade } from "./useEdgeFade";
 
 const STATUS_ICONS: Readonly<Record<StageStatus, ComponentType<{ className?: string }>>> = {
   pending: Circle,
@@ -27,38 +25,63 @@ const STATUS_TONE: Readonly<Record<StageStatus, string>> = {
   done: "text-success-strong",
 };
 
-/** "⋯" de la etapa: esquina inferior derecha, en la línea de la fecha de entrega. */
-const MENU_POSITION = "absolute bottom-1.5 right-1.5 z-10";
-/** En la carpeta de una persona el "⋯" va arriba a la derecha del cuerpo. */
-const MEMBER_MENU_POSITION = "absolute right-2 top-[30px] z-10";
+const BAR_TONE: Readonly<Record<StageStatus, string>> = {
+  pending: "bg-primary/60",
+  active: "bg-warning",
+  done: "bg-success",
+};
 
-function DueLine({
-  dueDate,
-  late,
-  emptyLabel,
-  prefix = "",
-}: {
-  dueDate: string | null;
-  late: boolean;
-  emptyLabel: string;
-  prefix?: string;
-}) {
-  const Icon = late ? AlertTriangle : CalendarDays;
+/** Columnas de la grilla según cuántas etapas tiene el plan (2 a 8). */
+function gridCols(count: number): string {
+  if (count <= 2) return "sm:grid-cols-2";
+  if (count === 3) return "sm:grid-cols-3";
+  if (count === 4) return "sm:grid-cols-2 lg:grid-cols-4";
+  if (count <= 6) return "sm:grid-cols-3 lg:grid-cols-6";
+  return "sm:grid-cols-4 xl:grid-cols-8";
+}
+
+/** Foto del integrante del equipo o sus iniciales mientras no haya foto. */
+export function TeamAvatar({ member, className }: { member: TeamMemberKey; className?: string }) {
+  const m = TEAM[member];
   return (
-    <span
-      className={cn(
-        "flex min-w-0 items-center gap-1 text-[11px] tabular-nums",
-        late ? "font-semibold text-danger-strong" : "text-muted-foreground",
-      )}
-    >
-      <Icon aria-hidden className="h-3 w-3 shrink-0" />
-      <span className="truncate">
-        {dueDate ? `${prefix}${formatShortDate(dueDate)}` : emptyLabel}
-        {late && <span className="hidden @[180px]:inline"> · atrasada</span>}
-      </span>
+    <Avatar className={cn("h-7 w-7", className)}>
+      {m.avatarUrl && <AvatarImage src={m.avatarUrl} alt="" />}
+      <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
+        {initials(m.name)}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
+function ProgressBar({ pct, tone }: { pct: number; tone: string }) {
+  return (
+    <span aria-hidden className="block h-1 w-full overflow-hidden rounded-full bg-muted">
+      <span className={cn("block h-full rounded-full", tone)} style={{ width: `${pct}%` }} />
     </span>
   );
 }
+
+function DueLabel({
+  dueDate,
+  late,
+  dense = false,
+}: {
+  dueDate: string | null;
+  late: boolean;
+  dense?: boolean;
+}) {
+  const empty = dense ? "Sin fecha" : "Sin fecha de entrega";
+  return (
+    <span className={cn("tabular-nums", late && "font-medium text-danger-strong")}>
+      {dueDate ? `Entrega ${formatShortDate(dueDate)}` : empty}
+      {late && " · atrasada"}
+    </span>
+  );
+}
+
+/** Esquina inferior derecha de la tarjeta, alineado con la línea de la fecha de entrega. */
+const STAGE_MENU_POSITION = "absolute bottom-1 right-1";
+const MEMBER_MENU_POSITION = "absolute bottom-2 right-3";
 
 export interface StageTrackProps {
   stages: readonly StageSummary[];
@@ -68,28 +91,18 @@ export interface StageTrackProps {
 }
 
 /**
- * Recorrido de las etapas del plan como carpetas: responsable con su anillo de
- * avance y pendientes, estado y fecha de entrega. Un clic filtra las tareas; el
- * "⋯" de cada carpeta edita la fecha de entrega de la etapa. Si no caben en una
- * fila, la fila hace scroll horizontal (con snap) sin mover la página.
+ * Recorrido de las etapas del plan: responsable, avance y fecha. Un clic filtra
+ * las tareas; el "⋯" de cada tarjeta edita la fecha de entrega de la etapa.
  */
 export function StageTrack({ stages, selected, onSelect, menu }: StageTrackProps) {
-  const { ref, fadeStart, fadeEnd } = useEdgeFade<HTMLOListElement>(stages.length);
   return (
     <nav aria-label="Etapas del plan">
-      <ol
-        ref={ref}
-        data-fade-start={fadeStart}
-        data-fade-end={fadeEnd}
-        className="plan-folder-row -mx-1 flex snap-x snap-mandatory scroll-px-1 gap-2.5 overflow-x-auto px-1 pb-1.5 pt-1"
-      >
+      <ol className={cn("grid grid-cols-2 gap-2", gridCols(stages.length))}>
         {stages.map((stage, i) => (
-          <li
-            key={stage.key}
-            className="plan-folder-item relative min-w-[128px] flex-1 basis-0 snap-start"
-          >
-            <StageFolder
+          <li key={stage.key} className="relative min-w-0">
+            <StageChip
               stage={stage}
+              dense={stages.length > DENSE_FROM}
               index={i}
               active={selected === stage.key}
               onClick={() => onSelect(selected === stage.key ? null : stage.key)}
@@ -98,8 +111,14 @@ export function StageTrack({ stages, selected, onSelect, menu }: StageTrackProps
               {...menu}
               stages={[stage]}
               label={`Fecha de entrega de ${stage.label}`}
-              className={MENU_POSITION}
+              className={STAGE_MENU_POSITION}
             />
+            {i < stages.length - 1 && (
+              <ChevronRight
+                aria-hidden
+                className="pointer-events-none absolute -right-2.5 top-1/2 z-10 hidden h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60 lg:block"
+              />
+            )}
           </li>
         ))}
       </ol>
@@ -107,71 +126,74 @@ export function StageTrack({ stages, selected, onSelect, menu }: StageTrackProps
   );
 }
 
-function StageFolder({
+/** Desde 7 etapas (Crecimiento) la tarjeta se compacta para que quepan en una fila. */
+const DENSE_FROM = 6;
+
+function StageChip({
   stage,
+  dense,
   index,
   active,
   onClick,
 }: {
   stage: StageSummary;
+  dense: boolean;
   index: number;
   active: boolean;
   onClick: () => void;
 }) {
   const StatusIcon = STATUS_ICONS[stage.status];
   const owner = TEAM[stage.owner];
-  const pending = stage.total - stage.done;
+  const progress = stage.total > 0 ? `${stage.done}/${stage.total}` : "0/0";
   return (
-    <FolderButton
-      hue={STAGE_HUE[stage.key]}
-      label={stage.label}
-      pressed={active}
+    <button
+      type="button"
       onClick={onClick}
-      title={`${stage.label} · ${owner.name}\n${stage.detail}`}
-      ariaLabel={`${index + 1}. ${stage.label}, responsable ${owner.name}: ${
+      aria-pressed={active}
+      title={stage.detail}
+      aria-label={`${index + 1}. ${stage.label}, responsable ${owner.name}: ${
         STAGE_STATUS_LABELS[stage.status]
-      }, ${stage.done} de ${stage.total} tareas listas, ${pending} pendientes${
+      }, ${stage.done} de ${stage.total} tareas listas${
         stage.dueDate ? `, entrega ${formatShortDate(stage.dueDate)}` : ""
       }${stage.late ? ", atrasada" : ""}`}
-      showIcon={false}
-      bodyClassName="@container gap-2 px-2.5 pb-2 pt-2.5"
+      className={cn(
+        "flex h-full w-full flex-col gap-1.5 rounded-app-lg border border-border-subtle bg-surface px-3 py-2 text-left shadow-app-xs transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        active && "border-primary ring-1 ring-primary",
+        stage.late && !active && "border-danger/40",
+      )}
     >
-      <span className="flex items-center gap-2.5">
-        <OwnerAvatar
-          member={stage.owner}
-          pct={stage.pct}
-          done={stage.status === "done"}
-          pending={pending}
-          late={stage.late}
-          size={42}
+      <span className="flex items-start justify-between gap-2">
+        <span
+          className={cn(
+            "font-semibold leading-tight text-foreground",
+            dense
+              ? "line-clamp-2 min-h-[2lh] hyphens-auto break-words text-xs"
+              : "line-clamp-1 text-sm",
+          )}
+        >
+          {stage.label}
+        </span>
+        <StatusIcon
+          aria-hidden
+          className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", STATUS_TONE[stage.status])}
         />
-        <span className="flex min-w-0 flex-col gap-1">
-          <span className="flex items-center gap-1">
-            <span className="plan-folder__ink text-lg font-bold leading-none tabular-nums">
-              {stage.pct}
-              <span className="text-[11px] font-semibold">%</span>
-            </span>
-            <StatusIcon
-              aria-hidden
-              className={cn("h-3.5 w-3.5 shrink-0", STATUS_TONE[stage.status])}
-            />
-          </span>
-          <span className="truncate text-[11px] leading-none tabular-nums text-muted-foreground">
-            {stage.done}/{stage.total}
-            <span className="hidden @[180px]:inline">
-              {" · "}
-              {STAGE_STATUS_LABELS[stage.status]}
-            </span>
-          </span>
+      </span>
+      <span className="flex min-w-0 items-center gap-1.5">
+        <TeamAvatar member={stage.owner} className="h-5 w-5" />
+        <span className="truncate text-[11px] text-muted-foreground">
+          {dense ? owner.name : `${owner.name} · ${owner.role}`}
         </span>
       </span>
-      <span className="flex min-w-0 items-center gap-2 pr-6">
-        <DueLine dueDate={stage.dueDate} late={stage.late} emptyLabel="Sin fecha" />
-        <span className="ml-auto hidden truncate text-[11px] text-muted-foreground @[210px]:inline">
-          {owner.name}
+      <span className="flex items-center gap-2">
+        <ProgressBar pct={stage.pct} tone={BAR_TONE[stage.status]} />
+        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+          {dense ? progress : `${progress} · ${stage.pct}%`}
         </span>
       </span>
-    </FolderButton>
+      <span className="pr-5 text-[11px] text-muted-foreground">
+        <DueLabel dueDate={stage.dueDate} late={stage.late} dense={dense} />
+      </span>
+    </button>
   );
 }
 
@@ -183,59 +205,48 @@ export interface TeamTrackProps {
   menu: StageMenuActions;
 }
 
-/** Vista de Mantención: una carpeta por persona; su "⋯" edita las fechas de sus etapas. */
+/** Vista de Mantención: una tarjeta por persona; su "⋯" edita las fechas de sus etapas. */
 export function TeamTrack({ members, stages, selected, onSelect, menu }: TeamTrackProps) {
   return (
     <nav aria-label="Equipo del plan">
-      <ul className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {members.map((m) => {
           const member = TEAM[m.owner];
           const own = stages.filter((s) => m.stages.includes(s.key));
           const target = own[0]?.key ?? null;
           const active = own.some((s) => s.key === selected);
-          const pending = m.total - m.done;
           return (
-            <li key={m.owner} className="plan-folder-item relative min-w-0">
-              <FolderButton
-                hue={MEMBER_HUE[m.owner]}
-                label={member.name}
-                tabExtra={<span className="truncate font-medium opacity-75">· {member.role}</span>}
-                pressed={active}
+            <li key={m.owner} className="relative min-w-0">
+              <button
+                type="button"
+                aria-pressed={active}
                 onClick={() => onSelect(active ? null : target)}
-                ariaLabel={`${member.name}, ${member.role}: ${m.done} de ${m.total} tareas listas, ${pending} pendientes${
+                aria-label={`${member.name}, ${member.role}: ${m.done} de ${m.total} tareas listas${
                   m.dueDate ? `, próxima entrega ${formatShortDate(m.dueDate)}` : ""
                 }${m.late ? ", con atrasos" : ""}`}
-                bodyClassName="@container flex-row items-center gap-4 px-4 pb-3 pt-3"
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-app-lg border border-border-subtle bg-surface px-4 py-3 text-left shadow-app-xs transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  active && "border-primary ring-1 ring-primary",
+                )}
               >
-                <OwnerAvatar
-                  member={m.owner}
-                  pct={m.pct}
-                  done={m.total > 0 && m.pct === 100}
-                  pending={pending}
-                  late={m.late}
-                  size={56}
-                />
-                <span className="flex min-w-0 flex-1 flex-col gap-1 pr-5">
-                  <span className="flex items-baseline gap-2">
-                    <span className="plan-folder__ink text-xl font-bold leading-none tabular-nums">
-                      {m.pct}
-                      <span className="text-xs font-semibold">%</span>
+                <TeamAvatar member={m.owner} className="h-11 w-11" />
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="truncate text-sm font-semibold text-foreground">
+                      {member.name}{" "}
+                      <span className="font-normal text-muted-foreground">· {member.role}</span>
                     </span>
-                    <span className="text-xs tabular-nums text-muted-foreground">
-                      {m.done}/{m.total} tareas listas
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                      {m.done}/{m.total} · {m.pct}%
                     </span>
                   </span>
-                  <span className="truncate text-xs font-medium text-foreground/80">
-                    {own.map((s) => s.label).join(" · ")}
+                  <ProgressBar pct={m.pct} tone={m.pct === 100 ? "bg-success" : "bg-primary"} />
+                  <span className="flex flex-wrap justify-between gap-x-2 pr-5 text-[11px] text-muted-foreground">
+                    <span className="truncate">{own.map((s) => s.label).join(" · ")}</span>
+                    <DueLabel dueDate={m.dueDate} late={m.late} />
                   </span>
-                  <DueLine
-                    dueDate={m.dueDate}
-                    late={m.late}
-                    emptyLabel="Sin fecha de entrega"
-                    prefix="Próxima entrega "
-                  />
                 </span>
-              </FolderButton>
+              </button>
               <StageMenu
                 {...menu}
                 stages={own}

@@ -93,6 +93,7 @@ import { Route as ApiPublicFlowConfirmRouteImport } from './routes/api/public/fl
 import { Route as ApiPublicFlowReturnRouteImport } from './routes/api/public/flow/return'
 import { Route as ApiPublicGoogleIngestDailyRouteImport } from './routes/api/public/google/ingest-daily'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
+import { Route as ApiPublicMetaBillingCheckRouteImport } from './routes/api/public/meta/billing-check'
 import { Route as ApiPublicMetaIngestDailyRouteImport } from './routes/api/public/meta/ingest-daily'
 import { Route as ApiPublicOnboardingCleanupRouteImport } from './routes/api/public/onboarding/cleanup'
 import { Route as ApiPublicReportsMonthlyRouteImport } from './routes/api/public/reports/monthly'
@@ -544,6 +545,12 @@ const ApiPublicInstagramWebhookRoute =
     path: '/api/public/instagram/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicMetaBillingCheckRoute =
+  ApiPublicMetaBillingCheckRouteImport.update({
+    id: '/api/public/meta/billing-check',
+    path: '/api/public/meta/billing-check',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMetaIngestDailyRoute =
   ApiPublicMetaIngestDailyRouteImport.update({
     id: '/api/public/meta/ingest-daily',
@@ -669,6 +676,7 @@ export interface FileRoutesByFullPath {
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/google/ingest-daily': typeof ApiPublicGoogleIngestDailyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
+  '/api/public/meta/billing-check': typeof ApiPublicMetaBillingCheckRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
@@ -760,6 +768,7 @@ export interface FileRoutesByTo {
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/google/ingest-daily': typeof ApiPublicGoogleIngestDailyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
+  '/api/public/meta/billing-check': typeof ApiPublicMetaBillingCheckRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
@@ -854,6 +863,7 @@ export interface FileRoutesById {
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/google/ingest-daily': typeof ApiPublicGoogleIngestDailyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
+  '/api/public/meta/billing-check': typeof ApiPublicMetaBillingCheckRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
@@ -948,6 +958,7 @@ export interface FileRouteTypes {
     | '/api/public/flow/return'
     | '/api/public/google/ingest-daily'
     | '/api/public/instagram/webhook'
+    | '/api/public/meta/billing-check'
     | '/api/public/meta/ingest-daily'
     | '/api/public/onboarding/cleanup'
     | '/api/public/reports/monthly'
@@ -1039,6 +1050,7 @@ export interface FileRouteTypes {
     | '/api/public/flow/return'
     | '/api/public/google/ingest-daily'
     | '/api/public/instagram/webhook'
+    | '/api/public/meta/billing-check'
     | '/api/public/meta/ingest-daily'
     | '/api/public/onboarding/cleanup'
     | '/api/public/reports/monthly'
@@ -1132,6 +1144,7 @@ export interface FileRouteTypes {
     | '/api/public/flow/return'
     | '/api/public/google/ingest-daily'
     | '/api/public/instagram/webhook'
+    | '/api/public/meta/billing-check'
     | '/api/public/meta/ingest-daily'
     | '/api/public/onboarding/cleanup'
     | '/api/public/reports/monthly'
@@ -1183,6 +1196,7 @@ export interface RootRouteChildren {
   ApiPublicFlowReturnRoute: typeof ApiPublicFlowReturnRoute
   ApiPublicGoogleIngestDailyRoute: typeof ApiPublicGoogleIngestDailyRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
+  ApiPublicMetaBillingCheckRoute: typeof ApiPublicMetaBillingCheckRoute
   ApiPublicMetaIngestDailyRoute: typeof ApiPublicMetaIngestDailyRoute
   ApiPublicOnboardingCleanupRoute: typeof ApiPublicOnboardingCleanupRoute
   ApiPublicReportsMonthlyRoute: typeof ApiPublicReportsMonthlyRoute
@@ -1782,6 +1796,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInstagramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/meta/billing-check': {
+      id: '/api/public/meta/billing-check'
+      path: '/api/public/meta/billing-check'
+      fullPath: '/api/public/meta/billing-check'
+      preLoaderRoute: typeof ApiPublicMetaBillingCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/meta/ingest-daily': {
       id: '/api/public/meta/ingest-daily'
       path: '/api/public/meta/ingest-daily'
@@ -1989,6 +2010,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicFlowReturnRoute: ApiPublicFlowReturnRoute,
   ApiPublicGoogleIngestDailyRoute: ApiPublicGoogleIngestDailyRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
+  ApiPublicMetaBillingCheckRoute: ApiPublicMetaBillingCheckRoute,
   ApiPublicMetaIngestDailyRoute: ApiPublicMetaIngestDailyRoute,
   ApiPublicOnboardingCleanupRoute: ApiPublicOnboardingCleanupRoute,
   ApiPublicReportsMonthlyRoute: ApiPublicReportsMonthlyRoute,

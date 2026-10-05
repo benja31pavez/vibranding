@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient, type Query } from "@tanstack/react-query";
-import { Check, ExternalLink, Loader2 } from "lucide-react";
+import { Check, ExternalLink, Loader2, MessageSquareText } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Json } from "@/integrations/supabase/types";
 import { resolveCampaignAlert } from "@/lib/alerts/campaignAlerts.functions";
 import { healthKeys } from "@/components/clients/health/healthKeys";
+import { BILLING_META_KIND, parseBillingAlertData } from "@/lib/ads-billing/alert";
+import { AdsBillingMessageDialog } from "./AdsBillingMessageDialog";
 
 const ADS_MANAGER_PREFIX = "https://adsmanager.facebook.com/adsmanager/";
 
@@ -29,7 +31,7 @@ function showsAlerts(query: Query): boolean {
 }
 
 interface AlertActionsProps {
-  alert: { id: string; client_id: string; data?: Json };
+  alert: { id: string; client_id: string; data?: Json; kind?: string };
   /** Editores del cliente; los demás solo ven los links. */
   canResolve?: boolean;
 }
@@ -39,6 +41,8 @@ export function AlertActions({ alert, canResolve = true }: AlertActionsProps) {
   const resolve = useServerFn(resolveCampaignAlert);
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [messageOpen, setMessageOpen] = useState(false);
+  const billing = alert.kind === BILLING_META_KIND ? parseBillingAlertData(alert.data) : null;
   const external = adsManagerLink(alert.data);
 
   const onResolve = async () => {
@@ -57,7 +61,38 @@ export function AlertActions({ alert, canResolve = true }: AlertActionsProps) {
 
   return (
     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-      {external ? (
+      {billing ? (
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs text-primary"
+            onClick={() => setMessageOpen(true)}
+          >
+            <MessageSquareText aria-hidden className="h-3 w-3" />
+            Mensaje al cliente
+          </Button>
+          <a
+            href={billing.billingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-primary hover:underline"
+          >
+            Pagos en Meta <ExternalLink aria-hidden className="h-3 w-3" />
+          </a>
+          {messageOpen && (
+            <AdsBillingMessageDialog
+              open={messageOpen}
+              onOpenChange={setMessageOpen}
+              clientId={alert.client_id}
+              clientName={billing.clientName ?? "tu negocio"}
+              reason={billing.reason}
+              adAccountId={billing.adAccountId}
+            />
+          )}
+        </>
+      ) : external ? (
         <a
           href={external}
           target="_blank"

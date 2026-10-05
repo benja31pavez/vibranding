@@ -284,7 +284,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     entity: "campaign" | "adset" | "ad",
     id: string,
     patch: Record<string, any>,
-  ) => {
+  ): Promise<boolean> => {
     try {
       try {
         await authedFetch("/api/meta-ads/update", { entity, id, patch });
@@ -293,7 +293,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
         if (e?.code !== BUDGET_CONFIRMATION_REQUIRED || !e.requiresConfirmation) throw e;
         if (!confirm(`${e.message}\n\n¿Enviar estos montos a Meta de todas formas?`)) {
           toast.warning("Presupuesto no enviado a Meta");
-          return;
+          return false;
         }
         await authedFetch("/api/meta-ads/update", {
           entity,
@@ -302,9 +302,28 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
           confirmedAmounts: e.requiresConfirmation,
         });
       }
+      return true;
     } catch (e: any) {
       toast.error(`Meta: ${e.message}`);
+      return false;
     }
+  };
+
+  /**
+   * Activar algo ya publicado: primero Meta (que puede rechazarlo si el pago de
+   * pauta no está verificado) y recién después la fila local, para que la
+   * plataforma no muestre "Activa" algo que en Meta sigue en pausa.
+   */
+  const activateRemoteFirst = async <T extends { id: string }>(
+    entity: "campaign" | "adset" | "ad",
+    table: "meta_ads_campaigns" | "meta_ads_adsets" | "meta_ads_ads",
+    id: string,
+    patch: Partial<T>,
+    list: T[],
+    setter: (fn: (rows: T[]) => T[]) => void,
+  ): Promise<void> => {
+    if (!(await pushToMeta(entity, id, patch))) return;
+    await saveRow<T>(table, id, patch, list, setter);
   };
 
   const openDiscover = async () => {
@@ -441,6 +460,15 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   };
 
   const updateCampaign = async (id: string, patch: Partial<Campaign>) => {
+    if (patch.status === "ACTIVE" && campaigns.find((x) => x.id === id)?.fb_campaign_id)
+      return activateRemoteFirst(
+        "campaign",
+        "meta_ads_campaigns",
+        id,
+        patch,
+        campaigns,
+        setCampaigns,
+      );
     if (!(await saveRow<Campaign>("meta_ads_campaigns", id, patch, campaigns, setCampaigns)))
       return;
     const c = campaigns.find((x) => x.id === id);
@@ -463,6 +491,8 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   };
 
   const updateAdSet = async (id: string, patch: Partial<AdSet>) => {
+    if (patch.status === "ACTIVE" && (adsets.find((x) => x.id === id) as any)?.fb_adset_id)
+      return activateRemoteFirst("adset", "meta_ads_adsets", id, patch, adsets, setAdsets);
     if (!(await saveRow<AdSet>("meta_ads_adsets", id, patch, adsets, setAdsets))) return;
     const a = adsets.find((x) => x.id === id) as any;
     if (a?.fb_adset_id) await pushToMeta("adset", id, patch);
@@ -481,6 +511,8 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   };
 
   const updateAd = async (id: string, patch: Partial<Ad>) => {
+    if (patch.status === "ACTIVE" && (ads.find((x) => x.id === id) as any)?.fb_ad_id)
+      return activateRemoteFirst("ad", "meta_ads_ads", id, patch, ads, setAds);
     if (!(await saveRow<Ad>("meta_ads_ads", id, patch, ads, setAds))) return;
     const a = ads.find((x) => x.id === id) as any;
     if (a?.fb_ad_id) await pushToMeta("ad", id, patch);
