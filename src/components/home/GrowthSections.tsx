@@ -86,7 +86,7 @@ export function ForWhomSection() {
         title="¿Para quién"
         accent="es Vibranding"
         end="?"
-        subtitle={`Trabajamos con pymes de servicios. ${niches.coverage}`}
+        subtitle="Trabajamos con pymes de servicios."
       />
       <ul className="grid gap-4 sm:grid-cols-3">
         {niches.items.map((n, i) => {
