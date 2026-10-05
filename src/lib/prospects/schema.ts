@@ -241,6 +241,20 @@ export function convertedClientId(
   return prospect?.client_id ?? prospect?.notas?.match(CLIENT_MARK_RE)?.[1] ?? null;
 }
 
+/**
+ * ¿Se le pueden enviar correos de marketing? Solo con prospects.marketing_opt_in
+ * (consentimiento propio desde /diagnostico, migración 20261012001900; si la
+ * columna aún no existe, cuenta como false). La BAJA manda siempre: un prospecto
+ * en estado 'baja' es "sin permiso" aunque el flag siga en true. Todo envío
+ * futuro de marketing debe filtrar con esta función (hoy no existe ninguno).
+ */
+export function acceptsMarketingEmail(
+  prospect: { estado?: string | null; marketing_opt_in?: boolean | null } | null | undefined,
+): boolean {
+  if (!prospect || prospect.estado === "baja") return false;
+  return prospect.marketing_opt_in === true;
+}
+
 /** Motivo para revocar una baja (mismos límites que revoke_prospect_baja). */
 export const REVOKE_MOTIVO_MIN = 5;
 export const REVOKE_MOTIVO_MAX = 300;

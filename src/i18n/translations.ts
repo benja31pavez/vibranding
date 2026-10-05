@@ -377,7 +377,7 @@ const es: Dict = {
   },
   privacy: {
     title: "Política de Privacidad",
-    updated: "13 de mayo de 2026",
+    updated: "5 de octubre de 2026",
     intro:
       "En Vibranding respetamos tu privacidad. El responsable del tratamiento de tus datos es VIBRANDING SpA, RUT 78.505.344-3, con domicilio en Santiago de Chile. Esta política explica qué datos recopilamos y cómo los usamos, conforme a la legislación chilena de protección de datos personales.",
     blocks: [
@@ -399,6 +399,10 @@ const es: Dict = {
           "Comunicarnos contigo sobre tu proyecto.",
           "Cumplir obligaciones legales y contables.",
         ],
+      },
+      {
+        type: "p",
+        html: "Correos de novedades y consejos: solo te los enviamos si lo aceptas expresamente (por ejemplo, marcando la casilla opcional del formulario de diagnóstico, que viene desmarcada). Es voluntario y no afecta el diagnóstico ni ningún servicio. Puedes darte de baja cuando quieras, respondiendo a cualquiera de esos correos o escribiéndonos, y dejaremos de enviártelos. No compartimos tus datos con terceros para que te envíen su propia publicidad.",
       },
       { type: "h2", text: "3. Compartir con terceros" },
       {
@@ -655,7 +659,7 @@ const en: Dict = {
   },
   privacy: {
     title: "Privacy Policy",
-    updated: "May 13, 2026",
+    updated: "October 5, 2026",
     intro:
       "At Vibranding we respect your privacy. This policy explains what data we collect and how we use it.",
     blocks: [
@@ -677,6 +681,10 @@ const en: Dict = {
           "Communicate with you about your project.",
           "Comply with legal and accounting obligations.",
         ],
+      },
+      {
+        type: "p",
+        html: "News and tips emails: we only send them if you expressly agree (for example, by ticking the optional, unticked box on the diagnosis form). It is voluntary and does not affect the diagnosis or any service. You can unsubscribe at any time by replying to any of those emails or writing to us, and we will stop sending them. We do not share your data with third parties for their own marketing.",
       },
       { type: "h2", text: "3. Sharing with third parties" },
       {

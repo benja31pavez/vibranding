@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { findPlan } from "@/lib/pricing/plans";
 import {
   COLD_STATE,
+  acceptsMarketingEmail,
   PROSPECT_STATES,
   RESUME_STATES,
   STATE_META,
@@ -176,6 +177,14 @@ export function isWebLead(prospect: Pick<Prospect, "fuente">): boolean {
   return prospect.fuente.trim().toLowerCase().startsWith("web:");
 }
 
+/** "Acepta correos": opt-in de marketing vigente (nunca en baja; ver acceptsMarketingEmail). */
+export function MarketingBadge({ prospect }: { prospect: Prospect }) {
+  // marketing_opt_in llega con select("*") solo si la migración 20261012001900 está aplicada.
+  if (!acceptsMarketingEmail(prospect as Prospect & { marketing_opt_in?: boolean | null }))
+    return null;
+  return <StatusBadge status="marketing" label="Acepta correos" tone="info" />;
+}
+
 export function CardBody({ prospect }: { prospect: Prospect }) {
   const plan = findPlan(prospect.producto_sugerido);
   const meta = [prospect.rubro, prospect.comuna].filter(Boolean).join(" · ");
@@ -186,6 +195,7 @@ export function CardBody({ prospect }: { prospect: Prospect }) {
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         <NoContactBadge prospect={prospect} />
         {isWebLead(prospect) && <StatusBadge status="web" label="Web" tone="success" />}
+        <MarketingBadge prospect={prospect} />
         {plan && <StatusBadge status={plan.key} label={plan.label} tone="info" />}
         <span className="text-xs tabular-nums text-muted-foreground">
           Últ. contacto: {formatShortDate(prospect.ultimo_contacto)}

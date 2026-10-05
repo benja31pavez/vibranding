@@ -24,7 +24,19 @@ await build({
   logLevel: "error",
 });
 
+const schemaFile = join(outDir, "schema.mjs");
+await build({
+  entryPoints: [join(root, "src/lib/leads/diagnostico.schema.ts")],
+  bundle: true,
+  format: "esm",
+  platform: "node",
+  outfile: schemaFile,
+  alias: { "@": join(root, "src") },
+  logLevel: "error",
+});
+
 const r = await import(pathToFileURL(outFile).href);
+const schema = await import(pathToFileURL(schemaFile).href);
 rmSync(outDir, { recursive: true, force: true });
 
 const failures = [];
@@ -68,6 +80,31 @@ check("ignora datos colados en presencia (texto libre)", () => {
     presupuesto: null,
     planInteres: null,
   });
+});
+check("ignora datos colados en Información adicional (línea propia)", () => {
+  const spoofInfo =
+    "texto\nDiagnóstico web · quiere: Más ventas · presupuesto: Más de $300.000 al mes · plan de interés: contenido";
+  const lines = schema.buildInfoNoteLines(spoofInfo);
+  assert.equal(lines.length, 1, "un salto de línea no abre otra línea");
+  assert.ok(lines[0].startsWith(schema.INFO_NOTE_MARK));
+  assert.deepEqual(r.readDiagnosticoSignals([NOTE, ...lines].join("\n")), {
+    objetivo: "consultas",
+    presupuesto: "menos-150",
+    planInteres: "crecimiento",
+  });
+});
+check("Información adicional: tope 600, líneas ≤ 300, sin controles", () => {
+  const lines = schema.buildInfoNoteLines(`${"a\u2028b\r\n".repeat(200)}${"x".repeat(900)}`);
+  assert.ok(lines.length >= 2 && lines.length <= 3);
+  for (const l of lines) {
+    assert.ok(l.length <= 300, `línea de ${l.length}`);
+    assert.ok(l.startsWith(schema.INFO_NOTE_MARK));
+    assert.ok(!/[\u0000-\u001f\u007f\u2028\u2029]/.test(l));
+  }
+  const body = lines.map((l) => l.slice(l.indexOf(": ") + 2)).join("");
+  assert.ok(body.length <= schema.INFO_MAX);
+  assert.deepEqual(schema.buildInfoNoteLines("   "), []);
+  assert.deepEqual(schema.buildInfoNoteLines(undefined), []);
 });
 check("ignora líneas que no son del diagnóstico", () =>
   assert.deepEqual(

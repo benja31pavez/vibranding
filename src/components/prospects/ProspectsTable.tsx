@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import {
   ConvertAction,
   CreateProposalAction,
+  MarketingBadge,
   NoContactBadge,
   ResumeAction,
   StageSelect,
@@ -257,8 +258,9 @@ export function ProspectsTable({
                     >
                       {p.nombre}
                     </button>
-                    <span className="ml-2 inline-block align-middle">
+                    <span className="ml-2 inline-flex gap-1 align-middle">
                       <NoContactBadge prospect={p} />
+                      <MarketingBadge prospect={p} />
                     </span>
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">
