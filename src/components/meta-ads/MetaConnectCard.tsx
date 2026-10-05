@@ -52,8 +52,10 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
     const params = new URLSearchParams(window.location.search);
     const status = params.get("meta");
     const code = params.get("meta_error");
-    if (status === "conectado")
-      code ? toast.warning(metaOAuthErrorMessage(code)) : toast.success("Cuenta de Meta conectada");
+    if (status === "conectado") {
+      if (code) toast.warning(metaOAuthErrorMessage(code));
+      else toast.success("Cuenta de Meta conectada");
+    }
     if (status === "cancelado") toast.info("Conexión con Meta cancelada");
     if (status === "error") toast.error(metaOAuthErrorMessage(code));
   }, [clientId]);

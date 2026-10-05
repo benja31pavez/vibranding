@@ -34,6 +34,7 @@ const budgetValues = BUDGETS.map((b) => b.value) as [BudgetValue, ...BudgetValue
 const PHONE_RE = /^\+?[\d\s()-]{8,20}$/;
 
 /** Caracteres de control (incluye CR/LF): nunca válidos en campos de una línea. */
+// eslint-disable-next-line no-control-regex -- intencional: elimina caracteres de control
 const CONTROL_RE = /[\u0000-\u001f\u007f]/;
 const NO_CONTROL = "Usa solo texto, sin saltos de línea ni caracteres especiales";
 

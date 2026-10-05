@@ -7,6 +7,7 @@
 const SAFE_LINK_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 
 /** Caracteres de control/espacios que algunos navegadores ignoran dentro del esquema. */
+// eslint-disable-next-line no-control-regex -- intencional: elimina caracteres de control
 const CONTROL_CHARS = new RegExp("[\\u0000-\\u001F\\u007F-\\u009F\\u2028\\u2029]", "g");
 
 function parse(raw: string): URL | null {

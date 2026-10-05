@@ -308,11 +308,14 @@ export async function saveDiagnosticoLead(
 
 /** Asunto de una línea: sin CR/LF ni controles, máx. 120 caracteres. */
 export function safeSubject(raw: string): string {
-  return raw
-    .replace(/[\u0000-\u001f\u007f]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, SUBJECT_MAX);
+  return (
+    raw
+      // eslint-disable-next-line no-control-regex -- intencional: elimina caracteres de control
+      .replace(/[\u0000-\u001f\u007f]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, SUBJECT_MAX)
+  );
 }
 
 const OUTCOME_LABEL: Record<SaveOutcome, string> = {

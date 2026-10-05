@@ -149,7 +149,8 @@ export function ContractsPage({ clientId }: { clientId: string }) {
 
   const toggleService = (k: ServiceKey) => {
     const s = new Set(selected);
-    s.has(k) ? s.delete(k) : s.add(k);
+    if (s.has(k)) s.delete(k);
+    else s.add(k);
     setSelected(s);
   };
 

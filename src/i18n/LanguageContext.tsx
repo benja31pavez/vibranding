@@ -50,7 +50,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setLangState(l);
     try {
       window.localStorage.setItem(STORAGE_KEY, l);
-    } catch {}
+    } catch {
+      // localStorage puede no estar disponible (modo privado); se ignora.
+    }
   };
 
   const value = useMemo<Ctx>(() => ({ lang, setLang, t: translations[lang] }), [lang]);

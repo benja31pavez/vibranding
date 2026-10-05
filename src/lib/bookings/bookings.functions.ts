@@ -50,8 +50,10 @@ export const getBookingPage = createServerFn({ method: "POST" })
   });
 
 /** Control characters (incl. CR/LF), stripped from single-line fields. */
+// eslint-disable-next-line no-control-regex -- intencional: elimina caracteres de control
 const CONTROL_CHARS = /[\u0000-\u001F\u007F]+/g;
 /** Same but keeps \n (notes are multi-line). */
+// eslint-disable-next-line no-control-regex -- intencional: elimina caracteres de control
 const CONTROL_CHARS_EXCEPT_LF = /[\u0000-\u0009\u000B-\u001F\u007F]+/g;
 
 const singleLine = (v: string) => v.replace(CONTROL_CHARS, " ").replace(/\s+/g, " ").trim();

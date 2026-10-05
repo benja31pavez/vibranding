@@ -131,7 +131,7 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
 
               const type = msg.type as string;
               let body = "";
-              let mediaUrl: string | null = null;
+              const mediaUrl: string | null = null;
               if (type === "text") body = msg.text?.body ?? "";
               else if (type === "button") body = msg.button?.text ?? "";
               let interactiveId: string | null = null;
