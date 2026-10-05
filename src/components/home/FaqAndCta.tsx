@@ -122,7 +122,7 @@ export function WhatsAppFloat() {
       href={whatsappUrl()}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={() => trackLandingEvent("whatsapp_click", lang)}
+      onClick={() => trackLandingEvent("whatsapp_click", lang, "whatsapp:flotante")}
       aria-label={t.home.floatLabel}
       aria-hidden={hidden || undefined}
       tabIndex={hidden ? -1 : undefined}

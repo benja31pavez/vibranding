@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { withoutBots } from "@/lib/analytics/bots";
 import { Button } from "@/components/ui/button";
 import {
   Area,
@@ -13,6 +14,7 @@ import {
 import { BarChart3 } from "lucide-react";
 
 type EventRow = {
+  user_agent?: string | null;
   event_name: string;
   item_id: string | null;
   utm_source: string | null;
@@ -65,7 +67,7 @@ export function EventsPanel({
     from.setHours(0, 0, 0, 0);
     supabase
       .from("landing_events")
-      .select("event_name,item_id,utm_source,utm_medium,utm_campaign,created_at")
+      .select("event_name,item_id,utm_source,utm_medium,utm_campaign,created_at,user_agent")
       .eq("client_id", clientId)
       .eq("source_type", sourceType)
       .eq("source_id", sourceId)
@@ -73,7 +75,7 @@ export function EventsPanel({
       .order("created_at", { ascending: true })
       .then(({ data }) => {
         if (cancelled) return;
-        setRows((data ?? []) as EventRow[]);
+        setRows(withoutBots((data ?? []) as EventRow[]));
         setLoading(false);
       });
     return () => {

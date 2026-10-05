@@ -67,9 +67,12 @@ export function WhatsAppCta({
   variant = "primary",
   size = "lg",
   className,
+  cta = "whatsapp",
 }: {
   children: React.ReactNode;
   message?: string;
+  /** Id del botón para Estadísticas (p. ej. "plan:crecimiento"). */
+  cta?: string;
   variant?: CtaVariant;
   size?: "sm" | "lg";
   className?: string;
@@ -80,7 +83,7 @@ export function WhatsAppCta({
       href={whatsappUrl(message)}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={() => trackLandingEvent("whatsapp_click", lang)}
+      onClick={() => trackLandingEvent("whatsapp_click", lang, cta)}
       className={cn(
         "btn-fx inline-flex items-center justify-center gap-2 rounded-full font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         size === "lg" ? "h-12 px-7 text-base" : "h-10 px-4 text-sm",

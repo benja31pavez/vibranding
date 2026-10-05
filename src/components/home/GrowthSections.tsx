@@ -71,7 +71,9 @@ export function DiagnosticoLink({
       to="/diagnostico"
       search={plan ? { plan } : {}}
       // contact_click = CTA de diagnóstico; los botones de WhatsApp registran whatsapp_click.
-      onClick={() => trackLandingEvent("contact_click", "es")}
+      onClick={() =>
+        trackLandingEvent("contact_click", "es", plan ? `plan:${plan}` : "diagnostico")
+      }
       className={cn(
         "btn-fx inline-flex items-center justify-center gap-2 rounded-full font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         size === "lg" ? "h-12 px-7 text-base" : "h-10 px-4 text-sm",
