@@ -2,15 +2,23 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { addDaysYmd, chileToday } from "@/lib/dates/chile";
 import { requireGoogleAdsConfig, type GoogleAdsConfig } from "@/lib/google-ads/config.server";
-import { GoogleAdsError, refreshAccessToken, searchStream } from "@/lib/google-ads/client.server";
+import { GoogleAdsError, searchStream } from "@/lib/google-ads/client.server";
 import {
   CUSTOMER_CURRENCY_QUERY,
   buildCampaignDailyQuery,
   flattenSearchStream,
   parseCampaignDailyRows,
 } from "@/lib/google-ads/gaql";
-import { getGoogleAdsRefreshToken } from "@/lib/google-ads/tokens.server";
-import { markSyncResult, type GoogleAdsAccountRow } from "@/lib/google-ads/connection.server";
+import {
+  GOOGLE_ADS_ACCOUNT_COLUMNS,
+  markSyncResult,
+  type GoogleAdsAccountRow,
+} from "@/lib/google-ads/connection.server";
+import {
+  getAccessForAccount,
+  newAccessCache,
+  type AccessCache,
+} from "@/lib/google-ads/agency.server";
 
 /** El cron re-descarga los últimos 3 días: Google ajusta conversiones con retraso. */
 export const INGEST_WINDOW_DAYS = 3;
@@ -39,14 +47,15 @@ export function ingestWindow(days: number, now: Date = new Date()): { from: stri
 async function assertClpAccount(
   cfg: GoogleAdsConfig,
   accessToken: string,
-  account: Pick<GoogleAdsAccountRow, "customer_id" | "manager_customer_id">,
+  customerId: string,
+  loginCustomerId: string | null,
 ) {
   const body = await searchStream(
     cfg,
     accessToken,
-    account.customer_id,
+    customerId,
     CUSTOMER_CURRENCY_QUERY,
-    account.manager_customer_id,
+    loginCustomerId,
   );
   const currency = flattenSearchStream(body)[0]?.customer?.currencyCode ?? null;
   // Falla cerrado: sin moneda confirmada no se guarda nada en cost_clp.
@@ -69,6 +78,7 @@ export async function ingestAccount(
   account: GoogleAdsAccountRow,
   days: number = INGEST_WINDOW_DAYS,
   cfg: GoogleAdsConfig = requireGoogleAdsConfig(),
+  cache: AccessCache = newAccessCache(),
 ): Promise<IngestAccountResult> {
   const { from, to } = ingestWindow(days);
   const base = {
@@ -79,18 +89,16 @@ export async function ingestAccount(
     to,
   };
   try {
-    const refreshToken = await getGoogleAdsRefreshToken(account.id);
-    if (!refreshToken)
-      throw new GoogleAdsError("No hay token guardado. Vuelve a conectar Google Ads.", 401, true);
-    const accessToken = await refreshAccessToken(cfg, refreshToken);
-    await assertClpAccount(cfg, accessToken, account);
+    // Token propio del cliente o el de la MCC de la agencia (login-customer-id = MCC).
+    const { accessToken, loginCustomerId } = await getAccessForAccount(cfg, account, cache);
+    await assertClpAccount(cfg, accessToken, account.customer_id, loginCustomerId);
 
     const body = await searchStream(
       cfg,
       accessToken,
       account.customer_id,
       buildCampaignDailyQuery(from, to),
-      account.manager_customer_id,
+      loginCustomerId,
     );
     const rows = parseCampaignDailyRows(body).map((r) => ({
       ...r,
@@ -118,7 +126,7 @@ export async function ingestAccount(
   }
 }
 
-async function runPool<T>(
+export async function runPool<T>(
   items: T[],
   concurrency: number,
   fn: (item: T) => Promise<void>,
@@ -153,11 +161,10 @@ export async function runIngestBatch(opts: {
 
   const { data, error } = await supabaseAdmin
     .from("google_ads_accounts")
-    .select(
-      "id,client_id,org_id,customer_id,manager_customer_id,status,token_secret_id,last_synced_at,last_sync_error",
-    )
+    .select(GOOGLE_ADS_ACCOUNT_COLUMNS)
     .eq("status", "conectada")
-    .not("token_secret_id", "is", null)
+    // Token propio guardado, o cuenta leída con la MCC de la agencia.
+    .or("token_secret_id.not.is.null,auth_source.eq.agencia")
     .order("id", { ascending: true })
     // Se pide uno extra para saber si queda otro lote.
     .range(offset, offset + limit);
@@ -166,8 +173,9 @@ export async function runIngestBatch(opts: {
   const all = (data ?? []) as GoogleAdsAccountRow[];
   const batch = all.slice(0, limit);
   const results: IngestAccountResult[] = [];
+  const cache = newAccessCache();
   await runPool(batch, CONCURRENCY, async (account) => {
-    results.push(await ingestAccount(account, INGEST_WINDOW_DAYS, cfg));
+    results.push(await ingestAccount(account, INGEST_WINDOW_DAYS, cfg, cache));
   });
 
   const failed = results.filter((r) => r.error).length;

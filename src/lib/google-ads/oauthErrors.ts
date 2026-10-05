@@ -15,6 +15,8 @@ export const GOOGLE_OAUTH_ERRORS = {
   account_taken: "Esa cuenta de Google Ads ya está vinculada a otro cliente.",
   sync_failed:
     "Conectado, pero la primera descarga de métricas falló. Usa «Actualizar ahora» para reintentar.",
+  no_manager:
+    "Esa cuenta de Google no administra ninguna cuenta de administrador (MCC). Inicia sesión con el Google que administra la MCC de la agencia.",
   unknown: "No se pudo conectar con Google.",
 } as const;
 

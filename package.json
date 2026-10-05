@@ -32,7 +32,8 @@
     "check:security-headers": "node scripts/check-security-headers.mjs",
     "check:fit-list": "node scripts/check-fit-list.mjs",
     "check:plan-stages": "node scripts/check-plan-stages.mjs",
-    "check:profile": "node scripts/check-profile.mjs"
+    "check:profile": "node scripts/check-profile.mjs",
+    "check:google-ads-billing": "node scripts/check-google-ads-billing.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

@@ -11,11 +11,24 @@ function validateClientInput(input: unknown): { clientId: string } {
   return { clientId };
 }
 
+/** De dónde salen las cuentas a elegir: token propio del cliente o MCC de la agencia. */
+export type CustomerSource = "cliente" | "agencia";
+
+function validatePickInput(input: unknown): { clientId: string; source: CustomerSource | null } {
+  const { clientId } = validateClientInput(input);
+  const raw = (input as { source?: unknown }).source;
+  if (raw !== undefined && raw !== null && raw !== "cliente" && raw !== "agencia") {
+    throw new Error("Origen inválido");
+  }
+  return { clientId, source: (raw as CustomerSource | undefined) ?? null };
+}
+
 export type GoogleAdsConnectionView = {
   customerId: string;
   managerCustomerId: string | null;
   status: "pendiente" | "conectada" | "error" | "desconectada";
   hasToken: boolean;
+  authSource: CustomerSource;
   lastSyncedAt: string | null;
   lastSyncError: string | null;
 };
@@ -24,6 +37,8 @@ export type GoogleAdsOverview = {
   configured: boolean;
   missing: { name: string; why: string }[];
   connection: GoogleAdsConnectionView | null;
+  /** MCC de la agencia lista para vincular clientes (Configuración → Google Ads). */
+  agency: { managerCustomerId: string; managerName: string | null } | null;
 };
 
 export type GoogleAdsCustomerChoice = {
@@ -36,31 +51,59 @@ export type GoogleAdsCustomerChoice = {
   takenBy: string | null;
 };
 
-/** Estado de configuración (qué variables faltan) y de la conexión del cliente. */
+/** Estado de configuración, conexión del cliente y MCC de la agencia. */
 export const getGoogleAdsOverview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(validateClientInput)
   .handler(async ({ data, context }): Promise<GoogleAdsOverview> => {
     const { missingGoogleAdsVars } = await import("@/lib/google-ads/config.server");
+    const { isAgencyReady } = await import("@/lib/google-ads/agency");
     const missing = missingGoogleAdsVars();
-    // Con la sesión del usuario: RLS decide si puede ver la conexión.
-    const { data: row, error } = await context.supabase
+    // Con la sesión del usuario: RLS decide qué puede ver.
+    const accountRes = await context.supabase
       .from("google_ads_accounts")
       .select(
-        "customer_id,manager_customer_id,status,token_secret_id,last_synced_at,last_sync_error",
+        "org_id,customer_id,manager_customer_id,status,token_secret_id,auth_source,last_synced_at,last_sync_error",
       )
       .eq("client_id", data.clientId)
       .maybeSingle();
-    if (error) throw new Error("No se pudo leer la conexión de Google Ads");
+    if (accountRes.error) throw new Error("No se pudo leer la conexión de Google Ads");
+    const row = accountRes.data;
+
+    // MCC de la agencia: la org del cliente (RLS: miembros de la org la ven).
+    const { data: client } = await context.supabase
+      .from("clients")
+      .select("org_id")
+      .eq("id", data.clientId)
+      .maybeSingle();
+    const orgId = row?.org_id ?? client?.org_id ?? null;
+    const { data: agencyRow } = orgId
+      ? await context.supabase
+          .from("google_ads_agency_connection")
+          .select("status,manager_customer_id,manager_name,token_secret_id")
+          .eq("org_id", orgId)
+          .maybeSingle()
+      : { data: null };
+    const agencyReady = isAgencyReady(agencyRow ?? null);
+    const authSource: CustomerSource = row?.auth_source === "agencia" ? "agencia" : "cliente";
+
     return {
       configured: missing.length === 0,
       missing,
+      agency:
+        agencyReady && agencyRow?.manager_customer_id
+          ? {
+              managerCustomerId: agencyRow.manager_customer_id,
+              managerName: agencyRow.manager_name,
+            }
+          : null,
       connection: row
         ? {
             customerId: row.customer_id,
             managerCustomerId: row.manager_customer_id,
             status: row.status as GoogleAdsConnectionView["status"],
-            hasToken: Boolean(row.token_secret_id),
+            hasToken: authSource === "agencia" ? agencyReady : Boolean(row.token_secret_id),
+            authSource,
             lastSyncedAt: row.last_synced_at,
             lastSyncError: row.last_sync_error,
           }
@@ -108,13 +151,41 @@ async function loadAuthorizedAccount(userId: string, clientId: string) {
   return account;
 }
 
-async function discoverForAccount(accountId: string) {
+/**
+ * Origen de las cuentas a elegir. Por defecto: el token propio si el cliente
+ * lo tiene (compatibilidad); si no, la MCC de la agencia.
+ */
+async function resolvePickContext(userId: string, clientId: string, wanted: CustomerSource | null) {
+  const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+  await assertCanEditClient(userId, clientId);
+  const { getAccountByClient, getClientOrgId } = await import("@/lib/google-ads/connection.server");
+  const account = await getAccountByClient(clientId);
+  const orgId = account?.org_id ?? (await getClientOrgId(clientId));
+  const ownTokenAvailable = Boolean(account?.token_secret_id && account.auth_source !== "agencia");
+  const source: CustomerSource = wanted ?? (ownTokenAvailable ? "cliente" : "agencia");
+  if (source === "cliente" && !ownTokenAvailable) {
+    throw new Error("Este cliente no tiene una cuenta de Google propia conectada");
+  }
+  return { account, orgId, source };
+}
+
+async function discoverForSource(
+  source: CustomerSource,
+  orgId: string,
+  accountId: string | null,
+): Promise<{ options: import("@/lib/google-ads/gaql").CustomerOption[]; errors: string[] }> {
   const { requireGoogleAdsConfig } = await import("@/lib/google-ads/config.server");
+  const cfg = requireGoogleAdsConfig();
+  if (source === "agencia") {
+    const { discoverAgencyCustomers, getAgencyConnection } =
+      await import("@/lib/google-ads/agency.server");
+    const options = await discoverAgencyCustomers(cfg, await getAgencyConnection(orgId));
+    return { options, errors: [] };
+  }
   const { getGoogleAdsRefreshToken } = await import("@/lib/google-ads/tokens.server");
   const { refreshAccessToken } = await import("@/lib/google-ads/client.server");
   const { discoverCustomers } = await import("@/lib/google-ads/accounts.server");
-  const cfg = requireGoogleAdsConfig();
-  const refreshToken = await getGoogleAdsRefreshToken(accountId);
+  const refreshToken = accountId ? await getGoogleAdsRefreshToken(accountId) : null;
   if (!refreshToken) throw new Error("No hay token guardado. Vuelve a conectar Google Ads.");
   const accessToken = await refreshAccessToken(cfg, refreshToken);
   return discoverCustomers(cfg, accessToken);
@@ -123,17 +194,25 @@ async function discoverForAccount(accountId: string) {
 /** Cuentas que puede elegir este cliente (marcando las ya vinculadas a otros). */
 export const listGoogleAdsCustomers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(validateClientInput)
+  .inputValidator(validatePickInput)
   .handler(
     async ({
       data,
       context,
-    }): Promise<{ customers: GoogleAdsCustomerChoice[]; warnings: string[] }> => {
-      const account = await loadAuthorizedAccount(context.userId, data.clientId);
+    }): Promise<{
+      customers: GoogleAdsCustomerChoice[];
+      warnings: string[];
+      source: CustomerSource;
+    }> => {
+      const { account, orgId, source } = await resolvePickContext(
+        context.userId,
+        data.clientId,
+        data.source,
+      );
       const { getTakenCustomers } = await import("@/lib/google-ads/connection.server");
       const [{ options, errors }, taken] = await Promise.all([
-        discoverForAccount(account.id),
-        getTakenCustomers(data.clientId, account.org_id),
+        discoverForSource(source, orgId, account?.id ?? null),
+        getTakenCustomers(data.clientId, orgId),
       ]);
       return {
         customers: options.map((o) => ({
@@ -145,33 +224,43 @@ export const listGoogleAdsCustomers = createServerFn({ method: "POST" })
           takenBy: taken.get(o.customerId) ?? null,
         })),
         warnings: errors,
+        source,
       };
     },
   );
 
-/** Vincula la cuenta elegida y trae el último mes de métricas. */
+/** Vincula la cuenta elegida, trae el último mes y revisa la facturación. */
 export const linkGoogleAdsCustomer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => {
-    const { clientId } = validateClientInput(input);
+    const { clientId, source } = validatePickInput(input);
     const raw = (input as { customerId?: unknown }).customerId;
     const customerId = typeof raw === "string" ? raw.replace(/-/g, "").trim() : "";
     if (!/^\d{10}$/.test(customerId)) throw new Error("ID de cuenta inválido");
-    return { clientId, customerId };
+    return { clientId, customerId, source };
   })
   .handler(async ({ data, context }) => {
-    const account = await loadAuthorizedAccount(context.userId, data.clientId);
+    const { account, orgId, source } = await resolvePickContext(
+      context.userId,
+      data.clientId,
+      data.source,
+    );
     const { getTakenCustomers, saveConnection } =
       await import("@/lib/google-ads/connection.server");
-    const { isLinkable } = await import("@/lib/google-ads/gaql");
 
-    // No se confía en el navegador: la cuenta debe ser accesible con el token guardado.
+    // No se confía en el navegador: la cuenta debe ser accesible con el token elegido.
     const [{ options }, taken] = await Promise.all([
-      discoverForAccount(account.id),
-      getTakenCustomers(data.clientId, account.org_id),
+      discoverForSource(source, orgId, account?.id ?? null),
+      getTakenCustomers(data.clientId, orgId),
     ]);
     const option = options.find((o) => o.customerId === data.customerId);
-    if (!option) throw new Error("Esa cuenta no es accesible con la cuenta de Google conectada");
+    if (!option) {
+      throw new Error(
+        source === "agencia"
+          ? "Esa cuenta no está bajo la MCC de la agencia"
+          : "Esa cuenta no es accesible con la cuenta de Google conectada",
+      );
+    }
     if (option.isManager)
       throw new Error("Elige una cuenta de anuncios, no una cuenta administradora (MCC)");
     if (option.currency !== "CLP") {
@@ -185,13 +274,23 @@ export const linkGoogleAdsCustomer = createServerFn({ method: "POST" })
 
     const saved = await saveConnection({
       clientId: data.clientId,
-      orgId: account.org_id,
+      orgId,
       option,
       status: "conectada",
+      authSource: source,
     });
+    const { requireGoogleAdsConfig } = await import("@/lib/google-ads/config.server");
+    const cfg = requireGoogleAdsConfig();
     const { ingestAccount, BACKFILL_DAYS } = await import("@/lib/google-ads/ingest.server");
-    const sync = await ingestAccount(saved, BACKFILL_DAYS);
-    return { ok: true, rows: sync.rows, syncError: sync.error ?? null };
+    const { checkClientBillingNow } = await import("@/lib/google-ads/billing.server");
+    const sync = await ingestAccount(saved, BACKFILL_DAYS, cfg);
+    const billing = await checkClientBillingNow(saved, cfg);
+    return {
+      ok: true,
+      rows: sync.rows,
+      syncError: sync.error ?? null,
+      billingVerdict: billing.verdict,
+    };
   });
 
 /** Re-descarga el último mes para este cliente (botón "Actualizar ahora"). */
@@ -201,10 +300,15 @@ export const syncGoogleAdsNow = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const account = await loadAuthorizedAccount(context.userId, data.clientId);
     if (account.status !== "conectada") throw new Error("Primero elige la cuenta de Google Ads");
+    const { requireGoogleAdsConfig } = await import("@/lib/google-ads/config.server");
+    const cfg = requireGoogleAdsConfig();
     const { ingestAccount, BACKFILL_DAYS } = await import("@/lib/google-ads/ingest.server");
-    const sync = await ingestAccount(account, BACKFILL_DAYS);
+    const { checkClientBillingNow } = await import("@/lib/google-ads/billing.server");
+    const sync = await ingestAccount(account, BACKFILL_DAYS, cfg);
     if (sync.error) throw new Error(sync.error);
-    return { rows: sync.rows };
+    // También refresca el estado de facturación (chip y alerta).
+    const billing = await checkClientBillingNow(account, cfg);
+    return { rows: sync.rows, billingError: billing.error ?? null };
   });
 
 /** Borra el token de Vault y la conexión; las métricas ya descargadas se conservan. */
@@ -214,6 +318,6 @@ export const disconnectGoogleAds = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const account = await loadAuthorizedAccount(context.userId, data.clientId);
     const { deleteConnection } = await import("@/lib/google-ads/connection.server");
-    await deleteConnection(account.id);
+    await deleteConnection(account.id, account.client_id);
     return { ok: true };
   });

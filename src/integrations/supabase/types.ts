@@ -1057,6 +1057,7 @@ export type Database = {
       }
       google_ads_accounts: {
         Row: {
+          auth_source: string
           client_id: string
           created_at: string
           customer_id: string
@@ -1070,6 +1071,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auth_source?: string
           client_id: string
           created_at?: string
           customer_id: string
@@ -1083,6 +1085,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auth_source?: string
           client_id?: string
           created_at?: string
           customer_id?: string
@@ -1108,6 +1111,118 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_ads_agency_connection: {
+        Row: {
+          connected_by: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          manager_customer_id: string | null
+          manager_name: string | null
+          org_id: string
+          status: string
+          token_secret_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          connected_by?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          manager_customer_id?: string | null
+          manager_name?: string | null
+          org_id: string
+          status?: string
+          token_secret_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          connected_by?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          manager_customer_id?: string | null
+          manager_name?: string | null
+          org_id?: string
+          status?: string
+          token_secret_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_agency_connection_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_ads_billing_status: {
+        Row: {
+          billing_status: string | null
+          budget_end_at: string | null
+          budget_limit_clp: number | null
+          budget_served_clp: number | null
+          check_error: string | null
+          checked_at: string
+          client_id: string
+          created_at: string
+          customer_id: string | null
+          customer_status: string | null
+          detail: string | null
+          has_valid_billing: boolean
+          last_success_at: string | null
+          payments_account_name: string | null
+          updated_at: string
+          verdict: string
+        }
+        Insert: {
+          billing_status?: string | null
+          budget_end_at?: string | null
+          budget_limit_clp?: number | null
+          budget_served_clp?: number | null
+          check_error?: string | null
+          checked_at?: string
+          client_id: string
+          created_at?: string
+          customer_id?: string | null
+          customer_status?: string | null
+          detail?: string | null
+          has_valid_billing?: boolean
+          last_success_at?: string | null
+          payments_account_name?: string | null
+          updated_at?: string
+          verdict?: string
+        }
+        Update: {
+          billing_status?: string | null
+          budget_end_at?: string | null
+          budget_limit_clp?: number | null
+          budget_served_clp?: number | null
+          check_error?: string | null
+          checked_at?: string
+          client_id?: string
+          created_at?: string
+          customer_id?: string | null
+          customer_status?: string | null
+          detail?: string | null
+          has_valid_billing?: boolean
+          last_success_at?: string | null
+          payments_account_name?: string | null
+          updated_at?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_billing_status_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -4219,6 +4334,11 @@ export type Database = {
       get_monthly_report_by_token: { Args: { _token: string }; Returns: Json }
       get_onboarding_by_token: { Args: { _token: string }; Returns: Json }
       get_proposal_by_token: { Args: { _token: string }; Returns: Json }
+      google_ads_agency_get_secret: { Args: { _org_id: string }; Returns: string }
+      google_ads_agency_set_secret: {
+        Args: { _org_id: string; _secret: string }
+        Returns: string
+      }
       google_ads_get_secret: { Args: { _account_id: string }; Returns: string }
       google_ads_set_secret: {
         Args: { _account_id: string; _secret: string }

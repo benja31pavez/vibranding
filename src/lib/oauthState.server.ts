@@ -8,9 +8,10 @@
 // en otro navegador: login CSRF / vinculación de cuenta ajena).
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
 
-export type OAuthPurpose = "google_ads" | "meta";
+export type OAuthPurpose = "google_ads" | "google_ads_agency" | "meta";
 
 export type OAuthState = {
+  /** Cliente del flujo; en "google_ads_agency" es el org_id de la agencia. */
   clientId: string;
   userId: string;
   exp: number;
@@ -26,6 +27,8 @@ const NONCE_RE = /^[0-9a-f]{32}$/;
 
 const CALLBACK_PATH: Record<OAuthPurpose, string> = {
   google_ads: "/api/public/google/oauth/callback",
+  // Mismo redirect URI registrado en Google Cloud; el flujo se distingue por el state.
+  google_ads_agency: "/api/public/google/oauth/callback",
   meta: "/api/public/meta/oauth/callback",
 };
 
@@ -94,6 +97,23 @@ export async function createOAuthState(
   const payload = b64url(JSON.stringify(state));
   const sig = await hmacSha256Hex(secret, payload);
   return `${payload}.${sig}`;
+}
+
+/**
+ * Flujo declarado en el state SIN verificar (solo para elegir con qué
+ * propósito llamar a verifyState, que es quien valida firma, vigencia y nonce).
+ */
+export function peekStatePurpose(raw: string): OAuthPurpose | null {
+  const [payload] = raw.split(".");
+  if (!payload) return null;
+  try {
+    const purpose = (JSON.parse(b64urlDecode(payload)) as { purpose?: unknown }).purpose;
+    return purpose === "google_ads" || purpose === "google_ads_agency" || purpose === "meta"
+      ? purpose
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /**

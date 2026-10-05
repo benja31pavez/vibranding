@@ -57,6 +57,7 @@ import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$c
 import { Route as AppClientsConnectRouteImport } from './routes/_app/clients/connect'
 import { Route as AppProposalsProposalIdRouteImport } from './routes/_app/proposals/$proposalId'
 import { Route as AppProposalsNewRouteImport } from './routes/_app/proposals/new'
+import { Route as AppSettingsGoogleAdsRouteImport } from './routes/_app/settings/google-ads'
 import { Route as AppSettingsMetaRouteImport } from './routes/_app/settings/meta'
 import { Route as AppSettingsPricingRouteImport } from './routes/_app/settings/pricing'
 import { Route as ApiMetaAdsArchiveRouteImport } from './routes/api/meta-ads/archive'
@@ -91,6 +92,7 @@ import { Route as ApiPublicAlertsRunRouteImport } from './routes/api/public/aler
 import { Route as ApiPublicBillingChargeMonthlyRouteImport } from './routes/api/public/billing/charge-monthly'
 import { Route as ApiPublicFlowConfirmRouteImport } from './routes/api/public/flow/confirm'
 import { Route as ApiPublicFlowReturnRouteImport } from './routes/api/public/flow/return'
+import { Route as ApiPublicGoogleBillingCheckRouteImport } from './routes/api/public/google/billing-check'
 import { Route as ApiPublicGoogleIngestDailyRouteImport } from './routes/api/public/google/ingest-daily'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram/webhook'
 import { Route as ApiPublicMetaIngestDailyRouteImport } from './routes/api/public/meta/ingest-daily'
@@ -343,6 +345,11 @@ const AppProposalsNewRoute = AppProposalsNewRouteImport.update({
   path: '/proposals/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsGoogleAdsRoute = AppSettingsGoogleAdsRouteImport.update({
+  id: '/settings/google-ads',
+  path: '/settings/google-ads',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsMetaRoute = AppSettingsMetaRouteImport.update({
   id: '/settings/meta',
   path: '/settings/meta',
@@ -532,6 +539,12 @@ const ApiPublicFlowReturnRoute = ApiPublicFlowReturnRouteImport.update({
   path: '/api/public/flow/return',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicGoogleBillingCheckRoute =
+  ApiPublicGoogleBillingCheckRouteImport.update({
+    id: '/api/public/google/billing-check',
+    path: '/api/public/google/billing-check',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicGoogleIngestDailyRoute =
   ApiPublicGoogleIngestDailyRouteImport.update({
     id: '/api/public/google/ingest-daily',
@@ -633,6 +646,7 @@ export interface FileRoutesByFullPath {
   '/clients/connect': typeof AppClientsConnectRoute
   '/proposals/$proposalId': typeof AppProposalsProposalIdRoute
   '/proposals/new': typeof AppProposalsNewRoute
+  '/settings/google-ads': typeof AppSettingsGoogleAdsRoute
   '/settings/meta': typeof AppSettingsMetaRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -667,6 +681,7 @@ export interface FileRoutesByFullPath {
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
+  '/api/public/google/billing-check': typeof ApiPublicGoogleBillingCheckRoute
   '/api/public/google/ingest-daily': typeof ApiPublicGoogleIngestDailyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
@@ -724,6 +739,7 @@ export interface FileRoutesByTo {
   '/clients/connect': typeof AppClientsConnectRoute
   '/proposals/$proposalId': typeof AppProposalsProposalIdRoute
   '/proposals/new': typeof AppProposalsNewRoute
+  '/settings/google-ads': typeof AppSettingsGoogleAdsRoute
   '/settings/meta': typeof AppSettingsMetaRoute
   '/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -758,6 +774,7 @@ export interface FileRoutesByTo {
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
+  '/api/public/google/billing-check': typeof ApiPublicGoogleBillingCheckRoute
   '/api/public/google/ingest-daily': typeof ApiPublicGoogleIngestDailyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
@@ -818,6 +835,7 @@ export interface FileRoutesById {
   '/_app/clients/connect': typeof AppClientsConnectRoute
   '/_app/proposals/$proposalId': typeof AppProposalsProposalIdRoute
   '/_app/proposals/new': typeof AppProposalsNewRoute
+  '/_app/settings/google-ads': typeof AppSettingsGoogleAdsRoute
   '/_app/settings/meta': typeof AppSettingsMetaRoute
   '/_app/settings/pricing': typeof AppSettingsPricingRoute
   '/api/meta-ads/archive': typeof ApiMetaAdsArchiveRoute
@@ -852,6 +870,7 @@ export interface FileRoutesById {
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
+  '/api/public/google/billing-check': typeof ApiPublicGoogleBillingCheckRoute
   '/api/public/google/ingest-daily': typeof ApiPublicGoogleIngestDailyRoute
   '/api/public/instagram/webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
@@ -912,6 +931,7 @@ export interface FileRouteTypes {
     | '/clients/connect'
     | '/proposals/$proposalId'
     | '/proposals/new'
+    | '/settings/google-ads'
     | '/settings/meta'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
@@ -946,6 +966,7 @@ export interface FileRouteTypes {
     | '/api/public/billing/charge-monthly'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
+    | '/api/public/google/billing-check'
     | '/api/public/google/ingest-daily'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
@@ -1003,6 +1024,7 @@ export interface FileRouteTypes {
     | '/clients/connect'
     | '/proposals/$proposalId'
     | '/proposals/new'
+    | '/settings/google-ads'
     | '/settings/meta'
     | '/settings/pricing'
     | '/api/meta-ads/archive'
@@ -1037,6 +1059,7 @@ export interface FileRouteTypes {
     | '/api/public/billing/charge-monthly'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
+    | '/api/public/google/billing-check'
     | '/api/public/google/ingest-daily'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
@@ -1096,6 +1119,7 @@ export interface FileRouteTypes {
     | '/_app/clients/connect'
     | '/_app/proposals/$proposalId'
     | '/_app/proposals/new'
+    | '/_app/settings/google-ads'
     | '/_app/settings/meta'
     | '/_app/settings/pricing'
     | '/api/meta-ads/archive'
@@ -1130,6 +1154,7 @@ export interface FileRouteTypes {
     | '/api/public/billing/charge-monthly'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
+    | '/api/public/google/billing-check'
     | '/api/public/google/ingest-daily'
     | '/api/public/instagram/webhook'
     | '/api/public/meta/ingest-daily'
@@ -1181,6 +1206,7 @@ export interface RootRouteChildren {
   ApiPublicBillingChargeMonthlyRoute: typeof ApiPublicBillingChargeMonthlyRoute
   ApiPublicFlowConfirmRoute: typeof ApiPublicFlowConfirmRoute
   ApiPublicFlowReturnRoute: typeof ApiPublicFlowReturnRoute
+  ApiPublicGoogleBillingCheckRoute: typeof ApiPublicGoogleBillingCheckRoute
   ApiPublicGoogleIngestDailyRoute: typeof ApiPublicGoogleIngestDailyRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicMetaIngestDailyRoute: typeof ApiPublicMetaIngestDailyRoute
@@ -1530,6 +1556,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProposalsNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/google-ads': {
+      id: '/_app/settings/google-ads'
+      path: '/settings/google-ads'
+      fullPath: '/settings/google-ads'
+      preLoaderRoute: typeof AppSettingsGoogleAdsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/meta': {
       id: '/_app/settings/meta'
       path: '/settings/meta'
@@ -1768,6 +1801,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicFlowReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/google/billing-check': {
+      id: '/api/public/google/billing-check'
+      path: '/api/public/google/billing-check'
+      fullPath: '/api/public/google/billing-check'
+      preLoaderRoute: typeof ApiPublicGoogleBillingCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/google/ingest-daily': {
       id: '/api/public/google/ingest-daily'
       path: '/api/public/google/ingest-daily'
@@ -1917,6 +1957,7 @@ interface AppRouteChildren {
   AppClientsConnectRoute: typeof AppClientsConnectRoute
   AppProposalsProposalIdRoute: typeof AppProposalsProposalIdRoute
   AppProposalsNewRoute: typeof AppProposalsNewRoute
+  AppSettingsGoogleAdsRoute: typeof AppSettingsGoogleAdsRoute
   AppSettingsMetaRoute: typeof AppSettingsMetaRoute
   AppSettingsPricingRoute: typeof AppSettingsPricingRoute
   AppClientsIndexRoute: typeof AppClientsIndexRoute
@@ -1941,6 +1982,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppClientsConnectRoute: AppClientsConnectRoute,
   AppProposalsProposalIdRoute: AppProposalsProposalIdRoute,
   AppProposalsNewRoute: AppProposalsNewRoute,
+  AppSettingsGoogleAdsRoute: AppSettingsGoogleAdsRoute,
   AppSettingsMetaRoute: AppSettingsMetaRoute,
   AppSettingsPricingRoute: AppSettingsPricingRoute,
   AppClientsIndexRoute: AppClientsIndexRoute,
@@ -1987,6 +2029,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBillingChargeMonthlyRoute: ApiPublicBillingChargeMonthlyRoute,
   ApiPublicFlowConfirmRoute: ApiPublicFlowConfirmRoute,
   ApiPublicFlowReturnRoute: ApiPublicFlowReturnRoute,
+  ApiPublicGoogleBillingCheckRoute: ApiPublicGoogleBillingCheckRoute,
   ApiPublicGoogleIngestDailyRoute: ApiPublicGoogleIngestDailyRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicMetaIngestDailyRoute: ApiPublicMetaIngestDailyRoute,

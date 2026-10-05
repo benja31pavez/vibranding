@@ -22,8 +22,14 @@ export const Route = createFileRoute("/api/public/google/oauth/callback")({
         }
 
         const url = new URL(request.url);
-        const { verifyState, redirectClearingOAuthCookie } =
+        const { verifyState, redirectClearingOAuthCookie, peekStatePurpose } =
           await import("@/lib/oauthState.server");
+        // Conexión única de la agencia (MCC): mismo redirect URI, otro flujo.
+        if (peekStatePurpose(url.searchParams.get("state") ?? "") === "google_ads_agency") {
+          const { handleAgencyOAuthCallback } =
+            await import("@/lib/google-ads/agencyCallback.server");
+          return handleAgencyOAuthCallback(request, cfg);
+        }
         // Firma, vigencia, flujo "google_ads" y nonce == cookie del navegador que inició.
         const state = await verifyState(
           url.searchParams.get("state") ?? "",
