@@ -16,7 +16,6 @@ interface MobileClientSheetProps {
   activeClient: ClientSummary | null;
   path: string;
   staleOutcomes: number;
-  onDisconnect: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
