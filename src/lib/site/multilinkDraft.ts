@@ -5,6 +5,7 @@
 import { socialNetwork, videoEmbedUrl, type Multilink, type MultilinkItem } from "@/lib/multilink";
 import { detectLinkKind, LINK_KIND_LABEL, type LinkKind } from "@/lib/site/linkKind";
 import { safeHref } from "@/lib/site/safeUrl";
+import { slugify } from "@/lib/slug";
 import { normalizeChileMobile, normalizeUrl, urlError, whatsappError } from "@/lib/site/validation";
 
 export const TEMP_PREFIX = "tmp-";
@@ -136,6 +137,10 @@ export function newItem(
 
 export type ItemErrors = Record<string, string>;
 
+/** Mismos límites que la RPC save_multilink. */
+export const MAX_ITEMS = 100;
+export const MAX_URL_LENGTH = 2000;
+
 export function validateItems(items: MultilinkItem[]): ItemErrors {
   const e: ItemErrors = {};
   for (const i of items) {
@@ -146,9 +151,11 @@ export function validateItems(items: MultilinkItem[]): ItemErrors {
     } else if (i.kind === "video") {
       const raw = normalizeUrl(i.video_url ?? i.url);
       if (!raw) e[`${i.id}.video_url`] = "Pega el enlace del video";
+      else if (!/^https:\/\//i.test(raw))
+        e[`${i.id}.video_url`] = "El video debe ser un enlace https://";
       else if (urlError(raw) || !videoEmbedUrl(raw))
         e[`${i.id}.video_url`] = "Usa un enlace de YouTube, Vimeo o .mp4";
-    } else if (i.kind === "link") {
+    } else if (i.kind === "link" || i.kind === "platform") {
       const raw = normalizeUrl(i.url);
       if (!raw) e[`${i.id}.url`] = "Pega la URL de destino";
       else {
@@ -159,26 +166,40 @@ export function validateItems(items: MultilinkItem[]): ItemErrors {
           : urlError(raw);
         if (err) e[`${i.id}.url`] = err;
       }
+    } else if (i.kind === "social") {
+      const raw = (i.url ?? "").trim();
+      if (!raw || raw === "https://") e[`${i.id}.url`] = "Escribe el usuario o el enlace";
+      else if (/^[a-z][a-z0-9+.-]*:/i.test(raw) && !safeHref(raw))
+        e[`${i.id}.url`] = "Enlace no permitido";
+    }
+    for (const field of ["url", "video_url", "thumbnail_url"] as const) {
+      if ((i[field] ?? "").length > MAX_URL_LENGTH)
+        e[`${i.id}.${field}`] = "El enlace es demasiado largo";
     }
   }
+  if (items.length > MAX_ITEMS) e.items = `Máximo ${MAX_ITEMS} enlaces`;
   return e;
 }
 
 export function validateProfile(ml: Multilink): ItemErrors {
   const e: ItemErrors = {};
   if (!ml.title.trim()) e.title = "Escribe el nombre que se muestra";
-  if (!ml.slug.trim()) e.slug = "Escribe la dirección";
+  if (!slugify(ml.slug)) e.slug = "Escribe la dirección (letras, números, puntos o guiones)";
   return e;
 }
 
 /* ---------------- guardado ---------------- */
 
 export function itemPayload(i: MultilinkItem, sortOrder: number) {
-  const isLink = i.kind === "link";
+  const isLink = i.kind === "link" || i.kind === "platform";
   return {
     title: i.title.trim(),
-    url: isLink ? normalizeUrl(i.url) : i.url,
-    icon: isLink ? itemLinkKind(i) : i.icon,
+    url: isLink
+      ? normalizeUrl(i.url)
+      : (i.url ?? "").trim() === "https://"
+        ? ""
+        : (i.url ?? "").trim(),
+    icon: i.kind === "link" ? itemLinkKind(i) : i.icon,
     is_active: i.is_active,
     kind: i.kind,
     featured: i.featured,
@@ -187,7 +208,7 @@ export function itemPayload(i: MultilinkItem, sortOrder: number) {
     wa_number:
       i.kind === "whatsapp" ? (normalizeChileMobile(i.wa_number) ?? i.wa_number) : i.wa_number,
     wa_message: i.wa_message,
-    video_url: i.kind === "video" ? normalizeUrl(i.video_url) || null : i.video_url,
+    video_url: i.kind === "video" ? normalizeUrl(i.video_url ?? i.url) || null : i.video_url,
     start_at: i.start_at,
     end_at: i.end_at,
     sort_order: sortOrder,

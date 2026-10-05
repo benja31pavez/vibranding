@@ -1,6 +1,7 @@
 import { safeHref, safeImageSrc, safeWebUrl } from "@/lib/site/safeUrl";
 
-export type MultilinkItemKind = "link" | "whatsapp" | "video" | "social";
+/** "platform" existe en la BD (enlaces a plataformas); se trata como un enlace normal. */
+export type MultilinkItemKind = "link" | "whatsapp" | "video" | "social" | "platform";
 
 export type MultilinkItem = {
   id: string;
@@ -47,6 +48,7 @@ export const KIND_LABEL: Record<MultilinkItemKind, string> = {
   whatsapp: "WhatsApp",
   video: "Video",
   social: "Red social",
+  platform: "Plataforma",
 };
 
 export type SocialNetwork =
