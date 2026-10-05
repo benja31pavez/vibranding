@@ -23,7 +23,8 @@ function parseRpcResult(value: unknown): LinkState | null {
   return { token, expiresAt };
 }
 
-function currentLink(overview: FichaOverview): LinkState | null {
+/** Link vigente guardado en la ficha (null si no hay o venció). */
+export function currentOnboardingLink(overview: FichaOverview): LinkState | null {
   const token = overview.billing?.onboarding_token;
   const expiresAt = overview.billing?.onboarding_token_expires_at;
   if (!token || !expiresAt || new Date(expiresAt).getTime() <= Date.now()) return null;
@@ -47,7 +48,7 @@ export function OnboardingLinkPanel({
   useEffect(() => {
     setGenerated(null);
   }, [clientId]);
-  const link = generated ?? currentLink(overview);
+  const link = generated ?? currentOnboardingLink(overview);
   const url =
     link && typeof window !== "undefined"
       ? `${window.location.origin}/onboarding/${link.token}`
@@ -88,11 +89,7 @@ export function OnboardingLinkPanel({
   };
 
   return (
-    <Panel
-      title="Link de onboarding"
-      icon={Link2}
-      description="Compártelo con el cliente para que complete sus datos, redes y archivos. Sirve para un solo envío."
-    >
+    <Panel title="Link de onboarding" icon={Link2}>
       {url && link ? (
         <div className="space-y-2">
           <div className="flex gap-2">

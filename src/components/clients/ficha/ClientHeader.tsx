@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Eye, Instagram, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Eye, FileDown, Instagram, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -14,7 +14,7 @@ import { Money, StatusBadge } from "@/components/app";
 import { findPlan } from "@/lib/pricing/plans";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { CLIENT_STATUS_META, formatDate, isClientStatus, type FichaOverview } from "./fichaQueries";
-import { ExportPdfButton } from "./ExportPdfButton";
+import { usePdfExport } from "./usePdfExport";
 import { MeetingBriefButton } from "./MeetingBriefDialog";
 import { DeleteClientDialog, RenameClientDialog } from "./ClientDialogs";
 import { useClientActions } from "./useClientActions";
@@ -31,6 +31,7 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
   const { renameClient, deleteClient } = useClientActions(clientId, reloadClient);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const pdf = usePdfExport();
 
   // Mientras se verifica el permiso, las acciones destructivas quedan deshabilitadas.
   const canEdit = overview?.canEdit ?? false;
@@ -39,34 +40,34 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
   const avatar = ig.profile?.current_avatar_url;
 
   return (
-    <header className="flex flex-col gap-4 rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs md:flex-row md:items-center">
-      <div className="flex min-w-0 flex-1 items-center gap-4">
-        <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-app-lg bg-surface-2 text-xl font-semibold">
+    <header className="flex flex-col gap-3 md:flex-row md:items-center">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-app-md bg-surface-2 text-lg font-semibold">
           {avatar ? (
             <img src={avatar} alt="" className="h-full w-full object-cover" />
           ) : (
             client.name[0]?.toUpperCase()
           )}
         </div>
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-2xl font-semibold tracking-tight">{client.name}</h1>
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
+            <h1 className="truncate text-xl font-semibold tracking-tight">{client.name}</h1>
             {overview && <ClientStatusBadge status={overview.status} />}
           </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted-foreground">
             {client.instagram_handle && (
               <a
                 href={`https://instagram.com/${encodeURIComponent(client.instagram_handle)}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                className="inline-flex items-center gap-1 hover:text-foreground"
               >
                 <Instagram aria-hidden className="h-3.5 w-3.5" /> @{client.instagram_handle}
               </a>
             )}
+            <HeaderFacts overview={overview} loading={loading} />
             <EngagementChip clientId={clientId} />
           </div>
-          <HeaderFacts overview={overview} loading={loading} />
         </div>
       </div>
 
@@ -81,7 +82,6 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
           </Link>
         </Button>
         <MeetingBriefButton clientId={clientId} clientName={client.name} overview={overview} />
-        <ExportPdfButton />
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="ghost" aria-label="Más acciones">
@@ -89,6 +89,11 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem disabled={pdf.disabled} onSelect={pdf.run} title={pdf.title}>
+              <FileDown aria-hidden className="mr-2 h-4 w-4" />
+              {pdf.exporting ? "Generando…" : "Exportar PDF"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             {!canEdit && (
               <p className="px-2 py-1.5 text-xs text-muted-foreground">
                 Solo lectura: no puedes editar este cliente.
@@ -108,6 +113,7 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      {pdf.node}
 
       <RenameClientDialog
         open={renameOpen}
@@ -142,7 +148,7 @@ function HeaderFacts({
   if (!overview) return null;
   const plan = findPlan(overview.billing?.plan_key);
   return (
-    <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+    <dl className="flex flex-wrap gap-x-3 gap-y-0.5">
       <Fact label="Plan">{plan?.label ?? "Sin plan"}</Fact>
       <Fact label="MRR neto">
         <Money amount={overview.billing?.mrr ?? 0} className="text-foreground" />

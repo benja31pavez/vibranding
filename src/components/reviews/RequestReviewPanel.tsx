@@ -49,7 +49,6 @@ export function RequestReviewPanel({
     <Panel
       title="Reseñas y testimonios"
       icon={Star}
-      description="Las reseñas en Google y los testimonios de clientes ayudan a cerrar nuevos clientes."
       actions={
         <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
           <Star aria-hidden className="mr-1 h-3.5 w-3.5" /> Pedir reseña

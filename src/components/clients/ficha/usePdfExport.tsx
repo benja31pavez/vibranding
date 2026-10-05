@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FileDown } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { SummaryExport } from "@/components/SummaryExport";
 import { exportElementToPdf } from "@/lib/exportPdf";
 import { loadPricing, type PricingSettings } from "@/components/PricingPanel";
@@ -10,8 +8,11 @@ import { useActiveClient } from "@/contexts/ActiveClientContext";
 
 const RENDER_SETTLE_MS = 80;
 
-/** Botón "Exportar PDF" + nodo fuera de pantalla con el resumen (requiere datos de Instagram). */
-export function ExportPdfButton() {
+/**
+ * "Exportar PDF": acción para un botón o un ítem de menú + nodo fuera de pantalla
+ * con el resumen (requiere datos de Instagram). `node` debe quedar montado.
+ */
+export function usePdfExport() {
   const { client, ig } = useActiveClient();
   const { user } = useAuth();
   const [pricing, setPricing] = useState<PricingSettings | null>(null);
@@ -55,42 +56,36 @@ export function ExportPdfButton() {
 
   const disabled = !ig.profile || exporting;
 
-  return (
-    <>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={handleExportPdf}
-        disabled={disabled}
-        title={ig.profile ? undefined : "Conecta o sincroniza Instagram para exportar el resumen"}
+  const node =
+    ig.profile && client ? (
+      <div
+        aria-hidden
+        style={{
+          position: "fixed",
+          top: 0,
+          left: "-10000px",
+          width: 900,
+          pointerEvents: "none",
+          opacity: exporting ? 1 : 0,
+        }}
       >
-        <FileDown aria-hidden className="mr-1.5 h-4 w-4" />
-        {exporting ? "Generando…" : "Exportar PDF"}
-      </Button>
-
-      {ig.profile && client && (
-        <div
-          aria-hidden
-          style={{
-            position: "fixed",
-            top: 0,
-            left: "-10000px",
-            width: 900,
-            pointerEvents: "none",
-            opacity: exporting ? 1 : 0,
-          }}
-        >
-          <div ref={exportRef}>
-            <SummaryExport
-              client={client}
-              profile={ig.profile}
-              posts={ig.posts}
-              highlights={ig.highlights}
-              pricing={pricing}
-            />
-          </div>
+        <div ref={exportRef}>
+          <SummaryExport
+            client={client}
+            profile={ig.profile}
+            posts={ig.posts}
+            highlights={ig.highlights}
+            pricing={pricing}
+          />
         </div>
-      )}
-    </>
-  );
+      </div>
+    ) : null;
+
+  return {
+    run: () => void handleExportPdf(),
+    disabled,
+    exporting,
+    title: ig.profile ? undefined : "Conecta o sincroniza Instagram para exportar el resumen",
+    node,
+  };
 }

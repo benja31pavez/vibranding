@@ -24,6 +24,19 @@ const TONE: Readonly<Record<AdsBillingState, StatusTone>> = {
   sin_cuenta: "neutral",
 };
 
+/** Fuentes del pago de pauta (compartido por el panel y el resumen de la ficha). */
+export function useAdsBillingSources(clientId: string) {
+  const userKey = useUserKey();
+  return useQuery({
+    queryKey: ["ficha", userKey, clientId, "ads-billing"],
+    queryFn: () => loadAdsBillingSources(clientId),
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Tono de cada estado (para el panel y el resumen). */
+export const ADS_BILLING_TONE = TONE;
+
 /**
  * "Pago de pauta" (único panel de la ficha): el cliente paga la publicidad con
  * su tarjeta. Una fila por plataforma con el estado combinado (declarado en el
@@ -39,13 +52,8 @@ export function AdsBillingPanel({
   clientName: string;
   canEdit: boolean;
 }) {
-  const userKey = useUserKey();
   const [dialog, setDialog] = useState<AdsPlatform | null>(null);
-  const query = useQuery({
-    queryKey: ["ficha", userKey, clientId, "ads-billing"],
-    queryFn: () => loadAdsBillingSources(clientId),
-    staleTime: 5 * 60_000,
-  });
+  const query = useAdsBillingSources(clientId);
   const rows = query.data ? adsBillingRows(query.data) : [];
   const metaReason = query.data?.metaStatus
     ? evaluateMetaBilling(query.data.metaStatus).reason

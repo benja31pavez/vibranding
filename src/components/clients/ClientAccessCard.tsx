@@ -1,46 +1,66 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ErrorState } from "@/components/app";
+import { ErrorState, ListSkeleton, Panel } from "@/components/app";
+import { useUserKey } from "@/components/clients/ficha/fichaQueries";
 import {
   listClientUsers,
   inviteClientUser,
   revokeClientUser,
 } from "@/lib/clients/clientAccess.functions";
 
-interface Row {
+export interface ClientAccessRow {
   id: string;
   user_id: string;
   email: string | null;
   created_at: string;
 }
 
-export function ClientAccessCard({ clientId }: { clientId: string }) {
+/** Ayuda del "i" de Acceso del cliente. */
+export const CLIENT_ACCESS_INFO =
+  "El cliente invitado solo puede ver su analítica, etapas y objetivos. No ve pagos, contratos, otros clientes ni la bandeja de WhatsApp.";
+
+export const clientAccessKey = (userKey: string, clientId: string) =>
+  ["ficha", userKey, clientId, "access"] as const;
+
+function errorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error && err.message ? err.message : fallback;
+}
+
+/** Personas con acceso al portal de este cliente. */
+export function useClientAccess(clientId: string) {
+  const userKey = useUserKey();
   const list = useServerFn(listClientUsers);
+  return useQuery({
+    queryKey: clientAccessKey(userKey, clientId),
+    queryFn: async (): Promise<ClientAccessRow[]> => {
+      try {
+        return (await list({ data: { clientId } })) as ClientAccessRow[];
+      } catch (err) {
+        throw new Error(errorMessage(err, "No se pudieron cargar los accesos"));
+      }
+    },
+  });
+}
+
+/** Invitar y quitar personas del portal del cliente (va en el panel lateral de la ficha). */
+export function ClientAccessCard({ clientId }: { clientId: string }) {
+  const userKey = useUserKey();
+  const queryClient = useQueryClient();
   const invite = useServerFn(inviteClientUser);
   const revoke = useServerFn(revokeClientUser);
+  const access = useClientAccess(clientId);
+  const rows = access.data ?? [];
 
-  const [rows, setRows] = useState<Row[]>([]);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const load = async () => {
-    try {
-      setRows((await list({ data: { clientId } })) as Row[]);
-      setLoadError(null);
-    } catch (err: any) {
-      setLoadError(err?.message ?? "No se pudieron cargar los accesos");
-    }
-  };
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  const reload = () =>
+    queryClient.invalidateQueries({ queryKey: clientAccessKey(userKey, clientId) });
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,42 +72,49 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
       toast.success(
         "Listo. Si ese correo puede usar el portal, ya tiene acceso. Si no le llega, escríbenos y lo revisamos.",
       );
-      load();
-    } catch (err: any) {
-      toast.error(err?.message ?? "No se pudo invitar");
+      void reload();
+    } catch (err) {
+      toast.error(errorMessage(err, "No se pudo invitar"));
     } finally {
       setBusy(false);
     }
   };
 
-  return (
-    <div className="rounded-2xl border bg-surface p-5">
-      <div className="flex items-center gap-2 text-sm font-medium mb-1">
-        <Users className="w-4 h-4" /> Acceso del cliente
-      </div>
-      <p className="text-xs text-muted-foreground mb-4">
-        El cliente invitado solo puede ver su analítica, etapas y objetivos. No ve pagos, contratos,
-        otros clientes ni la bandeja de WhatsApp.
-      </p>
+  const remove = async (r: ClientAccessRow) => {
+    if (!confirm(`¿Quitar el acceso de ${r.email ?? "este usuario"}?`)) return;
+    try {
+      await revoke({ data: { id: r.id } });
+      toast.success("Acceso revocado");
+      void reload();
+    } catch (err) {
+      toast.error(errorMessage(err, "No se pudo revocar"));
+    }
+  };
 
-      <form onSubmit={send} className="flex flex-wrap gap-2 mb-4">
+  return (
+    <Panel title="Acceso del cliente" icon={Users}>
+      <form onSubmit={send} className="mb-4 flex flex-wrap gap-2">
         <Input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="correo@cliente.com"
-          className="flex-1 min-w-[220px]"
+          aria-label="Correo del cliente"
+          className="min-w-[220px] flex-1"
         />
         <Button type="submit" disabled={busy}>
           {busy ? "Invitando…" : "Invitar"}
         </Button>
       </form>
 
-      {loadError ? (
+      {access.isLoading ? (
+        <ListSkeleton rows={2} label="Cargando accesos" />
+      ) : access.error ? (
         <ErrorState
           title="No pudimos cargar los accesos"
-          message={loadError}
-          onRetry={() => void load()}
+          message={access.error.message}
+          onRetry={() => void access.refetch()}
+          retrying={access.isFetching}
         />
       ) : rows.length === 0 ? (
         <div className="text-sm text-muted-foreground">Todavía no has dado acceso a nadie.</div>
@@ -100,23 +127,14 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
                 size="sm"
                 variant="ghost"
                 aria-label={`Revocar acceso de ${r.email ?? r.user_id}`}
-                onClick={async () => {
-                  if (!confirm(`¿Quitar el acceso de ${r.email ?? "este usuario"}?`)) return;
-                  try {
-                    await revoke({ data: { id: r.id } });
-                    toast.success("Acceso revocado");
-                    load();
-                  } catch (err: any) {
-                    toast.error(err?.message ?? "No se pudo revocar");
-                  }
-                }}
+                onClick={() => void remove(r)}
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 aria-hidden className="h-3.5 w-3.5" />
               </Button>
             </li>
           ))}
         </ul>
       )}
-    </div>
+    </Panel>
   );
 }

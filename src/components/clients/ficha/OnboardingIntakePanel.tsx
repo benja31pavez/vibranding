@@ -55,16 +55,10 @@ const ACCESS_TONE: Readonly<Record<string, "success" | "warning" | "neutral">> =
   no_aplica: "neutral",
 };
 
-/** Datos que el cliente envió en el formulario público de onboarding (solo lectura, solo editores). */
-export function OnboardingIntakePanel({
-  clientId,
-  canEdit,
-}: {
-  clientId: string;
-  canEdit: boolean;
-}) {
+/** Formulario de onboarding del cliente (null = aún no lo envía). Solo editores. */
+export function useClientIntake(clientId: string, canEdit: boolean) {
   const userKey = useUserKey();
-  const intake = useQuery({
+  return useQuery({
     queryKey: fichaKeys.intake(userKey, clientId),
     enabled: canEdit,
     queryFn: async (): Promise<Intake | null> => {
@@ -77,6 +71,17 @@ export function OnboardingIntakePanel({
       return data;
     },
   });
+}
+
+/** Datos que el cliente envió en el formulario público de onboarding (solo lectura, solo editores). */
+export function OnboardingIntakePanel({
+  clientId,
+  canEdit,
+}: {
+  clientId: string;
+  canEdit: boolean;
+}) {
+  const intake = useClientIntake(clientId, canEdit);
 
   if (!canEdit) {
     return (
@@ -93,11 +98,7 @@ export function OnboardingIntakePanel({
     <Panel
       title="Onboarding"
       icon={ClipboardList}
-      description={
-        data
-          ? `Enviado el ${formatDate(data.submitted_at)}`
-          : "Datos que el cliente completa en su link de onboarding."
-      }
+      description={data ? `Enviado el ${formatDate(data.submitted_at)}` : undefined}
       actions={data ? <StatusBadge status="done" label="Recibido" /> : null}
     >
       {intake.isLoading ? (

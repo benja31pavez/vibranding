@@ -1,9 +1,17 @@
 import type { ComponentType, ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
+import { useBarePanel } from "./bare-panel";
+import { InfoHint } from "./InfoHint";
 
 export interface PanelProps {
   title?: ReactNode;
   description?: ReactNode;
+  /**
+   * Texto de ayuda: va en un ícono "i" junto al título. En modo compacto no se
+   * dibuja (lo muestra la sección o el panel lateral que lo contiene).
+   */
+  info?: ReactNode;
   icon?: ComponentType<{ className?: string }>;
   /** Acciones a la derecha del encabezado. */
   actions?: ReactNode;
@@ -25,6 +33,7 @@ const toneCls = {
 export function Panel({
   title,
   description,
+  info,
   icon: Icon,
   actions,
   children,
@@ -33,6 +42,26 @@ export function Panel({
   tone = "default",
   fill = false,
 }: PanelProps) {
+  const bare = useBarePanel();
+  if (bare) {
+    const inlineActions = actions && !bare.actionsSlot;
+    return (
+      <div className={cn("flex min-w-0 flex-col gap-2", bare.fill && "md:min-h-0 md:flex-1")}>
+        {actions && bare.actionsSlot && createPortal(actions, bare.actionsSlot)}
+        {(description || inlineActions) && (
+          <div className="flex shrink-0 items-start justify-between gap-2">
+            {description && <p className="text-xs text-muted-foreground">{description}</p>}
+            {inlineActions && (
+              <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>
+            )}
+          </div>
+        )}
+        <div className={cn("min-w-0", bare.fill && "md:flex md:min-h-0 md:flex-1 md:flex-col")}>
+          {children}
+        </div>
+      </div>
+    );
+  }
   const hasHeader = Boolean(title || description || actions);
   return (
     <section
@@ -50,6 +79,7 @@ export function Panel({
               <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 {Icon && <Icon aria-hidden className="h-4 w-4 text-muted-foreground" />}
                 {title}
+                {info && <InfoHint>{info}</InfoHint>}
               </h2>
             )}
             {description && (
