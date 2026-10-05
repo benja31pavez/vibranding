@@ -12,6 +12,8 @@ export interface PanelProps {
   bodyClassName?: string;
   /** Tono del borde/fondo; "warning" para avisos que requieren atención. */
   tone?: "default" | "warning";
+  /** Desde md, llena el alto del padre (columna de `FitPage`); el cuerpo es `flex-1 min-h-0`. */
+  fill?: boolean;
 }
 
 const toneCls = {
@@ -29,12 +31,20 @@ export function Panel({
   className,
   bodyClassName,
   tone = "default",
+  fill = false,
 }: PanelProps) {
   const hasHeader = Boolean(title || description || actions);
   return (
-    <section className={cn("rounded-app-lg border shadow-app-xs", toneCls[tone], className)}>
+    <section
+      className={cn(
+        "rounded-app-lg border shadow-app-xs",
+        toneCls[tone],
+        fill && "md:flex md:min-h-0 md:flex-1 md:flex-col",
+        className,
+      )}
+    >
       {hasHeader && (
-        <div className="flex items-start justify-between gap-3 px-5 pt-4">
+        <div className="flex shrink-0 items-start justify-between gap-3 px-5 pt-4">
           <div className="min-w-0">
             {title && (
               <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -42,12 +52,31 @@ export function Panel({
                 {title}
               </h2>
             )}
-            {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
+            {description && (
+              <p
+                className={cn(
+                  "mt-0.5 text-xs text-muted-foreground",
+                  // En pantallas medianas las tarjetas que llenan el alto priorizan el contenido.
+                  fill && "md:max-lg:hidden",
+                )}
+              >
+                {description}
+              </p>
+            )}
           </div>
           {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
         </div>
       )}
-      <div className={cn("px-5 pb-5", hasHeader ? "pt-3" : "pt-5", bodyClassName)}>{children}</div>
+      <div
+        className={cn(
+          "px-5 pb-5",
+          hasHeader ? "pt-3" : "pt-5",
+          fill && "md:flex md:min-h-0 md:flex-1 md:flex-col",
+          bodyClassName,
+        )}
+      >
+        {children}
+      </div>
     </section>
   );
 }

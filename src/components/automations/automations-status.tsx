@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Bot, ChevronRight } from "lucide-react";
+import { Bot } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   EmptyState,
   ErrorState,
@@ -57,28 +58,37 @@ export function formatChileDateTime(iso: string | null): string {
   });
 }
 
+const DOT_TONE: Readonly<Record<StatusTone, string>> = {
+  success: "bg-success",
+  warning: "bg-warning",
+  danger: "bg-danger",
+  info: "bg-primary",
+  neutral: "bg-muted-foreground",
+};
+
 /**
- * Resumen de una línea para Inicio: insignia general y enlace al detalle.
- * Solo lo ven administradores de plataforma; para el resto no se renderiza.
+ * Insignia del encabezado de Inicio: punto de color con el estado general de las
+ * automatizaciones y enlace al detalle. Solo la ven administradores de plataforma.
  */
-export function AutomationsSummaryCard() {
+export function AutomationsStatusBadge() {
   const admin = useIsPlatformAdmin();
   const isAdmin = admin.data === true;
   const query = useAutomationsStatus(isAdmin);
   if (!isAdmin) return null;
 
   const data = query.data;
-  const badge =
-    data && data.available ? (
-      <StatusBadge
-        status={data.overall}
-        label={data.overallLabel}
-        tone={OVERALL_TONE[data.overall]}
-      />
-    ) : data ? (
-      <StatusBadge status="unknown" label="Sin información" tone="neutral" />
-    ) : null;
-
+  const tone: StatusTone = query.isError
+    ? "danger"
+    : data?.available
+      ? OVERALL_TONE[data.overall]
+      : "neutral";
+  const status = query.isError
+    ? "No se pudo comprobar"
+    : !data
+      ? "Comprobando…"
+      : data.available
+        ? data.overallLabel
+        : "Sin información";
   const detail = query.isError
     ? "No se pudo comprobar el estado."
     : !data
@@ -90,26 +100,18 @@ export function AutomationsSummaryCard() {
           : `${data.groups.filter((g) => g.status === "ok").length} de ${data.groups.length} tareas al día.`;
 
   return (
-    <Panel
-      icon={Bot}
-      title="Automatizaciones"
-      actions={badge}
-      tone={
-        data?.available && data.overall !== "ok" && data.overall !== "unknown"
-          ? "warning"
-          : "default"
-      }
+    <Link
+      to="/admin/automatizaciones"
+      title={detail}
+      className="inline-flex h-8 items-center gap-2 rounded-full border border-border-subtle bg-surface px-3 text-xs text-muted-foreground shadow-app-xs transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <Link
-        to="/admin/automatizaciones"
-        className="flex items-center justify-between gap-3 rounded-md text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <span className="min-w-0">{detail}</span>
-        <span className="flex shrink-0 items-center gap-1 font-medium text-foreground">
-          Ver detalle <ChevronRight aria-hidden className="h-4 w-4" />
-        </span>
-      </Link>
-    </Panel>
+      <span aria-hidden className={cn("h-2 w-2 shrink-0 rounded-full", DOT_TONE[tone])} />
+      <Bot aria-hidden className="h-3.5 w-3.5" />
+      <span>
+        Automatizaciones: <span className="font-medium text-foreground">{status}</span>
+      </span>
+      <span className="sr-only">. {detail} Ver detalle.</span>
+    </Link>
   );
 }
 
