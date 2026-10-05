@@ -3,6 +3,7 @@
 @import "./motion.css";
 @import "./components/home/mockups/mockups.css";
 @import "./components/home/sections.css";
+@import "./components/diagnostico/diagnostico.css";
 @source "../src";
 
 @font-face {
