@@ -3,10 +3,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnmarkedOutcomes } from "@/hooks/use-unmarked-outcomes";
+import { useSyncLanguagePref } from "@/hooks/use-user-prefs";
 import { AppHeader } from "@/components/shell/AppHeader";
 import { AppShellFrame } from "@/components/shell/AppShellFrame";
 import { ClientSidebar } from "@/components/shell/ClientSidebar";
-import { CommandPalette } from "@/components/shell/CommandPalette";
+import { HeaderSearch } from "@/components/shell/HeaderSearch";
 import { MobileClientSheet } from "@/components/shell/MobileClientSheet";
 import { NOINDEX_META } from "@/lib/site/robots";
 import { ShellSkeleton } from "@/components/shell/ShellSkeleton";
@@ -26,13 +27,15 @@ function AppLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { activeClient } = useShellActiveClient(path, session?.user?.id);
   const profile = useUserProfile(session?.user?.id);
+  // Idioma guardado en Preferencias → sitio público (el panel sigue en español).
+  useSyncLanguagePref();
   const { stale: unmarkedStale } = useUnmarkedOutcomes(activeClient?.id ?? null);
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [clientSheetOpen, setClientSheetOpen] = useState(false);
   // Usuario verificado como agencia (no cliente invitado); hasta entonces se muestra el skeleton.
   const [verifiedUserId, setVerifiedUserId] = useState<string | null>(null);
-  const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
+  const toggleSearch = useCallback(() => setSearchOpen((o) => !o), []);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
@@ -79,7 +82,9 @@ function AppLayout() {
           user={user}
           profile={profile}
           onSignOut={() => void signOut()}
-          onOpenSearch={() => setPaletteOpen(true)}
+          search={
+            <HeaderSearch open={searchOpen} onOpenChange={setSearchOpen} onToggle={toggleSearch} />
+          }
           mobileNavOpen={mobileNavOpen}
           onMobileNavOpenChange={setMobileNavOpen}
           clientTrigger={
@@ -90,9 +95,6 @@ function AppLayout() {
             />
           }
         />
-      }
-      overlays={
-        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} onToggle={togglePalette} />
       }
       sidebar={<ClientSidebar {...sidebarProps} />}
     >

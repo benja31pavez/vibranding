@@ -17,6 +17,8 @@ interface ProfileFieldProps {
   autoComplete?: string;
   maxLength?: number;
   className?: string;
+  /** Contenido dentro del input, a la derecha (p. ej. botón mostrar/ocultar). */
+  trailing?: ReactNode;
 }
 
 /** Campo de texto con etiqueta, ayuda y error accesibles. */
@@ -34,25 +36,29 @@ export function ProfileField({
   autoComplete,
   maxLength,
   className,
+  trailing,
 }: ProfileFieldProps) {
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
     <div className={cn("min-w-0 space-y-1.5", className)}>
       <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type={type}
-        value={value}
-        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
-        placeholder={placeholder}
-        disabled={disabled}
-        readOnly={readOnly}
-        autoComplete={autoComplete}
-        maxLength={maxLength}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
-        className={cn(readOnly && "bg-surface-2 text-muted-foreground")}
-      />
+      <div className="relative">
+        <Input
+          id={id}
+          type={type}
+          value={value}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+          placeholder={placeholder}
+          disabled={disabled}
+          readOnly={readOnly}
+          autoComplete={autoComplete}
+          maxLength={maxLength}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
+          className={cn(readOnly && "bg-surface-2 text-muted-foreground", trailing && "pr-10")}
+        />
+        {trailing && <div className="absolute inset-y-0 right-1 flex items-center">{trailing}</div>}
+      </div>
       {error ? (
         <p id={`${id}-error`} className="text-xs text-danger-strong">
           {error}

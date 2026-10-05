@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, CheckSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useUserPrefs } from "@/hooks/use-user-prefs";
 import { EmptyState, FitList } from "@/components/app";
 import { cn } from "@/lib/utils";
 import { BlockState } from "./block-state";
@@ -121,21 +122,11 @@ export function DeliverablesTab() {
   );
 }
 
-function formatPostTime(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("es-CL", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Santiago",
-  });
-}
-
 /** Pestaña "Publicaciones": publicaciones programadas desde hoy. */
 export function PostsTab() {
   const posts = useScheduledPosts();
   const clients = useClientIndex();
+  const { formatDateTime } = useUserPrefs();
   const nameOf = (id: string) => clients.data?.nameById.get(id) ?? "—";
 
   return (
@@ -164,7 +155,7 @@ export function PostsTab() {
                   <span className="block truncate text-xs text-muted-foreground">{p.type}</span>
                 </Link>
                 <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                  {formatPostTime(p.scheduled_at)}
+                  {formatDateTime(p.scheduled_at)}
                 </span>
               </div>
             )}

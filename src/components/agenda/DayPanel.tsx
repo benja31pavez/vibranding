@@ -1,5 +1,6 @@
 import { CalendarX2, ChevronRight } from "lucide-react";
 import { EmptyState, StatusBadge } from "@/components/app";
+import { useUserPrefs } from "@/hooks/use-user-prefs";
 import { formatLongDay, formatTime } from "@/lib/agenda/dates";
 import { AGENDA_KIND_LABEL, type AgendaItem } from "@/lib/agenda/types";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ interface DayPanelProps {
 
 /** Detalle del día seleccionado con enlace a la pantalla de origen de cada evento. */
 export function DayPanel({ day, isToday, items, className }: DayPanelProps) {
+  const { timeZone, isChileTime } = useUserPrefs();
   return (
     <section aria-labelledby="agenda-day-title" aria-live="polite" className={className}>
       <h2
@@ -31,6 +33,11 @@ export function DayPanel({ day, isToday, items, className }: DayPanelProps) {
           {items.length === 0 ? "" : `${items.length} ${items.length === 1 ? "evento" : "eventos"}`}
         </span>
       </h2>
+      {!isChileTime && (
+        <p className="-mt-2 mb-3 text-xs text-muted-foreground">
+          Horas en tu zona ({timeZone.replace(/_/g, " ")}). Los días son los de Chile.
+        </p>
+      )}
       {items.length === 0 ? (
         <EmptyState
           size="compact"
@@ -42,7 +49,7 @@ export function DayPanel({ day, isToday, items, className }: DayPanelProps) {
         <ul className="space-y-2">
           {items.map((item) => (
             <li key={item.id}>
-              <DayItem item={item} />
+              <DayItem item={item} timeZone={timeZone} />
             </li>
           ))}
         </ul>
@@ -51,13 +58,13 @@ export function DayPanel({ day, isToday, items, className }: DayPanelProps) {
   );
 }
 
-function DayItem({ item }: { item: AgendaItem }) {
+function DayItem({ item, timeZone }: { item: AgendaItem; timeZone: string }) {
   const Icon = KIND_STYLE[item.kind].icon;
   const status = itemStatus(item);
   return (
     <AgendaLink
       href={item.href}
-      aria-label={`${describeItem(item)}. Abrir`}
+      aria-label={`${describeItem(item, timeZone)}. Abrir`}
       className="group flex items-start gap-3 rounded-app-md border border-border-subtle p-2.5 transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span
@@ -72,7 +79,7 @@ function DayItem({ item }: { item: AgendaItem }) {
       <span aria-hidden className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">{AGENDA_KIND_LABEL[item.kind]}</span>
-          <span>{item.allDay ? "Todo el día" : formatTime(item.date)}</span>
+          <span>{item.allDay ? "Todo el día" : formatTime(item.date, timeZone)}</span>
         </span>
         <span className="mt-0.5 block break-words text-sm">{item.title}</span>
         <span className="mt-1 flex flex-wrap items-center gap-2">

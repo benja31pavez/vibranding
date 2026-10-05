@@ -1,5 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import type { MouseEvent, ReactNode } from "react";
+import { useUserPrefs } from "@/hooks/use-user-prefs";
 import { formatTime } from "@/lib/agenda/dates";
 import type { AgendaItem } from "@/lib/agenda/types";
 import { cn } from "@/lib/utils";
@@ -40,13 +41,14 @@ interface AgendaChipProps {
 /** Chip compacto: ícono del tipo (no solo color) + hora + título. */
 export function AgendaChip({ item, asLink = false, className }: AgendaChipProps) {
   const Icon = KIND_STYLE[item.kind].icon;
-  const label = describeItem(item);
+  const { timeZone } = useUserPrefs();
+  const label = describeItem(item, timeZone);
   const content = (
     <>
       <Icon aria-hidden className="h-3 w-3 shrink-0" />
       {!item.allDay && (
         <span aria-hidden className="shrink-0 tabular-nums opacity-80">
-          {formatTime(item.date)}
+          {formatTime(item.date, timeZone)}
         </span>
       )}
       <span aria-hidden className="truncate">

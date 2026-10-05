@@ -4,6 +4,8 @@ import { ErrorState, FitPage, ListSkeleton, PageHeader } from "@/components/app"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
+import { useUserPrefsQuery } from "@/hooks/use-user-prefs";
+import type { LoadedPrefs } from "@/lib/prefs/userPrefs";
 import { AGENCY_DEFAULTS } from "@/lib/pricing/plans";
 import { AgencySection } from "./AgencySection";
 import { PersonalSection } from "./PersonalSection";
@@ -46,7 +48,7 @@ const SECTIONS: ReadonlyArray<{
   {
     key: "preferences",
     label: "Preferencias",
-    description: "Zona horaria y moneda de la plataforma.",
+    description: "Zona horaria, idioma, moneda y formato de fecha.",
     icon: SlidersHorizontal,
   },
 ];
@@ -56,12 +58,14 @@ export function ProfilePage() {
   const { user } = useAuth();
   const owner = useOwnerProfile();
   const agency = useAgencyProfile();
+  const prefs = useUserPrefsQuery();
   return (
     <ProfileView
       userId={user?.id ?? ""}
       email={user?.email ?? ""}
       owner={{ data: owner.data, error: owner.error, retry: () => void owner.refetch() }}
       agency={{ data: agency.data, error: agency.error, retry: () => void agency.refetch() }}
+      prefs={{ data: prefs.data, error: prefs.error, retry: () => void prefs.refetch() }}
     />
   );
 }
@@ -77,6 +81,7 @@ interface ProfileViewProps {
   email: string;
   owner: Loadable<OwnerProfile>;
   agency: Loadable<AgencyProfile>;
+  prefs: Loadable<LoadedPrefs>;
   defaultSection?: SectionKey;
 }
 
@@ -85,6 +90,7 @@ export function ProfileView({
   email,
   owner,
   agency,
+  prefs,
   defaultSection = "personal",
 }: ProfileViewProps) {
   const [section, setSection] = useState<SectionKey>(defaultSection);
@@ -142,7 +148,9 @@ export function ProfileView({
               <SecuritySection email={email} />
             </TabsContent>
             <TabsContent value="preferences" className="mt-0 h-full">
-              <PreferencesSection />
+              <Loaded state={prefs} label="Cargando tus preferencias">
+                {(data) => <PreferencesSection userId={userId} loaded={data} />}
+              </Loaded>
             </TabsContent>
           </div>
         </section>
