@@ -34,7 +34,8 @@ export interface ViewSignal {
   vistaParam?: string | null;
 }
 
-export type ViewDecision = { mark: true } | { mark: false; reason: "method" | "prefetch" | "bot" | "internal" };
+export type ViewDecision =
+  { mark: true } | { mark: false; reason: "method" | "prefetch" | "bot" | "internal" };
 
 export function decideMarkViewed(signal: ViewSignal): ViewDecision {
   const method = signal.method.toUpperCase();

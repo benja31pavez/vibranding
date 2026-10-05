@@ -5,7 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Activity, AlertTriangle, Bot, ChevronRight, CreditCard, Instagram, Plug, RefreshCw, ShieldAlert } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  Bot,
+  ChevronRight,
+  CreditCard,
+  Instagram,
+  Plug,
+  RefreshCw,
+  ShieldAlert,
+} from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState, ErrorState, ListSkeleton, PageContainer } from "@/components/app";
 import { useIsPlatformAdmin } from "@/lib/auth/platformAdmin.functions";
@@ -87,7 +97,11 @@ function HealthPage() {
   if (admin.isError) {
     return (
       <PageContainer>
-        <ErrorState message="No pudimos comprobar tus permisos." onRetry={() => void admin.refetch()} retrying={admin.isFetching} />
+        <ErrorState
+          message="No pudimos comprobar tus permisos."
+          onRetry={() => void admin.refetch()}
+          retrying={admin.isFetching}
+        />
       </PageContainer>
     );
   }
@@ -129,7 +143,10 @@ function HealthDashboard() {
       else toast.error("No se pudo cambiar la frecuencia: la tarea no existe en el programador.");
       void refetch();
     },
-    onError: (e) => toast.error("No se pudo cambiar la frecuencia", { description: errorText(e, "Error inesperado") }),
+    onError: (e) =>
+      toast.error("No se pudo cambiar la frecuencia", {
+        description: errorText(e, "Error inesperado"),
+      }),
   });
   const igBlocked =
     !!igData &&
@@ -145,8 +162,7 @@ function HealthDashboard() {
   const connections = data?.connections ?? [];
   const emptyConnections = connections.filter(
     (c) =>
-      (c.adAccountId && c.adInsightRows === 0) ||
-      (c.igAccountId && c.syncedInstagramPosts === 0),
+      (c.adAccountId && c.adInsightRows === 0) || (c.igAccountId && c.syncedInstagramPosts === 0),
   );
 
   return (
@@ -206,7 +222,6 @@ function HealthDashboard() {
           </AlertDescription>
         </Alert>
       )}
-
 
       {igBlocked && (
         <Alert variant="destructive">
@@ -294,8 +309,7 @@ function HealthDashboard() {
               </div>
               <div className="text-right text-xs">
                 <div>
-                  Última correcta:{" "}
-                  <span className="font-medium">{fmt(j.last_success)}</span>
+                  Última correcta: <span className="font-medium">{fmt(j.last_success)}</span>
                 </div>
                 <div className={Number(j.failed_24h) > 0 ? "text-destructive" : ""}>
                   {Number(j.failed_24h)} fallos / {Number(j.total_24h)} ejecuciones (24 h)
@@ -336,8 +350,7 @@ function HealthDashboard() {
                   )}
                 </div>
                 <div>
-                  Token de verificación:{" "}
-                  {igData.verifyTokenConfigured ? "configurado" : "FALTA"}
+                  Token de verificación: {igData.verifyTokenConfigured ? "configurado" : "FALTA"}
                 </div>
                 <div>
                   Comentarios procesados (24 h): {igData.eventsLast24h} · fallidos:{" "}
@@ -417,7 +430,6 @@ function HealthDashboard() {
         </CardContent>
       </Card>
 
-
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Últimas ejecuciones</CardTitle>
@@ -428,7 +440,8 @@ function HealthDashboard() {
             <p className="text-sm text-muted-foreground">Sin registros todavía.</p>
           )}
           {(data?.recent ?? []).map((r) => {
-            const noData = r.status === "no_data" || (r.rows_written != null && r.rows_written === 0);
+            const noData =
+              r.status === "no_data" || (r.rows_written != null && r.rows_written === 0);
             return (
               <div
                 key={r.id}
@@ -467,7 +480,6 @@ function HealthDashboard() {
 
       <IgSyncLogCard />
     </PageContainer>
-
   );
 }
 
@@ -486,7 +498,13 @@ function IgSyncLogCard() {
         <CardTitle className="flex items-center gap-2 text-base">
           <Instagram className="h-4 w-4" /> Sincronizaciones de Instagram
         </CardTitle>
-        <Button size="sm" variant="ghost" onClick={() => refetch()} disabled={isFetching} aria-label="Actualizar sincronizaciones">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          aria-label="Actualizar sincronizaciones"
+        >
           <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
         </Button>
       </CardHeader>
@@ -500,7 +518,9 @@ function IgSyncLogCard() {
           />
         )}
         {!isLoading && !isError && (data ?? []).length === 0 && (
-          <p className="text-sm text-muted-foreground">Todavía no hay sincronizaciones registradas.</p>
+          <p className="text-sm text-muted-foreground">
+            Todavía no hay sincronizaciones registradas.
+          </p>
         )}
         {(data ?? []).map((r) => (
           <div
@@ -547,7 +567,9 @@ function DiagnosticsLinks() {
           <Bot aria-hidden className="h-4 w-4 text-muted-foreground" />
           <span className="flex-1">
             <span className="block font-medium">Automatizaciones</span>
-            <span className="block text-xs text-muted-foreground">Alertas, reportes, cobros e ingestas: última ejecución y resultado, en simple.</span>
+            <span className="block text-xs text-muted-foreground">
+              Alertas, reportes, cobros e ingestas: última ejecución y resultado, en simple.
+            </span>
           </span>
           <ChevronRight aria-hidden className="h-4 w-4 text-muted-foreground" />
         </Link>
@@ -558,7 +580,9 @@ function DiagnosticsLinks() {
           <Plug aria-hidden className="h-4 w-4 text-muted-foreground" />
           <span className="flex-1">
             <span className="block font-medium">Diagnóstico de Meta</span>
-            <span className="block text-xs text-muted-foreground">Credenciales, permisos y prueba de ingesta.</span>
+            <span className="block text-xs text-muted-foreground">
+              Credenciales, permisos y prueba de ingesta.
+            </span>
           </span>
           <ChevronRight aria-hidden className="h-4 w-4 text-muted-foreground" />
         </Link>

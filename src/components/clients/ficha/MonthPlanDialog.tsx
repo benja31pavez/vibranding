@@ -52,7 +52,16 @@ function toDraft(row: Row): MonthPlanItem {
 }
 
 /** Vista previa editable: el dueño desmarca, renombra o mueve fechas antes de crear. */
-export function MonthPlanDialog({ clientId, userKey, month, today, planLabel, items, onClose, onCreated }: MonthPlanDialogProps) {
+export function MonthPlanDialog({
+  clientId,
+  userKey,
+  month,
+  today,
+  planLabel,
+  items,
+  onClose,
+  onCreated,
+}: MonthPlanDialogProps) {
   const existing = useExistingMonthTasks(userKey, clientId, month, true);
   const [rows, setRows] = useState<Row[]>(() =>
     items.map((item) => ({ item, include: true, title: item.title, dueDate: item.dueDate })),
@@ -68,11 +77,19 @@ export function MonthPlanDialog({ clientId, userKey, month, today, planLabel, it
   const existingRows = existing.data ?? NO_TASKS;
   const summary = useMemo(() => summarizeExisting(month, existingRows), [month, existingRows]);
   const duplicateKeys = useMemo(
-    () => new Set(rows.filter((r) => isDuplicate(toDraft(r), month, existingRows)).map((r) => r.item.key)),
+    () =>
+      new Set(
+        rows.filter((r) => isDuplicate(toDraft(r), month, existingRows)).map((r) => r.item.key),
+      ),
     [rows, month, existingRows],
   );
   const toCreate = rows.filter(
-    (r) => r.include && !duplicateKeys.has(r.item.key) && r.title.trim() && r.dueDate >= minDate && r.dueDate <= last,
+    (r) =>
+      r.include &&
+      !duplicateKeys.has(r.item.key) &&
+      r.title.trim() &&
+      r.dueDate >= minDate &&
+      r.dueDate <= last,
   );
 
   const patch = (key: string, change: Partial<Omit<Row, "item">>) =>
@@ -104,32 +121,44 @@ export function MonthPlanDialog({ clientId, userKey, month, today, planLabel, it
     <Dialog open onOpenChange={(o) => !o && !saving && onClose()}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Plan del mes · <span className="capitalize">{label}</span></DialogTitle>
+          <DialogTitle>
+            Plan del mes · <span className="capitalize">{label}</span>
+          </DialogTitle>
           <DialogDescription>
-            {planLabel}. Revisa, edita o desmarca antes de crear. Se guardan como tareas internas «Por hacer»: no se
-            publica nada ni se envía al cliente.
+            {planLabel}. Revisa, edita o desmarca antes de crear. Se guardan como tareas internas
+            «Por hacer»: no se publica nada ni se envía al cliente.
           </DialogDescription>
         </DialogHeader>
 
         {existing.isLoading ? (
           <ListSkeleton rows={5} label="Revisando tareas del mes" />
         ) : existing.error ? (
-          <ErrorState message={existing.error.message} onRetry={() => void existing.refetch()} retrying={existing.isFetching} />
+          <ErrorState
+            message={existing.error.message}
+            onRetry={() => void existing.refetch()}
+            retrying={existing.isFetching}
+          />
         ) : (
           <>
             {remainingDays < FEW_BUSINESS_DAYS && (
-              <p role="status" className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
-                Quedan pocos días hábiles este mes ({remainingDays}). Las cantidades se ajustaron a los días que
-                quedan; revisa si conviene generar el mes siguiente.
+              <p
+                role="status"
+                className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground"
+              >
+                Quedan pocos días hábiles este mes ({remainingDays}). Las cantidades se ajustaron a
+                los días que quedan; revisa si conviene generar el mes siguiente.
               </p>
             )}
             {summary.total > 0 && (
-              <div role="status" className="flex gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+              <div
+                role="status"
+                className="flex gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm"
+              >
                 <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                 <p>
                   Este mes ya tiene {summary.total} {summary.total === 1 ? "tarea" : "tareas"}
-                  {summary.fromPlan > 0 ? ` (${summary.fromPlan} del plan del mes)` : ""}. Las repetidas se marcan y no
-                  se vuelven a crear.
+                  {summary.fromPlan > 0 ? ` (${summary.fromPlan} del plan del mes)` : ""}. Las
+                  repetidas se marcan y no se vuelven a crear.
                 </p>
               </div>
             )}
@@ -137,7 +166,10 @@ export function MonthPlanDialog({ clientId, userKey, month, today, planLabel, it
               {rows.map((row) => {
                 const dup = duplicateKeys.has(row.item.key);
                 return (
-                  <li key={row.item.key} className={`flex flex-col gap-2 p-2 sm:flex-row sm:items-center ${dup ? "opacity-60" : ""}`}>
+                  <li
+                    key={row.item.key}
+                    className={`flex flex-col gap-2 p-2 sm:flex-row sm:items-center ${dup ? "opacity-60" : ""}`}
+                  >
                     <div className="flex min-w-0 flex-1 items-center gap-2">
                       <Checkbox
                         checked={row.include && !dup}
@@ -178,7 +210,12 @@ export function MonthPlanDialog({ clientId, userKey, month, today, planLabel, it
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={confirm} disabled={saving || existing.isLoading || Boolean(existing.error) || toCreate.length === 0}>
+          <Button
+            onClick={confirm}
+            disabled={
+              saving || existing.isLoading || Boolean(existing.error) || toCreate.length === 0
+            }
+          >
             {saving ? (
               <span role="status">Creando…</span>
             ) : (

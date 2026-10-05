@@ -12,15 +12,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import {
-  MessageCircle,
-  ArrowDownLeft,
-  ArrowUpRight,
-  Star,
-  Bot,
-  Users,
-  Hash,
-} from "lucide-react";
+import { MessageCircle, ArrowDownLeft, ArrowUpRight, Star, Bot, Users, Hash } from "lucide-react";
 
 type Msg = {
   id: string;
@@ -243,11 +235,7 @@ export function MetricsTab({ clientId }: { clientId: string }) {
         <Stat icon={ArrowUpRight} label="Enviados" value={stats.outbound} />
         <Stat icon={Bot} label="Respuestas del bot" value={stats.bot} />
         <Stat icon={Users} label="Usuarios únicos" value={stats.uniqueUsers} />
-        <Stat
-          icon={Hash}
-          label="Msj / usuario"
-          value={stats.avgPerUser.toFixed(1)}
-        />
+        <Stat icon={Hash} label="Msj / usuario" value={stats.avgPerUser.toFixed(1)} />
         <Stat icon={Star} label="Leads totales" value={leads} />
       </div>
 
@@ -262,8 +250,20 @@ export function MetricsTab({ clientId }: { clientId: string }) {
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
               <Tooltip />
-              <Line type="monotone" dataKey="in" stroke="hsl(var(--primary))" strokeWidth={2} name="Recibidos" />
-              <Line type="monotone" dataKey="out" stroke="#10b981" strokeWidth={2} name="Enviados" />
+              <Line
+                type="monotone"
+                dataKey="in"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2}
+                name="Recibidos"
+              />
+              <Line
+                type="monotone"
+                dataKey="out"
+                stroke="#10b981"
+                strokeWidth={2}
+                name="Enviados"
+              />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -292,15 +292,10 @@ export function MetricsTab({ clientId }: { clientId: string }) {
                           <span className="mr-2">{c.flag}</span>
                           {c.name}
                         </span>
-                        <span className="text-muted-foreground tabular-nums">
-                          {c.count}
-                        </span>
+                        <span className="text-muted-foreground tabular-nums">{c.count}</span>
                       </div>
                       <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary"
-                          style={{ width: `${pct}%` }}
-                        />
+                        <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
                       </div>
                     </li>
                   );
@@ -323,11 +318,7 @@ export function MetricsTab({ clientId }: { clientId: string }) {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={hourData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis
-                  dataKey="hour"
-                  tick={{ fontSize: 10 }}
-                  interval={2}
-                />
+                <XAxis dataKey="hour" tick={{ fontSize: 10 }} interval={2} />
                 <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                 <Tooltip />
                 <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />

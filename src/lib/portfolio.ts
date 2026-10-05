@@ -51,10 +51,12 @@ export async function fetchPublicPortfolio(): Promise<PortfolioClientWithWorks[]
     const clients = (clientsRes.data as PortfolioClient[]) ?? [];
     const works = (worksRes.data as PortfolioWork[]) ?? [];
     // Placeholders ("Marca 2", etc.) never leave the server, not even in the dehydrated loader data.
-    return clients.filter((c) => !isPlaceholderName(c.name)).map((c) => ({
-      ...c,
-      works: works.filter((w) => w.portfolio_client_id === c.id),
-    }));
+    return clients
+      .filter((c) => !isPlaceholderName(c.name))
+      .map((c) => ({
+        ...c,
+        works: works.filter((w) => w.portfolio_client_id === c.id),
+      }));
   } catch (err) {
     console.error("[portfolio] could not load public portfolio", err);
     return [];

@@ -59,7 +59,11 @@ export function StageSelect({
 }
 
 /** "Abrir cliente" si ya se convirtió; "Convertir" si está ganado; nada en otro caso. */
-export function ConvertAction({ prospect, onConvert, label = "Convertir" }: {
+export function ConvertAction({
+  prospect,
+  onConvert,
+  label = "Convertir",
+}: {
   prospect: Prospect;
   onConvert: CardActions["onConvert"];
   label?: string;
@@ -76,18 +80,34 @@ export function ConvertAction({ prospect, onConvert, label = "Convertir" }: {
   }
   if (prospect.estado !== "ganado") return null;
   return (
-    <Button size="sm" variant="outline" className="h-8 shrink-0 px-2 text-xs" onClick={() => onConvert(prospect)}>
+    <Button
+      size="sm"
+      variant="outline"
+      className="h-8 shrink-0 px-2 text-xs"
+      onClick={() => onConvert(prospect)}
+    >
       <UserPlus aria-hidden className="mr-1 h-3.5 w-3.5" /> {label}
     </Button>
   );
 }
 
 /** Atajo a una propuesta nueva para el prospecto (no para bajas ni convertidos: esos van por el cliente). */
-export function CreateProposalAction({ prospect, className }: { prospect: Prospect; className?: string }) {
+export function CreateProposalAction({
+  prospect,
+  className,
+}: {
+  prospect: Prospect;
+  className?: string;
+}) {
   if (!canCreateProposalFor(prospect.estado) || convertedClientId(prospect)) return null;
   return (
     <Button asChild size="icon" variant="outline" className={cn("h-8 w-8 shrink-0", className)}>
-      <Link to="/proposals/new" search={{ prospectId: prospect.id }} aria-label={`Crear propuesta para ${prospect.nombre}`} title="Crear propuesta">
+      <Link
+        to="/proposals/new"
+        search={{ prospectId: prospect.id }}
+        aria-label={`Crear propuesta para ${prospect.nombre}`}
+        title="Crear propuesta"
+      >
         <FilePlus2 aria-hidden className="h-3.5 w-3.5" />
       </Link>
     </Button>
@@ -95,7 +115,13 @@ export function CreateProposalAction({ prospect, className }: { prospect: Prospe
 }
 
 /** "Retomar" un prospecto frío: a Nuevo o Contactado (retomar es siempre manual). */
-export function ResumeAction({ prospect, onMove }: { prospect: Prospect; onMove: CardActions["onMove"] }) {
+export function ResumeAction({
+  prospect,
+  onMove,
+}: {
+  prospect: Prospect;
+  onMove: CardActions["onMove"];
+}) {
   if (prospect.estado !== COLD_STATE) return null;
   return (
     <select
@@ -103,7 +129,8 @@ export function ResumeAction({ prospect, onMove }: { prospect: Prospect; onMove:
       value=""
       onChange={(e) => {
         const next = e.target.value;
-        if ((RESUME_STATES as readonly string[]).includes(next)) onMove(prospect, next as ProspectState);
+        if ((RESUME_STATES as readonly string[]).includes(next))
+          onMove(prospect, next as ProspectState);
       }}
       className={cn(
         "h-8 shrink-0 rounded-app-sm border border-border-subtle bg-surface px-2 text-xs text-foreground",
@@ -124,14 +151,24 @@ export function ResumeAction({ prospect, onMove }: { prospect: Prospect; onMove:
 
 /** Aviso "No contactar hasta …" (perdido con plazo vigente o baja). Los fríos no tienen plazo. */
 export function NoContactBadge({ prospect }: { prospect: Prospect }) {
-  if (prospect.estado === "baja") return <StatusBadge status="baja" label="No contactar" tone="danger" />;
+  if (prospect.estado === "baja")
+    return <StatusBadge status="baja" label="No contactar" tone="danger" />;
   if (prospect.estado === COLD_STATE) return null;
   const today = toDateInput(new Date().toISOString());
   // prospects.no_contactar_hasta (v3) o, en prospectos antiguos, la nota "No contactar antes de …".
-  const column = prospect.no_contactar_hasta && prospect.no_contactar_hasta > today ? prospect.no_contactar_hasta : null;
+  const column =
+    prospect.no_contactar_hasta && prospect.no_contactar_hasta > today
+      ? prospect.no_contactar_hasta
+      : null;
   const until = column ?? noContactUntil(prospect.notas, today);
   if (!until) return null;
-  return <StatusBadge status="no-contactar" label={`No contactar hasta ${formatShortDate(`${until}T12:00:00`)}`} tone="warning" />;
+  return (
+    <StatusBadge
+      status="no-contactar"
+      label={`No contactar hasta ${formatShortDate(`${until}T12:00:00`)}`}
+      tone="warning"
+    />
+  );
 }
 
 /** Llegó solo desde el sitio (p. ej. fuente "web: diagnóstico"). */
@@ -160,7 +197,10 @@ export function CardBody({ prospect }: { prospect: Prospect }) {
 
 export function ProspectCard({ prospect, actions }: { prospect: Prospect; actions: CardActions }) {
   const isBaja = prospect.estado === "baja";
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: prospect.id, disabled: isBaja });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: prospect.id,
+    disabled: isBaja,
+  });
   return (
     <li
       ref={setNodeRef}
@@ -180,7 +220,11 @@ export function ProspectCard({ prospect, actions }: { prospect: Prospect; action
           disabled={isBaja}
           className="mt-0.5 shrink-0 cursor-grab rounded-app-sm p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {isBaja ? <Ban aria-hidden className="h-4 w-4" /> : <GripVertical aria-hidden className="h-4 w-4" />}
+          {isBaja ? (
+            <Ban aria-hidden className="h-4 w-4" />
+          ) : (
+            <GripVertical aria-hidden className="h-4 w-4" />
+          )}
         </button>
         <button
           type="button"

@@ -20,12 +20,22 @@ export function SectionHeading({
   align?: "center" | "left";
 }) {
   return (
-    <div className={cn("mb-10 md:mb-14", align === "center" ? "text-center mx-auto max-w-2xl" : "max-w-xl")}>
-      <h2 id={id} className="text-3xl md:text-5xl font-semibold tracking-tight leading-[1.1] text-balance">
+    <div
+      className={cn(
+        "mb-10 md:mb-14",
+        align === "center" ? "text-center mx-auto max-w-2xl" : "max-w-xl",
+      )}
+    >
+      <h2
+        id={id}
+        className="text-3xl md:text-5xl font-semibold tracking-tight leading-[1.1] text-balance"
+      >
         {title} <span className="font-brand text-gradient-brand-strong">{accent}</span>
         {end}
       </h2>
-      {subtitle && <p className="mt-4 text-base md:text-lg text-muted-foreground text-pretty">{subtitle}</p>}
+      {subtitle && (
+        <p className="mt-4 text-base md:text-lg text-muted-foreground text-pretty">{subtitle}</p>
+      )}
     </div>
   );
 }

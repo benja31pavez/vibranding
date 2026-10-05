@@ -20,7 +20,10 @@ const SAFE_PERMALINK = /^https:\/\/(www\.)?instagram\.com\//;
 type PageResult<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
 
 /** Lee todas las filas paginando de a 1000 (límite de PostgREST), con tope. */
-async function fetchAll<T>(label: string, page: (from: number, to: number) => PageResult<T>): Promise<T[]> {
+async function fetchAll<T>(
+  label: string,
+  page: (from: number, to: number) => PageResult<T>,
+): Promise<T[]> {
   const rows: T[] = [];
   for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
     const { data, error } = await page(from, from + PAGE_SIZE - 1);
@@ -38,7 +41,10 @@ function chunks<T>(items: T[], size: number): T[][] {
   return out;
 }
 
-function exactCount(label: string, res: { count: number | null; error: { message: string } | null }): number {
+function exactCount(
+  label: string,
+  res: { count: number | null; error: { message: string } | null },
+): number {
   if (res.error) throw new Error(`[reports] ${label}: ${res.error.message}`);
   return res.count ?? 0;
 }
@@ -56,7 +62,11 @@ export interface RawInstagram {
   topPosts: TopPost[];
 }
 
-async function latestFollowers(clientId: string, range: PeriodRange, when: "end" | "start"): Promise<number | null> {
+async function latestFollowers(
+  clientId: string,
+  range: PeriodRange,
+  when: "end" | "start",
+): Promise<number | null> {
   const base = supabaseAdmin
     .from("instagram_audience_snapshots")
     .select("date,followers_total")
@@ -76,7 +86,11 @@ type PostMetrics = { post_id: string; reach: number; engagement: number; saves: 
 type PostRow = PostMetrics & { date: string; permalink: string | null; media_type: string | null };
 
 /** Última medición anterior al mes de cada post (sin límite inferior de fecha). */
-async function postBaselines(clientId: string, postIds: string[], before: string): Promise<Map<string, PostMetrics>> {
+async function postBaselines(
+  clientId: string,
+  postIds: string[],
+  before: string,
+): Promise<Map<string, PostMetrics>> {
   const base = new Map<string, PostMetrics>();
   for (const ids of chunks(postIds, ID_CHUNK)) {
     // Cada post se mide solo ~30 días tras publicarse, así que esto es acotado.
@@ -96,7 +110,10 @@ async function postBaselines(clientId: string, postIds: string[], before: string
   return base;
 }
 
-export async function collectInstagram(clientId: string, range: PeriodRange): Promise<RawInstagram | null> {
+export async function collectInstagram(
+  clientId: string,
+  range: PeriodRange,
+): Promise<RawInstagram | null> {
   const [followersEnd, followersStart, rows] = await Promise.all([
     latestFollowers(clientId, range, "end"),
     latestFollowers(clientId, range, "start"),
@@ -135,7 +152,10 @@ export async function collectInstagram(clientId: string, range: PeriodRange): Pr
 
   const topPosts = [...posts]
     .filter((p) => p.views > 0 || p.interactions > 0)
-    .sort((a, b) => b.interactions - a.interactions || b.views - a.views || a.post_id.localeCompare(b.post_id))
+    .sort(
+      (a, b) =>
+        b.interactions - a.interactions || b.views - a.views || a.post_id.localeCompare(b.post_id),
+    )
     .slice(0, TOP_POSTS);
 
   return {
@@ -169,7 +189,10 @@ function countEvents(clientId: string, event: string, fromUtc: string, toUtc: st
 }
 
 /** Visitas por día con conteos exactos (sin traer filas), en lotes acotados. */
-async function dailyVisits(clientId: string, range: PeriodRange): Promise<{ date: string; visits: number }[]> {
+async function dailyVisits(
+  clientId: string,
+  range: PeriodRange,
+): Promise<{ date: string; visits: number }[]> {
   const days: string[] = [];
   for (let d = range.firstDay; d <= range.lastDay; d = addDays(d, 1)) days.push(d);
   const out: { date: string; visits: number }[] = [];
@@ -178,7 +201,12 @@ async function dailyVisits(clientId: string, range: PeriodRange): Promise<{ date
       batch.map(async (date) =>
         exactCount(
           "visitas por día",
-          await countEvents(clientId, "page_view", chileMidnightUtc(date), chileMidnightUtc(addDays(date, 1))),
+          await countEvents(
+            clientId,
+            "page_view",
+            chileMidnightUtc(date),
+            chileMidnightUtc(addDays(date, 1)),
+          ),
         ),
       ),
     );
@@ -194,7 +222,9 @@ export async function collectLanding(
 ): Promise<RawLanding | null> {
   const names = ["page_view", "whatsapp_click", "contact_click", "contact_submit"] as const;
   const counts = await Promise.all(
-    names.map(async (n) => exactCount(`landing ${n}`, await countEvents(clientId, n, range.fromUtc, range.toUtc))),
+    names.map(async (n) =>
+      exactCount(`landing ${n}`, await countEvents(clientId, n, range.fromUtc, range.toUtc)),
+    ),
   );
   const [visits, whatsappClicks, contactClicks, formSubmits] = counts;
   if (counts.every((c) => c === 0)) return null;
@@ -269,13 +299,21 @@ export async function collectLeads(clientId: string, range: PeriodRange): Promis
   for (const r of extra) add(r.source || "otro", 1);
   if (Object.keys(bySource).length === 0) return null;
 
-  const attributed = wa.length ? await countAttributed(clientId, wa.map((r) => r.id)) : 0;
+  const attributed = wa.length
+    ? await countAttributed(
+        clientId,
+        wa.map((r) => r.id),
+      )
+    : 0;
   return { bySource, metaAdsLeads: (bySource.meta_ads ?? 0) + attributed };
 }
 
 // ───────────────────────── Reservas ─────────────────────────
 
-export async function collectBookings(clientId: string, range: PeriodRange): Promise<number | null> {
+export async function collectBookings(
+  clientId: string,
+  range: PeriodRange,
+): Promise<number | null> {
   const count = exactCount(
     "reservas",
     await supabaseAdmin
@@ -337,7 +375,10 @@ export async function collectMetaAds(clientId: string, range: PeriodRange): Prom
 
 type GoogleRow = { cost_clp: number; impressions: number; clicks: number; conversions: number };
 
-export async function collectGoogleAds(clientId: string, range: PeriodRange): Promise<RawAds | null> {
+export async function collectGoogleAds(
+  clientId: string,
+  range: PeriodRange,
+): Promise<RawAds | null> {
   const rows = await fetchAll<GoogleRow>("google_ads", (from, to) =>
     supabaseAdmin
       .from("google_ads_insights_daily")
@@ -366,7 +407,10 @@ export async function collectGoogleAds(clientId: string, range: PeriodRange): Pr
  * Conteo por tipo de entregables marcados como listos en el mes. Los títulos son
  * internos y no hay marca de "público", así que no se guardan (el reporte es público).
  */
-export async function collectDeliverables(clientId: string, range: PeriodRange): Promise<Record<string, number> | null> {
+export async function collectDeliverables(
+  clientId: string,
+  range: PeriodRange,
+): Promise<Record<string, number> | null> {
   const rows = await fetchAll<{ type: string }>("entregables", (from, to) =>
     supabaseAdmin
       .from("deliverables")

@@ -1,5 +1,13 @@
 import type { ReactNode } from "react";
-import { CalendarCheck, ExternalLink, Globe, Instagram, Megaphone, MessageCircle, PackageCheck } from "lucide-react";
+import {
+  CalendarCheck,
+  ExternalLink,
+  Globe,
+  Instagram,
+  Megaphone,
+  MessageCircle,
+  PackageCheck,
+} from "lucide-react";
 import { StatCard, type StatDelta } from "@/components/app";
 import { periodLabel } from "@/lib/billing/dates";
 import { fmtInt, fmtMoney, fmtSignedPct, relativeChange } from "@/lib/reports/format";
@@ -32,7 +40,15 @@ function deltaOf(m: Metric | null | undefined, invert = false): StatDelta | unde
   return { label: `${fmtSignedPct(r)} vs mes anterior`, direction, invert };
 }
 
-function Section({ title, icon: Icon, children }: { title: string; icon: typeof Globe; children: ReactNode }) {
+function Section({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: typeof Globe;
+  children: ReactNode;
+}) {
   return (
     <section className="space-y-3 break-inside-avoid">
       <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
@@ -61,17 +77,23 @@ function AdsSection({ title, ads, conversionLabel, costLabel }: AdsSectionProps)
     <Section title={title} icon={Megaphone}>
       <Grid>
         <StatCard label="Inversión" value={money(ads.spend.value)} delta={deltaOf(ads.spend)} />
-        <StatCard label={conversionLabel} value={fmtInt(ads.conversions.value)} delta={deltaOf(ads.conversions)} />
+        <StatCard
+          label={conversionLabel}
+          value={fmtInt(ads.conversions.value)}
+          delta={deltaOf(ads.conversions)}
+        />
         {ads.cpa && (
-          <StatCard
-            label={costLabel}
-            value={money(ads.cpa.value)}
-            delta={deltaOf(ads.cpa, true)}
-          />
+          <StatCard label={costLabel} value={money(ads.cpa.value)} delta={deltaOf(ads.cpa, true)} />
         )}
-        {ads.leads != null && <StatCard label="Contactos desde anuncios" value={fmtInt(ads.leads)} />}
+        {ads.leads != null && (
+          <StatCard label="Contactos desde anuncios" value={fmtInt(ads.leads)} />
+        )}
         {ads.cpl != null && <StatCard label="Costo por contacto" value={money(ads.cpl)} />}
-        <StatCard label="Veces que se mostraron" value={fmtInt(ads.impressions)} hint={`${fmtInt(ads.clicks)} clicks`} />
+        <StatCard
+          label="Veces que se mostraron"
+          value={fmtInt(ads.impressions)}
+          hint={`${fmtInt(ads.clicks)} clicks`}
+        />
       </Grid>
     </Section>
   );
@@ -92,7 +114,13 @@ export function ReportView({ clientName, period, data, summary }: ReportViewProp
     .filter(Boolean);
   const ig = data.instagram;
   const hasAnyBlock = Boolean(
-    ig || data.landing || data.leads || data.bookings || data.meta_ads || data.google_ads || data.deliverables,
+    ig ||
+    data.landing ||
+    data.leads ||
+    data.bookings ||
+    data.meta_ads ||
+    data.google_ads ||
+    data.deliverables,
   );
 
   return (
@@ -119,7 +147,11 @@ export function ReportView({ clientName, period, data, summary }: ReportViewProp
       {data.landing && (
         <Section title="Tu sitio web" icon={Globe}>
           <Grid>
-            <StatCard label="Visitas" value={fmtInt(data.landing.visits.value)} delta={deltaOf(data.landing.visits)} />
+            <StatCard
+              label="Visitas"
+              value={fmtInt(data.landing.visits.value)}
+              delta={deltaOf(data.landing.visits)}
+            />
             <StatCard
               label="Clicks para contactarte"
               value={fmtInt(data.landing.contacts.value)}
@@ -137,9 +169,17 @@ export function ReportView({ clientName, period, data, summary }: ReportViewProp
       {data.leads && (
         <Section title="Personas interesadas" icon={MessageCircle}>
           <Grid>
-            <StatCard label="Contactos nuevos" value={fmtInt(data.leads.total.value)} delta={deltaOf(data.leads.total)} />
+            <StatCard
+              label="Contactos nuevos"
+              value={fmtInt(data.leads.total.value)}
+              delta={deltaOf(data.leads.total)}
+            />
             {data.bookings && (
-              <StatCard label="Reservas" value={fmtInt(data.bookings.total.value)} delta={deltaOf(data.bookings.total)} />
+              <StatCard
+                label="Reservas"
+                value={fmtInt(data.bookings.total.value)}
+                delta={deltaOf(data.bookings.total)}
+              />
             )}
           </Grid>
           {data.leads.by_source.length > 0 && <LeadsBySourceChart data={data.leads.by_source} />}
@@ -149,7 +189,11 @@ export function ReportView({ clientName, period, data, summary }: ReportViewProp
       {!data.leads && data.bookings && (
         <Section title="Reservas" icon={CalendarCheck}>
           <Grid>
-            <StatCard label="Reservas" value={fmtInt(data.bookings.total.value)} delta={deltaOf(data.bookings.total)} />
+            <StatCard
+              label="Reservas"
+              value={fmtInt(data.bookings.total.value)}
+              delta={deltaOf(data.bookings.total)}
+            />
           </Grid>
         </Section>
       )}
@@ -169,21 +213,36 @@ export function ReportView({ clientName, period, data, summary }: ReportViewProp
               />
             )}
             {ig.post_views && (
-              <StatCard label="Visualizaciones" value={fmtInt(ig.post_views.value)} delta={deltaOf(ig.post_views)} />
+              <StatCard
+                label="Visualizaciones"
+                value={fmtInt(ig.post_views.value)}
+                delta={deltaOf(ig.post_views)}
+              />
             )}
             {ig.interactions && (
-              <StatCard label="Interacciones" value={fmtInt(ig.interactions.value)} delta={deltaOf(ig.interactions)} />
+              <StatCard
+                label="Interacciones"
+                value={fmtInt(ig.interactions.value)}
+                delta={deltaOf(ig.interactions)}
+              />
             )}
           </Grid>
           {ig.top_posts.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Tus publicaciones que mejor funcionaron</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">
+                Tus publicaciones que mejor funcionaron
+              </h3>
               <ol className="divide-y divide-border-subtle rounded-app-lg border border-border-subtle bg-surface">
                 {ig.top_posts.map((p, i) => (
-                  <li key={p.post_id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  <li
+                    key={p.post_id}
+                    className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
+                  >
                     <span className="flex min-w-0 items-center gap-3">
                       <span className="font-semibold tabular-nums text-primary">{i + 1}</span>
-                      <span className="truncate">{MEDIA_LABEL[p.media_type ?? ""] ?? "Publicación"}</span>
+                      <span className="truncate">
+                        {MEDIA_LABEL[p.media_type ?? ""] ?? "Publicación"}
+                      </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-3 tabular-nums text-muted-foreground">
                       <span>{fmtInt(p.views)} vistas</span>
@@ -209,10 +268,20 @@ export function ReportView({ clientName, period, data, summary }: ReportViewProp
       )}
 
       {data.meta_ads && (
-        <AdsSection title="Anuncios en Facebook e Instagram" ads={data.meta_ads} conversionLabel="Conversaciones" costLabel="Costo por conversación" />
+        <AdsSection
+          title="Anuncios en Facebook e Instagram"
+          ads={data.meta_ads}
+          conversionLabel="Conversaciones"
+          costLabel="Costo por conversación"
+        />
       )}
       {data.google_ads && (
-        <AdsSection title="Anuncios en Google" ads={data.google_ads} conversionLabel="Conversiones" costLabel="Costo por conversión" />
+        <AdsSection
+          title="Anuncios en Google"
+          ads={data.google_ads}
+          conversionLabel="Conversiones"
+          costLabel="Costo por conversión"
+        />
       )}
 
       {data.deliverables && (
@@ -223,7 +292,10 @@ export function ReportView({ clientName, period, data, summary }: ReportViewProp
           </p>
           <ul className="flex flex-wrap gap-2">
             {data.deliverables.by_type.map((d) => (
-              <li key={d.type} className="rounded-app-md border border-border-subtle bg-surface px-3 py-1.5 text-sm tabular-nums">
+              <li
+                key={d.type}
+                className="rounded-app-md border border-border-subtle bg-surface px-3 py-1.5 text-sm tabular-nums"
+              >
                 {DELIVERABLE_LABEL[d.type] ?? "Otros"}: {fmtInt(d.count)}
               </li>
             ))}
@@ -232,7 +304,9 @@ export function ReportView({ clientName, period, data, summary }: ReportViewProp
       )}
 
       {!hasAnyBlock && (
-        <p className="text-sm text-muted-foreground">Este mes todavía no hay datos medidos para mostrar.</p>
+        <p className="text-sm text-muted-foreground">
+          Este mes todavía no hay datos medidos para mostrar.
+        </p>
       )}
     </article>
   );

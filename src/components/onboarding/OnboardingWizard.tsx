@@ -2,8 +2,21 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { submitOnboarding } from "@/lib/onboarding/public.functions";
-import { FIELD_STEP, OnboardingForm, buildPayload, payloadTooLarge, type FieldError } from "@/lib/onboarding/schema";
-import { STEPS, initialState, toFormData, validateStep, type FieldErrors, type FormState } from "./formState";
+import {
+  FIELD_STEP,
+  OnboardingForm,
+  buildPayload,
+  payloadTooLarge,
+  type FieldError,
+} from "@/lib/onboarding/schema";
+import {
+  STEPS,
+  initialState,
+  toFormData,
+  validateStep,
+  type FieldErrors,
+  type FormState,
+} from "./formState";
 import { AccessStepFields } from "./steps/AccessStepFields";
 import { BillingStepFields } from "./steps/BillingStepFields";
 import { BusinessStepFields } from "./steps/BusinessStepFields";
@@ -49,7 +62,9 @@ export function OnboardingWizard({ token, onDone }: Props) {
   };
 
   const focusFirstError = () =>
-    requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
+    requestAnimationFrame(() =>
+      formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
+    );
 
   const next = () => {
     const found = validateStep(step, state);
@@ -116,8 +131,13 @@ export function OnboardingWizard({ token, onDone }: Props) {
       <ol className="flex gap-1.5" aria-label="Pasos del formulario">
         {STEPS.map((s, i) => (
           <li key={s.short} className="flex-1" aria-current={i === step ? "step" : undefined}>
-            <span className={`block h-1.5 rounded-full ${i <= step ? "bg-primary" : "bg-muted"}`} aria-hidden />
-            <span className={`mt-1.5 hidden text-xs sm:block ${i === step ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+            <span
+              className={`block h-1.5 rounded-full ${i <= step ? "bg-primary" : "bg-muted"}`}
+              aria-hidden
+            />
+            <span
+              className={`mt-1.5 hidden text-xs sm:block ${i === step ? "font-medium text-foreground" : "text-muted-foreground"}`}
+            >
               {s.short}
             </span>
             <span className="sr-only">
@@ -132,7 +152,11 @@ export function OnboardingWizard({ token, onDone }: Props) {
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Paso {step + 1} de {STEPS.length}
         </p>
-        <h2 ref={headingRef} tabIndex={-1} className="mb-5 mt-1 scroll-mt-6 text-xl font-semibold text-foreground outline-none">
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="mb-5 mt-1 scroll-mt-6 text-xl font-semibold text-foreground outline-none"
+        >
           {STEPS[step].title}
         </h2>
         {step === 0 && <BillingStepFields {...stepProps} />}
@@ -143,25 +167,37 @@ export function OnboardingWizard({ token, onDone }: Props) {
       </section>
 
       {formError && (
-        <p role="alert" className="rounded-app-md bg-danger-subtle px-3 py-2 text-sm text-danger-strong">
+        <p
+          role="alert"
+          className="rounded-app-md bg-danger-subtle px-3 py-2 text-sm text-danger-strong"
+        >
           {formError}
         </p>
       )}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
         {step > 0 ? (
-          <Button type="button" variant="ghost" size="lg" onClick={() => goTo(step - 1)} disabled={busy}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            onClick={() => goTo(step - 1)}
+            disabled={busy}
+          >
             <ArrowLeft aria-hidden className="mr-1.5 h-4 w-4" /> Atrás
           </Button>
         ) : (
           <span />
         )}
-        <Button type="submit" size="lg" disabled={!hydrated || busy || (last && uploading)} className="sm:min-w-44">
+        <Button
+          type="submit"
+          size="lg"
+          disabled={!hydrated || busy || (last && uploading)}
+          className="sm:min-w-44"
+        >
           {busy && <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />}
           {last ? (
-            <>
-              {!busy && <Send aria-hidden className="mr-1.5 h-4 w-4" />} Enviar todo
-            </>
+            <>{!busy && <Send aria-hidden className="mr-1.5 h-4 w-4" />} Enviar todo</>
           ) : (
             <>
               Siguiente <ArrowRight aria-hidden className="ml-1.5 h-4 w-4" />

@@ -26,7 +26,14 @@ type BookingEmailInput = {
   sendCustomerConfirmation: boolean;
 };
 
-export type Email = { kind: "dueño" | "cliente"; to: string; subject: string; text: string; html: string; replyTo?: string };
+export type Email = {
+  kind: "dueño" | "cliente";
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  replyTo?: string;
+};
 
 function escapeHtml(s: string): string {
   return s
@@ -123,13 +130,14 @@ export async function sendBookingEmails(input: BookingEmailInput): Promise<void>
   const emails = [
     buildOwnerEmail(input, when),
     input.sendCustomerConfirmation ? buildCustomerEmail(input, when) : null,
-  ].filter(
-    (e): e is Email => e !== null,
-  );
+  ].filter((e): e is Email => e !== null);
   const results = await Promise.allSettled(emails.map((e) => sendViaResend(apiKey, from, e)));
   results.forEach((r, i) => {
     if (r.status === "rejected") {
-      console.error(`[booking] correo al ${emails[i]?.kind} falló:`, (r.reason as Error)?.message ?? r.reason);
+      console.error(
+        `[booking] correo al ${emails[i]?.kind} falló:`,
+        (r.reason as Error)?.message ?? r.reason,
+      );
     }
   });
 }

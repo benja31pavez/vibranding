@@ -9,17 +9,26 @@ type TabKey = "etapas" | "objetivos" | "tareas";
 export const Route = createFileRoute("/_app/clients/$clientId/plan")({
   validateSearch: (s: Record<string, unknown>): { tab?: TabKey } => ({
     tab:
-      s.tab === "objetivos" ? "objetivos"
-      : s.tab === "tareas" ? "tareas"
-      : s.tab === "etapas" ? "etapas"
-      : undefined,
+      s.tab === "objetivos"
+        ? "objetivos"
+        : s.tab === "tareas"
+          ? "tareas"
+          : s.tab === "etapas"
+            ? "etapas"
+            : undefined,
   }),
   head: () => ({
     meta: [
       { title: "Plan del cliente | Vibranding" },
-      { name: "description", content: "Etapas, objetivos y tareas del plan de trabajo del cliente." },
+      {
+        name: "description",
+        content: "Etapas, objetivos y tareas del plan de trabajo del cliente.",
+      },
       { property: "og:title", content: "Plan del cliente | Vibranding" },
-      { property: "og:description", content: "Etapas, objetivos y tareas del plan de trabajo del cliente." },
+      {
+        property: "og:description",
+        content: "Etapas, objetivos y tareas del plan de trabajo del cliente.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

@@ -49,14 +49,24 @@ export function CampaignAlerts() {
                 const sev = SEVERITY[a.severity] ?? { label: a.severity, tone: "neutral" as const };
                 return (
                   <li key={a.id} className="flex items-start gap-3 py-2 text-sm">
-                    <StatusBadge status={a.severity} label={sev.label} tone={sev.tone} className="mt-0.5 shrink-0" />
+                    <StatusBadge
+                      status={a.severity}
+                      label={sev.label}
+                      tone={sev.tone}
+                      className="mt-0.5 shrink-0"
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="break-words">{a.message}</p>
                       <p className="text-xs text-muted-foreground">
-                        <Link to="/clients/$clientId" params={{ clientId: a.client_id }} className="hover:underline">
+                        <Link
+                          to="/clients/$clientId"
+                          params={{ clientId: a.client_id }}
+                          className="hover:underline"
+                        >
                           {clients.data?.nameById.get(a.client_id) ?? "Cliente"}
                         </Link>{" "}
-                        · {PLATFORM_LABEL[a.platform] ?? a.platform} · {formatShortDate(a.created_at)}
+                        · {PLATFORM_LABEL[a.platform] ?? a.platform} ·{" "}
+                        {formatShortDate(a.created_at)}
                       </p>
                       <AlertActions alert={a} canResolve={editableClientIds.has(a.client_id)} />
                     </div>
@@ -64,7 +74,9 @@ export function CampaignAlerts() {
                 );
               })}
               {alerts.length > VISIBLE_ALERTS && (
-                <li className="pt-2 text-xs text-muted-foreground">y {alerts.length - VISIBLE_ALERTS} más…</li>
+                <li className="pt-2 text-xs text-muted-foreground">
+                  y {alerts.length - VISIBLE_ALERTS} más…
+                </li>
               )}
             </ul>
           )

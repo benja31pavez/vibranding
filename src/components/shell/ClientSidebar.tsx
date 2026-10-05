@@ -11,7 +11,12 @@ interface ClientSidebarProps {
 }
 
 /** Contenido del panel izquierdo (gestión de UN cliente). Se usa en el aside y en el Sheet móvil. */
-export function ClientSidebar({ activeClient, path, staleOutcomes, onDisconnect }: ClientSidebarProps) {
+export function ClientSidebar({
+  activeClient,
+  path,
+  staleOutcomes,
+  onDisconnect,
+}: ClientSidebarProps) {
   return (
     <TooltipProvider delayDuration={150}>
       <div className="flex h-full min-h-0 flex-col">
@@ -20,7 +25,11 @@ export function ClientSidebar({ activeClient, path, staleOutcomes, onDisconnect 
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
           {activeClient ? (
-            <ClientSidebarNav clientId={activeClient.id} path={path} staleOutcomes={staleOutcomes} />
+            <ClientSidebarNav
+              clientId={activeClient.id}
+              path={path}
+              staleOutcomes={staleOutcomes}
+            />
           ) : (
             <p className="rounded-lg border border-dashed px-3 py-3 text-sm text-muted-foreground">
               Elige un cliente para ver su plan, contenido, campañas y cobros.

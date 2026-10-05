@@ -163,9 +163,9 @@
   --accent-foreground: oklch(0.99 0 0);
 
   /* Brand palette — used for gradients and dynamic highlights */
-  --brand-1: oklch(0.62 0.18 255);  /* electric blue */
-  --brand-2: oklch(0.66 0.24 330);  /* vibrant magenta */
-  --brand-3: oklch(0.78 0.18 50);   /* warm amber */
+  --brand-1: oklch(0.62 0.18 255); /* electric blue */
+  --brand-2: oklch(0.66 0.24 330); /* vibrant magenta */
+  --brand-3: oklch(0.78 0.18 50); /* warm amber */
   --gradient-brand: linear-gradient(135deg, var(--brand-1), var(--brand-2) 55%, var(--brand-3));
 
   --destructive: oklch(0.6 0.22 27);
@@ -218,8 +218,10 @@
   --neutral-strong: oklch(0.42 0.015 255);
 
   --app-shadow-xs: 0 1px 2px 0 oklch(0.2 0.02 255 / 0.06);
-  --app-shadow-md: 0 2px 4px -1px oklch(0.2 0.02 255 / 0.06), 0 4px 12px -2px oklch(0.2 0.02 255 / 0.08);
-  --app-shadow-lg: 0 8px 16px -4px oklch(0.2 0.02 255 / 0.08), 0 16px 40px -8px oklch(0.2 0.02 255 / 0.14);
+  --app-shadow-md:
+    0 2px 4px -1px oklch(0.2 0.02 255 / 0.06), 0 4px 12px -2px oklch(0.2 0.02 255 / 0.08);
+  --app-shadow-lg:
+    0 8px 16px -4px oklch(0.2 0.02 255 / 0.08), 0 16px 40px -8px oklch(0.2 0.02 255 / 0.14);
 }
 
 .dark {
@@ -281,7 +283,8 @@
   * {
     border-color: var(--color-border);
   }
-  html, body {
+  html,
+  body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
@@ -289,7 +292,10 @@
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.01em;
   }
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
@@ -317,7 +323,12 @@
 
 /* Darker brand gradient for text/buttons that must meet WCAG AA on light backgrounds */
 @utility text-gradient-brand-strong {
-  background: linear-gradient(120deg, oklch(0.48 0.2 262), oklch(0.5 0.24 330) 60%, oklch(0.55 0.19 35));
+  background: linear-gradient(
+    120deg,
+    oklch(0.48 0.2 262),
+    oklch(0.5 0.24 330) 60%,
+    oklch(0.55 0.19 35)
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -334,20 +345,38 @@
 
 /* Animated gradient (slow shimmer) */
 @utility bg-gradient-brand-animated {
-  background-image: linear-gradient(120deg, var(--brand-1), var(--brand-2), var(--brand-3), var(--brand-1));
+  background-image: linear-gradient(
+    120deg,
+    var(--brand-1),
+    var(--brand-2),
+    var(--brand-3),
+    var(--brand-1)
+  );
   background-size: 300% 300%;
   animation: brand-pan 9s ease-in-out infinite;
 }
 
 @keyframes brand-pan {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 @keyframes blob-float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -20px) scale(1.05); }
-  66% { transform: translate(-20px, 30px) scale(0.97); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -20px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 30px) scale(0.97);
+  }
 }
 
 @utility blob {
@@ -357,8 +386,12 @@
 }
 
 @keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 @utility animate-marquee {

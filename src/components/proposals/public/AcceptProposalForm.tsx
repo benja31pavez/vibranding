@@ -112,7 +112,10 @@ export function AcceptProposalForm({ token, onAccepted }: Props) {
         </Label>
       </div>
       {error && (
-        <p role="alert" className="rounded-app-md bg-danger-subtle px-3 py-2 text-sm text-danger-strong">
+        <p
+          role="alert"
+          className="rounded-app-md bg-danger-subtle px-3 py-2 text-sm text-danger-strong"
+        >
           {error}
         </p>
       )}
@@ -121,7 +124,8 @@ export function AcceptProposalForm({ token, onAccepted }: Props) {
         Aceptar propuesta
       </Button>
       <p className="text-xs text-muted-foreground">
-        Al aceptar registramos tu nombre, la fecha y un identificador anónimo de tu conexión como respaldo.
+        Al aceptar registramos tu nombre, la fecha y un identificador anónimo de tu conexión como
+        respaldo.
       </p>
     </form>
   );

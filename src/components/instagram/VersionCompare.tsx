@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import { ArrowRight, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import type { IGPost } from "@/components/InstagramEditor";
 import { usePostInsights } from "@/hooks/use-post-insights";
@@ -14,15 +18,17 @@ function avg(values: number[]) {
 }
 
 function Delta({
-  label, before, after, digits = 0,
+  label,
+  before,
+  after,
+  digits = 0,
 }: {
   label: string;
   before: number | null;
   after: number | null;
   digits?: number;
 }) {
-  const fmt = (n: number) =>
-    n.toLocaleString("es-CL", { maximumFractionDigits: digits });
+  const fmt = (n: number) => n.toLocaleString("es-CL", { maximumFractionDigits: digits });
   if (before == null || after == null) {
     return (
       <div className="rounded-xl border bg-surface px-4 py-3">
@@ -126,10 +132,24 @@ export function VersionCompare({
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Delta label="Seguidores" before={left?.followers ?? null} after={right?.followers ?? null} />
+        <Delta
+          label="Seguidores"
+          before={left?.followers ?? null}
+          after={right?.followers ?? null}
+        />
         <Delta label="Publicaciones" before={stats.left.count} after={stats.right.count} />
-        <Delta label="Interacción promedio" before={stats.left.engagement} after={stats.right.engagement} digits={1} />
-        <Delta label="Alcance promedio" before={stats.left.reach} after={stats.right.reach} digits={1} />
+        <Delta
+          label="Interacción promedio"
+          before={stats.left.engagement}
+          after={stats.right.engagement}
+          digits={1}
+        />
+        <Delta
+          label="Alcance promedio"
+          before={stats.left.reach}
+          after={stats.right.reach}
+          digits={1}
+        />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -139,7 +159,9 @@ export function VersionCompare({
           <VersionGrid clientId={clientId} posts={posts.filter((p) => p.version_id === leftId)} />
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Después</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Después
+          </p>
           {picker(rightId, onRight)}
           <VersionGrid clientId={clientId} posts={posts.filter((p) => p.version_id === rightId)} />
         </div>

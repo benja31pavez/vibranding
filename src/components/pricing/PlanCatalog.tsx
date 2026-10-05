@@ -1,11 +1,5 @@
 import { Rocket, Camera, MonitorSmartphone } from "lucide-react";
-import {
-  PLANS,
-  formatMoney,
-  splitVat,
-  type Plan,
-  type PlanKey,
-} from "@/lib/pricing/plans";
+import { PLANS, formatMoney, splitVat, type Plan, type PlanKey } from "@/lib/pricing/plans";
 
 const PLAN_ICONS: Record<PlanKey, React.ComponentType<{ className?: string }>> = {
   "marca-web": MonitorSmartphone,

@@ -71,7 +71,8 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
 
   const doDisconnect = async () => {
     if (!conn) return;
-    if (!confirm("¿Desconectar la cuenta de Meta? Las métricas ya descargadas se conservan.")) return;
+    if (!confirm("¿Desconectar la cuenta de Meta? Las métricas ya descargadas se conservan."))
+      return;
     try {
       await disconnect({ data: { accountId: conn.id } });
       toast.success("Cuenta desconectada");
@@ -104,7 +105,7 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-base">
           <Plug className="w-4 h-4" /> Conexión con Meta
-        {conn?.connected ? (
+          {conn?.connected ? (
             <Badge className="gap-1">
               <CheckCircle2 className="w-3 h-3" /> Conectada
             </Badge>
@@ -143,11 +144,15 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
       </CardHeader>
       <CardContent className="text-sm text-muted-foreground space-y-2">
         {dupe.length > 0 && (
-          <div role="alert" className="flex gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-foreground">
+          <div
+            role="alert"
+            className="flex gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-foreground"
+          >
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <p>
-              La cuenta publicitaria <span className="font-mono">{conn?.ad_account_id}</span> también
-              está asignada a: <strong>{dupe.join(", ")}</strong>. El gasto se contaría dos veces.
+              La cuenta publicitaria <span className="font-mono">{conn?.ad_account_id}</span>{" "}
+              también está asignada a: <strong>{dupe.join(", ")}</strong>. El gasto se contaría dos
+              veces.
             </p>
           </div>
         )}
@@ -171,7 +176,8 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
               {conn.last_synced_at
                 ? new Date(conn.last_synced_at).toLocaleString("es-CL")
                 : "pendiente"}
-              {" · "}Las métricas se descargan solas cada madrugada (entre 2 y 3 a. m., hora de Chile).
+              {" · "}Las métricas se descargan solas cada madrugada (entre 2 y 3 a. m., hora de
+              Chile).
             </div>
             {conn.last_sync_error && (
               <div className="text-destructive">Último error: {conn.last_sync_error}</div>

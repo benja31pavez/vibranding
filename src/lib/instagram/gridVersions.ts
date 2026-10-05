@@ -16,12 +16,21 @@ export type GridVersion = {
 export const STAGING_MARKER = "· sincronizando";
 
 /** Staging labels are internal bookkeeping and never shown to the user. */
-export const isStagingVersion = (v: { label: string }) =>
-  v.label.includes(STAGING_MARKER);
+export const isStagingVersion = (v: { label: string }) => v.label.includes(STAGING_MARKER);
 
 const MONTHS = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
 ];
 
 /** "Agosto 2026" — default label for a captured version. */
@@ -44,10 +53,7 @@ export async function loadGridVersions(clientId: string): Promise<GridVersion[]>
     .eq("client_id", clientId)
     .order("captured_at", { ascending: false });
   const rows = ((data ?? []) as GridVersion[]).filter((v) => !isStagingVersion(v));
-  return [
-    ...rows.filter((v) => !v.is_baseline),
-    ...rows.filter((v) => v.is_baseline),
-  ];
+  return [...rows.filter((v) => !v.is_baseline), ...rows.filter((v) => v.is_baseline)];
 }
 
 export async function createManualVersion(clientId: string, label: string) {

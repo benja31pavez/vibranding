@@ -60,7 +60,8 @@ function compare(metric: Metric | null | undefined, phrase: Phrase): Candidate |
   };
 }
 
-const plural = (n: number, one: string, many: string) => `${fmtInt(n)} ${Math.round(n) === 1 ? one : many}`;
+const plural = (n: number, one: string, many: string) =>
+  `${fmtInt(n)} ${Math.round(n) === 1 ? one : many}`;
 
 function candidates(data: MonthlyReportData): Candidate[] {
   const out: (Candidate | null)[] = [];
@@ -128,13 +129,22 @@ function candidates(data: MonthlyReportData): Candidate[] {
     });
   }
   if (data.leads && data.leads.total.previous == null && data.leads.total.value > 0) {
-    out.push({ text: `Recibiste ${plural(data.leads.total.value, "contacto nuevo", "contactos nuevos")}.`, score: 0.2 });
+    out.push({
+      text: `Recibiste ${plural(data.leads.total.value, "contacto nuevo", "contactos nuevos")}.`,
+      score: 0.2,
+    });
   }
   if (data.landing && data.landing.visits.previous == null && data.landing.visits.value > 0) {
-    out.push({ text: `Tu web recibió ${plural(data.landing.visits.value, "visita", "visitas")}.`, score: 0.2 });
+    out.push({
+      text: `Tu web recibió ${plural(data.landing.visits.value, "visita", "visitas")}.`,
+      score: 0.2,
+    });
   }
   if (meta && meta.spend.value > 0) {
-    out.push({ text: `Invertimos ${fmtMoney(meta.spend.value, meta.currency)} en anuncios de Meta.`, score: 0.15 });
+    out.push({
+      text: `Invertimos ${fmtMoney(meta.spend.value, meta.currency)} en anuncios de Meta.`,
+      score: 0.15,
+    });
   }
 
   return out.filter((c): c is Candidate => c !== null);

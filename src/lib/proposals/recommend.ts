@@ -61,7 +61,9 @@ export function readDiagnosticoSignals(rawNotes: string | null | undefined): Dia
   const planRaw = lastField(notes, "plan de interés");
   const goal = GOALS.find((g) => g.label === goalLabel)?.value ?? null;
   const budget = BUDGETS.find((b) => b.value !== "" && b.label === budgetLabel)?.value ?? null;
-  const plan = (PLAN_INTERESTS as readonly string[]).includes(planRaw ?? "") ? (planRaw as PlanKey) : null;
+  const plan = (PLAN_INTERESTS as readonly string[]).includes(planRaw ?? "")
+    ? (planRaw as PlanKey)
+    : null;
   return { objetivo: goal, presupuesto: (budget || null) as BudgetValue | null, planInteres: plan };
 }
 
@@ -104,8 +106,11 @@ export interface RecommendInput {
 /** Si el plan mensual supera el tope, el mensual más caro que sí cabe (o el de respaldo). */
 function fitBudget(plan: Plan, budget: BudgetValue | null): { plan: Plan; adjusted: boolean } {
   const cap = budget ? BUDGET_MONTHLY_CAP_CLP[budget] : undefined;
-  if (cap === undefined || plan.billing !== "monthly" || plan.price <= cap) return { plan, adjusted: false };
-  const fitting = PLANS.filter((p) => p.billing === "monthly" && p.price <= cap).sort((a, b) => b.price - a.price);
+  if (cap === undefined || plan.billing !== "monthly" || plan.price <= cap)
+    return { plan, adjusted: false };
+  const fitting = PLANS.filter((p) => p.billing === "monthly" && p.price <= cap).sort(
+    (a, b) => b.price - a.price,
+  );
   const fallback = fitting[0] ?? findPlan(BUDGET_FALLBACK_PLAN);
   return fallback ? { plan: fallback, adjusted: true } : { plan, adjusted: false };
 }
@@ -120,7 +125,13 @@ const SOURCE_REASON: Readonly<Record<RecommendationSource, string>> = {
 /** Regla: ficha > plan de interés > objetivo > sin plan. Las dos del diagnóstico respetan el presupuesto. */
 export function recommendPlan({ productoSugerido, signals }: RecommendInput): PlanRecommendation {
   const manual = findPlan(productoSugerido);
-  if (manual) return { planKey: manual.key, source: "ficha", adjustedForBudget: false, reason: SOURCE_REASON.ficha };
+  if (manual)
+    return {
+      planKey: manual.key,
+      source: "ficha",
+      adjustedForBudget: false,
+      reason: SOURCE_REASON.ficha,
+    };
 
   const fromDiagnostico: [RecommendationSource, PlanKey | null][] = [
     ["plan_interes", signals.planInteres],
@@ -135,7 +146,12 @@ export function recommendPlan({ productoSugerido, signals }: RecommendInput): Pl
       : SOURCE_REASON[source];
     return { planKey: fitted.plan.key, source, adjustedForBudget: fitted.adjusted, reason };
   }
-  return { planKey: null, source: "sin_datos", adjustedForBudget: false, reason: SOURCE_REASON.sin_datos };
+  return {
+    planKey: null,
+    source: "sin_datos",
+    adjustedForBudget: false,
+    reason: SOURCE_REASON.sin_datos,
+  };
 }
 
 // ------------------------------------------------------------------ intro
@@ -165,7 +181,9 @@ export interface IntroInput {
 
 function clean(value: string | null | undefined): string {
   const text = (value ?? "").replace(/\s+/g, " ").trim();
-  return text.length > INTRO_FIELD_MAX_CHARS ? `${text.slice(0, INTRO_FIELD_MAX_CHARS - 1).trimEnd()}…` : text;
+  return text.length > INTRO_FIELD_MAX_CHARS
+    ? `${text.slice(0, INTRO_FIELD_MAX_CHARS - 1).trimEnd()}…`
+    : text;
 }
 
 function lowerFirst(text: string): string {

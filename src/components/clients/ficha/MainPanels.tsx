@@ -22,7 +22,13 @@ interface ApprovalsProps {
 }
 
 /** Lo que espera visto bueno del cliente (vista approval_queue). */
-export function PendingApprovalPanel({ clientId, health, loading, error, onRetry }: ApprovalsProps) {
+export function PendingApprovalPanel({
+  clientId,
+  health,
+  loading,
+  error,
+  onRetry,
+}: ApprovalsProps) {
   const items = health?.approvals ?? [];
   return (
     <Panel
@@ -30,7 +36,11 @@ export function PendingApprovalPanel({ clientId, health, loading, error, onRetry
       icon={ClipboardCheck}
       actions={
         items.length > 0 ? (
-          <Link to="/clients/$clientId/deliverables" params={{ clientId }} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+          <Link
+            to="/clients/$clientId/deliverables"
+            params={{ clientId }}
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
             Ver todo <ArrowRight aria-hidden className="h-3 w-3" />
           </Link>
         ) : undefined
@@ -41,11 +51,19 @@ export function PendingApprovalPanel({ clientId, health, loading, error, onRetry
       ) : error ? (
         <ErrorState message={error.message} onRetry={onRetry} />
       ) : items.length === 0 ? (
-        <EmptyState size="compact" icon={ClipboardCheck} title="Nada esperando aprobación" description="Cuando envíes un entregable o post a revisión, aparecerá aquí." />
+        <EmptyState
+          size="compact"
+          icon={ClipboardCheck}
+          title="Nada esperando aprobación"
+          description="Cuando envíes un entregable o post a revisión, aparecerá aquí."
+        />
       ) : (
         <ul className="divide-y divide-border-subtle">
           {items.slice(0, MAX_APPROVALS).map((item) => (
-            <li key={`${item.kind}-${item.ref_id}`} className="flex items-center justify-between gap-3 py-2.5">
+            <li
+              key={`${item.kind}-${item.ref_id}`}
+              className="flex items-center justify-between gap-3 py-2.5"
+            >
               <div className="min-w-0">
                 {item.kind === "propuesta" && item.ref_id ? (
                   <Link
@@ -57,7 +75,11 @@ export function PendingApprovalPanel({ clientId, health, loading, error, onRetry
                   </Link>
                 ) : (
                   <Link
-                    to={item.kind === "post_instagram" ? "/clients/$clientId/instagram" : "/clients/$clientId/deliverables"}
+                    to={
+                      item.kind === "post_instagram"
+                        ? "/clients/$clientId/instagram"
+                        : "/clients/$clientId/deliverables"
+                    }
                     params={{ clientId }}
                     className="block truncate text-sm font-medium hover:underline"
                   >
@@ -65,7 +87,8 @@ export function PendingApprovalPanel({ clientId, health, loading, error, onRetry
                   </Link>
                 )}
                 <div className="text-xs text-muted-foreground">
-                  {KIND_LABEL[item.kind ?? ""] ?? item.kind} · en revisión desde {formatDate(item.created_at)}
+                  {KIND_LABEL[item.kind ?? ""] ?? item.kind} · en revisión desde{" "}
+                  {formatDate(item.created_at)}
                 </div>
               </div>
               <StatusBadge status="in_review" />
@@ -93,26 +116,47 @@ export function UpcomingContentPanel({ clientId }: { clientId: string }) {
       title="Próximo contenido"
       icon={CalendarClock}
       actions={
-        <Link to="/clients/$clientId/instagram" params={{ clientId }} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+        <Link
+          to="/clients/$clientId/instagram"
+          params={{ clientId }}
+          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+        >
           Ir a Instagram <ArrowRight aria-hidden className="h-3 w-3" />
         </Link>
       }
     >
       {upcoming.length === 0 ? (
-        <EmptyState size="compact" icon={CalendarClock} title="No hay publicaciones programadas" description="Programa posts desde la sección Instagram." />
+        <EmptyState
+          size="compact"
+          icon={CalendarClock}
+          title="No hay publicaciones programadas"
+          description="Programa posts desde la sección Instagram."
+        />
       ) : (
         <ul className="divide-y divide-border-subtle">
           {upcoming.map((p) => (
             <li key={p.id} className="flex items-center gap-3 py-2.5">
               <div className="h-10 w-10 shrink-0 overflow-hidden rounded-app-sm bg-surface-2">
                 {(p.cover_url ?? p.image_url) && (
-                  <img src={(p.cover_url ?? p.image_url)!} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  <img
+                    src={(p.cover_url ?? p.image_url)!}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm">{p.caption?.trim().slice(0, 80) || "Publicación sin texto"}</div>
+                <div className="truncate text-sm">
+                  {p.caption?.trim().slice(0, 80) || "Publicación sin texto"}
+                </div>
                 <div className="text-xs text-muted-foreground tabular-nums">
-                  {new Date(p.scheduled_at!).toLocaleString("es-CL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  {new Date(p.scheduled_at!).toLocaleString("es-CL", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </div>
               </div>
               <StatusBadge status="scheduled" />

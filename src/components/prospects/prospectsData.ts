@@ -18,11 +18,12 @@ export const BAJA_LOCKED =
 const PROSPECT_COLUMNS = "*";
 
 export const FRIO_NEEDS_V3 =
-  "El estado \"Frío\" requiere la migración v3 de la base de datos. Mientras tanto usa \"Perdido\".";
+  'El estado "Frío" requiere la migración v3 de la base de datos. Mientras tanto usa "Perdido".';
 
 /** Errores de RLS/privilegios → mensaje de permisos; CHECK de estado sin 'frio' → aviso v3; el resto, tal cual. */
 export function writeError(error: { code?: string; message: string }): string {
-  if (error.code === "42501" || /row-level security|permission denied/i.test(error.message)) return NO_PERMISSION;
+  if (error.code === "42501" || /row-level security|permission denied/i.test(error.message))
+    return NO_PERMISSION;
   if (error.code === "23514" && /estado/i.test(error.message)) return FRIO_NEEDS_V3;
   return error.message;
 }
@@ -31,7 +32,10 @@ export function writeError(error: { code?: string; message: string }): string {
  * La RPC `fn` aún no existe (migración v3 sin aplicar): PGRST202, o 42883 que nombre a `fn`.
  * Cualquier otro error se propaga (no se cae al flujo antiguo).
  */
-export function isMissingRpc(error: { code?: string; message?: string } | null | undefined, fn: string): boolean {
+export function isMissingRpc(
+  error: { code?: string; message?: string } | null | undefined,
+  fn: string,
+): boolean {
   if (!error) return false;
   if (error.code === "PGRST202") return true;
   return error.code === "42883" && (error.message ?? "").includes(fn);
@@ -71,7 +75,8 @@ async function getOrgId(): Promise<string> {
 
 /** Al pasar a "contactado" sin fecha registrada, se anota hoy como último contacto. */
 function contactPatch(prev: Pick<Prospect, "ultimo_contacto">, estado: ProspectState) {
-  if (estado === "contactado" && !prev.ultimo_contacto) return { estado, ultimo_contacto: new Date().toISOString() };
+  if (estado === "contactado" && !prev.ultimo_contacto)
+    return { estado, ultimo_contacto: new Date().toISOString() };
   return { estado };
 }
 
@@ -111,11 +116,14 @@ export function useMoveProspect() {
     },
     // Revierte solo el prospecto afectado (no pisa otros movimientos en curso).
     onError: (_err, { prospect }) => {
-      queryClient.setQueryData<Prospect[]>(key, (list) => list?.map((p) => (p.id === prospect.id ? prospect : p)));
+      queryClient.setQueryData<Prospect[]>(key, (list) =>
+        list?.map((p) => (p.id === prospect.id ? prospect : p)),
+      );
     },
     onSettled: () => {
       // Refrescar solo cuando termina el último movimiento en curso, para no deshacer los optimistas.
-      if (queryClient.isMutating({ mutationKey: MOVE_KEY }) === 1) void queryClient.invalidateQueries({ queryKey: key });
+      if (queryClient.isMutating({ mutationKey: MOVE_KEY }) === 1)
+        void queryClient.invalidateQueries({ queryKey: key });
     },
   });
 }
@@ -136,7 +144,8 @@ export function useSaveProspect() {
         if (values.estado !== "baja") query = query.neq("estado", "baja");
         const { data, error } = await query.select("id");
         if (error) throw new Error(writeError(error));
-        if (!data || data.length === 0) throw new Error(values.estado === "baja" ? NO_PERMISSION : BAJA_LOCKED);
+        if (!data || data.length === 0)
+          throw new Error(values.estado === "baja" ? NO_PERMISSION : BAJA_LOCKED);
         return id;
       }
       const orgId = await getOrgId();
@@ -162,7 +171,9 @@ export async function insertProspects(
   const orgId = await getOrgId();
   let inserted = 0;
   for (let i = 0; i < rows.length; i += INSERT_CHUNK) {
-    const chunk = rows.slice(i, i + INSERT_CHUNK).map((v) => ({ ...v, org_id: orgId, created_by: userId }));
+    const chunk = rows
+      .slice(i, i + INSERT_CHUNK)
+      .map((v) => ({ ...v, org_id: orgId, created_by: userId }));
     const { data, error } = await supabase.from("prospects").insert(chunk).select("id");
     if (error) return { inserted, error: writeError(error) };
     if (!data || data.length === 0) return { inserted, error: NO_PERMISSION };
@@ -195,14 +206,23 @@ function quotedIlike(value: string): string {
  * Prospectos ya guardados que coinciden por correo o por nombre (sin distinguir mayúsculas)
  * con las filas a importar. Consulta la BD directamente: no depende de la lista cargada.
  */
-export async function fetchExistingFor(rows: readonly ProspectValues[]): Promise<ExistingProspect[]> {
+export async function fetchExistingFor(
+  rows: readonly ProspectValues[],
+): Promise<ExistingProspect[]> {
   const cols = "nombre,comuna,email_publico";
-  const emails = [...new Set(rows.map((r) => r.email_publico).filter((e): e is string => Boolean(e)))];
+  const emails = [
+    ...new Set(rows.map((r) => r.email_publico).filter((e): e is string => Boolean(e))),
+  ];
   const names = [...new Set(rows.map((r) => r.nombre.trim()).filter(Boolean))];
   const queries = [
-    ...chunks(emails, LOOKUP_CHUNK).map((part) => supabase.from("prospects").select(cols).in("email_publico", part)),
+    ...chunks(emails, LOOKUP_CHUNK).map((part) =>
+      supabase.from("prospects").select(cols).in("email_publico", part),
+    ),
     ...chunks(names, LOOKUP_CHUNK).map((part) =>
-      supabase.from("prospects").select(cols).or(part.map((n) => `nombre.ilike.${quotedIlike(n)}`).join(",")),
+      supabase
+        .from("prospects")
+        .select(cols)
+        .or(part.map((n) => `nombre.ilike.${quotedIlike(n)}`).join(",")),
     ),
   ];
   const results = await Promise.all(queries);
@@ -216,14 +236,23 @@ export function useRevokeBaja() {
   const queryClient = useQueryClient();
   const key = prospectsKey(useUserId());
   return useMutation({
-    mutationFn: async ({ id, motivo, estado }: { id: string; motivo: string; estado: RevokeTargetState }) => {
+    mutationFn: async ({
+      id,
+      motivo,
+      estado,
+    }: {
+      id: string;
+      motivo: string;
+      estado: RevokeTargetState;
+    }) => {
       const { error } = await supabase.rpc("revoke_prospect_baja", {
         _prospect_id: id,
         _motivo: motivo,
         _estado: estado,
       });
       if (error) {
-        if (isMissingRpc(error, "revoke_prospect_baja")) throw new Error("Revocar una baja requiere la migración v3 de la base de datos.");
+        if (isMissingRpc(error, "revoke_prospect_baja"))
+          throw new Error("Revocar una baja requiere la migración v3 de la base de datos.");
         throw new Error(writeError(error));
       }
     },

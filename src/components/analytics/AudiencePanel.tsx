@@ -7,10 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Info, Loader2, RefreshCw, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
-import {
-  refreshAudienceSnapshot,
-  audienceMethodology,
-} from "@/lib/meta/audience.functions";
+import { refreshAudienceSnapshot, audienceMethodology } from "@/lib/meta/audience.functions";
 import { num, pct } from "./analytics-utils";
 
 const MIN_FOLLOWERS = 100;
@@ -70,8 +67,8 @@ export function AudienceDisclosure({
         <Info className="h-4 w-4" /> Sobre estos datos
       </div>
       <p>
-        Fuente: Instagram Graph API de Meta (métrica <code>follower_demographics</code>),
-        consultada el {fmtDate(date)}. Cobertura: {num(covered)} de {num(followers)} seguidores (
+        Fuente: Instagram Graph API de Meta (métrica <code>follower_demographics</code>), consultada
+        el {fmtDate(date)}. Cobertura: {num(covered)} de {num(followers)} seguidores (
         {coverage == null ? "—" : pct(coverage)}). Instagram no incluye en estos agregados a las
         cuentas privadas ni a los seguidores sin datos demográficos declarados o inferidos. Por eso
         la suma de las categorías es menor que el total de seguidores. No es un error de medición:
@@ -202,9 +199,7 @@ function AgeGenderStack({ rows, total }: { rows: Row[]; total: number }) {
           );
         })}
       </div>
-      <p className="text-[11px] text-muted-foreground">
-        Eje: {BREAKDOWN_UNIT.age_gender}
-      </p>
+      <p className="text-[11px] text-muted-foreground">Eje: {BREAKDOWN_UNIT.age_gender}</p>
     </div>
   );
 }
@@ -419,9 +414,9 @@ export function AudiencePanel({ clientId }: { clientId: string }) {
               Métrica consultada: <code>{methodQ.data?.metric ?? "follower_demographics"}</code>,
               periodo <code>lifetime</code>, ventana{" "}
               <code>{methodQ.data?.timeframe ?? "last_30_days"}</code>, desglosada por{" "}
-              {(methodQ.data?.breakdowns ?? ["age", "gender", "country", "city", "age,gender"]).join(
-                ", ",
-              )}
+              {(
+                methodQ.data?.breakdowns ?? ["age", "gender", "country", "city", "age,gender"]
+              ).join(", ")}
               .
             </p>
             <p>

@@ -64,8 +64,7 @@ async function fetchBreakdown(
       timeframe: DEMOGRAPHICS_TIMEFRAME,
       breakdown: b.param,
     });
-    const results =
-      res?.data?.[0]?.total_value?.breakdowns?.[0]?.results ?? ([] as any[]);
+    const results = res?.data?.[0]?.total_value?.breakdowns?.[0]?.results ?? ([] as any[]);
     const rows = (results as any[])
       .map((r) => ({
         key: (r.dimension_values ?? []).filter(Boolean).join(" · ") || "desconocido",

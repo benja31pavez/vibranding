@@ -7,7 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Sparkles, Info } from "lucide-react";
 import { toast } from "sonner";
 import type { WAAccount } from "@/components/pages/ChatbotPage";
@@ -20,7 +26,11 @@ const MODELS = [
   { value: "openai/gpt-5", label: "GPT-5 · máxima calidad (más caro)" },
 ];
 
-export function AIBotTab({ clientId, account, onChange }: {
+export function AIBotTab({
+  clientId,
+  account,
+  onChange,
+}: {
   clientId: string;
   account: WAAccount;
   onChange: () => void;
@@ -75,8 +85,9 @@ export function AIBotTab({ clientId, account, onChange }: {
             <Info className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
             <p className="text-xs text-muted-foreground leading-relaxed">
               Cuando el cliente escribe varios mensajes seguidos, el bot espera{" "}
-              <strong>{debounce}s</strong> a que termine, los agrupa y responde una sola vez con IA usando todo el contexto del chat.
-              Las reglas tipo <em>keyword</em> siguen respondiendo al instante; el fallback queda a cargo de la IA.
+              <strong>{debounce}s</strong> a que termine, los agrupa y responde una sola vez con IA
+              usando todo el contexto del chat. Las reglas tipo <em>keyword</em> siguen respondiendo
+              al instante; el fallback queda a cargo de la IA.
             </p>
           </div>
 
@@ -91,8 +102,9 @@ export function AIBotTab({ clientId, account, onChange }: {
           </div>
           {enabled && (
             <p className="text-xs text-muted-foreground">
-              Las respuestas con IA usan la clave de IA del servidor (LOVABLE_API_KEY). Si no está configurada,
-              el bot no responde con IA y solo funcionan las reglas; si notas que no contesta, pide revisarla en Lovable Cloud.
+              Las respuestas con IA usan la clave de IA del servidor (LOVABLE_API_KEY). Si no está
+              configurada, el bot no responde con IA y solo funcionan las reglas; si notas que no
+              contesta, pide revisarla en Lovable Cloud.
             </p>
           )}
 
@@ -104,7 +116,9 @@ export function AIBotTab({ clientId, account, onChange }: {
               </SelectTrigger>
               <SelectContent>
                 {MODELS.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -132,7 +146,8 @@ export function AIBotTab({ clientId, account, onChange }: {
               placeholder={`Ej:\n- Servicios: Plan Contenido $129.990/mes, Plan Crecimiento $249.990/mes (IVA incluido)\n- Horario: L-V 9-18h\n- No realizamos diseño de logos`}
             />
             <p className="text-[11px] text-muted-foreground mt-1">
-              Toda esta info se inyecta al prompt del sistema para que el bot responda con datos reales.
+              Toda esta info se inyecta al prompt del sistema para que el bot responda con datos
+              reales.
             </p>
           </div>
 

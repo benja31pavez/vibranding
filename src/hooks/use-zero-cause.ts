@@ -28,7 +28,8 @@ export function useZeroCause(clientId: string) {
       return "La ingesta de anuncios nunca se ha ejecutado para este cliente. Ejecútala desde Configurar cliente.";
     }
     if (a.last_ingest_reason) return a.last_ingest_reason;
-    if (a.last_sync_error) return `Meta devolvió un error en la última sincronización: ${a.last_sync_error}`;
+    if (a.last_sync_error)
+      return `Meta devolvió un error en la última sincronización: ${a.last_sync_error}`;
     return "La última ingesta terminó bien pero no había gasto en este rango. Prueba otro periodo.";
   })();
 

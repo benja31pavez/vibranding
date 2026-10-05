@@ -102,7 +102,10 @@ export async function runMetaIngestBatch(opts: {
   };
 }
 
-function mergeSummaries(a: MetaIngestBatchSummary, b: MetaIngestBatchSummary): MetaIngestBatchSummary {
+function mergeSummaries(
+  a: MetaIngestBatchSummary,
+  b: MetaIngestBatchSummary,
+): MetaIngestBatchSummary {
   return {
     offset: a.offset,
     accounts: a.accounts + b.accounts,

@@ -4,7 +4,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PLACEMENT_GROUPS } from "@/lib/meta-ads/constants";
 
 export function PlacementsPicker({
-  mode, placements, onMode, onPlacements,
+  mode,
+  placements,
+  onMode,
+  onPlacements,
 }: {
   mode: "automatic" | "manual";
   placements: string[];
@@ -12,18 +15,31 @@ export function PlacementsPicker({
   onPlacements: (p: string[]) => void;
 }) {
   const toggle = (id: string) =>
-    onPlacements(placements.includes(id) ? placements.filter((p) => p !== id) : [...placements, id]);
+    onPlacements(
+      placements.includes(id) ? placements.filter((p) => p !== id) : [...placements, id],
+    );
   return (
     <div className="space-y-3 rounded-md border p-3">
       <div className="flex items-center justify-between">
         <div>
           <Label className="text-sm font-medium">Ubicaciones</Label>
-          <p className="text-xs text-muted-foreground">{mode === "automatic" ? "Meta elige las mejores ubicaciones automáticamente." : "Tú eliges dónde se muestran los anuncios."}</p>
+          <p className="text-xs text-muted-foreground">
+            {mode === "automatic"
+              ? "Meta elige las mejores ubicaciones automáticamente."
+              : "Tú eliges dónde se muestran los anuncios."}
+          </p>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span className={mode === "automatic" ? "font-medium" : "text-muted-foreground"}>Automático</span>
-          <Switch checked={mode === "manual"} onCheckedChange={(v) => onMode(v ? "manual" : "automatic")} />
-          <span className={mode === "manual" ? "font-medium" : "text-muted-foreground"}>Manual</span>
+          <span className={mode === "automatic" ? "font-medium" : "text-muted-foreground"}>
+            Automático
+          </span>
+          <Switch
+            checked={mode === "manual"}
+            onCheckedChange={(v) => onMode(v ? "manual" : "automatic")}
+          />
+          <span className={mode === "manual" ? "font-medium" : "text-muted-foreground"}>
+            Manual
+          </span>
         </div>
       </div>
       {mode === "manual" && (
@@ -34,7 +50,10 @@ export function PlacementsPicker({
               <div className="space-y-1">
                 {items.map((it) => (
                   <label key={it.id} className="flex items-center gap-2 text-xs cursor-pointer">
-                    <Checkbox checked={placements.includes(it.id)} onCheckedChange={() => toggle(it.id)} />
+                    <Checkbox
+                      checked={placements.includes(it.id)}
+                      onCheckedChange={() => toggle(it.id)}
+                    />
                     {it.label}
                   </label>
                 ))}

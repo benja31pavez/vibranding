@@ -24,11 +24,7 @@ export const listUnmatchedMedia = createServerFn({ method: "POST" })
     if (!found?.account.ig_account_id) return [];
 
     const { fetchInstagramMedia } = await import("@/lib/meta/igSync.server");
-    const media = await fetchInstagramMedia(
-      found.account.ig_account_id,
-      found.token,
-      30,
-    );
+    const media = await fetchInstagramMedia(found.account.ig_account_id, found.token, 30);
 
     const { data: used } = await (context.supabase.from("instagram_posts" as any) as any)
       .select("ig_media_id")
@@ -51,9 +47,7 @@ export const listUnmatchedMedia = createServerFn({ method: "POST" })
 /** Links a planned post to a real published media (or unlinks it with null). */
 export const matchPostToMedia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: { clientId: string; postId: string; igMediaId: string | null }) => input,
-  )
+  .inputValidator((input: { clientId: string; postId: string; igMediaId: string | null }) => input)
   .handler(async ({ data, context }) => {
     // Portal users can see their client row via RLS, so a plain select is not
     // enough: only agency editors may use the org's Meta token here.
@@ -74,11 +68,7 @@ export const matchPostToMedia = createServerFn({ method: "POST" })
       const found = await getClientMetaToken(data.clientId);
       if (found?.account.ig_account_id) {
         const { fetchInstagramMedia } = await import("@/lib/meta/igSync.server");
-        const media = await fetchInstagramMedia(
-          found.account.ig_account_id,
-          found.token,
-          30,
-        );
+        const media = await fetchInstagramMedia(found.account.ig_account_id, found.token, 30);
         publishedAt = media.find((m) => m.id === data.igMediaId)?.timestamp ?? null;
       }
     }
@@ -107,7 +97,7 @@ export const captureInstagramGridVersion = createServerFn({ method: "POST" })
       return {
         ok: false as const,
         reason:
-          "Este cliente no tiene una cuenta de Meta conectada. Usa \"Subir manualmente\" o conecta la cuenta.",
+          'Este cliente no tiene una cuenta de Meta conectada. Usa "Subir manualmente" o conecta la cuenta.',
       };
     }
     if (!resolved.account.ig_account_id) {

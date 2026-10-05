@@ -23,7 +23,12 @@ export interface SpendThresholds {
 
 export const SPEND_THRESHOLDS: Readonly<Record<string, SpendThresholds>> = {
   // ~5.000 CLP/día durante 3 días sin un solo mensaje o lead ya es plata perdida.
-  CLP: { noResultsWarning: 15_000, noResultsCritical: 40_000, cpaMinRecentSpend: 10_000, overspendMinSpend: 5_000 },
+  CLP: {
+    noResultsWarning: 15_000,
+    noResultsCritical: 40_000,
+    cpaMinRecentSpend: 10_000,
+    overspendMinSpend: 5_000,
+  },
   // Referencia ~950 CLP por USD.
   USD: { noResultsWarning: 16, noResultsCritical: 42, cpaMinRecentSpend: 11, overspendMinSpend: 5 },
 };
@@ -80,4 +85,7 @@ export const INGEST_STALE_HOURS = 48;
 export const MANUAL_RESOLVE_SNOOZE_DAYS = 3;
 
 /** Objetivos de campaña donde no se esperan mensajes ni leads (no aplica "sin resultados"/CPL). */
-export const OBJECTIVES_WITHOUT_RESULTS: readonly string[] = ["OUTCOME_AWARENESS", "OUTCOME_TRAFFIC"];
+export const OBJECTIVES_WITHOUT_RESULTS: readonly string[] = [
+  "OUTCOME_AWARENESS",
+  "OUTCOME_TRAFFIC",
+];

@@ -13,7 +13,10 @@ export const Route = createFileRoute("/_app/proposals/new")({
     return parsed.success ? parsed.data : {};
   },
   head: () => ({
-    meta: [{ title: "Nueva propuesta · Vibranding" }, { name: "robots", content: "noindex, nofollow" }],
+    meta: [
+      { title: "Nueva propuesta · Vibranding" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
   }),
   component: NewProposalPage,
 });

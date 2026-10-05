@@ -4,7 +4,13 @@ import { toast } from "sonner";
 import { EmptyState, Money, Panel, StatusBadge, TableSkeleton } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { BlockState } from "./block-state";
-import { UPCOMING_DAYS, formatShortDate, useClientIndex, useOpenPayments, type OpenPayment } from "./queries";
+import {
+  UPCOMING_DAYS,
+  formatShortDate,
+  useClientIndex,
+  useOpenPayments,
+  type OpenPayment,
+} from "./queries";
 
 const VISIBLE_ROWS = 8;
 
@@ -25,7 +31,11 @@ export function UpcomingPayments() {
   const nameOf = (id: string) => clients.data?.nameById.get(id) ?? "Cliente";
 
   return (
-    <Panel icon={Wallet} title="Próximos cobros" description={`Vencidos y por vencer en ${UPCOMING_DAYS} días`}>
+    <Panel
+      icon={Wallet}
+      title="Próximos cobros"
+      description={`Vencidos y por vencer en ${UPCOMING_DAYS} días`}
+    >
       <BlockState
         query={query}
         loadingLabel="Cargando cobros"
@@ -33,17 +43,32 @@ export function UpcomingPayments() {
       >
         {(data) =>
           data.agenda.length === 0 ? (
-            <EmptyState size="compact" icon={Wallet} title="Sin cobros esta semana." description="No hay pagos vencidos ni por vencer." />
+            <EmptyState
+              size="compact"
+              icon={Wallet}
+              title="Sin cobros esta semana."
+              description="No hay pagos vencidos ni por vencer."
+            />
           ) : (
             <div className="-mx-5 overflow-x-auto">
               <table className="w-full min-w-[32rem] text-sm">
                 <thead>
                   <tr className="border-b border-border-subtle text-left text-xs text-muted-foreground">
-                    <th scope="col" className="px-5 py-2 font-medium">Cliente</th>
-                    <th scope="col" className="px-2 py-2 text-right font-medium">Monto</th>
-                    <th scope="col" className="px-2 py-2 font-medium">Vence</th>
-                    <th scope="col" className="px-2 py-2 font-medium">Estado</th>
-                    <th scope="col" className="px-5 py-2"><span className="sr-only">Acciones</span></th>
+                    <th scope="col" className="px-5 py-2 font-medium">
+                      Cliente
+                    </th>
+                    <th scope="col" className="px-2 py-2 text-right font-medium">
+                      Monto
+                    </th>
+                    <th scope="col" className="px-2 py-2 font-medium">
+                      Vence
+                    </th>
+                    <th scope="col" className="px-2 py-2 font-medium">
+                      Estado
+                    </th>
+                    <th scope="col" className="px-5 py-2">
+                      <span className="sr-only">Acciones</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -64,17 +89,34 @@ function PaymentRow({ payment: p, clientName }: { payment: OpenPayment; clientNa
   return (
     <tr className="border-b border-border-subtle last:border-0">
       <td className="max-w-[12rem] px-5 py-2">
-        <Link to="/clients/$clientId/payments" params={{ clientId: p.client_id }} className="block truncate font-medium hover:underline">
+        <Link
+          to="/clients/$clientId/payments"
+          params={{ clientId: p.client_id }}
+          className="block truncate font-medium hover:underline"
+        >
           {clientName}
         </Link>
-        {p.description && <span className="block truncate text-xs text-muted-foreground">{p.description}</span>}
+        {p.description && (
+          <span className="block truncate text-xs text-muted-foreground">{p.description}</span>
+        )}
       </td>
-      <td className="px-2 py-2 text-right"><Money amount={p.amount} currency={p.currency} /></td>
-      <td className="whitespace-nowrap px-2 py-2 tabular-nums text-muted-foreground">{formatShortDate(p.due_date)}</td>
-      <td className="px-2 py-2"><StatusBadge status={p.status} /></td>
+      <td className="px-2 py-2 text-right">
+        <Money amount={p.amount} currency={p.currency} />
+      </td>
+      <td className="whitespace-nowrap px-2 py-2 tabular-nums text-muted-foreground">
+        {formatShortDate(p.due_date)}
+      </td>
+      <td className="px-2 py-2">
+        <StatusBadge status={p.status} />
+      </td>
       <td className="px-5 py-2 text-right">
         {p.payment_url && (
-          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => void copyLink(p.payment_url ?? "")}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs"
+            onClick={() => void copyLink(p.payment_url ?? "")}
+          >
             <Copy aria-hidden className="mr-1 h-3.5 w-3.5" /> Copiar link
           </Button>
         )}

@@ -20,7 +20,8 @@ function parseParams(params: URLSearchParams): ReportParams | { error: string } 
   const period = params.get("period") ?? undefined;
   const clientId = params.get("clientId") ?? undefined;
   if (period && !PERIOD_RE.test(period)) return { error: "period debe ser YYYY-MM-01" };
-  if (period && period > defaultReportPeriod()) return { error: "period debe ser un mes ya cerrado" };
+  if (period && period > defaultReportPeriod())
+    return { error: "period debe ser un mes ya cerrado" };
   const batch = parseBatchParams(params, { defaultLimit: DEFAULT_LIMIT, maxLimit: MAX_LIMIT });
   if ("error" in batch) return batch;
   if (clientId && !UUID_RE.test(clientId)) return { error: "clientId debe ser un uuid" };

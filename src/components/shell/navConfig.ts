@@ -1,6 +1,16 @@
 import {
-  BarChart3, CalendarDays, DollarSign, HeartPulse, Inbox, LayoutDashboard,
-  Images, LineChart, Plug, Receipt, Target, Users,
+  BarChart3,
+  CalendarDays,
+  DollarSign,
+  HeartPulse,
+  Inbox,
+  LayoutDashboard,
+  Images,
+  LineChart,
+  Plug,
+  Receipt,
+  Target,
+  Users,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -16,22 +26,47 @@ export interface NavItem {
 export const PRIMARY_NAV: readonly NavItem[] = [
   { to: "/dashboard", label: "Inicio", icon: LayoutDashboard, keywords: ["dashboard", "hoy"] },
   { to: "/clients", label: "Clientes", icon: Users, keywords: ["cuentas", "marcas"] },
-  { to: "/approvals", label: "Aprobaciones", icon: Inbox, keywords: ["bandeja", "revisión", "pendientes"] },
+  {
+    to: "/approvals",
+    label: "Aprobaciones",
+    icon: Inbox,
+    keywords: ["bandeja", "revisión", "pendientes"],
+  },
   {
     to: "/agenda",
     label: "Agenda",
     icon: CalendarDays,
     keywords: ["calendario", "reservas", "citas", "reuniones", "publicaciones", "vencimientos"],
   },
-  { to: "/pipeline", label: "Prospectos", icon: Target, keywords: ["pipeline", "ventas", "leads", "embudo"] },
-  { to: "/billing", label: "Cobros", icon: Receipt, keywords: ["pagos", "facturación", "flow", "mrr"] },
+  {
+    to: "/pipeline",
+    label: "Prospectos",
+    icon: Target,
+    keywords: ["pipeline", "ventas", "leads", "embudo"],
+  },
+  {
+    to: "/billing",
+    label: "Cobros",
+    icon: Receipt,
+    keywords: ["pagos", "facturación", "flow", "mrr"],
+  },
   { to: "/reports", label: "Reportes", icon: BarChart3, keywords: ["informes", "resultados"] },
 ];
 
 /** Configuración de la agencia (menú del avatar). */
 export const SETTINGS_NAV: readonly NavItem[] = [
-  { to: "/settings/pricing", label: "Precios", icon: DollarSign, keywords: ["planes", "servicios"] },
-  { to: "/settings/meta", label: "Meta", icon: Plug, keywords: ["facebook", "instagram", "conexión"] },
+  {
+    to: "/settings/pricing",
+    label: "Precios",
+    icon: DollarSign,
+    keywords: ["planes", "servicios"],
+  },
+  {
+    to: "/settings/meta",
+    label: "Meta",
+    icon: Plug,
+    keywords: ["facebook", "instagram", "conexión"],
+  },
   { to: "/portfolio", label: "Portafolio", icon: Images, keywords: ["trabajos", "público"] },
   { to: "/stats", label: "Estadísticas", icon: LineChart, keywords: ["landing", "visitas"] },
   { to: "/admin/health", label: "Salud", icon: HeartPulse, keywords: ["estado", "diagnóstico"] },

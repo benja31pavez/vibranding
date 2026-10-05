@@ -21,7 +21,9 @@ const GENERATE_COOLDOWN_MS = 60_000;
 /** "Generar ahora": arma el reporte del mes anterior (o `period`) de un cliente. Solo editores. */
 export const generateMonthlyReportNow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { clientId: string; period?: string; force?: boolean }) => GenerateInput.parse(d))
+  .inputValidator((d: { clientId: string; period?: string; force?: boolean }) =>
+    GenerateInput.parse(d),
+  )
   .handler(async ({ data, context }): Promise<GeneratedReport> => {
     const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
     await assertCanEditClient(context.userId, data.clientId);
@@ -35,7 +37,9 @@ export const generateMonthlyReportNow = createServerFn({ method: "POST" })
     const { generateMonthlyReport, lastGeneratedAt } = await import("./monthly.server");
     const last = await lastGeneratedAt(data.clientId, period);
     if (last && Date.now() - new Date(last).getTime() < GENERATE_COOLDOWN_MS) {
-      throw new Error("Este reporte se acaba de generar. Espera un minuto antes de volver a intentarlo.");
+      throw new Error(
+        "Este reporte se acaba de generar. Espera un minuto antes de volver a intentarlo.",
+      );
     }
     return generateMonthlyReport(data.clientId, period, { force: data.force });
   });
@@ -62,10 +66,13 @@ export const getPublicMonthlyReport = createServerFn({ method: "GET" })
   })
   .handler(async ({ data }): Promise<PublicMonthlyReport | null> => {
     privateHeaders();
-    if (!(await allowPublicView("report-view", data.token || "invalid"))) throw new Error(RATE_LIMITED);
+    if (!(await allowPublicView("report-view", data.token || "invalid")))
+      throw new Error(RATE_LIMITED);
     if (!data.token) return null;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: res, error } = await supabaseAdmin.rpc("get_monthly_report_by_token", { _token: data.token });
+    const { data: res, error } = await supabaseAdmin.rpc("get_monthly_report_by_token", {
+      _token: data.token,
+    });
     if (error) {
       console.error("[reports] lectura pública falló", error.message);
       throw new Error("No pudimos cargar el reporte. Intenta de nuevo en unos minutos.");

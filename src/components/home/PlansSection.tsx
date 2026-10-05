@@ -9,9 +9,18 @@ export function PlansSection() {
   const t = translations.es; // The public home is Spanish-only (Chile).
   const p = t.home.plans;
   return (
-    <section id="planes" aria-labelledby="planes-title" className="scroll-mt-20 bg-secondary/50 py-16 md:py-24">
+    <section
+      id="planes"
+      aria-labelledby="planes-title"
+      className="scroll-mt-20 bg-secondary/50 py-16 md:py-24"
+    >
       <div className="mx-auto max-w-7xl px-4 md:px-10">
-        <SectionHeading id="planes-title" title={p.title} accent={p.titleAccent} subtitle={p.subtitle} />
+        <SectionHeading
+          id="planes-title"
+          title={p.title}
+          accent={p.titleAccent}
+          subtitle={p.subtitle}
+        />
         <ul className="grid items-stretch gap-6 lg:grid-cols-3">
           {p.items.map((plan) => (
             <PlanCard key={plan.id} plan={plan} popularLabel={p.popular} ctaLabel={p.cta} />
@@ -26,7 +35,15 @@ export function PlansSection() {
   );
 }
 
-function PlanCard({ plan, popularLabel, ctaLabel }: { plan: PlanItem; popularLabel: string; ctaLabel: string }) {
+function PlanCard({
+  plan,
+  popularLabel,
+  ctaLabel,
+}: {
+  plan: PlanItem;
+  popularLabel: string;
+  ctaLabel: string;
+}) {
   return (
     <li
       className={cn(
@@ -65,7 +82,12 @@ function PlanCard({ plan, popularLabel, ctaLabel }: { plan: PlanItem; popularLab
           {ctaLabel}
           <span className="sr-only">: {plan.name}</span>
         </WhatsAppCta>
-        <DiagnosticoLink plan={plan.id} variant="outline" size="sm" className="mt-3 w-full border-transparent hover:border-foreground/15">
+        <DiagnosticoLink
+          plan={plan.id}
+          variant="outline"
+          size="sm"
+          className="mt-3 w-full border-transparent hover:border-foreground/15"
+        >
           Agenda un diagnóstico
           <span className="sr-only"> gratis para {plan.name}</span>
         </DiagnosticoLink>

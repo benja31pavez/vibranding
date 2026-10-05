@@ -11,11 +11,18 @@ export const LEAD_LOST_TAG = "[diagnostico][LEAD_PERDIDO]";
 
 /** Solo created/noted dejan el lead en la plataforma; el resto muestra el fallback de WhatsApp. */
 export function resultForOutcome(outcome: SaveOutcome): DiagnosticoResult {
-  return outcome === "created" || outcome === "noted" ? { ok: true } : { ok: false, reason: "not_saved" };
+  return outcome === "created" || outcome === "noted"
+    ? { ok: true }
+    : { ok: false, reason: "not_saved" };
 }
 
 /** Línea de log sin PII: paso, código y un prefijo del hash del correo (nunca el correo). */
-export function leadLostLine(ctx: { outcome: SaveOutcome; step: string; code?: string; emailHash?: string | null }): string {
+export function leadLostLine(ctx: {
+  outcome: SaveOutcome;
+  step: string;
+  code?: string;
+  emailHash?: string | null;
+}): string {
   const parts = [
     LEAD_LOST_TAG,
     `outcome=${ctx.outcome}`,

@@ -38,7 +38,12 @@ const CONTROL_RE = /[\u0000-\u001f\u007f]/;
 const NO_CONTROL = "Usa solo texto, sin saltos de línea ni caracteres especiales";
 
 const requiredText = (max: number, msg: string) =>
-  z.string().trim().min(2, msg).max(max, `Máximo ${max} caracteres`).refine((v) => !CONTROL_RE.test(v), NO_CONTROL);
+  z
+    .string()
+    .trim()
+    .min(2, msg)
+    .max(max, `Máximo ${max} caracteres`)
+    .refine((v) => !CONTROL_RE.test(v), NO_CONTROL);
 
 /** Texto y versión EXACTOS del checkbox; se guardan en prospect_consents. Cambia la versión si cambias el texto. */
 export const CONSENT_TEXT =
@@ -80,8 +85,7 @@ export const DiagnosticoInput = z.object({
 export type DiagnosticoInput = z.infer<typeof DiagnosticoInput>;
 
 export type DiagnosticoResult =
-  | { ok: true }
-  | { ok: false; reason: "rate_limited" | "invalid" | "not_saved" };
+  { ok: true } | { ok: false; reason: "rate_limited" | "invalid" | "not_saved" };
 
 export function goalLabel(value: string): string {
   return GOALS.find((g) => g.value === value)?.label ?? value;
@@ -96,7 +100,10 @@ export function budgetLabel(value: string | undefined): string | null {
  * Separa "Instagram o web" en una de las dos columnas del prospecto.
  * "@marca", "instagram.com/marca" → instagram "@marca"; un dominio o URL → web.
  */
-export function splitPresence(raw: string | undefined): { instagram: string | null; web: string | null } {
+export function splitPresence(raw: string | undefined): {
+  instagram: string | null;
+  web: string | null;
+} {
   const value = (raw ?? "").trim();
   if (!value) return { instagram: null, web: null };
   const ig = value.match(/^(?:https?:\/\/)?(?:www\.)?instagram\.com\/([A-Za-z0-9._]{1,30})/i);

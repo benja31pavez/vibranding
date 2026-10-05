@@ -1,5 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Check, ClipboardCheck, Dumbbell, HeartPulse, Home as HomeIcon } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ClipboardCheck,
+  Dumbbell,
+  HeartPulse,
+  Home as HomeIcon,
+} from "lucide-react";
 import { trackLandingEvent } from "@/lib/track";
 import { cn } from "@/lib/utils";
 import { SectionHeading } from "./shared";
@@ -39,7 +46,8 @@ const PROCESS = [
 type LinkVariant = "primary" | "outline" | "onDark";
 
 const LINK_VARIANTS: Record<LinkVariant, string> = {
-  primary: "bg-gradient-brand-strong text-white shadow-lg shadow-[color:var(--brand-2)]/25 hover:brightness-110",
+  primary:
+    "bg-gradient-brand-strong text-white shadow-lg shadow-[color:var(--brand-2)]/25 hover:brightness-110",
   outline: "border border-foreground/15 bg-background text-foreground hover:bg-secondary",
   onDark: "border border-white/60 text-white hover:bg-white/10",
 };
@@ -80,7 +88,11 @@ export function DiagnosticoLink({
 export function ForWhomSection() {
   const niches = translations.es.home.niches;
   return (
-    <section id="para-quien" aria-labelledby="para-quien-title" className="scroll-mt-20 mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24">
+    <section
+      id="para-quien"
+      aria-labelledby="para-quien-title"
+      className="scroll-mt-20 mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24"
+    >
       <SectionHeading
         id="para-quien-title"
         title="¿Para quién"
@@ -119,7 +131,11 @@ export function ForWhomSection() {
 
 export function WorkWithUsSection() {
   return (
-    <section id="como" aria-labelledby="como-title" className="scroll-mt-20 mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24">
+    <section
+      id="como"
+      aria-labelledby="como-title"
+      className="scroll-mt-20 mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24"
+    >
       <SectionHeading
         id="como-title"
         title="Cómo es trabajar"
@@ -129,7 +145,10 @@ export function WorkWithUsSection() {
       <ol className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {PROCESS.map((step, i) => (
           <li key={step.title} className="rounded-3xl border bg-card p-6">
-            <span className="font-brand text-4xl leading-none text-gradient-brand-strong" aria-hidden>
+            <span
+              className="font-brand text-4xl leading-none text-gradient-brand-strong"
+              aria-hidden
+            >
               {i + 1}
             </span>
             <h3 className="mt-3 text-lg font-semibold">{step.title}</h3>
@@ -138,8 +157,8 @@ export function WorkWithUsSection() {
         ))}
       </ol>
       <p className="mx-auto mt-8 max-w-3xl text-center text-sm text-muted-foreground">
-        En los planes mensuales te enviamos el calendario de contenido durante la primera semana y las campañas parten
-        apenas apruebas los anuncios.
+        En los planes mensuales te enviamos el calendario de contenido durante la primera semana y
+        las campañas parten apenas apruebas los anuncios.
       </p>
       <div className="mt-8 flex justify-center">
         <DiagnosticoLink />
@@ -158,8 +177,8 @@ export function DiagnosticoBanner() {
             Diagnóstico gratis de tu marca
           </h2>
           <p className="mt-2 max-w-xl text-muted-foreground">
-            Cuéntanos de tu negocio en 1 minuto. Revisamos tu Instagram, tu web y tu ficha de Google, y te decimos qué
-            haríamos primero. Sin compromiso.
+            Cuéntanos de tu negocio en 1 minuto. Revisamos tu Instagram, tu web y tu ficha de
+            Google, y te decimos qué haríamos primero. Sin compromiso.
           </p>
         </div>
         <DiagnosticoLink className="w-full shrink-0 md:w-auto">

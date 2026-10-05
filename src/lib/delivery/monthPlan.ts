@@ -33,7 +33,11 @@ export const CRECIMIENTO = {
 /** Marca + Web (pago único): pasos del proyecto, repartidos en el mes de entrega. */
 export const MARCA_WEB_STEPS = [
   { key: "inicio", title: "Reunión de inicio y recepción de información", at: 0 },
-  { key: "kit-marca", title: "Kit de marca: primera versión (logo, colores y tipografías)", at: 0.15 },
+  {
+    key: "kit-marca",
+    title: "Kit de marca: primera versión (logo, colores y tipografías)",
+    at: 0.15,
+  },
   { key: "landing", title: "Landing: primera versión con WhatsApp y formulario", at: 0.25 },
   { key: "ajustes", title: "Ajustes solicitados por el cliente", at: 0.45 },
   { key: "google-business", title: "Optimizar ficha de Google Business", at: 0.55 },
@@ -61,13 +65,40 @@ const DAY_MS = 86_400_000;
 export const CL_HOLIDAYS_LAST_YEAR = 2027;
 export const CL_HOLIDAYS: ReadonlySet<string> = new Set([
   // 2026
-  "2026-01-01", "2026-04-03", "2026-04-04", "2026-05-01", "2026-05-21", "2026-06-21",
-  "2026-06-29", "2026-07-16", "2026-08-15", "2026-09-18", "2026-09-19", "2026-10-12",
-  "2026-10-31", "2026-11-01", "2026-12-08", "2026-12-25",
+  "2026-01-01",
+  "2026-04-03",
+  "2026-04-04",
+  "2026-05-01",
+  "2026-05-21",
+  "2026-06-21",
+  "2026-06-29",
+  "2026-07-16",
+  "2026-08-15",
+  "2026-09-18",
+  "2026-09-19",
+  "2026-10-12",
+  "2026-10-31",
+  "2026-11-01",
+  "2026-12-08",
+  "2026-12-25",
   // 2027
-  "2027-01-01", "2027-03-26", "2027-03-27", "2027-05-01", "2027-05-21", "2027-06-21",
-  "2027-06-28", "2027-07-16", "2027-08-15", "2027-09-17", "2027-09-18", "2027-09-19",
-  "2027-10-11", "2027-10-31", "2027-11-01", "2027-12-08", "2027-12-25",
+  "2027-01-01",
+  "2027-03-26",
+  "2027-03-27",
+  "2027-05-01",
+  "2027-05-21",
+  "2027-06-21",
+  "2027-06-28",
+  "2027-07-16",
+  "2027-08-15",
+  "2027-09-17",
+  "2027-09-18",
+  "2027-09-19",
+  "2027-10-11",
+  "2027-10-31",
+  "2027-11-01",
+  "2027-12-08",
+  "2027-12-25",
 ]);
 
 /** Bajo este número de días hábiles restantes se avisa en la vista previa. */
@@ -76,14 +107,7 @@ const SATURDAY = 6;
 const SUNDAY = 0;
 
 export type MonthPlanKind =
-  | "calendario"
-  | "post"
-  | "reel"
-  | "google"
-  | "campanas"
-  | "reporte"
-  | "reunion"
-  | "proyecto";
+  "calendario" | "post" | "reel" | "google" | "campanas" | "reporte" | "reunion" | "proyecto";
 
 export interface MonthPlanItem {
   /** Clave estable dentro del mes (p. ej. "post-3"); forma parte del marcador. */
@@ -153,7 +177,10 @@ export function businessDays(month: string, from?: string): string[] {
 /** `count` días repartidos de forma pareja (centro de cada tramo). */
 export function spreadEvenly(days: readonly string[], count: number): string[] {
   if (days.length === 0 || count <= 0) return [];
-  return Array.from({ length: count }, (_, i) => days[Math.floor(((i + 0.5) * days.length) / count)]);
+  return Array.from(
+    { length: count },
+    (_, i) => days[Math.floor(((i + 0.5) * days.length) / count)],
+  );
 }
 
 /** Día en la posición relativa `at` (0 = primero, 1 = último). */
@@ -181,7 +208,9 @@ export function planMarker(month: string, key: string): string {
 }
 
 /** Lee el marcador de una descripción; null si no tiene. */
-export function readMarker(description: string | null | undefined): { month: string; key: string } | null {
+export function readMarker(
+  description: string | null | undefined,
+): { month: string; key: string } | null {
   const m = MARKER_RE.exec(description ?? "");
   return m ? { month: m[1], key: m[2] } : null;
 }
@@ -192,7 +221,8 @@ function describe(text: string, month: string, key: string): string {
 
 // ─── Construcción ───────────────────────────────────────────────────────────
 
-const INTERNAL_NOTE = "Tarea interna generada con el plan del mes. No se publica ni se envía al cliente.";
+const INTERNAL_NOTE =
+  "Tarea interna generada con el plan del mes. No se publica ni se envía al cliente.";
 
 function numbered(
   kind: MonthPlanKind,
@@ -221,7 +251,13 @@ function single(
   dueDate: string,
   month: string,
 ): MonthPlanItem {
-  return { key, kind, title, description: describe(`${detail} ${INTERNAL_NOTE}`, month, key), dueDate };
+  return {
+    key,
+    kind,
+    title,
+    description: describe(`${detail} ${INTERNAL_NOTE}`, month, key),
+    dueDate,
+  };
 }
 
 /** Cantidad proporcional a los días que quedan (al menos 1 si la cuota es > 0). */
@@ -312,7 +348,14 @@ function contentItems(
 
 function projectItems(days: readonly string[], month: string): MonthPlanItem[] {
   return MARCA_WEB_STEPS.map((step) =>
-    single("proyecto", step.key, step.title, "Paso del proyecto Marca + Web.", dayAt(days, step.at), month),
+    single(
+      "proyecto",
+      step.key,
+      step.title,
+      "Paso del proyecto Marca + Web.",
+      dayAt(days, step.at),
+      month,
+    ),
   );
 }
 
@@ -342,7 +385,11 @@ export function buildMonthPlan({ planKey, month, today }: BuildMonthPlanInput): 
       ? projectItems(days, month)
       : contentItems(days, month, planKey === "crecimiento", ratio);
   return [...items].sort((a, b) =>
-    a.dueDate === b.dueDate ? KIND_ORDER[a.kind] - KIND_ORDER[b.kind] : a.dueDate < b.dueDate ? -1 : 1,
+    a.dueDate === b.dueDate
+      ? KIND_ORDER[a.kind] - KIND_ORDER[b.kind]
+      : a.dueDate < b.dueDate
+        ? -1
+        : 1,
   );
 }
 
@@ -385,7 +432,12 @@ export interface MonthSummary {
 export function summarizeExisting(month: string, existing: readonly ExistingTask[]): MonthSummary {
   const { first, last } = monthBounds(month);
   const inMonth = existing.filter(
-    (t) => (t.due_date !== null && t.due_date >= first && t.due_date <= last) || readMarker(t.description)?.month === month,
+    (t) =>
+      (t.due_date !== null && t.due_date >= first && t.due_date <= last) ||
+      readMarker(t.description)?.month === month,
   );
-  return { total: inMonth.length, fromPlan: inMonth.filter((t) => readMarker(t.description)?.month === month).length };
+  return {
+    total: inMonth.length,
+    fromPlan: inMonth.filter((t) => readMarker(t.description)?.month === month).length,
+  };
 }

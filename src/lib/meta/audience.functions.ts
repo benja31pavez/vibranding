@@ -27,12 +27,9 @@ export const refreshAudienceSnapshot = createServerFn({ method: "POST" })
     }
 
     const { snapshotAudience } = await import("@/lib/meta/audience.server");
-    return await snapshotAudience(
-      data.clientId,
-      resolved.account.ig_account_id,
-      resolved.token,
-      { force: data.force },
-    );
+    return await snapshotAudience(data.clientId, resolved.account.ig_account_id, resolved.token, {
+      force: data.force,
+    });
   });
 
 /** Graph version + metric names, so the UI can state them verbatim. */

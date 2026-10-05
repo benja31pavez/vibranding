@@ -7,7 +7,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { EmptyState, ErrorState, ListSkeleton, Panel, StatusBadge } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +26,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ReportView } from "@/components/reports/ReportView";
-import { publicReportUrl, reportKeys, useClientReports, type MonthlyReportRow } from "@/components/reports/reportQueries";
+import {
+  publicReportUrl,
+  reportKeys,
+  useClientReports,
+  type MonthlyReportRow,
+} from "@/components/reports/reportQueries";
 import { generateMonthlyReportNow } from "@/lib/reports/monthly.functions";
 import { periodLabel } from "@/lib/billing/dates";
 import { defaultReportPeriod } from "@/lib/reports/period";
@@ -50,7 +62,9 @@ export function ReportsPanel({ clientId, clientName, canEdit }: ReportsPanelProp
     setGenerating(true);
     try {
       const res = await generate({ data: { clientId, period, force } });
-      toast.success(`Reporte de ${periodLabel(res.period)} ${res.created ? "generado" : "actualizado"}`);
+      toast.success(
+        `Reporte de ${periodLabel(res.period)} ${res.created ? "generado" : "actualizado"}`,
+      );
       await refresh();
     } catch (e) {
       toast.error((e as Error).message || "No se pudo generar el reporte");
@@ -81,12 +95,20 @@ export function ReportsPanel({ clientId, clientName, canEdit }: ReportsPanelProp
       {reports.isLoading ? (
         <ListSkeleton rows={3} label="Cargando reportes" />
       ) : reports.error ? (
-        <ErrorState message={reports.error.message} onRetry={() => void reports.refetch()} retrying={reports.isFetching} />
+        <ErrorState
+          message={reports.error.message}
+          onRetry={() => void reports.refetch()}
+          retrying={reports.isFetching}
+        />
       ) : !reports.data?.length ? (
         <EmptyState
           icon={FileBarChart}
           title="Aún no hay reportes"
-          description={canEdit ? "Usa «Generar ahora» para crear el del mes pasado." : "El primero se generará el día 1."}
+          description={
+            canEdit
+              ? "Usa «Generar ahora» para crear el del mes pasado."
+              : "El primero se generará el día 1."
+          }
         />
       ) : (
         <ul className="divide-y divide-border-subtle">
@@ -125,7 +147,12 @@ export function ReportsPanel({ clientId, clientName, canEdit }: ReportsPanelProp
             <DialogDescription>Así lo verá el cliente al abrir el link.</DialogDescription>
           </DialogHeader>
           {preview?.data && (
-            <ReportView clientName={clientName} period={preview.period} data={preview.data} summary={preview.summary} />
+            <ReportView
+              clientName={clientName}
+              period={preview.period}
+              data={preview.data}
+              summary={preview.summary}
+            />
           )}
         </DialogContent>
       </Dialog>
@@ -148,7 +175,9 @@ function ReportRow({ report, canEdit, onEdit, onPreview, onChanged }: ReportRowP
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(publicReportUrl(report.token));
-      toast.success(sent ? "Link copiado" : "Link copiado. Se activa cuando marques el reporte como enviado.");
+      toast.success(
+        sent ? "Link copiado" : "Link copiado. Se activa cuando marques el reporte como enviado.",
+      );
     } catch {
       toast.error("No se pudo copiar el link");
     }
@@ -163,7 +192,9 @@ function ReportRow({ report, canEdit, onEdit, onPreview, onChanged }: ReportRowP
       .select("id");
     setBusy(false);
     if (error || !data?.length) {
-      toast.error(error ? writeErrorMessage(error) : "No tienes permisos para editar este cliente.");
+      toast.error(
+        error ? writeErrorMessage(error) : "No tienes permisos para editar este cliente.",
+      );
       return;
     }
     toast.success("Reporte marcado como enviado; el link ya está activo");
@@ -176,11 +207,21 @@ function ReportRow({ report, canEdit, onEdit, onPreview, onChanged }: ReportRowP
         <p className="text-sm font-medium capitalize">{periodLabel(report.period)}</p>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
           <StatusBadge status={sent ? "sent" : "draft"} />
-          <span>{sent ? `Enviado el ${formatDate(report.sent_at)}` : `Actualizado el ${formatDate(report.updated_at)}`}</span>
+          <span>
+            {sent
+              ? `Enviado el ${formatDate(report.sent_at)}`
+              : `Actualizado el ${formatDate(report.updated_at)}`}
+          </span>
         </div>
       </div>
       <div className="flex flex-wrap gap-1">
-        <Button size="sm" variant="ghost" onClick={onPreview} disabled={!report.data} aria-label="Vista previa">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onPreview}
+          disabled={!report.data}
+          aria-label="Vista previa"
+        >
           <Eye aria-hidden className="h-4 w-4" />
         </Button>
         {canEdit && (
@@ -228,7 +269,9 @@ function SummaryDialog({
       .select("id");
     setSaving(false);
     if (error || !data?.length) {
-      toast.error(error ? writeErrorMessage(error) : "No tienes permisos para editar este cliente.");
+      toast.error(
+        error ? writeErrorMessage(error) : "No tienes permisos para editar este cliente.",
+      );
       return;
     }
     toast.success("Resumen guardado");
@@ -245,9 +288,19 @@ function SummaryDialog({
             Una conclusión por línea, en lenguaje simple. Es lo primero que lee el cliente.
           </DialogDescription>
         </DialogHeader>
-        <Textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={7} maxLength={2000} />
+        <Textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          rows={7}
+          maxLength={2000}
+        />
         <DialogFooter className="gap-2 sm:justify-between">
-          <Button variant="ghost" size="sm" onClick={() => setDraft(auto)} disabled={!auto || draft === auto}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setDraft(auto)}
+            disabled={!auto || draft === auto}
+          >
             Usar resumen automático
           </Button>
           <Button size="sm" onClick={save} disabled={saving}>

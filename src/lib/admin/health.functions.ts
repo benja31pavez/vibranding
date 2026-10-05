@@ -54,15 +54,15 @@ export const getJobHealth = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const { data: recent } = await (supabaseAdmin.from("job_runs" as any) as any)
-      .select("id,job_name,status,http_status,error,started_at,finished_at,rows_written,response_body")
+      .select(
+        "id,job_name,status,http_status,error,started_at,finished_at,rows_written,response_body",
+      )
       .order("started_at", { ascending: false })
       .limit(25);
 
     // A "connected" account that never wrote a row must not look healthy.
     const { data: accounts } = await (supabaseAdmin.from("meta_accounts" as any) as any)
-      .select(
-        "client_id,ad_account_id,ig_account_id,last_synced_at,last_sync_error,clients(name)",
-      )
+      .select("client_id,ad_account_id,ig_account_id,last_synced_at,last_sync_error,clients(name)")
       .eq("connected", true);
 
     const connections: ConnectionDataRow[] = [];

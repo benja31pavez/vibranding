@@ -88,7 +88,11 @@ function AppLayout() {
         mobileNavOpen={mobileNavOpen}
         onMobileNavOpenChange={setMobileNavOpen}
         clientTrigger={
-          <MobileClientSheet {...sidebarProps} open={clientSheetOpen} onOpenChange={setClientSheetOpen} />
+          <MobileClientSheet
+            {...sidebarProps}
+            open={clientSheetOpen}
+            onOpenChange={setClientSheetOpen}
+          />
         }
       />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} onToggle={togglePalette} />

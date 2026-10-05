@@ -9,10 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { Copy, CheckCircle2, Plug, AlertCircle, ChevronDown } from "lucide-react";
-import {
-  getWhatsAppVerifyToken,
-  setWhatsAppAccessToken,
-} from "@/lib/whatsapp/account.functions";
+import { getWhatsAppVerifyToken, setWhatsAppAccessToken } from "@/lib/whatsapp/account.functions";
 import type { WAAccount } from "@/components/pages/ChatbotPage";
 
 export function ConnectWhatsAppCard({
@@ -111,7 +108,6 @@ export function ConnectWhatsAppCard({
     onChange();
   };
 
-
   const disconnect = async () => {
     if (!account) return;
     if (!confirm("¿Desconectar WhatsApp? Los mensajes históricos se conservan.")) return;
@@ -188,89 +184,92 @@ export function ConnectWhatsAppCard({
         </CardHeader>
         <CollapsibleContent>
           <CardContent className="space-y-4">
-        <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Webhook (configurar en Meta → WhatsApp → Configuration)
-          </div>
-          <div className="space-y-2">
-            <div>
-              <Label className="text-xs">Callback URL</Label>
-              <div className="flex gap-2">
-                <Input readOnly value={webhookUrl} className="font-mono text-xs" />
-                <Button size="icon" variant="outline" onClick={() => copy(webhookUrl, "URL")}>
-                  <Copy className="w-4 h-4" />
-                </Button>
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Webhook (configurar en Meta → WhatsApp → Configuration)
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-xs">Callback URL</Label>
+                  <div className="flex gap-2">
+                    <Input readOnly value={webhookUrl} className="font-mono text-xs" />
+                    <Button size="icon" variant="outline" onClick={() => copy(webhookUrl, "URL")}>
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Verify Token</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value={verifyToken}
+                      placeholder="•••••••• (oculto)"
+                      className="font-mono text-xs"
+                    />
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={async () => {
+                        const t = verifyToken || (await revealVerifyToken());
+                        if (t) copy(t, "Token");
+                      }}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Suscríbete al campo <code className="font-mono">messages</code> para recibir
+                  mensajes.
+                </p>
               </div>
             </div>
-            <div>
-              <Label className="text-xs">Verify Token</Label>
-              <div className="flex gap-2">
+
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Phone Number ID</Label>
                 <Input
-                  readOnly
-                  value={verifyToken}
-                  placeholder="•••••••• (oculto)"
-                  className="font-mono text-xs"
+                  value={phoneNumberId}
+                  onChange={(e) => setPhoneNumberId(e.target.value)}
+                  placeholder="123456789012345"
                 />
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={async () => {
-                    const t = verifyToken || (await revealVerifyToken());
-                    if (t) copy(t, "Token");
-                  }}
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
+              </div>
+              <div>
+                <Label className="text-xs">WhatsApp Business Account ID (WABA)</Label>
+                <Input
+                  value={wabaId}
+                  onChange={(e) => setWabaId(e.target.value)}
+                  placeholder="987654321098765"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Número visible (opcional)</Label>
+                <Input
+                  value={displayPhone}
+                  onChange={(e) => setDisplayPhone(e.target.value)}
+                  placeholder="+56 9 1234 5678"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">
+                  Access Token permanente {account.has_access_token && "(guardado)"}
+                </Label>
+                <Input
+                  type="password"
+                  value={accessToken}
+                  onChange={(e) => setAccessToken(e.target.value)}
+                  placeholder={
+                    account.has_access_token ? "•••••••• (dejar vacío para mantener)" : "EAAG..."
+                  }
+                />
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              Suscríbete al campo <code className="font-mono">messages</code> para recibir mensajes.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-3">
-          <div>
-            <Label className="text-xs">Phone Number ID</Label>
-            <Input
-              value={phoneNumberId}
-              onChange={(e) => setPhoneNumberId(e.target.value)}
-              placeholder="123456789012345"
-            />
-          </div>
-          <div>
-            <Label className="text-xs">WhatsApp Business Account ID (WABA)</Label>
-            <Input
-              value={wabaId}
-              onChange={(e) => setWabaId(e.target.value)}
-              placeholder="987654321098765"
-            />
-          </div>
-          <div>
-            <Label className="text-xs">Número visible (opcional)</Label>
-            <Input
-              value={displayPhone}
-              onChange={(e) => setDisplayPhone(e.target.value)}
-              placeholder="+56 9 1234 5678"
-            />
-          </div>
-          <div>
-            <Label className="text-xs">
-              Access Token permanente {account.has_access_token && "(guardado)"}
-            </Label>
-            <Input
-              type="password"
-              value={accessToken}
-              onChange={(e) => setAccessToken(e.target.value)}
-              placeholder={account.has_access_token ? "•••••••• (dejar vacío para mantener)" : "EAAG..."}
-            />
-          </div>
-        </div>
-
-        <Button onClick={save} disabled={saving}>
-          {saving ? "Guardando…" : "Guardar conexión"}
-        </Button>
+            <Button onClick={save} disabled={saving}>
+              {saving ? "Guardando…" : "Guardar conexión"}
+            </Button>
           </CardContent>
         </CollapsibleContent>
       </Card>

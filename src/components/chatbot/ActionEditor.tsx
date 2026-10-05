@@ -4,7 +4,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, X, GripVertical, FileText, Link as LinkIcon, Image as ImageIcon, ListChecks, ShoppingBag, Type } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  X,
+  GripVertical,
+  FileText,
+  Link as LinkIcon,
+  Image as ImageIcon,
+  ListChecks,
+  ShoppingBag,
+  Type,
+} from "lucide-react";
 import { MediaUpload } from "@/components/MediaUpload";
 
 export type ActionKind = "text" | "link" | "document" | "image" | "poll" | "catalog";
@@ -128,16 +139,12 @@ export function ActionEditor({
           <div className="grid grid-cols-2 gap-2">
             <Input
               value={action.filename ?? ""}
-              onChange={(e) =>
-                onChange({ filename: e.target.value } as Partial<Action>)
-              }
+              onChange={(e) => onChange({ filename: e.target.value } as Partial<Action>)}
               placeholder="Nombre del archivo (ej. catalogo.pdf)"
             />
             <Input
               value={action.caption ?? ""}
-              onChange={(e) =>
-                onChange({ caption: e.target.value } as Partial<Action>)
-              }
+              onChange={(e) => onChange({ caption: e.target.value } as Partial<Action>)}
               placeholder="Mensaje opcional"
             />
           </div>
@@ -148,9 +155,7 @@ export function ActionEditor({
         </div>
       )}
 
-      {action.kind === "poll" && (
-        <PollEditor action={action} onChange={onChange} />
-      )}
+      {action.kind === "poll" && <PollEditor action={action} onChange={onChange} />}
 
       {action.kind === "catalog" && (
         <CatalogEditor clientId={clientId} action={action} onChange={onChange} />
@@ -194,12 +199,7 @@ function PollEditor({
               placeholder={`Opción ${i + 1}`}
               maxLength={24}
             />
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => removeOption(i)}
-              className="h-9 w-9"
-            >
+            <Button size="icon" variant="ghost" onClick={() => removeOption(i)} className="h-9 w-9">
               <X className="w-3 h-3" />
             </Button>
           </div>
@@ -235,8 +235,7 @@ function CatalogEditor({
     const next = action.items.map((it, j) => (j === i ? { ...it, ...patch } : it));
     onChange({ items: next } as Partial<Action>);
   };
-  const addItem = () =>
-    onChange({ items: [...action.items, { name: "" }] } as Partial<Action>);
+  const addItem = () => onChange({ items: [...action.items, { name: "" }] } as Partial<Action>);
   const removeItem = (i: number) =>
     onChange({ items: action.items.filter((_, j) => j !== i) } as Partial<Action>);
 
@@ -258,12 +257,7 @@ function CatalogEditor({
                 placeholder="Nombre del producto"
                 className="flex-1"
               />
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => removeItem(i)}
-                className="h-7 w-7"
-              >
+              <Button size="icon" variant="ghost" onClick={() => removeItem(i)} className="h-7 w-7">
                 <X className="w-3 h-3" />
               </Button>
             </div>
@@ -288,17 +282,11 @@ function CatalogEditor({
           </div>
         ))}
       </div>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={addItem}
-        disabled={action.items.length >= 10}
-      >
+      <Button size="sm" variant="outline" onClick={addItem} disabled={action.items.length >= 10}>
         <Plus className="w-3 h-3 mr-1" /> Producto
       </Button>
       <p className="text-[10px] text-muted-foreground">
-        Máximo 10 productos. Cada producto se envía como un mensaje con su imagen, precio y
-        enlace.
+        Máximo 10 productos. Cada producto se envía como un mensaje con su imagen, precio y enlace.
       </p>
     </div>
   );

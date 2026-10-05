@@ -100,7 +100,11 @@ export async function discoverSystemUserAssets(token: string): Promise<SystemUse
 
   const [assignedAds, ownAds, assignedPages, ownPages] = await Promise.all([
     safe(
-      graph<any>("me/assigned_ad_accounts", { access_token: token, fields: adFields, limit: "200" }),
+      graph<any>("me/assigned_ad_accounts", {
+        access_token: token,
+        fields: adFields,
+        limit: "200",
+      }),
       "assigned_ad_accounts",
       warnings,
     ),
@@ -135,11 +139,51 @@ export async function discoverSystemUserAssets(token: string): Promise<SystemUse
   );
   for (const b of businesses?.data ?? []) {
     const [oa, ca, op, cp, oig] = await Promise.all([
-      safe(graph<any>(`${b.id}/owned_ad_accounts`, { access_token: token, fields: adFields, limit: "200" }), `owned_ad_accounts(${b.name})`, warnings),
-      safe(graph<any>(`${b.id}/client_ad_accounts`, { access_token: token, fields: adFields, limit: "200" }), `client_ad_accounts(${b.name})`, warnings),
-      safe(graph<any>(`${b.id}/owned_pages`, { access_token: token, fields: pageFields, limit: "200" }), `owned_pages(${b.name})`, warnings),
-      safe(graph<any>(`${b.id}/client_pages`, { access_token: token, fields: pageFields, limit: "200" }), `client_pages(${b.name})`, warnings),
-      safe(graph<any>(`${b.id}/owned_instagram_accounts`, { access_token: token, fields: "id,username", limit: "200" }), `owned_instagram_accounts(${b.name})`, warnings),
+      safe(
+        graph<any>(`${b.id}/owned_ad_accounts`, {
+          access_token: token,
+          fields: adFields,
+          limit: "200",
+        }),
+        `owned_ad_accounts(${b.name})`,
+        warnings,
+      ),
+      safe(
+        graph<any>(`${b.id}/client_ad_accounts`, {
+          access_token: token,
+          fields: adFields,
+          limit: "200",
+        }),
+        `client_ad_accounts(${b.name})`,
+        warnings,
+      ),
+      safe(
+        graph<any>(`${b.id}/owned_pages`, {
+          access_token: token,
+          fields: pageFields,
+          limit: "200",
+        }),
+        `owned_pages(${b.name})`,
+        warnings,
+      ),
+      safe(
+        graph<any>(`${b.id}/client_pages`, {
+          access_token: token,
+          fields: pageFields,
+          limit: "200",
+        }),
+        `client_pages(${b.name})`,
+        warnings,
+      ),
+      safe(
+        graph<any>(`${b.id}/owned_instagram_accounts`, {
+          access_token: token,
+          fields: "id,username",
+          limit: "200",
+        }),
+        `owned_instagram_accounts(${b.name})`,
+        warnings,
+      ),
     ]);
     collectAdAccounts(oa?.data, `Business: ${b.name}`);
     collectAdAccounts(ca?.data, `Cliente de: ${b.name}`);
@@ -162,8 +206,8 @@ export async function discoverSystemUserAssets(token: string): Promise<SystemUse
   const igAccounts = Array.from(igMap.values());
   if (adAccounts.length === 0 && igAccounts.length === 0) {
     throw new Error(
-      warnings.join(" · ")
-        || "El token no da acceso a ninguna cuenta publicitaria ni de Instagram. Revisa los activos asignados al System User.",
+      warnings.join(" · ") ||
+        "El token no da acceso a ninguna cuenta publicitaria ni de Instagram. Revisa los activos asignados al System User.",
     );
   }
 

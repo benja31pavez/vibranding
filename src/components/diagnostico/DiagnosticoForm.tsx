@@ -13,24 +13,52 @@ import { whatsappUrl } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 type FieldName =
-  | "negocio" | "rubro" | "comuna" | "presencia" | "whatsapp" | "email"
-  | "objetivo" | "presupuesto" | "consentimiento";
+  | "negocio"
+  | "rubro"
+  | "comuna"
+  | "presencia"
+  | "whatsapp"
+  | "email"
+  | "objetivo"
+  | "presupuesto"
+  | "consentimiento";
 
-type Values = Record<Exclude<FieldName, "consentimiento">, string> & { consentimiento: boolean; website: string };
+type Values = Record<Exclude<FieldName, "consentimiento">, string> & {
+  consentimiento: boolean;
+  website: string;
+};
 
 const EMPTY: Values = {
-  negocio: "", rubro: "", comuna: "", presencia: "", whatsapp: "", email: "",
-  objetivo: "", presupuesto: "", consentimiento: false, website: "",
+  negocio: "",
+  rubro: "",
+  comuna: "",
+  presencia: "",
+  whatsapp: "",
+  email: "",
+  objetivo: "",
+  presupuesto: "",
+  consentimiento: false,
+  website: "",
 };
 
 const FIELD_ORDER: FieldName[] = [
-  "negocio", "rubro", "comuna", "presencia", "whatsapp", "email", "objetivo", "presupuesto", "consentimiento",
+  "negocio",
+  "rubro",
+  "comuna",
+  "presencia",
+  "whatsapp",
+  "email",
+  "objetivo",
+  "presupuesto",
+  "consentimiento",
 ];
 
 const NOT_SAVED_MESSAGE = "No pudimos registrar tu solicitud. Escríbenos por WhatsApp.";
-const RATE_LIMITED_MESSAGE = "Recibimos varios envíos desde tu conexión. Espera un rato o escríbenos por WhatsApp.";
+const RATE_LIMITED_MESSAGE =
+  "Recibimos varios envíos desde tu conexión. Espera un rato o escríbenos por WhatsApp.";
 const INVALID_MESSAGE = "Revisa los datos del formulario e inténtalo de nuevo.";
-const NETWORK_MESSAGE = "No pudimos enviar el formulario. Inténtalo de nuevo o escríbenos por WhatsApp.";
+const NETWORK_MESSAGE =
+  "No pudimos enviar el formulario. Inténtalo de nuevo o escríbenos por WhatsApp.";
 
 type FormError = { text: string; whatsapp: boolean };
 
@@ -46,7 +74,13 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   );
 }
 
-export function DiagnosticoForm({ plan, onDone }: { plan?: PlanInterest; onDone: (negocio: string) => void }) {
+export function DiagnosticoForm({
+  plan,
+  onDone,
+}: {
+  plan?: PlanInterest;
+  onDone: (negocio: string) => void;
+}) {
   const [values, setValues] = useState<Values>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [status, setStatus] = useState<"idle" | "sending">("idle");
@@ -90,7 +124,8 @@ export function DiagnosticoForm({ plan, onDone }: { plan?: PlanInterest; onDone:
         return;
       }
       if (res.reason === "not_saved") setFormError({ text: NOT_SAVED_MESSAGE, whatsapp: true });
-      else if (res.reason === "rate_limited") setFormError({ text: RATE_LIMITED_MESSAGE, whatsapp: true });
+      else if (res.reason === "rate_limited")
+        setFormError({ text: RATE_LIMITED_MESSAGE, whatsapp: true });
       else setFormError({ text: INVALID_MESSAGE, whatsapp: false });
     } catch {
       setFormError({ text: NETWORK_MESSAGE, whatsapp: true });
@@ -105,11 +140,19 @@ export function DiagnosticoForm({ plan, onDone }: { plan?: PlanInterest; onDone:
   const textField = (
     name: Exclude<FieldName, "objetivo" | "presupuesto" | "consentimiento">,
     label: string,
-    opts: { type?: string; autoComplete?: string; placeholder?: string; inputMode?: "tel" | "email"; optional?: boolean; hint?: string } = {},
+    opts: {
+      type?: string;
+      autoComplete?: string;
+      placeholder?: string;
+      inputMode?: "tel" | "email";
+      optional?: boolean;
+      hint?: string;
+    } = {},
   ) => (
     <div>
       <label htmlFor={`dg-${name}`} className="mb-1.5 block text-sm font-semibold">
-        {label} {opts.optional && <span className="font-normal text-muted-foreground">(opcional)</span>}
+        {label}{" "}
+        {opts.optional && <span className="font-normal text-muted-foreground">(opcional)</span>}
       </label>
       {opts.hint && (
         <p id={`${name}-hint`} className="mb-1.5 text-sm text-muted-foreground">
@@ -135,15 +178,27 @@ export function DiagnosticoForm({ plan, onDone }: { plan?: PlanInterest; onDone:
   );
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-5" aria-describedby="dg-required-note">
+    <form
+      ref={formRef}
+      onSubmit={onSubmit}
+      noValidate
+      className="space-y-5"
+      aria-describedby="dg-required-note"
+    >
       <p id="dg-required-note" className="text-sm text-muted-foreground">
         Todos los campos son obligatorios salvo los marcados como opcionales. Toma 1 minuto.
       </p>
 
-      {textField("negocio", "Nombre de tu negocio", { autoComplete: "organization", placeholder: "Ej: Paisajismo Los Robles" })}
+      {textField("negocio", "Nombre de tu negocio", {
+        autoComplete: "organization",
+        placeholder: "Ej: Paisajismo Los Robles",
+      })}
       <div className="grid gap-5 sm:grid-cols-2">
         {textField("rubro", "Rubro", { placeholder: "Ej: paisajismo, estética, gimnasio" })}
-        {textField("comuna", "Comuna", { autoComplete: "address-level2", placeholder: "Ej: Las Condes" })}
+        {textField("comuna", "Comuna", {
+          autoComplete: "address-level2",
+          placeholder: "Ej: Las Condes",
+        })}
       </div>
       {textField("presencia", "Instagram o web", {
         optional: true,
@@ -151,8 +206,18 @@ export function DiagnosticoForm({ plan, onDone }: { plan?: PlanInterest; onDone:
         hint: "Si aún no tienes, déjalo en blanco: también te ayudamos.",
       })}
       <div className="grid gap-5 sm:grid-cols-2">
-        {textField("whatsapp", "WhatsApp", { type: "tel", autoComplete: "tel", inputMode: "tel", placeholder: "+56 9 1234 5678" })}
-        {textField("email", "Correo", { type: "email", autoComplete: "email", inputMode: "email", placeholder: "tu@correo.cl" })}
+        {textField("whatsapp", "WhatsApp", {
+          type: "tel",
+          autoComplete: "tel",
+          inputMode: "tel",
+          placeholder: "+56 9 1234 5678",
+        })}
+        {textField("email", "Correo", {
+          type: "email",
+          autoComplete: "email",
+          inputMode: "email",
+          placeholder: "tu@correo.cl",
+        })}
       </div>
 
       <fieldset aria-describedby={errors.objetivo ? "objetivo-error" : undefined}>
@@ -184,7 +249,8 @@ export function DiagnosticoForm({ plan, onDone }: { plan?: PlanInterest; onDone:
 
       <div>
         <label htmlFor="dg-presupuesto" className="mb-1.5 block text-sm font-semibold">
-          Presupuesto aproximado para marketing <span className="font-normal text-muted-foreground">(opcional)</span>
+          Presupuesto aproximado para marketing{" "}
+          <span className="font-normal text-muted-foreground">(opcional)</span>
         </label>
         <select
           id="dg-presupuesto"
@@ -228,7 +294,12 @@ export function DiagnosticoForm({ plan, onDone }: { plan?: PlanInterest; onDone:
           />
           <span>
             {CONSENT_TEXT} Tus datos se usan solo para esto; revisa la{" "}
-            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-4">
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium underline underline-offset-4"
+            >
               política de privacidad<span className="sr-only"> (se abre en otra pestaña)</span>
             </a>
             .
@@ -238,13 +309,18 @@ export function DiagnosticoForm({ plan, onDone }: { plan?: PlanInterest; onDone:
       </div>
 
       {formError && (
-        <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm font-medium text-red-700 dark:text-red-300">
+        <p
+          role="alert"
+          className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm font-medium text-red-700 dark:text-red-300"
+        >
           {formError.text}
           {formError.whatsapp && (
             <>
               {" "}
               <a
-                href={whatsappUrl(`Hola Vibranding, quiero el diagnóstico gratis. Mi negocio es: ${values.negocio}`)}
+                href={whatsappUrl(
+                  `Hola Vibranding, quiero el diagnóstico gratis. Mi negocio es: ${values.negocio}`,
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-semibold underline underline-offset-2"

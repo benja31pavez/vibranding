@@ -47,10 +47,19 @@ export async function fetchExistingTasks(clientId: string, month: string): Promi
   const error = byDate.error ?? byMarker.error;
   if (error) throw new Error(writeErrorMessage(error));
   const unique = new Map([...(byDate.data ?? []), ...(byMarker.data ?? [])].map((t) => [t.id, t]));
-  return [...unique.values()].map(({ title, due_date, description }) => ({ title, due_date, description }));
+  return [...unique.values()].map(({ title, due_date, description }) => ({
+    title,
+    due_date,
+    description,
+  }));
 }
 
-export function useExistingMonthTasks(userKey: string, clientId: string, month: string, enabled: boolean) {
+export function useExistingMonthTasks(
+  userKey: string,
+  clientId: string,
+  month: string,
+  enabled: boolean,
+) {
   return useQuery({
     queryKey: monthPlanKeys.existing(userKey, clientId, month),
     queryFn: () => fetchExistingTasks(clientId, month),
@@ -96,13 +105,19 @@ export async function createMonthTasks(
   if (error) throw new Error(writeErrorMessage(error));
   if (!data || data.length === 0) throw new Error(PERMISSION_DENIED_MSG);
   if (data.length < fresh.length) {
-    throw new Error(`Solo se crearon ${data.length} de ${fresh.length} tareas. Revisa la pestaña Tareas.`);
+    throw new Error(
+      `Solo se crearon ${data.length} de ${fresh.length} tareas. Revisa la pestaña Tareas.`,
+    );
   }
   return { created: data.length, skipped: items.length - fresh.length };
 }
 
 /** Refresca Agenda, Aprobaciones, salud, "Hoy" y la ficha tras crear tareas. */
-export function invalidateAfterMonthPlan(queryClient: QueryClient, userKey: string, clientId: string) {
+export function invalidateAfterMonthPlan(
+  queryClient: QueryClient,
+  userKey: string,
+  clientId: string,
+) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: ["month-plan", userKey, clientId] }),
     queryClient.invalidateQueries({ queryKey: agendaKeys.all }),

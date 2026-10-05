@@ -16,11 +16,17 @@ export function HomeHeader() {
     <header className="sticky top-0 z-40 border-b border-border/50 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-10">
         <Link to="/" className="shrink-0" aria-label="Vibranding, inicio">
-          <span className="font-brand text-2xl md:text-3xl tracking-tight text-gradient-brand-strong">Vibranding</span>
+          <span className="font-brand text-2xl md:text-3xl tracking-tight text-gradient-brand-strong">
+            Vibranding
+          </span>
         </Link>
         <nav aria-label="Principal" className="hidden lg:flex items-center gap-7 text-sm">
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              key={l.href}
+              href={l.href}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
               {l.label}
             </a>
           ))}

@@ -6,7 +6,17 @@ import { BellRing, CheckCircle2, Receipt, Repeat, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { EmptyState, ErrorState, Money, MoneyTotals, PageContainer, PageHeader, StatCard, StatusBadge, TableSkeleton } from "@/components/app";
+import {
+  EmptyState,
+  ErrorState,
+  Money,
+  MoneyTotals,
+  PageContainer,
+  PageHeader,
+  StatCard,
+  StatusBadge,
+  TableSkeleton,
+} from "@/components/app";
 import { PaymentLinkButton } from "@/components/billing/PaymentLinkButton";
 import { PaymentReminderDialog } from "@/components/billing/PaymentReminderDialog";
 import { useAuth } from "@/hooks/use-auth";
@@ -158,7 +168,12 @@ function BillingPage() {
             mrr.isError ? (
               <span role="alert" className="text-base text-danger-strong">
                 No disponible{" "}
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => void mrr.refetch()}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => void mrr.refetch()}
+                >
                   Reintentar
                 </Button>
               </span>
@@ -201,10 +216,10 @@ function BillingPage() {
             filter === "por_recordar"
               ? "No hay cobros por recordar."
               : filter === "vencidos"
-              ? "No hay cobros vencidos."
-              : filter === "por_vencer"
-                ? `No hay cobros que venzan en los próximos ${UPCOMING_DAYS} días.`
-                : "Sin cobros para este filtro."
+                ? "No hay cobros vencidos."
+                : filter === "por_vencer"
+                  ? `No hay cobros que venzan en los próximos ${UPCOMING_DAYS} días.`
+                  : "Sin cobros para este filtro."
           }
           description={
             filter === "por_recordar"

@@ -27,7 +27,6 @@ function matchRule(text: string, rule: any): boolean {
   }
 }
 
-
 export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")({
   server: {
     handlers: {
@@ -96,7 +95,9 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
             // configured for THIS account, so a signed payload for another
             // client's number cannot be replayed against this URL.
             const incomingPhoneId =
-              value?.metadata?.phone_number_id != null ? String(value.metadata.phone_number_id) : "";
+              value?.metadata?.phone_number_id != null
+                ? String(value.metadata.phone_number_id)
+                : "";
             const expectedPhoneId = acc.phone_number_id != null ? String(acc.phone_number_id) : "";
             if (!expectedPhoneId || incomingPhoneId !== expectedPhoneId) {
               console.warn("[whatsapp webhook] phone_number_id mismatch, change ignored", {
@@ -136,21 +137,18 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
               let interactiveId: string | null = null;
               if (type === "interactive") {
                 body =
-                  msg.interactive?.button_reply?.title ??
-                  msg.interactive?.list_reply?.title ??
-                  "";
+                  msg.interactive?.button_reply?.title ?? msg.interactive?.list_reply?.title ?? "";
                 interactiveId =
-                  msg.interactive?.button_reply?.id ??
-                  msg.interactive?.list_reply?.id ??
-                  null;
-              }
-              else body = `[${type}]`;
+                  msg.interactive?.button_reply?.id ?? msg.interactive?.list_reply?.id ?? null;
+              } else body = `[${type}]`;
 
               // Landing attribution: the CTA prefills "(Ref: LP-xxxxxxxx)", so a
               // conversation started from a landing page can be traced back.
-              let leadSource:
-                | { lead_source_type: string; lead_source_id: string; lead_source_detail: string | null }
-                | null = null;
+              let leadSource: {
+                lead_source_type: string;
+                lead_source_id: string;
+                lead_source_detail: string | null;
+              } | null = null;
               const landingRef = parseLandingRef(body);
               if (landingRef) {
                 const { data: pages } = await supabaseAdmin
@@ -295,7 +293,9 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
                 ? sorted.filter((r) => r.match_type !== "fallback")
                 : sorted;
 
-              const matched = !aiPaused ? ruleCandidates.find((r) => matchRule(body, r)) : undefined;
+              const matched = !aiPaused
+                ? ruleCandidates.find((r) => matchRule(body, r))
+                : undefined;
 
               // A matched rule that defines steps starts the flow; a plain rule keeps
               // firing its actions exactly as before.

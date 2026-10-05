@@ -14,7 +14,9 @@ interface FilesProps extends StepProps {
 }
 
 function formatSize(bytes: number): string {
-  return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return bytes >= 1024 * 1024
+    ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
 function localCheck(file: File): string | null {
@@ -53,7 +55,11 @@ export function FilesStepFields({ state, errors, token, updateFiles }: FilesProp
     const picked = Array.from(e.target.files ?? []);
     e.target.value = "";
     const room = MAX_FILES - active;
-    setNotice(picked.length > room ? `Solo puedes enviar ${MAX_FILES} archivos; subimos los primeros ${Math.max(room, 0)}.` : null);
+    setNotice(
+      picked.length > room
+        ? `Solo puedes enviar ${MAX_FILES} archivos; subimos los primeros ${Math.max(room, 0)}.`
+        : null,
+    );
     const queue = picked.slice(0, Math.max(room, 0)).map((file) => {
       const problem = localCheck(file);
       const entry: UploadedFile = {
@@ -71,7 +77,12 @@ export function FilesStepFields({ state, errors, token, updateFiles }: FilesProp
       if (entry.status === "error") continue;
       try {
         const res = await uploadOne(token, file);
-        setFile(entry.id, "path" in res ? { status: "done", path: res.path } : { status: "error", error: res.error });
+        setFile(
+          entry.id,
+          "path" in res
+            ? { status: "done", path: res.path }
+            : { status: "error", error: res.error },
+        );
       } catch (err) {
         console.error("[onboarding] subida falló", err);
         setFile(entry.id, { status: "error", error: "No se pudo subir. Intenta de nuevo." });
@@ -82,9 +93,10 @@ export function FilesStepFields({ state, errors, token, updateFiles }: FilesProp
   return (
     <div className="space-y-5">
       <p className="text-sm text-muted-foreground">
-        Sube tu <strong className="text-foreground">logo</strong>, <strong className="text-foreground">fotos</strong> de tus
-        productos, local o equipo, y <strong className="text-foreground">PDFs</strong> útiles (catálogo, manual de marca).
-        PNG, JPG, WEBP o PDF, hasta 10 MB cada uno y {MAX_FILES} en total.
+        Sube tu <strong className="text-foreground">logo</strong>,{" "}
+        <strong className="text-foreground">fotos</strong> de tus productos, local o equipo, y{" "}
+        <strong className="text-foreground">PDFs</strong> útiles (catálogo, manual de marca). PNG,
+        JPG, WEBP o PDF, hasta 10 MB cada uno y {MAX_FILES} en total.
       </p>
 
       <input
@@ -109,7 +121,8 @@ export function FilesStepFields({ state, errors, token, updateFiles }: FilesProp
         <span>{active >= MAX_FILES ? "Llegaste al máximo de archivos" : "Elegir archivos"}</span>
       </Button>
       <p id="onb-files-help" className="text-xs text-muted-foreground">
-        {active} de {MAX_FILES} archivos. Si no tienes nada a mano, puedes enviar el formulario igual y mandarlos después.
+        {active} de {MAX_FILES} archivos. Si no tienes nada a mano, puedes enviar el formulario
+        igual y mandarlos después.
       </p>
       {notice && <p className="text-sm text-warning-strong">{notice}</p>}
       {errors.archivos && <p className="text-sm text-danger-strong">{errors.archivos}</p>}
@@ -117,15 +130,36 @@ export function FilesStepFields({ state, errors, token, updateFiles }: FilesProp
       {state.archivos.length > 0 && (
         <ul className="space-y-2" aria-live="polite">
           {state.archivos.map((f) => (
-            <li key={f.id} className="flex items-center gap-3 rounded-app-md border border-border-subtle bg-surface px-3 py-2.5">
-              {f.status === "uploading" && <Loader2 aria-hidden className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />}
-              {f.status === "done" && <CheckCircle2 aria-hidden className="h-4 w-4 shrink-0 text-success" />}
-              {f.status === "error" && <XCircle aria-hidden className="h-4 w-4 shrink-0 text-danger-strong" />}
-              <FileText aria-hidden className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />
+            <li
+              key={f.id}
+              className="flex items-center gap-3 rounded-app-md border border-border-subtle bg-surface px-3 py-2.5"
+            >
+              {f.status === "uploading" && (
+                <Loader2
+                  aria-hidden
+                  className="h-4 w-4 shrink-0 animate-spin text-muted-foreground"
+                />
+              )}
+              {f.status === "done" && (
+                <CheckCircle2 aria-hidden className="h-4 w-4 shrink-0 text-success" />
+              )}
+              {f.status === "error" && (
+                <XCircle aria-hidden className="h-4 w-4 shrink-0 text-danger-strong" />
+              )}
+              <FileText
+                aria-hidden
+                className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block"
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm text-foreground">{f.name}</p>
-                <p className={`text-xs ${f.status === "error" ? "text-danger-strong" : "text-muted-foreground"}`}>
-                  {f.status === "uploading" ? "Subiendo…" : f.status === "error" ? f.error : `Listo · ${formatSize(f.size)}`}
+                <p
+                  className={`text-xs ${f.status === "error" ? "text-danger-strong" : "text-muted-foreground"}`}
+                >
+                  {f.status === "uploading"
+                    ? "Subiendo…"
+                    : f.status === "error"
+                      ? f.error
+                      : `Listo · ${formatSize(f.size)}`}
                 </p>
               </div>
               {f.status !== "uploading" && (
@@ -143,7 +177,11 @@ export function FilesStepFields({ state, errors, token, updateFiles }: FilesProp
           ))}
         </ul>
       )}
-      {uploading && <p className="text-xs text-muted-foreground">Espera a que terminen de subir antes de enviar.</p>}
+      {uploading && (
+        <p className="text-xs text-muted-foreground">
+          Espera a que terminen de subir antes de enviar.
+        </p>
+      )}
     </div>
   );
 }

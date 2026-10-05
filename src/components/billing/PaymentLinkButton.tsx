@@ -103,7 +103,8 @@ export function PaymentLinkButton({
     );
   }
   // Si no se pudo consultar, se deja el botón: el servidor responde con un error claro.
-  if (flow.data && !flow.data.configured) return <FlowNotConnectedNote missing={flow.data.missing} />;
+  if (flow.data && !flow.data.configured)
+    return <FlowNotConnectedNote missing={flow.data.missing} />;
 
   return (
     <>

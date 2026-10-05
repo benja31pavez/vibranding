@@ -88,7 +88,12 @@ export function initialState(): FormState {
     estilo: "",
     colores: "",
     links_redes: Object.fromEntries(LINK_KEYS.map((k) => [k, ""])) as Record<LinkKey, string>,
-    accesos: DEFAULT_SERVICES.map((servicio) => ({ id: newRowId(), servicio, estado: "pendiente", nota: "" })),
+    accesos: DEFAULT_SERVICES.map((servicio) => ({
+      id: newRowId(),
+      servicio,
+      estado: "pendiente",
+      nota: "",
+    })),
     archivos: [],
   };
 }

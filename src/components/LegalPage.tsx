@@ -22,7 +22,10 @@ export function LegalPage({
         </Link>
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
-          <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="w-4 h-4" /> {t.legal.back}
           </Link>
         </div>

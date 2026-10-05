@@ -79,7 +79,8 @@ function CheckLine({
         <XCircle className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
       )}
       <span>
-        <strong>{label}:</strong> {res.error ? <span className="font-mono">{res.error}</span> : res.detail}
+        <strong>{label}:</strong>{" "}
+        {res.error ? <span className="font-mono">{res.error}</span> : res.detail}
       </span>
     </div>
   );
@@ -163,8 +164,7 @@ function BulkConnectPage() {
     }
     setBusy(row.clientId);
     try {
-      const pageId =
-        assets?.igAccounts.find((i) => i.id === d.ig)?.page_id ?? row.pageId ?? null;
+      const pageId = assets?.igAccounts.find((i) => i.id === d.ig)?.page_id ?? row.pageId ?? null;
       const res = (await assign({
         data: {
           clientId: row.clientId,
@@ -246,8 +246,12 @@ function BulkConnectPage() {
         . Aquí asignas a cada cliente su cuenta publicitaria e Instagram.
       </p>
 
-      {loadError && <ErrorState message={loadError} onRetry={() => void load()} retrying={loading} />}
-      {loading && !orgStatus && !loadError && <ListSkeleton rows={3} label="Cargando clientes y activos de Meta" />}
+      {loadError && (
+        <ErrorState message={loadError} onRetry={() => void load()} retrying={loading} />
+      )}
+      {loading && !orgStatus && !loadError && (
+        <ListSkeleton rows={3} label="Cargando clientes y activos de Meta" />
+      )}
 
       {!loading && !loadError && orgStatus && !orgStatus.has_token && (
         <Card>
@@ -262,7 +266,9 @@ function BulkConnectPage() {
       )}
 
       {assets?.warnings?.length ? (
-        <p className="text-xs text-muted-foreground">Avisos de Meta: {assets.warnings.join(" · ")}</p>
+        <p className="text-xs text-muted-foreground">
+          Avisos de Meta: {assets.warnings.join(" · ")}
+        </p>
       ) : null}
 
       {rows.map((row) => {
@@ -297,7 +303,9 @@ function BulkConnectPage() {
                   onClick={() => doSync(row)}
                   disabled={busy === row.clientId || !row.connected}
                 >
-                  <RefreshCw className={`w-3 h-3 mr-1 ${busy === row.clientId ? "animate-spin" : ""}`} />
+                  <RefreshCw
+                    className={`w-3 h-3 mr-1 ${busy === row.clientId ? "animate-spin" : ""}`}
+                  />
                   Sincronizar ahora
                 </Button>
                 <Button asChild size="sm" variant="ghost">
@@ -372,7 +380,8 @@ function BulkConnectPage() {
                           <SelectItem key={i.id} value={i.id} disabled={!!owner}>
                             {owner ? (
                               <span className="flex items-center gap-1">
-                                <Lock className="w-3 h-3" /> @{i.username || i.id} — usada por {owner}
+                                <Lock className="w-3 h-3" /> @{i.username || i.id} — usada por{" "}
+                                {owner}
                               </span>
                             ) : (
                               `@${i.username || i.id} · ${i.source}`
@@ -414,7 +423,8 @@ function BulkConnectPage() {
                     <strong>{s.postRows}</strong> filas
                     {s.igMedia !== null && s.igMedia !== undefined ? (
                       <>
-                        {" "}· Instagram: <strong>{s.igMedia}</strong> medios
+                        {" "}
+                        · Instagram: <strong>{s.igMedia}</strong> medios
                       </>
                     ) : null}
                   </p>

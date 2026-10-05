@@ -13,9 +13,13 @@ export const Route = createFileRoute("/api/meta-ads/archive")({
           const authHeader = request.headers.get("Authorization");
           if (!authHeader) return j({ error: "No autenticado" }, 401);
 
-          const supa = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
-            global: { headers: { Authorization: authHeader } },
-          });
+          const supa = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_PUBLISHABLE_KEY!,
+            {
+              global: { headers: { Authorization: authHeader } },
+            },
+          );
 
           const { entity, id } = (await request.json()) as { entity: Entity; id: string };
           if (!entity || !id) return j({ error: "Datos incompletos" }, 400);
@@ -62,5 +66,8 @@ export const Route = createFileRoute("/api/meta-ads/archive")({
 });
 
 function j(o: unknown, s = 200) {
-  return new Response(JSON.stringify(o), { status: s, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(o), {
+    status: s,
+    headers: { "Content-Type": "application/json" },
+  });
 }

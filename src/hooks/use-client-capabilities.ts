@@ -46,7 +46,9 @@ export async function loadClientCapabilities(clientId: string): Promise<ClientCa
   ]);
 
   // Meta y WhatsApp definen los candados del sidebar: si fallan, mejor mostrar error que "no conectado".
-  const failed = [meta, wa, ads, outcomes].find((r: { error?: { message: string } | null }) => r.error);
+  const failed = [meta, wa, ads, outcomes].find(
+    (r: { error?: { message: string } | null }) => r.error,
+  );
   if (failed) throw new Error(failed.error.message);
 
   const m = meta.data ?? null;
@@ -99,7 +101,8 @@ export function useInvalidateClientCapabilities() {
   const queryClient = useQueryClient();
   const userKey = useCapabilitiesUserKey();
   return useCallback(
-    (clientId: string) => queryClient.invalidateQueries({ queryKey: clientCapabilitiesKey(userKey, clientId) }),
+    (clientId: string) =>
+      queryClient.invalidateQueries({ queryKey: clientCapabilitiesKey(userKey, clientId) }),
     [queryClient, userKey],
   );
 }

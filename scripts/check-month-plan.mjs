@@ -51,7 +51,9 @@ check("valida mes", () => {
   assert.equal(m.isMonthKey(null), false);
 });
 check("días hábiles de nov 2026 = 21", () => assert.equal(m.businessDays(MONTH).length, 21));
-check("febrero bisiesto termina el 29", () => assert.equal(m.monthBounds("2028-02").last, "2028-02-29"));
+check("febrero bisiesto termina el 29", () =>
+  assert.equal(m.monthBounds("2028-02").last, "2028-02-29"),
+);
 check("mes siguiente cruza el año", () => assert.equal(m.nextMonth("2026-12"), "2027-01"));
 check("reparte parejo y en orden", () => {
   const days = m.businessDays(MONTH);
@@ -87,7 +89,8 @@ check("crecimiento: contenido + revisión semanal de campañas", () => {
   assert.equal(new Set(weeks).size, weeks.length);
 });
 check("crecimiento: reporte de resultados", () =>
-  assert.match(crecimiento.find((i) => i.kind === "reporte").title, /resultados/));
+  assert.match(crecimiento.find((i) => i.kind === "reporte").title, /resultados/),
+);
 
 // Marca + Web
 check("marca-web: pasos del proyecto, del primer al último día hábil", () => {
@@ -113,11 +116,13 @@ check("ordenado por fecha", () => {
 check("claves únicas y marcador estable en la descripción", () => {
   for (const list of [contenido, crecimiento, marcaWeb]) {
     assert.equal(new Set(list.map((i) => i.key)).size, list.length);
-    for (const i of list) assert.deepEqual(m.readMarker(i.description), { month: MONTH, key: i.key });
+    for (const i of list)
+      assert.deepEqual(m.readMarker(i.description), { month: MONTH, key: i.key });
   }
 });
 check("determinista", () =>
-  assert.deepEqual(m.buildMonthPlan({ planKey: "crecimiento", month: MONTH }), crecimiento));
+  assert.deepEqual(m.buildMonthPlan({ planKey: "crecimiento", month: MONTH }), crecimiento),
+);
 check("mes en curso: nada antes de hoy y cuotas prorrateadas", () => {
   const items = m.buildMonthPlan({ planKey: "contenido", month: MONTH, today: "2026-11-18" });
   assert.ok(items.length > 0);
@@ -151,20 +156,29 @@ check("excluye feriados nacionales (incluidos los movidos)", () => {
 check("ninguna tarea cae en feriado", () => {
   for (const month of ["2026-12", "2027-09", "2027-10"]) {
     for (const planKey of ["contenido", "crecimiento", "marca-web"]) {
-      for (const i of m.buildMonthPlan({ planKey, month })) assert.equal(m.CL_HOLIDAYS.has(i.dueDate), false, i.dueDate);
+      for (const i of m.buildMonthPlan({ planKey, month }))
+        assert.equal(m.CL_HOLIDAYS.has(i.dueDate), false, i.dueDate);
     }
   }
 });
 check("la lista de feriados cubre el año actual (actualizar CL_HOLIDAYS)", () => {
-  const year = Number(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago", year: "numeric" }).format(new Date()));
+  const year = Number(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago", year: "numeric" }).format(
+      new Date(),
+    ),
+  );
   assert.ok(year <= m.CL_HOLIDAYS_LAST_YEAR, `año ${year} > ${m.CL_HOLIDAYS_LAST_YEAR}`);
 });
 check("mes pasado o inválido = vacío", () => {
-  assert.deepEqual(m.buildMonthPlan({ planKey: "contenido", month: "2026-09", today: "2026-10-05" }), []);
+  assert.deepEqual(
+    m.buildMonthPlan({ planKey: "contenido", month: "2026-09", today: "2026-10-05" }),
+    [],
+  );
   assert.deepEqual(m.buildMonthPlan({ planKey: "contenido", month: "nov" }), []);
 });
 check("sin promesas de resultados", () => {
-  for (const i of all) assert.doesNotMatch(`${i.title} ${i.description}`, /garant|asegur|seguidores|ventas/i);
+  for (const i of all)
+    assert.doesNotMatch(`${i.title} ${i.description}`, /garant|asegur|seguidores|ventas/i);
 });
 check("nota interna: no se publica ni se envía", () => {
   for (const i of all) assert.match(i.description, /No se publica ni se envía al cliente/);
@@ -173,11 +187,15 @@ check("nota interna: no se publica ni se envía", () => {
 // Idempotencia
 const post1 = contenido.find((i) => i.key === "post-1");
 check("duplicado por marcador aunque cambie título o fecha", () => {
-  const existing = [{ title: "Otro título", due_date: "2026-11-27", description: post1.description }];
+  const existing = [
+    { title: "Otro título", due_date: "2026-11-27", description: post1.description },
+  ];
   assert.equal(m.isDuplicate(post1, MONTH, existing), true);
 });
 check("duplicado por título + fecha (sin marcador)", () => {
-  const existing = [{ title: `  ${post1.title.toUpperCase()} `, due_date: post1.dueDate, description: null }];
+  const existing = [
+    { title: `  ${post1.title.toUpperCase()} `, due_date: post1.dueDate, description: null },
+  ];
   assert.equal(m.isDuplicate(post1, MONTH, existing), true);
 });
 check("marcador de otro mes no cuenta", () => {

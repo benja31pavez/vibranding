@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useState, type ReactNode, type Dispatch, type SetStateAction } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { IGProfile, IGPost, IGHighlight, IGComment } from "@/components/InstagramEditor";
 

@@ -19,14 +19,29 @@ import { createServerFn } from "@tanstack/react-start";
 import { setResponseHeaders } from "@tanstack/react-start/server";
 import { z } from "zod";
 import type { OnboardingInfo, SubmitResult, UploadUrlResult } from "./public.server";
-import { PayloadSchema, TOKEN_RE, UploadRequest, zodFieldError, type OnboardingPayload, type UploadRequestData } from "./schema";
+import {
+  PayloadSchema,
+  TOKEN_RE,
+  UploadRequest,
+  zodFieldError,
+  type OnboardingPayload,
+  type UploadRequestData,
+} from "./schema";
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 const RATE_LIMITED = "Demasiados intentos desde tu conexión. Espera un rato y vuelve a intentarlo.";
 
 type Limiter = import("@/lib/security/ipRateLimit.server").RateLimiter;
-let limiters: { view: Limiter; uploadIp: Limiter; uploadToken: Limiter; submitIp: Limiter; submitToken: Limiter } | undefined;
+let limiters:
+  | {
+      view: Limiter;
+      uploadIp: Limiter;
+      uploadToken: Limiter;
+      submitIp: Limiter;
+      submitToken: Limiter;
+    }
+  | undefined;
 
 async function security() {
   const mod = await import("@/lib/security/ipRateLimit.server");
@@ -71,7 +86,10 @@ export const createOnboardingUploadUrl = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<UploadUrlResult> => {
     privateHeaders();
     const { uploadIp, uploadToken, limitKey } = await security();
-    if (!uploadToken.allow(`onb-upload:token:${data.token}`) || !uploadIp.allow(limitKey("onb-upload", data.token))) {
+    if (
+      !uploadToken.allow(`onb-upload:token:${data.token}`) ||
+      !uploadIp.allow(limitKey("onb-upload", data.token))
+    ) {
       return { ok: false, message: RATE_LIMITED };
     }
     const { createUploadUrl } = await import("./public.server");
@@ -81,7 +99,9 @@ export const createOnboardingUploadUrl = createServerFn({ method: "POST" })
 /** Forma y tamaño aquí; reglas de campo con PayloadSchema (y de nuevo en la BD). */
 const SubmitInput = z.object({
   token: z.string().regex(TOKEN_RE, "Link inválido"),
-  payload: z.record(z.unknown()).refine((p) => JSON.stringify(p).length <= 70_000, "Formulario demasiado grande"),
+  payload: z
+    .record(z.unknown())
+    .refine((p) => JSON.stringify(p).length <= 70_000, "Formulario demasiado grande"),
 });
 
 export const submitOnboarding = createServerFn({ method: "POST" })
@@ -89,11 +109,15 @@ export const submitOnboarding = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<SubmitResult> => {
     privateHeaders();
     const { submitIp, submitToken, limitKey } = await security();
-    if (!submitToken.allow(`onb-submit:token:${data.token}`) || !submitIp.allow(limitKey("onb-submit", data.token))) {
+    if (
+      !submitToken.allow(`onb-submit:token:${data.token}`) ||
+      !submitIp.allow(limitKey("onb-submit", data.token))
+    ) {
       return { ok: false, reason: "error", message: RATE_LIMITED };
     }
     const parsed = PayloadSchema.safeParse(data.payload);
-    if (!parsed.success) return { ok: false, reason: "invalid_payload", error: zodFieldError(parsed.error) };
+    if (!parsed.success)
+      return { ok: false, reason: "invalid_payload", error: zodFieldError(parsed.error) };
     const { submitOnboardingPayload } = await import("./public.server");
     // La BD normaliza (minúsculas, vacíos → NULL) y vuelve a validar todo.
     return submitOnboardingPayload(data.token, parsed.data as OnboardingPayload);

@@ -9,7 +9,11 @@ interface FieldProps {
   hint?: ReactNode;
   error?: string;
   optional?: boolean;
-  children: (a11y: { id: string; "aria-invalid": boolean; "aria-describedby"?: string }) => ReactNode;
+  children: (a11y: {
+    id: string;
+    "aria-invalid": boolean;
+    "aria-describedby"?: string;
+  }) => ReactNode;
 }
 
 /** Etiqueta + control + ayuda + error accesible (aria-describedby). */
@@ -54,7 +58,17 @@ interface TextFieldProps {
   inputMode?: "text" | "email" | "tel" | "url";
 }
 
-export function TextField({ multiline, value, onChange, maxLength, placeholder, type, autoComplete, inputMode, ...field }: TextFieldProps) {
+export function TextField({
+  multiline,
+  value,
+  onChange,
+  maxLength,
+  placeholder,
+  type,
+  autoComplete,
+  inputMode,
+  ...field
+}: TextFieldProps) {
   return (
     <Field {...field}>
       {(a11y) =>

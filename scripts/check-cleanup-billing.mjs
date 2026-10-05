@@ -72,7 +72,8 @@ check("conteo por razón", () =>
       { path: "3", reason: "sin_reserva" },
     ]),
     { sin_reserva: 2, reserva_vencida: 1 },
-  ));
+  ),
+);
 check("lotes con tope", () => {
   const items = Array.from({ length: 250 }, (_, i) => i);
   const batches = c.chunk(items, 100, 2);
@@ -103,11 +104,19 @@ check("tope de 2 períodos por corrida", () => {
 check("un cobro al día no genera aviso", () =>
   assert.deepEqual(
     b.catchUpNotices(
-      [{ subscriptionId: "s", clientId: "c", created: ["2026-10-01"], nextChargeDate: "2026-11-05" }],
+      [
+        {
+          subscriptionId: "s",
+          clientId: "c",
+          created: ["2026-10-01"],
+          nextChargeDate: "2026-11-05",
+        },
+      ],
       TODAY,
     ),
     [],
-  ));
+  ),
+);
 check("dos cobros y aún atrasada = aviso pendiente", () => {
   const [n] = b.catchUpNotices(
     [
@@ -126,11 +135,20 @@ check("dos cobros y aún atrasada = aviso pendiente", () => {
 check("con error no se marca pendiente ni avisa sin cobros", () =>
   assert.deepEqual(
     b.catchUpNotices(
-      [{ subscriptionId: "s", clientId: "c", created: [], nextChargeDate: "2026-01-05", error: "x" }],
+      [
+        {
+          subscriptionId: "s",
+          clientId: "c",
+          created: [],
+          nextChargeDate: "2026-01-05",
+          error: "x",
+        },
+      ],
       TODAY,
     ),
     [],
-  ));
+  ),
+);
 check("tag del log", () => assert.equal(b.CATCH_UP_LOG_TAG, "[billing][ponerse_al_dia]"));
 
 if (failures.length > 0) {

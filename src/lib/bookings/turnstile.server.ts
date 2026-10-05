@@ -22,7 +22,10 @@ export function isTurnstileEnabled(): boolean {
 }
 
 /** Validates a widget token with siteverify. Returns false on any failure. */
-export async function verifyTurnstile(token: string | undefined, remoteIp: string | null): Promise<boolean> {
+export async function verifyTurnstile(
+  token: string | undefined,
+  remoteIp: string | null,
+): Promise<boolean> {
   const secret = secretKey();
   if (!secret || !token) return false;
   const form = new FormData();

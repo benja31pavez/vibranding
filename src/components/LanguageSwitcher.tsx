@@ -1,6 +1,5 @@
 import { useLang } from "@/i18n/LanguageContext";
 
-
 export function LanguageSwitcher({ className = "" }: { className?: string }) {
   const { lang, setLang, t } = useLang();
   return (
@@ -9,13 +8,14 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
       role="group"
       aria-label={t.langSwitcher.label}
     >
-      
       <button
         type="button"
         onClick={() => setLang("es")}
         aria-pressed={lang === "es"}
         className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
-          lang === "es" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+          lang === "es"
+            ? "bg-foreground text-background"
+            : "text-muted-foreground hover:text-foreground"
         }`}
       >
         {t.langSwitcher.es}
@@ -25,7 +25,9 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         onClick={() => setLang("en")}
         aria-pressed={lang === "en"}
         className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
-          lang === "en" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+          lang === "en"
+            ? "bg-foreground text-background"
+            : "text-muted-foreground hover:text-foreground"
         }`}
       >
         {t.langSwitcher.en}

@@ -7,13 +7,25 @@ import { Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PLANS, findPlan, formatMoney, type PlanKey } from "@/lib/pricing/plans";
 import { invalidateShellClients } from "@/components/shell/shellQueries";
 import {
-  CLIENT_STATUSES, CLIENT_STATUS_META, PERMISSION_DENIED_MSG, fichaKeys, isClientStatus, useUserKey,
+  CLIENT_STATUSES,
+  CLIENT_STATUS_META,
+  PERMISSION_DENIED_MSG,
+  fichaKeys,
+  isClientStatus,
+  useUserKey,
   writeErrorMessage,
-  type ClientStatus, type FichaOverview,
+  type ClientStatus,
+  type FichaOverview,
 } from "./fichaQueries";
 
 const NO_PLAN = "none";
@@ -52,8 +64,15 @@ function parseDraft(d: Draft): Parsed {
   let billingDay: number | null = null;
   if (d.billingDay.trim()) {
     billingDay = Number(d.billingDay);
-    if (!Number.isInteger(billingDay) || billingDay < MIN_BILLING_DAY || billingDay > MAX_BILLING_DAY) {
-      return { ok: false, error: `El día de cobro debe estar entre ${MIN_BILLING_DAY} y ${MAX_BILLING_DAY}.` };
+    if (
+      !Number.isInteger(billingDay) ||
+      billingDay < MIN_BILLING_DAY ||
+      billingDay > MAX_BILLING_DAY
+    ) {
+      return {
+        ok: false,
+        error: `El día de cobro debe estar entre ${MIN_BILLING_DAY} y ${MAX_BILLING_DAY}.`,
+      };
     }
   }
   if (d.startedAt && !/^\d{4}-\d{2}-\d{2}$/.test(d.startedAt)) {
@@ -63,8 +82,15 @@ function parseDraft(d: Draft): Parsed {
 }
 
 /** Escribe client_billing: actualiza la fila 1:1 y, si no existiera, la crea. */
-async function saveBilling(clientId: string, values: { plan_key: PlanKey | null; mrr: number; billing_day: number | null }) {
-  const upd = await supabase.from("client_billing").update(values).eq("client_id", clientId).select("client_id");
+async function saveBilling(
+  clientId: string,
+  values: { plan_key: PlanKey | null; mrr: number; billing_day: number | null },
+) {
+  const upd = await supabase
+    .from("client_billing")
+    .update(values)
+    .eq("client_id", clientId)
+    .select("client_id");
   if (upd.error) return writeErrorMessage(upd.error);
   if (upd.data && upd.data.length > 0) return null;
   // 0 filas: o falta la fila (cliente antiguo) o no hay permisos; el INSERT lo distingue vía RLS.
@@ -102,7 +128,9 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
       return;
     }
     setDraft((d) => ({ ...d, planKey: plan?.key ?? NO_PLAN }));
-    setMrrHint(plan ? `${plan.label} es un pago único (${formatMoney(plan.price)}); no suma MRR.` : null);
+    setMrrHint(
+      plan ? `${plan.label} es un pago único (${formatMoney(plan.price)}); no suma MRR.` : null,
+    );
   };
 
   const submit = async (e: FormEvent) => {
@@ -157,18 +185,27 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
     <Panel
       title="Plan y facturación"
       icon={CreditCard}
-      description={readOnly ? "Solo lectura: no tienes permisos de edición en este cliente." : undefined}
+      description={
+        readOnly ? "Solo lectura: no tienes permisos de edición en este cliente." : undefined
+      }
     >
       <form onSubmit={submit} className="space-y-3">
         <fieldset disabled={readOnly || saving} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Plan" htmlFor="billing-plan" className="sm:col-span-2">
-            <Select value={draft.planKey} onValueChange={onPlanChange} disabled={readOnly || saving}>
-              <SelectTrigger id="billing-plan"><SelectValue /></SelectTrigger>
+            <Select
+              value={draft.planKey}
+              onValueChange={onPlanChange}
+              disabled={readOnly || saving}
+            >
+              <SelectTrigger id="billing-plan">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NO_PLAN}>Sin plan</SelectItem>
                 {PLANS.map((p) => (
                   <SelectItem key={p.key} value={p.key}>
-                    {p.label} · {formatMoney(p.price)}{p.billing === "monthly" ? "/mes" : " único"}
+                    {p.label} · {formatMoney(p.price)}
+                    {p.billing === "monthly" ? "/mes" : " único"}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -179,7 +216,10 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
               id="billing-mrr"
               inputMode="numeric"
               value={draft.mrr}
-              onChange={(e) => { set("mrr", e.target.value.replace(/\D/g, "")); setMrrHint(null); }}
+              onChange={(e) => {
+                set("mrr", e.target.value.replace(/\D/g, ""));
+                setMrrHint(null);
+              }}
             />
           </Field>
           <Field label="Día de cobro (1-28)" htmlFor="billing-day">
@@ -193,14 +233,27 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
             />
           </Field>
           <Field label="Cliente desde" htmlFor="billing-started">
-            <Input id="billing-started" type="date" value={draft.startedAt} onChange={(e) => set("startedAt", e.target.value)} />
+            <Input
+              id="billing-started"
+              type="date"
+              value={draft.startedAt}
+              onChange={(e) => set("startedAt", e.target.value)}
+            />
           </Field>
           <Field label="Estado comercial" htmlFor="billing-status" className="sm:col-span-2">
-            <Select value={draft.status} onValueChange={(v) => set("status", v as ClientStatus)} disabled={readOnly || saving}>
-              <SelectTrigger id="billing-status"><SelectValue /></SelectTrigger>
+            <Select
+              value={draft.status}
+              onValueChange={(v) => set("status", v as ClientStatus)}
+              disabled={readOnly || saving}
+            >
+              <SelectTrigger id="billing-status">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {CLIENT_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>{CLIENT_STATUS_META[s].label}</SelectItem>
+                  <SelectItem key={s} value={s}>
+                    {CLIENT_STATUS_META[s].label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -208,7 +261,9 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
         </fieldset>
         {!readOnly && (
           <div className="flex justify-end">
-            <Button type="submit" size="sm" disabled={saving}>{saving ? "Guardando…" : "Guardar cambios"}</Button>
+            <Button type="submit" size="sm" disabled={saving}>
+              {saving ? "Guardando…" : "Guardar cambios"}
+            </Button>
           </div>
         )}
       </form>
@@ -217,8 +272,18 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
 }
 
 function Field({
-  label, htmlFor, hint, className, children,
-}: { label: string; htmlFor: string; hint?: string | null; className?: string; children: React.ReactNode }) {
+  label,
+  htmlFor,
+  hint,
+  className,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  hint?: string | null;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className={`space-y-1.5 ${className ?? ""}`}>
       <Label htmlFor={htmlFor}>{label}</Label>

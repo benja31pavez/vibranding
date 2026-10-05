@@ -133,7 +133,9 @@ export const validateOrgMetaToken = createServerFn({ method: "POST" })
     };
   });
 
-async function runValidation(clientId: string): Promise<MetaValidation | { ok: false; reason: string }> {
+async function runValidation(
+  clientId: string,
+): Promise<MetaValidation | { ok: false; reason: string }> {
   const { getClientMetaToken } = await import("@/lib/meta/clientToken.server");
   const resolved = await getClientMetaToken(clientId);
   if (!resolved) return { ok: false, reason: "No hay token de Meta disponible para este cliente" };

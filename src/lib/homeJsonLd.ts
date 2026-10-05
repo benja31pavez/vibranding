@@ -1,10 +1,30 @@
 import { translations } from "@/i18n/translations";
-import { LEGAL_NAME, LEGAL_RUT, ORGANIZATION_ID, SITE_URL, WHATSAPP_E164, formatClp } from "@/lib/site";
+import {
+  LEGAL_NAME,
+  LEGAL_RUT,
+  ORGANIZATION_ID,
+  SITE_URL,
+  WHATSAPP_E164,
+  formatClp,
+} from "@/lib/site";
 
 /** Comunas of Santiago we actively serve (plus the rest of Chile via the Country entry). */
 const SANTIAGO_COMUNAS = [
-  "Santiago", "Providencia", "Las Condes", "Vitacura", "Lo Barnechea", "Ñuñoa", "La Reina",
-  "Peñalolén", "Macul", "La Florida", "Puente Alto", "Maipú", "San Miguel", "Huechuraba", "Colina",
+  "Santiago",
+  "Providencia",
+  "Las Condes",
+  "Vitacura",
+  "Lo Barnechea",
+  "Ñuñoa",
+  "La Reina",
+  "Peñalolén",
+  "Macul",
+  "La Florida",
+  "Puente Alto",
+  "Maipú",
+  "San Miguel",
+  "Huechuraba",
+  "Colina",
 ];
 
 /** Structured data for the home page: business, offer catalog and FAQ. */
@@ -60,7 +80,14 @@ export function buildHomeJsonLd(): string {
         { "@type": "Country", name: "Chile" },
         ...SANTIAGO_COMUNAS.map((name) => ({ "@type": "City", name })),
       ],
-      knowsAbout: ["Branding", "Marketing de contenidos", "Meta Ads", "Google Ads", "Google Business Profile", "Landing pages"],
+      knowsAbout: [
+        "Branding",
+        "Marketing de contenidos",
+        "Meta Ads",
+        "Google Ads",
+        "Google Business Profile",
+        "Landing pages",
+      ],
       contactPoint: {
         "@type": "ContactPoint",
         telephone: WHATSAPP_E164,
@@ -86,5 +113,8 @@ export function buildHomeJsonLd(): string {
   ];
 
   // Escape "<" so the JSON can never close the surrounding <script> tag.
-  return JSON.stringify({ "@context": "https://schema.org", "@graph": graph }).replace(/</g, "\\u003c");
+  return JSON.stringify({ "@context": "https://schema.org", "@graph": graph }).replace(
+    /</g,
+    "\\u003c",
+  );
 }

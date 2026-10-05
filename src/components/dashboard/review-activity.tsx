@@ -25,7 +25,10 @@ export function ReviewActivity() {
     const { error } = await supabase
       .from("deliverable_comments")
       .update({ read_by_agency: true })
-      .in("id", alerts.map((a) => a.id));
+      .in(
+        "id",
+        alerts.map((a) => a.id),
+      );
     if (error) {
       console.error("[dashboard] no se pudo marcar como leído", error);
       toast.error("No se pudo marcar como leído. Intenta de nuevo.");
@@ -50,11 +53,17 @@ export function ReviewActivity() {
           <li key={a.id} className="flex items-start gap-2 text-sm">
             <StatusBadge status={a.kind} className="mt-0.5 shrink-0" />
             <span className="min-w-0">
-              <Link to="/clients/$clientId/plan" params={{ clientId: a.client_id }} className="font-medium hover:underline">
+              <Link
+                to="/clients/$clientId/plan"
+                params={{ clientId: a.client_id }}
+                className="font-medium hover:underline"
+              >
                 {a.deliverable_title}
               </Link>
               <span className="text-muted-foreground">
-                {" "}· {a.author_name ?? "Cliente"} · {new Date(a.created_at).toLocaleDateString("es-CL")}
+                {" "}
+                · {a.author_name ?? "Cliente"} ·{" "}
+                {new Date(a.created_at).toLocaleDateString("es-CL")}
               </span>
               {a.body && <span className="block truncate text-muted-foreground">{a.body}</span>}
             </span>

@@ -1,9 +1,20 @@
 import type { ReactNode } from "react";
 import { FileText } from "lucide-react";
-import { EmptyState, ErrorState, ListSkeleton, PageContainer, PageHeader, type BreadcrumbItem } from "@/components/app";
+import {
+  EmptyState,
+  ErrorState,
+  ListSkeleton,
+  PageContainer,
+  PageHeader,
+  type BreadcrumbItem,
+} from "@/components/app";
 import { canCreateProposalFor } from "@/lib/proposals/recommend";
 import { ProposalEditor } from "./ProposalEditor";
-import { useCanEditRecipient as useCanEdit, useRecipient, type ProposalRow } from "./proposalQueries";
+import {
+  useCanEditRecipient as useCanEdit,
+  useRecipient,
+  type ProposalRow,
+} from "./proposalQueries";
 
 /** Márgenes de página de las pantallas de propuestas (el layout _app no los pone). */
 export function ProposalPageShell({ children }: { children: ReactNode }) {
@@ -23,7 +34,10 @@ export function ProposalEditorPage({ target, existing }: Props) {
 
   const breadcrumb: BreadcrumbItem[] = [
     target.clientId
-      ? { label: recipient.data?.name ?? "Cliente", to: `/clients/${target.clientId}` as BreadcrumbItem["to"] }
+      ? {
+          label: recipient.data?.name ?? "Cliente",
+          to: `/clients/${target.clientId}` as BreadcrumbItem["to"],
+        }
       : { label: recipient.data?.name ?? "Prospecto", to: "/pipeline" },
     { label: existing ? "Propuesta" : "Nueva propuesta" },
   ];
@@ -52,7 +66,11 @@ export function ProposalEditorPage({ target, existing }: Props) {
       ) : recipient.error ? (
         <ErrorState message={recipient.error.message} onRetry={() => void recipient.refetch()} />
       ) : !recipient.data ? (
-        <EmptyState icon={FileText} title="No encontramos el destinatario" description="Puede que no tengas acceso." />
+        <EmptyState
+          icon={FileText}
+          title="No encontramos el destinatario"
+          description="Puede que no tengas acceso."
+        />
       ) : !existing && !canCreateProposalFor(recipient.data.prospect?.estado) ? (
         <EmptyState
           icon={FileText}

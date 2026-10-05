@@ -24,7 +24,12 @@ export const createCampaignBodySchema = z.object({
   confirmedAmounts: confirmedAmountsSchema.optional(),
 });
 
-export const MONEY_PATCH_FIELDS = ["daily_budget", "lifetime_budget", "spend_cap", "bid_amount"] as const;
+export const MONEY_PATCH_FIELDS = [
+  "daily_budget",
+  "lifetime_budget",
+  "spend_cap",
+  "bid_amount",
+] as const;
 export type MoneyPatchField = (typeof MONEY_PATCH_FIELDS)[number];
 
 export const updateBodySchema = z.object({
@@ -90,5 +95,7 @@ export const publishFullBodySchema = z.object({
 /** First zod issue as a short user-facing message. */
 export function zodMessage(error: z.ZodError): string {
   const issue = error.issues[0];
-  return issue ? `Datos inválidos (${issue.path.join(".") || "body"}): ${issue.message}` : "Datos inválidos";
+  return issue
+    ? `Datos inválidos (${issue.path.join(".") || "body"}): ${issue.message}`
+    : "Datos inválidos";
 }

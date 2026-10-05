@@ -2,11 +2,7 @@
 // Executed from the webhook (inbound message) and from the dispatch worker (delayed steps).
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendBotActions, type BotAction } from "@/lib/whatsapp/sendActions";
-import {
-  END_STEP,
-  interpolate,
-  type FlowStep,
-} from "@/lib/whatsapp/flowTypes";
+import { END_STEP, interpolate, type FlowStep } from "@/lib/whatsapp/flowTypes";
 
 const MAX_STEPS_PER_RUN = 25;
 const MAX_RETRIES = 2;
@@ -57,7 +53,11 @@ function nextCursor(steps: FlowStep[], step: FlowStep): string | null {
   return next ? next.id : null;
 }
 
-function resolveTarget(steps: FlowStep[], target: string | null | undefined, fallbackFrom: FlowStep) {
+function resolveTarget(
+  steps: FlowStep[],
+  target: string | null | undefined,
+  fallbackFrom: FlowStep,
+) {
   if (target === END_STEP) return null;
   if (target) return steps.some((s) => s.id === target) ? target : nextCursor(steps, fallbackFrom);
   return nextCursor(steps, fallbackFrom);
@@ -155,9 +155,7 @@ async function saveLead(ctx: SendCtx, vars: Record<string, any>) {
   };
 
   if (existing?.id) {
-    await (supabaseAdmin.from("client_leads" as any) as any)
-      .update(payload)
-      .eq("id", existing.id);
+    await (supabaseAdmin.from("client_leads" as any) as any).update(payload).eq("id", existing.id);
   } else {
     await (supabaseAdmin.from("client_leads" as any) as any).insert(payload);
   }
@@ -313,7 +311,11 @@ function validateAnswer(step: FlowStep, text: string): { ok: boolean; value: any
     const ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(raw);
     return ok
       ? { ok: true, value: raw }
-      : { ok: false, value: raw, hint: "Necesito un correo válido, por ejemplo nombre@dominio.com" };
+      : {
+          ok: false,
+          value: raw,
+          hint: "Necesito un correo válido, por ejemplo nombre@dominio.com",
+        };
   }
   if (step.input_type === "number") {
     const digits = raw.replace(/[^\d]/g, "");
@@ -368,7 +370,9 @@ export async function handleFlowReply(
 ): Promise<boolean> {
   if (CANCEL_WORDS.includes(normalize(text))) {
     await finish(run.id, "cancelled");
-    await send(ctx, [{ kind: "text", body: "Listo, cancelé el proceso. Escríbeme cuando quieras 🙌" }]);
+    await send(ctx, [
+      { kind: "text", body: "Listo, cancelé el proceso. Escríbeme cuando quieras 🙌" },
+    ]);
     return true;
   }
 
@@ -395,9 +399,7 @@ export async function handleFlowReply(
       await flowRuns()
         .update({ retry_count: (run.retry_count ?? 0) + 1 })
         .eq("id", run.id);
-      await send(ctx, [
-        questionAction(step, vars, "Elige una de las opciones para continuar 👇"),
-      ]);
+      await send(ctx, [questionAction(step, vars, "Elige una de las opciones para continuar 👇")]);
       return true;
     }
     // Too many misses: keep the raw answer and move on instead of trapping the contact.

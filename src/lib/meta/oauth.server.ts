@@ -29,10 +29,7 @@ export {
   type OAuthState,
 } from "@/lib/oauthState.server";
 
-export async function graph<T = any>(
-  path: string,
-  params: Record<string, string>,
-): Promise<T> {
+export async function graph<T = any>(path: string, params: Record<string, string>): Promise<T> {
   const qs = new URLSearchParams(params).toString();
   const res = await fetch(`${graphUrl(path)}?${qs}`);
   const body = (await res.json()) as any;

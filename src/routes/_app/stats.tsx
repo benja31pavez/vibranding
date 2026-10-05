@@ -3,7 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { MessageCircle, MousePointerClick } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { EmptyState, ErrorState, PageContainer, PageHeader, StatCard, TableSkeleton } from "@/components/app";
+import {
+  EmptyState,
+  ErrorState,
+  PageContainer,
+  PageHeader,
+  StatCard,
+  TableSkeleton,
+} from "@/components/app";
 
 export const Route = createFileRoute("/_app/stats")({
   component: StatsPage,

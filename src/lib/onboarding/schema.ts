@@ -22,7 +22,8 @@ export const FILE_TYPES: Readonly<Record<string, string>> = {
   "image/webp": "webp",
   "application/pdf": "pdf",
 };
-export const FILE_ACCEPT = ".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf";
+export const FILE_ACCEPT =
+  ".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf";
 const SAFE_NAME_MAX = 100;
 
 /**
@@ -64,7 +65,11 @@ export const UploadRequest = z.object({
   token: z.string().regex(TOKEN_RE, "Link inválido"),
   filename: z.string().trim().min(1).max(255),
   contentType: z.string().refine((t) => t in FILE_TYPES, "Solo se aceptan PNG, JPG, WEBP o PDF"),
-  size: z.number().int().positive("El archivo está vacío").max(MAX_FILE_BYTES, "El archivo supera 10 MB"),
+  size: z
+    .number()
+    .int()
+    .positive("El archivo está vacío")
+    .max(MAX_FILE_BYTES, "El archivo supera 10 MB"),
 });
 export type UploadRequestData = z.infer<typeof UploadRequest>;
 
@@ -77,7 +82,16 @@ const LINK_RE = /^(https?:\/\/[^\s<>"]+|@?[A-Za-z0-9._-]{1,100})$/;
 /** Igual que private.looks_like_secret(). */
 const SECRET_RE = /(contrase(ñ|n)a|password|passwd|clave|pin)\s*[:=]/i;
 
-export const LINK_KEYS = ["instagram", "facebook", "tiktok", "linkedin", "youtube", "x", "web", "otro"] as const;
+export const LINK_KEYS = [
+  "instagram",
+  "facebook",
+  "tiktok",
+  "linkedin",
+  "youtube",
+  "x",
+  "web",
+  "otro",
+] as const;
 export type LinkKey = (typeof LINK_KEYS)[number];
 export const LINK_LABELS: Readonly<Record<LinkKey, string>> = {
   instagram: "Instagram",
@@ -127,15 +141,26 @@ const optPattern = (max: number, re: RegExp, message: string) =>
     .refine((v) => v === "" || re.test(v), message);
 
 export const BillingStep = z.object({
-  razon_social: z.string().trim().min(1, "Escribe la razón social o el nombre del negocio").max(200, "Máximo 200 caracteres"),
+  razon_social: z
+    .string()
+    .trim()
+    .min(1, "Escribe la razón social o el nombre del negocio")
+    .max(200, "Máximo 200 caracteres"),
   rut: z
     .string()
     .trim()
     .max(20, "RUT inválido")
-    .refine((v) => v === "" || (isValidRut(v) && formatRut(v).length <= 12), "El RUT no es válido. Revisa el dígito verificador."),
+    .refine(
+      (v) => v === "" || (isValidRut(v) && formatRut(v).length <= 12),
+      "El RUT no es válido. Revisa el dígito verificador.",
+    ),
   giro: optText(200, "Giro"),
   direccion: optText(300, "Dirección"),
-  email_facturacion: optPattern(254, EMAIL_RE, "Escribe un email válido (ej. facturas@tunegocio.cl)"),
+  email_facturacion: optPattern(
+    254,
+    EMAIL_RE,
+    "Escribe un email válido (ej. facturas@tunegocio.cl)",
+  ),
   contacto_nombre: optText(120, "Nombre"),
   contacto_telefono: optPattern(30, PHONE_RE, "Escribe un teléfono válido (ej. +56 9 1234 5678)"),
   contacto_email: optPattern(254, EMAIL_RE, "Escribe un email válido"),
@@ -158,16 +183,23 @@ export const SocialStep = z.object({
   ),
 });
 
-export const AccessItem = z.object({
-  servicio: z.string().trim().min(1, "Indica el servicio").max(80, "Máximo 80 caracteres").refine((v) => !SECRET_RE.test(v), NO_SECRET),
-  estado: z.enum(ACCESS_STATES),
-  nota: z
-    .string()
-    .trim()
-    .max(300, "Máximo 300 caracteres")
-    .refine((v) => !SECRET_RE.test(v), NO_SECRET)
-    .optional(),
-}).strict();
+export const AccessItem = z
+  .object({
+    servicio: z
+      .string()
+      .trim()
+      .min(1, "Indica el servicio")
+      .max(80, "Máximo 80 caracteres")
+      .refine((v) => !SECRET_RE.test(v), NO_SECRET),
+    estado: z.enum(ACCESS_STATES),
+    nota: z
+      .string()
+      .trim()
+      .max(300, "Máximo 300 caracteres")
+      .refine((v) => !SECRET_RE.test(v), NO_SECRET)
+      .optional(),
+  })
+  .strict();
 export type AccessItemData = z.infer<typeof AccessItem>;
 
 export const AccessStep = z.object({
@@ -178,17 +210,32 @@ export const FilesStep = z.object({
   archivos: z.array(z.string().min(1).max(300)).max(MAX_FILES, `Máximo ${MAX_FILES} archivos`),
 });
 
-export const OnboardingForm = BillingStep.merge(BusinessStep).merge(SocialStep).merge(AccessStep).merge(FilesStep);
+export const OnboardingForm = BillingStep.merge(BusinessStep)
+  .merge(SocialStep)
+  .merge(AccessStep)
+  .merge(FilesStep);
 export type OnboardingFormData = z.input<typeof OnboardingForm>;
 
 /** Payload final para submit_onboarding(): solo claves permitidas, sin vacíos. */
-export type OnboardingPayload = Record<string, string | string[] | Record<string, string> | AccessItemData[]>;
+export type OnboardingPayload = Record<
+  string,
+  string | string[] | Record<string, string> | AccessItemData[]
+>;
 
 export function buildPayload(form: z.output<typeof OnboardingForm>): OnboardingPayload {
   const payload: OnboardingPayload = {};
   const texts = [
-    "razon_social", "giro", "direccion", "email_facturacion", "contacto_nombre",
-    "contacto_telefono", "contacto_email", "descripcion", "publico_objetivo", "competencia", "estilo",
+    "razon_social",
+    "giro",
+    "direccion",
+    "email_facturacion",
+    "contacto_nombre",
+    "contacto_telefono",
+    "contacto_email",
+    "descripcion",
+    "publico_objetivo",
+    "competencia",
+    "estilo",
   ] as const;
   for (const key of texts) {
     if (form[key]) payload[key] = key.includes("email") ? form[key].toLowerCase() : form[key];
@@ -210,7 +257,9 @@ export function buildPayload(form: z.output<typeof OnboardingForm>): OnboardingP
  * Validación del payload en el servidor antes de llamar a la BD: claves
  * permitidas (strict), mismos largos/formatos y razón social obligatoria.
  */
-export const PayloadSchema = OnboardingForm.partial().strict().extend({ razon_social: BillingStep.shape.razon_social });
+export const PayloadSchema = OnboardingForm.partial()
+  .strict()
+  .extend({ razon_social: BillingStep.shape.razon_social });
 
 /** Primer error de zod como error de campo (mismo formato que mapDbError). */
 export function zodFieldError(error: z.ZodError): FieldError {
@@ -221,7 +270,10 @@ export function zodFieldError(error: z.ZodError): FieldError {
       ? { field, message: "Cada acceso lleva solo servicio, estado y nota (nunca contraseñas)." }
       : { field: null, message: "El formulario trae campos no permitidos." };
   }
-  return { field: field && field in FIELD_STEP ? field : null, message: issue?.message ?? "Revisa los datos del formulario." };
+  return {
+    field: field && field in FIELD_STEP ? field : null,
+    message: issue?.message ?? "Revisa los datos del formulario.",
+  };
 }
 
 export function payloadTooLarge(payload: OnboardingPayload): boolean {
@@ -232,10 +284,22 @@ export function payloadTooLarge(payload: OnboardingPayload): boolean {
 
 /** Paso del formulario donde vive cada campo (para llevar al cliente al error). */
 export const FIELD_STEP: Readonly<Record<string, number>> = {
-  razon_social: 0, rut: 0, giro: 0, direccion: 0, email_facturacion: 0,
-  contacto_nombre: 0, contacto_telefono: 0, contacto_email: 0,
-  descripcion: 1, publico_objetivo: 1, competencia: 1, estilo: 1, colores: 1,
-  links_redes: 2, accesos_pendientes: 3, archivos: 4,
+  razon_social: 0,
+  rut: 0,
+  giro: 0,
+  direccion: 0,
+  email_facturacion: 0,
+  contacto_nombre: 0,
+  contacto_telefono: 0,
+  contacto_email: 0,
+  descripcion: 1,
+  publico_objetivo: 1,
+  competencia: 1,
+  estilo: 1,
+  colores: 1,
+  links_redes: 2,
+  accesos_pendientes: 3,
+  archivos: 4,
 };
 
 const FIELD_MESSAGES: Readonly<Record<string, string>> = {
@@ -274,11 +338,16 @@ export function mapDbError(raw: string | null | undefined): FieldError {
     const label = LINK_LABELS[link[1] as LinkKey];
     return {
       field: "links_redes",
-      message: label ? `Revisa tu ${label}: pega el link completo (https://…) o tu @usuario.` : FIELD_MESSAGES.links_redes,
+      message: label
+        ? `Revisa tu ${label}: pega el link completo (https://…) o tu @usuario.`
+        : FIELD_MESSAGES.links_redes,
     };
   }
   if (/contraseñ/i.test(text)) return { field: "accesos_pendientes", message: NO_SECRET };
   const field = /^campo\s+([a-z_]+)/.exec(text)?.[1] ?? /^([a-z_]+):/.exec(text)?.[1] ?? null;
   if (field && FIELD_MESSAGES[field]) return { field, message: FIELD_MESSAGES[field] };
-  return { field: null, message: "Algunos datos no tienen el formato esperado. Revísalos e intenta de nuevo." };
+  return {
+    field: null,
+    message: "Algunos datos no tienen el formato esperado. Revísalos e intenta de nuevo.",
+  };
 }

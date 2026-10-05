@@ -22,7 +22,16 @@ import {
   startOfWeek,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, ChevronLeft, ChevronRight, Heart, Images, Film, Image as ImageIcon, Target } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  Images,
+  Film,
+  Image as ImageIcon,
+  Target,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { writeFailed } from "@/lib/writeCheck";
@@ -53,7 +62,7 @@ type Post = {
   carousel_urls: string[];
   caption: string | null;
   music: string | null;
-  location: string | null
+  location: string | null;
   objective: string | null;
   scheduled_at: string | null;
   published_at: string | null;
@@ -104,14 +113,23 @@ function PostTile({
       <div className="flex items-center gap-1.5 p-1">
         <div className="w-7 h-7 rounded bg-muted shrink-0 overflow-hidden flex items-center justify-center">
           {src ? (
-            <img src={src} alt={post.caption ?? "Publicación"} className="w-full h-full object-cover" loading="lazy" />
+            <img
+              src={src}
+              alt={post.caption ?? "Publicación"}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
           ) : (
             <Icon className="w-3.5 h-3.5 text-muted-foreground" />
           )}
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] leading-tight truncate">
-            {post.caption?.trim() ? post.caption : <span className="text-muted-foreground italic">Sin caption</span>}
+            {post.caption?.trim() ? (
+              post.caption
+            ) : (
+              <span className="text-muted-foreground italic">Sin caption</span>
+            )}
           </p>
           {!compact && (
             <p className="text-[9px] text-muted-foreground truncate">
@@ -158,12 +176,16 @@ function DayCell({
       <div className="flex items-center justify-between">
         <span
           className={`text-[11px] font-semibold ${
-            today ? "bg-accent text-accent-foreground rounded-full w-5 h-5 grid place-items-center" : ""
+            today
+              ? "bg-accent text-accent-foreground rounded-full w-5 h-5 grid place-items-center"
+              : ""
           }`}
         >
           {format(date, "d")}
         </span>
-        {posts.length > 0 && <span className="text-[9px] text-muted-foreground">{posts.length}</span>}
+        {posts.length > 0 && (
+          <span className="text-[9px] text-muted-foreground">{posts.length}</span>
+        )}
       </div>
       {posts.map((p) => (
         <PostTile
@@ -269,7 +291,11 @@ function PostEditor({
               <Label className="text-xs">Fecha programada</Label>
               <Input
                 type="datetime-local"
-                value={draft.scheduled_at ? format(new Date(draft.scheduled_at), "yyyy-MM-dd'T'HH:mm") : ""}
+                value={
+                  draft.scheduled_at
+                    ? format(new Date(draft.scheduled_at), "yyyy-MM-dd'T'HH:mm")
+                    : ""
+                }
                 onChange={(e) =>
                   setDraft({
                     ...draft,
@@ -333,7 +359,9 @@ export function ContentCalendar({ clientId }: { clientId: string }) {
 
   /** Refleja el cambio en el contexto del cliente para que Ficha y Grid vean la fecha nueva. */
   const syncContext = (id: string, patch: Partial<Post>) => {
-    activeClient?.setPosts((cur) => cur.map((p) => (p.id === id ? ({ ...p, ...patch } as typeof p) : p)));
+    activeClient?.setPosts((cur) =>
+      cur.map((p) => (p.id === id ? ({ ...p, ...patch } as typeof p) : p)),
+    );
   };
 
   const days = useMemo(() => {
@@ -380,7 +408,9 @@ export function ContentCalendar({ clientId }: { clientId: string }) {
       .eq("id", post.id)
       .select("id");
     if (writeFailed(res, "No se pudo reprogramar")) {
-      setPosts((cur) => cur.map((p) => (p.id === post.id ? { ...p, scheduled_at: post.scheduled_at } : p)));
+      setPosts((cur) =>
+        cur.map((p) => (p.id === post.id ? { ...p, scheduled_at: post.scheduled_at } : p)),
+      );
       return;
     }
     syncContext(post.id, { scheduled_at: iso });
@@ -404,7 +434,9 @@ export function ContentCalendar({ clientId }: { clientId: string }) {
   return (
     <DndContext
       sensors={sensors}
-      onDragStart={(e: DragStartEvent) => setDragging(posts.find((p) => p.id === String(e.active.id)) ?? null)}
+      onDragStart={(e: DragStartEvent) =>
+        setDragging(posts.find((p) => p.id === String(e.active.id)) ?? null)
+      }
       onDragEnd={onDragEnd}
     >
       <div className="space-y-4">
@@ -479,7 +511,9 @@ export function ContentCalendar({ clientId }: { clientId: string }) {
             <div className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1">
               {loading && <p className="text-xs text-muted-foreground">Cargando…</p>}
               {!loading && unscheduled.length === 0 && (
-                <p className="text-xs text-muted-foreground">Todas las publicaciones tienen fecha.</p>
+                <p className="text-xs text-muted-foreground">
+                  Todas las publicaciones tienen fecha.
+                </p>
               )}
               {unscheduled.map((p) => (
                 <PostTile key={p.id} post={p} onClick={() => setEditing(p)} />

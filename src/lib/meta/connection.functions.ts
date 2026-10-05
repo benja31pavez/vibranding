@@ -71,7 +71,6 @@ export const listTakenAdAccounts = createServerFn({ method: "POST" })
     },
   );
 
-
 /**
  * Connects using a permanent System User token. The token is stored in Vault
  * exactly like the OAuth path; the table only keeps a reference.
@@ -99,7 +98,6 @@ export const connectSystemUser = createServerFn({ method: "POST" })
     if (!data.adAccountId && !data.igAccountId) {
       throw new Error("Selecciona al menos una cuenta publicitaria o de Instagram");
     }
-
 
     // Portal users can see their client row via RLS, so a plain select is not
     // enough: only agency editors may use the org's Meta token here.
@@ -130,7 +128,6 @@ export const connectSystemUser = createServerFn({ method: "POST" })
         );
       }
     }
-
 
     const { assertMetaAssetsFree } = await import("@/lib/auth/clientAccess.server");
     await assertMetaAssetsFree(data.clientId, { adAccountId, igAccountId: data.igAccountId });
@@ -166,7 +163,6 @@ export const connectSystemUser = createServerFn({ method: "POST" })
     await setMetaToken(saved.id, useOrgToken ? null : token);
 
     return { ok: true, accountId: saved.id as string, conflicts };
-
   });
 
 /** Builds the Meta login URL with a signed state carrying the tenant. */
@@ -183,9 +179,8 @@ export const startMetaOAuth = createServerFn({ method: "POST" })
     const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
     await assertCanEditClient(context.userId, data.clientId);
 
-    const { META_SCOPES, redirectUri, createOAuthState, metaGraphVersion } = await import(
-      "@/lib/meta/oauth.server",
-    );
+    const { META_SCOPES, redirectUri, createOAuthState, metaGraphVersion } =
+      await import("@/lib/meta/oauth.server");
     // State firmado + nonce en cookie HttpOnly: el callback exige el mismo navegador.
     const state = await createOAuthState(
       { clientId: data.clientId, userId: context.userId, purpose: "meta" },
@@ -199,7 +194,9 @@ export const startMetaOAuth = createServerFn({ method: "POST" })
       response_type: "code",
       scope: META_SCOPES.join(","),
     });
-    return { url: `https://www.facebook.com/${metaGraphVersion()}/dialog/oauth?${params.toString()}` };
+    return {
+      url: `https://www.facebook.com/${metaGraphVersion()}/dialog/oauth?${params.toString()}`,
+    };
   });
 
 export const getMetaConnection = createServerFn({ method: "POST" })
@@ -400,9 +397,8 @@ export const updateMetaAccountAssets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { clientId: string; patch: MetaAssetPatch }) => sanitizeAssetPatch(input))
   .handler(async ({ data, context }) => {
-    const { assertCanEditClient, assertMetaAssetsFree } = await import(
-      "@/lib/auth/clientAccess.server"
-    );
+    const { assertCanEditClient, assertMetaAssetsFree } =
+      await import("@/lib/auth/clientAccess.server");
     await assertCanEditClient(context.userId, data.clientId);
 
     // Same canonical form as the other connect paths ("act_<id>"), so the

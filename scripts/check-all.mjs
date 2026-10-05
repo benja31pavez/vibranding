@@ -4,7 +4,9 @@ import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-const checks = Object.keys(pkg.scripts ?? {}).filter((name) => name.startsWith("check:") && name !== "check:all");
+const checks = Object.keys(pkg.scripts ?? {}).filter(
+  (name) => name.startsWith("check:") && name !== "check:all",
+);
 
 if (checks.length === 0) {
   console.error("check-all: no hay scripts check:*");

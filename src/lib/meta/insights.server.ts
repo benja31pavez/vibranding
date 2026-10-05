@@ -116,8 +116,7 @@ async function runAsyncInsightsJob(
 
   // Drain the paginated result set.
   const rows: any[] = [];
-  let url =
-    `${graphUrl(`${runId}/insights`)}?limit=500&access_token=${encodeURIComponent(token)}`;
+  let url = `${graphUrl(`${runId}/insights`)}?limit=500&access_token=${encodeURIComponent(token)}`;
   while (url) {
     const res = await fetch(url);
     const body = (await res.json()) as any;
@@ -185,10 +184,7 @@ async function ingestAdInsights(
  */
 const IG_MEDIA_METRICS = ["views", "total_interactions", "saved"] as const;
 
-async function fetchMediaMetrics(
-  mediaId: string,
-  token: string,
-): Promise<Record<string, number>> {
+async function fetchMediaMetrics(mediaId: string, token: string): Promise<Record<string, number>> {
   const out: Record<string, number> = {};
   const collect = (data: any[]) => {
     for (const item of data ?? []) out[item.name] = num(item.values?.[0]?.value);
@@ -267,7 +263,10 @@ type MetaAccountForIngest = {
 };
 
 /** Refresh the ad account's reporting timezone so local dates stay correct. Throws on DB error. */
-async function refreshTimezone(account: MetaAccountForIngest, token: string): Promise<string | null> {
+async function refreshTimezone(
+  account: MetaAccountForIngest,
+  token: string,
+): Promise<string | null> {
   const current = account.timezone_name ?? null;
   if (!account.ad_account_id) return current;
   const fresh = await fetchAdAccountTimezone(account.ad_account_id, token);
@@ -284,7 +283,10 @@ async function refreshTimezone(account: MetaAccountForIngest, token: string): Pr
  * on success; a failure only writes last_sync_error (no last_attempt_at column).
  * Returns the DB error message, or null.
  */
-async function recordIngestOutcome(accountId: string, result: IngestResult): Promise<string | null> {
+async function recordIngestOutcome(
+  accountId: string,
+  result: IngestResult,
+): Promise<string | null> {
   const nowIso = new Date().toISOString();
   const rows = result.adRows + result.postRows;
   const patch = result.error
@@ -351,7 +353,10 @@ export async function ingestAccountDay(
   const dbError = await recordIngestOutcome(account.id, result);
   if (dbError && !result.error) {
     // Data was written, but the account status was not: surface it so the run isn't "green".
-    return { ...result, error: `Métricas guardadas, pero no se pudo actualizar el estado: ${dbError}` };
+    return {
+      ...result,
+      error: `Métricas guardadas, pero no se pudo actualizar el estado: ${dbError}`,
+    };
   }
   return result;
 }
