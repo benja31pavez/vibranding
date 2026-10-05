@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageContainer, PageHeader } from "@/components/app";
+import { PostFeedbackPanel } from "@/components/instagram/PostFeedbackPanel";
 import {
   ApprovalsToday,
   CampaignAlerts,
@@ -37,6 +38,7 @@ function Dashboard() {
       <KpiStrip />
 
       <ReviewActivity />
+      <PostFeedbackPanel />
 
       <section className="grid gap-4 lg:grid-cols-2">
         <ApprovalsToday />

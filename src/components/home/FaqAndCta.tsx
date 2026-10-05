@@ -5,6 +5,7 @@ import { useLang } from "@/i18n/LanguageContext";
 import { trackLandingEvent } from "@/lib/track";
 import { whatsappUrl } from "@/lib/site";
 import { SectionHeading, WhatsAppCta } from "./shared";
+import { DiagnosticoLink } from "./GrowthSections";
 import { translations } from "@/i18n/translations";
 
 /** Native <details> keeps every answer in the server-rendered HTML (good for SEO and no-JS). */
@@ -52,8 +53,9 @@ export function FinalCtaSection() {
             {c.titleEnd}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base text-white/85 md:text-lg">{c.subtitle}</p>
-          <div className="mt-8 flex justify-center">
+          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
             <WhatsAppCta variant="light">{c.cta}</WhatsAppCta>
+            <DiagnosticoLink variant="onDark" />
           </div>
           <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/85">
             {c.bullets.map((b) => (

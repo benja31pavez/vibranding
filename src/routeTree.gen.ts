@@ -14,6 +14,7 @@ import { Route as AtChar123slugChar125RouteImport } from './routes/@{$slug}'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as DataDeletionRouteImport } from './routes/data-deletion'
+import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as LandingRouteImport } from './routes/landing'
 import { Route as LoginRouteImport } from './routes/login'
@@ -74,6 +75,7 @@ import { Route as AppClientsClientIdMultilinkRouteImport } from './routes/_app/c
 import { Route as AppClientsClientIdObjectivesRouteImport } from './routes/_app/clients/$clientId/objectives'
 import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/clients/$clientId/payments'
 import { Route as AppClientsClientIdPlanRouteImport } from './routes/_app/clients/$clientId/plan'
+import { Route as AppClientsClientIdPortalPreviewRouteImport } from './routes/_app/clients/$clientId/portal-preview'
 import { Route as AppClientsClientIdSetupRouteImport } from './routes/_app/clients/$clientId/setup'
 import { Route as AppClientsClientIdSitioRouteImport } from './routes/_app/clients/$clientId/sitio'
 import { Route as ApiPublicAlertsRunRouteImport } from './routes/api/public/alerts/run'
@@ -110,6 +112,11 @@ const CookiesRoute = CookiesRouteImport.update({
 const DataDeletionRoute = DataDeletionRouteImport.update({
   id: '/data-deletion',
   path: '/data-deletion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiagnosticoRoute = DiagnosticoRouteImport.update({
+  id: '/diagnostico',
+  path: '/diagnostico',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaqRoute = FaqRouteImport.update({
@@ -429,6 +436,12 @@ const AppClientsClientIdPlanRoute = AppClientsClientIdPlanRouteImport.update({
   path: '/plan',
   getParentRoute: () => AppClientsClientIdRoute,
 } as any)
+const AppClientsClientIdPortalPreviewRoute =
+  AppClientsClientIdPortalPreviewRouteImport.update({
+    id: '/portal-preview',
+    path: '/portal-preview',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdSetupRoute = AppClientsClientIdSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
@@ -507,6 +520,7 @@ export interface FileRoutesByFullPath {
   '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
+  '/diagnostico': typeof DiagnosticoRoute
   '/faq': typeof FaqRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
@@ -566,6 +580,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
+  '/clients/$clientId/portal-preview': typeof AppClientsClientIdPortalPreviewRoute
   '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/alerts/run': typeof ApiPublicAlertsRunRoute
@@ -586,6 +601,7 @@ export interface FileRoutesByTo {
   '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
+  '/diagnostico': typeof DiagnosticoRoute
   '/faq': typeof FaqRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
@@ -644,6 +660,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
+  '/clients/$clientId/portal-preview': typeof AppClientsClientIdPortalPreviewRoute
   '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/alerts/run': typeof ApiPublicAlertsRunRoute
@@ -666,6 +683,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
+  '/diagnostico': typeof DiagnosticoRoute
   '/faq': typeof FaqRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
@@ -725,6 +743,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/_app/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/_app/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
+  '/_app/clients/$clientId/portal-preview': typeof AppClientsClientIdPortalPreviewRoute
   '/_app/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/_app/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/alerts/run': typeof ApiPublicAlertsRunRoute
@@ -747,6 +766,7 @@ export interface FileRouteTypes {
     | '/@{$slug}'
     | '/cookies'
     | '/data-deletion'
+    | '/diagnostico'
     | '/faq'
     | '/landing'
     | '/login'
@@ -806,6 +826,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
     | '/clients/$clientId/plan'
+    | '/clients/$clientId/portal-preview'
     | '/clients/$clientId/setup'
     | '/clients/$clientId/sitio'
     | '/api/public/alerts/run'
@@ -826,6 +847,7 @@ export interface FileRouteTypes {
     | '/@{$slug}'
     | '/cookies'
     | '/data-deletion'
+    | '/diagnostico'
     | '/faq'
     | '/landing'
     | '/login'
@@ -884,6 +906,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
     | '/clients/$clientId/plan'
+    | '/clients/$clientId/portal-preview'
     | '/clients/$clientId/setup'
     | '/clients/$clientId/sitio'
     | '/api/public/alerts/run'
@@ -905,6 +928,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/cookies'
     | '/data-deletion'
+    | '/diagnostico'
     | '/faq'
     | '/landing'
     | '/login'
@@ -964,6 +988,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/objectives'
     | '/_app/clients/$clientId/payments'
     | '/_app/clients/$clientId/plan'
+    | '/_app/clients/$clientId/portal-preview'
     | '/_app/clients/$clientId/setup'
     | '/_app/clients/$clientId/sitio'
     | '/api/public/alerts/run'
@@ -986,6 +1011,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   CookiesRoute: typeof CookiesRoute
   DataDeletionRoute: typeof DataDeletionRoute
+  DiagnosticoRoute: typeof DiagnosticoRoute
   FaqRoute: typeof FaqRoute
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
@@ -1055,6 +1081,13 @@ declare module '@tanstack/react-router' {
       path: '/data-deletion'
       fullPath: '/data-deletion'
       preLoaderRoute: typeof DataDeletionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diagnostico': {
+      id: '/diagnostico'
+      path: '/diagnostico'
+      fullPath: '/diagnostico'
+      preLoaderRoute: typeof DiagnosticoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/faq': {
@@ -1477,6 +1510,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdPlanRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/portal-preview': {
+      id: '/_app/clients/$clientId/portal-preview'
+      path: '/portal-preview'
+      fullPath: '/clients/$clientId/portal-preview'
+      preLoaderRoute: typeof AppClientsClientIdPortalPreviewRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/setup': {
       id: '/_app/clients/$clientId/setup'
       path: '/setup'
@@ -1600,6 +1640,7 @@ interface AppClientsClientIdRouteChildren {
   AppClientsClientIdObjectivesRoute: typeof AppClientsClientIdObjectivesRoute
   AppClientsClientIdPaymentsRoute: typeof AppClientsClientIdPaymentsRoute
   AppClientsClientIdPlanRoute: typeof AppClientsClientIdPlanRoute
+  AppClientsClientIdPortalPreviewRoute: typeof AppClientsClientIdPortalPreviewRoute
   AppClientsClientIdSetupRoute: typeof AppClientsClientIdSetupRoute
   AppClientsClientIdSitioRoute: typeof AppClientsClientIdSitioRoute
   AppClientsClientIdIndexRoute: typeof AppClientsClientIdIndexRoute
@@ -1623,6 +1664,7 @@ const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdObjectivesRoute: AppClientsClientIdObjectivesRoute,
   AppClientsClientIdPaymentsRoute: AppClientsClientIdPaymentsRoute,
   AppClientsClientIdPlanRoute: AppClientsClientIdPlanRoute,
+  AppClientsClientIdPortalPreviewRoute: AppClientsClientIdPortalPreviewRoute,
   AppClientsClientIdSetupRoute: AppClientsClientIdSetupRoute,
   AppClientsClientIdSitioRoute: AppClientsClientIdSitioRoute,
   AppClientsClientIdIndexRoute: AppClientsClientIdIndexRoute,
@@ -1685,6 +1727,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   CookiesRoute: CookiesRoute,
   DataDeletionRoute: DataDeletionRoute,
+  DiagnosticoRoute: DiagnosticoRoute,
   FaqRoute: FaqRoute,
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
