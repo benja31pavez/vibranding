@@ -75,6 +75,7 @@ import { Route as AppClientsClientIdMultilinkRouteImport } from './routes/_app/c
 import { Route as AppClientsClientIdObjectivesRouteImport } from './routes/_app/clients/$clientId/objectives'
 import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/clients/$clientId/payments'
 import { Route as AppClientsClientIdPlanRouteImport } from './routes/_app/clients/$clientId/plan'
+import { Route as AppClientsClientIdPortalPreviewRouteImport } from './routes/_app/clients/$clientId/portal-preview'
 import { Route as AppClientsClientIdSetupRouteImport } from './routes/_app/clients/$clientId/setup'
 import { Route as AppClientsClientIdSitioRouteImport } from './routes/_app/clients/$clientId/sitio'
 import { Route as ApiPublicBillingChargeMonthlyRouteImport } from './routes/api/public/billing/charge-monthly'
@@ -434,6 +435,12 @@ const AppClientsClientIdPlanRoute = AppClientsClientIdPlanRouteImport.update({
   path: '/plan',
   getParentRoute: () => AppClientsClientIdRoute,
 } as any)
+const AppClientsClientIdPortalPreviewRoute =
+  AppClientsClientIdPortalPreviewRouteImport.update({
+    id: '/portal-preview',
+    path: '/portal-preview',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdSetupRoute = AppClientsClientIdSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
@@ -567,6 +574,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
+  '/clients/$clientId/portal-preview': typeof AppClientsClientIdPortalPreviewRoute
   '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
@@ -645,6 +653,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
+  '/clients/$clientId/portal-preview': typeof AppClientsClientIdPortalPreviewRoute
   '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
@@ -726,6 +735,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/_app/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
   '/_app/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
+  '/_app/clients/$clientId/portal-preview': typeof AppClientsClientIdPortalPreviewRoute
   '/_app/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/_app/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
@@ -807,6 +817,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
     | '/clients/$clientId/plan'
+    | '/clients/$clientId/portal-preview'
     | '/clients/$clientId/setup'
     | '/clients/$clientId/sitio'
     | '/api/public/billing/charge-monthly'
@@ -885,6 +896,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
     | '/clients/$clientId/plan'
+    | '/clients/$clientId/portal-preview'
     | '/clients/$clientId/setup'
     | '/clients/$clientId/sitio'
     | '/api/public/billing/charge-monthly'
@@ -965,6 +977,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/objectives'
     | '/_app/clients/$clientId/payments'
     | '/_app/clients/$clientId/plan'
+    | '/_app/clients/$clientId/portal-preview'
     | '/_app/clients/$clientId/setup'
     | '/_app/clients/$clientId/sitio'
     | '/api/public/billing/charge-monthly'
@@ -1484,6 +1497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdPlanRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/portal-preview': {
+      id: '/_app/clients/$clientId/portal-preview'
+      path: '/portal-preview'
+      fullPath: '/clients/$clientId/portal-preview'
+      preLoaderRoute: typeof AppClientsClientIdPortalPreviewRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/setup': {
       id: '/_app/clients/$clientId/setup'
       path: '/setup'
@@ -1600,6 +1620,7 @@ interface AppClientsClientIdRouteChildren {
   AppClientsClientIdObjectivesRoute: typeof AppClientsClientIdObjectivesRoute
   AppClientsClientIdPaymentsRoute: typeof AppClientsClientIdPaymentsRoute
   AppClientsClientIdPlanRoute: typeof AppClientsClientIdPlanRoute
+  AppClientsClientIdPortalPreviewRoute: typeof AppClientsClientIdPortalPreviewRoute
   AppClientsClientIdSetupRoute: typeof AppClientsClientIdSetupRoute
   AppClientsClientIdSitioRoute: typeof AppClientsClientIdSitioRoute
   AppClientsClientIdIndexRoute: typeof AppClientsClientIdIndexRoute
@@ -1623,6 +1644,7 @@ const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdObjectivesRoute: AppClientsClientIdObjectivesRoute,
   AppClientsClientIdPaymentsRoute: AppClientsClientIdPaymentsRoute,
   AppClientsClientIdPlanRoute: AppClientsClientIdPlanRoute,
+  AppClientsClientIdPortalPreviewRoute: AppClientsClientIdPortalPreviewRoute,
   AppClientsClientIdSetupRoute: AppClientsClientIdSetupRoute,
   AppClientsClientIdSitioRoute: AppClientsClientIdSitioRoute,
   AppClientsClientIdIndexRoute: AppClientsClientIdIndexRoute,
