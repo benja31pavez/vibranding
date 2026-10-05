@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -14,9 +15,11 @@ import {
   linkGoogleAdsCustomer,
   startGoogleAdsOAuth,
   syncGoogleAdsNow,
+  type CustomerSource,
   type GoogleAdsOverview,
 } from "@/lib/google-ads/connection.functions";
 import { GoogleAdsAccountPicker } from "@/components/google-ads/GoogleAdsAccountPicker";
+import { googleAdsBillingKey } from "@/components/google-ads/googleAdsBillingQueries";
 
 const DATE_FMT = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeStyle: "short" });
 
@@ -64,7 +67,8 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
   const userKey = useUserKey();
   const queryClient = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [picking, setPicking] = useState(false);
+  // Origen del selector abierto: cuentas de la MCC de la agencia o del token propio.
+  const [picking, setPicking] = useState<CustomerSource | null>(null);
   const fetchOverview = useServerFn(getGoogleAdsOverview);
   const startOAuth = useServerFn(startGoogleAdsOAuth);
   const link = useServerFn(linkGoogleAdsCustomer);
@@ -82,6 +86,7 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
     void queryClient.invalidateQueries({ queryKey: overviewKey });
     void queryClient.invalidateQueries({ queryKey: ["google-ads-campaigns", userKey, clientId] });
     void queryClient.invalidateQueries({ queryKey: ["google-ads-customers", userKey, clientId] });
+    void queryClient.invalidateQueries({ queryKey: googleAdsBillingKey(userKey, clientId) });
   };
 
   const connectMut = useMutation({
@@ -92,9 +97,10 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
     onError: (e: Error) => toast.error(e.message || "No se pudo iniciar la conexión"),
   });
   const linkMut = useMutation({
-    mutationFn: (customerId: string) => link({ data: { clientId, customerId } }),
+    mutationFn: (v: { customerId: string; source: CustomerSource }) =>
+      link({ data: { clientId, customerId: v.customerId, source: v.source } }),
     onSuccess: (res) => {
-      setPicking(false);
+      setPicking(null);
       if (res.syncError)
         toast.warning(`Cuenta vinculada, pero la descarga falló: ${res.syncError}`);
       else toast.success(`Cuenta vinculada · ${res.rows} filas descargadas`);
@@ -146,22 +152,53 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
     </Button>
   );
 
+  const settingsLink = (
+    <Link to="/settings/google-ads" className="underline underline-offset-2">
+      Configuración → Google Ads
+    </Link>
+  );
+
   if (!connection) {
+    const agency = overview.data.agency;
     return (
       <Panel
         title="Google Ads"
-        description="Conecta la cuenta de Google con acceso a los anuncios del cliente (solo lectura de campañas)."
-        actions={connectButton("Conectar con Google")}
+        description={
+          agency
+            ? `Elige la cuenta del cliente bajo la MCC de la agencia (${formatCustomerId(agency.managerCustomerId)}).`
+            : "Conecta la MCC de la agencia una sola vez para vincular a todos los clientes."
+        }
+        actions={agency ? null : connectButton("Conectar con Google (cuenta propia)")}
       >
-        <p className="text-sm text-muted-foreground">
-          Se pedirá iniciar sesión en Google y aceptar el acceso a Google Ads. Después eliges cuál
-          cuenta es de este cliente. La plataforma solo lee métricas: nunca crea ni cambia campañas.
-        </p>
+        {agency ? (
+          <div className="space-y-3 text-sm">
+            <GoogleAdsAccountPicker
+              clientId={clientId}
+              currentCustomerId={null}
+              busy={busy}
+              source="agencia"
+              onPick={(customerId) => linkMut.mutate({ customerId, source: "agencia" })}
+            />
+            <p className="text-xs text-muted-foreground">
+              El cliente paga su pauta con su propia tarjeta en su cuenta. La plataforma solo lee
+              métricas y el estado de pago: nunca crea ni cambia campañas.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Recomendado: conecta la cuenta administradora (MCC) de la agencia en {settingsLink} y
+            luego elige aquí la cuenta del cliente. También puedes conectar una cuenta de Google
+            propia del cliente (forma anterior). La plataforma solo lee métricas: nunca crea ni
+            cambia campañas.
+          </p>
+        )}
       </Panel>
     );
   }
 
-  const needsPick = connection.status === "pendiente" || picking;
+  const viaAgency = connection.authSource === "agencia";
+  const pickSource: CustomerSource | null =
+    connection.status === "pendiente" ? connection.authSource : picking;
   const broken = connection.status === "error" || !connection.hasToken;
 
   return (
@@ -172,15 +209,24 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
         description={
           connection.status === "conectada"
             ? `Cuenta ${formatCustomerId(connection.customerId)}${
-                connection.managerCustomerId
-                  ? ` (vía MCC ${formatCustomerId(connection.managerCustomerId)})`
-                  : ""
+                viaAgency
+                  ? " (vía MCC de la agencia)"
+                  : connection.managerCustomerId
+                    ? ` (vía MCC ${formatCustomerId(connection.managerCustomerId)})`
+                    : ""
               }`
             : "Falta elegir la cuenta de este cliente"
         }
         actions={
           <>
-            {broken && connectButton("Reconectar")}
+            {broken &&
+              (viaAgency ? (
+                <Button asChild size="sm">
+                  <Link to="/settings/google-ads">Revisar MCC de la agencia</Link>
+                </Button>
+              ) : (
+                connectButton("Reconectar")
+              ))}
             {connection.status === "conectada" && !broken && (
               <>
                 <Button
@@ -197,12 +243,22 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setPicking((p) => !p)}
+                  onClick={() => setPicking((p) => (p ? null : connection.authSource))}
                   disabled={busy}
                 >
                   {picking ? "Cancelar" : "Cambiar cuenta"}
                 </Button>
               </>
+            )}
+            {!viaAgency && overview.data.agency && !picking && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setPicking("agencia")}
+                disabled={busy}
+              >
+                Pasar a la MCC de la agencia
+              </Button>
             )}
             <Button size="sm" variant="ghost" onClick={() => setConfirmOpen(true)} disabled={busy}>
               Desconectar
@@ -227,12 +283,13 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
               {connection.lastSyncError}
             </p>
           )}
-          {needsPick && !broken && (
+          {pickSource && !(broken && pickSource === connection.authSource) && (
             <GoogleAdsAccountPicker
               clientId={clientId}
               currentCustomerId={connection.customerId}
               busy={busy}
-              onPick={(customerId) => linkMut.mutate(customerId)}
+              source={pickSource}
+              onPick={(customerId) => linkMut.mutate({ customerId, source: pickSource })}
             />
           )}
         </div>

@@ -7,6 +7,7 @@ import { useUserKey } from "@/components/clients/ficha/fichaQueries";
 import { formatCustomerId } from "@/lib/google-ads/gaql";
 import {
   listGoogleAdsCustomers,
+  type CustomerSource,
   type GoogleAdsCustomerChoice,
 } from "@/lib/google-ads/connection.functions";
 
@@ -17,23 +18,28 @@ function unavailableReason(c: GoogleAdsCustomerChoice): string | null {
   return null;
 }
 
-/** Lista de cuentas accesibles con el token guardado para elegir cuál es de este cliente. */
+/**
+ * Cuentas para elegir cuál es de este cliente: las de la MCC de la agencia
+ * (source "agencia") o las accesibles con el token propio del cliente ("cliente").
+ */
 export function GoogleAdsAccountPicker({
   clientId,
   currentCustomerId,
   busy,
+  source,
   onPick,
 }: {
   clientId: string;
   currentCustomerId: string | null;
   busy: boolean;
+  source: CustomerSource;
   onPick: (customerId: string) => void;
 }) {
   const userKey = useUserKey();
   const listCustomers = useServerFn(listGoogleAdsCustomers);
   const query = useQuery({
-    queryKey: ["google-ads-customers", userKey, clientId],
-    queryFn: () => listCustomers({ data: { clientId } }),
+    queryKey: ["google-ads-customers", userKey, clientId, source],
+    queryFn: () => listCustomers({ data: { clientId, source } }),
     staleTime: 60_000,
   });
 
@@ -52,7 +58,9 @@ export function GoogleAdsAccountPicker({
   if (customers.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        La cuenta de Google conectada no tiene acceso a cuentas de Google Ads.
+        {source === "agencia"
+          ? "La MCC de la agencia todavía no tiene cuentas de clientes vinculadas. Vincula la cuenta del cliente a la MCC en Google Ads y vuelve aquí."
+          : "La cuenta de Google conectada no tiene acceso a cuentas de Google Ads."}
       </p>
     );
   }

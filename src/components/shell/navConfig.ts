@@ -59,6 +59,11 @@ export const SETTINGS_NAV: readonly NavItem[] = [
     label: "Meta",
     icon: Plug,
   },
+  {
+    to: "/settings/google-ads",
+    label: "Google Ads",
+    icon: Plug,
+  },
   { to: "/portfolio", label: "Portafolio", icon: Images },
   { to: "/stats", label: "Estadísticas", icon: LineChart },
   { to: "/admin/health", label: "Salud", icon: HeartPulse },

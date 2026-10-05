@@ -1,12 +1,71 @@
-import { Heart } from "lucide-react";
+import {
+  Bell,
+  ChevronLeft,
+  Clapperboard,
+  Copy,
+  Ellipsis,
+  Grid3x3,
+  Heart,
+  SquareUser,
+  UserPlus,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Bar, BrandAvatar } from "./parts";
 import { SWATCHES, vars } from "./tokens";
 
-const SLIDES = ["Tu marca", "Nuevo servicio", "Agenda por WhatsApp"];
-const TILES = [3, 4, 5, 0, 2, 1];
+const STATS = ["publicaciones", "seguidores", "seguidos"];
+const HIGHLIGHTS = ["Servicios", "Precios", "Equipo", "Ubicación"];
+/** Swatch per grid post, in grid order; the first one is the post that gets published. */
+const POSTS = [0, 3, 1, 5, 2, 4, 1, 0, 3, 5, 4, 2];
+/** Corner badge per post (reel / carousel), like the real grid. */
+const BADGES: Partial<Record<number, "reel" | "carousel">> = {
+  2: "reel",
+  4: "carousel",
+  7: "reel",
+};
+const GRID_COLS = 3;
+const GRID_GAP = "1px";
 
-/** Phone with an Instagram-style profile for the fictional brand "Tu marca". */
+/**
+ * Where a grid post sat before the new one was published: one cell back (the previous row's
+ * last cell for posts in the first column). The animation slides each post from there to its
+ * final cell, which is the static frame.
+ */
+function previousCell(index: number): React.CSSProperties {
+  const firstColumn = index % GRID_COLS === 0;
+  return vars({
+    "--sx": firstColumn
+      ? `calc(${(GRID_COLS - 1) * 100}% + ${GRID_COLS - 1} * ${GRID_GAP})`
+      : `calc(-100% - ${GRID_GAP})`,
+    "--sy": firstColumn ? `calc(-100% - ${GRID_GAP})` : "0px",
+  });
+}
+
+function PostTile({ index }: { index: number }) {
+  const isNew = index === 0;
+  const badge = BADGES[index];
+  return (
+    <span
+      className={cn("relative aspect-square", isNew ? "mk-ig-new" : "mk-ig-shift")}
+      style={{ ...(isNew ? {} : previousCell(index)), background: SWATCHES[POSTS[index]] }}
+    >
+      {isNew && <span className="absolute left-2 top-2 h-5 w-5 rounded-full bg-white/30" />}
+      {badge === "reel" && (
+        <Clapperboard className="absolute right-1 top-1 h-2.5 w-2.5 text-white" />
+      )}
+      {badge === "carousel" && <Copy className="absolute right-1 top-1 h-2.5 w-2.5 text-white" />}
+      {isNew && (
+        <Heart className="mk-ig-heart absolute left-1/2 top-1/2 -ml-4 -mt-4 h-8 w-8 fill-white text-white drop-shadow-lg" />
+      )}
+    </span>
+  );
+}
+
+/**
+ * Phone with an Instagram profile for the fictional brand "Tu marca", as a visitor sees it.
+ * Loop: a new post lands in the first grid cell (the rest shift one cell) and gets a like.
+ * No real metrics: the counters are skeleton bars.
+ */
 export function PhoneFeed({ className }: { className?: string }) {
   return (
     <div
@@ -15,72 +74,72 @@ export function PhoneFeed({ className }: { className?: string }) {
         className,
       )}
     >
-      <div className="relative flex h-full flex-col overflow-hidden rounded-[2rem] bg-card text-foreground">
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[2rem] bg-card text-left text-foreground">
         <span className="absolute left-1/2 top-2 h-4 w-16 -translate-x-1/2 rounded-full bg-neutral-900" />
-        <div className="flex items-center justify-between px-4 pb-2 pt-8">
-          <span className="text-sm font-semibold">tumarca</span>
-          <span className="flex gap-1.5">
-            <span className="h-3.5 w-3.5 rounded-md border-2 border-foreground/70" />
-            <span className="h-3.5 w-3.5 rounded-full border-2 border-foreground/70" />
-          </span>
+        <div className="flex items-center gap-2 px-3 pb-2 pt-8">
+          <ChevronLeft className="h-4 w-4" />
+          <span className="flex-1 text-[0.8rem] font-bold">tumarca</span>
+          <Bell className="h-3.5 w-3.5" />
+          <Ellipsis className="h-4 w-4" />
         </div>
-        <div className="flex items-center gap-3 px-4">
+        <div className="flex items-center gap-2 px-3 sm:gap-3">
           <BrandAvatar size="h-14 w-14 text-2xl" />
-          <div className="flex-1 space-y-1.5">
-            <p className="text-xs font-semibold">Tu marca</p>
-            <Bar w="90%" />
-            <Bar w="65%" />
-          </div>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-1.5 px-4 text-[0.65rem] font-semibold">
-          <span className="rounded-md bg-[color:var(--brand-1)] py-1 text-center text-white">
-            Seguir
-          </span>
-          <span className="rounded-md bg-secondary py-1 text-center">Mensaje</span>
-        </div>
-        <div className="flex gap-3 px-4 py-3">
-          {SWATCHES.slice(0, 4).map((bg) => (
-            <span
-              key={bg}
-              className="h-8 w-8 rounded-full border-2 border-card ring-1 ring-foreground/15"
-              style={{ background: bg }}
-            />
-          ))}
-        </div>
-        <div className="relative aspect-[4/3] overflow-hidden">
-          <div className="mk-carousel flex h-full w-[300%]">
-            {SLIDES.map((label, i) => (
-              <div
-                key={label}
-                className="relative flex h-full w-1/3 items-end p-3"
-                style={{ background: SWATCHES[i] }}
-              >
-                <span className="absolute right-4 top-4 h-14 w-14 rounded-full bg-white/25" />
-                <span className="absolute right-12 top-12 h-8 w-8 rounded-full bg-white/20" />
-                <span className="font-brand text-lg leading-tight text-white drop-shadow">
+          <div className="grid flex-1 grid-cols-3 text-center">
+            {STATS.map((label) => (
+              <span key={label} className="flex flex-col items-center gap-1">
+                <Bar w="1.1rem" className="h-2 bg-foreground/25" />
+                <span className="text-[0.42rem] leading-none tracking-tight text-foreground/80 sm:text-[0.5rem] sm:tracking-normal">
                   {label}
                 </span>
-              </div>
+              </span>
             ))}
           </div>
-          <Heart className="mk-heart absolute left-1/2 top-1/2 -ml-6 -mt-6 h-12 w-12 fill-white text-white drop-shadow-lg" />
-          <span className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
-            {SLIDES.map((label) => (
-              <span key={label} className="h-1.5 w-1.5 rounded-full bg-white/50" />
-            ))}
-            <span className="mk-dot absolute left-0 top-0 h-1.5 w-1.5 rounded-full bg-white" />
+        </div>
+        <div className="space-y-1 px-3 pt-2">
+          <p className="text-[0.65rem] font-semibold leading-none">Tu marca</p>
+          <p className="text-[0.55rem] leading-none text-muted-foreground">Negocio local</p>
+          <Bar w="88%" />
+          <Bar w="62%" />
+          <p className="text-[0.55rem] font-semibold leading-none text-[#00376B] dark:text-[#E0F1FF]">
+            tumarca.cl
+          </p>
+        </div>
+        <div className="flex gap-1 px-3 pt-2.5 text-[0.6rem] font-semibold">
+          <span className="flex-1 rounded-md bg-[#0095F6] py-1 text-center text-white">Seguir</span>
+          <span className="flex-1 rounded-md bg-secondary py-1 text-center">Mensaje</span>
+          <span className="grid place-items-center rounded-md bg-secondary px-1.5">
+            <UserPlus className="h-3 w-3" />
           </span>
         </div>
-        <div className="grid flex-1 grid-cols-3 gap-0.5 pt-0.5">
-          {TILES.map((swatch, i) => (
-            <span
-              key={swatch}
-              className="mk-loop min-h-16"
-              style={{
-                ...vars({ "--i": i, "--gap": "0.35s", "--dur": "12s" }),
-                background: SWATCHES[swatch],
-              }}
-            />
+        <div className="flex gap-3 px-3 pt-3">
+          {HIGHLIGHTS.map((label, i) => (
+            <span key={label} className="flex w-10 flex-col items-center gap-1">
+              <span className="rounded-full p-[2px] ring-1 ring-foreground/20">
+                <span
+                  className="block h-8 w-8 rounded-full"
+                  style={{ background: SWATCHES[(i + 1) % SWATCHES.length] }}
+                />
+              </span>
+              <span className="w-full truncate text-center text-[0.45rem] leading-none">
+                {label}
+              </span>
+            </span>
+          ))}
+        </div>
+        <div className="mt-2.5 grid grid-cols-3 border-b border-foreground/10 text-foreground/45">
+          <span className="flex justify-center border-b border-foreground py-1.5 text-foreground">
+            <Grid3x3 className="h-3.5 w-3.5" />
+          </span>
+          <span className="flex justify-center py-1.5">
+            <Clapperboard className="h-3.5 w-3.5" />
+          </span>
+          <span className="flex justify-center py-1.5">
+            <SquareUser className="h-3.5 w-3.5" />
+          </span>
+        </div>
+        <div className="mk-ig-grid grid grid-cols-3 gap-px pt-px">
+          {POSTS.map((swatch, i) => (
+            <PostTile key={`${swatch}-${i}`} index={i} />
           ))}
         </div>
       </div>

@@ -14,6 +14,7 @@ import { OnboardingLinkPanel } from "@/components/clients/ficha/OnboardingLinkPa
 import { OnboardingIntakePanel } from "@/components/clients/ficha/OnboardingIntakePanel";
 import { HealthCards } from "@/components/clients/ficha/HealthCards";
 import { CampaignAlertsPanel } from "@/components/clients/ficha/CampaignAlertsPanel";
+import { GoogleAdsBillingPanel } from "@/components/google-ads/GoogleAdsBillingPanel";
 import { PendingApprovalPanel, UpcomingContentPanel } from "@/components/clients/ficha/MainPanels";
 import { ContractPanel } from "@/components/clients/ficha/ContractPanel";
 import { AdsBillingPanel } from "@/components/clients/ficha/AdsBillingPanel";
@@ -114,6 +115,7 @@ function ClientFichaPage() {
           ) : overview.data ? (
             <>
               <BillingCard clientId={clientId} overview={overview.data} />
+              <GoogleAdsBillingPanel clientId={clientId} canEdit={overview.data.canEdit} compact />
               <OnboardingLinkPanel clientId={clientId} overview={overview.data} />
             </>
           ) : null}

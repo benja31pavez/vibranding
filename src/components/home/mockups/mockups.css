@@ -6,7 +6,7 @@
 
 /* Pieces that only make sense while animating start hidden. */
 .mk-dots,
-.mk-heart,
+.mk-ig-heart,
 .mk-swap-a {
   opacity: 0;
 }
@@ -28,39 +28,67 @@
   }
 }
 
-@keyframes mk-carousel {
-  0%,
-  28% {
-    transform: translate3d(0, 0, 0);
+/*
+ * Instagram profile grid (PhoneFeed), one 9s loop: the grid fades in as it was, a new post lands
+ * in the first cell while the others slide one cell forward, the new post gets a like, and the
+ * grid fades out to restart. The static frame is the grid after publishing.
+ */
+@keyframes mk-ig-grid {
+  0% {
+    opacity: 0;
   }
-  33%,
-  61% {
-    transform: translate3d(-33.333%, 0, 0);
-  }
-  66%,
+  4%,
   94% {
-    transform: translate3d(-66.666%, 0, 0);
+    opacity: 1;
   }
   100% {
-    transform: translate3d(0, 0, 0);
+    opacity: 0;
   }
 }
 
-@keyframes mk-dot {
+@keyframes mk-ig-shift {
   0%,
-  28% {
-    transform: translate3d(0, 0, 0);
+  22% {
+    transform: translate3d(var(--sx, 0), var(--sy, 0), 0);
   }
-  33%,
-  61% {
-    transform: translate3d(10px, 0, 0);
-  }
-  66%,
-  94% {
-    transform: translate3d(20px, 0, 0);
-  }
+  32%,
   100% {
-    transform: translate3d(0, 0, 0);
+    transform: none;
+  }
+}
+
+@keyframes mk-ig-new {
+  0%,
+  26% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  36%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mk-ig-heart {
+  0%,
+  46% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  51% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  55%,
+  62% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  68%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
   }
 }
 
@@ -103,27 +131,6 @@
   }
   30% {
     transform: translate3d(0, -3px, 0);
-  }
-}
-
-@keyframes mk-heart {
-  0%,
-  70%,
-  100% {
-    opacity: 0;
-    transform: scale(0.4);
-  }
-  76% {
-    opacity: 1;
-    transform: scale(1.15);
-  }
-  84% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  92% {
-    opacity: 0;
-    transform: scale(1);
   }
 }
 
@@ -182,14 +189,17 @@
     animation: mk-in-loop var(--dur, 10s) var(--ease-out-soft) calc(var(--i, 0) * var(--gap, 0.6s))
       infinite both;
   }
-  .mk-carousel {
-    animation: mk-carousel 12s var(--ease-out-expo) infinite;
+  .mk-ig-grid {
+    animation: mk-ig-grid 9s linear infinite both;
   }
-  .mk-dot {
-    animation: mk-dot 12s var(--ease-out-expo) infinite;
+  .mk-ig-shift {
+    animation: mk-ig-shift 9s var(--ease-out-expo) infinite both;
   }
-  .mk-heart {
-    animation: mk-heart 4s var(--ease-out-soft) 1.5s infinite;
+  .mk-ig-new {
+    animation: mk-ig-new 9s var(--ease-out-expo) infinite both;
+  }
+  .mk-ig-heart {
+    animation: mk-ig-heart 9s var(--ease-out-soft) infinite both;
   }
   .mk-dots {
     animation: mk-typing 9s linear infinite;
