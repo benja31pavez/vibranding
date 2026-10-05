@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { PortalShell, PortalView, usePortalSnapshot, type PortalMode } from "@/components/portal";
+import { NOINDEX_META } from "@/lib/site/robots";
 
 export const Route = createFileRoute("/portal")({
   ssr: false,
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/portal")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "robots", content: "noindex" },
+      NOINDEX_META,
     ],
   }),
 });

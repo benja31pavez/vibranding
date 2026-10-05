@@ -6,13 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { NOINDEX_META } from "@/lib/site/robots";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
       { title: "Crear nueva contraseña — Vibranding" },
       { name: "description", content: "Define una nueva contraseña para tu cuenta de Vibranding." },
-      { name: "robots", content: "noindex" },
+      NOINDEX_META,
     ],
   }),
   component: ResetPasswordPage,

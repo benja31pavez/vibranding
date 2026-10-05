@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Multilink, MultilinkItem } from "@/lib/multilink";
 import { fontHref, fontKey } from "@/lib/multilinkTheme";
 import { SITE_URL } from "@/lib/site";
+import { NOINDEX_META } from "@/lib/site/robots";
 import { safeImageSrc } from "@/lib/site/safeUrl";
 import { MULTILINK_ITEM_PUBLIC_COLUMNS, MULTILINK_PUBLIC_COLUMNS } from "@/lib/site/publicColumns";
 
@@ -34,7 +35,7 @@ export async function loadPublicMultilink(slug: string): Promise<PublicMultilink
 
 export function publicMultilinkHead(data: PublicMultilinkData | undefined) {
   if (!data) {
-    return { meta: [{ title: "Enlaces no disponibles" }, { name: "robots", content: "noindex" }] };
+    return { meta: [{ title: "Página no encontrada" }, NOINDEX_META] };
   }
   const { ml } = data;
   const title = `${ml.title} | Enlaces`;
