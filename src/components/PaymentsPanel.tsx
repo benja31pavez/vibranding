@@ -23,7 +23,14 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Trash2, Pencil, Receipt } from "lucide-react";
 import { toast } from "sonner";
-import { DEFAULT_CURRENCY, EMPTY_CLP_TOTALS, addClp, type ClpTotals } from "@/lib/pricing/plans";
+import {
+  DEFAULT_CURRENCY,
+  EMPTY_CLP_TOTALS,
+  addClp,
+  formatMoney,
+  type ClpTotals,
+} from "@/lib/pricing/plans";
+import { IVA_LABEL, breakdownFromNet, withIva } from "@/lib/pricing/iva";
 import {
   ConfirmDialog,
   EmptyState,
@@ -111,6 +118,19 @@ const statusCls = (s: Status) => TONE_CLASSES[getStatus(s).tone].badge;
 /** Montos en CLP: pesos enteros. */
 const toClpAmount = (raw: string | number) => Math.round(Number(raw));
 
+/** "Neto $X + IVA $Y = Total a pagar $Z" mientras se escribe un cobro nuevo. */
+function DraftTotal({ rawNet }: { rawNet: string }) {
+  const net = toClpAmount(rawNet);
+  if (!Number.isFinite(net) || net <= 0) return null;
+  const { iva, total } = breakdownFromNet(net);
+  return (
+    <p className="text-xs tabular-nums text-muted-foreground" aria-live="polite">
+      Neto {formatMoney(net)} + IVA {IVA_LABEL} {formatMoney(iva)} ={" "}
+      <span className="font-medium text-foreground">Total a pagar {formatMoney(total)}</span>
+    </p>
+  );
+}
+
 export function PaymentsPanel({ clientId }: { clientId: string }) {
   const [items, setItems] = useState<Payment[]>([]);
   const [adding, setAdding] = useState(false);
@@ -167,8 +187,10 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
   }, [clientId]);
 
   const create = async () => {
-    const amount = toClpAmount(draft.amount);
-    if (!Number.isFinite(amount) || amount <= 0) return toast.error("Ingresa un monto en CLP");
+    const net = toClpAmount(draft.amount);
+    if (!Number.isFinite(net) || net <= 0) return toast.error("Ingresa un monto neto en CLP");
+    // Se escribe el neto; el cobro guarda el total a pagar con IVA (lo que cobra Flow).
+    const amount = withIva(net);
     const { error } = await supabase.from("payments").insert({
       client_id: clientId,
       description: draft.description || null,
@@ -242,8 +264,8 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
               step={1}
               min={1}
               inputMode="numeric"
-              placeholder="Monto en CLP (IVA incluido)"
-              aria-label="Monto en CLP (IVA incluido)"
+              placeholder="Monto neto en CLP (+ IVA)"
+              aria-label="Monto neto en CLP, sin IVA"
               value={draft.amount}
               onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
             />
@@ -260,6 +282,7 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
               onChange={(e) => setDraft({ ...draft, due_date: e.target.value })}
             />
           </div>
+          <DraftTotal rawNet={draft.amount} />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>
               Cancelar
@@ -490,7 +513,7 @@ function EditDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Monto en CLP (IVA incluido)</Label>
+            <Label className="text-xs text-muted-foreground">Total a pagar en CLP (con IVA)</Label>
             <Input
               type="number"
               step={1}

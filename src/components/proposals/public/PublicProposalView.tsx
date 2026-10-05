@@ -66,11 +66,15 @@ export function PublicShell({
 export function PublicProposalView({ token, proposal, payment }: Props) {
   const router = useRouter();
   const [accepted, setAccepted] = useState<Extract<AcceptResult, { ok: true }> | null>(null);
-  const plan = findPlan(proposal.planKey);
+  // plan_key puede venir vacío si la BD aún no acepta el plan (Mantención sin
+  // migración); el ítem del plan conserva su clave.
+  const plan = findPlan(
+    proposal.planKey ?? proposal.items.find((i) => i.type === "plan")?.key ?? null,
+  );
   const planKey = plan?.key ?? null;
   const totals = computeTotals(proposal.items);
-  const hasMonthly = hasMonthlyBilling(proposal.planKey, proposal.items);
-  const conditions = proposalConditions(proposal.planKey, proposal.items);
+  const hasMonthly = hasMonthlyBilling(planKey, proposal.items);
+  const conditions = proposalConditions(planKey, proposal.items);
   const status = accepted ? "aceptada" : proposal.status;
   const open = status === "enviada" || status === "vista";
   const paymentState = accepted?.payment ?? payment;

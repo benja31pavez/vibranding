@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SERVICE_CATALOG, type ServiceKey, type ServicePricing } from "@/components/PricingPanel";
 import { PLANS, findPlan, formatMoney, type Plan, type PlanKey } from "@/lib/pricing/plans";
+import { withIva } from "@/lib/pricing/iva";
 import { cn } from "@/lib/utils";
 import { addonHasPrice, computeDraftTotals, type ClientLegalData } from "./contractModel";
 
@@ -40,15 +41,15 @@ export function NewContractForm(props: NewContractFormProps) {
           Nuevo contrato
         </h2>
         <p className="text-xs text-muted-foreground">
-          Para <span className="font-medium text-foreground">{props.clientName}</span> · CLP con IVA
-          incluido
+          Para <span className="font-medium text-foreground">{props.clientName}</span> · CLP,
+          precios netos + IVA
         </p>
       </header>
 
       <div className="flex-1 space-y-3 px-5 py-3">
         <Step number={1} title="Plan" done={Boolean(plan)}>
           <div
-            className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+            className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4"
             role="radiogroup"
             aria-label="Plan"
           >
@@ -178,7 +179,8 @@ function PlanOption({
         {plan.label}
       </span>
       <span className="mt-0.5 block text-base font-semibold leading-tight tabular-nums text-foreground">
-        {formatMoney(plan.price)}
+        {formatMoney(plan.netPrice)}
+        <span className="text-[11px] font-normal text-muted-foreground"> + IVA</span>
       </span>
       <span className="block text-[11px] leading-tight text-muted-foreground">{cadence}</span>
     </button>
@@ -189,8 +191,8 @@ function addonPriceLabel(row: ServicePricing): string {
   const oneTime = Number(row.one_time_price);
   const monthly = Number(row.monthly_price);
   const parts = [
-    oneTime > 0 ? `Setup ${formatMoney(oneTime)}` : null,
-    monthly > 0 ? `${formatMoney(monthly)}/mes` : null,
+    oneTime > 0 ? `Setup ${formatMoney(oneTime)} + IVA` : null,
+    monthly > 0 ? `${formatMoney(monthly)} + IVA/mes` : null,
   ].filter(Boolean);
   return parts.join(" · ");
 }
@@ -333,10 +335,18 @@ function ContractSummary({
         {hasSelection ? (
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-0.5">
             {totals.oneTime > 0 && (
-              <TotalLine label="Pago único" amount={formatMoney(totals.oneTime)} />
+              <TotalLine
+                label="Pago único"
+                amount={`${formatMoney(totals.oneTime)} + IVA`}
+                total={`Total a pagar ${formatMoney(withIva(totals.oneTime))}`}
+              />
             )}
             {totals.monthly > 0 && (
-              <TotalLine label="Mensual" amount={`${formatMoney(totals.monthly)}/mes`} />
+              <TotalLine
+                label="Mensual"
+                amount={`${formatMoney(totals.monthly)} + IVA/mes`}
+                total={`Total a pagar ${formatMoney(withIva(totals.monthly))}/mes`}
+              />
             )}
           </div>
         ) : (
@@ -353,11 +363,12 @@ function ContractSummary({
   );
 }
 
-function TotalLine({ label, amount }: { label: string; amount: string }) {
+function TotalLine({ label, amount, total }: { label: string; amount: string; total: string }) {
   return (
     <span className="text-sm text-muted-foreground">
       {label}{" "}
-      <strong className="text-lg font-semibold tabular-nums text-foreground">{amount}</strong>
+      <strong className="text-lg font-semibold tabular-nums text-foreground">{amount}</strong>{" "}
+      <span className="text-[11px] tabular-nums">({total})</span>
     </span>
   );
 }

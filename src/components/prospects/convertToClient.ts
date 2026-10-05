@@ -1,6 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { findPlan, type Plan } from "@/lib/pricing/plans";
 import {
+  PLAN_KEY_PENDING_MIGRATION_MSG,
+  isPlanKeyRejected,
+  needsNewPlanMigration,
+} from "@/lib/pricing/planKeyDb";
+import {
   clientMark,
   convertedClientId,
   normalizeInstagram,
@@ -49,8 +54,18 @@ async function assignPlan(clientId: string, plan: Plan): Promise<string | null> 
   return ins.data && ins.data.length > 0 ? null : NO_PERMISSION;
 }
 
+/** MRR NETO (sin IVA) del plan: el MRR se informa neto. */
 function planMrr(plan: Plan | null): number {
-  return plan && plan.billing === "monthly" ? plan.price : 0;
+  return plan && plan.billing === "monthly" ? plan.netPrice : 0;
+}
+
+function callConvertRpc(prospectId: string, plan: Plan | null) {
+  return supabase.rpc("convert_prospect_to_client", {
+    _prospect_id: prospectId,
+    // La función acepta NULL (sin plan); el tipo generado no lo refleja.
+    _plan_key: (plan?.key ?? null) as string,
+    _mrr_clp: planMrr(plan),
+  });
 }
 
 type RpcOutcome = { kind: "missing" } | { kind: "done"; result: ConvertResult };
@@ -62,12 +77,18 @@ type RpcOutcome = { kind: "missing" } | { kind: "done"; result: ConvertResult };
  */
 async function convertWithRpc(prospect: Prospect): Promise<RpcOutcome> {
   const plan = suggestedPlan(prospect);
-  const { data, error } = await supabase.rpc("convert_prospect_to_client", {
-    _prospect_id: prospect.id,
-    // La función acepta NULL (sin plan); el tipo generado no lo refleja.
-    _plan_key: (plan?.key ?? null) as string,
-    _mrr_clp: planMrr(plan),
-  });
+  const warnings: string[] = [];
+  let { data, error } = await callConvertRpc(prospect.id, plan);
+  // Sin la migración 20261012001100 la RPC rechaza 'mantencion': se crea sin plan
+  // (con el MRR neto del plan) y se avisa.
+  if (plan && needsNewPlanMigration(plan.key) && isPlanKeyRejected(error)) {
+    ({ data, error } = await supabase.rpc("convert_prospect_to_client", {
+      _prospect_id: prospect.id,
+      _plan_key: null as unknown as string,
+      _mrr_clp: planMrr(plan),
+    }));
+    if (!error) warnings.push(PLAN_KEY_PENDING_MIGRATION_MSG);
+  }
   if (isMissingRpc(error, "convert_prospect_to_client")) return { kind: "missing" };
   if (error)
     return {
@@ -82,7 +103,6 @@ async function convertWithRpc(prospect: Prospect): Promise<RpcOutcome> {
       result: { ok: false, error: `No se pudo crear el cliente: ${NO_PERMISSION}` },
     };
 
-  const warnings: string[] = [];
   if (!res.created) return { kind: "done", result: { ok: true, clientId, warnings } };
   if (!plan)
     warnings.push("El prospecto no tenía plan sugerido: asígnalo en la ficha del cliente.");

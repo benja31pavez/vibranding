@@ -1,4 +1,4 @@
-import { findPlan, type Plan } from "@/lib/pricing/plans";
+import { findPlan, isPublicPlan, type PublicPlan } from "@/lib/pricing/plans";
 import { ORGANIZATION_ID, SITE_URL } from "@/lib/site";
 import { MARKETING_META, MARKETING_ORG_SCRIPT } from "@/lib/marketingSeo";
 import { PLAN_SUMMARY, type ServiceContent } from "./content";
@@ -7,10 +7,10 @@ export function serviceUrl(service: ServiceContent): string {
   return `${SITE_URL}${service.path}`;
 }
 
-/** Planes de plans.ts que muestra la página (en el orden del contenido). */
-export function servicePlans(service: ServiceContent): Plan[] {
+/** Planes públicos de plans.ts que muestra la página (en el orden del contenido). */
+export function servicePlans(service: ServiceContent): PublicPlan[] {
   if (service.pricing.kind !== "plans") return [];
-  return service.pricing.planKeys.map((key) => findPlan(key)).filter((p): p is Plan => p !== null);
+  return service.pricing.planKeys.map((key) => findPlan(key)).filter(isPublicPlan);
 }
 
 function buildOffers(service: ServiceContent, url: string) {
@@ -21,13 +21,14 @@ function buildOffers(service: ServiceContent, url: string) {
       name: plan.label,
       description: PLAN_SUMMARY[plan.key],
       url,
-      price: plan.price,
+      // Precio neto: el IVA (19 %) se suma aparte.
+      price: plan.netPrice,
       priceCurrency: "CLP",
       priceSpecification: {
         "@type": monthly ? "UnitPriceSpecification" : "PriceSpecification",
-        price: plan.price,
+        price: plan.netPrice,
         priceCurrency: "CLP",
-        valueAddedTaxIncluded: true,
+        valueAddedTaxIncluded: false,
         ...(monthly ? { unitCode: "MON" } : {}),
       },
       areaServed: { "@type": "Country", name: "Chile" },

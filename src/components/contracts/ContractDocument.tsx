@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
-import { formatMoney, splitVat } from "@/lib/pricing/plans";
+import { formatMoney } from "@/lib/pricing/plans";
+import { IVA_LABEL, breakdownFromTotal, netOfTotal } from "@/lib/pricing/iva";
 
 export interface ContractDocProps {
   agency: {
@@ -22,8 +23,14 @@ export interface ContractDocProps {
   jurisdiction: string;
   /** Ley aplicable. Solo se muestra si el snapshot la guardó (contratos antiguos no la tienen). */
   governingLaw?: string;
-  /** true si los montos del snapshot incluyen IVA (contratos nuevos). Activa el desglose neto/IVA. */
+  /** true si los montos del snapshot incluyen IVA (contratos desde 2026-10). Activa el desglose neto/IVA. */
   vatIncluded?: boolean;
+  /**
+   * true en contratos con precios netos + IVA (agency_snapshot.price_basis). Los
+   * montos guardados siguen siendo el total con IVA; el documento muestra cada
+   * línea en neto "+ IVA" y cierra con Neto, IVA 19 % y Total a pagar.
+   */
+  netPlusIva?: boolean;
   services: Array<{
     service_key: string;
     label: string;
@@ -58,6 +65,7 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(
       jurisdiction,
       governingLaw,
       vatIncluded,
+      netPlusIva,
       services,
       clauses,
       totals,
@@ -67,9 +75,13 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(
   ) {
     const today = effective_date || new Date().toISOString().slice(0, 10);
     const law = governingLaw?.trim() ?? "";
-    const showVat = vatIncluded === true;
-    const oneTimeVat = splitVat(totals.one_time);
-    const monthlyVat = splitVat(totals.monthly);
+    const isNet = netPlusIva === true;
+    const showVat = vatIncluded === true || isNet;
+    const oneTimeVat = breakdownFromTotal(totals.one_time);
+    const monthlyVat = breakdownFromTotal(totals.monthly);
+    // Contratos neto + IVA: cada línea se muestra en neto (el total guardado / 1,19).
+    const lineAmount = (n: number) => (isNet ? netOfTotal(n) : n);
+    const plusIva = isNet ? " + IVA" : "";
     const includesAds = services.some((s) => s.service_key === "crecimiento");
     let section = clauses.length > 0 ? 5 : 4;
     const nextSection = () => ++section;
@@ -163,19 +175,43 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(
                     ) : null}
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
-                    {Number(s.one_time_price) > 0 ? money(Number(s.one_time_price)) : "—"}
+                    {Number(s.one_time_price) > 0
+                      ? `${money(lineAmount(Number(s.one_time_price)))}${plusIva}`
+                      : "—"}
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
-                    {Number(s.monthly_price) > 0 ? `${money(Number(s.monthly_price))}/mes` : "—"}
+                    {Number(s.monthly_price) > 0
+                      ? `${money(lineAmount(Number(s.monthly_price)))}${plusIva}/mes`
+                      : "—"}
                   </td>
                 </tr>
               ))}
-              <tr style={{ background: "#f8fafc", fontWeight: 700 }}>
-                <td style={tdStyle}>Total</td>
-                <td style={{ ...tdStyle, textAlign: "right" }}>{money(totals.one_time)}</td>
-                <td style={{ ...tdStyle, textAlign: "right" }}>{money(totals.monthly)}/mes</td>
-              </tr>
-              {showVat && (
+              {isNet ? (
+                <>
+                  <tr style={{ color: C.sub, fontSize: 12 }}>
+                    <td style={tdStyle}>Neto</td>
+                    <td style={{ ...tdStyle, textAlign: "right" }}>{money(oneTimeVat.net)}</td>
+                    <td style={{ ...tdStyle, textAlign: "right" }}>{money(monthlyVat.net)}/mes</td>
+                  </tr>
+                  <tr style={{ color: C.sub, fontSize: 12 }}>
+                    <td style={tdStyle}>IVA ({IVA_LABEL})</td>
+                    <td style={{ ...tdStyle, textAlign: "right" }}>{money(oneTimeVat.iva)}</td>
+                    <td style={{ ...tdStyle, textAlign: "right" }}>{money(monthlyVat.iva)}/mes</td>
+                  </tr>
+                  <tr style={{ background: "#f8fafc", fontWeight: 700 }}>
+                    <td style={tdStyle}>Total a pagar</td>
+                    <td style={{ ...tdStyle, textAlign: "right" }}>{money(totals.one_time)}</td>
+                    <td style={{ ...tdStyle, textAlign: "right" }}>{money(totals.monthly)}/mes</td>
+                  </tr>
+                </>
+              ) : (
+                <tr style={{ background: "#f8fafc", fontWeight: 700 }}>
+                  <td style={tdStyle}>Total</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(totals.one_time)}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(totals.monthly)}/mes</td>
+                </tr>
+              )}
+              {showVat && !isNet && (
                 <>
                   <tr style={{ color: C.sub, fontSize: 12 }}>
                     <td style={tdStyle}>Neto</td>
@@ -184,8 +220,8 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(
                   </tr>
                   <tr style={{ color: C.sub, fontSize: 12 }}>
                     <td style={tdStyle}>IVA (19%)</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{money(oneTimeVat.vat)}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{money(monthlyVat.vat)}/mes</td>
+                    <td style={{ ...tdStyle, textAlign: "right" }}>{money(oneTimeVat.iva)}</td>
+                    <td style={{ ...tdStyle, textAlign: "right" }}>{money(monthlyVat.iva)}/mes</td>
                   </tr>
                 </>
               )}
@@ -194,7 +230,9 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(
         )}
         {showVat && services.length > 0 && (
           <p style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>
-            Montos en pesos chilenos (CLP), IVA incluido.
+            {isNet
+              ? `Precios netos en pesos chilenos (CLP) más IVA (${IVA_LABEL}); el total a pagar incluye el IVA.`
+              : "Montos en pesos chilenos (CLP), con IVA."}
             {includesAds &&
               " La inversión en publicidad pagada (pauta en Meta Ads) no está incluida y la paga directamente el cliente."}
           </p>

@@ -6,6 +6,8 @@
  * Reglas:
  *  - Nada de garantías ni reembolsos.
  *  - El chatbot de WhatsApp solo aparece como adicional con costo aparte.
+ *  - Precios netos + IVA: nunca "IVA incluido"; la FAQ de pago explica que se suma IVA.
+ *  - Mantención: sin pauta ni campañas incluidas.
  */
 import { build } from "esbuild";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -30,7 +32,8 @@ await build({
 const content = await import(pathToFileURL(outFile).href);
 rmSync(outDir, { recursive: true, force: true });
 
-const PLAN_KEYS = ["marca-web", "contenido", "crecimiento", null];
+const PLAN_KEYS = ["marca-web", "contenido", "crecimiento", "mantencion", null];
+const VAT_INCLUDED = /iva incluido|incluyen iva|incluye iva/i;
 const FORBIDDEN = /garant|reembols|devoluci/i;
 const CHATBOT = /chatbot/i;
 const ADDON = /adicional|costo aparte/i;
@@ -50,6 +53,20 @@ for (const key of PLAN_KEYS) {
   ];
   for (const text of texts) {
     if (FORBIDDEN.test(text)) failures.push(`[${key}] garantía/reembolso: "${text}"`);
+    if (VAT_INCLUDED.test(text)) failures.push(`[${key}] dice "IVA incluido": "${text}"`);
+  }
+  const pago = content.proposalFaq(key, true, 3).find((f) => /cómo pago/i.test(f.q));
+  if (!pago || !/netos/i.test(pago.a) || !/IVA/.test(pago.a)) {
+    failures.push(`[${key}] la FAQ de pago no explica que los precios son netos + IVA`);
+  }
+  if (key === "mantencion") {
+    for (const text of content.planFeatures(key)) {
+      if (/meta ads|google ads|campañas/i.test(text) && !/^no /i.test(text)) {
+        failures.push(`[mantencion] incluye campañas: "${text}"`);
+      }
+    }
+    if (content.planFeatures(key).length === 0)
+      failures.push("[mantencion] sin lista de qué incluye");
   }
 
   const outsideFaq = [

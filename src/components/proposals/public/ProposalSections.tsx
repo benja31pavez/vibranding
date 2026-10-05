@@ -34,30 +34,41 @@ export interface PriceSummary {
   main: string;
   /** Pago único extra o descuento, si aplica. */
   detail: string | null;
-  /** "Primer pago: $X" cuando hay mensualidad y pago único. */
+  /** Total a pagar con IVA ("Total a pagar: $X con IVA"). */
   firstCharge: string | null;
 }
 
 /**
  * Resumen de precio para el hero y la barra móvil. Solo CLP (`formatMoney`).
- * Pago único extra solo si es > 0; si es negativo se muestra como descuento.
+ * Precio principal en neto ("$129.990 + IVA/mes") y siempre el total a pagar con
+ * IVA. Pago único extra solo si es > 0; si es negativo se muestra como descuento.
  */
 export function priceSummary(totals: ProposalTotals): PriceSummary | null {
   const monthly = Math.max(0, totals.monthly);
   if (monthly > 0) {
     const detail =
       totals.oneTime > 0
-        ? `+ ${formatMoney(totals.oneTime)} pago único`
+        ? `+ ${formatMoney(totals.oneTimeNet)} + IVA pago único`
         : totals.oneTime < 0
-          ? `− ${formatMoney(-totals.oneTime)} descuento`
+          ? `− ${formatMoney(-totals.oneTimeNet)} + IVA de descuento`
           : null;
     const firstCharge =
-      totals.oneTime > 0 ? `Primer pago: ${formatMoney(Math.max(0, totals.firstCharge))}` : null;
-    return { main: `${formatMoney(monthly)}/mes`, detail, firstCharge };
+      totals.oneTime !== 0
+        ? `Total a pagar el primer mes: ${formatMoney(Math.max(0, totals.firstCharge))} con IVA`
+        : `Total a pagar: ${formatMoney(monthly)} al mes con IVA`;
+    return {
+      main: `${formatMoney(Math.max(0, totals.monthlyNet))} + IVA/mes`,
+      detail,
+      firstCharge,
+    };
   }
   const oneTime = Math.max(0, totals.oneTime);
   if (oneTime === 0) return null;
-  return { main: formatMoney(oneTime), detail: "pago único", firstCharge: null };
+  return {
+    main: `${formatMoney(Math.max(0, totals.oneTimeNet))} + IVA`,
+    detail: "pago único",
+    firstCharge: `Total a pagar: ${formatMoney(oneTime)} con IVA`,
+  };
 }
 
 /** Lleva al formulario de aceptación con scroll suave y le pasa el foco. */
@@ -157,7 +168,9 @@ export function ProposalHero({
               {price.firstCharge}
             </p>
           )}
-          <p className="mt-2 text-xs text-muted-foreground">Pesos chilenos (CLP) · IVA incluido</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Pesos chilenos (CLP) · precios netos + IVA (19%)
+          </p>
         </div>
       )}
 
@@ -177,18 +190,20 @@ export function ProposalHero({
   );
 }
 
-const MONTH_SUFFIX = "/mes";
+const IVA_SUFFIX = " + IVA";
 
 /** Monto grande; el sufijo "/mes" va más chico para que el número mande. */
+/** "$129.990 + IVA/mes" → monto grande + sufijo (" + IVA/mes" o " + IVA") en pequeño. */
 function PriceAmount({ value }: { value: string }) {
-  const monthly = value.endsWith(MONTH_SUFFIX);
-  const amount = monthly ? value.slice(0, -MONTH_SUFFIX.length) : value;
+  const suffixAt = value.indexOf(IVA_SUFFIX);
+  const amount = suffixAt >= 0 ? value.slice(0, suffixAt) : value;
+  const suffix = suffixAt >= 0 ? value.slice(suffixAt) : "";
   return (
     <span className="text-4xl font-semibold tracking-tight tabular-nums text-foreground">
       {amount}
-      {monthly && (
+      {suffix && (
         <span className="ml-0.5 text-lg font-medium tracking-normal text-muted-foreground">
-          {MONTH_SUFFIX}
+          {suffix}
         </span>
       )}
     </span>
@@ -334,7 +349,7 @@ export function StickyAcceptBar({ totals }: { totals: ProposalTotals }) {
                 {price.main}
               </p>
               <p className="truncate text-xs text-muted-foreground">
-                {price.detail ?? "IVA incluido"}
+                {price.firstCharge ?? price.detail ?? "Precios netos + IVA"}
               </p>
             </>
           ) : (

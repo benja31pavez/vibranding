@@ -1,3 +1,4 @@
+import type { PublicPlanKey } from "@/lib/pricing/plans";
 export type Lang = "es" | "en";
 
 type LegalBlock =
@@ -13,8 +14,9 @@ export type LegalContent = {
 };
 
 export type PlanItem = {
-  id: "marca-web" | "contenido" | "crecimiento";
+  id: PublicPlanKey;
   name: string;
+  /** Precio NETO en CLP (se suma IVA). Debe coincidir con plans.ts: lo revisa `npm run check:iva`. */
   price: number;
   period: string;
   terms: string;
@@ -40,7 +42,7 @@ const homeEs = {
     titleAccent: "más clientes",
     subtitle:
       "Creamos tu marca, tu contenido y tus campañas en Meta Ads y Google Ads, y las optimizamos mes a mes para que más personas te encuentren y te escriban por WhatsApp.",
-    priceLine: "Planes desde $129.990/mes, IVA incluido.",
+    priceLine: "Planes desde $129.990 + IVA/mes.",
     ctaPrimary: "Cotiza por WhatsApp",
     ctaSecondary: "Ver planes",
     trust: ["Precios claros en pesos", "Factura o boleta"],
@@ -109,7 +111,7 @@ const homeEs = {
   plans: {
     title: "Planes y",
     titleAccent: "precios",
-    subtitle: "Precios en pesos chilenos, IVA incluido. Sin costos escondidos.",
+    subtitle: "Precios netos en pesos chilenos, más IVA. Sin costos escondidos.",
     popular: "Más completo",
     cta: "Lo quiero",
     adSpendNote:
@@ -128,7 +130,7 @@ const homeEs = {
           "Ficha de Google Business optimizada",
         ],
         whatsappMessage:
-          "Hola Vibranding, me interesa el plan Marca + Web ($149.990). Mi negocio es: ",
+          "Hola Vibranding, me interesa el plan Marca + Web ($149.990 + IVA). Mi negocio es: ",
         highlighted: false,
       },
       {
@@ -145,7 +147,7 @@ const homeEs = {
           "Reporte mensual",
         ],
         whatsappMessage:
-          "Hola Vibranding, me interesa el Plan Contenido ($129.990/mes). Mi negocio es: ",
+          "Hola Vibranding, me interesa el Plan Contenido ($129.990 + IVA/mes). Mi negocio es: ",
         highlighted: false,
       },
       {
@@ -163,7 +165,7 @@ const homeEs = {
           "Reporte mensual de resultados",
         ],
         whatsappMessage:
-          "Hola Vibranding, me interesa el Plan Crecimiento ($249.990/mes). Mi negocio es: ",
+          "Hola Vibranding, me interesa el Plan Crecimiento ($249.990 + IVA/mes). Mi negocio es: ",
         highlighted: true,
       },
     ] as PlanItem[],
@@ -296,7 +298,7 @@ const es: Dict = {
   legal: { back: "Volver al inicio", updatedLabel: "Última actualización:" },
   faq: {
     title: "Preguntas Frecuentes",
-    updated: "4 de octubre de 2026",
+    updated: "5 de octubre de 2026",
     items: [
       {
         q: "¿Hay permanencia mínima?",
@@ -316,7 +318,7 @@ const es: Dict = {
       },
       {
         q: "¿Cómo se paga?",
-        a: "Por transferencia bancaria o link de pago, en pesos chilenos y con IVA incluido. Emitimos factura o boleta de VIBRANDING SpA (RUT 78.505.344-3). Los planes mensuales se pagan por mes adelantado.",
+        a: "Por transferencia bancaria o link de pago, en pesos chilenos. Los precios publicados son netos y se les suma IVA (19%). Emitimos factura o boleta de VIBRANDING SpA (RUT 78.505.344-3). Los planes mensuales se pagan por mes adelantado.",
       },
       {
         q: "¿Usan inteligencia artificial?",
@@ -326,7 +328,7 @@ const es: Dict = {
   },
   terms: {
     title: "Términos de Servicio",
-    updated: "4 de octubre de 2026",
+    updated: "5 de octubre de 2026",
     intro:
       "Estos términos regulan los servicios que presta VIBRANDING SpA, RUT 78.505.344-3, con domicilio en Santiago de Chile (en adelante, “Vibranding”). Al contratar nuestros servicios o usar esta plataforma aceptas lo siguiente.",
     blocks: [
@@ -338,7 +340,7 @@ const es: Dict = {
       { type: "h2", text: "2. Precios y pagos" },
       {
         type: "p",
-        html: "Los precios se expresan en pesos chilenos (CLP) e incluyen IVA. El pago se realiza por transferencia bancaria o link de pago, y VIBRANDING SpA emite la factura o boleta correspondiente. Los planes mensuales se pagan por mes adelantado. La mora superior a 15 días puede causar la suspensión del servicio.",
+        html: "Los precios se expresan en pesos chilenos (CLP) y son netos: a cada precio se le suma el IVA (19%). El pago se realiza por transferencia bancaria o link de pago, y VIBRANDING SpA emite la factura o boleta correspondiente. Los planes mensuales se pagan por mes adelantado. La mora superior a 15 días puede causar la suspensión del servicio.",
       },
       { type: "h2", text: "3. Inversión publicitaria" },
       {
@@ -524,7 +526,7 @@ const es: Dict = {
     home: {
       title: "Agencia de marketing digital para pymes en Chile | Vibranding",
       description:
-        "Branding, contenido, Meta Ads y Google Ads para pymes chilenas, con optimización continua. Planes desde $129.990/mes IVA incluido. Cotiza por WhatsApp.",
+        "Branding, contenido, Meta Ads y Google Ads para pymes chilenas, con optimización continua. Planes desde $129.990 + IVA/mes. Cotiza por WhatsApp.",
     },
     faq: {
       title: "Preguntas Frecuentes | Vibranding",
@@ -597,7 +599,7 @@ const en: Dict = {
       },
       {
         q: "How does payment work?",
-        a: "We work with a deposit at the start and the balance on delivery or monthly depending on the plan. We accept bank transfer or payment link, in Chilean pesos (CLP), with an invoice from VIBRANDING SpA.",
+        a: "We work with a deposit at the start and the balance on delivery or monthly depending on the plan. We accept bank transfer or payment link, in Chilean pesos (CLP), with an invoice from VIBRANDING SpA. Prices are net: 19% VAT (IVA) is added.",
       },
       {
         q: "Do we sign a contract?",

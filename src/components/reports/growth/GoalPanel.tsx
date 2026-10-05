@@ -33,8 +33,13 @@ const MONTH_LONG = new Intl.DateTimeFormat("es-CL", {
 const fmtMonth = (ym: string, f: Intl.DateTimeFormat = MONTH_SHORT) =>
   f.format(new Date(`${ym}-15T12:00:00Z`));
 
-/** Ticket de respaldo cuando aún no hay clientes recurrentes: el plan mensual más barato. */
-const MONTHLY_PRICES = PLANS.filter((p) => p.billing === "monthly").map((p) => p.price);
+/**
+ * Ticket de respaldo cuando aún no hay clientes recurrentes: el plan mensual más
+ * barato que se ofrece a clientes nuevos, en NETO (el MRR se informa neto).
+ */
+const MONTHLY_PRICES = PLANS.filter((p) => p.billing === "monthly" && !p.returningClientsOnly).map(
+  (p) => p.netPrice,
+);
 const FALLBACK_TICKET = MONTHLY_PRICES.length > 0 ? Math.min(...MONTHLY_PRICES) : 0;
 
 export function GoalPanel() {
@@ -55,7 +60,7 @@ export function GoalPanel() {
     <Panel
       icon={TrendingUp}
       title="MRR vs meta"
-      description={`Meta: ${formatMoney(META_MRR_CLP)} al mes antes de fin de ${fmtMonth(META_DEADLINE_MONTH, MONTH_LONG)}.`}
+      description={`Meta: ${formatMoney(META_MRR_CLP)} netos (sin IVA) al mes antes de fin de ${fmtMonth(META_DEADLINE_MONTH, MONTH_LONG)}.`}
     >
       {mrr.isError ? (
         <ErrorState
@@ -68,7 +73,7 @@ export function GoalPanel() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <StatCard
               icon={TrendingUp}
-              label="MRR actual"
+              label="MRR actual (neto)"
               loading={loading}
               value={formatMoney(summary?.mrr ?? 0)}
               hint={

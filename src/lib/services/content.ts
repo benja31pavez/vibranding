@@ -5,14 +5,14 @@
  * Reglas del contenido: no prometer resultados, no inventar cifras, clientes
  * ni testimonios. Los precios salen de `src/lib/pricing/plans.ts`.
  */
-import { findPlan, type PlanKey } from "@/lib/pricing/plans";
+import { findPlan, type PublicPlanKey } from "@/lib/pricing/plans";
 import { formatClp } from "@/lib/site";
 
-/** Precio de un plan formateado (`${MARCA_WEB_PRICE}`), siempre leído de plans.ts. */
-function planPrice(key: PlanKey): string {
+/** Precio NETO de un plan formateado con "+ IVA" (`${MARCA_WEB_PRICE}` = "$149.990 + IVA"), leído de plans.ts. */
+function planPrice(key: PublicPlanKey): string {
   const plan = findPlan(key);
   if (!plan) throw new Error(`Plan desconocido en content.ts: ${key}`);
-  return formatClp(plan.price);
+  return `${formatClp(plan.netPrice)} + IVA`;
 }
 
 const MARCA_WEB_PRICE = planPrice("marca-web");
@@ -38,7 +38,7 @@ export interface ServiceFaq {
 
 /** Precio de la página: planes fijos de plans.ts o servicio a cotizar. */
 export type ServicePricing =
-  | { readonly kind: "plans"; readonly planKeys: readonly PlanKey[]; readonly note: string }
+  | { readonly kind: "plans"; readonly planKeys: readonly PublicPlanKey[]; readonly note: string }
   | { readonly kind: "quote"; readonly label: string; readonly note: string };
 
 export interface ServiceContent {
@@ -69,12 +69,12 @@ export interface ServiceContent {
   readonly faqs: readonly ServiceFaq[];
   readonly whatsappMessage: string;
   /** Plan sugerido al ir a /diagnostico (precarga el formulario). */
-  readonly diagnosticoPlan?: PlanKey;
+  readonly diagnosticoPlan?: PublicPlanKey;
   readonly related: readonly ServiceSlug[];
 }
 
 /** Resumen de cada plan para las tarjetas de precio (el precio sale de plans.ts). */
-export const PLAN_SUMMARY: Readonly<Record<PlanKey, string>> = {
+export const PLAN_SUMMARY: Readonly<Record<PublicPlanKey, string>> = {
   "marca-web":
     "Kit de marca básico, landing con WhatsApp y formulario, y ficha de Google Business optimizada.",
   contenido:
@@ -92,7 +92,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     path: "/pagina-web-para-pymes",
     navLabel: "Página web para pymes",
     title: `Página web para pymes en Chile desde ${MARCA_WEB_PRICE} | Vibranding`,
-    description: `Página web para tu pyme con marca, botón de WhatsApp, formulario y ficha de Google optimizada. ${MARCA_WEB_PRICE} pago único, IVA incluido. Santiago y regiones.`,
+    description: `Página web para tu pyme con marca, botón de WhatsApp, formulario y ficha de Google optimizada. ${MARCA_WEB_PRICE}, pago único. Santiago y regiones.`,
     serviceName: "Página web para pymes",
     serviceType: "Diseño de página web",
     eyebrow: "Marca + Web · pago único",
@@ -152,7 +152,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     faqs: [
       {
         q: "¿Cuánto cuesta una página web para una pyme en Chile?",
-        a: `Depende del alcance. Nuestro plan Marca + Web cuesta ${MARCA_WEB_PRICE} pago único, IVA incluido, e incluye kit de marca básico, landing con WhatsApp y formulario, y ficha de Google Business optimizada. Si necesitas más páginas o funciones, te cotizamos aparte antes de empezar.`,
+        a: `Depende del alcance. Nuestro plan Marca + Web cuesta ${MARCA_WEB_PRICE} (pago único) e incluye kit de marca básico, landing con WhatsApp y formulario, y ficha de Google Business optimizada. Si necesitas más páginas o funciones, te cotizamos aparte antes de empezar.`,
       },
       {
         q: "¿En cuánto tiempo está lista?",
@@ -182,7 +182,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     path: "/agencia-marketing-digital-santiago",
     navLabel: "Agencia de marketing digital en Santiago",
     title: "Agencia de marketing digital en Santiago para pymes | Vibranding",
-    description: `Agencia de marketing digital en Santiago para pymes: marca, contenido para redes, Meta Ads y Google Ads. Planes desde ${CONTENIDO_PRICE}/mes con IVA, precios claros.`,
+    description: `Agencia de marketing digital en Santiago para pymes: marca, contenido para redes, Meta Ads y Google Ads. Planes desde ${CONTENIDO_PRICE}/mes, precios claros.`,
     serviceName: "Agencia de marketing digital para pymes",
     serviceType: "Marketing digital",
     eyebrow: "Agencia en Santiago · pymes de todo Chile",
@@ -203,7 +203,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
       title: "Planes claros y una persona a cargo",
       body: "Trabajamos con tres planes de precio fijo, con alcance por escrito y un reporte mensual que explica qué hicimos y qué vamos a ajustar. Usamos herramientas de IA para producir más rápido, pero cada pieza la revisa una persona antes de publicarse.",
       points: [
-        "Precios en pesos chilenos, IVA incluido, sin costos escondidos",
+        "Precios netos en pesos chilenos + IVA, sin costos escondidos",
         "Contenido pensado para tu rubro y tu zona de Santiago o región",
         "Tú apruebas lo que se publica",
       ],
@@ -242,7 +242,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     faqs: [
       {
         q: "¿Cuánto cobra una agencia de marketing digital en Santiago?",
-        a: `Varía mucho entre agencias. En Vibranding los planes mensuales parten en ${CONTENIDO_PRICE}/mes (Plan Contenido) y el Plan Crecimiento, con anuncios, cuesta ${CRECIMIENTO_PRICE}/mes, ambos con IVA incluido y mínimo 3 meses. Marca + Web es un pago único de ${MARCA_WEB_PRICE}.`,
+        a: `Varía mucho entre agencias. En Vibranding los planes mensuales parten en ${CONTENIDO_PRICE}/mes (Plan Contenido) y el Plan Crecimiento, con anuncios, cuesta ${CRECIMIENTO_PRICE}/mes, ambos con mínimo 3 meses. Marca + Web es un pago único de ${MARCA_WEB_PRICE}.`,
       },
       {
         q: "¿Atienden solo en Santiago?",
@@ -271,7 +271,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     path: "/publicidad-meta-ads",
     navLabel: "Publicidad en Instagram y Facebook",
     title: "Publicidad en Instagram y Facebook (Meta Ads) para pymes | Vibranding",
-    description: `Campañas de Meta Ads en Instagram y Facebook para pymes chilenas, con contenido y optimización mensual. Plan Crecimiento ${CRECIMIENTO_PRICE}/mes con IVA, pauta aparte.`,
+    description: `Campañas de Meta Ads en Instagram y Facebook para pymes chilenas, con contenido y optimización mensual. Plan Crecimiento ${CRECIMIENTO_PRICE}/mes, pauta aparte.`,
     serviceName: "Publicidad en Instagram y Facebook (Meta Ads)",
     serviceType: "Gestión de campañas de Meta Ads",
     eyebrow: "Meta Ads · Instagram y Facebook",
@@ -327,7 +327,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     faqs: [
       {
         q: "¿Cuánto cuesta hacer publicidad en Instagram?",
-        a: `Hay dos costos: la gestión y la pauta. La gestión está dentro del Plan Crecimiento (${CRECIMIENTO_PRICE}/mes con IVA, que también incluye contenido y Google Ads). La pauta la pagas directo a Meta; sugerimos partir desde $150.000 al mes.`,
+        a: `Hay dos costos: la gestión y la pauta. La gestión está dentro del Plan Crecimiento (${CRECIMIENTO_PRICE}/mes, que también incluye contenido y Google Ads). La pauta la pagas directo a Meta; sugerimos partir desde $150.000 al mes.`,
       },
       {
         q: "¿Cuánto debería invertir en pauta al mes?",
@@ -357,7 +357,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     path: "/google-ads-pymes",
     navLabel: "Google Ads para pymes",
     title: "Google Ads para pymes en Chile | Vibranding",
-    description: `Campañas de Google Ads para pymes chilenas: aparece cuando te buscan en tu comuna. Plan Crecimiento ${CRECIMIENTO_PRICE}/mes con IVA, con Meta Ads y contenido. Pauta aparte.`,
+    description: `Campañas de Google Ads para pymes chilenas: aparece cuando te buscan en tu comuna. Plan Crecimiento ${CRECIMIENTO_PRICE}/mes, con Meta Ads y contenido. Pauta aparte.`,
     serviceName: "Google Ads para pymes",
     serviceType: "Gestión de campañas de Google Ads",
     eyebrow: "Google Ads · búsqueda local",
@@ -413,7 +413,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     faqs: [
       {
         q: "¿Cuánto cuesta Google Ads para una pyme en Chile?",
-        a: `Google cobra por clic y no tiene un mínimo fijo; tú defines el presupuesto. La gestión está dentro del Plan Crecimiento (${CRECIMIENTO_PRICE}/mes con IVA). Para la pauta sugerimos partir desde $150.000 al mes entre Google y Meta, y ajustarla con los reportes.`,
+        a: `Google cobra por clic y no tiene un mínimo fijo; tú defines el presupuesto. La gestión está dentro del Plan Crecimiento (${CRECIMIENTO_PRICE}/mes). Para la pauta sugerimos partir desde $150.000 al mes entre Google y Meta, y ajustarla con los reportes.`,
       },
       {
         q: "¿Es mejor Google Ads o Instagram?",

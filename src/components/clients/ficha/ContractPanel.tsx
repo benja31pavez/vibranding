@@ -57,7 +57,7 @@ export function ContractPanel({ clientId }: { clientId: string }) {
           </div>
           {contract.total_monthly > 0 && (
             <div className="text-muted-foreground">
-              Mensual:{" "}
+              Mensual (con IVA):{" "}
               <Money
                 amount={contract.total_monthly}
                 currency={contract.currency}
@@ -67,7 +67,7 @@ export function ContractPanel({ clientId }: { clientId: string }) {
           )}
           {contract.total_one_time > 0 && (
             <div className="text-muted-foreground">
-              Pago único:{" "}
+              Pago único (con IVA):{" "}
               <Money
                 amount={contract.total_one_time}
                 currency={contract.currency}

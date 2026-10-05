@@ -8,6 +8,13 @@
  *  - `buildProposalIntro`: párrafo de presentación por plantillas.
  *  - `shouldAdvanceToProposal`: si el prospecto debe pasar a "propuesta".
  *
+ * Plan Mantención (`returningClientsOnly`): nunca se recomienda solo. Solo se
+ * respeta si el equipo lo eligió en la ficha Y hay señal de que el prospecto ya
+ * fue cliente (`wasClient`). Sin esa señal, nunca.
+ *
+ * Presupuesto: se compara con el precio NETO del plan (lo que la pyme ve como
+ * precio de lista "$129.990 + IVA"; el IVA lo recupera como crédito fiscal).
+ *
  * Revisión: `npm run check:recommend`.
  */
 import { BUDGETS, GOALS, PLAN_INTERESTS } from "@/lib/leads/diagnostico.schema";
@@ -101,15 +108,25 @@ export interface RecommendInput {
   /** `prospects.producto_sugerido` (lo elige el equipo a mano: manda sobre todo). */
   productoSugerido: string | null | undefined;
   signals: DiagnosticoSignals;
+  /** true solo si hay señal de que ya fue cliente (p. ej. el prospecto tiene client_id). */
+  wasClient?: boolean;
+}
+
+/** Planes que se pueden recomendar a cualquier prospecto (nunca los de ex clientes). */
+const OPEN_PLANS: readonly Plan[] = PLANS.filter((p) => !p.returningClientsOnly);
+
+function recommendable(plan: Plan | null, wasClient: boolean): Plan | null {
+  if (!plan) return null;
+  return plan.returningClientsOnly && !wasClient ? null : plan;
 }
 
 /** Si el plan mensual supera el tope, el mensual más caro que sí cabe (o el de respaldo). */
 function fitBudget(plan: Plan, budget: BudgetValue | null): { plan: Plan; adjusted: boolean } {
   const cap = budget ? BUDGET_MONTHLY_CAP_CLP[budget] : undefined;
-  if (cap === undefined || plan.billing !== "monthly" || plan.price <= cap)
+  if (cap === undefined || plan.billing !== "monthly" || plan.netPrice <= cap)
     return { plan, adjusted: false };
-  const fitting = PLANS.filter((p) => p.billing === "monthly" && p.price <= cap).sort(
-    (a, b) => b.price - a.price,
+  const fitting = OPEN_PLANS.filter((p) => p.billing === "monthly" && p.netPrice <= cap).sort(
+    (a, b) => b.netPrice - a.netPrice,
   );
   const fallback = fitting[0] ?? findPlan(BUDGET_FALLBACK_PLAN);
   return fallback ? { plan: fallback, adjusted: true } : { plan, adjusted: false };
@@ -123,8 +140,12 @@ const SOURCE_REASON: Readonly<Record<RecommendationSource, string>> = {
 };
 
 /** Regla: ficha > plan de interés > objetivo > sin plan. Las dos del diagnóstico respetan el presupuesto. */
-export function recommendPlan({ productoSugerido, signals }: RecommendInput): PlanRecommendation {
-  const manual = findPlan(productoSugerido);
+export function recommendPlan({
+  productoSugerido,
+  signals,
+  wasClient = false,
+}: RecommendInput): PlanRecommendation {
+  const manual = recommendable(findPlan(productoSugerido), wasClient);
   if (manual)
     return {
       planKey: manual.key,
@@ -138,7 +159,7 @@ export function recommendPlan({ productoSugerido, signals }: RecommendInput): Pl
     ["objetivo", signals.objetivo ? GOAL_TO_PLAN[signals.objetivo] : null],
   ];
   for (const [source, key] of fromDiagnostico) {
-    const plan = findPlan(key);
+    const plan = recommendable(findPlan(key), false);
     if (!plan) continue;
     const fitted = fitBudget(plan, signals.presupuesto);
     const reason = fitted.adjusted

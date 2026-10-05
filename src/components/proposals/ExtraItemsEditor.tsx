@@ -9,7 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MAX_ITEM_AMOUNT, MAX_ITEMS, type ProposalItem } from "@/lib/proposals/model";
+import { netOfTotal, withIva } from "@/lib/pricing/iva";
+import { MAX_ITEM_AMOUNT, MAX_ITEMS, itemNet, type ProposalItem } from "@/lib/proposals/model";
 
 /** Fila del editor: `uid` estable para que React no mezcle el estado al quitar filas. */
 export interface ExtraRow {
@@ -31,15 +32,21 @@ export function toExtraRow(item: ProposalItem): ExtraRow {
 
 const EMPTY_EXTRA: ProposalItem = { type: "extra", label: "", amount: 0, billing: "one_time" };
 
+/** Tope del neto para que el total con IVA no pase de MAX_ITEM_AMOUNT. */
+const MAX_NET_AMOUNT = netOfTotal(MAX_ITEM_AMOUNT);
+
 /** "1.234.567" o "-50000" → entero acotado (CLP no tiene decimales). */
 function parseAmount(raw: string): number {
   const negative = raw.trim().startsWith("-");
   const digits = raw.replace(/[^0-9]/g, "");
-  const value = Math.min(Number(digits || "0"), MAX_ITEM_AMOUNT);
+  const value = Math.min(Number(digits || "0"), MAX_NET_AMOUNT);
   return negative ? -value : value;
 }
 
-/** Ítems adicionales (o descuentos con monto negativo). Montos con IVA incluido. */
+/**
+ * Ítems adicionales (o descuentos con monto negativo). Se escriben en NETO; cada
+ * ítem guarda su total con IVA (`withIva`), que es lo que se cobra.
+ */
 export function ExtraItemsEditor({ items, onChange, disabled }: Props) {
   const update = (idx: number, patch: Partial<ProposalItem>) =>
     onChange(
@@ -69,9 +76,9 @@ export function ExtraItemsEditor({ items, onChange, disabled }: Props) {
             disabled={disabled}
           />
           <AmountInput
-            label={`Monto con IVA del ítem ${idx + 1}`}
-            value={item.amount}
-            onChange={(amount) => update(idx, { amount })}
+            label={`Monto neto (sin IVA) del ítem ${idx + 1}`}
+            value={itemNet(item)}
+            onChange={(net) => update(idx, { amount: withIva(net) })}
             disabled={disabled}
           />
           <Select
@@ -134,7 +141,7 @@ function AmountInput({
       aria-label={label}
       inputMode="text"
       className="tabular-nums"
-      placeholder="$ con IVA"
+      placeholder="$ neto + IVA"
       value={text}
       onChange={(e) => {
         setText(e.target.value);

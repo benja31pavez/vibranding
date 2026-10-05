@@ -138,6 +138,7 @@ const PLAN_STAGE_TITLES: Record<string, readonly string[]> = {
   "marca-web": ["Branding", "Optimización", "Landing Page"],
   contenido: ["Optimización", "Contenido"],
   crecimiento: ["Optimización", "Contenido", "Ads", "Landing Page"],
+  mantencion: ["Contenido"],
 };
 
 function suggestedStages(planKey: string | null, hasWhatsapp: boolean) {

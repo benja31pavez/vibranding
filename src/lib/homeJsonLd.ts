@@ -35,7 +35,8 @@ export function buildHomeJsonLd(): string {
 
   const plans = es.home.plans.items;
   const prices = plans.map((p) => p.price);
-  const priceRange = `${formatClp(Math.min(...prices))} - ${formatClp(Math.max(...prices))} CLP`;
+  // Precios netos (plans.ts): el IVA (19 %) se suma aparte.
+  const priceRange = `${formatClp(Math.min(...prices))} - ${formatClp(Math.max(...prices))} CLP + IVA`;
 
   const offers = plans.map((plan) => {
     const monthly = plan.period === "al mes";
@@ -48,7 +49,9 @@ export function buildHomeJsonLd(): string {
       priceCurrency: "CLP",
       priceSpecification: {
         "@type": monthly ? "UnitPriceSpecification" : "PriceSpecification",
-        valueAddedTaxIncluded: true,
+        price: plan.price,
+        priceCurrency: "CLP",
+        valueAddedTaxIncluded: false,
         ...(monthly ? { unitCode: "MON" } : {}),
       },
       areaServed: { "@type": "Country", name: "Chile" },

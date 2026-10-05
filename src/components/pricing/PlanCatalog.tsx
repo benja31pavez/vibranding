@@ -1,25 +1,28 @@
-import { Rocket, Camera, MonitorSmartphone } from "lucide-react";
-import { PLANS, formatMoney, splitVat, type Plan, type PlanKey } from "@/lib/pricing/plans";
+import { Rocket, Camera, MonitorSmartphone, RefreshCw } from "lucide-react";
+import { PLANS, formatMoney, type Plan, type PlanKey } from "@/lib/pricing/plans";
+import { IVA_LABEL, breakdownFromNet } from "@/lib/pricing/iva";
 
 const PLAN_ICONS: Record<PlanKey, React.ComponentType<{ className?: string }>> = {
   "marca-web": MonitorSmartphone,
   contenido: Camera,
   crecimiento: Rocket,
+  mantencion: RefreshCw,
 };
 
 const PLAN_TONES: Record<PlanKey, string> = {
   "marca-web": "var(--brand-1)",
   contenido: "var(--brand-2)",
   crecimiento: "var(--brand-3)",
+  mantencion: "var(--brand-2)",
 };
 
-/** Desglose neto + IVA 19 % de un monto con IVA incluido. */
-export function VatLines({ gross, label }: { gross: number; label?: string }) {
-  const { net, vat } = splitVat(gross);
+/** Desglose de un precio NETO: IVA 19 % y total a pagar. */
+export function VatLines({ net, label }: { net: number; label?: string }) {
+  const { iva, total } = breakdownFromNet(net);
   return (
     <div className="text-[11px] text-muted-foreground tabular-nums leading-snug">
       {label && <span className="font-medium">{label}: </span>}
-      Neto {formatMoney(net)} · IVA 19% {formatMoney(vat)}
+      IVA {IVA_LABEL} {formatMoney(iva)} · Total a pagar {formatMoney(total)}
     </div>
   );
 }
@@ -48,17 +51,18 @@ function PlanCard({ plan }: { plan: Plan }) {
       </div>
       <div>
         <div className="text-2xl font-bold tabular-nums">
-          {formatMoney(plan.price)}
+          {formatMoney(plan.netPrice)}
           <span className="text-sm font-medium text-muted-foreground">
-            {plan.billing === "monthly" ? "/mes" : " pago único"}
+            {plan.billing === "monthly" ? " + IVA/mes" : " + IVA (pago único)"}
           </span>
         </div>
-        <VatLines gross={plan.price} />
+        <VatLines net={plan.netPrice} />
       </div>
-      {(plan.minMonths || plan.note) && (
+      {(plan.minMonths || plan.note || !plan.isPublic) && (
         <ul className="text-[11px] text-muted-foreground space-y-0.5 border-t pt-2">
           {plan.minMonths && <li>Permanencia mínima: {plan.minMonths} meses</li>}
           {plan.note && <li>{plan.note}</li>}
+          {!plan.isPublic && <li>No se muestra en el sitio público.</li>}
         </ul>
       )}
     </div>
@@ -67,7 +71,7 @@ function PlanCard({ plan }: { plan: Plan }) {
 
 export function PlanCatalog() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
       {PLANS.map((plan) => (
         <PlanCard key={plan.key} plan={plan} />
       ))}

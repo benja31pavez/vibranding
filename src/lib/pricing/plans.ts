@@ -7,15 +7,17 @@
  * Los servicios adicionales (chatbot, landing extra) sí usan `service_pricing`
  * y tienen precio editable.
  *
- * Todos los precios están en CLP con IVA incluido.
+ * Los precios son NETOS en CLP: el cliente paga neto + IVA 19 % (ver
+ * `./iva.ts`, único lugar donde se calcula el IVA). Etiqueta: "$129.990 + IVA/mes".
  */
+import { withIva } from "./iva";
 
 export const DEFAULT_CURRENCY = "CLP";
-export const VAT_RATE = 0.19;
 
 /**
- * Meta mensual de MRR de la agencia (CLP, IVA incluido). La usa la pantalla
- * "Hoy" para la barra de avance. Cambia este valor cuando se redefina la meta.
+ * Meta mensual de MRR de la agencia (CLP NETO, sin IVA; el MRR se informa neto).
+ * La usa la pantalla "Hoy" para la barra de avance. Cambia este valor cuando se
+ * redefina la meta.
  */
 export const META_MRR_CLP = 1_000_000;
 
@@ -29,66 +31,102 @@ export const AGENCY_DEFAULTS = {
   governing_law: "las leyes de la República de Chile",
 } as const;
 
-export type PlanKey = "marca-web" | "contenido" | "crecimiento";
+/** Planes que se publican en el sitio (home, servicios, llms.txt, JSON-LD). */
+export type PublicPlanKey = "marca-web" | "contenido" | "crecimiento";
+/** Mantención: solo ex clientes (propuestas, contratos, cobros, Plan del mes). */
+export type PlanKey = PublicPlanKey | "mantencion";
 export type Billing = "one_time" | "monthly";
 
 export interface Plan {
   key: PlanKey;
   label: string;
-  /** Precio bruto (IVA incluido) en CLP. */
-  price: number;
+  /** Precio NETO en CLP (sin IVA). El cliente paga `withIva(netPrice)`. */
+  netPrice: number;
   billing: Billing;
   /** Meses mínimos de permanencia (solo planes mensuales). */
   minMonths: number | null;
   description: string;
   note: string | null;
+  /**
+   * true si se publica en la home, páginas de servicio, llms.txt y JSON-LD.
+   * Mantención es solo para clientes que ya trabajaron con nosotros: se ofrece en
+   * propuestas, contratos y cobros, pero nunca en las páginas públicas.
+   */
+  isPublic: boolean;
+  /** Solo para ex clientes: la recomendación automática nunca la propone a prospectos nuevos. */
+  returningClientsOnly: boolean;
 }
 
 export const PLANS: readonly Plan[] = [
   {
     key: "marca-web",
     label: "Marca + Web",
-    price: 149_990,
+    netPrice: 149_990,
     billing: "one_time",
     minMonths: null,
     description: "Identidad de marca y sitio web listo para recibir clientes.",
     note: null,
+    isPublic: true,
+    returningClientsOnly: false,
   },
   {
     key: "contenido",
     label: "Plan Contenido",
-    price: 129_990,
+    netPrice: 129_990,
     billing: "monthly",
     minMonths: 3,
     description: "Calendario, diseño y publicación de contenido para Instagram.",
     note: null,
+    isPublic: true,
+    returningClientsOnly: false,
   },
   {
     key: "crecimiento",
     label: "Plan Crecimiento",
-    price: 249_990,
+    netPrice: 249_990,
     billing: "monthly",
     minMonths: 3,
     description: "Contenido + campañas en Meta Ads + seguimiento de leads.",
     note: "La inversión en pauta (Meta Ads) la paga directamente el cliente.",
+    isPublic: true,
+    returningClientsOnly: false,
+  },
+  {
+    key: "mantencion",
+    label: "Plan Mantención",
+    netPrice: 69_990,
+    billing: "monthly",
+    minMonths: 3,
+    description:
+      "8 piezas al mes con calendario, aprobación en el portal y reporte mensual. Sin pauta ni campañas.",
+    note: "Solo para clientes que ya trabajaron con Vibranding.",
+    isPublic: false,
+    returningClientsOnly: true,
   },
 ];
+
+export type PublicPlan = Plan & { key: PublicPlanKey };
+
+export function isPublicPlan(plan: Plan | null | undefined): plan is PublicPlan {
+  return Boolean(plan?.isPublic);
+}
+
+/** Planes que se muestran en las páginas públicas (home, servicios, llms.txt, JSON-LD). */
+export const PUBLIC_PLANS: readonly PublicPlan[] = PLANS.filter(isPublicPlan);
+
+export const PLAN_KEYS = PLANS.map((p) => p.key) as [PlanKey, ...PlanKey[]];
+
+export function isPlanKey(value: unknown): value is PlanKey {
+  return typeof value === "string" && (PLAN_KEYS as readonly string[]).includes(value);
+}
 
 export function findPlan(key: string | null | undefined): Plan | null {
   return PLANS.find((p) => p.key === key) ?? null;
 }
 
-export interface VatBreakdown {
-  gross: number;
-  net: number;
-  vat: number;
-}
-
-/** Desglosa un monto con IVA incluido: neto = round(bruto / 1,19). */
-export function splitVat(gross: number): VatBreakdown {
-  const safeGross = Number.isFinite(gross) ? Math.round(gross) : 0;
-  const net = Math.round(safeGross / (1 + VAT_RATE));
-  return { gross: safeGross, net, vat: safeGross - net };
+/** Lo que paga el cliente por el plan (neto + IVA), por mes o pago único. */
+export function planTotal(plan: Pick<Plan, "netPrice">): number {
+  return withIva(plan.netPrice);
 }
 
 const CLP_FORMATTER = new Intl.NumberFormat("es-CL", {
@@ -130,10 +168,17 @@ export function legacyCurrencyLabel(currency: string | null | undefined): string
   return `Moneda antigua (${normalizeCurrency(currency)})`;
 }
 
+/** "$129.990 + IVA/mes" o "$149.990 + IVA (pago único)". */
+export function planNetLabel(plan: Pick<Plan, "netPrice" | "billing">): string {
+  const base = formatMoney(plan.netPrice);
+  return plan.billing === "one_time" ? `${base} + IVA (pago único)` : `${base} + IVA/mes`;
+}
+
+/** "$129.990 + IVA/mes · mínimo 3 meses". */
 export function planPriceLabel(plan: Plan): string {
-  const base = formatMoney(plan.price);
-  if (plan.billing === "one_time") return `${base} pago único`;
-  return plan.minMonths ? `${base}/mes · mínimo ${plan.minMonths} meses` : `${base}/mes`;
+  const base = planNetLabel(plan);
+  if (plan.billing === "one_time") return base;
+  return plan.minMonths ? `${base} · mínimo ${plan.minMonths} meses` : base;
 }
 
 /**

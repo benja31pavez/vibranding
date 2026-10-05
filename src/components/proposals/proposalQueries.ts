@@ -3,7 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { invalidateApprovalQueue } from "@/hooks/use-approval-queue";
+import { toast } from "sonner";
 import { publicProposalPath, type ProposalItem } from "@/lib/proposals/model";
+import {
+  PLAN_KEY_PENDING_MIGRATION_MSG,
+  isPlanKeyRejected,
+  needsNewPlanMigration,
+} from "@/lib/pricing/planKeyDb";
 import {
   PRE_PROPOSAL_STATES,
   PROPOSAL_STAGE,
@@ -60,7 +66,11 @@ function refreshAfterWrite(queryClient: QueryClient, userKey: string) {
   ]);
 }
 
+/** La BD rechazó plan_key (CHECK sin la migración de Mantención). */
+class PlanKeyRejectedError extends Error {}
+
 function writeError(error: { code?: string; message: string }): Error {
+  if (isPlanKeyRejected(error)) return new PlanKeyRejectedError(error.message);
   if (error.code === "42501" || /row-level security|permission denied/i.test(error.message)) {
     return new Error("Tu rol no permite modificar propuestas.");
   }
@@ -140,6 +150,8 @@ export interface ProspectContext {
   notas: string | null;
   productoSugerido: string | null;
   estado: string;
+  /** Ya fue cliente (el prospecto quedó vinculado a un cliente). Habilita recomendar Mantención. */
+  wasClient: boolean;
 }
 
 export interface Recipient {
@@ -171,7 +183,9 @@ export function useRecipient(target: { clientId?: string | null; prospectId?: st
       }
       const { data, error } = await supabase
         .from("prospects")
-        .select("id,org_id,nombre,email_publico,rubro,comuna,notas,producto_sugerido,estado")
+        .select(
+          "id,org_id,nombre,email_publico,rubro,comuna,notas,producto_sugerido,estado,client_id",
+        )
         .eq("id", id)
         .maybeSingle();
       if (error) throw new Error(error.message);
@@ -183,6 +197,7 @@ export function useRecipient(target: { clientId?: string | null; prospectId?: st
         notas: data.notas,
         productoSugerido: data.producto_sugerido,
         estado: data.estado,
+        wasClient: Boolean(data.client_id),
       };
       return { kind, id: data.id, orgId: data.org_id, name: data.nombre, prospect };
     },
@@ -253,6 +268,44 @@ async function currentProspectEstado(prospectId: string): Promise<string> {
   return data.estado;
 }
 
+interface SaveInput {
+  recipient: Recipient;
+  draft: ProposalDraft;
+  existing?: ProposalRow;
+}
+
+/** Inserta o actualiza la propuesta (sin reintentos). */
+async function saveProposalRows(input: SaveInput, userId: string | null): Promise<SaveResult> {
+  const { recipient, draft, existing } = input;
+  if (existing) {
+    const { data, error } = await supabase
+      .from("proposals")
+      .update(draftColumns(draft, existing) as TablesUpdate<"proposals">)
+      .eq("id", existing.id)
+      .neq("status", "aceptada")
+      .select("id")
+      .maybeSingle();
+    if (error) throw writeError(error);
+    if (!data) throw new Error("La propuesta ya fue aceptada y no se puede editar.");
+    return { id: data.id, prospectStage: "unchanged" };
+  }
+  const freshEstado =
+    recipient.kind === "prospect" ? await currentProspectEstado(recipient.id) : null;
+  const { data, error } = await supabase
+    .from("proposals")
+    .insert({
+      ...draftColumns(draft),
+      org_id: recipient.orgId,
+      client_id: recipient.kind === "client" ? recipient.id : null,
+      prospect_id: recipient.kind === "prospect" ? recipient.id : null,
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+  if (error) throw writeError(error);
+  return { id: data.id, prospectStage: await advanceProspectStage(recipient, freshEstado) };
+}
+
 export function useSaveProposal() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -263,34 +316,20 @@ export function useSaveProposal() {
       draft: ProposalDraft;
       existing?: ProposalRow;
     }): Promise<SaveResult> => {
-      const { recipient, draft, existing } = input;
-      if (existing) {
-        const { data, error } = await supabase
-          .from("proposals")
-          .update(draftColumns(draft, existing) as TablesUpdate<"proposals">)
-          .eq("id", existing.id)
-          .neq("status", "aceptada")
-          .select("id")
-          .maybeSingle();
-        if (error) throw writeError(error);
-        if (!data) throw new Error("La propuesta ya fue aceptada y no se puede editar.");
-        return { id: data.id, prospectStage: "unchanged" };
+      try {
+        return await saveProposalRows(input, user?.id ?? null);
+      } catch (error) {
+        // Sin la migración 20261012001100 la BD rechaza plan_key = 'mantencion': se
+        // guarda sin plan_key (el ítem del plan conserva la clave y el monto).
+        if (!(error instanceof PlanKeyRejectedError)) throw error;
+        if (!needsNewPlanMigration(input.draft.planKey)) throw new Error(error.message);
+        const result = await saveProposalRows(
+          { ...input, draft: { ...input.draft, planKey: null } },
+          user?.id ?? null,
+        );
+        toast.warning(PLAN_KEY_PENDING_MIGRATION_MSG);
+        return result;
       }
-      const freshEstado =
-        recipient.kind === "prospect" ? await currentProspectEstado(recipient.id) : null;
-      const { data, error } = await supabase
-        .from("proposals")
-        .insert({
-          ...draftColumns(draft),
-          org_id: recipient.orgId,
-          client_id: recipient.kind === "client" ? recipient.id : null,
-          prospect_id: recipient.kind === "prospect" ? recipient.id : null,
-          created_by: user?.id ?? null,
-        })
-        .select("id")
-        .single();
-      if (error) throw writeError(error);
-      return { id: data.id, prospectStage: await advanceProspectStage(recipient, freshEstado) };
     },
     onSuccess: (result) =>
       Promise.all([

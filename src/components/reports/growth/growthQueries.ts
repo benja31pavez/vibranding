@@ -1,4 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { netOfTotal } from "@/lib/pricing/iva";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchAllRows } from "@/lib/db/fetchAllRows";
@@ -94,7 +95,8 @@ async function loadRecurringTrend(): Promise<TrendPoint[]> {
     p.paid_at
       ? [
           {
-            amount: p.amount,
+            // Cobros guardados con IVA → neto, para compararlo con el MRR (neto).
+            amount: netOfTotal(Number(p.amount)),
             currency: p.currency,
             month: chileDate(new Date(p.paid_at)).slice(0, 7),
           },

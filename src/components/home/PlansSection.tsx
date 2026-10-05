@@ -65,9 +65,9 @@ function PlanCard({
       <p className="mt-1 text-sm text-muted-foreground">{plan.desc}</p>
       <p className="mt-6 flex flex-wrap items-baseline gap-x-2">
         <span className="text-4xl font-semibold tracking-tight">{formatClp(plan.price)}</span>
-        <span className="text-sm text-muted-foreground">{plan.period}</span>
+        <span className="text-sm text-muted-foreground">+ IVA {plan.period}</span>
       </p>
-      <p className="mt-1 text-xs text-muted-foreground">IVA incluido · {plan.terms}</p>
+      <p className="mt-1 text-xs text-muted-foreground">Precio neto · {plan.terms}</p>
       <ul className="mt-6 space-y-3 text-sm">
         {plan.features.map((f) => (
           <li key={f} className="flex items-start gap-2">

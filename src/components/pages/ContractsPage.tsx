@@ -17,7 +17,9 @@ import { NewContractForm } from "@/components/contracts/NewContractForm";
 import { ContractHistory } from "@/components/contracts/ContractHistory";
 import {
   addonHasPrice,
+  contractLineFromNet,
   EMPTY_LEGAL_DATA,
+  NET_PLUS_IVA_BASIS,
   type ClientContract,
   type ClientLegalData,
 } from "@/components/contracts/contractModel";
@@ -185,8 +187,8 @@ export function ContractsPage({ clientId }: { clientId: string }) {
           {
             service_key: plan.key,
             label: plan.label,
-            one_time_price: plan.billing === "one_time" ? plan.price : 0,
-            monthly_price: plan.billing === "monthly" ? plan.price : 0,
+            one_time_price: plan.billing === "one_time" ? plan.netPrice : 0,
+            monthly_price: plan.billing === "monthly" ? plan.netPrice : 0,
             included_text: [plan.description, plan.note].filter(Boolean).join(" "),
             min_months: plan.minMonths,
           },
@@ -204,7 +206,8 @@ export function ContractsPage({ clientId }: { clientId: string }) {
         min_months: null,
       };
     });
-    const servicesSnap = [...planSnap, ...addonSnap];
+    // Precios de lista netos → cada línea guarda el total con IVA (lo que se cobra).
+    const servicesSnap = [...planSnap, ...addonSnap].map(contractLineFromNet);
     const total_one_time = servicesSnap.reduce((s, x) => s + x.one_time_price, 0);
     const total_monthly = servicesSnap.reduce((s, x) => s + x.monthly_price, 0);
 
@@ -222,6 +225,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
         jurisdiction: pricing.jurisdiction || AGENCY_DEFAULTS.jurisdiction,
         governing_law: AGENCY_DEFAULTS.governing_law,
         vat_included: true,
+        price_basis: NET_PLUS_IVA_BASIS,
       },
       client_snapshot: {
         name: client.name,
@@ -339,6 +343,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
             jurisdiction={previewing.agency_snapshot?.jurisdiction ?? ""}
             governingLaw={previewing.agency_snapshot?.governing_law ?? ""}
             vatIncluded={previewing.agency_snapshot?.vat_included === true}
+            netPlusIva={previewing.agency_snapshot?.price_basis === NET_PLUS_IVA_BASIS}
             agency={{
               name: previewing.agency_snapshot?.name ?? "",
               legal_name: previewing.agency_snapshot?.legal_name ?? "",

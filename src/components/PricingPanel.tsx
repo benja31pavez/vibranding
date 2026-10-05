@@ -23,6 +23,10 @@ import { AGENCY_DEFAULTS, DEFAULT_CURRENCY } from "@/lib/pricing/plans";
  * Usan la tabla `service_pricing`, cuyo CHECK solo admite las claves antiguas
  * ('branding','optimization','content','ads','landing','chatbot'); por eso los
  * adicionales reutilizan 'chatbot' y 'landing'. Los planes viven en `@/lib/pricing/plans`.
+ *
+ * Desde 2026-10 los precios de `service_pricing` se leen como NETOS (+ IVA 19 %),
+ * igual que los planes. Valores ingresados antes con IVA incluido deben revisarse
+ * a mano en esta pantalla (no se convierten automáticamente).
  */
 export type ServiceKey = "chatbot" | "landing";
 
@@ -299,15 +303,15 @@ export function PricingPanel() {
     <div className="space-y-8">
       <PageHeader
         title="Precios"
-        description="Los 3 planes de VIBRANDING (precios en CLP con IVA incluido) y los servicios adicionales que puedes sumar. Estos valores son los mismos para todos tus clientes y se usan al generar contratos."
+        description="Los planes de VIBRANDING (precios netos en CLP + IVA 19%) y los servicios adicionales que puedes sumar. Estos valores son los mismos para todos tus clientes y se usan al generar contratos; el cliente paga neto + IVA."
         actions={<SaveIndicator state={saveState} />}
       />
 
-      {/* Plans (fixed, CLP, IVA incluido) */}
+      {/* Plans (fixed, CLP, precios netos + IVA) */}
       <div className="space-y-3">
         <div className="flex items-baseline justify-between gap-3 flex-wrap">
           <h2 className="text-lg font-semibold">Planes</h2>
-          <span className="text-xs text-muted-foreground">Precios en CLP · IVA (19%) incluido</span>
+          <span className="text-xs text-muted-foreground">Precios netos en CLP · + IVA (19%)</span>
         </div>
         <PlanCatalog />
       </div>
@@ -317,7 +321,7 @@ export function PricingPanel() {
         <div className="flex items-baseline justify-between gap-3 flex-wrap">
           <h2 className="text-lg font-semibold">Servicios adicionales</h2>
           <span className="text-xs text-muted-foreground">
-            Precio con IVA incluido · Setup = pago único · Mensualidad = recurrente
+            Precio neto (+ IVA 19%) · Setup = pago único · Mensualidad = recurrente
           </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -357,13 +361,13 @@ export function PricingPanel() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <MoneyInput
-                    label="Setup (CLP)"
+                    label="Setup neto (CLP)"
                     value={Number(row.one_time_price)}
                     onChange={(v) => updateService(svc.key, { one_time_price: v })}
                     onBlur={(v) => saveService(row.id, { one_time_price: v })}
                   />
                   <MoneyInput
-                    label="Mensual (CLP)"
+                    label="Mensual neto (CLP)"
                     value={Number(row.monthly_price)}
                     onChange={(v) => updateService(svc.key, { monthly_price: v })}
                     onBlur={(v) => saveService(row.id, { monthly_price: v })}
@@ -372,10 +376,10 @@ export function PricingPanel() {
                 {(Number(row.one_time_price) > 0 || Number(row.monthly_price) > 0) && (
                   <div className="space-y-0.5">
                     {Number(row.one_time_price) > 0 && (
-                      <VatLines label="Pago único" gross={Number(row.one_time_price)} />
+                      <VatLines label="Pago único" net={Number(row.one_time_price)} />
                     )}
                     {Number(row.monthly_price) > 0 && (
-                      <VatLines label="Mensual" gross={Number(row.monthly_price)} />
+                      <VatLines label="Mensual" net={Number(row.monthly_price)} />
                     )}
                   </div>
                 )}

@@ -46,7 +46,7 @@ export function BillingSection({
                 <p className="mt-1 text-lg font-semibold tracking-tight">{billing.plan.label}</p>
                 <p className="text-sm text-muted-foreground">
                   <Money amount={billing.plan.amountClp} className="font-medium text-foreground" />{" "}
-                  {INTERVAL_LABEL[billing.plan.interval] ?? ""}
+                  {INTERVAL_LABEL[billing.plan.interval] ?? ""} (total con IVA)
                   {billing.plan.nextChargeDate
                     ? ` · próximo cobro el ${formatShortDate(billing.plan.nextChargeDate)}`
                     : ""}

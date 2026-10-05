@@ -279,7 +279,7 @@ export function ProspectSheet({
                 <option value="">Sin definir</option>
                 {PLANS.map((p) => (
                   <option key={p.key} value={p.key}>
-                    {p.label}
+                    {p.returningClientsOnly ? `${p.label} (solo ex clientes)` : p.label}
                   </option>
                 ))}
               </select>

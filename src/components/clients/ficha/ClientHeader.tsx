@@ -144,7 +144,7 @@ function HeaderFacts({
   return (
     <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
       <Fact label="Plan">{plan?.label ?? "Sin plan"}</Fact>
-      <Fact label="MRR">
+      <Fact label="MRR neto">
         <Money amount={overview.billing?.mrr ?? 0} className="text-foreground" />
       </Fact>
       <Fact label="Cliente desde">{formatDate(overview.startedAt)}</Fact>
