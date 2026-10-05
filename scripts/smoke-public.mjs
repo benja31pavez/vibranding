@@ -149,6 +149,22 @@ async function checkSeoEndpoints() {
 
   const p = await get("/p/invalid");
   check(hasNoindex(p.body, p.res), `/p/invalid: noindex (status ${p.res.status})`);
+  check(p.res.headers.get("referrer-policy") === "no-referrer", `/p/invalid: Referrer-Policy no-referrer`);
+}
+
+// Cabeceras de seguridad globales (src/lib/security/headers.ts).
+async function checkSecurityHeaders() {
+  for (const path of ["/", "/terms", "/robots.txt", "/sitemap.xml"]) {
+    const { res } = await get(path);
+    const h = (name) => res.headers.get(name) ?? "";
+    if (path !== "/robots.txt") {
+      // robots.txt puede servirse como asset estático (sin pasar por el Worker).
+      check(h("x-content-type-options") === "nosniff", `${path}: X-Content-Type-Options nosniff`);
+      check(h("x-frame-options") === "DENY", `${path}: X-Frame-Options DENY (got "${h("x-frame-options")}")`);
+      check(/frame-ancestors 'none'/.test(h("content-security-policy")), `${path}: CSP frame-ancestors 'none'`);
+      check(h("referrer-policy") === "strict-origin-when-cross-origin", `${path}: Referrer-Policy strict-origin-when-cross-origin`);
+    }
+  }
 }
 
 let exitCode = 0;
@@ -163,6 +179,7 @@ try {
   console.log(`Servidor listo en ${base}`);
   await checkContentPages();
   await checkSeoEndpoints();
+  await checkSecurityHeaders();
   if (failures.length) {
     console.error(`\n${failures.length} chequeo(s) fallaron:\n - ${failures.join("\n - ")}`);
     exitCode = 1;
