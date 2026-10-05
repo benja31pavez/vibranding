@@ -4198,6 +4198,10 @@ export type Database = {
           booking_scheduled_at: string
         }[]
       }
+      delete_onboarding_reservations: {
+        Args: { _paths: string[] }
+        Returns: number
+      }
       ensure_org: { Args: never; Returns: string }
       gen_public_token: { Args: never; Returns: string }
       get_booking_settings_by_slug: {
@@ -4260,6 +4264,13 @@ export type Database = {
         }[]
       }
       job_rows_written: { Args: { _body: Json }; Returns: number }
+      list_onboarding_orphans: {
+        Args: { _limit?: number }
+        Returns: {
+          path: string
+          reason: string
+        }[]
+      }
       list_taken_slots: {
         Args: { _from: string; _settings_id: string; _to: string }
         Returns: {
