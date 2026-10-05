@@ -12,6 +12,8 @@ import {
 } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { chileToday } from "@/lib/dates/chile";
+import { SITE_URL } from "@/lib/site";
+import { useAuth } from "@/hooks/use-auth";
 import { followupsFor, resolveLink, whatsappHref } from "@/lib/followups/rules";
 import {
   isSnoozed,
@@ -32,8 +34,9 @@ const PRIORITY_META: Readonly<Record<FollowupPriority, { label: string; tone: St
 
 const DEFAULT_LIMIT = 8;
 
+/** Los links de los mensajes siempre apuntan al dominio público (nunca a una preview). */
 function origin(): string {
-  return typeof window !== "undefined" ? window.location.origin : "";
+  return SITE_URL;
 }
 
 function messageFor(f: Followup): string {
@@ -50,15 +53,23 @@ async function copyMessage(f: Followup) {
   }
 }
 
-/** Ocultar hasta mañana (preferencia de este navegador, ver lib/followups/snooze.ts). */
+/**
+ * Ocultar hasta mañana (preferencia de este navegador y usuario, ver lib/followups/snooze.ts).
+ * `today` se recalcula en cada render (p. ej. tras cada refetch), así que pasada la
+ * medianoche de Chile los ítems ocultos vuelven a aparecer sin recargar la página.
+ */
 function useSnoozes() {
-  const [today] = useState(() => chileToday());
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
+  const today = chileToday();
   const [map, setMap] = useState<SnoozeMap>({});
-  useEffect(() => setMap(readSnoozes(today)), [today]);
+  useEffect(() => {
+    setMap(userId ? readSnoozes(today, userId) : {});
+  }, [today, userId]);
   const snooze = (id: string) => {
     const next = withSnooze(map, id, today);
     setMap(next);
-    return writeSnoozes(next);
+    return userId ? writeSnoozes(next, userId) : false;
   };
   return { isHidden: (id: string) => isSnoozed(map, id, today), snooze };
 }
@@ -167,6 +178,11 @@ export interface FollowupsPanelProps {
   hideOpenForProspect?: boolean;
   /** En una ficha sin seguimientos se oculta el panel completo. */
   hideWhenEmpty?: boolean;
+  /**
+   * Se llama tras registrar el contacto con un prospecto, con el instante guardado.
+   * La ficha lo usa para actualizar su formulario y que "Guardar" no pise el valor nuevo.
+   */
+  onProspectContactRecorded?: (prospectId: string, contactedAt: string) => void;
 }
 
 /** Lista priorizada de seguimientos con acciones en 1 clic. */
@@ -175,6 +191,7 @@ export function FollowupsPanel({
   limit = DEFAULT_LIMIT,
   hideOpenForProspect,
   hideWhenEmpty,
+  onProspectContactRecorded,
 }: FollowupsPanelProps) {
   const query = useFollowups();
   const record = useRecordProspectContact();
@@ -187,7 +204,10 @@ export function FollowupsPanel({
   const onDone = (f: Followup) => {
     if (f.recordsProspectContact && f.prospectId) {
       record.mutate(f.prospectId, {
-        onSuccess: () => toast.success(`Contacto registrado con ${f.businessName}`),
+        onSuccess: (contactedAt, prospectId) => {
+          onProspectContactRecorded?.(prospectId, contactedAt);
+          toast.success(`Contacto registrado con ${f.businessName}`);
+        },
         onError: (e) =>
           toast.error(e instanceof Error ? e.message : "No se pudo registrar el contacto"),
       });

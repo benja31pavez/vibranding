@@ -244,7 +244,15 @@ export function ProspectSheet({
         </form>
         {prospect && (
           <div className="mt-6">
-            <FollowupsPanel scope={{ prospectId: prospect.id }} hideOpenForProspect hideWhenEmpty />
+            <FollowupsPanel
+              scope={{ prospectId: prospect.id }}
+              hideOpenForProspect
+              hideWhenEmpty
+              // Sincroniza el formulario: así "Guardar" (con o sin otros cambios) no pisa el contacto recién registrado.
+              onProspectContactRecorded={(id, contactedAt) => {
+                if (id === prospect.id) set("ultimo_contacto")(toDateInput(contactedAt));
+              }}
+            />
           </div>
         )}
         {prospect && (
