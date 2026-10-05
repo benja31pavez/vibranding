@@ -52,7 +52,6 @@ const homeEs = {
       { title: "Salud y profesionales", desc: "Consultas, centros de salud y servicios profesionales." },
       { title: "Gimnasios y estética", desc: "Gimnasios, estudios, centros de estética y belleza." },
     ],
-    coverage: "En Santiago y regiones.",
   },
   benefits: {
     title: "Tres cosas que tu negocio",
@@ -203,7 +202,7 @@ const homeEs = {
     titleEnd: "?",
     subtitle: "Escríbenos por WhatsApp, cuéntanos qué vendes y dónde, y te decimos qué plan te conviene.",
     cta: "Cotiza por WhatsApp",
-    bullets: ["Sin compromiso", "Respuesta en horario hábil"],
+    bullets: ["Diagnóstico sin compromiso", "Respuesta en horario hábil"],
   },
   floatLabel: "Escríbenos por WhatsApp",
 };
@@ -287,7 +286,7 @@ const es: Dict = {
       { q: "¿Hay permanencia mínima?", a: "Marca + Web es un pago único. Los planes Contenido y Crecimiento tienen un mínimo de 3 meses, porque es el tiempo razonable para ver cómo responde tu público. Después siguen mes a mes y puedes cancelar avisando con 30 días de anticipación." },
       { q: "¿La pauta publicitaria está incluida?", a: "No. En el Plan Crecimiento nuestro precio cubre la creación, gestión y optimización de las campañas. La inversión en anuncios (pauta) la pagas directo a Meta y Google con tu tarjeta, así siempre sabes cuánto se gasta. Sugerimos partir desde $150.000 al mes." },
       { q: "¿Cuánto se demoran?", a: "Marca + Web se entrega en 72 horas hábiles desde que recibimos tu información y el pago. En los planes mensuales te enviamos el calendario de contenido durante la primera semana, y las campañas parten apenas apruebas los anuncios." },
-      { q: "¿Con qué tipo de negocios trabajan?", a: "Con pymes y profesionales de Chile, en Santiago y regiones. Trabajamos sobre todo con servicios y oficios del hogar (paisajismo, piscinas, remodelación), salud y profesionales, gimnasios y estética. Si tu rubro es otro, escríbenos igual y te decimos con honestidad si te podemos ayudar." },
+      { q: "¿Con qué tipo de negocios trabajan?", a: "Con pymes y profesionales de todo Chile. Trabajamos sobre todo con servicios y oficios del hogar (paisajismo, piscinas, remodelación), salud y profesionales, gimnasios y estética. Si tu rubro es otro, escríbenos igual y te decimos con honestidad si te podemos ayudar." },
       { q: "¿Cómo se paga?", a: "Por transferencia bancaria o link de pago, en pesos chilenos y con IVA incluido. Emitimos factura o boleta de VIBRANDING SpA (RUT 78.505.344-3). Los planes mensuales se pagan por mes adelantado." },
       { q: "¿Usan inteligencia artificial?", a: "Sí. Somos un equipo apoyado en IA para producir, analizar y optimizar más rápido; por eso entregamos en días y no en semanas. Cada pieza la revisa una persona antes de llegar a ti, y nada se publica sin tu aprobación." },
     ],
