@@ -30,6 +30,7 @@ import {
   type BillingVerdict,
 } from "@/lib/google-ads/billing";
 import { MANUAL_RESOLVE_SNOOZE_DAYS } from "@/lib/alerts/campaignAlerts.config";
+import { CRON_CALL_BUDGET_MS, withDeadline } from "@/lib/cron/batch";
 
 export const DEFAULT_BILLING_BATCH_LIMIT = 8;
 export const MAX_BILLING_BATCH_LIMIT = 8;
@@ -139,35 +140,51 @@ export async function clearBillingStatus(clientId: string): Promise<void> {
   );
 }
 
-/** Guarda el error del chequeo sin borrar el último resultado bueno (el gate lo vence a las 72 h). */
+/**
+ * Guarda el error del chequeo sin borrar el último resultado bueno (el gate lo
+ * vence a las 72 h). Si la fila era de OTRA cuenta (el cliente cambió de
+ * customer_id), ese resultado ya no vale: se vuelve a "pendiente".
+ */
 async function recordCheckError(account: GoogleAdsAccountRow, message: string): Promise<void> {
   const now = new Date().toISOString();
-  const { data, error } = await supabaseAdmin
+  const checkError = message.slice(0, 500);
+  const { data: existing, error: rErr } = await supabaseAdmin
     .from("google_ads_billing_status")
-    .update({
-      checked_at: now,
-      check_error: message.slice(0, 500),
-      customer_id: account.customer_id,
-    })
+    .select("customer_id")
     .eq("client_id", account.client_id)
-    .select("client_id");
-  if (error) {
-    console.error("[billing] no se pudo guardar el error", error.message);
+    .maybeSingle();
+  if (rErr) {
+    console.error("[billing] no se pudo leer el estado", rErr.message);
     return;
   }
-  if ((data ?? []).length > 0) return;
-  const { error: iErr } = await supabaseAdmin.from("google_ads_billing_status").insert({
-    client_id: account.client_id,
-    customer_id: account.customer_id,
-    checked_at: now,
-    has_valid_billing: false,
-    verdict: "pendiente",
-    detail: "Aún no se pudo revisar la facturación en Google Ads.",
-    check_error: message.slice(0, 500),
-  });
-  if (iErr && iErr.code !== UNIQUE_VIOLATION) {
-    console.error("[billing] no se pudo crear el estado", iErr.message);
-  }
+  const sameAccount = existing?.customer_id === account.customer_id;
+  const patch = sameAccount
+    ? { checked_at: now, check_error: checkError }
+    : {
+        client_id: account.client_id,
+        customer_id: account.customer_id,
+        checked_at: now,
+        last_success_at: null,
+        customer_status: null,
+        billing_status: null,
+        has_valid_billing: false,
+        verdict: "pendiente",
+        payments_account_name: null,
+        budget_limit_clp: null,
+        budget_served_clp: null,
+        budget_end_at: null,
+        detail: "Aún no se pudo revisar la facturación en Google Ads.",
+        check_error: checkError,
+      };
+  const { error } = sameAccount
+    ? await supabaseAdmin
+        .from("google_ads_billing_status")
+        .update(patch)
+        .eq("client_id", account.client_id)
+    : await supabaseAdmin
+        .from("google_ads_billing_status")
+        .upsert(patch as typeof patch & { client_id: string }, { onConflict: "client_id" });
+  if (error) console.error("[billing] no se pudo guardar el error", error.message);
 }
 
 type AccountWithClient = GoogleAdsAccountRow & { clients: { name: string | null } | null };
@@ -261,6 +278,8 @@ export type BillingBatchSummary = {
 export async function runBillingBatch(opts: {
   offset: number;
   limit: number;
+  /** Inicio de la petición (epoch ms) para el presupuesto de tiempo. */
+  startedAt?: number;
 }): Promise<BillingBatchSummary> {
   const cfg = requireGoogleAdsConfig();
   const limit = Math.min(MAX_BILLING_BATCH_LIMIT, Math.max(1, opts.limit));
@@ -278,17 +297,36 @@ export async function runBillingBatch(opts: {
   const batch = all.slice(0, limit);
   const cache = newAccessCache();
   const results: BillingCheckResult[] = [];
-  await runPool(batch, CONCURRENCY, async (account) => {
-    results.push(await checkAccountBilling(account, cfg, cache));
-  });
-  const failed = results.filter((r) => r.error).length;
+  // run_http_cron_job corta a los 15 s: se responde a los ~12 s con lo que alcanzó.
+  const deadlineMs = (opts.startedAt ?? Date.now()) + CRON_CALL_BUDGET_MS;
+  await withDeadline(
+    runPool(batch, CONCURRENCY, async (account) => {
+      results.push(await checkAccountBilling(account, cfg, cache));
+    }),
+    deadlineMs,
+    () => undefined,
+  );
+  // Copia: las cuentas que sigan corriendo no deben alterar la respuesta.
+  const finished = [...results];
+  const done = new Set(finished.map((r) => r.clientId));
+  const timedOut: BillingCheckResult[] = batch
+    .filter((a) => !done.has(a.client_id))
+    .map((a) => ({
+      clientId: a.client_id,
+      customerId: a.customer_id,
+      verdict: null,
+      alert: "sin_cambios",
+      error: "Tiempo agotado: no se alcanzó a revisar en este lote",
+    }));
+  const allResults = [...finished, ...timedOut];
+  const failed = allResults.filter((r) => r.error).length;
   return {
-    accounts: results.length,
-    succeeded: results.length - failed,
+    accounts: allResults.length,
+    succeeded: allResults.length - failed,
     failed,
-    alertsOpen: results.filter((r) => r.alert === "abierta").length,
+    alertsOpen: allResults.filter((r) => r.alert === "abierta").length,
     next_offset: all.length > limit ? offset + limit : null,
-    results,
+    results: allResults,
   };
 }
 
@@ -300,13 +338,23 @@ export async function runBillingBatch(opts: {
  * plataforma (hoy no existe ninguna: la integración es solo lectura).
  */
 export async function assertBillingVerified(clientId: string): Promise<void> {
-  const { data, error } = await supabaseAdmin
-    .from("google_ads_billing_status")
-    .select("has_valid_billing,last_success_at")
-    .eq("client_id", clientId)
-    .maybeSingle();
-  if (error) throw new Error("No se pudo revisar la facturación de Google Ads del cliente");
-  const message = billingGateError(data ?? null);
+  const [status, account] = await Promise.all([
+    supabaseAdmin
+      .from("google_ads_billing_status")
+      .select("has_valid_billing,last_success_at,customer_id")
+      .eq("client_id", clientId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("google_ads_accounts")
+      .select("customer_id")
+      .eq("client_id", clientId)
+      .maybeSingle(),
+  ]);
+  if (status.error || account.error) {
+    throw new Error("No se pudo revisar la facturación de Google Ads del cliente");
+  }
+  // El resultado guardado debe ser de la cuenta vinculada HOY.
+  const message = billingGateError(status.data ?? null, account.data?.customer_id ?? null);
   if (message) throw new Error(message);
 }
 

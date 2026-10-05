@@ -251,14 +251,24 @@ export function evaluateBilling(input: {
 export type BillingGateRow = {
   has_valid_billing: boolean;
   last_success_at: string | null;
+  /** Cuenta revisada; debe ser la vinculada hoy (si cambió, el resultado no vale). */
+  customer_id: string | null;
 } | null;
 
 /**
  * null si se puede activar campañas; si no, el mensaje en español.
- * Falla cerrado: sin fila, sin chequeo exitoso reciente o sin pago válido → bloquea.
+ * Falla cerrado: sin fila, sin chequeo exitoso reciente, sin pago válido o si
+ * el resultado es de otra cuenta que la vinculada hoy → bloquea.
  */
-export function billingGateError(row: BillingGateRow, now: Date = new Date()): string | null {
+export function billingGateError(
+  row: BillingGateRow,
+  currentCustomerId: string | null,
+  now: Date = new Date(),
+): string | null {
   if (!row || !row.has_valid_billing || !row.last_success_at) return BILLING_NOT_VERIFIED_MESSAGE;
+  if (!currentCustomerId || row.customer_id !== currentCustomerId) {
+    return BILLING_NOT_VERIFIED_MESSAGE;
+  }
   const age = now.getTime() - Date.parse(row.last_success_at);
   if (!Number.isFinite(age) || age > BILLING_MAX_AGE_HOURS * HOUR_MS) {
     return BILLING_NOT_VERIFIED_MESSAGE;

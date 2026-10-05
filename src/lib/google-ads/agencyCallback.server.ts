@@ -32,12 +32,17 @@ export async function handleAgencyOAuthCallback(
   const code = url.searchParams.get("code");
   if (url.searchParams.get("error") || !code) return back("cancelado");
 
-  const { canManageOrg, getUserOrg, listAccessibleManagers, saveAgencyConnection } =
-    await import("@/lib/google-ads/agency.server");
-  // El usuario podría haber perdido el rol entre el inicio y el regreso.
+  const {
+    canManageOrg,
+    getAgencyConnection,
+    getUserOrgRole,
+    listAccessibleManagers,
+    saveAgencyConnection,
+  } = await import("@/lib/google-ads/agency.server");
+  // Rol en la org firmada en el state (no "la org más antigua"): pudo cambiar en el camino.
   try {
-    const org = await getUserOrg(state.userId);
-    if (!org || org.orgId !== orgId || !canManageOrg(org.role)) return back("error", "forbidden");
+    const role = await getUserOrgRole(state.userId, orgId);
+    if (!role || !canManageOrg(role)) return back("error", "forbidden");
   } catch {
     return back("error", "forbidden");
   }
@@ -56,9 +61,16 @@ export async function handleAgencyOAuthCallback(
   }
 
   try {
-    const { managers, errors } = await listAccessibleManagers(cfg, accessToken);
+    const [{ managers, errors }, previous] = await Promise.all([
+      listAccessibleManagers(cfg, accessToken),
+      getAgencyConnection(orgId),
+    ]);
     if (errors.length) console.error("[google oauth agencia] avisos", errors);
-    const choice = chooseAgencyManager(managers, cfg.loginCustomerId);
+    // Al reconectar se conserva la MCC guardada si sigue accesible.
+    const choice = chooseAgencyManager(managers, [
+      previous?.manager_customer_id ?? null,
+      cfg.loginCustomerId,
+    ]);
     if (choice === "none") {
       return back("error", errors.length && managers.length === 0 ? "google_api" : "no_manager");
     }

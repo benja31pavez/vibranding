@@ -110,8 +110,19 @@ export const listAgencyManagers = createServerFn({ method: "POST" })
       throw new Error("Primero conecta la cuenta de Google de la agencia");
     const refreshToken = await getAgencyRefreshToken(org.orgId);
     if (!refreshToken) throw new Error("No hay token guardado. Vuelve a conectar.");
-    const accessToken = await refreshAccessToken(cfg, refreshToken);
-    return listAccessibleManagers(cfg, accessToken);
+    try {
+      const accessToken = await refreshAccessToken(cfg, refreshToken);
+      const { managers, errors } = await listAccessibleManagers(cfg, accessToken);
+      // El detalle de Google queda en el log del servidor, no en el navegador.
+      if (errors.length) console.error("[google-ads agency] avisos al listar MCC", errors);
+      return {
+        managers,
+        warnings: errors.length ? ["Algunas cuentas no se pudieron revisar."] : [],
+      };
+    } catch (e) {
+      console.error("[google-ads agency] listar MCC falló", (e as Error).message);
+      throw new Error("No se pudieron listar las cuentas MCC. Vuelve a intentarlo o reconecta.");
+    }
   });
 
 /** Elige cuál MCC es la de la agencia (debe ser accesible con el token guardado). */

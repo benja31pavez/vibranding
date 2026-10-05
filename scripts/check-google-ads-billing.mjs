@@ -147,8 +147,20 @@ check("estado desconocido falla cerrado", () =>
 
 // ── gate
 const NOW = new Date("2026-10-20T12:00:00Z");
+const CID = "1234567890";
+const OK_ROW = {
+  has_valid_billing: true,
+  last_success_at: "2026-10-20T07:00:00Z",
+  customer_id: CID,
+};
+check("gate: resultado de otra cuenta bloquea", () =>
+  assert.notEqual(b.billingGateError(OK_ROW, "9999999999", NOW), null),
+);
+check("gate: cliente sin cuenta vinculada bloquea", () =>
+  assert.notEqual(b.billingGateError(OK_ROW, null, NOW), null),
+);
 check("gate: sin fila bloquea", () =>
-  assert.equal(b.billingGateError(null, NOW), b.BILLING_NOT_VERIFIED_MESSAGE),
+  assert.equal(b.billingGateError(null, "1234567890", NOW), b.BILLING_NOT_VERIFIED_MESSAGE),
 );
 check("gate: mensaje exacto en español", () =>
   assert.equal(
@@ -158,24 +170,43 @@ check("gate: mensaje exacto en español", () =>
 );
 check("gate: pago no válido bloquea", () =>
   assert.notEqual(
-    b.billingGateError({ has_valid_billing: false, last_success_at: "2026-10-20T07:00:00Z" }, NOW),
+    b.billingGateError(
+      { has_valid_billing: false, last_success_at: "2026-10-20T07:00:00Z", customer_id: CID },
+      CID,
+      NOW,
+    ),
     null,
   ),
 );
 check("gate: válido y reciente permite", () =>
   assert.equal(
-    b.billingGateError({ has_valid_billing: true, last_success_at: "2026-10-20T07:00:00Z" }, NOW),
+    b.billingGateError(
+      { has_valid_billing: true, last_success_at: "2026-10-20T07:00:00Z", customer_id: CID },
+      CID,
+      NOW,
+    ),
     null,
   ),
 );
 check("gate: chequeo viejo (>72 h) bloquea", () =>
   assert.notEqual(
-    b.billingGateError({ has_valid_billing: true, last_success_at: "2026-10-16T07:00:00Z" }, NOW),
+    b.billingGateError(
+      { has_valid_billing: true, last_success_at: "2026-10-16T07:00:00Z", customer_id: CID },
+      CID,
+      NOW,
+    ),
     null,
   ),
 );
 check("gate: fecha inválida bloquea", () =>
-  assert.notEqual(b.billingGateError({ has_valid_billing: true, last_success_at: "x" }, NOW), null),
+  assert.notEqual(
+    b.billingGateError(
+      { has_valid_billing: true, last_success_at: "x", customer_id: CID },
+      CID,
+      NOW,
+    ),
+    null,
+  ),
 );
 
 // ── alertas y mensaje
@@ -238,14 +269,20 @@ check("cuenta normal no es MCC", () =>
 );
 const m1 = { customerId: "1111111111", name: "A" };
 const m2 = { customerId: "2222222222", name: "B" };
-check("una sola MCC se elige sola", () => assert.equal(a.chooseAgencyManager([m1], null), m1));
+check("una sola MCC se elige sola", () => assert.equal(a.chooseAgencyManager([m1], [null]), m1));
+check("se conserva la MCC guardada antes que la del entorno", () =>
+  assert.equal(a.chooseAgencyManager([m1, m2], ["2222222222", "1111111111"]), m2),
+);
+check("MCC guardada que ya no está: pasa a la siguiente preferida", () =>
+  assert.equal(a.chooseAgencyManager([m1, m2], ["9999999999", "1111111111"]), m1),
+);
 check("varias MCC: gana la preferida", () =>
-  assert.equal(a.chooseAgencyManager([m1, m2], "2222222222"), m2),
+  assert.equal(a.chooseAgencyManager([m1, m2], [null, "2222222222"]), m2),
 );
 check("varias MCC sin preferida: elegir", () =>
-  assert.equal(a.chooseAgencyManager([m1, m2], null), null),
+  assert.equal(a.chooseAgencyManager([m1, m2], [null, null]), null),
 );
-check("sin MCC: none", () => assert.equal(a.chooseAgencyManager([], null), "none"));
+check("sin MCC: none", () => assert.equal(a.chooseAgencyManager([], []), "none"));
 
 const agency = { status: "conectada", manager_customer_id: "1111111111", token_secret_id: "s" };
 check("token propio del cliente sigue funcionando", () =>

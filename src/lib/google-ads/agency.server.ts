@@ -56,6 +56,18 @@ export async function getUserOrg(userId: string): Promise<UserOrg | null> {
   return { orgId: first.org_id, orgName: first.orgs.name, role: first.role };
 }
 
+/** Rol del usuario en una org concreta (null si no es miembro). */
+export async function getUserOrgRole(userId: string, orgId: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin
+    .from("org_members")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("org_id", orgId)
+    .maybeSingle();
+  if (error) throw new Error("No se pudo verificar tu rol en la organización");
+  return data?.role ?? null;
+}
+
 export function canManageOrg(role: string): boolean {
   return role === "owner" || role === "admin";
 }

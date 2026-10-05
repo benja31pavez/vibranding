@@ -33,18 +33,21 @@ export function parseManagerCandidate(body: unknown): ManagerCandidate | null {
 
 /**
  * Qué MCC queda como la de la agencia:
- * - si `preferredId` (GOOGLE_ADS_LOGIN_CUSTOMER_ID) es una de las MCC, esa;
+ * - la primera de `preferredIds` que siga entre las MCC (la ya guardada, luego
+ *   GOOGLE_ADS_LOGIN_CUSTOMER_ID);
  * - si hay exactamente una MCC, esa;
  * - si hay varias, null (el dueño elige en Configuración);
  * - si no hay ninguna, "none".
  */
 export function chooseAgencyManager(
   managers: readonly ManagerCandidate[],
-  preferredId: string | null,
+  preferredIds: readonly (string | null)[],
 ): ManagerCandidate | null | "none" {
   if (managers.length === 0) return "none";
-  const preferred = preferredId ? managers.find((m) => m.customerId === preferredId) : undefined;
-  if (preferred) return preferred;
+  for (const id of preferredIds) {
+    const preferred = id ? managers.find((m) => m.customerId === id) : undefined;
+    if (preferred) return preferred;
+  }
   return managers.length === 1 ? managers[0] : null;
 }
 

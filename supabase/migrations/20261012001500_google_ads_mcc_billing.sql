@@ -15,11 +15,13 @@
 --    solo service_role escribe.
 -- 4. campaign_alerts.kind no tiene CHECK: el tipo 'billing_google' no
 --    requiere cambio de constraint (platform = 'google' ya está permitido).
--- 5. Jobs de cron del chequeo de facturación (después de la ingesta).
+-- Los jobs de cron del chequeo van aparte en 20261012001510_cron_google_billing.sql
+-- (se aplica DESPUÉS de publicar el código con /api/public/google/billing-check).
 --
 -- Aditiva e idempotente: se puede re-ejecutar. Nada se borra ni se renombra.
 -- Cómo se aplica: pegarla completa en el SQL editor de Supabase (una sola
--- transacción) DESPUÉS de 20261012000400_cron_google_ads.sql.
+-- transacción) DESPUÉS de 20261012000400_cron_google_ads.sql y ANTES de
+-- publicar este código.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -124,7 +126,8 @@ BEGIN
   END IF;
 END $$;
 
--- Desde el navegador no se puede pasar una cuenta al token de la agencia.
+-- Desde el navegador no se puede pasar una cuenta al token de la agencia, ni
+-- cambiar el customer_id de una cuenta que ya se lee con la MCC de la agencia.
 CREATE OR REPLACE FUNCTION public.guard_google_ads_auth_source()
 RETURNS trigger
 LANGUAGE plpgsql SET search_path = ''
@@ -132,8 +135,11 @@ AS $$
 BEGIN
   IF current_user IN ('anon', 'authenticated')
      AND ((TG_OP = 'INSERT' AND NEW.auth_source <> 'cliente')
-          OR (TG_OP = 'UPDATE' AND NEW.auth_source IS DISTINCT FROM OLD.auth_source)) THEN
-    RAISE EXCEPTION 'auth_source solo lo cambia el servidor';
+          OR (TG_OP = 'UPDATE'
+              AND (NEW.auth_source IS DISTINCT FROM OLD.auth_source
+                   OR (OLD.auth_source = 'agencia'
+                       AND NEW.customer_id IS DISTINCT FROM OLD.customer_id)))) THEN
+    RAISE EXCEPTION 'auth_source y la cuenta de una conexión de agencia solo los cambia el servidor';
   END IF;
   RETURN NEW;
 END $$;
@@ -190,31 +196,3 @@ CREATE POLICY "google_ads_billing_status select" ON public.google_ads_billing_st
 DROP TRIGGER IF EXISTS t_google_ads_billing_status_u ON public.google_ads_billing_status;
 CREATE TRIGGER t_google_ads_billing_status_u BEFORE UPDATE ON public.google_ads_billing_status
   FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
-
--- ---------------------------------------------------------------------
--- 4. Jobs del chequeo de facturación
---
--- /api/public/google/billing-check procesa UN lote de cuentas por llamada
--- (?offset=&limit=, máximo 8) con x-dispatch-secret (run_http_cron_job).
--- Después de la ingesta (06:40–06:46 UTC) y antes de las alertas (13:00):
---
---   google_ads_billing_0    07:00 UTC  cuentas 1–8
---   google_ads_billing_8    07:03 UTC  cuentas 9–16
---   google_ads_billing_16   07:06 UTC  cuentas 17–24 (&last=1)
---
--- El último lleva &last=1: si aún quedan cuentas responde 500 ("faltan
--- lotes"). Para más de 24 cuentas copia un bloque con el siguiente offset,
--- suma 3 minutos y mueve &last=1 al nuevo último job.
--- cron.schedule con un nombre existente actualiza ese job (idempotente).
--- ---------------------------------------------------------------------
-SELECT cron.schedule('google_ads_billing_0', '0 7 * * *',
-  $cron$SELECT public.run_http_cron_job('google_ads_billing_0',
-    'https://vibranding.pro/api/public/google/billing-check?offset=0&limit=8');$cron$);
-
-SELECT cron.schedule('google_ads_billing_8', '3 7 * * *',
-  $cron$SELECT public.run_http_cron_job('google_ads_billing_8',
-    'https://vibranding.pro/api/public/google/billing-check?offset=8&limit=8');$cron$);
-
-SELECT cron.schedule('google_ads_billing_16', '6 7 * * *',
-  $cron$SELECT public.run_http_cron_job('google_ads_billing_16',
-    'https://vibranding.pro/api/public/google/billing-check?offset=16&limit=8&last=1');$cron$);

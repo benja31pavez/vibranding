@@ -11,8 +11,8 @@ const MAX_LIMIT = 8;
  * y account_budget de cada cuenta conectada → google_ads_billing_status, y
  * alerta 'billing_google' en campaign_alerts si el pago no está verificado.
  * La llaman los jobs 'google_ads_billing_<offset>' (migración
- * 20261012001500_google_ads_mcc_billing) con x-dispatch-secret.
- * Un lote por llamada (?offset=&limit=, máx. 8) con next_offset; el último job
+ * 20261012001510_cron_google_billing) con x-dispatch-secret.
+ * Un lote por llamada (?offset=&limit=, máx. 8, ~12 s de presupuesto; lo que no alcanza cuenta como fallo) con next_offset; el último job
  * lleva &last=1 y responde 500 si aún quedan cuentas. Cualquier fallo → 500.
  * Solo lectura en Google: nunca crea, activa ni pausa campañas.
  */
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/api/public/google/billing-check")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const startedAt = Date.now();
         const expected = process.env.DISPATCH_SECRET;
         if (!expected) {
           console.error("[google billing] DISPATCH_SECRET missing — rejecting request");
@@ -66,7 +67,7 @@ export const Route = createFileRoute("/api/public/google/billing-check")({
 
         const { runBillingBatch } = await import("@/lib/google-ads/billing.server");
         try {
-          const summary = await runBillingBatch(parsed);
+          const summary = await runBillingBatch({ ...parsed, startedAt });
           const missing = missingBatchesError(parsed.last, summary.next_offset);
           if (missing) {
             console.error("[google billing]", missing);
