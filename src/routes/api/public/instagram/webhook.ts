@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
+import { hmacSha256Hex, secretsMatch, timingSafeEqualHex } from "@/lib/crypto";
 import { isTransientError, redactDigits, webhookStatus } from "@/lib/messaging/delivery";
 
 /**
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/api/public/instagram/webhook")({
         }
         if (
           url.searchParams.get("hub.mode") === "subscribe" &&
-          url.searchParams.get("hub.verify_token") === expected
+          (await secretsMatch(url.searchParams.get("hub.verify_token"), expected))
         ) {
           return new Response(url.searchParams.get("hub.challenge") ?? "", { status: 200 });
         }

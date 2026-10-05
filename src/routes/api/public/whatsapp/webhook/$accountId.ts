@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { ruleToActions, sendBotActions } from "@/lib/whatsapp/sendActions";
-import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
+import { hmacSha256Hex, secretsMatch, timingSafeEqualHex } from "@/lib/crypto";
 import { getWaSecret } from "@/lib/whatsapp/tokens.server";
 import { parseLandingRef } from "@/lib/landingWhatsapp";
 import { getActiveRun, handleFlowReply, hasFlow, startFlow } from "@/lib/whatsapp/flow.server";
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook/$accountId")(
 
         const expectedToken = await getWaSecret(params.accountId, "verify_token");
 
-        if (mode === "subscribe" && expectedToken && token === expectedToken) {
+        if (mode === "subscribe" && expectedToken && (await secretsMatch(token, expectedToken))) {
           return new Response(challenge ?? "", { status: 200 });
         }
         return new Response("Forbidden", { status: 403 });
