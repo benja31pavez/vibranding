@@ -41,6 +41,8 @@ BEGIN
         AND b.onboarding_token = r.token
         AND b.onboarding_token_expires_at IS NOT NULL
         AND b.onboarding_token_expires_at >= now())
+    AND NOT EXISTS (
+      SELECT 1 FROM public.client_intake ci, LATERAL unnest(ci.archivos) AS a(p) WHERE a.p = r.path)
   ORDER BY r.created_at
   LIMIT lim;
 
@@ -57,7 +59,7 @@ BEGIN
     AND NOT EXISTS (
       SELECT 1 FROM public.onboarding_upload_reservations r WHERE r.path = o.name)
     AND NOT EXISTS (
-      SELECT 1 FROM public.client_intake ci WHERE o.name = ANY (ci.archivos))
+      SELECT 1 FROM public.client_intake ci, LATERAL unnest(ci.archivos) AS a(p) WHERE a.p = o.name)
   ORDER BY o.created_at
   LIMIT lim - n;
 END $$;
@@ -90,7 +92,9 @@ BEGIN
        WHERE b.client_id = r.client_id
          AND b.onboarding_token = r.token
          AND b.onboarding_token_expires_at IS NOT NULL
-         AND b.onboarding_token_expires_at >= now());
+         AND b.onboarding_token_expires_at >= now())
+     AND NOT EXISTS (
+       SELECT 1 FROM public.client_intake ci, LATERAL unnest(ci.archivos) AS a(p) WHERE a.p = r.path);
   GET DIAGNOSTICS n = ROW_COUNT;
   RETURN n;
 END $$;
