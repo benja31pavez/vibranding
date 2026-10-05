@@ -29,7 +29,8 @@
     "smoke:public": "node scripts/smoke-public.mjs",
     "check:reviews": "node scripts/check-reviews.mjs",
     "check:security-headers": "node scripts/check-security-headers.mjs",
-    "check:fit-list": "node scripts/check-fit-list.mjs"
+    "check:fit-list": "node scripts/check-fit-list.mjs",
+    "check:plan-stages": "node scripts/check-plan-stages.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
