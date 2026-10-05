@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,6 +14,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, ErrorState, PageContainer, PageHeader } from "@/components/app";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  HEALTH_LOAD_ERROR, HealthBadge, invalidateClientHealth, useClientsHealth,
+} from "@/components/clients/health";
+import { HEALTH_LEVEL_META, compareByRisk, type ClientHealth, type HealthLevel } from "@/lib/health";
 
 export const Route = createFileRoute("/_app/clients/")({
   component: ClientsList,
@@ -27,8 +34,33 @@ interface Client {
   updated_at: string;
 }
 
+type SortMode = "recent" | "risk";
+type LevelFilter = HealthLevel | "all";
+
+const SORT_LABEL: Readonly<Record<SortMode, string>> = {
+  recent: "Recientes",
+  risk: "En riesgo primero",
+};
+
+/** Ordena/filtra sin mutar la lista original. */
+function arrangeClients(
+  clients: readonly Client[],
+  health: ReadonlyMap<string, ClientHealth> | undefined,
+  sort: SortMode,
+  level: LevelFilter,
+): Client[] {
+  // Sin datos de salud (cargando o error) el filtro no aplica.
+  const filtered =
+    level === "all" || !health ? [...clients] : clients.filter((c) => health.get(c.id)?.level === level);
+  if (sort !== "risk" || !health) return filtered;
+  return filtered.sort((a, b) => compareByRisk(health.get(a.id), health.get(b.id)));
+}
+
 function ClientsList() {
   const { user } = useAuth();
+  const health = useClientsHealth();
+  const [sort, setSort] = useState<SortMode>("recent");
+  const [level, setLevel] = useState<LevelFilter>("all");
   const queryClient = useQueryClient();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +88,11 @@ function ClientsList() {
     if (user) load();
   }, [user]);
 
+  const visible = useMemo(
+    () => arrangeClients(clients, health.data, sort, level),
+    [clients, health.data, sort, level],
+  );
+
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -72,6 +109,7 @@ function ClientsList() {
     toast.success("Cliente creado");
     load();
     void invalidateShellClients(queryClient);
+    void invalidateClientHealth(queryClient);
   };
 
   return (
@@ -125,8 +163,54 @@ function ClientsList() {
           }
         />
       ) : (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
+              <SelectTrigger className="h-9 w-[200px]" aria-label="Ordenar clientes">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(SORT_LABEL) as SortMode[]).map((k) => (
+                  <SelectItem key={k} value={k}>{SORT_LABEL[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={level}
+              onValueChange={(v) => setLevel(v as LevelFilter)}
+              disabled={!health.data}
+            >
+              <SelectTrigger className="h-9 w-[200px]" aria-label="Filtrar por salud">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toda la salud</SelectItem>
+                {(Object.keys(HEALTH_LEVEL_META) as HealthLevel[]).map((k) => (
+                  <SelectItem key={k} value={k}>{HEALTH_LEVEL_META[k].label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-muted-foreground">
+              Los prospectos y terminados no se puntúan.
+            </span>
+            {health.isError && (
+              <span role="alert" className="flex items-center gap-2 text-xs text-danger-strong">
+                {HEALTH_LOAD_ERROR}
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => void health.refetch()} disabled={health.isFetching}>
+                  Reintentar
+                </Button>
+              </span>
+            )}
+          </div>
+          {visible.length === 0 ? (
+            <p className="rounded-app-lg border border-dashed border-border-subtle p-6 text-center text-sm text-muted-foreground">
+              Ningún cliente con salud “{level === "all" ? "" : HEALTH_LEVEL_META[level].label}”.
+            </p>
+          ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {clients.map((c) => (
+          {visible.map((c) => {
+            const h = health.data?.get(c.id);
+            return (
             <Link
               key={c.id}
               to="/clients/$clientId"
@@ -144,8 +228,17 @@ function ClientsList() {
                 </div>
                 <ArrowRight aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" />
               </div>
+              <div className="mt-3 flex min-h-5 items-center gap-2">
+                <HealthBadge health={h} loading={health.isPending && !health.isError} />
+                {h && h.reasons[0] && (
+                  <span className="truncate text-xs text-muted-foreground">{h.reasons[0].label}</span>
+                )}
+              </div>
             </Link>
-          ))}
+            );
+          })}
+        </div>
+          )}
         </div>
       )}
     </PageContainer>
