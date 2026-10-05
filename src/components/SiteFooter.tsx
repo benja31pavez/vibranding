@@ -1,14 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { useLang } from "@/i18n/LanguageContext";
 import { trackLandingEvent } from "@/lib/track";
+import { SERVICE_LIST } from "@/lib/services/content";
 import { LEGAL_NAME, LEGAL_RUT, WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/site";
 
 export function SiteFooter() {
   const { t, lang } = useLang();
   return (
     <footer className="border-t bg-background">
-      <div className="max-w-7xl mx-auto px-4 md:px-10 py-14 grid grid-cols-2 md:grid-cols-4 gap-10">
-        <div className="col-span-2 md:col-span-1">
+      <div className="max-w-7xl mx-auto px-4 md:px-10 py-14 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10">
+        <div className="col-span-2 md:col-span-3 lg:col-span-1">
           <Link to="/" className="flex items-center gap-2">
             <span className="font-brand text-3xl tracking-tight">Vibranding</span>
           </Link>
@@ -27,6 +28,20 @@ export function SiteFooter() {
             {t.footer.location}
           </p>
         </div>
+
+        <nav aria-label="Servicios" className="col-span-2 md:col-span-1">
+          {/* Spanish-only on purpose: these pages target searches in Chile. */}
+          <h4 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">
+            Servicios
+          </h4>
+          <ul className="space-y-3">
+            {SERVICE_LIST.map((s) => (
+              <FooterLink key={s.slug} to={s.path}>
+                {s.navLabel}
+              </FooterLink>
+            ))}
+          </ul>
+        </nav>
 
         <FooterCol title={t.footer.columns.product}>
           <FooterLink href="/#servicios">{t.footer.links.services}</FooterLink>
