@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FileJson, KanbanSquare, Plus, Table2, Target } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState, ErrorState, PageContainer, PageHeader, TableSkeleton } from "@/components/app";
@@ -16,10 +16,15 @@ import { cn } from "@/lib/utils";
 
 type View = "kanban" | "tabla";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const Route = createFileRoute("/_app/pipeline")({
   head: () => ({ meta: [{ title: "Prospectos — Vibranding" }] }),
-  validateSearch: (search: Record<string, unknown>): { vista?: "tabla" } =>
-    search.vista === "tabla" ? { vista: "tabla" } : {},
+  /** `prospecto`: abre la ficha de ese prospecto (enlace desde "Seguimientos sugeridos"). */
+  validateSearch: (search: Record<string, unknown>): { vista?: "tabla"; prospecto?: string } => ({
+    ...(search.vista === "tabla" ? { vista: "tabla" as const } : {}),
+    ...(typeof search.prospecto === "string" && UUID_RE.test(search.prospecto) ? { prospecto: search.prospecto } : {}),
+  }),
   component: PipelinePage,
 });
 
@@ -47,7 +52,7 @@ function ViewToggle({ view, onChange }: { view: View; onChange: (v: View) => voi
 }
 
 function PipelinePage() {
-  const { vista } = Route.useSearch();
+  const { vista, prospecto } = Route.useSearch();
   const view: View = vista === "tabla" ? "tabla" : "kanban";
   const navigate = useNavigate({ from: "/pipeline" });
   const prospectsQuery = useProspects();
@@ -57,6 +62,15 @@ function PipelinePage() {
   const [converting, setConverting] = useState<Prospect | null>(null);
 
   const prospects = prospectsQuery.data ?? [];
+
+  // Abre la ficha pedida por ?prospecto= una vez cargada la lista, y limpia el parámetro.
+  useEffect(() => {
+    if (!prospecto || !prospectsQuery.data) return;
+    const target = prospectsQuery.data.find((p) => p.id === prospecto);
+    if (target) setEditing({ open: true, prospect: target });
+    else toast.error("No se encontró el prospecto (puede que no tengas acceso).");
+    void navigate({ search: vista === "tabla" ? { vista: "tabla" } : {}, replace: true });
+  }, [prospecto, prospectsQuery.data, navigate, vista]);
 
   const onMove = (p: Prospect, estado: ProspectState) => {
     if (p.estado === "baja" && estado !== "baja") {
