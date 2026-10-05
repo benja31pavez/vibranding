@@ -1,11 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, Plug, RefreshCw, AlertTriangle, KeyRound } from "lucide-react";
+import {
+  AlertTriangle,
+  KeyRound,
+  MoreHorizontal,
+  Plug,
+  RefreshCw,
+  Stethoscope,
+  Unplug,
+} from "lucide-react";
+import { ConfirmDialog, InfoHint, ListSkeleton, Panel, StatusBadge } from "@/components/app";
 import { MetaSystemUserDialog } from "@/components/meta-ads/MetaSystemUserDialog";
 import {
   getMetaConnection,
@@ -18,11 +32,15 @@ import {
 import { useInvalidateClientCapabilities } from "@/hooks/use-client-capabilities";
 import { metaOAuthErrorMessage } from "@/lib/meta/oauthErrors";
 
+const DATE_FMT = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeStyle: "short" });
+
 export function MetaConnectCard({ clientId }: { clientId: string }) {
   const [conn, setConn] = useState<MetaConnection | null>(null);
   const [busy, setBusy] = useState(false);
   const [sysOpen, setSysOpen] = useState(false);
   const [dupe, setDupe] = useState<string[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const fetchConn = useServerFn(getMetaConnection);
   const startOAuth = useServerFn(startMetaOAuth);
   const disconnect = useServerFn(disconnectMeta);
@@ -44,6 +62,8 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
       } else setDupe([]);
     } catch (e: any) {
       toast.error(e?.message ?? "No se pudo leer la conexión");
+    } finally {
+      setLoaded(true);
     }
   };
 
@@ -73,8 +93,6 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
 
   const doDisconnect = async () => {
     if (!conn) return;
-    if (!confirm("¿Desconectar la cuenta de Meta? Las métricas ya descargadas se conservan."))
-      return;
     try {
       await disconnect({ data: { accountId: conn.id } });
       toast.success("Cuenta desconectada");
@@ -102,103 +120,150 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
     }
   };
 
+  if (!loaded) return <ListSkeleton rows={2} label="Revisando conexión con Meta" />;
+
+  const tokenButton = (
+    <Button size="sm" variant="ghost" onClick={() => setSysOpen(true)}>
+      <KeyRound aria-hidden className="mr-1.5 h-4 w-4" />
+      Usar token permanente
+    </Button>
+  );
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Plug className="w-4 h-4" /> Conexión con Meta
-          {conn?.connected ? (
-            <Badge className="gap-1">
-              <CheckCircle2 className="w-3 h-3" /> Conectada
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="gap-1">
-              <AlertCircle className="w-3 h-3" /> Sin conectar
-            </Badge>
-          )}
-        </CardTitle>
-        <div className="flex gap-2">
-          {conn?.connected && (
+    <>
+      {conn?.connected ? (
+        <Panel
+          icon={Plug}
+          title={
+            <>
+              Meta <StatusBadge status="connected" label="Conectada" tone="success" />
+            </>
+          }
+          actions={
             <>
               <Button size="sm" variant="outline" onClick={doSync} disabled={busy}>
-                <RefreshCw className={`w-3 h-3 mr-1 ${busy ? "animate-spin" : ""}`} />
+                <RefreshCw aria-hidden className={`mr-1.5 h-4 w-4 ${busy ? "animate-spin" : ""}`} />
                 Sincronizar ayer
               </Button>
-              <Button size="sm" variant="ghost" onClick={doDisconnect}>
-                Desconectar
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" aria-label="Más opciones de Meta">
+                    <MoreHorizontal aria-hidden className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setSysOpen(true)}>
+                    <KeyRound aria-hidden className="mr-2 h-4 w-4" /> Cambiar token permanente
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin/meta-diagnostics">
+                      <Stethoscope aria-hidden className="mr-2 h-4 w-4" /> Diagnóstico
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-danger-strong focus:text-danger-strong"
+                    onSelect={() => setConfirmOpen(true)}
+                  >
+                    <Unplug aria-hidden className="mr-2 h-4 w-4" /> Desconectar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
-          )}
-          {!conn?.connected && (
-            <Button size="sm" onClick={connect} disabled={busy}>
-              Conectar con Meta
-            </Button>
-          )}
-          <Button size="sm" variant="outline" onClick={() => setSysOpen(true)}>
-            <KeyRound className="w-3 h-3 mr-1" />
-            Conectar con token permanente
-          </Button>
-
-          <Button asChild size="sm" variant="ghost">
-            <Link to="/admin/meta-diagnostics">Diagnóstico</Link>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="text-sm text-muted-foreground space-y-2">
-        {dupe.length > 0 && (
-          <div
-            role="alert"
-            className="flex gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-foreground"
-          >
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <p>
-              La cuenta publicitaria <span className="font-mono">{conn?.ad_account_id}</span>{" "}
-              también está asignada a: <strong>{dupe.join(", ")}</strong>. El gasto se contaría dos
-              veces.
-            </p>
-          </div>
-        )}
-        <div className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-foreground">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <p>
-            Meta todavía está revisando nuestra app. Mientras tanto, «Conectar con Meta» solo
-            funciona con cuentas que tengan rol de <strong>desarrollador</strong> o{" "}
-            <strong>tester</strong> en la app. Para el resto, usa la conexión con token permanente.
-          </p>
-        </div>
-        {conn?.connected ? (
-          <>
-            <div>
-              Cuenta publicitaria: <span className="font-mono">{conn.ad_account_id ?? "—"}</span> ·
-              Página: <span className="font-mono">{conn.page_id ?? "—"}</span> · Instagram:{" "}
-              <span className="font-mono">{conn.ig_account_id ?? "—"}</span>
-            </div>
-            <div>
-              Última descarga:{" "}
-              {conn.last_synced_at
-                ? new Date(conn.last_synced_at).toLocaleString("es-CL")
-                : "pendiente"}
-              {" · "}Las métricas se descargan solas cada madrugada (entre 2 y 3 a. m., hora de
-              Chile).
-            </div>
-            {conn.last_sync_error && (
-              <div className="text-destructive">Último error: {conn.last_sync_error}</div>
+          }
+        >
+          <div className="space-y-2 text-sm">
+            {dupe.length > 0 && (
+              <DuplicateAccountAlert adAccountId={conn.ad_account_id} dupe={dupe} />
             )}
-          </>
-        ) : (
-          <p>
-            Autoriza el acceso de lectura a métricas de anuncios, páginas e Instagram. El token
-            queda cifrado en el servidor y nunca se expone al navegador. Si la conexión normal no
-            funciona todavía, usa un token permanente.
+            <dl className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">
+              <ConnFact label="Cuenta publicitaria" value={conn.ad_account_id} />
+              <ConnFact label="Página" value={conn.page_id} />
+              <ConnFact label="Instagram" value={conn.ig_account_id} />
+            </dl>
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              {conn.last_synced_at
+                ? `Última descarga: ${DATE_FMT.format(new Date(conn.last_synced_at))}`
+                : "Aún sin descargas"}
+              <InfoHint>
+                Las métricas se descargan solas cada madrugada (entre 2 y 3 a. m., hora de Chile).
+              </InfoHint>
+            </p>
+            {conn.last_sync_error && (
+              <p className="text-xs text-danger-strong" role="alert">
+                Último error: {conn.last_sync_error}
+              </p>
+            )}
+          </div>
+        </Panel>
+      ) : (
+        <Panel
+          icon={Plug}
+          title="Conecta Meta"
+          info={
+            <>
+              Meta todavía está revisando nuestra app. Mientras tanto, «Conectar con Meta» solo
+              funciona con cuentas que tengan rol de desarrollador o tester en la app. Para el
+              resto, usa un token permanente. El token queda cifrado en el servidor.
+            </>
+          }
+          description="Solo lectura de métricas de anuncios, página e Instagram."
+          actions={
+            <Button size="sm" onClick={connect} disabled={busy}>
+              <Plug aria-hidden className="mr-1.5 h-4 w-4" /> Conectar con Meta
+            </Button>
+          }
+        >
+          <p className="flex flex-wrap items-center gap-x-1 text-sm text-muted-foreground">
+            ¿No funciona la conexión normal? {tokenButton}
           </p>
-        )}
-      </CardContent>
+        </Panel>
+      )}
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="¿Desconectar Meta?"
+        description="Las métricas ya descargadas se conservan."
+        confirmLabel="Desconectar"
+        destructive
+        onConfirm={() => void doDisconnect()}
+      />
       <MetaSystemUserDialog
         clientId={clientId}
         open={sysOpen}
         onOpenChange={setSysOpen}
         onConnected={load}
       />
-    </Card>
+    </>
+  );
+}
+
+function ConnFact({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="flex gap-1.5">
+      <dt>{label}:</dt>
+      <dd className="font-mono text-foreground">{value ?? "—"}</dd>
+    </div>
+  );
+}
+
+function DuplicateAccountAlert({
+  adAccountId,
+  dupe,
+}: {
+  adAccountId: string | null | undefined;
+  dupe: string[];
+}) {
+  return (
+    <div
+      role="alert"
+      className="flex gap-2 rounded-app-md border border-danger/40 bg-danger-subtle p-3 text-xs text-danger-strong"
+    >
+      <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+      <p>
+        La cuenta publicitaria <span className="font-mono">{adAccountId}</span> también está
+        asignada a: <strong>{dupe.join(", ")}</strong>. El gasto se contaría dos veces.
+      </p>
+    </div>
   );
 }

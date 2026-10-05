@@ -57,7 +57,7 @@ export function GoogleAdsCampaignsTable({ clientId }: { clientId: string }) {
     <Panel
       title="Campañas de Google Ads"
       icon={BarChart3}
-      description={`Últimos ${WINDOW_DAYS} días (hasta ayer). Montos en pesos chilenos.`}
+      description={`Últimos ${WINDOW_DAYS} días, hasta ayer`}
     >
       {query.isLoading ? (
         <TableSkeleton rows={4} columns={5} label="Cargando campañas" />
@@ -70,8 +70,9 @@ export function GoogleAdsCampaignsTable({ clientId }: { clientId: string }) {
       ) : (query.data ?? []).length === 0 ? (
         <EmptyState
           size="compact"
+          icon={BarChart3}
           title="Sin datos todavía"
-          description="Cuando la cuenta esté conectada, las métricas se descargan cada madrugada (o con «Actualizar ahora»)."
+          description="Se descargan cada madrugada o con «Actualizar ahora»."
         />
       ) : (
         <div className="overflow-x-auto">
@@ -82,7 +83,11 @@ export function GoogleAdsCampaignsTable({ clientId }: { clientId: string }) {
                 <TableHead className="text-right">Gasto</TableHead>
                 <TableHead className="text-right">Clics</TableHead>
                 <TableHead className="text-right">Conversiones</TableHead>
-                <TableHead className="text-right">Costo por conversión</TableHead>
+                <TableHead className="text-right">
+                  <abbr title="Costo por conversión" className="no-underline">
+                    Costo/conv.
+                  </abbr>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

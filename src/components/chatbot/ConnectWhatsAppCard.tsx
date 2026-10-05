@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import { Panel } from "@/components/app";
 import { Copy, CheckCircle2, Plug, AlertCircle, ChevronDown } from "lucide-react";
 import { getWhatsAppVerifyToken, setWhatsAppAccessToken } from "@/lib/whatsapp/account.functions";
 import type { WAAccount } from "@/components/pages/ChatbotPage";
@@ -135,20 +136,18 @@ export function ConnectWhatsAppCard({
 
   if (!account) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plug className="w-5 h-5" /> Conectar WhatsApp Business
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Conectaremos un número de WhatsApp Business via Meta Cloud API. Necesitarás una App en
-            Meta for Developers y un número verificado en tu WhatsApp Business Account (WABA).
-          </p>
-          <Button onClick={initOrSetup}>Iniciar configuración</Button>
-        </CardContent>
-      </Card>
+      <Panel
+        icon={Plug}
+        title="Conecta WhatsApp Business"
+        info="Necesitas una app en Meta for Developers y un número verificado en la cuenta de WhatsApp Business (WABA) del cliente."
+        actions={
+          <Button size="sm" onClick={() => void initOrSetup()}>
+            <Plug aria-hidden className="mr-1.5 h-4 w-4" /> Iniciar configuración
+          </Button>
+        }
+      >
+        <p className="text-sm text-muted-foreground">Vía la API oficial de Meta (Cloud API).</p>
+      </Panel>
     );
   }
 

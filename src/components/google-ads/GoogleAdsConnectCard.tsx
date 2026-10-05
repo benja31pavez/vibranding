@@ -3,15 +3,30 @@ import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, Plug, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeftRight,
+  Building2,
+  CheckCircle2,
+  MoreHorizontal,
+  Plug,
+  RefreshCw,
+  Unplug,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ConfirmDialog, ErrorState, ListSkeleton, Panel } from "@/components/app";
 import { useUserKey } from "@/components/clients/ficha/fichaQueries";
 import { formatCustomerId } from "@/lib/google-ads/gaql";
 import { googleOAuthErrorMessage } from "@/lib/google-ads/oauthErrors";
 import {
   disconnectGoogleAds,
-  getGoogleAdsOverview,
   linkGoogleAdsCustomer,
   startGoogleAdsOAuth,
   syncGoogleAdsNow,
@@ -20,6 +35,10 @@ import {
 } from "@/lib/google-ads/connection.functions";
 import { GoogleAdsAccountPicker } from "@/components/google-ads/GoogleAdsAccountPicker";
 import { googleAdsBillingKey } from "@/components/google-ads/googleAdsBillingQueries";
+import {
+  googleAdsOverviewKey,
+  useGoogleAdsOverview,
+} from "@/components/google-ads/googleAdsOverviewQueries";
 
 const DATE_FMT = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeStyle: "short" });
 
@@ -41,11 +60,14 @@ function useOAuthReturnToast() {
 
 function NotConfigured({ missing }: { missing: GoogleAdsOverview["missing"] }) {
   return (
-    <Panel title="Google Ads: no configurado" icon={AlertTriangle} tone="warning">
+    <Panel
+      title="Google Ads aún no está habilitado"
+      icon={AlertTriangle}
+      tone="warning"
+      info="Mientras tanto no se descarga nada y el reporte mensual muestra solo los datos que ya existan."
+    >
       <p className="text-sm">
-        Para conectar cuentas de Google Ads, la plataforma necesita las credenciales de la app de la
-        agencia en Google Cloud. Hoy faltan estos datos (los agrega quien administra el servidor, en
-        Cloudflare):
+        Faltan credenciales de la app de la agencia (las agrega quien administra el servidor):
       </p>
       <ul className="mt-3 space-y-2 text-sm">
         {missing.map((m) => (
@@ -55,10 +77,6 @@ function NotConfigured({ missing }: { missing: GoogleAdsOverview["missing"] }) {
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-xs text-muted-foreground">
-        Mientras tanto no se descarga nada y el reporte mensual muestra solo los datos que ya
-        existan.
-      </p>
     </Panel>
   );
 }
@@ -69,18 +87,14 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   // Origen del selector abierto: cuentas de la MCC de la agencia o del token propio.
   const [picking, setPicking] = useState<CustomerSource | null>(null);
-  const fetchOverview = useServerFn(getGoogleAdsOverview);
   const startOAuth = useServerFn(startGoogleAdsOAuth);
   const link = useServerFn(linkGoogleAdsCustomer);
   const sync = useServerFn(syncGoogleAdsNow);
   const disconnect = useServerFn(disconnectGoogleAds);
   useOAuthReturnToast();
 
-  const overviewKey = ["google-ads-overview", userKey, clientId] as const;
-  const overview = useQuery({
-    queryKey: overviewKey,
-    queryFn: () => fetchOverview({ data: { clientId } }),
-  });
+  const overviewKey = googleAdsOverviewKey(userKey, clientId);
+  const overview = useGoogleAdsOverview(clientId);
 
   const refreshAll = () => {
     void queryClient.invalidateQueries({ queryKey: overviewKey });
@@ -152,46 +166,47 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
     </Button>
   );
 
-  const settingsLink = (
-    <Link to="/settings/google-ads" className="underline underline-offset-2">
-      Configuración → Google Ads
-    </Link>
-  );
-
   if (!connection) {
     const agency = overview.data.agency;
+    if (agency) {
+      return (
+        <Panel
+          icon={Plug}
+          title="Elige la cuenta del cliente"
+          description={`Cuentas bajo la MCC de la agencia (${formatCustomerId(agency.managerCustomerId)}).`}
+          info="El cliente paga su pauta con su propia tarjeta en su cuenta. La plataforma solo lee métricas y el estado de pago: nunca crea ni cambia campañas."
+        >
+          <GoogleAdsAccountPicker
+            clientId={clientId}
+            currentCustomerId={null}
+            busy={busy}
+            source="agencia"
+            onPick={(customerId) => linkMut.mutate({ customerId, source: "agencia" })}
+          />
+        </Panel>
+      );
+    }
+    // Un solo llamado a la acción: conectar la MCC de la agencia (una vez para todos).
     return (
       <Panel
-        title="Google Ads"
-        description={
-          agency
-            ? `Elige la cuenta del cliente bajo la MCC de la agencia (${formatCustomerId(agency.managerCustomerId)}).`
-            : "Conecta la MCC de la agencia una sola vez para vincular a todos los clientes."
+        icon={Plug}
+        title="Conecta Google Ads"
+        description="Conecta la MCC de la agencia una sola vez y luego elige aquí la cuenta del cliente."
+        info="La plataforma solo lee métricas y el estado de pago: nunca crea ni cambia campañas."
+        actions={
+          <Button asChild size="sm">
+            <Link to="/settings/google-ads">
+              <Plug aria-hidden className="mr-1.5 h-4 w-4" /> Conectar MCC de la agencia
+            </Link>
+          </Button>
         }
-        actions={agency ? null : connectButton("Conectar con Google (cuenta propia)")}
       >
-        {agency ? (
-          <div className="space-y-3 text-sm">
-            <GoogleAdsAccountPicker
-              clientId={clientId}
-              currentCustomerId={null}
-              busy={busy}
-              source="agencia"
-              onPick={(customerId) => linkMut.mutate({ customerId, source: "agencia" })}
-            />
-            <p className="text-xs text-muted-foreground">
-              El cliente paga su pauta con su propia tarjeta en su cuenta. La plataforma solo lee
-              métricas y el estado de pago: nunca crea ni cambia campañas.
-            </p>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Recomendado: conecta la cuenta administradora (MCC) de la agencia en {settingsLink} y
-            luego elige aquí la cuenta del cliente. También puedes conectar una cuenta de Google
-            propia del cliente (forma anterior). La plataforma solo lee métricas: nunca crea ni
-            cambia campañas.
-          </p>
-        )}
+        <p className="flex flex-wrap items-center gap-x-1 text-sm text-muted-foreground">
+          ¿El cliente tiene su propia cuenta de Google?
+          <Button size="sm" variant="ghost" onClick={() => connectMut.mutate()} disabled={busy}>
+            Conectar cuenta propia
+          </Button>
+        </p>
       </Panel>
     );
   }
@@ -227,42 +242,48 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
               ) : (
                 connectButton("Reconectar")
               ))}
-            {connection.status === "conectada" && !broken && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => syncMut.mutate()}
-                  disabled={busy}
-                >
-                  <RefreshCw
-                    className={`mr-1.5 h-4 w-4 ${syncMut.isPending ? "animate-spin" : ""}`}
-                  />
-                  Actualizar ahora
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setPicking((p) => (p ? null : connection.authSource))}
-                  disabled={busy}
-                >
-                  {picking ? "Cancelar" : "Cambiar cuenta"}
-                </Button>
-              </>
-            )}
-            {!viaAgency && overview.data.agency && !picking && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setPicking("agencia")}
-                disabled={busy}
-              >
-                Pasar a la MCC de la agencia
+            {connection.status === "conectada" && !broken && !picking && (
+              <Button size="sm" variant="outline" onClick={() => syncMut.mutate()} disabled={busy}>
+                <RefreshCw
+                  aria-hidden
+                  className={`mr-1.5 h-4 w-4 ${syncMut.isPending ? "animate-spin" : ""}`}
+                />
+                Actualizar ahora
               </Button>
             )}
-            <Button size="sm" variant="ghost" onClick={() => setConfirmOpen(true)} disabled={busy}>
-              Desconectar
-            </Button>
+            {picking ? (
+              <Button size="sm" variant="ghost" onClick={() => setPicking(null)} disabled={busy}>
+                Cancelar
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" aria-label="Más opciones de Google Ads">
+                    <MoreHorizontal aria-hidden className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {connection.status === "conectada" && !broken && (
+                    <DropdownMenuItem onSelect={() => setPicking(connection.authSource)}>
+                      <ArrowLeftRight aria-hidden className="mr-2 h-4 w-4" /> Cambiar cuenta
+                    </DropdownMenuItem>
+                  )}
+                  {!viaAgency && overview.data.agency && (
+                    <DropdownMenuItem onSelect={() => setPicking("agencia")}>
+                      <Building2 aria-hidden className="mr-2 h-4 w-4" /> Pasar a la MCC de la
+                      agencia
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-danger-strong focus:text-danger-strong"
+                    onSelect={() => setConfirmOpen(true)}
+                  >
+                    <Unplug aria-hidden className="mr-2 h-4 w-4" /> Desconectar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </>
         }
       >

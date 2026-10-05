@@ -4,6 +4,7 @@ import { MultilinkPage } from "@/components/pages/MultilinkPage";
 import { LandingEditor } from "@/components/pages/LandingEditor";
 import { UnsavedChangesGuard } from "@/components/site/SaveStatus";
 import { useState } from "react";
+import { PageHeader } from "@/components/app";
 
 export const Route = createFileRoute("/_app/clients/$clientId/sitio")({
   validateSearch: (s: Record<string, unknown>): { tab?: "multienlace" | "landing" } => ({
@@ -33,14 +34,15 @@ function SitioPage() {
   const [dirtyLanding, setDirtyLanding] = useState(false);
 
   return (
-    <>
+    <div className="space-y-4">
+      <PageHeader size="compact" title="Sitio" />
       <UnsavedChangesGuard dirty={dirtyMultilink || dirtyLanding} />
       <Tabs
         value={tab}
         onValueChange={(v) => navigate({ search: { tab: v as "multienlace" | "landing" } })}
         className="space-y-4"
       >
-        <TabsList>
+        <TabsList aria-label="Secciones del sitio">
           <TabsTrigger value="multienlace">
             Multienlace
             {dirtyMultilink && <DirtyDot />}
@@ -58,7 +60,7 @@ function SitioPage() {
           <LandingEditor clientId={clientId} onDirtyChange={setDirtyLanding} />
         </TabsContent>
       </Tabs>
-    </>
+    </div>
   );
 }
 
