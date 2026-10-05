@@ -7,11 +7,15 @@ import { AppHeader } from "@/components/shell/AppHeader";
 import { ClientSidebar } from "@/components/shell/ClientSidebar";
 import { CommandPalette } from "@/components/shell/CommandPalette";
 import { MobileClientSheet } from "@/components/shell/MobileClientSheet";
+import { NOINDEX_META } from "@/lib/site/robots";
 import { ShellSkeleton } from "@/components/shell/ShellSkeleton";
 import { useShellActiveClient } from "@/components/shell/useShellActiveClient";
 import { useUserProfile } from "@/components/shell/useUserProfile";
 
 export const Route = createFileRoute("/_app")({
+  // Todo el panel autenticado queda fuera de buscadores; las rutas hijas heredan este meta
+  // (si una hija define su propio robots, prevalece la más profunda, siempre con noindex).
+  head: () => ({ meta: [NOINDEX_META] }),
   component: AppLayout,
 });
 
