@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Command,
@@ -7,13 +7,12 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { ClientStatusBadge } from "@/components/clients/ficha/ClientHeader";
+import { filterClients, type ClientSearchEntry } from "@/lib/clients/clientSearch";
 import { ClientAvatar } from "./ClientAvatar";
-import { PRIMARY_NAV, type NavItem } from "./navConfig";
-import { useSettingsNav } from "./useSettingsNav";
-import { useClientList } from "./useClientList";
+import { useClientSearchIndex } from "./useClientSearchIndex";
 import { isApplePlatform, isEditableTarget } from "./platform";
 
 interface CommandPaletteProps {
@@ -27,8 +26,8 @@ const COMMAND_CLASSES =
   "[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-2.5";
 
 /**
- * Atajo global: ⌘K en Mac, Ctrl+K en el resto. Ignora repeticiones y composición (IME).
- * En campos editables solo responde a ⌘K en Mac, para no pisar Ctrl+K de otros sistemas.
+ * Atajo global (no visible en la UI): ⌘K en Mac, Ctrl+K en el resto. Ignora repeticiones y
+ * composición (IME). En campos editables solo responde a ⌘K en Mac, para no pisar Ctrl+K.
  */
 function useCommandShortcut(onToggle: () => void) {
   useEffect(() => {
@@ -47,44 +46,66 @@ function useCommandShortcut(onToggle: () => void) {
   }, [onToggle]);
 }
 
+/** Persona de contacto y, si difiere de la marca, la razón social. */
+function secondaryLine(client: ClientSearchEntry): string {
+  const legal =
+    client.legalName && client.legalName.toLowerCase() !== client.brand.toLowerCase()
+      ? client.legalName
+      : null;
+  return [client.contactName, legal].filter(Boolean).join(" · ");
+}
+
+function ClientResult({ client }: { client: ClientSearchEntry }) {
+  const secondary = secondaryLine(client);
+  return (
+    <>
+      <ClientAvatar name={client.brand} className="h-7 w-7 text-[11px]" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium">{client.brand}</span>
+        {secondary && (
+          <span className="block truncate text-xs text-muted-foreground">{secondary}</span>
+        )}
+      </span>
+      <ClientStatusBadge status={client.status} />
+    </>
+  );
+}
+
+/** Buscador del header: solo clientes, por marca o por persona de contacto. */
 export function CommandPalette({ open, onOpenChange, onToggle }: CommandPaletteProps) {
   const navigate = useNavigate();
-  const settingsNav = useSettingsNav();
-  const { data: clients, isLoading, isError } = useClientList(open);
+  const [query, setQuery] = useState("");
+  const { data: clients, isLoading, isError } = useClientSearchIndex(open);
+  const results = useMemo(() => filterClients(clients ?? [], query), [clients, query]);
 
   useCommandShortcut(onToggle);
 
-  const go = (to: string) => {
-    onOpenChange(false);
-    navigate({ to });
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setQuery("");
+    onOpenChange(next);
   };
 
   const goToClient = (clientId: string) => {
-    onOpenChange(false);
+    handleOpenChange(false);
     navigate({ to: "/clients/$clientId", params: { clientId } });
   };
 
-  const renderNavItem = (item: NavItem) => (
-    <CommandItem
-      key={item.to}
-      value={`${item.label} ${item.to}`}
-      keywords={item.keywords}
-      onSelect={() => go(item.to)}
-    >
-      <item.icon className="h-4 w-4" />
-      {item.label}
-    </CommandItem>
-  );
+  const hasClients = (clients?.length ?? 0) > 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="overflow-hidden p-0">
-        <DialogTitle className="sr-only">Buscar en la plataforma</DialogTitle>
+        <DialogTitle className="sr-only">Buscar clientes</DialogTitle>
         <DialogDescription className="sr-only">
-          Escribe para buscar clientes o secciones y presiona Enter para ir.
+          Escribe el nombre de la marca o de la persona de contacto y presiona Enter para abrir su
+          ficha.
         </DialogDescription>
-        <Command className={COMMAND_CLASSES}>
-          <CommandInput placeholder="Buscar clientes o secciones…" />
+        <Command shouldFilter={false} className={COMMAND_CLASSES}>
+          <CommandInput
+            value={query}
+            onValueChange={setQuery}
+            placeholder="Buscar por marca o persona…"
+          />
           <CommandList className="max-h-[min(60vh,420px)]">
             {isLoading && (
               <div role="status" className="px-4 py-3 text-sm text-muted-foreground">
@@ -96,30 +117,22 @@ export function CommandPalette({ open, onOpenChange, onToggle }: CommandPaletteP
                 No se pudieron cargar los clientes.
               </div>
             )}
-            {!isLoading && <CommandEmpty>Sin resultados.</CommandEmpty>}
-            {clients && clients.length > 0 && (
+            {!isLoading && !isError && (
+              <CommandEmpty>
+                {hasClients
+                  ? "No encontramos clientes con ese nombre"
+                  : "Aún no tienes clientes registrados"}
+              </CommandEmpty>
+            )}
+            {results.length > 0 && (
               <CommandGroup heading="Clientes">
-                {clients.map((c) => (
-                  <CommandItem
-                    key={c.id}
-                    value={`${c.name} ${c.instagram_handle ?? ""} ${c.id}`}
-                    onSelect={() => goToClient(c.id)}
-                  >
-                    <ClientAvatar name={c.name} className="h-6 w-6 text-[11px]" />
-                    <span className="min-w-0 flex-1 truncate">{c.name}</span>
-                    {c.instagram_handle && (
-                      <span className="truncate text-xs text-muted-foreground">
-                        @{c.instagram_handle}
-                      </span>
-                    )}
+                {results.map((c) => (
+                  <CommandItem key={c.id} value={c.id} onSelect={() => goToClient(c.id)}>
+                    <ClientResult client={c} />
                   </CommandItem>
                 ))}
               </CommandGroup>
             )}
-            <CommandSeparator />
-            <CommandGroup heading="Ir a">{PRIMARY_NAV.map(renderNavItem)}</CommandGroup>
-            <CommandSeparator />
-            <CommandGroup heading="Configuración">{settingsNav.map(renderNavItem)}</CommandGroup>
           </CommandList>
         </Command>
       </DialogContent>

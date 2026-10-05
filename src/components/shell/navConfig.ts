@@ -18,39 +18,33 @@ export interface NavItem {
   to: string;
   label: string;
   icon: ComponentType<{ className?: string }>;
-  /** Palabras extra para la búsqueda de la paleta de comandos. */
-  keywords?: string[];
 }
 
 /** Gestión transversal de la agencia (menú del header). */
 export const PRIMARY_NAV: readonly NavItem[] = [
-  { to: "/dashboard", label: "Inicio", icon: LayoutDashboard, keywords: ["dashboard", "hoy"] },
-  { to: "/clients", label: "Clientes", icon: Users, keywords: ["cuentas", "marcas"] },
+  { to: "/dashboard", label: "Inicio", icon: LayoutDashboard },
+  { to: "/clients", label: "Clientes", icon: Users },
   {
     to: "/approvals",
     label: "Aprobaciones",
     icon: Inbox,
-    keywords: ["bandeja", "revisión", "pendientes"],
   },
   {
     to: "/agenda",
     label: "Agenda",
     icon: CalendarDays,
-    keywords: ["calendario", "reservas", "citas", "reuniones", "publicaciones", "vencimientos"],
   },
   {
     to: "/pipeline",
     label: "Prospectos",
     icon: Target,
-    keywords: ["pipeline", "ventas", "leads", "embudo"],
   },
   {
     to: "/billing",
     label: "Cobros",
     icon: Receipt,
-    keywords: ["pagos", "facturación", "flow", "mrr"],
   },
-  { to: "/reports", label: "Reportes", icon: BarChart3, keywords: ["informes", "resultados"] },
+  { to: "/reports", label: "Reportes", icon: BarChart3 },
 ];
 
 /** Configuración de la agencia (menú del avatar). */
@@ -59,17 +53,15 @@ export const SETTINGS_NAV: readonly NavItem[] = [
     to: "/settings/pricing",
     label: "Precios",
     icon: DollarSign,
-    keywords: ["planes", "servicios"],
   },
   {
     to: "/settings/meta",
     label: "Meta",
     icon: Plug,
-    keywords: ["facebook", "instagram", "conexión"],
   },
-  { to: "/portfolio", label: "Portafolio", icon: Images, keywords: ["trabajos", "público"] },
-  { to: "/stats", label: "Estadísticas", icon: LineChart, keywords: ["landing", "visitas"] },
-  { to: "/admin/health", label: "Salud", icon: HeartPulse, keywords: ["estado", "diagnóstico"] },
+  { to: "/portfolio", label: "Portafolio", icon: Images },
+  { to: "/stats", label: "Estadísticas", icon: LineChart },
+  { to: "/admin/health", label: "Salud", icon: HeartPulse },
 ];
 
 /** Activo si la ruta coincide o es una subruta (Clientes activo dentro de /clients/...). */
