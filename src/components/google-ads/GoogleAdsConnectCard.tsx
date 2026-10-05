@@ -256,7 +256,8 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
                 Cancelar
               </Button>
             ) : (
-              <DropdownMenu>
+              // modal={false}: el menú no bloquea el body; los diálogos se abren fuera del menú.
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button size="icon" variant="ghost" aria-label="Más opciones de Google Ads">
                     <MoreHorizontal aria-hidden className="h-4 w-4" />
@@ -264,12 +265,15 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {connection.status === "conectada" && !broken && (
-                    <DropdownMenuItem onSelect={() => setPicking(connection.authSource)}>
+                    <DropdownMenuItem
+                      disabled={busy}
+                      onSelect={() => setPicking(connection.authSource)}
+                    >
                       <ArrowLeftRight aria-hidden className="mr-2 h-4 w-4" /> Cambiar cuenta
                     </DropdownMenuItem>
                   )}
                   {!viaAgency && overview.data.agency && (
-                    <DropdownMenuItem onSelect={() => setPicking("agencia")}>
+                    <DropdownMenuItem disabled={busy} onSelect={() => setPicking("agencia")}>
                       <Building2 aria-hidden className="mr-2 h-4 w-4" /> Pasar a la MCC de la
                       agencia
                     </DropdownMenuItem>
@@ -277,6 +281,7 @@ export function GoogleAdsConnectCard({ clientId }: { clientId: string }) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-danger-strong focus:text-danger-strong"
+                    disabled={busy}
                     onSelect={() => setConfirmOpen(true)}
                   >
                     <Unplug aria-hidden className="mr-2 h-4 w-4" /> Desconectar

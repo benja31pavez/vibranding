@@ -24,6 +24,13 @@ import { loadGridVersions, type GridVersion } from "@/lib/instagram/gridVersions
 
 type View = "current" | "proposed" | "compare";
 
+/** Una línea bajo el selector: qué es cada pista. */
+const VIEW_HINT: Record<View, string> = {
+  current: "Actual: lo publicado, sincronizado desde Instagram.",
+  proposed: "Propuesta: tu plan de contenido, editable.",
+  compare: "Actual (publicado) frente a la Propuesta (plan).",
+};
+
 export function InstagramPage({ clientId }: { clientId: string }) {
   const { client, ig, setProfile, setPosts, setHighlights, setComments, reloadIG, igError } =
     useActiveClient();
@@ -249,6 +256,7 @@ export function InstagramPage({ clientId }: { clientId: string }) {
             </button>
           ))}
         </div>
+        <p className="text-center text-xs text-muted-foreground">{VIEW_HINT[view]}</p>
         {profile && view !== "compare" && (
           <IphonePreview
             profile={profile}

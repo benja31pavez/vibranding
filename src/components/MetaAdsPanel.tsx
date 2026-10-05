@@ -580,7 +580,8 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     );
   }
 
-  // Sin conexión, la tarjeta «Conecta Meta» de arriba es el único llamado a la acción.
+  // Sin conexión no se dibuja nada a propósito: MetaConnectCard (arriba en la misma página)
+  // ya muestra «Conecta Meta» como único llamado a la acción, o su error con «Reintentar».
   if (!capsLoading && !caps.meta_connected && !account?.ad_account_id && campaigns.length === 0) {
     return null;
   }

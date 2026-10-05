@@ -19,7 +19,14 @@ import {
   Stethoscope,
   Unplug,
 } from "lucide-react";
-import { ConfirmDialog, InfoHint, ListSkeleton, Panel, StatusBadge } from "@/components/app";
+import {
+  ConfirmDialog,
+  ErrorState,
+  InfoHint,
+  ListSkeleton,
+  Panel,
+  StatusBadge,
+} from "@/components/app";
 import { MetaSystemUserDialog } from "@/components/meta-ads/MetaSystemUserDialog";
 import {
   getMetaConnection,
@@ -41,6 +48,8 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
   const [dupe, setDupe] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
   const fetchConn = useServerFn(getMetaConnection);
   const startOAuth = useServerFn(startMetaOAuth);
   const disconnect = useServerFn(disconnectMeta);
@@ -49,11 +58,21 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
   const invalidateCaps = useInvalidateClientCapabilities();
 
   const load = async () => {
+    let next: MetaConnection | null;
     try {
-      const next = (await fetchConn({ data: { clientId } })) as MetaConnection | null;
-      setConn(next);
-      // Conectar/desconectar cambia los candados del sidebar y la configuración guiada.
-      void invalidateCaps(clientId);
+      next = (await fetchConn({ data: { clientId } })) as MetaConnection | null;
+    } catch (e: any) {
+      // Sin leer la conexión no sabemos si está conectada: mostrar error, no «Conecta Meta».
+      setLoadError(e?.message ?? "No se pudo leer la conexión");
+      setLoaded(true);
+      return;
+    }
+    setLoadError(null);
+    setConn(next);
+    setLoaded(true);
+    // Conectar/desconectar cambia los candados del sidebar y la configuración guiada.
+    void invalidateCaps(clientId);
+    try {
       if (next?.ad_account_id) {
         const res = (await checkConflict({
           data: { clientId, adAccountId: next.ad_account_id },
@@ -61,10 +80,14 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
         setDupe((res?.conflicts ?? []).map((c) => c.clientName ?? "otro cliente"));
       } else setDupe([]);
     } catch (e: any) {
-      toast.error(e?.message ?? "No se pudo leer la conexión");
-    } finally {
-      setLoaded(true);
+      toast.error(e?.message ?? "No se pudo revisar si la cuenta está repetida");
     }
+  };
+
+  const retry = async () => {
+    setRetrying(true);
+    await load();
+    setRetrying(false);
   };
 
   useEffect(() => {
@@ -121,6 +144,16 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
   };
 
   if (!loaded) return <ListSkeleton rows={2} label="Revisando conexión con Meta" />;
+  if (loadError && !conn) {
+    return (
+      <ErrorState
+        title="No pudimos revisar la conexión con Meta"
+        message={loadError}
+        onRetry={() => void retry()}
+        retrying={retrying}
+      />
+    );
+  }
 
   const tokenButton = (
     <Button size="sm" variant="ghost" onClick={() => setSysOpen(true)}>
@@ -145,14 +178,15 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
                 <RefreshCw aria-hidden className={`mr-1.5 h-4 w-4 ${busy ? "animate-spin" : ""}`} />
                 Sincronizar ayer
               </Button>
-              <DropdownMenu>
+              {/* modal={false}: el menú no bloquea el body; los diálogos se abren fuera del menú. */}
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button size="icon" variant="ghost" aria-label="Más opciones de Meta">
                     <MoreHorizontal aria-hidden className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => setSysOpen(true)}>
+                  <DropdownMenuItem disabled={busy} onSelect={() => setSysOpen(true)}>
                     <KeyRound aria-hidden className="mr-2 h-4 w-4" /> Cambiar token permanente
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
@@ -163,6 +197,7 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-danger-strong focus:text-danger-strong"
+                    disabled={busy}
                     onSelect={() => setConfirmOpen(true)}
                   >
                     <Unplug aria-hidden className="mr-2 h-4 w-4" /> Desconectar

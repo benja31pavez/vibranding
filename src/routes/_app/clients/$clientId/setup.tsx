@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, Info, Loader2, Lock } from "lucide-react";
@@ -164,7 +164,8 @@ function SetupPage() {
   const account = status?.account ?? null;
   const ig = status?.instagram ?? null;
 
-  // `undefined` = automático: abre el primer paso pendiente. `null` = todos cerrados.
+  // `undefined` = aún sin decidir; se fija UNA vez al primer paso pendiente (o ninguno) y
+  // desde ahí solo cambia por interacción, para no saltar de paso cuando uno pasa a «Listo».
   const [open, setOpen] = useState<number | null | undefined>(undefined);
   const [ingesting, setIngesting] = useState(false);
   const [result, setResult] = useState<SetupIngestResult | null>(null);
@@ -501,6 +502,12 @@ function SetupPage() {
     return true;
   });
 
+  const ready = !statusLoading && !capsLoading && !plan.isLoading;
+  const firstPending = steps.find((s) => s.state === "available")?.n ?? null;
+  useEffect(() => {
+    if (ready && open === undefined) setOpen(firstPending);
+  }, [ready, open, firstPending]);
+
   const loadError = statusError ?? capsError ?? plan.error;
   if (loadError) {
     return (
@@ -523,8 +530,7 @@ function SetupPage() {
   }
 
   const doneCount = steps.filter((s) => s.state === "done").length;
-  const openStep =
-    open === undefined ? (steps.find((s) => s.state === "available")?.n ?? null) : open;
+  const openStep = open === undefined ? firstPending : open;
 
   return (
     <div className="max-w-3xl space-y-4">
