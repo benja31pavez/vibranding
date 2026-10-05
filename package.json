@@ -16,7 +16,7 @@
     "check:recommend": "node scripts/check-recommend.mjs",
     "check:reminders": "node scripts/check-reminders.mjs",
     "check:month-plan": "node scripts/check-month-plan.mjs",
-    "check:all": "npm run check:proposal-copy && npm run check:growth && npm run check:health && npm run check:recommend && npm run check:reminders && npm run check:month-plan"
+    "check:all": "node scripts/check-all.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
