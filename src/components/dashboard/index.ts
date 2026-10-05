@@ -1,10 +1,11 @@
 export { KpiStrip } from "./kpi-strip";
-export { ApprovalsToday } from "./approvals-today";
-export { CampaignAlerts } from "./campaign-alerts";
-export { UpcomingPayments } from "./upcoming-payments";
+export { ApprovalsTab } from "./approvals-today";
+export { AlertsTab } from "./campaign-alerts";
+export { PaymentsTab } from "./upcoming-payments";
 export { PipelineFunnel } from "./pipeline-funnel";
-export { ScheduledPostsPanel, UpcomingDeliverablesPanel } from "./operations";
+export { DeliverablesTab, PostsTab } from "./operations";
 export { ReviewActivity } from "./review-activity";
 export { FollowupsToday } from "./followups-today";
+export { UpcomingTabs } from "./upcoming-tabs";
 export { chileToday } from "./queries";
 export { DashboardHoy } from "./dashboard-page";

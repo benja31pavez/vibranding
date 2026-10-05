@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Copy, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import { EmptyState, Money, MoneyTotals, Panel, StatusBadge } from "@/components/app";
+import { EmptyState, FitList, Money, MoneyTotals, StatusBadge } from "@/components/app";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { BlockState } from "./block-state";
@@ -13,8 +13,6 @@ import {
   type OpenPayment,
   type PaymentsSummary,
 } from "./queries";
-
-const VISIBLE_ROWS = 8;
 
 async function copyLink(url: string) {
   try {
@@ -33,11 +31,11 @@ function PaymentsSummaryLine({ data }: { data: PaymentsSummary }) {
     <dl className="grid grid-cols-2 gap-2">
       <div
         className={cn(
-          "rounded-app-md px-3 py-2",
+          "rounded-app-md px-3 py-1.5",
           overdue > 0 ? "bg-danger-subtle" : "bg-surface-2",
         )}
       >
-        <dt className="text-xs text-muted-foreground">Pagos vencidos</dt>
+        <dt className="text-xs text-muted-foreground">Vencidos</dt>
         <dd className="flex flex-wrap items-baseline gap-x-2 tabular-nums">
           <span className={cn("text-lg font-semibold", overdue > 0 && "text-danger-strong")}>
             {overdue}
@@ -45,8 +43,8 @@ function PaymentsSummaryLine({ data }: { data: PaymentsSummary }) {
           <MoneyTotals totals={data.overdueTotals} className="text-xs text-muted-foreground" />
         </dd>
       </div>
-      <div className="rounded-app-md bg-surface-2 px-3 py-2">
-        <dt className="text-xs text-muted-foreground">Cobros próximos {UPCOMING_DAYS} días</dt>
+      <div className="rounded-app-md bg-surface-2 px-3 py-1.5">
+        <dt className="text-xs text-muted-foreground">Próximos {UPCOMING_DAYS} días</dt>
         <dd className="flex flex-wrap items-baseline gap-x-2 tabular-nums">
           <span className="text-lg font-semibold">{data.upcoming.length}</span>
           <MoneyTotals totals={data.upcomingTotals} className="text-xs text-muted-foreground" />
@@ -56,54 +54,44 @@ function PaymentsSummaryLine({ data }: { data: PaymentsSummary }) {
   );
 }
 
-/** Vencidos + pendientes de los próximos 7 días (también resume sus totales). */
-export function UpcomingPayments() {
+/** Pestaña "Cobros": vencidos + pendientes de los próximos 7 días, con sus totales. */
+export function PaymentsTab() {
   const query = useOpenPayments();
   const clients = useClientIndex();
   const nameOf = (id: string) => clients.data?.nameById.get(id) ?? "Cliente";
 
   return (
-    <Panel
-      className="min-w-0"
-      icon={Wallet}
-      title="Próximos cobros"
-      description={`Vencidos y por vencer en ${UPCOMING_DAYS} días`}
-    >
-      <BlockState query={query} loadingLabel="Cargando cobros">
-        {(data) =>
-          data.agenda.length === 0 ? (
-            <EmptyState
-              size="compact"
-              className="py-3"
-              icon={Wallet}
-              title="Sin cobros esta semana."
-              description="No hay pagos vencidos ni por vencer."
+    <BlockState query={query} loadingLabel="Cargando cobros">
+      {(data) =>
+        data.agenda.length === 0 ? (
+          <EmptyState
+            size="compact"
+            className="py-3"
+            icon={Wallet}
+            title="Sin cobros esta semana."
+            description="No hay pagos vencidos ni por vencer."
+          />
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col gap-2">
+            <PaymentsSummaryLine data={data} />
+            <FitList
+              items={data.agenda}
+              getKey={(p) => p.id}
+              label="Cobros"
+              sheetDescription={`Vencidos y por vencer en ${UPCOMING_DAYS} días.`}
+              renderItem={(p) => <PaymentRow payment={p} clientName={nameOf(p.client_id)} />}
             />
-          ) : (
-            <div className="space-y-3">
-              <PaymentsSummaryLine data={data} />
-              <ul className="divide-y divide-border-subtle">
-                {data.agenda.slice(0, VISIBLE_ROWS).map((p) => (
-                  <PaymentRow key={p.id} payment={p} clientName={nameOf(p.client_id)} />
-                ))}
-              </ul>
-              {data.agenda.length > VISIBLE_ROWS && (
-                <p className="text-xs text-muted-foreground">
-                  y {data.agenda.length - VISIBLE_ROWS} más…
-                </p>
-              )}
-            </div>
-          )
-        }
-      </BlockState>
-    </Panel>
+          </div>
+        )
+      }
+    </BlockState>
   );
 }
 
 function PaymentRow({ payment: p, clientName }: { payment: OpenPayment; clientName: string }) {
   const overdue = p.status === "overdue";
   return (
-    <li className="flex items-center gap-3 py-2 text-sm last:pb-0">
+    <div className="flex items-center gap-3 py-2 text-sm">
       <div className="min-w-0 flex-1 space-y-0.5">
         <Link
           to="/clients/$clientId/payments"
@@ -142,6 +130,6 @@ function PaymentRow({ payment: p, clientName }: { payment: OpenPayment; clientNa
       ) : (
         <span aria-hidden className="w-8 shrink-0" />
       )}
-    </li>
+    </div>
   );
 }

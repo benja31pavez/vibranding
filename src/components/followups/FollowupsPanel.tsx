@@ -11,6 +11,7 @@ import {
   type StatusTone,
 } from "@/components/app";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { chileToday } from "@/lib/dates/chile";
 import { SITE_URL } from "@/lib/site";
 import { useAuth } from "@/hooks/use-auth";
@@ -78,7 +79,7 @@ function useSnoozes() {
   return { isHidden: (id: string) => isSnoozed(map, id, today), snooze };
 }
 
-function OpenLink({ target }: { target: FollowupTarget }) {
+function OpenLink({ target, compact }: { target: FollowupTarget; compact?: boolean }) {
   const cls = "h-7 text-xs";
   const icon = <ExternalLink aria-hidden className="mr-1 h-3.5 w-3.5" />;
   switch (target.screen) {
@@ -86,7 +87,7 @@ function OpenLink({ target }: { target: FollowupTarget }) {
       return (
         <Button asChild size="sm" variant="ghost" className={cls}>
           <Link to="/pipeline" search={{ prospecto: target.prospectId }}>
-            {icon} Abrir ficha
+            {icon} {compact ? "Abrir" : "Abrir ficha"}
           </Link>
         </Button>
       );
@@ -94,7 +95,7 @@ function OpenLink({ target }: { target: FollowupTarget }) {
       return (
         <Button asChild size="sm" variant="ghost" className={cls}>
           <Link to="/proposals/$proposalId" params={{ proposalId: target.proposalId }}>
-            {icon} Abrir propuesta
+            {icon} {compact ? "Abrir" : "Abrir propuesta"}
           </Link>
         </Button>
       );
@@ -102,7 +103,7 @@ function OpenLink({ target }: { target: FollowupTarget }) {
       return (
         <Button asChild size="sm" variant="ghost" className={cls}>
           <Link to="/clients/$clientId/payments" params={{ clientId: target.clientId }}>
-            {icon} Abrir cobros
+            {icon} {compact ? "Abrir" : "Abrir cobros"}
           </Link>
         </Button>
       );
@@ -110,75 +111,114 @@ function OpenLink({ target }: { target: FollowupTarget }) {
       return (
         <Button asChild size="sm" variant="ghost" className={cls}>
           <Link to="/clients/$clientId" params={{ clientId: target.clientId }}>
-            {icon} Abrir ficha
+            {icon} {compact ? "Abrir" : "Abrir ficha"}
           </Link>
         </Button>
       );
   }
 }
 
-function FollowupRow({
-  item,
-  showOpen,
-  onDone,
-  onContacted,
-  busy,
-}: {
+export interface FollowupRowProps {
   item: Followup;
   showOpen: boolean;
   onDone: (f: Followup) => void;
   /** Se llama tras copiar o abrir WhatsApp (p. ej. registra el pedido de reseña). */
   onContacted: (f: Followup) => void;
   busy: boolean;
-}) {
+  /** Columna angosta (Inicio en escritorio): acciones abajo con etiquetas cortas. */
+  compact?: boolean;
+}
+
+export function FollowupRow({
+  item,
+  showOpen,
+  onDone,
+  onContacted,
+  busy,
+  compact,
+}: FollowupRowProps) {
   const wa = item.whatsappPhone ? whatsappHref(item.whatsappPhone, messageFor(item)) : null;
   const priority = PRIORITY_META[item.priority];
+  const btn = cn("h-7 text-xs", compact && "px-2");
+  const done = compact ? (
+    <Button
+      size="icon"
+      variant="outline"
+      className="ml-auto h-7 w-7 shrink-0"
+      disabled={busy}
+      aria-label={`Marcar como hecho: ${item.businessName}`}
+      title="Marcar como hecho"
+      onClick={() => onDone(item)}
+    >
+      <Check aria-hidden className="h-3.5 w-3.5" />
+    </Button>
+  ) : (
+    <Button
+      size="sm"
+      variant="outline"
+      className={btn}
+      disabled={busy}
+      onClick={() => onDone(item)}
+    >
+      <Check aria-hidden className="mr-1 h-3.5 w-3.5" /> Marcar como hecho
+    </Button>
+  );
   return (
-    <li className="flex flex-col gap-2 border-b border-border-subtle py-3 last:border-0 sm:flex-row sm:items-start sm:justify-between">
+    <div
+      className={cn(
+        "flex flex-col py-3",
+        compact ? "gap-1" : "gap-2 sm:flex-row sm:items-start sm:justify-between",
+      )}
+    >
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <StatusBadge
             status={item.priority}
-            label={`Prioridad ${priority.label.toLowerCase()}`}
+            label={compact ? priority.label : `Prioridad ${priority.label.toLowerCase()}`}
             tone={priority.tone}
+            className="shrink-0"
           />
           <span className="truncate text-sm font-medium text-foreground">{item.businessName}</span>
+          {compact && done}
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">{item.reason}</p>
+        <p className={cn("mt-1 text-xs text-muted-foreground", compact && "line-clamp-2")}>
+          {item.reason}
+        </p>
       </div>
-      <div className="grid grid-cols-2 gap-1 sm:flex sm:shrink-0 sm:flex-wrap sm:items-center sm:justify-end [&>*:last-child]:col-span-2 [&>*:last-child]:justify-center [&>*]:justify-start sm:[&>*]:justify-center">
-        {showOpen && <OpenLink target={item.target} />}
+      <div
+        className={cn(
+          compact
+            ? "flex flex-wrap items-center gap-0.5"
+            : "grid grid-cols-2 gap-1 sm:flex sm:shrink-0 sm:flex-wrap sm:items-center sm:justify-end [&>*:last-child]:col-span-2 [&>*:last-child]:justify-center [&>*]:justify-start sm:[&>*]:justify-center",
+        )}
+      >
+        {showOpen && <OpenLink target={item.target} compact={compact} />}
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 text-xs"
+          className={btn}
+          aria-label={compact ? `Copiar mensaje para ${item.businessName}` : undefined}
           onClick={() => void copyMessage(item).then((ok) => ok && onContacted(item))}
         >
-          <Copy aria-hidden className="mr-1 h-3.5 w-3.5" /> Copiar mensaje
+          <Copy aria-hidden className="mr-1 h-3.5 w-3.5" /> {compact ? "Copiar" : "Copiar mensaje"}
         </Button>
         {wa && (
-          <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+          <Button asChild size="sm" variant="ghost" className={btn}>
             <a
               href={wa}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label={compact ? `Abrir WhatsApp con ${item.businessName}` : undefined}
               onClick={() => onContacted(item)}
             >
-              <MessageCircle aria-hidden className="mr-1 h-3.5 w-3.5" /> Abrir WhatsApp
+              <MessageCircle aria-hidden className="mr-1 h-3.5 w-3.5" />{" "}
+              {compact ? "WhatsApp" : "Abrir WhatsApp"}
             </a>
           </Button>
         )}
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 text-xs"
-          disabled={busy}
-          onClick={() => onDone(item)}
-        >
-          <Check aria-hidden className="mr-1 h-3.5 w-3.5" /> Marcar como hecho
-        </Button>
+        {!compact && done}
       </div>
-    </li>
+    </div>
   );
 }
 
@@ -197,18 +237,20 @@ export interface FollowupsPanelProps {
   onProspectContactRecorded?: (prospectId: string, contactedAt: string) => void;
 }
 
-/** Lista priorizada de seguimientos con acciones en 1 clic. */
-export function FollowupsPanel({
-  scope,
-  limit = DEFAULT_LIMIT,
-  hideOpenForProspect,
-  hideWhenEmpty,
-  onProspectContactRecorded,
-}: FollowupsPanelProps) {
+export interface FollowupActionsOptions {
+  /** Sin scope: todos (pantalla "Hoy"). Con scope: solo los de ese cliente/prospecto. */
+  scope?: { clientId?: string | null; prospectId?: string | null };
+  onProspectContactRecorded?: (prospectId: string, contactedAt: string) => void;
+}
+
+/**
+ * Seguimientos visibles (sin los ocultos hasta mañana) y sus acciones.
+ * Lo usan el panel de la ficha y la columna "Para hacer hoy" de Inicio.
+ */
+export function useFollowupActions({ scope, onProspectContactRecorded }: FollowupActionsOptions) {
   const query = useFollowups();
   const record = useRecordProspectContact();
   const { isHidden, snooze } = useSnoozes();
-  const [showAll, setShowAll] = useState(false);
   // "Pedir reseña" solo en "Inicio" (en la ficha está el panel de reseñas).
   const reviewItems = useReviewFollowups(!scope);
   const { markAsked } = useReviewAsked();
@@ -244,6 +286,24 @@ export function FollowupsPanel({
       toast.warning("Este navegador no permite recordarlo; puede volver a aparecer.");
     }
   };
+
+  const isBusy = (f: Followup) => record.isPending && record.variables === f.prospectId;
+  return { query, visible, onDone, onContacted, isBusy };
+}
+
+/** Lista priorizada de seguimientos con acciones en 1 clic. */
+export function FollowupsPanel({
+  scope,
+  limit = DEFAULT_LIMIT,
+  hideOpenForProspect,
+  hideWhenEmpty,
+  onProspectContactRecorded,
+}: FollowupsPanelProps) {
+  const { query, visible, onDone, onContacted, isBusy } = useFollowupActions({
+    scope,
+    onProspectContactRecorded,
+  });
+  const [showAll, setShowAll] = useState(false);
 
   if (hideWhenEmpty && query.isSuccess && visible.length === 0) return null;
 
@@ -284,14 +344,15 @@ export function FollowupsPanel({
       ) : (
         <ul className="-my-3">
           {shown.map((f) => (
-            <FollowupRow
-              key={f.id}
-              item={f}
-              showOpen={!(hideOpenForProspect && f.target.screen === "prospect")}
-              onDone={onDone}
-              onContacted={onContacted}
-              busy={record.isPending && record.variables === f.prospectId}
-            />
+            <li key={f.id} className="border-b border-border-subtle last:border-0">
+              <FollowupRow
+                item={f}
+                showOpen={!(hideOpenForProspect && f.target.screen === "prospect")}
+                onDone={onDone}
+                onContacted={onContacted}
+                busy={isBusy(f)}
+              />
+            </li>
           ))}
         </ul>
       )}
