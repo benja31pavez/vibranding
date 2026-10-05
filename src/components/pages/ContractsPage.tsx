@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { chileToday } from "@/lib/dates/chile";
-import { ErrorState, ListSkeleton } from "@/components/app";
+import { ErrorState, ListSkeleton, Money } from "@/components/app";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -149,10 +149,6 @@ export function ContractsPage({ clientId }: { clientId: string }) {
     if (!pricing || !services || !client) return;
     if (selected.size === 0 && !selectedPlan) { toast.error("Selecciona un plan o al menos un servicio"); return; }
     const plan = findPlan(selectedPlan);
-    if (plan && pricing.currency !== DEFAULT_CURRENCY) {
-      toast.error("Los planes se cobran en CLP. Cambia la moneda por defecto a CLP en Servicios.");
-      return;
-    }
     setCreating(true);
     const planSnap = plan
       ? [{
@@ -183,7 +179,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
     const { error } = await supabase.from("client_contracts").insert({
       client_id: clientId,
       title: `Contrato — ${client.name}`,
-      currency: pricing.currency,
+      currency: DEFAULT_CURRENCY,
       payment_due_days: pricing.payment_due_days,
       agency_snapshot: {
         name: AGENCY_DEFAULTS.name,
@@ -261,8 +257,6 @@ export function ContractsPage({ clientId }: { clientId: string }) {
   }
   if (!client || !pricing || !services) return <ListSkeleton rows={4} label="Cargando contratos" />;
 
-  const currencyIsClp = pricing.currency.toUpperCase() === DEFAULT_CURRENCY;
-
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <div>
@@ -281,13 +275,6 @@ export function ContractsPage({ clientId }: { clientId: string }) {
           <h2 className="text-lg font-semibold">Nuevo contrato</h2>
         </div>
 
-        {!currencyIsClp && (
-          <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-xs">
-            Tu moneda por defecto es <strong>{pricing.currency}</strong>. Los planes se cobran en CLP, así que no
-            puedes crear contratos con plan hasta cambiar la moneda a CLP en Servicios.
-          </div>
-        )}
-
         <div>
           <Label className="text-xs text-muted-foreground">Plan (CLP, IVA incluido)</Label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2" role="radiogroup" aria-label="Plan">
@@ -299,7 +286,6 @@ export function ContractsPage({ clientId }: { clientId: string }) {
                   type="button"
                   role="radio"
                   aria-checked={checked}
-                  disabled={!currencyIsClp}
                   onClick={() => setSelectedPlan(checked ? null : plan.key)}
                   className={`text-left rounded-xl border p-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                     checked ? "border-primary/50 bg-primary/5" : "hover:bg-muted/30"
@@ -331,9 +317,9 @@ export function ContractsPage({ clientId }: { clientId: string }) {
                   <div className="min-w-0">
                     <div className="text-sm font-medium">{s.label}</div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {Number(row.one_time_price) > 0 && <>Setup {formatMoney(pricing.currency, Number(row.one_time_price))}</>}
+                      {Number(row.one_time_price) > 0 && <>Setup {formatMoney(Number(row.one_time_price))}</>}
                       {Number(row.one_time_price) > 0 && Number(row.monthly_price) > 0 && " · "}
-                      {Number(row.monthly_price) > 0 && <>{formatMoney(pricing.currency, Number(row.monthly_price))}/mes</>}
+                      {Number(row.monthly_price) > 0 && <>{formatMoney(Number(row.monthly_price))}/mes</>}
                       {Number(row.one_time_price) === 0 && Number(row.monthly_price) === 0 && "Sin precio configurado"}
                     </div>
                   </div>
@@ -354,7 +340,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
           <div className="text-xs text-muted-foreground">
             Plazo de pago: <strong>{pricing.payment_due_days} días</strong> · Pagos por etapa, no acumulados.
           </div>
-          <Button onClick={createContract} disabled={creating || (selected.size === 0 && !selectedPlan) || (!!selectedPlan && !currencyIsClp)}>
+          <Button onClick={createContract} disabled={creating || (selected.size === 0 && !selectedPlan)}>
             <Plus className="w-4 h-4 mr-1" /> Crear contrato
           </Button>
         </div>
@@ -375,7 +361,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
                   <div className="font-medium truncate">{c.title}</div>
                   <div className="text-xs text-muted-foreground">
                     {new Date(c.created_at).toLocaleDateString("es-CL")} · {c.services_snapshot?.length ?? 0} servicios ·{" "}
-                    Pago único {formatMoney(c.currency, Number(c.total_one_time))} · {formatMoney(c.currency, Number(c.total_monthly))}/mes
+                    Pago único <Money amount={Number(c.total_one_time)} currency={c.currency} /> · <Money amount={Number(c.total_monthly)} currency={c.currency} />/mes
                   </div>
                 </div>
                 <select
@@ -405,7 +391,6 @@ export function ContractsPage({ clientId }: { clientId: string }) {
           <ContractDocument
             ref={pdfRef}
             title={previewing.title}
-            currency={previewing.currency}
             effective_date={previewing.effective_date ?? ""}
             payment_due_days={previewing.payment_due_days}
             jurisdiction={previewing.agency_snapshot?.jurisdiction ?? ""}

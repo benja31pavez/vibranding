@@ -17,7 +17,7 @@ import { PageHeader, StatCard, Panel, EmptyState, ErrorState,
 | `EmptyState` | `title`, `description?`, `icon?`, `action?`, `size?: "compact"` (dentro de un Panel). |
 | `ErrorState` | `message?`, `onRetry?`, `title?`. Tiene `role="alert"`. Nunca silencies un error de carga. |
 | `ListSkeleton` / `TableSkeleton` | En vez de "Cargando…". `rows`, `columns` (tabla), `label` para lectores de pantalla. |
-| `Money` / `MoneyTotals` | `formatMoney` de `lib/pricing/plans` en es-CL. CLP sin decimales; `currency` opcional. |
+| `Money` / `MoneyTotals` | Montos en CLP (`$149.990`, sin decimales). `Money` marca registros antiguos en otra moneda como "Moneda antigua (USD)"; `MoneyTotals` recibe `ClpTotals` (nunca suma otras monedas). |
 | `StatusBadge` | `status` (clave de BD en inglés) → etiqueta en español + color. `label`/`tone` para sobrescribir. Mapa en `STATUS_MAP`. |
 
 Patrón de carga: `loading → <Skeleton/>`, `error → <ErrorState onRetry/>`, `vacío → <EmptyState/>`, datos.

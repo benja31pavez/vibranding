@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { formatMoney, formatPlainAmount, isLegacyCurrency, legacyCurrencyLabel } from "@/lib/pricing/plans";
 import { chileDayStartIso, dayKeyOf } from "./dates";
 import type { AgendaItem, AgendaKind, AgendaRange } from "./types";
 
@@ -30,15 +31,10 @@ const CANCELLED_BOOKING_STATUSES = "(cancelled,canceled,cancelado)";
 
 type ClientRef = { name: string } | null;
 
-const CLP = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
-
-function money(amount: number, currency = "CLP"): string {
-  if (currency === "CLP") return CLP.format(amount);
-  return new Intl.NumberFormat("es-CL", { style: "currency", currency }).format(amount);
+/** Montos en CLP; un registro antiguo en otra moneda se marca, no se hace pasar por pesos. */
+function money(amount: number, currency: string | null | undefined): string {
+  if (isLegacyCurrency(currency)) return `${formatPlainAmount(amount)} (${legacyCurrencyLabel(currency)})`;
+  return formatMoney(amount);
 }
 
 function truncate(text: string): string {
@@ -267,7 +263,7 @@ export async function fetchSubscriptionItems(range: AgendaRange): Promise<Agenda
             allDay: true,
             clientId: s.client_id,
             clientName: (s.client as ClientRef)?.name ?? NO_CLIENT,
-            title: truncate(`Cargo de suscripción ${s.plan_key} · ${money(s.amount_clp)}`),
+            title: truncate(`Cargo de suscripción ${s.plan_key} · ${formatMoney(s.amount_clp)}`),
             status: s.status,
             href: clientHref(s.client_id, "facturacion", "pagos"),
           },

@@ -98,11 +98,11 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
     setDirty(true);
     if (plan?.billing === "monthly") {
       setDraft((d) => ({ ...d, planKey: plan.key, mrr: String(plan.price) }));
-      setMrrHint(`Sugerido: ${formatMoney(null, plan.price)} al mes según ${plan.label}.`);
+      setMrrHint(`Sugerido: ${formatMoney(plan.price)} al mes según ${plan.label}.`);
       return;
     }
     setDraft((d) => ({ ...d, planKey: plan?.key ?? NO_PLAN }));
-    setMrrHint(plan ? `${plan.label} es un pago único (${formatMoney(null, plan.price)}); no suma MRR.` : null);
+    setMrrHint(plan ? `${plan.label} es un pago único (${formatMoney(plan.price)}); no suma MRR.` : null);
   };
 
   const submit = async (e: FormEvent) => {
@@ -168,7 +168,7 @@ export function BillingCard({ clientId, overview }: { clientId: string; overview
                 <SelectItem value={NO_PLAN}>Sin plan</SelectItem>
                 {PLANS.map((p) => (
                   <SelectItem key={p.key} value={p.key}>
-                    {p.label} · {formatMoney(null, p.price)}{p.billing === "monthly" ? "/mes" : " único"}
+                    {p.label} · {formatMoney(p.price)}{p.billing === "monthly" ? "/mes" : " único"}
                   </SelectItem>
                 ))}
               </SelectContent>

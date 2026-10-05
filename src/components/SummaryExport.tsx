@@ -312,8 +312,7 @@ export function SummaryExport({
       </div>
 
       {pricing && (() => {
-        const cur = pricing.currency;
-        const f = (n: number) => formatMoney(cur, n);
+        const f = (n: number) => formatMoney(n);
         const Row = ({ k, v, sub }: any) => (
           <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.line}`, gap: 12 }}>
             <div>
@@ -334,7 +333,7 @@ export function SummaryExport({
             <div style={{ marginTop: 24, border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, background: C.surface }}>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
                 <div style={{ fontSize: 16, fontWeight: 700 }}>Servicios</div>
-                <div style={{ fontSize: 10, color: C.muted }}>{cur}</div>
+                <div style={{ fontSize: 10, color: C.muted }}>CLP</div>
               </div>
               <Row k="Pack inicial · primer contacto + edición de perfil" sub={pricing.pack_description} v={f(pricing.pack_price)} />
               <Row k="Foto adicional" v={f(pricing.photo_price)} />

@@ -17,7 +17,6 @@ export interface ContractDocProps {
     address: string;
     email: string;
   };
-  currency: string;
   effective_date: string;
   payment_due_days: number;
   jurisdiction: string;
@@ -47,10 +46,10 @@ const C = {
   bg: "#ffffff",
 };
 
-const money = (cur: string, n: number) => formatMoney(cur, n);
+const money = (n: number) => formatMoney(n);
 
 export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(function ContractDocument(
-  { agency, client, currency, effective_date, payment_due_days, jurisdiction, governingLaw, vatIncluded, services, clauses, totals, title },
+  { agency, client, effective_date, payment_due_days, jurisdiction, governingLaw, vatIncluded, services, clauses, totals, title },
   ref
 ) {
   const today = effective_date || new Date().toISOString().slice(0, 10);
@@ -127,29 +126,29 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(fun
                   ) : null}
                 </td>
                 <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
-                  {Number(s.one_time_price) > 0 ? money(currency, Number(s.one_time_price)) : "—"}
+                  {Number(s.one_time_price) > 0 ? money(Number(s.one_time_price)) : "—"}
                 </td>
                 <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
-                  {Number(s.monthly_price) > 0 ? `${money(currency, Number(s.monthly_price))}/mes` : "—"}
+                  {Number(s.monthly_price) > 0 ? `${money(Number(s.monthly_price))}/mes` : "—"}
                 </td>
               </tr>
             ))}
             <tr style={{ background: "#f8fafc", fontWeight: 700 }}>
               <td style={tdStyle}>Total</td>
-              <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, totals.one_time)}</td>
-              <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, totals.monthly)}/mes</td>
+              <td style={{ ...tdStyle, textAlign: "right" }}>{money(totals.one_time)}</td>
+              <td style={{ ...tdStyle, textAlign: "right" }}>{money(totals.monthly)}/mes</td>
             </tr>
             {showVat && (
               <>
                 <tr style={{ color: C.sub, fontSize: 12 }}>
                   <td style={tdStyle}>Neto</td>
-                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, oneTimeVat.net)}</td>
-                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, monthlyVat.net)}/mes</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(oneTimeVat.net)}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(monthlyVat.net)}/mes</td>
                 </tr>
                 <tr style={{ color: C.sub, fontSize: 12 }}>
                   <td style={tdStyle}>IVA (19%)</td>
-                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, oneTimeVat.vat)}</td>
-                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(currency, monthlyVat.vat)}/mes</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(oneTimeVat.vat)}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{money(monthlyVat.vat)}/mes</td>
                 </tr>
               </>
             )}
@@ -158,7 +157,7 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(fun
       )}
       {showVat && services.length > 0 && (
         <p style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>
-          Montos en {currency.toUpperCase()}, IVA incluido.
+          Montos en pesos chilenos (CLP), IVA incluido.
           {includesAds && " La inversión en publicidad pagada (pauta en Meta Ads) no está incluida y la paga directamente el cliente."}
         </p>
       )}

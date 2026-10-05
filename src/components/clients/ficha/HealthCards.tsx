@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { AlertTriangle, CheckCircle2, ClipboardCheck, Megaphone, Wallet } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MoneyTotals, TONE_CLASSES, type StatusTone } from "@/components/app";
-import { addMoney, type MoneyByCurrency } from "@/lib/pricing/plans";
+import { EMPTY_CLP_TOTALS, addClp, type ClpTotals } from "@/lib/pricing/plans";
 import { cn } from "@/lib/utils";
 import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import type { FichaHealth } from "./fichaQueries";
@@ -19,8 +19,8 @@ interface HealthCardsProps {
 /** Planes que incluyen gestión de campañas en Meta Ads. */
 const PLANS_WITH_ADS: readonly string[] = ["crecimiento"];
 
-function totalsByCurrency(rows: FichaHealth["payments"]): MoneyByCurrency {
-  return rows.reduce<MoneyByCurrency>((acc, p) => addMoney(acc, p.currency, Number(p.amount)), {});
+function clpTotals(rows: FichaHealth["payments"]): ClpTotals {
+  return rows.reduce<ClpTotals>((acc, p) => addClp(acc, p.currency, Number(p.amount)), EMPTY_CLP_TOTALS);
 }
 
 /** Tres semáforos: entregas por aprobar, cobros abiertos y alertas de campañas. */
@@ -53,11 +53,11 @@ export function HealthCards({ clientId, health, loading, planKey = null }: Healt
           ) : (
             <span className="space-x-1">
               {overdue.length > 0 && (
-                <span>{overdue.length} vencido{overdue.length === 1 ? "" : "s"} (<MoneyTotals totals={totalsByCurrency(overdue)} />)</span>
+                <span>{overdue.length} vencido{overdue.length === 1 ? "" : "s"} (<MoneyTotals totals={clpTotals(overdue)} />)</span>
               )}
               {overdue.length > 0 && pending.length > 0 && <span>·</span>}
               {pending.length > 0 && (
-                <span>{pending.length} pendiente{pending.length === 1 ? "" : "s"} (<MoneyTotals totals={totalsByCurrency(pending)} />)</span>
+                <span>{pending.length} pendiente{pending.length === 1 ? "" : "s"} (<MoneyTotals totals={clpTotals(pending)} />)</span>
               )}
             </span>
           )

@@ -1,7 +1,7 @@
 import { formatMoney } from "@/lib/pricing/plans";
 import { computeTotals, type ProposalItem } from "@/lib/proposals/model";
 
-const clp = (n: number) => formatMoney("CLP", n);
+const clp = (n: number) => formatMoney(n);
 
 function billingLabel(item: ProposalItem): string {
   return item.billing === "monthly" ? "mensual" : "pago único";

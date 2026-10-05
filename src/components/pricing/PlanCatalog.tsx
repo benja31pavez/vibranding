@@ -1,7 +1,6 @@
 import { Rocket, Camera, MonitorSmartphone } from "lucide-react";
 import {
   PLANS,
-  DEFAULT_CURRENCY,
   formatMoney,
   splitVat,
   type Plan,
@@ -21,20 +20,12 @@ const PLAN_TONES: Record<PlanKey, string> = {
 };
 
 /** Desglose neto + IVA 19 % de un monto con IVA incluido. */
-export function VatLines({
-  gross,
-  currency = DEFAULT_CURRENCY,
-  label,
-}: {
-  gross: number;
-  currency?: string;
-  label?: string;
-}) {
+export function VatLines({ gross, label }: { gross: number; label?: string }) {
   const { net, vat } = splitVat(gross);
   return (
     <div className="text-[11px] text-muted-foreground tabular-nums leading-snug">
       {label && <span className="font-medium">{label}: </span>}
-      Neto {formatMoney(currency, net)} · IVA 19% {formatMoney(currency, vat)}
+      Neto {formatMoney(net)} · IVA 19% {formatMoney(vat)}
     </div>
   );
 }
@@ -63,7 +54,7 @@ function PlanCard({ plan }: { plan: Plan }) {
       </div>
       <div>
         <div className="text-2xl font-bold tabular-nums">
-          {formatMoney(DEFAULT_CURRENCY, plan.price)}
+          {formatMoney(plan.price)}
           <span className="text-sm font-medium text-muted-foreground">
             {plan.billing === "monthly" ? "/mes" : " pago único"}
           </span>

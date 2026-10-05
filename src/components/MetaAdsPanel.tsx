@@ -15,6 +15,7 @@ import { Plus, Trash2, RefreshCw, Megaphone, Layers, Image as ImageIcon, Sparkle
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { EmptyState, ErrorState } from "@/components/app";
+import { DEFAULT_CURRENCY, normalizeCurrency } from "@/lib/pricing/plans";
 import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { MediaUpload } from "./MediaUpload";
 import { CampaignWizard } from "./meta-ads/CampaignWizard";
@@ -37,7 +38,9 @@ type MetaObjective = "OUTCOME_AWARENESS" | "OUTCOME_TRAFFIC" | "OUTCOME_ENGAGEME
 type MetaPlacement = "feed" | "stories" | "reels" | "marketplace" | "search" | "audience_network";
 type MetaCTA = "LEARN_MORE" | "SHOP_NOW" | "SIGN_UP" | "SUBSCRIBE" | "CONTACT_US" | "BOOK_TRAVEL" | "DOWNLOAD" | "GET_OFFER" | "APPLY_NOW" | "SEND_MESSAGE" | "WATCH_MORE";
 
-interface Account { id: string; client_id: string; ad_account_id: string | null; business_name: string | null; page_id: string | null; ig_account_id: string | null; last_synced_at: string | null; }
+interface Account { id: string; client_id: string; ad_account_id: string | null; business_name: string | null; page_id: string | null; ig_account_id: string | null; last_synced_at: string | null;
+  /** Moneda de la cuenta publicitaria en Meta (la decide Meta, no la plataforma). */
+  currency?: string | null; }
 interface Campaign { id: string; client_id: string; name: string; objective: MetaObjective; status: MetaStatus; daily_budget: number | null; lifetime_budget: number | null; currency: string | null; start_time: string | null; stop_time: string | null; notes: string | null; position: number; fb_campaign_id: string | null; }
 interface AdSet { id: string; client_id: string; campaign_id: string; name: string; status: MetaStatus; daily_budget: number | null; optimization_goal: string | null; audience_summary: string | null; age_min: number | null; age_max: number | null; genders: string | null; countries: string | null; interests: string | null; placements: string[]; position: number; }
 interface Ad { id: string; client_id: string; adset_id: string; name: string; status: MetaStatus; format: string; image_url: string | null; video_url: string | null; carousel_urls: string[]; primary_text: string | null; headline: string | null; description: string | null; cta: MetaCTA | null; link_url: string | null; placement: MetaPlacement; position: number; }
@@ -344,6 +347,8 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     );
   }
 
+  const metaCurrency = account?.currency ? normalizeCurrency(account.currency) : null;
+
   return (
     <div className="space-y-6">
       {/* Account config */}
@@ -410,6 +415,13 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
             <Sparkles className="w-4 h-4 mr-1" /> Crear campaña en Meta
           </Button>
         </div>
+        {metaCurrency && metaCurrency !== DEFAULT_CURRENCY && (
+          <div role="status" className="rounded-xl border border-warning/40 bg-warning-subtle p-3 text-xs text-warning-strong">
+            La cuenta publicitaria de este cliente está en <strong>{metaCurrency}</strong> en Meta. La plataforma
+            trabaja en CLP, pero Meta interpreta los presupuestos en la moneda de la cuenta ({metaCurrency}).
+            Para evitar errores, cambia la moneda de la cuenta a CLP en Meta o revisa cada presupuesto.
+          </div>
+        )}
         {campaigns.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center border-2 border-dashed rounded-xl">Aún no hay campañas. Crea una para empezar.</p>
         ) : (
@@ -450,13 +462,10 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                           <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>)}</SelectContent>
                         </Select>
                       </Field>
-                      <Field label="Moneda">
-                        <Input defaultValue={c.currency ?? "CLP"} onBlur={(e) => updateCampaign(c.id, { currency: e.target.value || null })} />
-                      </Field>
-                      <Field label="Presupuesto diario">
+                      <Field label="Presupuesto diario (CLP)">
                         <Input type="number" defaultValue={c.daily_budget ?? ""} onBlur={(e) => updateCampaign(c.id, { daily_budget: e.target.value ? Number(e.target.value) : null })} />
                       </Field>
-                      <Field label="Presupuesto total">
+                      <Field label="Presupuesto total (CLP)">
                         <Input type="number" defaultValue={c.lifetime_budget ?? ""} onBlur={(e) => updateCampaign(c.id, { lifetime_budget: e.target.value ? Number(e.target.value) : null })} />
                       </Field>
                       <Field label="Inicio">
@@ -493,7 +502,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                                   <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>)}</SelectContent>
                                 </Select>
                               </Field>
-                              <Field label="Presupuesto diario">
+                              <Field label="Presupuesto diario (CLP)">
                                 <Input type="number" defaultValue={a.daily_budget ?? ""} onBlur={(e) => updateAdSet(a.id, { daily_budget: e.target.value ? Number(e.target.value) : null })} />
                               </Field>
                               <Field label="Optimización">

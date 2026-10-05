@@ -70,7 +70,7 @@ export function Step1Campaign({
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Monto del presupuesto *</Label>
+              <Label>Monto del presupuesto (CLP) *</Label>
               <Input type="number" min={1} value={draft.budgetAmount ?? ""} onChange={(e) => onChange({ budgetAmount: Number(e.target.value) })} />
               <E k="budgetAmount" />
             </div>
