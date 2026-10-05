@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageContainer, PageHeader } from "@/components/app";
 import { PostFeedbackPanel } from "@/components/instagram/PostFeedbackPanel";
+import { AutomationsSummaryCard } from "@/components/automations/automations-status";
 import {
   ApprovalsToday,
   CampaignAlerts,
@@ -37,6 +38,8 @@ function Dashboard() {
       <PageHeader title="Hoy" description={`${todayLabel()} · seguimientos, cobros, aprobaciones y alertas del día.`} />
 
       <KpiStrip />
+
+      <AutomationsSummaryCard />
 
       <FollowupsToday />
 

@@ -4,11 +4,18 @@
  * next_charge_date un mes. Seguro de re-ejecutar:
  *  - el índice único payments_subscription_period_uk impide duplicar el mes;
  *  - el avance de fecha es condicional (solo si nadie lo movió antes).
+ * Si hay meses atrasados se cobran como máximo MAX_CATCH_UP_PERIODS por
+ * corrida (ver ./catchUp); el resto queda para las corridas siguientes y se
+ * informa en `ponerseAlDia`.
  */
+import {
+  CATCH_UP_LOG_TAG,
+  catchUpNotices,
+  shouldContinueCatchUp,
+  type CatchUpNotice,
+} from "./catchUp";
 import { addOneMonth, firstDayOfMonth, periodLabel, todayInChile } from "./dates";
 
-/** Tope de meses atrasados que se ponen al día en una sola corrida. */
-const MAX_CATCH_UP_MONTHS = 12;
 const UNIQUE_VIOLATION = "23505";
 
 const PLAN_LABEL: Readonly<Record<string, string>> = {
@@ -40,6 +47,8 @@ export interface MonthlyChargeSummary {
   subscriptions: number;
   paymentsCreated: number;
   failed: number;
+  /** Suscripciones con más de un cobro creado o que siguen atrasadas. */
+  ponerseAlDia: CatchUpNotice[];
   results: SubscriptionChargeResult[];
 }
 
@@ -108,7 +117,7 @@ async function chargeSubscription(
   };
 
   let current = sub.next_charge_date;
-  for (let i = 0; i < MAX_CATCH_UP_MONTHS && current <= today; i++) {
+  for (let i = 0; shouldContinueCatchUp(i, current, today); i++) {
     const period = firstDayOfMonth(current);
     const inserted = await insertPeriodPayment(sub, current);
     (inserted ? result.created : result.skipped).push(period);
@@ -163,11 +172,24 @@ export async function runMonthlyCharges(
     }
   }
 
+  const ponerseAlDia = catchUpNotices(results, today);
+  ponerseAlDia
+    .filter((n) => n.created.length > 1)
+    .forEach((n) =>
+      console.warn(CATCH_UP_LOG_TAG, "cobros atrasados creados", {
+        subscriptionId: n.subscriptionId,
+        clientId: n.clientId,
+        periods: n.created,
+        pending: n.pending,
+      }),
+    );
+
   return {
     today,
     subscriptions: subs.length,
     paymentsCreated: results.reduce((n, r) => n + r.created.length, 0),
     failed: results.filter((r) => r.error).length,
+    ponerseAlDia,
     results,
   };
 }
