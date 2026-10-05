@@ -14,6 +14,8 @@ import {
   FileSignature,
   Building2,
   ChevronDown,
+  Check,
+  Loader2,
 } from "lucide-react";
 import { PlanCatalog, VatLines } from "@/components/pricing/PlanCatalog";
 import { AGENCY_DEFAULTS, DEFAULT_CURRENCY } from "@/lib/pricing/plans";
@@ -161,9 +163,7 @@ function MoneyInput({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-        {label}
-      </Label>
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       <Input
         type="number"
         min={0}
@@ -303,7 +303,7 @@ export function PricingPanel() {
     <div className="space-y-8">
       <PageHeader
         title="Precios"
-        description="Los planes de VIBRANDING (precios netos en CLP + IVA 19%) y los servicios adicionales que puedes sumar. Estos valores son los mismos para todos tus clientes y se usan al generar contratos; el cliente paga neto + IVA."
+        description="Netos en CLP + IVA (19 %). Se usan al generar contratos."
         actions={<SaveIndicator state={saveState} />}
       />
 
@@ -331,7 +331,7 @@ export function PricingPanel() {
             return (
               <div
                 key={svc.key}
-                className={`rounded-2xl border bg-card p-5 space-y-4 transition-shadow hover:shadow-md ${row.is_active ? "" : "opacity-55"}`}
+                className={`rounded-app-lg border bg-surface p-5 space-y-4 shadow-app-xs transition-shadow hover:shadow-app-md ${row.is_active ? "" : "opacity-60"}`}
                 style={{ borderColor: `color-mix(in oklab, ${svc.tone} 25%, hsl(var(--border)))` }}
               >
                 <div className="flex items-start gap-3">
@@ -385,9 +385,7 @@ export function PricingPanel() {
                 )}
 
                 <div className="space-y-1.5">
-                  <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                    Qué incluye
-                  </Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Qué incluye</Label>
                   <Textarea
                     rows={2}
                     value={row.included_text ?? ""}
@@ -455,7 +453,7 @@ export function PricingPanel() {
               onChange={(e) => setP_({ payment_due_days: clampDays(e.target.value) })}
               onBlur={(e) => saveP({ payment_due_days: clampDays(e.target.value) })}
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Plazo máximo desde la entrega de cada etapa. Por defecto 30 días.
             </p>
           </div>
@@ -468,10 +466,6 @@ export function PricingPanel() {
         icon={<FileSignature className="w-5 h-5 text-muted-foreground" />}
         summary="Aparecen en todos los contratos"
       >
-        <p className="text-xs text-muted-foreground">
-          Cada cláusula aparece en todos los contratos. Puedes editar su texto.
-        </p>
-
         <ClauseField
           label="eSIM / teléfono dedicado"
           value={p.clause_esim}
@@ -521,10 +515,22 @@ function clampDays(raw: string): number {
 }
 
 function SaveIndicator({ state }: { state: "idle" | "saving" | "saved" }) {
-  if (state === "idle") return null;
   return (
-    <span className="text-xs text-muted-foreground" role="status" aria-live="polite">
-      {state === "saving" ? "Guardando…" : "Guardado"}
+    <span
+      className="flex min-h-5 items-center gap-1.5 text-xs text-muted-foreground"
+      role="status"
+      aria-live="polite"
+    >
+      {state === "saving" && (
+        <>
+          <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" /> Guardando…
+        </>
+      )}
+      {state === "saved" && (
+        <>
+          <Check aria-hidden className="h-3.5 w-3.5 text-success-strong" /> Cambios guardados
+        </>
+      )}
     </span>
   );
 }
@@ -548,7 +554,7 @@ function SettingsSection({
 }) {
   const [open, setOpen] = useState(!!defaultOpen);
   return (
-    <div className="rounded-2xl border bg-card">
+    <div className="rounded-app-lg border border-border-subtle bg-surface shadow-app-xs">
       <div className="flex items-center gap-2 px-4 py-3">
         <button
           type="button"
@@ -591,7 +597,7 @@ function ClauseField({
         {value !== null && value !== fallback && fallback && (
           <button
             type="button"
-            className="text-[11px] text-muted-foreground underline hover:text-foreground"
+            className="text-xs text-muted-foreground underline hover:text-foreground"
             onClick={() => {
               onChange(fallback);
               onSave(fallback);

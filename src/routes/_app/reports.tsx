@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   BarChart3,
@@ -29,6 +29,7 @@ import {
   ctrPercent,
   useClientMetrics,
   type ClientMetricsRow,
+  type MetricsTotals,
   type ReportRangeDays,
 } from "@/components/reports/clientMetrics";
 import { EMPTY_CLP_TOTALS, type ClpTotals } from "@/lib/pricing/plans";
@@ -75,10 +76,7 @@ function ReportsPage() {
 
   return (
     <PageContainer className="space-y-8">
-      <PageHeader
-        title="Reportes"
-        description="Métricas por cliente y crecimiento de la agencia. Montos en CLP; si una cuenta de Meta usa otra moneda, ese gasto no se suma y se indica."
-      />
+      <PageHeader title="Reportes" />
 
       <Tabs defaultValue="clientes" className="space-y-6">
         <TabsList>
@@ -100,9 +98,7 @@ function ReportsPage() {
                   Resultados por cliente
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  {data
-                    ? `Del ${fmtDay(data.from)} al ${fmtDay(data.to)} (hora de Chile). "Pendiente" es todo lo abierto hoy.`
-                    : "Publicaciones, Ads y cobros del período elegido."}
+                  {data ? `Del ${fmtDay(data.from)} al ${fmtDay(data.to)}` : "\u00a0"}
                 </p>
               </div>
               <div role="group" aria-label="Rango de fechas" className="flex flex-wrap gap-2">
@@ -174,6 +170,7 @@ function ReportsPage() {
                   <StatCard
                     icon={Wallet}
                     label="Pendiente"
+                    hint="Todo lo abierto hoy"
                     loading={loading}
                     value={<MoneyCell money={totals?.pending ?? EMPTY_CLP_TOTALS} />}
                   />
@@ -182,13 +179,9 @@ function ReportsPage() {
                 {loading ? (
                   <TableSkeleton rows={5} columns={10} label="Cargando métricas por cliente" />
                 ) : !data || data.rows.length === 0 ? (
-                  <EmptyState
-                    icon={BarChart3}
-                    title="Aún no hay clientes."
-                    description="Cuando agregues clientes verás aquí sus resultados."
-                  />
+                  <EmptyState icon={BarChart3} title="Aún no hay clientes." />
                 ) : (
-                  <MetricsTable rows={data.rows} />
+                  <MetricsTable rows={data.rows} totals={data.totals} />
                 )}
               </>
             )}
@@ -199,12 +192,64 @@ function ReportsPage() {
   );
 }
 
-function MetricsTable({ rows }: { rows: readonly ClientMetricsRow[] }) {
+/** Cifra o "—" atenuado cuando es 0 (menos ruido en la tabla). */
+function Count({ value }: { value: number }) {
+  if (value === 0) return <span className="text-muted-foreground">—</span>;
+  return <>{NUM.format(value)}</>;
+}
+
+function CtrCell({ clicks, impressions }: { clicks: number; impressions: number }) {
+  if (impressions === 0) return <span className="text-muted-foreground">—</span>;
+  return <>{fmtPct(ctrPercent(clicks, impressions))}</>;
+}
+
+function MetricCells({ m }: { m: MetricsTotals }) {
+  const td = "px-3 py-2 text-right";
+  return (
+    <>
+      <td className={td}>
+        <Count value={m.posts} />
+      </td>
+      <td className={td}>
+        <Count value={m.likes} />
+      </td>
+      <td className={td}>
+        <Count value={m.impressions} />
+      </td>
+      <td className={td}>
+        <Count value={m.clicks} />
+      </td>
+      <td className={td}>
+        <CtrCell clicks={m.clicks} impressions={m.impressions} />
+      </td>
+      <td className={td}>
+        <MoneyCell money={m.spend} />
+      </td>
+      <td className={td}>
+        <Count value={m.conversions} />
+      </td>
+      <td className={td}>
+        <MoneyCell money={m.paid} />
+      </td>
+      <td className={`${td} text-muted-foreground`}>
+        <MoneyCell money={m.pending} />
+      </td>
+    </>
+  );
+}
+
+function MetricsTable({
+  rows,
+  totals,
+}: {
+  rows: readonly ClientMetricsRow[];
+  totals: MetricsTotals;
+}) {
   const th = "px-3 py-2 text-right font-medium";
   return (
     <div className="overflow-x-auto rounded-app-lg border border-border-subtle bg-surface shadow-app-xs">
       <table className="w-full min-w-[900px] text-sm">
-        <thead className="border-b border-border-subtle text-left text-xs text-muted-foreground">
+        <thead className="border-b border-border-subtle bg-surface-2 text-left text-xs text-muted-foreground">
           <tr>
             <th scope="col" className="px-4 py-2 font-medium">
               Cliente
@@ -240,30 +285,34 @@ function MetricsTable({ rows }: { rows: readonly ClientMetricsRow[] }) {
         </thead>
         <tbody className="tabular-nums">
           {rows.map((r) => (
-            <tr key={r.client_id} className="border-b border-border-subtle last:border-0">
-              <th scope="row" className="px-4 py-2 text-left font-medium">
-                {r.client_name}
+            <tr
+              key={r.client_id}
+              className="border-b border-border-subtle transition-colors last:border-0 hover:bg-surface-2/60"
+            >
+              <th scope="row" className="max-w-[240px] px-4 py-2 text-left font-medium">
+                <Link
+                  to="/clients/$clientId"
+                  params={{ clientId: r.client_id }}
+                  className="block truncate rounded-app-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  title={r.client_name}
+                >
+                  {r.client_name}
+                </Link>
               </th>
-              <td className="px-3 py-2 text-right">{NUM.format(r.posts)}</td>
-              <td className="px-3 py-2 text-right">{NUM.format(r.likes)}</td>
-              <td className="px-3 py-2 text-right">{NUM.format(r.impressions)}</td>
-              <td className="px-3 py-2 text-right">{NUM.format(r.clicks)}</td>
-              <td className="px-3 py-2 text-right">
-                {fmtPct(ctrPercent(r.clicks, r.impressions))}
-              </td>
-              <td className="px-3 py-2 text-right">
-                <MoneyCell money={r.spend} />
-              </td>
-              <td className="px-3 py-2 text-right">{NUM.format(r.conversions)}</td>
-              <td className="px-3 py-2 text-right">
-                <MoneyCell money={r.paid} />
-              </td>
-              <td className="px-3 py-2 text-right text-muted-foreground">
-                <MoneyCell money={r.pending} />
-              </td>
+              <MetricCells m={r} />
             </tr>
           ))}
         </tbody>
+        {rows.length > 1 && (
+          <tfoot className="border-t border-border-subtle bg-surface-2 font-semibold tabular-nums">
+            <tr>
+              <th scope="row" className="px-4 py-2 text-left">
+                Total
+              </th>
+              <MetricCells m={totals} />
+            </tr>
+          </tfoot>
+        )}
       </table>
     </div>
   );

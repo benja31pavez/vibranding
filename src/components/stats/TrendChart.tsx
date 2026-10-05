@@ -68,7 +68,7 @@ export function TrendChart({ stats }: { stats: SiteStats }) {
           );
         })}
       </svg>
-      <div className="mt-1 flex justify-between text-[11px] text-muted-foreground tabular-nums">
+      <div className="mt-1 flex justify-between text-xs text-muted-foreground tabular-nums">
         <span>{first ? dayLabel(first.day) : ""}</span>
         <span>máx. {formatCount(max)}/día</span>
         <span>{last ? dayLabel(last.day) : ""}</span>

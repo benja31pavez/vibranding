@@ -468,7 +468,7 @@ function HealthDashboard() {
                 </div>
                 {r.error && <p className="w-full text-xs text-destructive break-all">{r.error}</p>}
                 {(r.status === "failed" || noData) && r.response_body && (
-                  <pre className="w-full max-h-48 overflow-auto rounded bg-secondary p-2 text-[11px] leading-snug whitespace-pre-wrap break-all">
+                  <pre className="w-full max-h-48 overflow-auto rounded bg-secondary p-2 text-xs leading-snug whitespace-pre-wrap break-all">
                     {r.response_body}
                   </pre>
                 )}
