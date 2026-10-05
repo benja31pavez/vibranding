@@ -58,6 +58,9 @@ export const EMPTY_LEGAL_DATA: ClientLegalData = {
 export interface ContractTotals {
   oneTime: number;
   monthly: number;
+  /** Total a pagar: suma del IVA aplicado por línea (igual a lo que se guarda y cobra). */
+  oneTimeTotal: number;
+  monthlyTotal: number;
 }
 
 /**
@@ -97,12 +100,24 @@ export function computeDraftTotals(
 ): ContractTotals {
   const planOneTime = plan?.billing === "one_time" ? plan.netPrice : 0;
   const planMonthly = plan?.billing === "monthly" ? plan.netPrice : 0;
+  const gross = (net: number) => (net > 0 ? withIva(net) : 0);
   return Array.from(addons).reduce<ContractTotals>(
-    (acc, key) => ({
-      oneTime: acc.oneTime + Number(services[key]?.one_time_price ?? 0),
-      monthly: acc.monthly + Number(services[key]?.monthly_price ?? 0),
-    }),
-    { oneTime: planOneTime, monthly: planMonthly },
+    (acc, key) => {
+      const oneTime = Number(services[key]?.one_time_price ?? 0);
+      const monthly = Number(services[key]?.monthly_price ?? 0);
+      return {
+        oneTime: acc.oneTime + oneTime,
+        monthly: acc.monthly + monthly,
+        oneTimeTotal: acc.oneTimeTotal + gross(oneTime),
+        monthlyTotal: acc.monthlyTotal + gross(monthly),
+      };
+    },
+    {
+      oneTime: planOneTime,
+      monthly: planMonthly,
+      oneTimeTotal: gross(planOneTime),
+      monthlyTotal: gross(planMonthly),
+    },
   );
 }
 

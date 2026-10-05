@@ -7,9 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SERVICE_CATALOG, type ServiceKey, type ServicePricing } from "@/components/PricingPanel";
 import { PLANS, findPlan, formatMoney, type Plan, type PlanKey } from "@/lib/pricing/plans";
-import { withIva } from "@/lib/pricing/iva";
 import { cn } from "@/lib/utils";
-import { addonHasPrice, computeDraftTotals, type ClientLegalData } from "./contractModel";
+import {
+  addonHasPrice,
+  computeDraftTotals,
+  type ClientLegalData,
+  type ContractTotals,
+} from "./contractModel";
 
 export interface NewContractFormProps {
   clientName: string;
@@ -319,7 +323,7 @@ function ContractSummary({
 }: {
   plan: Plan | null;
   hasSelection: boolean;
-  totals: { oneTime: number; monthly: number };
+  totals: ContractTotals;
   paymentDueDays: number;
   creating: boolean;
   onCreate: () => void;
@@ -338,14 +342,14 @@ function ContractSummary({
               <TotalLine
                 label="Pago único"
                 amount={`${formatMoney(totals.oneTime)} + IVA`}
-                total={`Total a pagar ${formatMoney(withIva(totals.oneTime))}`}
+                total={`Total a pagar ${formatMoney(totals.oneTimeTotal)}`}
               />
             )}
             {totals.monthly > 0 && (
               <TotalLine
                 label="Mensual"
                 amount={`${formatMoney(totals.monthly)} + IVA/mes`}
-                total={`Total a pagar ${formatMoney(withIva(totals.monthly))}/mes`}
+                total={`Total a pagar ${formatMoney(totals.monthlyTotal)}/mes`}
               />
             )}
           </div>
