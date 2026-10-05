@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Panel } from "@/components/app";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { PERMISSION_DENIED_MSG } from "./fichaQueries";
 
 /** "Sobre la empresa": descripción del negocio, editable. */
@@ -12,10 +13,13 @@ export function BusinessDescription({
   clientId,
   value,
   onSaved,
+  clamp = false,
 }: {
   clientId: string;
   value: string;
   onSaved: () => Promise<void>;
+  /** Solo las 2 primeras líneas (el texto completo queda en el título al pasar el mouse). */
+  clamp?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -80,7 +84,12 @@ export function BusinessDescription({
           autoFocus
         />
       ) : value ? (
-        <p className="whitespace-pre-line text-sm text-foreground/90">{value}</p>
+        <p
+          className={cn("whitespace-pre-line text-sm text-foreground/90", clamp && "line-clamp-2")}
+          title={clamp ? value : undefined}
+        >
+          {value}
+        </p>
       ) : (
         <p className="text-sm italic text-muted-foreground">
           Aún no has descrito a qué se dedica esta empresa. Haz clic en Editar para añadirlo.

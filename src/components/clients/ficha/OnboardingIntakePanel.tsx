@@ -16,6 +16,7 @@ import {
   type AccessState,
   type LinkKey,
 } from "@/lib/onboarding/schema";
+import { FactGrid } from "./FactGrid";
 import { fichaKeys, formatDate, useUserKey } from "./fichaQueries";
 
 type Intake = Tables<"client_intake">;
@@ -119,6 +120,52 @@ export function OnboardingIntakePanel({
         <IntakeDetails clientId={clientId} intake={data} />
       )}
     </Panel>
+  );
+}
+
+/** Resumen de la ficha: fecha de envío y datos clave (el detalle completo, en el panel lateral). */
+export function OnboardingIntakeSummary({
+  clientId,
+  canEdit,
+}: {
+  clientId: string;
+  canEdit: boolean;
+}) {
+  const intake = useClientIntake(clientId, canEdit);
+  if (!canEdit) {
+    return (
+      <p className="text-sm text-muted-foreground">Solo los editores pueden ver estos datos.</p>
+    );
+  }
+  if (intake.isLoading) return <ListSkeleton rows={2} label="Cargando onboarding" />;
+  if (intake.error) {
+    return (
+      <ErrorState
+        message={intake.error.message}
+        onRetry={() => void intake.refetch()}
+        retrying={intake.isFetching}
+      />
+    );
+  }
+  const data = intake.data;
+  if (!data) {
+    return (
+      <EmptyState
+        size="compact"
+        title="Aún no envía el formulario"
+        description="Comparte el link de onboarding para que el cliente complete sus datos."
+      />
+    );
+  }
+  return (
+    <FactGrid
+      facts={[
+        { label: "Recibido", value: formatDate(data.submitted_at) },
+        { label: "Razón social", value: data.razon_social || "—" },
+        { label: "Contacto", value: data.contacto_nombre || "—" },
+        { label: "Email", value: data.contacto_email || data.email_facturacion || "—" },
+      ]}
+    />
   );
 }
 

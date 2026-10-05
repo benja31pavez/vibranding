@@ -51,10 +51,13 @@ type PanelTarget =
 export function ProposalsPanel({
   canEdit,
   canCreate = true,
+  limit,
   ...target
 }: PanelTarget & {
   canEdit: boolean;
   /** false oculta "Crear propuesta" (p. ej. prospecto de baja). */ canCreate?: boolean;
+  /** Solo las N más nuevas, una fila cada una (resumen de la ficha). */
+  limit?: number;
 }) {
   const query = useRecipientProposals(
     target.clientId
@@ -75,7 +78,7 @@ export function ProposalsPanel({
           <Button size="sm" variant="outline" asChild>
             <Link to="/proposals/new" search={newSearch}>
               <Plus aria-hidden className="mr-1 h-3.5 w-3.5" />{" "}
-              {target.clientId ? "Nueva propuesta" : "Crear propuesta"}
+              {limit ? "Nueva" : target.clientId ? "Nueva propuesta" : "Crear propuesta"}
             </Link>
           </Button>
         ) : undefined
@@ -96,6 +99,14 @@ export function ProposalsPanel({
           title="Sin propuestas"
           description="Arma una propuesta con plan, adicionales y vencimiento, y compártela por link."
         />
+      ) : limit ? (
+        <ul className="divide-y divide-border-subtle">
+          {proposals.slice(0, limit).map((p) => (
+            <li key={p.id}>
+              <ProposalLine proposal={p} />
+            </li>
+          ))}
+        </ul>
       ) : (
         <ProposalList proposals={proposals} canEdit={canEdit} />
       )}
@@ -137,6 +148,24 @@ function ProposalRowView({
         </p>
       </div>
       {canEdit && <ProposalLinkActions proposal={p} />}
+    </div>
+  );
+}
+
+/** Una línea: título, estado y monto (resumen de la ficha). */
+function ProposalLine({ proposal: p }: { proposal: ProposalRow }) {
+  return (
+    <div className="flex items-center gap-2 py-1">
+      <Link
+        to="/proposals/$proposalId"
+        params={{ proposalId: p.id }}
+        className="min-w-0 flex-1 truncate text-sm font-medium hover:underline"
+        title={statusHint(p)}
+      >
+        {p.title || "Propuesta sin título"}
+      </Link>
+      <ProposalStatusBadge status={p.status} expiresAt={p.expires_at} />
+      <Money amount={p.amount_clp} className="shrink-0 text-xs text-muted-foreground" />
     </div>
   );
 }
