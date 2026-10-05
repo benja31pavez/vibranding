@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { invalidateClientHealth } from "@/components/clients/health/healthKeys";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -55,6 +56,7 @@ export function ConvertDialog({ prospect, onClose }: { prospect: Prospect | null
       toast.success(`${prospect.nombre} ahora es cliente`);
       void invalidate();
       void invalidateShellClients(queryClient);
+      void invalidateClientHealth(queryClient);
       onClose();
       void navigate({ to: "/clients/$clientId", params: { clientId: result.clientId } });
     } catch (err) {

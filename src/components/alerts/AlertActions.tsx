@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Json } from "@/integrations/supabase/types";
 import { resolveCampaignAlert } from "@/lib/alerts/campaignAlerts.functions";
+import { healthKeys } from "@/components/clients/health/healthKeys";
 
 const ADS_MANAGER_PREFIX = "https://adsmanager.facebook.com/adsmanager/";
 
@@ -17,10 +18,11 @@ function adsManagerLink(data: Json | undefined): string | null {
   return typeof url === "string" && url.startsWith(ADS_MANAGER_PREFIX) ? url : null;
 }
 
-/** Queries que muestran alertas abiertas: "Hoy" y la salud de la ficha. */
+/** Queries que muestran alertas abiertas: "Hoy", la salud de la ficha y la salud del cliente. */
 function showsAlerts(query: Query): boolean {
   const key = query.queryKey;
   return (
+    key[0] === healthKeys.all[0] ||
     (key[0] === "dashboard-hoy" && key.includes("campaign-alerts")) ||
     (key[0] === "ficha" && key[3] === "health")
   );
