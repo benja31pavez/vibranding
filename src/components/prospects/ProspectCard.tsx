@@ -14,6 +14,7 @@ import {
   noContactUntil,
   type ProspectState,
 } from "@/lib/prospects/schema";
+import { canCreateProposalFor } from "@/lib/proposals/recommend";
 import { formatShortDate, toDateInput } from "./format";
 import { cn } from "@/lib/utils";
 import type { Prospect } from "./prospectsData";
@@ -82,10 +83,10 @@ export function ConvertAction({ prospect, onConvert, label = "Convertir" }: {
 }
 
 /** Atajo a una propuesta nueva para el prospecto (no para bajas ni convertidos: esos van por el cliente). */
-export function CreateProposalAction({ prospect }: { prospect: Prospect }) {
-  if (prospect.estado === "baja" || convertedClientId(prospect)) return null;
+export function CreateProposalAction({ prospect, className }: { prospect: Prospect; className?: string }) {
+  if (!canCreateProposalFor(prospect.estado) || convertedClientId(prospect)) return null;
   return (
-    <Button asChild size="icon" variant="outline" className="h-8 w-8 shrink-0">
+    <Button asChild size="icon" variant="outline" className={cn("h-8 w-8 shrink-0", className)}>
       <Link to="/proposals/new" search={{ prospectId: prospect.id }} aria-label={`Crear propuesta para ${prospect.nombre}`} title="Crear propuesta">
         <FilePlus2 aria-hidden className="h-3.5 w-3.5" />
       </Link>

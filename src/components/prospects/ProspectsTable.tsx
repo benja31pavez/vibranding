@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PROSPECT_STATES, STATE_META } from "@/lib/prospects/schema";
 import { cn } from "@/lib/utils";
-import { ConvertAction, NoContactBadge, ResumeAction, StageSelect, type CardActions } from "./ProspectCard";
+import { ConvertAction, CreateProposalAction, NoContactBadge, ResumeAction, StageSelect, type CardActions } from "./ProspectCard";
 import { formatShortDate } from "./format";
 import type { Prospect } from "./prospectsData";
 
@@ -163,6 +163,7 @@ export function ProspectsTable({ prospects, actions }: { prospects: Prospect[]; 
                     <div className="flex justify-end gap-2">
                       <ConvertAction prospect={p} onConvert={actions.onConvert} label="Convertir en cliente" />
                       <ResumeAction prospect={p} onMove={actions.onMove} />
+                      <CreateProposalAction prospect={p} className="h-11 w-11" />
                     </div>
                   </td>
                 </tr>

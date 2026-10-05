@@ -23,10 +23,19 @@ import {
   type ProposalItem,
   type ProposalStatus,
 } from "@/lib/proposals/model";
+import {
+  buildProposalIntro,
+  readDiagnosticoSignals,
+  recommendPlan,
+  type DiagnosticoSignals,
+  type PlanRecommendation,
+} from "@/lib/proposals/recommend";
 import { ExtraItemsEditor, toExtraRow, type ExtraRow } from "./ExtraItemsEditor";
 import { ProposalLines } from "./ProposalLines";
+import { ProposalIntroPanel } from "./ProposalIntroPanel";
 import { ProposalLinkActions } from "./ProposalLinkActions";
 import { ProposalStatusBadge } from "./ProposalsPanel";
+import { OpenProposalWarning } from "./OpenProposalWarning";
 import { useSaveProposal, type ProposalRow, type Recipient } from "./proposalQueries";
 
 const NO_PLAN = "none";
@@ -39,12 +48,21 @@ interface Props {
   canEdit: boolean;
 }
 
-function initialState(recipient: Recipient, existing?: ProposalRow) {
+/** Señales del diagnóstico y plan recomendado (solo prospectos). */
+function prospectInsights(recipient: Recipient): { signals: DiagnosticoSignals; recommendation: PlanRecommendation } | null {
+  if (recipient.kind !== "prospect" || !recipient.prospect) return null;
+  const signals = readDiagnosticoSignals(recipient.prospect.notas);
+  return { signals, recommendation: recommendPlan({ productoSugerido: recipient.prospect.productoSugerido, signals }) };
+}
+
+function initialState(recipient: Recipient, existing: ProposalRow | undefined, recommended: PlanKey | null) {
   const items = parseItems(existing?.items ?? []);
   const plan = items.find((i) => i.type === "plan");
+  // Propuesta nueva para un prospecto: parte con el plan recomendado.
+  const startPlan = existing ? (plan?.key ?? existing.plan_key) : recommended;
   return {
     title: existing?.title ?? `Propuesta para ${recipient.name}`,
-    planKey: (plan?.key ?? existing?.plan_key ?? NO_PLAN) as PlanKey | typeof NO_PLAN,
+    planKey: (startPlan ?? NO_PLAN) as PlanKey | typeof NO_PLAN,
     extras: items.filter((i) => i.type === "extra").map(toExtraRow),
     expiresDate: existing ? toChileDate(existing.expires_at) : chileDatePlusDays(DEFAULT_VALIDITY_DAYS),
     status: (existing?.status ?? "borrador") as string,
@@ -61,8 +79,12 @@ function buildItems(planKey: string, extras: readonly ExtraRow[]): ProposalItem[
 export function ProposalEditor({ recipient, existing, canEdit }: Props) {
   const navigate = useNavigate();
   const save = useSaveProposal();
-  const [state, setState] = useState(() => initialState(recipient, existing));
-  const locked = !canEdit || existing?.status === "aceptada";
+  const insights = useMemo(() => prospectInsights(recipient), [recipient]);
+  const [state, setState] = useState(() =>
+    initialState(recipient, existing, insights?.recommendation.planKey ?? null),
+  );
+  // Una propuesta nueva ya creada queda bloqueada mientras se navega a su página (evita duplicados).
+  const locked = !canEdit || existing?.status === "aceptada" || (!existing && save.isSuccess);
 
   const items = useMemo(() => buildItems(state.planKey, state.extras), [state.planKey, state.extras]);
   const totals = computeTotals(items);
@@ -76,7 +98,7 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (locked) return;
+    if (locked || save.isPending || save.isSuccess) return;
     if (errors.length > 0) {
       toast.error(errors[0]);
       return;
@@ -99,8 +121,10 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
     save.mutate(
       { recipient, draft, existing },
       {
-        onSuccess: (id) => {
+        onSuccess: ({ id, prospectStage }) => {
           toast.success(existing ? "Propuesta guardada" : "Propuesta creada");
+          if (prospectStage === "advanced") toast.success(`${recipient.name} pasó a la etapa Propuesta`);
+          if (prospectStage === "failed") toast.warning("No se pudo mover el prospecto a Propuesta; cámbialo a mano.");
           if (!existing) void navigate({ to: "/proposals/$proposalId", params: { proposalId: id }, replace: true });
         },
         onError: (err) => toast.error(err.message),
@@ -109,6 +133,16 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
   };
 
   const selectedPlan = findPlan(state.planKey);
+  const intro = insights
+    ? buildProposalIntro({
+        nombre: recipient.name,
+        rubro: recipient.prospect?.rubro,
+        comuna: recipient.prospect?.comuna,
+        objetivo: insights.signals.objetivo,
+        planKey: selectedPlan?.key ?? null,
+      })
+    : null;
+  const recommendedPlan = findPlan(insights?.recommendation.planKey);
 
   return (
     <form onSubmit={submit} className="grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -118,6 +152,7 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
             <Lock aria-hidden className="h-4 w-4" /> Propuesta aceptada: ya no se puede editar.
           </p>
         )}
+        {!existing && <OpenProposalWarning recipient={recipient} />}
         <Panel title="Datos">
           <fieldset disabled={locked} className="space-y-4">
             <div className="space-y-1.5">
@@ -175,7 +210,21 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
             </SelectContent>
           </Select>
           {selectedPlan && <p className="mt-2 text-sm text-muted-foreground">{selectedPlan.description}</p>}
+          {insights && !existing && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {recommendedPlan ? `Recomendado: ${recommendedPlan.label}. ` : ""}
+              {insights.recommendation.reason}
+            </p>
+          )}
         </Panel>
+
+        {intro !== null && (
+          <ProposalIntroPanel
+            generated={intro}
+            linkToken={existing?.token ?? null}
+            linkIsDraft={existing?.status === "borrador"}
+          />
+        )}
 
         <Panel title="Adicionales y descuentos">
           <ExtraItemsEditor items={state.extras} onChange={(rows) => set("extras", rows)} disabled={locked} />
@@ -199,6 +248,14 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
           <p className="mb-3 text-sm text-muted-foreground">
             Para <span className="font-medium text-foreground">{recipient.name}</span>
             {recipient.kind === "prospect" ? " (prospecto)" : ""}
+            {recipient.prospect?.email && (
+              <>
+                <br />
+                <a href={`mailto:${encodeURIComponent(recipient.prospect.email)}`} className="text-xs hover:underline">
+                  {recipient.prospect.email}
+                </a>
+              </>
+            )}
           </p>
           {items.length > 0 ? (
             <ProposalLines items={items} />

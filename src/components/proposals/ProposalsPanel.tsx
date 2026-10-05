@@ -25,7 +25,11 @@ type PanelTarget = { clientId: string; prospectId?: undefined } | { prospectId: 
  * Propuestas de un cliente (en su ficha) o de un prospecto (en su Sheet):
  * estado, monto, link y "Marcar enviada".
  */
-export function ProposalsPanel({ canEdit, ...target }: PanelTarget & { canEdit: boolean }) {
+export function ProposalsPanel({
+  canEdit,
+  canCreate = true,
+  ...target
+}: PanelTarget & { canEdit: boolean; /** false oculta "Crear propuesta" (p. ej. prospecto de baja). */ canCreate?: boolean }) {
   const query = useRecipientProposals(
     target.clientId ? { kind: "client", id: target.clientId } : { kind: "prospect", id: target.prospectId ?? "" },
   );
@@ -37,7 +41,7 @@ export function ProposalsPanel({ canEdit, ...target }: PanelTarget & { canEdit: 
       title="Propuestas"
       icon={FileText}
       actions={
-        canEdit ? (
+        canEdit && canCreate ? (
           <Button size="sm" variant="outline" asChild>
             <Link to="/proposals/new" search={newSearch}>
               <Plus aria-hidden className="mr-1 h-3.5 w-3.5" /> {target.clientId ? "Nueva propuesta" : "Crear propuesta"}

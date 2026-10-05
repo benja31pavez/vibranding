@@ -23,6 +23,7 @@ import {
 import { toDateInput } from "./format";
 import { ConvertAction } from "./ProspectCard";
 import { ProposalsPanel } from "@/components/proposals/ProposalsPanel";
+import { canCreateProposalFor } from "@/lib/proposals/recommend";
 import { FollowupsPanel } from "@/components/followups/FollowupsPanel";
 import { useCanEditRecipient } from "@/components/proposals/proposalQueries";
 import { useIsOrgManager, useRevokeBaja, useSaveProspect, type Prospect } from "./prospectsData";
@@ -258,7 +259,11 @@ export function ProspectSheet({
         {prospect && (
           <div className="mt-6 border-t border-border-subtle pt-6">
             {/* Si el permiso no se pudo consultar, se muestra el botón y la BD decide (RLS). */}
-            <ProposalsPanel prospectId={prospect.id} canEdit={canEditProposals.data !== false} />
+            <ProposalsPanel
+              prospectId={prospect.id}
+              canEdit={canEditProposals.data !== false}
+              canCreate={canCreateProposalFor(prospect.estado)}
+            />
           </div>
         )}
       </SheetContent>
