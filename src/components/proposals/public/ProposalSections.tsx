@@ -23,7 +23,7 @@ export function Card({ title, id, children }: { title: string; id?: string; chil
       tabIndex={id ? -1 : undefined}
       className="scroll-mt-6 rounded-app-lg outline-none focus-visible:ring-2 focus-visible:ring-ring border border-border-subtle bg-surface p-5 shadow-app-xs sm:p-6"
     >
-      <h2 className="mb-4 text-base font-semibold text-foreground">{title}</h2>
+      <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground">{title}</h2>
       {children}
     </section>
   );
@@ -124,25 +124,30 @@ export function ProposalHero({
 }: HeroProps) {
   const price = priceSummary(totals);
   return (
-    <section className="space-y-5 rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs sm:p-8">
-      <div className="space-y-2">
-        <p className="text-sm text-muted-foreground">
-          Propuesta para{" "}
-          <span className="font-medium text-foreground">{recipientName ?? "ti"}</span>
-          {planLabel && <> · {planLabel}</>}
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground text-balance sm:text-3xl">
+    <section className="relative space-y-6 overflow-hidden rounded-app-lg border border-border-subtle bg-surface p-5 pt-6 shadow-app-md sm:p-8 sm:pt-9">
+      <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-gradient-brand-strong" />
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
+          <p>
+            Propuesta para{" "}
+            <span className="font-medium text-foreground">{recipientName ?? "ti"}</span>
+          </p>
+          {planLabel && (
+            <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-medium text-primary">
+              {planLabel}
+            </span>
+          )}
+        </div>
+        <h1 className="text-[1.75rem] font-semibold leading-[1.15] tracking-tight text-foreground text-balance sm:text-4xl">
           {title ?? "Propuesta Vibranding"}
         </h1>
-        <p className="text-base text-muted-foreground text-pretty">{outcome}</p>
+        <p className="text-base text-muted-foreground text-pretty sm:text-lg">{outcome}</p>
       </div>
 
       {price && (
-        <div className="rounded-app-md bg-surface-2 p-4">
-          <p className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-3xl font-semibold tracking-tight tabular-nums text-foreground">
-              {price.main}
-            </span>
+        <div className="rounded-app-md border border-border-subtle bg-surface-2 p-4 sm:p-5">
+          <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <PriceAmount value={price.main} />
             {price.detail && (
               <span className="text-sm text-muted-foreground tabular-nums">{price.detail}</span>
             )}
@@ -152,14 +157,14 @@ export function ProposalHero({
               {price.firstCharge}
             </p>
           )}
-          <p className="mt-1 text-xs text-muted-foreground">Pesos chilenos (CLP) · IVA incluido</p>
+          <p className="mt-2 text-xs text-muted-foreground">Pesos chilenos (CLP) · IVA incluido</p>
         </div>
       )}
 
       <ValidityNote expiresAt={expiresAt} />
 
       {open && (
-        <div className="hidden gap-3 sm:flex">
+        <div className="hidden gap-3 pt-1 sm:flex">
           <Button asChild size="lg">
             <a href={`#${ACCEPT_ANCHOR}`} onClick={goToAccept}>
               Aceptar propuesta
@@ -169,6 +174,24 @@ export function ProposalHero({
         </div>
       )}
     </section>
+  );
+}
+
+const MONTH_SUFFIX = "/mes";
+
+/** Monto grande; el sufijo "/mes" va más chico para que el número mande. */
+function PriceAmount({ value }: { value: string }) {
+  const monthly = value.endsWith(MONTH_SUFFIX);
+  const amount = monthly ? value.slice(0, -MONTH_SUFFIX.length) : value;
+  return (
+    <span className="text-4xl font-semibold tracking-tight tabular-nums text-foreground">
+      {amount}
+      {monthly && (
+        <span className="ml-0.5 text-lg font-medium tracking-normal text-muted-foreground">
+          {MONTH_SUFFIX}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -213,7 +236,7 @@ export function Timeline({ steps }: { steps: readonly WeekStep[] }) {
           <li key={s.week} className="relative">
             <span
               aria-hidden
-              className="absolute -left-[25px] top-1.5 h-2.5 w-2.5 rounded-full bg-primary"
+              className="absolute -left-[26px] top-1 h-3 w-3 rounded-full border-2 border-surface bg-primary ring-1 ring-primary/30"
             />
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {s.week}
@@ -266,11 +289,13 @@ export function Faq({ items }: { items: readonly FaqItem[] }) {
   );
 }
 
-export function ContactCard({ title }: { title: string | null }) {
+export function ContactCard({ title, open = true }: { title: string | null; open?: boolean }) {
   return (
     <section className="flex flex-col gap-4 rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs sm:flex-row sm:items-center sm:justify-between sm:p-6">
       <div>
-        <h2 className="text-base font-semibold text-foreground">¿Tienes dudas antes de aceptar?</h2>
+        <h2 className="text-lg font-semibold tracking-tight text-foreground">
+          {open ? "¿Tienes dudas antes de aceptar?" : "¿Tienes dudas?"}
+        </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Escríbele directo por WhatsApp a Benjamín Pavez, fundador de Vibranding.
         </p>

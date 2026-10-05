@@ -163,13 +163,14 @@ export function PublicMultilinkView({
         />
       )}
 
-      <div className={`relative ${preview ? "" : "px-3 sm:px-5 py-5 sm:py-10"}`}>
+      <div className={`relative ${preview ? "" : "sm:px-5 sm:py-10"}`}>
+        {/* Móvil: panel a pantalla completa (sin marco); desde sm: tarjeta flotante. */}
         <main
-          className={`mx-auto overflow-hidden text-center ${preview ? "w-full" : "max-w-[440px] shadow-2xl sm:rounded-[2rem]"}`}
+          className={`mx-auto overflow-hidden text-center ${preview ? "w-full" : "min-h-screen max-w-[440px] sm:min-h-0 sm:rounded-[2rem] sm:border sm:shadow-2xl"}`}
           style={
             preview
               ? { background: panelBackground }
-              : { background: panelBackground, border: `1px solid ${subtleBorder}` }
+              : { background: panelBackground, borderColor: subtleBorder }
           }
         >
           <div
@@ -257,7 +258,9 @@ export function PublicMultilinkView({
 
             <div className="mt-9 flex items-center justify-center gap-2 opacity-60">
               <span className="h-px w-6" style={{ background: theme.color }} />
-              <span className="text-[9px] font-semibold uppercase">Multienlace</span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">
+                Multienlace
+              </span>
               <span className="h-px w-6" style={{ background: theme.color }} />
             </div>
           </div>
@@ -402,7 +405,7 @@ function PublicItem({
             <LinkIcon kind={itemLinkKind(item)} className="w-[18px] h-[18px] shrink-0" />
             {item.title}
           </div>
-          {item.subtitle && <div className="text-[0.72rem] opacity-90 mt-0.5">{item.subtitle}</div>}
+          {item.subtitle && <div className="mt-0.5 text-xs opacity-90">{item.subtitle}</div>}
           <ArrowUpRight className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-65 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />
         </div>
       </a>
@@ -439,7 +442,7 @@ function PublicItem({
           {item.title}
         </span>
         {item.subtitle && (
-          <span className="block text-[0.7rem] leading-snug opacity-75">{item.subtitle}</span>
+          <span className="mt-0.5 block text-xs leading-snug opacity-75">{item.subtitle}</span>
         )}
       </span>
       <ArrowUpRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-45 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />

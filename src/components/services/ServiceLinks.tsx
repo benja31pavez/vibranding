@@ -48,7 +48,7 @@ export function RelatedServices({ service }: { service: ServiceContent }) {
 export function ServiceFinalCta({ service }: { service: ServiceContent }) {
   return (
     <section aria-labelledby="cta-titulo" className="px-4 pb-16 md:px-10 md:pb-24">
-      <div className="mx-auto max-w-6xl rounded-3xl bg-gradient-brand-strong px-6 py-12 text-center text-white md:px-12 md:py-16">
+      <div className="mx-auto max-w-6xl rounded-3xl bg-gradient-brand-strong px-5 py-10 text-center text-white sm:px-6 sm:py-12 md:px-12 md:py-16">
         <h2
           id="cta-titulo"
           className="mx-auto max-w-2xl text-2xl font-semibold leading-tight tracking-tight text-balance md:text-4xl"
@@ -58,7 +58,7 @@ export function ServiceFinalCta({ service }: { service: ServiceContent }) {
         <p className="mx-auto mt-4 max-w-xl text-base text-white/90">
           Cuéntanos de tu negocio en 1 minuto y te decimos qué haríamos primero. Sin compromiso.
         </p>
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="mx-auto mt-8 flex max-w-sm flex-col items-stretch justify-center gap-3 sm:max-w-none sm:flex-row sm:items-center">
           <DiagnosticoLink plan={service.diagnosticoPlan} variant="onDark" />
           <WhatsAppCta variant="light" message={service.whatsappMessage}>
             Escríbenos por WhatsApp
