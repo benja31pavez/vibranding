@@ -65,8 +65,8 @@ const homeEs = {
     ],
   },
   benefits: {
-    title: "Tres cosas que tu negocio",
-    titleAccent: "necesita en internet",
+    title: "Tres pilares para",
+    titleAccent: "que tu negocio venda",
     items: [
       {
         title: "Te encuentran",
@@ -94,7 +94,7 @@ const homeEs = {
       },
       {
         title: "Contenido",
-        desc: "Posts, carruseles y reels con calendario y textos listos. Tú apruebas, nosotros publicamos.",
+        desc: "Posts, carruseles y reels con calendario y textos listos. Tú apruebas y publicas.",
       },
       {
         title: "Meta Ads",

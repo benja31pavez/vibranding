@@ -4,7 +4,7 @@ import { Bar, BrandAvatar, WhatsAppGlyph } from "./parts";
 import { SWATCHES, vars } from "./tokens";
 
 /**
- * Mini mockups for "Tres cosas que tu negocio necesita en internet" (decorative).
+ * Mini mockups for "Tres pilares para que tu negocio venda" (decorative).
  * Pieces marked `bx-in` / `bx-pop` assemble one after another (delay `--d`) when their card
  * reveals; the static frame is the finished mockup. `bx-typing` dots loop as idle motion.
  */
