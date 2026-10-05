@@ -12,14 +12,19 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AtChar123slugChar125RouteImport } from './routes/@{$slug}'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AgenciaMarketingDigitalSantiagoRouteImport } from './routes/agencia-marketing-digital-santiago'
+import { Route as ChatbotWhatsappRouteImport } from './routes/chatbot-whatsapp'
 import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as DataDeletionRouteImport } from './routes/data-deletion'
 import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as GoogleAdsPymesRouteImport } from './routes/google-ads-pymes'
 import { Route as LandingRouteImport } from './routes/landing'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PaginaWebParaPymesRouteImport } from './routes/pagina-web-para-pymes'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PublicidadMetaAdsRouteImport } from './routes/publicidad-meta-ads'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -104,6 +109,17 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgenciaMarketingDigitalSantiagoRoute =
+  AgenciaMarketingDigitalSantiagoRouteImport.update({
+    id: '/agencia-marketing-digital-santiago',
+    path: '/agencia-marketing-digital-santiago',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ChatbotWhatsappRoute = ChatbotWhatsappRouteImport.update({
+  id: '/chatbot-whatsapp',
+  path: '/chatbot-whatsapp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CookiesRoute = CookiesRouteImport.update({
   id: '/cookies',
   path: '/cookies',
@@ -124,6 +140,11 @@ const FaqRoute = FaqRouteImport.update({
   path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GoogleAdsPymesRoute = GoogleAdsPymesRouteImport.update({
+  id: '/google-ads-pymes',
+  path: '/google-ads-pymes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LandingRoute = LandingRouteImport.update({
   id: '/landing',
   path: '/landing',
@@ -134,6 +155,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PaginaWebParaPymesRoute = PaginaWebParaPymesRouteImport.update({
+  id: '/pagina-web-para-pymes',
+  path: '/pagina-web-para-pymes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
   path: '/portal',
@@ -142,6 +168,11 @@ const PortalRoute = PortalRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicidadMetaAdsRoute = PublicidadMetaAdsRouteImport.update({
+  id: '/publicidad-meta-ads',
+  path: '/publicidad-meta-ads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -518,14 +549,19 @@ const ApiPublicWhatsappWebhookAccountIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
+  '/agencia-marketing-digital-santiago': typeof AgenciaMarketingDigitalSantiagoRoute
+  '/chatbot-whatsapp': typeof ChatbotWhatsappRoute
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
   '/diagnostico': typeof DiagnosticoRoute
   '/faq': typeof FaqRoute
+  '/google-ads-pymes': typeof GoogleAdsPymesRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/pagina-web-para-pymes': typeof PaginaWebParaPymesRoute
   '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
+  '/publicidad-meta-ads': typeof PublicidadMetaAdsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -599,14 +635,19 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
+  '/agencia-marketing-digital-santiago': typeof AgenciaMarketingDigitalSantiagoRoute
+  '/chatbot-whatsapp': typeof ChatbotWhatsappRoute
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
   '/diagnostico': typeof DiagnosticoRoute
   '/faq': typeof FaqRoute
+  '/google-ads-pymes': typeof GoogleAdsPymesRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/pagina-web-para-pymes': typeof PaginaWebParaPymesRoute
   '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
+  '/publicidad-meta-ads': typeof PublicidadMetaAdsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -681,14 +722,19 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
   '/_app': typeof AppRouteWithChildren
+  '/agencia-marketing-digital-santiago': typeof AgenciaMarketingDigitalSantiagoRoute
+  '/chatbot-whatsapp': typeof ChatbotWhatsappRoute
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
   '/diagnostico': typeof DiagnosticoRoute
   '/faq': typeof FaqRoute
+  '/google-ads-pymes': typeof GoogleAdsPymesRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/pagina-web-para-pymes': typeof PaginaWebParaPymesRoute
   '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
+  '/publicidad-meta-ads': typeof PublicidadMetaAdsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -764,14 +810,19 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/@{$slug}'
+    | '/agencia-marketing-digital-santiago'
+    | '/chatbot-whatsapp'
     | '/cookies'
     | '/data-deletion'
     | '/diagnostico'
     | '/faq'
+    | '/google-ads-pymes'
     | '/landing'
     | '/login'
+    | '/pagina-web-para-pymes'
     | '/portal'
     | '/privacy'
+    | '/publicidad-meta-ads'
     | '/reset-password'
     | '/sitemap.xml'
     | '/terms'
@@ -845,14 +896,19 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/@{$slug}'
+    | '/agencia-marketing-digital-santiago'
+    | '/chatbot-whatsapp'
     | '/cookies'
     | '/data-deletion'
     | '/diagnostico'
     | '/faq'
+    | '/google-ads-pymes'
     | '/landing'
     | '/login'
+    | '/pagina-web-para-pymes'
     | '/portal'
     | '/privacy'
+    | '/publicidad-meta-ads'
     | '/reset-password'
     | '/sitemap.xml'
     | '/terms'
@@ -926,14 +982,19 @@ export interface FileRouteTypes {
     | '/'
     | '/@{$slug}'
     | '/_app'
+    | '/agencia-marketing-digital-santiago'
+    | '/chatbot-whatsapp'
     | '/cookies'
     | '/data-deletion'
     | '/diagnostico'
     | '/faq'
+    | '/google-ads-pymes'
     | '/landing'
     | '/login'
+    | '/pagina-web-para-pymes'
     | '/portal'
     | '/privacy'
+    | '/publicidad-meta-ads'
     | '/reset-password'
     | '/sitemap.xml'
     | '/terms'
@@ -1009,14 +1070,19 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AtChar123slugChar125Route: typeof AtChar123slugChar125RouteWithChildren
   AppRoute: typeof AppRouteWithChildren
+  AgenciaMarketingDigitalSantiagoRoute: typeof AgenciaMarketingDigitalSantiagoRoute
+  ChatbotWhatsappRoute: typeof ChatbotWhatsappRoute
   CookiesRoute: typeof CookiesRoute
   DataDeletionRoute: typeof DataDeletionRoute
   DiagnosticoRoute: typeof DiagnosticoRoute
   FaqRoute: typeof FaqRoute
+  GoogleAdsPymesRoute: typeof GoogleAdsPymesRoute
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
+  PaginaWebParaPymesRoute: typeof PaginaWebParaPymesRoute
   PortalRoute: typeof PortalRoute
   PrivacyRoute: typeof PrivacyRoute
+  PublicidadMetaAdsRoute: typeof PublicidadMetaAdsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
@@ -1069,6 +1135,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agencia-marketing-digital-santiago': {
+      id: '/agencia-marketing-digital-santiago'
+      path: '/agencia-marketing-digital-santiago'
+      fullPath: '/agencia-marketing-digital-santiago'
+      preLoaderRoute: typeof AgenciaMarketingDigitalSantiagoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chatbot-whatsapp': {
+      id: '/chatbot-whatsapp'
+      path: '/chatbot-whatsapp'
+      fullPath: '/chatbot-whatsapp'
+      preLoaderRoute: typeof ChatbotWhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cookies': {
       id: '/cookies'
       path: '/cookies'
@@ -1097,6 +1177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/google-ads-pymes': {
+      id: '/google-ads-pymes'
+      path: '/google-ads-pymes'
+      fullPath: '/google-ads-pymes'
+      preLoaderRoute: typeof GoogleAdsPymesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/landing': {
       id: '/landing'
       path: '/landing'
@@ -1111,6 +1198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pagina-web-para-pymes': {
+      id: '/pagina-web-para-pymes'
+      path: '/pagina-web-para-pymes'
+      fullPath: '/pagina-web-para-pymes'
+      preLoaderRoute: typeof PaginaWebParaPymesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/portal': {
       id: '/portal'
       path: '/portal'
@@ -1123,6 +1217,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/publicidad-meta-ads': {
+      id: '/publicidad-meta-ads'
+      path: '/publicidad-meta-ads'
+      fullPath: '/publicidad-meta-ads'
+      preLoaderRoute: typeof PublicidadMetaAdsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -1725,14 +1826,19 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AtChar123slugChar125Route: AtChar123slugChar125RouteWithChildren,
   AppRoute: AppRouteWithChildren,
+  AgenciaMarketingDigitalSantiagoRoute: AgenciaMarketingDigitalSantiagoRoute,
+  ChatbotWhatsappRoute: ChatbotWhatsappRoute,
   CookiesRoute: CookiesRoute,
   DataDeletionRoute: DataDeletionRoute,
   DiagnosticoRoute: DiagnosticoRoute,
   FaqRoute: FaqRoute,
+  GoogleAdsPymesRoute: GoogleAdsPymesRoute,
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
+  PaginaWebParaPymesRoute: PaginaWebParaPymesRoute,
   PortalRoute: PortalRoute,
   PrivacyRoute: PrivacyRoute,
+  PublicidadMetaAdsRoute: PublicidadMetaAdsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
