@@ -151,7 +151,7 @@ export function HeaderSearchView({
                   ? "contents"
                   : cn(
                       "absolute right-0 top-0 z-10 h-9 overflow-visible rounded-md border border-input bg-background text-foreground shadow-sm transition-[width] duration-200 ease-out motion-reduce:transition-none",
-                      expanded ? "w-[360px] max-w-[calc(100vw-2rem)]" : "w-full",
+                      expanded ? "w-[320px] max-w-[calc(100vw-2rem)] 2xl:w-[360px]" : "w-full",
                       !open && "pointer-events-none",
                     )
               }
@@ -171,7 +171,7 @@ export function HeaderSearchView({
                   "overflow-hidden p-0",
                   isMobile
                     ? "w-screen max-w-none rounded-none border-x-0 border-t-0"
-                    : "w-[360px] max-w-[calc(100vw-2rem)]",
+                    : "w-[320px] max-w-[calc(100vw-2rem)] 2xl:w-[360px]",
                 )}
               >
                 {isMobile && input}

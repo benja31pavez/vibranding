@@ -14,9 +14,15 @@ const linkClass = (active: boolean) =>
 
 function HeaderNavItem({ item, active }: { item: NavItem; active: boolean }) {
   return (
-    <Link to={item.to} aria-current={active ? "page" : undefined} className={linkClass(active)}>
-      <item.icon className="hidden h-4 w-4 shrink-0 lg:block" aria-hidden="true" />
-      <span>{item.label}</span>
+    <Link
+      to={item.to}
+      aria-current={active ? "page" : undefined}
+      title={item.label}
+      className={linkClass(active)}
+    >
+      <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+      {/* Bajo 1280px solo ícono, para que el buscador expandido no tape la navegación. */}
+      <span className="sr-only xl:not-sr-only">{item.label}</span>
       <NavBadge to={item.to} />
     </Link>
   );
@@ -25,7 +31,7 @@ function HeaderNavItem({ item, active }: { item: NavItem; active: boolean }) {
 /** Navegación transversal de escritorio (desde md). En móvil vive en MobileNav. */
 export function HeaderNav({ path }: { path: string }) {
   return (
-    <nav aria-label="Navegación principal" className="hidden min-w-0 md:mx-auto md:block">
+    <nav aria-label="Navegación principal" className="hidden min-w-0 md:ml-4 md:block lg:ml-8">
       <ul className="flex items-center gap-0.5">
         {PRIMARY_NAV.map((item) => (
           <li key={item.to}>

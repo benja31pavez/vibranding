@@ -33,10 +33,10 @@ export function AppHeader({
   return (
     <header className="sticky top-0 z-30 border-b bg-sidebar/95 backdrop-blur">
       {/*
-        Logo a la izquierda, nav al centro, acciones a la derecha. Hasta xl la nav se centra en el
-        espacio libre (mx-auto); desde xl hay sitio para centrarla exactamente con 3 columnas.
+        Logo y nav a la izquierda, acciones a la derecha: así el buscador tiene espacio para
+        expandirse (~360px) sin tapar la navegación.
       */}
-      <div className="flex h-14 items-center gap-1.5 px-2 sm:gap-2 sm:px-3 md:px-4 lg:gap-4 lg:px-6 xl:grid xl:grid-cols-[1fr_auto_1fr]">
+      <div className="flex h-14 items-center gap-1.5 px-2 sm:gap-2 sm:px-3 md:px-4 lg:gap-4 lg:px-6">
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <MobileNav path={path} open={mobileNavOpen} onOpenChange={onMobileNavOpenChange} />
           <Link
@@ -50,7 +50,7 @@ export function AppHeader({
           </Link>
         </div>
         <HeaderNav path={path} />
-        <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0 md:gap-2 xl:justify-self-end">
+        <div className="ml-auto flex shrink-0 items-center gap-1 md:gap-2">
           {search}
           {clientTrigger}
           <UserMenu user={user} profile={profile} onSignOut={onSignOut} />
