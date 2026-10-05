@@ -5,7 +5,7 @@ import { PRIMARY_NAV, isPathActive, type NavItem } from "./navConfig";
 
 const linkClass = (active: boolean) =>
   cn(
-    "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm lg:px-2.5 font-medium whitespace-nowrap transition-colors",
+    "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium 2xl:px-2.5 whitespace-nowrap transition-colors",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     active
       ? "bg-sidebar-accent text-sidebar-accent-foreground"
@@ -31,7 +31,7 @@ function HeaderNavItem({ item, active }: { item: NavItem; active: boolean }) {
 /** Navegación transversal de escritorio (desde md). En móvil vive en MobileNav. */
 export function HeaderNav({ path }: { path: string }) {
   return (
-    <nav aria-label="Navegación principal" className="hidden min-w-0 md:ml-4 md:block lg:ml-8">
+    <nav aria-label="Navegación principal" className="hidden min-w-0 md:block">
       <ul className="flex items-center gap-0.5">
         {PRIMARY_NAV.map((item) => (
           <li key={item.to}>
