@@ -1,8 +1,32 @@
 /** Presentation layer for the public landing page. Additive: no existing field changes. */
 import {
-  Scissors, Sparkles, Heart, Star, Camera, Coffee, Utensils, Dumbbell, Car, Home,
-  Wrench, Stethoscope, GraduationCap, Briefcase, ShoppingBag, Truck, PawPrint, Leaf,
-  Palette, Music, Laptop, Phone, Gift, Shield, Clock, MapPin, type LucideIcon,
+  Scissors,
+  Sparkles,
+  Heart,
+  Star,
+  Camera,
+  Coffee,
+  Utensils,
+  Dumbbell,
+  Car,
+  Home,
+  Wrench,
+  Stethoscope,
+  GraduationCap,
+  Briefcase,
+  ShoppingBag,
+  Truck,
+  PawPrint,
+  Leaf,
+  Palette,
+  Music,
+  Laptop,
+  Phone,
+  Gift,
+  Shield,
+  Clock,
+  MapPin,
+  type LucideIcon,
 } from "lucide-react";
 
 export type LandingTemplate = "classic" | "centered" | "fullbleed";
@@ -37,11 +61,31 @@ export function heroAspectKey(raw: string | null | undefined): HeroAspect {
 /* ---------------- icons ---------------- */
 
 export const SERVICE_ICONS: Record<string, LucideIcon> = {
-  scissors: Scissors, sparkles: Sparkles, heart: Heart, star: Star, camera: Camera,
-  coffee: Coffee, utensils: Utensils, dumbbell: Dumbbell, car: Car, home: Home,
-  wrench: Wrench, stethoscope: Stethoscope, education: GraduationCap, briefcase: Briefcase,
-  bag: ShoppingBag, truck: Truck, pet: PawPrint, leaf: Leaf, palette: Palette,
-  music: Music, laptop: Laptop, phone: Phone, gift: Gift, shield: Shield, clock: Clock,
+  scissors: Scissors,
+  sparkles: Sparkles,
+  heart: Heart,
+  star: Star,
+  camera: Camera,
+  coffee: Coffee,
+  utensils: Utensils,
+  dumbbell: Dumbbell,
+  car: Car,
+  home: Home,
+  wrench: Wrench,
+  stethoscope: Stethoscope,
+  education: GraduationCap,
+  briefcase: Briefcase,
+  bag: ShoppingBag,
+  truck: Truck,
+  pet: PawPrint,
+  leaf: Leaf,
+  palette: Palette,
+  music: Music,
+  laptop: Laptop,
+  phone: Phone,
+  gift: Gift,
+  shield: Shield,
+  clock: Clock,
   pin: MapPin,
 };
 
@@ -61,7 +105,10 @@ function parseHex(hex: string): [number, number, number] | null {
 }
 
 function toHex([r, g, b]: [number, number, number]): string {
-  const c = (v: number) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+  const c = (v: number) =>
+    Math.max(0, Math.min(255, Math.round(v)))
+      .toString(16)
+      .padStart(2, "0");
   return `#${c(r)}${c(g)}${c(b)}`;
 }
 
@@ -75,9 +122,11 @@ function relLuminance(rgb: [number, number, number]): number {
 }
 
 export function contrastRatio(a: string, b: string): number {
-  const ra = parseHex(a), rb = parseHex(b);
+  const ra = parseHex(a),
+    rb = parseHex(b);
   if (!ra || !rb) return 21;
-  const la = relLuminance(ra), lb = relLuminance(rb);
+  const la = relLuminance(ra),
+    lb = relLuminance(rb);
   const [hi, lo] = la > lb ? [la, lb] : [lb, la];
   return (hi + 0.05) / (lo + 0.05);
 }
@@ -113,6 +162,11 @@ export function readableOn(color: string, background: string, min = 4.5): string
   return contrastRatio(out, background) >= min ? out : bgDark ? "#f5f5f5" : "#111827";
 }
 
+/** Blanco o casi negro: el que tenga más contraste sobre `bg` (texto de botones). */
+export function bestOn(bg: string): string {
+  return contrastRatio(bg, "#ffffff") >= contrastRatio(bg, "#0a0a0a") ? "#ffffff" : "#0a0a0a";
+}
+
 export type LandingPalette = {
   isDark: boolean;
   brand: string;
@@ -142,12 +196,12 @@ export function landingPalette(rawColor: string | null | undefined, dark: boolea
     isDark: dark,
     brand,
     brandText: readableOn(brand, background),
-    onBrand: contrastRatio(brand, "#ffffff") >= 3 ? "#ffffff" : "#0a0a0a",
+    onBrand: bestOn(brand),
     background,
     surface: dark ? "#15151c" : "#ffffff",
     tint: dark ? withAlpha(brand, 0.12) : lighten(brand, 0.92),
     band: dark ? darken(brand, 0.45) : brand,
-    onBand: dark ? "#f5f5f5" : contrastRatio(brand, "#ffffff") >= 3 ? "#ffffff" : "#0a0a0a",
+    onBand: bestOn(dark ? darken(brand, 0.45) : brand),
     border: dark ? withAlpha(brand, 0.28) : withAlpha(brand, 0.22),
     text: dark ? "#f4f4f5" : "#111827",
     muted: dark ? "#a1a1aa" : "#52525b",
@@ -163,6 +217,12 @@ export type FaqItem = { question: string; answer: string };
 export type OpeningHour = { day: number; closed?: boolean; from?: string; to?: string };
 export type LandingLocation = {
   address?: string;
+  /** Comuna principal (p. ej. "Providencia"): alimenta el JSON-LD LocalBusiness. */
+  comuna?: string;
+  /** Región (p. ej. "Región Metropolitana"). */
+  region?: string;
+  /** Comunas donde atiende el negocio (servicios a domicilio). */
+  comunas?: string[];
   map_embed_url?: string;
   hours?: OpeningHour[];
 };
@@ -200,23 +260,62 @@ export const LANDING_SECTION_KEYS = [
   "testimonios",
   "ubicacion",
   "faq",
+  "contacto",
 ] as const;
 
 export type LandingSectionKey = (typeof LANDING_SECTION_KEYS)[number];
 
 export const LANDING_SECTION_LABEL: Record<LandingSectionKey, string> = {
   servicios: "Servicios",
-  galeria: "Galería",
-  whatsapp: "WhatsApp",
+  galeria: "Galería y antes/después",
+  whatsapp: "Llamado a WhatsApp",
   testimonios: "Testimonios",
-  ubicacion: "Ubicación y horarios",
+  ubicacion: "Ubicación, comunas y horarios",
   faq: "Preguntas frecuentes",
+  contacto: "Formulario de contacto",
 };
+
+/**
+ * Servicios y galería no tienen columna booleana propia: se ocultan guardando
+ * "hidden:<clave>" dentro de section_order (text[]), sin migraciones.
+ */
+const HIDDEN_PREFIX = "hidden:";
+export const HIDEABLE_BY_ORDER: readonly LandingSectionKey[] = ["servicios", "galeria"];
+
+function isSectionKey(k: unknown): k is LandingSectionKey {
+  return (LANDING_SECTION_KEYS as readonly string[]).includes(k as string);
+}
 
 /** Keeps existing landings on the hardcoded order when section_order is null. */
 export function resolveSectionOrder(raw: unknown): LandingSectionKey[] {
-  const list = Array.isArray(raw) ? raw.filter((k): k is LandingSectionKey =>
-    (LANDING_SECTION_KEYS as readonly string[]).includes(k as string)) : [];
+  const list = Array.isArray(raw) ? raw.filter(isSectionKey) : [];
   const seen = new Set(list);
-  return [...list, ...LANDING_SECTION_KEYS.filter(k => !seen.has(k))];
+  return [...list, ...LANDING_SECTION_KEYS.filter((k) => !seen.has(k))];
 }
+
+/** Secciones ocultadas manualmente (sólo servicios / galería). */
+export function resolveHiddenSections(raw: unknown): LandingSectionKey[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((k): k is string => typeof k === "string" && k.startsWith(HIDDEN_PREFIX))
+    .map((k) => k.slice(HIDDEN_PREFIX.length))
+    .filter(isSectionKey)
+    .filter((k) => HIDEABLE_BY_ORDER.includes(k));
+}
+
+export function serializeSectionOrder(
+  order: LandingSectionKey[],
+  hidden: LandingSectionKey[],
+): string[] {
+  return [...order, ...hidden.map((k) => `${HIDDEN_PREFIX}${k}`)];
+}
+
+/* ---------------- gallery ---------------- */
+
+export type GalleryItem = {
+  url: string;
+  caption?: string;
+  alt?: string;
+  /** Si existe, el ítem se muestra como comparación antes / después (url = después). */
+  before_url?: string | null;
+};

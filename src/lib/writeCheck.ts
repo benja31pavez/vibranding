@@ -34,3 +34,15 @@ export function anyWriteFailed(results: WriteResult[], label = "No se pudo guard
   const failed = results.find((r) => r.error || !r.data || r.data.length === 0);
   return failed ? writeFailed(failed, label) : false;
 }
+
+/**
+ * Como writeFailed pero sin toast: devuelve el mensaje de error (o null si se
+ * aplicó). Úsalo con `.select("id")`; 0 filas también cuenta como fallo.
+ */
+export function writeError(result: WriteResult, expectedRows = 1): string | null {
+  if (result.error) {
+    return isPermissionError(result.error) ? PERMISSION_HINT : result.error.message;
+  }
+  if (!result.data || result.data.length < expectedRows) return PERMISSION_HINT;
+  return null;
+}

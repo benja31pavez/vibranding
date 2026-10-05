@@ -1,4 +1,7 @@
-export type MultilinkItemKind = "link" | "whatsapp" | "video" | "social";
+import { safeHref, safeImageSrc, safeWebUrl } from "@/lib/site/safeUrl";
+
+/** "platform" existe en la BD (enlaces a plataformas); se trata como un enlace normal. */
+export type MultilinkItemKind = "link" | "whatsapp" | "video" | "social" | "platform";
 
 export type MultilinkItem = {
   id: string;
@@ -45,11 +48,19 @@ export const KIND_LABEL: Record<MultilinkItemKind, string> = {
   whatsapp: "WhatsApp",
   video: "Video",
   social: "Red social",
+  platform: "Plataforma",
 };
 
 export type SocialNetwork =
-  | "instagram" | "tiktok" | "youtube" | "spotify"
-  | "facebook" | "x" | "linkedin" | "email" | "phone";
+  | "instagram"
+  | "tiktok"
+  | "youtube"
+  | "spotify"
+  | "facebook"
+  | "x"
+  | "linkedin"
+  | "email"
+  | "phone";
 
 export const SOCIAL_LABEL: Record<SocialNetwork, string> = {
   instagram: "Instagram",
@@ -73,12 +84,12 @@ export function socialHref(i: MultilinkItem): string | null {
   const net = socialNetwork(i);
   const raw = (i.url ?? "").trim();
   if (!raw || raw === "https://") return null;
-  if (net === "email") return raw.startsWith("mailto:") ? raw : `mailto:${raw}`;
+  if (net === "email") return safeHref(raw.startsWith("mailto:") ? raw : `mailto:${raw}`);
   if (net === "phone") {
     const digits = raw.replace(/[^\d+]/g, "");
-    return digits ? `tel:${digits}` : null;
+    return digits ? safeHref(`tel:${digits}`) : null;
   }
-  if (/^https?:\/\//i.test(raw)) return raw;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return safeWebUrl(raw);
   const handle = raw.replace(/^@/, "");
   const bases: Record<SocialNetwork, string> = {
     instagram: "https://instagram.com/",
@@ -91,9 +102,8 @@ export function socialHref(i: MultilinkItem): string | null {
     email: "mailto:",
     phone: "tel:",
   };
-  return `${bases[net]}${handle}`;
+  return safeHref(`${bases[net]}${encodeURIComponent(handle)}`);
 }
-
 
 /** A scheduled item is only visible inside its window. */
 export function itemIsLive(i: MultilinkItem, now: Date = new Date()): boolean {
@@ -119,7 +129,7 @@ export function waHref(i: MultilinkItem): string | null {
   const digits = (i.wa_number ?? "").replace(/\D/g, "");
   if (digits.length < 8) return null;
   const text = (i.wa_message ?? "").trim();
-  return `https://wa.me/${digits}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
+  return safeHref(`https://wa.me/${digits}${text ? `?text=${encodeURIComponent(text)}` : ""}`);
 }
 
 /** Destination for a clickable item; null for items rendered inline (video). */
@@ -127,15 +137,16 @@ export function itemHref(i: MultilinkItem): string | null {
   if (i.kind === "whatsapp") return waHref(i);
   if (i.kind === "social") return socialHref(i);
   if (i.kind === "video") return null;
-  return i.url && i.url !== "https://" ? i.url : null;
+  return i.url && i.url !== "https://" ? safeHref(i.url) : null;
 }
 
 /** Turns a YouTube/Vimeo watch URL into an embeddable one. */
 export function videoEmbedUrl(raw: string | null): string | null {
-  const url = (raw ?? "").trim();
+  const url = safeImageSrc(raw) ?? "";
   if (!url) return null;
-  const yt =
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/.exec(url);
+  const yt = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/.exec(
+    url,
+  );
   if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
   const vimeo = /vimeo\.com\/(?:video\/)?(\d+)/.exec(url);
   if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
