@@ -11,6 +11,7 @@ import { findPlan } from "@/lib/pricing/plans";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { CLIENT_STATUS_META, formatDate, isClientStatus, type FichaOverview } from "./fichaQueries";
 import { ExportPdfButton } from "./ExportPdfButton";
+import { MeetingBriefButton } from "./MeetingBriefDialog";
 import { DeleteClientDialog, RenameClientDialog } from "./ClientDialogs";
 import { useClientActions } from "./useClientActions";
 
@@ -67,6 +68,7 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
             <Eye aria-hidden className="mr-1.5 h-4 w-4" /> Vista previa del portal
           </Link>
         </Button>
+        <MeetingBriefButton clientId={clientId} clientName={client.name} overview={overview} />
         <ExportPdfButton />
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
