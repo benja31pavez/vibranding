@@ -80,7 +80,7 @@ const FIRST_30_DAYS: Readonly<Record<PlanKey, readonly WeekStep[]>> = {
       ...KICKOFF,
       items: [
         ...KICKOFF.items,
-        "Primera versión del kit de marca y de la landing en 72 horas hábiles desde que tenemos tu información.",
+        "Nuestro equipo arma la primera versión del kit de marca y de la landing con tu información.",
       ],
     },
     {
