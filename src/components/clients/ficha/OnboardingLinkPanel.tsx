@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { fichaKeys, formatDate, useUserKey, type FichaOverview } from "./fichaQueries";
 
 const TOKEN_PATTERN = /^[0-9a-f]{48}$/;
@@ -90,37 +89,31 @@ export function OnboardingLinkPanel({
 
   return (
     <Panel title="Link de onboarding" icon={Link2}>
-      {url && link ? (
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <Input
-              readOnly
-              value={url}
-              onFocus={(e) => e.currentTarget.select()}
-              aria-label="Link de onboarding"
-              className="text-xs"
-            />
-            <Button size="sm" variant="outline" onClick={copy} aria-label="Copiar link">
-              <Copy aria-hidden className="h-4 w-4" />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          {link ? `Vence el ${formatDate(link.expiresAt)}` : "Sin link vigente"}
+        </p>
+        <div className="flex items-center gap-1.5">
+          {url && (
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={copy}>
+              <Copy aria-hidden className="mr-1 h-3.5 w-3.5" /> Copiar
             </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">Vence el {formatDate(link.expiresAt)}.</p>
+          )}
+          {overview.canEdit && (
+            <Button
+              size="sm"
+              variant={url ? "ghost" : "default"}
+              className="h-7 px-2 text-xs"
+              onClick={rotate}
+              disabled={busy}
+              aria-label={url ? "Generar un link nuevo" : "Generar link de onboarding"}
+            >
+              <RefreshCw aria-hidden className={`mr-1 h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
+              {url ? "Nuevo" : "Generar link"}
+            </Button>
+          )}
         </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">No hay un link vigente para este cliente.</p>
-      )}
-      {overview.canEdit && (
-        <Button
-          size="sm"
-          variant={url ? "ghost" : "default"}
-          onClick={rotate}
-          disabled={busy}
-          className="mt-3"
-        >
-          <RefreshCw aria-hidden className={`mr-1.5 h-4 w-4 ${busy ? "animate-spin" : ""}`} />
-          {url ? "Generar uno nuevo" : "Generar link de onboarding"}
-        </Button>
-      )}
+      </div>
     </Panel>
   );
 }

@@ -14,10 +14,15 @@ import {
 import { findPlan } from "@/lib/pricing/plans";
 import { periodLabel } from "@/lib/billing/dates";
 import { chileToday } from "@/lib/dates/chile";
-import { buildMonthPlan, nextMonth } from "@/lib/delivery/monthPlan";
+import {
+  buildMonthPlan,
+  isDuplicate,
+  nextMonth,
+  type MonthPlanItem,
+} from "@/lib/delivery/monthPlan";
 import { useUserKey } from "./fichaQueries";
 import { MonthPlanDialog } from "./MonthPlanDialog";
-import { invalidateAfterMonthPlan } from "./monthPlanQueries";
+import { invalidateAfterMonthPlan, useExistingMonthTasks } from "./monthPlanQueries";
 
 interface MonthPlanPanelProps {
   clientId: string;
@@ -70,35 +75,37 @@ export function MonthPlanPanel({ clientId, planKey, canEdit }: MonthPlanPanelPro
   if (!canEdit) return null;
 
   return (
-    <Panel title="Plan del mes" icon={CalendarRange}>
+    <Panel
+      title="Plan del mes"
+      icon={CalendarRange}
+      actions={
+        plan ? (
+          <Button size="sm" onClick={() => setOpen(true)} disabled={items.length === 0}>
+            <Sparkles aria-hidden className="mr-1 h-3.5 w-3.5" /> Generar
+          </Button>
+        ) : undefined
+      }
+    >
       {!plan ? (
         <p className="text-sm text-muted-foreground">
           Este cliente aún no tiene un plan asignado. Asígnalo en «Plan y facturación» para generar
           su plan del mes.
         </p>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{plan.label}</span> · {items.length}{" "}
-            tareas sugeridas
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={month} onValueChange={setMonth}>
-              <SelectTrigger className="h-9 w-[170px]" aria-label="Mes del plan">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    <span className="capitalize">{periodLabel(`${m}-01`)}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button size="sm" onClick={() => setOpen(true)} disabled={items.length === 0}>
-              <Sparkles aria-hidden className="mr-1 h-3.5 w-3.5" /> Generar plan del mes
-            </Button>
-          </div>
+        <div className="flex items-center gap-2">
+          <Select value={month} onValueChange={setMonth}>
+            <SelectTrigger className="h-7 w-[150px] shrink-0 text-xs" aria-label="Mes del plan">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((m) => (
+                <SelectItem key={m} value={m}>
+                  <span className="capitalize">{periodLabel(`${m}-01`)}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <MonthStatus clientId={clientId} month={month} items={items} />
         </div>
       )}
       {plan && open && (
@@ -115,4 +122,34 @@ export function MonthPlanPanel({ clientId, planKey, canEdit }: MonthPlanPanelPro
       )}
     </Panel>
   );
+}
+
+/** Estado del mes elegido: cuántas tareas del plan ya están creadas. */
+function MonthStatus({
+  clientId,
+  month,
+  items,
+}: {
+  clientId: string;
+  month: string;
+  items: readonly MonthPlanItem[];
+}) {
+  const userKey = useUserKey();
+  const existing = useExistingMonthTasks(userKey, clientId, month, true);
+  const created = existing.data
+    ? items.filter((item) => isDuplicate(item, month, existing.data)).length
+    : null;
+  const status =
+    created === null
+      ? existing.error
+        ? "no se pudo revisar"
+        : "revisando…"
+      : items.length === 0
+        ? "sin tareas sugeridas"
+        : created >= items.length
+          ? "plan generado"
+          : created > 0
+            ? `${created} de ${items.length} tareas creadas`
+            : `pendiente · ${items.length} tareas sugeridas`;
+  return <p className="min-w-0 truncate text-sm text-muted-foreground">{status}</p>;
 }

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   Building2,
   CalendarClock,
@@ -11,15 +11,19 @@ import {
   FileText,
   HeartPulse,
   Link2,
+  PanelRightOpen,
+  Pencil,
   Send,
   Star,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
-import { ErrorState, FitPage, ListSkeleton, Money, Panel, getStatus } from "@/components/app";
+import { FitPage, getStatus } from "@/components/app";
 import {
   CLIENT_ACCESS_INFO,
   ClientAccessCard,
+  ClientAccessSummary,
   useClientAccess,
 } from "@/components/clients/ClientAccessCard";
 import { ClientHealthCard, HealthBadge, useClientHealth } from "@/components/clients/health";
@@ -35,14 +39,13 @@ import { RequestReviewPanel } from "@/components/reviews/RequestReviewPanel";
 import { periodLabel } from "@/lib/billing/dates";
 import { findPlan } from "@/lib/pricing/plans";
 import { BillingCard } from "./BillingCard";
+import { BillingSummary, billingHeadline } from "./BillingSummary";
 import { BusinessDescription } from "./BusinessDescriptionPanel";
 import { ClientHeader } from "./ClientHeader";
 import { ContractPanel, useLatestContract } from "./ContractPanel";
 import { FichaSection, FichaSheetSection } from "./FichaSection";
 import {
-  CLIENT_STATUS_META,
   formatDate,
-  isClientStatus,
   useFichaHealth,
   useFichaOverview,
   useUserKey,
@@ -50,10 +53,15 @@ import {
 } from "./fichaQueries";
 import { PendingApprovalPanel, UpcomingContentPanel } from "./MainPanels";
 import { MonthPlanInfo, MonthPlanPanel } from "./MonthPlanPanel";
-import { OnboardingIntakePanel, useClientIntake } from "./OnboardingIntakePanel";
+import {
+  OnboardingIntakePanel,
+  OnboardingIntakeSummary,
+  useClientIntake,
+} from "./OnboardingIntakePanel";
 import { OnboardingLinkPanel, currentOnboardingLink } from "./OnboardingLinkPanel";
 import { ReportsPanel } from "./ReportsPanel";
 import { useFichaSections } from "./sectionState";
+import { FIT_COLUMN_ATTR, useFichaAutoFit } from "./useFichaAutoFit";
 import { HEALTH_INFO, StatusStrip } from "./StatusStrip";
 
 const REVIEWS_INFO =
@@ -63,13 +71,34 @@ const ONBOARDING_INFO = "Datos que el cliente completa en su link de onboarding.
 const ONBOARDING_LINK_INFO =
   "Compártelo con el cliente para que complete sus datos, redes y archivos. Sirve para un solo envío.";
 const ABOUT_PREVIEW_CHARS = 60;
+/** Propuestas y reportes que se ven en la ficha; el resto, en "Ver todos". */
+const PROPOSALS_INLINE = 3;
+const REPORTS_INLINE = 1;
+const FIT_COLUMN = { [FIT_COLUMN_ATTR]: "" };
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-/** Columna de la grilla: en escritorio no crece; si algo no cabe, hace scroll dentro. */
-function Column({ label, children }: { label: string; children: ReactNode }) {
+/** Columna de la grilla: en escritorio no crece; si algo no cabe, la ficha pliega secciones. */
+function Column({
+  label,
+  nested = false,
+  children,
+}: {
+  label: string;
+  /** Dentro de la celda compartida bajo `xl`: ahí la que limita el alto es la celda. */
+  nested?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <div aria-label={label} className="flex min-w-0 flex-col gap-2 md:min-h-0 md:overflow-y-auto">
+    <div
+      aria-label={label}
+      {...FIT_COLUMN}
+      className={
+        nested
+          ? "flex min-w-0 flex-col gap-2 xl:min-h-0 xl:overflow-y-auto"
+          : "flex min-w-0 flex-col gap-2 md:min-h-0 md:overflow-y-auto"
+      }
+    >
       {children}
     </div>
   );
@@ -77,9 +106,9 @@ function Column({ label, children }: { label: string; children: ReactNode }) {
 
 /**
  * Ficha del cliente en una pantalla (desde `md`, sin scroll de página):
- * encabezado compacto, franja de estado y tres columnas de secciones plegables.
- * Lo esencial queda abierto; lo secundario, plegado con un resumen, y lo que no
- * cabe en una columna (formularios, datos largos) se abre en un panel lateral.
+ * encabezado compacto, franja de estado y tres columnas de secciones plegables
+ * que muestran su contenido clave. Si una columna no cabe, se pliegan solas las
+ * secciones menos urgentes; formularios y detalle completo van en paneles laterales.
  */
 export function FichaPage({ clientId }: { clientId: string }) {
   const { client, ig, reloadClient } = useActiveClient();
@@ -87,6 +116,8 @@ export function FichaPage({ clientId }: { clientId: string }) {
   const overview = useFichaOverview(clientId);
   const health = useFichaHealth(clientId);
   const sections = useFichaSections(userKey);
+  const gridRef = useRef<HTMLDivElement>(null);
+  useFichaAutoFit(gridRef, sections);
   const canEdit = Boolean(overview.data?.canEdit);
   const clientName = client?.name ?? "";
 
@@ -98,6 +129,12 @@ export function FichaPage({ clientId }: { clientId: string }) {
   const access = useClientAccess(clientId);
   const intake = useClientIntake(clientId, canEdit);
 
+  const section = (id: Parameters<typeof sections.isOpen>[0]) => ({
+    sectionId: id,
+    open: sections.isOpen(id),
+    onOpenChange: sections.toggle(id),
+  });
+
   const approvals = health.data?.approvals.length;
   const upcomingCount = ig.posts.filter(
     (p) =>
@@ -107,6 +144,8 @@ export function FichaPage({ clientId }: { clientId: string }) {
       new Date(p.scheduled_at).getTime() >= Date.now(),
   ).length;
   const latestReport = reports.data?.[0];
+  const reportCount = reports.data?.length ?? 0;
+  const proposalCount = proposals.data?.length ?? 0;
   const about = client?.business_description?.trim() ?? "";
   const scored = clientHealth.isPending || Boolean(clientHealth.health) || clientHealth.isError;
 
@@ -130,14 +169,16 @@ export function FichaPage({ clientId }: { clientId: string }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:min-h-0 md:flex-1 md:grid-cols-2 md:grid-rows-[minmax(0,1fr)] xl:grid-cols-3">
+      <div
+        ref={gridRef}
+        className="grid grid-cols-1 gap-3 md:min-h-0 md:flex-1 md:grid-cols-2 md:grid-rows-[minmax(0,1fr)] xl:grid-cols-3"
+      >
         <Column label="Pendientes">
           <FichaSection
+            {...section("approvals")}
             title="Pendiente de aprobación"
             icon={ClipboardCheck}
             summary={approvals === undefined ? undefined : `${approvals}`}
-            open={sections.isOpen("approvals")}
-            onOpenChange={sections.toggle("approvals")}
             grow={Boolean(approvals)}
           >
             <PendingApprovalPanel
@@ -149,30 +190,31 @@ export function FichaPage({ clientId }: { clientId: string }) {
             />
           </FichaSection>
           <FichaSection
+            {...section("upcoming")}
             title="Próximo contenido"
             icon={CalendarClock}
             summary={plural(upcomingCount, "programado", "programados")}
-            open={sections.isOpen("upcoming")}
-            onOpenChange={sections.toggle("upcoming")}
             grow={upcomingCount > 0}
           >
             <UpcomingContentPanel clientId={clientId} />
           </FichaSection>
         </Column>
 
-        {/* Bajo xl, las columnas 2 y 3 comparten una celda (con scroll interno si hace falta). */}
-        <div className="flex min-w-0 flex-col gap-2 md:min-h-0 md:overflow-y-auto xl:contents">
-          <Column label="Cliente">
+        {/* Bajo xl, las columnas 2 y 3 comparten una celda: ahí la celda es la que no debe crecer. */}
+        <div
+          {...FIT_COLUMN}
+          className="flex min-w-0 flex-col gap-2 md:min-h-0 md:overflow-y-auto xl:contents"
+        >
+          <Column label="Cliente" nested>
             {scored && (
               <FichaSection
+                {...section("health")}
                 title="Salud del cliente"
                 icon={HeartPulse}
                 info={HEALTH_INFO}
                 summary={
                   <HealthBadge health={clientHealth.health} loading={clientHealth.isPending} />
                 }
-                open={sections.isOpen("health")}
-                onOpenChange={sections.toggle("health")}
                 tone={clientHealth.health?.level === "en_riesgo" ? "warning" : "default"}
               >
                 <ClientHealthCard clientId={clientId} />
@@ -190,16 +232,26 @@ export function FichaPage({ clientId }: { clientId: string }) {
               </FichaSheetSection>
             )}
             <FichaSection
+              {...section("proposals")}
               title="Propuestas"
               icon={FileText}
-              summary={proposals.data ? `${proposals.data.length}` : undefined}
-              open={sections.isOpen("proposals")}
-              onOpenChange={sections.toggle("proposals")}
-              grow={Boolean(proposals.data?.length)}
+              summary={proposals.data ? `${proposalCount}` : undefined}
+              sheet={
+                proposalCount > PROPOSALS_INLINE
+                  ? {
+                      label: `Ver todas las propuestas (${proposalCount})`,
+                      icon: PanelRightOpen,
+                      iconOnly: true,
+                      wide: true,
+                      content: <ProposalsPanel clientId={clientId} canEdit={canEdit} />,
+                    }
+                  : undefined
+              }
             >
-              <ProposalsPanel clientId={clientId} canEdit={canEdit} />
+              <ProposalsPanel clientId={clientId} canEdit={canEdit} limit={PROPOSALS_INLINE} />
             </FichaSection>
             <FichaSection
+              {...section("reports")}
               title="Reportes"
               icon={FileBarChart}
               info={REPORTS_INFO}
@@ -210,20 +262,38 @@ export function FichaPage({ clientId }: { clientId: string }) {
                     : "sin reportes"
                   : undefined
               }
-              open={sections.isOpen("reports")}
-              onOpenChange={sections.toggle("reports")}
-              grow={Boolean(reports.data?.length)}
+              sheet={
+                reportCount > REPORTS_INLINE
+                  ? {
+                      label: `Ver todos los reportes (${reportCount})`,
+                      icon: PanelRightOpen,
+                      iconOnly: true,
+                      wide: true,
+                      content: (
+                        <ReportsPanel
+                          clientId={clientId}
+                          clientName={clientName}
+                          canEdit={canEdit}
+                        />
+                      ),
+                    }
+                  : undefined
+              }
             >
-              <ReportsPanel clientId={clientId} clientName={clientName} canEdit={canEdit} />
+              <ReportsPanel
+                clientId={clientId}
+                clientName={clientName}
+                canEdit={canEdit}
+                limit={REPORTS_INLINE}
+              />
             </FichaSection>
             {overview.data?.canEdit && (
               <FichaSection
+                {...section("monthPlan")}
                 title="Plan del mes"
                 icon={CalendarRange}
                 info={<MonthPlanInfo clientId={clientId} />}
                 summary={findPlan(overview.data.billing?.plan_key)?.label ?? "sin plan"}
-                open={sections.isOpen("monthPlan")}
-                onOpenChange={sections.toggle("monthPlan")}
               >
                 <MonthPlanPanel
                   clientId={clientId}
@@ -233,6 +303,7 @@ export function FichaPage({ clientId }: { clientId: string }) {
               </FichaSection>
             )}
             <FichaSection
+              {...section("about")}
               title="Sobre la empresa"
               icon={Building2}
               summary={
@@ -242,21 +313,76 @@ export function FichaPage({ clientId }: { clientId: string }) {
                     : about
                   : "sin descripción"
               }
-              open={sections.isOpen("about")}
-              onOpenChange={sections.toggle("about")}
             >
               <BusinessDescription
                 clientId={clientId}
                 value={client?.business_description ?? ""}
                 onSaved={reloadClient}
+                clamp
               />
             </FichaSection>
           </Column>
 
-          <Column label="Facturación, contrato y accesos">
-            <BillingSection overview={overview} clientId={clientId} />
+          <Column label="Facturación, contrato y accesos" nested>
+            <FichaSection
+              {...section("billing")}
+              title="Plan y facturación"
+              icon={CreditCard}
+              summary={overview.data ? billingHeadline(overview.data) : undefined}
+              sheet={
+                overview.data
+                  ? {
+                      label: canEdit ? "Editar" : "Ver",
+                      icon: canEdit ? Pencil : undefined,
+                      content: <BillingCard clientId={clientId} overview={overview.data} />,
+                    }
+                  : undefined
+              }
+            >
+              <BillingSummary overview={overview} />
+            </FichaSection>
+            <FichaSection
+              {...section("contract")}
+              title="Contrato"
+              icon={FileSignature}
+              summary={
+                contract.data === undefined
+                  ? undefined
+                  : contract.data
+                    ? getStatus(contract.data.status).label
+                    : "sin contrato"
+              }
+            >
+              <ContractPanel clientId={clientId} />
+            </FichaSection>
+            <FichaSection
+              {...section("access")}
+              title="Acceso del cliente"
+              icon={Users}
+              info={CLIENT_ACCESS_INFO}
+              summary={access.data ? plural(access.data.length, "persona", "personas") : undefined}
+              sheet={{
+                label: "Invitar",
+                icon: UserPlus,
+                content: <ClientAccessCard clientId={clientId} />,
+              }}
+            >
+              <ClientAccessSummary clientId={clientId} />
+            </FichaSection>
             {overview.data && (
-              <FichaSheetSection
+              <FichaSection
+                {...section("onboardingLink")}
+                title="Link de onboarding"
+                icon={Link2}
+                info={ONBOARDING_LINK_INFO}
+                summary={onboardingLinkSummary(overview.data)}
+              >
+                <OnboardingLinkPanel clientId={clientId} overview={overview.data} />
+              </FichaSection>
+            )}
+            {overview.data && (
+              <FichaSection
+                {...section("onboarding")}
                 title="Onboarding"
                 icon={ClipboardList}
                 info={ONBOARDING_INFO}
@@ -269,52 +395,24 @@ export function FichaPage({ clientId }: { clientId: string }) {
                         ? "pendiente"
                         : undefined
                 }
-                wide
+                sheet={
+                  canEdit && intake.data
+                    ? {
+                        label: "Ver todo",
+                        wide: true,
+                        content: <OnboardingIntakePanel clientId={clientId} canEdit={canEdit} />,
+                      }
+                    : undefined
+                }
               >
-                <OnboardingIntakePanel clientId={clientId} canEdit={overview.data.canEdit} />
-              </FichaSheetSection>
-            )}
-            {overview.data && (
-              <FichaSection
-                title="Link de onboarding"
-                icon={Link2}
-                info={ONBOARDING_LINK_INFO}
-                summary={onboardingLinkSummary(overview.data)}
-                open={sections.isOpen("onboardingLink")}
-                onOpenChange={sections.toggle("onboardingLink")}
-              >
-                <OnboardingLinkPanel clientId={clientId} overview={overview.data} />
+                <OnboardingIntakeSummary clientId={clientId} canEdit={canEdit} />
               </FichaSection>
             )}
             <FichaSection
-              title="Contrato"
-              icon={FileSignature}
-              summary={
-                contract.data === undefined
-                  ? undefined
-                  : contract.data
-                    ? getStatus(contract.data.status).label
-                    : "sin contrato"
-              }
-              open={sections.isOpen("contract")}
-              onOpenChange={sections.toggle("contract")}
-            >
-              <ContractPanel clientId={clientId} />
-            </FichaSection>
-            <FichaSheetSection
-              title="Acceso del cliente"
-              icon={Users}
-              info={CLIENT_ACCESS_INFO}
-              summary={access.data ? plural(access.data.length, "persona", "personas") : undefined}
-            >
-              <ClientAccessCard clientId={clientId} />
-            </FichaSheetSection>
-            <FichaSection
+              {...section("reviews")}
               title="Reseñas y testimonios"
               icon={Star}
               info={REVIEWS_INFO}
-              open={sections.isOpen("reviews")}
-              onOpenChange={sections.toggle("reviews")}
             >
               <RequestReviewPanel clientId={clientId} clientName={clientName} />
             </FichaSection>
@@ -328,48 +426,4 @@ export function FichaPage({ clientId }: { clientId: string }) {
 function onboardingLinkSummary(overview: FichaOverview): string {
   const link = currentOnboardingLink(overview);
   return link ? `vence el ${formatDate(link.expiresAt)}` : "sin link vigente";
-}
-
-/** Plan y facturación: resumen en el encabezado y el formulario en un panel lateral. */
-function BillingSection({
-  clientId,
-  overview,
-}: {
-  clientId: string;
-  overview: ReturnType<typeof useFichaOverview>;
-}) {
-  if (overview.isLoading) {
-    return (
-      <Panel title="Plan y facturación">
-        <ListSkeleton rows={1} label="Cargando facturación" />
-      </Panel>
-    );
-  }
-  if (overview.error) {
-    return (
-      <ErrorState
-        message={overview.error.message}
-        onRetry={() => void overview.refetch()}
-        retrying={overview.isFetching}
-      />
-    );
-  }
-  if (!overview.data) return null;
-  const data = overview.data;
-  const plan = findPlan(data.billing?.plan_key);
-  const status = isClientStatus(data.status) ? CLIENT_STATUS_META[data.status].label : data.status;
-  return (
-    <FichaSheetSection
-      title="Plan y facturación"
-      icon={CreditCard}
-      summary={
-        <>
-          {plan?.label ?? "Sin plan"} · <Money amount={data.billing?.mrr ?? 0} />
-          {data.billing?.billing_day ? ` · día ${data.billing.billing_day}` : ""} · {status}
-        </>
-      }
-    >
-      <BillingCard clientId={clientId} overview={data} />
-    </FichaSheetSection>
-  );
 }

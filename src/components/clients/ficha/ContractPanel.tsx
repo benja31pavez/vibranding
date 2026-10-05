@@ -24,7 +24,7 @@ export function useLatestContract(clientId: string) {
   });
 }
 
-/** Último contrato del cliente con su estado y montos. */
+/** Último contrato: estado, plan (título), monto mensual, fecha y acceso al PDF. */
 export function ContractPanel({ clientId }: { clientId: string }) {
   const query = useLatestContract(clientId);
   const contract = query.data;
@@ -40,7 +40,7 @@ export function ContractPanel({ clientId }: { clientId: string }) {
           search={{ tab: "contratos" }}
           className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
         >
-          {contract ? "Ver contratos" : "Crear"} <ArrowRight aria-hidden className="h-3 w-3" />
+          {contract ? "Ver PDF" : "Crear"} <ArrowRight aria-hidden className="h-3 w-3" />
         </Link>
       }
     >
@@ -55,36 +55,36 @@ export function ContractPanel({ clientId }: { clientId: string }) {
           description="Genera uno desde Facturación."
         />
       ) : (
-        <div className="space-y-1.5 text-sm">
+        <div className="space-y-0.5 text-sm">
           <div className="flex items-center justify-between gap-2">
             <span className="truncate font-medium">{contract.title}</span>
             <StatusBadge status={contract.status} />
           </div>
-          {contract.total_monthly > 0 && (
-            <div className="text-muted-foreground">
-              Mensual (con IVA):{" "}
-              <Money
-                amount={contract.total_monthly}
-                currency={contract.currency}
-                className="text-foreground"
-              />
-            </div>
-          )}
-          {contract.total_one_time > 0 && (
-            <div className="text-muted-foreground">
-              Pago único (con IVA):{" "}
-              <Money
-                amount={contract.total_one_time}
-                currency={contract.currency}
-                className="text-foreground"
-              />
-            </div>
-          )}
-          <div className="text-xs text-muted-foreground">
+          <p className="truncate text-xs text-muted-foreground">
+            {contract.total_monthly > 0 && (
+              <>
+                <Money
+                  amount={contract.total_monthly}
+                  currency={contract.currency}
+                  className="text-foreground"
+                />
+                /mes con IVA ·{" "}
+              </>
+            )}
+            {contract.total_monthly <= 0 && contract.total_one_time > 0 && (
+              <>
+                <Money
+                  amount={contract.total_one_time}
+                  currency={contract.currency}
+                  className="text-foreground"
+                />{" "}
+                pago único ·{" "}
+              </>
+            )}
             {contract.signed_at
-              ? `Firmado el ${formatDate(contract.signed_at)}`
-              : `Vigencia desde ${formatDate(contract.effective_date)}`}
-          </div>
+              ? `firmado el ${formatDate(contract.signed_at)}`
+              : `vigencia desde ${formatDate(contract.effective_date)}`}
+          </p>
         </div>
       )}
     </Panel>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, Trash2 } from "lucide-react";
+import { Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -136,5 +136,38 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
         </ul>
       )}
     </Panel>
+  );
+}
+
+/** Personas que se muestran en el resumen de la ficha (el resto, en el panel lateral). */
+const SUMMARY_LIMIT = 3;
+
+/** Resumen de la ficha: quiénes tienen acceso (hasta 3); invitar y quitar van en el panel lateral. */
+export function ClientAccessSummary({ clientId }: { clientId: string }) {
+  const access = useClientAccess(clientId);
+  if (access.isLoading) return <ListSkeleton rows={1} label="Cargando accesos" />;
+  if (access.error) {
+    return (
+      <ErrorState
+        title="No pudimos cargar los accesos"
+        message={access.error.message}
+        onRetry={() => void access.refetch()}
+        retrying={access.isFetching}
+      />
+    );
+  }
+  const rows = access.data ?? [];
+  const extra = rows.length - SUMMARY_LIMIT;
+  return rows.length === 0 ? (
+    <p className="text-sm text-muted-foreground">Todavía no has dado acceso a nadie.</p>
+  ) : (
+    <ul className="space-y-0.5 text-sm">
+      {rows.slice(0, SUMMARY_LIMIT).map((r) => (
+        <li key={r.id} className="truncate">
+          {r.email ?? r.user_id}
+        </li>
+      ))}
+      {extra > 0 && <li className="text-xs text-muted-foreground">y {extra} más</li>}
+    </ul>
   );
 }

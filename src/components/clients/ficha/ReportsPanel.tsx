@@ -51,10 +51,12 @@ interface ReportsPanelProps {
   clientId: string;
   clientName: string;
   canEdit: boolean;
+  /** Solo los N más recientes, sin paginar (resumen de la ficha). */
+  limit?: number;
 }
 
 /** Reportes mensuales del cliente: generar, editar resumen, copiar link y marcar enviado. */
-export function ReportsPanel({ clientId, clientName, canEdit }: ReportsPanelProps) {
+export function ReportsPanel({ clientId, clientName, canEdit, limit }: ReportsPanelProps) {
   const userKey = useUserKey();
   const queryClient = useQueryClient();
   const reports = useClientReports(userKey, clientId);
@@ -98,7 +100,7 @@ export function ReportsPanel({ clientId, clientName, canEdit }: ReportsPanelProp
   return (
     <Panel title="Reportes" icon={FileBarChart} actions={actions}>
       {reports.isLoading ? (
-        <ListSkeleton rows={3} label="Cargando reportes" />
+        <ListSkeleton rows={limit ?? 3} label="Cargando reportes" />
       ) : reports.error ? (
         <ErrorState
           message={reports.error.message}
@@ -115,6 +117,21 @@ export function ReportsPanel({ clientId, clientName, canEdit }: ReportsPanelProp
               : "El primero se generará el día 1."
           }
         />
+      ) : limit ? (
+        <ul className="divide-y divide-border-subtle">
+          {reports.data.slice(0, limit).map((r) => (
+            <li key={r.id}>
+              <ReportRow
+                report={r}
+                canEdit={canEdit}
+                onEdit={() => setEditing(r)}
+                onPreview={() => setPreview(r)}
+                onChanged={refresh}
+                compact
+              />
+            </li>
+          ))}
+        </ul>
       ) : (
         <FitList
           items={reports.data}
@@ -174,9 +191,11 @@ interface ReportRowProps {
   onEdit: () => void;
   onPreview: () => void;
   onChanged: () => Promise<void>;
+  /** Una sola línea con acciones de solo ícono (resumen de la ficha). */
+  compact?: boolean;
 }
 
-function ReportRow({ report, canEdit, onEdit, onPreview, onChanged }: ReportRowProps) {
+function ReportRow({ report, canEdit, onEdit, onPreview, onChanged, compact }: ReportRowProps) {
   const [busy, setBusy] = useState(false);
   const sent = Boolean(report.sent_at);
 
@@ -208,6 +227,61 @@ function ReportRow({ report, canEdit, onEdit, onPreview, onChanged }: ReportRowP
     toast.success("Reporte marcado como enviado; el link ya está activo");
     await onChanged();
   };
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2 py-1">
+        <p className="min-w-0 truncate text-sm font-medium capitalize">
+          {periodLabel(report.period)}
+        </p>
+        <StatusBadge status={sent ? "sent" : "draft"} />
+        <div className="ml-auto flex shrink-0 [&_button]:h-7 [&_button]:w-7 [&_button]:p-0">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onPreview}
+            disabled={!report.data}
+            aria-label="Vista previa"
+            title="Vista previa"
+          >
+            <Eye aria-hidden className="h-4 w-4" />
+          </Button>
+          {canEdit && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onEdit}
+              aria-label="Editar resumen"
+              title="Editar resumen"
+            >
+              <Pencil aria-hidden className="h-4 w-4" />
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={copy}
+            aria-label="Copiar link"
+            title="Copiar link"
+          >
+            <Copy aria-hidden className="h-4 w-4" />
+          </Button>
+          {canEdit && !sent && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={markSent}
+              disabled={busy}
+              aria-label="Marcar enviado"
+              title="Marcar enviado"
+            >
+              <Send aria-hidden className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
