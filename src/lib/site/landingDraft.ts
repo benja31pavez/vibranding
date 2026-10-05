@@ -3,6 +3,7 @@
  * valida antes de guardar/publicar y aplica plantillas por rubro.
  * Todo es inmutable: cada helper devuelve un objeto nuevo.
  */
+import { safeHref, safeWebUrl } from "@/lib/site/safeUrl";
 import type { Json } from "@/integrations/supabase/types";
 import {
   asArray,
@@ -103,7 +104,8 @@ export function normalizeLanding(row: Record<string, any>): LandingDraft {
 /** Normaliza teléfonos y URLs al formato que se guarda. */
 function cleanForSave(lp: LandingDraft): LandingDraft {
   const footer = lp.footer;
-  const url = (v: string | null | undefined) => normalizeUrl(v) || null;
+  // Defensa extra: aunque la validación ya bloquea, nunca se guarda un esquema fuera de la allowlist.
+  const url = (v: string | null | undefined) => safeHref(normalizeUrl(v));
   return {
     ...lp,
     whatsapp_number:
@@ -116,7 +118,7 @@ function cleanForSave(lp: LandingDraft): LandingDraft {
       facebook: url(footer.facebook) ?? undefined,
       tiktok: url(footer.tiktok) ?? undefined,
       legal: (footer.legal ?? [])
-        .map((l) => ({ label: l.label.trim(), url: normalizeUrl(l.url) }))
+        .map((l) => ({ label: l.label.trim(), url: safeWebUrl(normalizeUrl(l.url)) ?? "" }))
         .filter((l) => l.label || l.url),
     },
     location: {

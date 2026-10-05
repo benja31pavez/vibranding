@@ -1,5 +1,6 @@
 /** Presentation layer for the public multilink page. No data-model changes. */
 import { bestOn, readableOn } from "@/lib/landingTheme";
+import { safeImageSrc } from "@/lib/site/safeUrl";
 
 export type ButtonStyle = "solid" | "outline" | "soft" | "hard-shadow" | "glass";
 export type ButtonShape = "rounded" | "pill" | "square";
@@ -64,22 +65,27 @@ export function buttonShapeKey(raw: string | null | undefined): ButtonShape {
   return raw && raw in BUTTON_SHAPE_LABEL ? (raw as ButtonShape) : "rounded";
 }
 
+/** Sólo colores #rrggbb llegan a estilos CSS (evita inyectar url() u otras funciones). */
+function isHex(v: unknown): v is string {
+  return typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
+}
+
 export function parseBackground(raw: unknown): Background {
   const b = (raw ?? null) as any;
   if (!b || typeof b !== "object") return { type: "flat" };
-  if (b.type === "solid" && typeof b.color === "string") return { type: "solid", color: b.color };
+  if (b.type === "solid" && isHex(b.color)) return { type: "solid", color: b.color };
   if (b.type === "gradient")
     return {
       type: "gradient",
-      from: typeof b.from === "string" ? b.from : "#6d28d9",
-      to: typeof b.to === "string" ? b.to : "#db2777",
-      angle: Number.isFinite(b.angle) ? Number(b.angle) : 160,
+      from: isHex(b.from) ? b.from : "#6d28d9",
+      to: isHex(b.to) ? b.to : "#db2777",
+      angle: Number.isFinite(b.angle) ? Math.round(Number(b.angle)) % 361 : 160,
     };
   if (b.type === "image")
     return {
       type: "image",
-      url: typeof b.url === "string" ? b.url : null,
-      overlay: Number.isFinite(b.overlay) ? Number(b.overlay) : 0.45,
+      url: typeof b.url === "string" ? safeImageSrc(b.url) : null,
+      overlay: Number.isFinite(b.overlay) ? Math.min(Math.max(Number(b.overlay), 0), 0.9) : 0.45,
     };
   return { type: "flat" };
 }

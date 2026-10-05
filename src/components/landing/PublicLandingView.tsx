@@ -33,9 +33,16 @@ import {
   type GalleryItem,
   type HeroAspect,
 } from "@/lib/landingTheme";
-import { landingWhatsappUrl } from "@/lib/landingWhatsapp";
+import { landingWhatsappUrl, type LandingWaConfig } from "@/lib/landingWhatsapp";
 import { buildLandingStructuredData, jsonLd, landingPhone } from "@/lib/site/landingSeo";
-import { formatChileMobile } from "@/lib/site/validation";
+import { formatChileMobile, normalizeChileMobile } from "@/lib/site/validation";
+import {
+  isExternalHref,
+  safeHref,
+  safeImageSrc,
+  safeMapEmbedSrc,
+  safeWebUrl,
+} from "@/lib/site/safeUrl";
 import { LandingContactForm } from "@/components/landing/LandingContactForm";
 import { WhatsappFab } from "@/components/landing/WhatsappFab";
 
@@ -82,19 +89,45 @@ export function PublicLandingView({
   const services = hidden.includes("servicios") ? [] : asArray<ServiceItem>(lp.services);
   const gallery = hidden.includes("galeria")
     ? []
-    : asArray<GalleryItem>(lp.gallery).filter((g) => g?.url);
+    : asArray<GalleryItem>(lp.gallery)
+        .map((g) => ({
+          ...g,
+          url: safeImageSrc(g?.url) ?? "",
+          before_url: safeImageSrc(g?.before_url),
+        }))
+        .filter((g) => g.url);
   // Nunca se publican testimonios vacíos (las plantillas dejan marcadores para completar).
-  const allTestimonials = asArray<Testimonial>(lp.testimonials);
+  const allTestimonials = asArray<Testimonial>(lp.testimonials).map((t) => ({
+    ...t,
+    photo_url: safeImageSrc(t?.photo_url),
+  }));
   const testimonials = preview
     ? allTestimonials
     : allTestimonials.filter((t) => t?.quote?.trim() && t?.name?.trim());
   const faq = asArray<FaqItem>(lp.faq);
   const location = asObject<LandingLocation>(lp.location);
   const footer = asObject<LandingFooter>(lp.footer);
-  const waUrl = landingWhatsappUrl(lp as any);
+  const waUrl = safeHref(landingWhatsappUrl(lp as LandingWaConfig));
+  const heroSrc = safeImageSrc(lp.hero_image_url);
+  const mapSrc = safeMapEmbedSrc(location.map_embed_url);
+  const emailHref = footer.email ? safeHref(`mailto:${footer.email.trim()}`) : null;
+  const footerWa = normalizeChileMobile(footer.whatsapp);
+  const socials: [string, string][] = [];
+  for (const [label, raw] of [
+    ["Instagram", footer.instagram],
+    ["Facebook", footer.facebook],
+    ["TikTok", footer.tiktok],
+  ] as const) {
+    const href = safeWebUrl(raw);
+    if (href) socials.push([label, href]);
+  }
+  const legal = (footer.legal ?? [])
+    .map((l) => ({ label: (l?.label ?? "").trim(), url: safeWebUrl(l?.url) }))
+    .filter((l): l is { label: string; url: string } => !!l.label && !!l.url);
   const comunas = (location.comunas ?? []).filter(Boolean);
   const rawPhone = landingPhone(lp);
   const phone = rawPhone ? formatChileMobile(rawPhone) : null;
+  const telHref = phone ? safeHref(`tel:${phone.replace(/[^\d+]/g, "")}`) : null;
 
   const [lightbox, setLightbox] = useState<number | null>(null);
 
@@ -105,9 +138,9 @@ export function PublicLandingView({
 
   /* El CTA principal siempre apunta a un destino real. */
   const ctaHref: string | null =
-    (lp.cta_url && String(lp.cta_url)) || (lp.contact_enabled ? "#contacto" : waUrl) || null;
-  const ctaExternal = !!ctaHref && /^https?:/i.test(ctaHref);
-  const onImage = template === "fullbleed" && !!lp.hero_image_url;
+    safeHref(lp.cta_url) || (lp.contact_enabled ? "#contacto" : waUrl) || null;
+  const ctaExternal = isExternalHref(ctaHref);
+  const onImage = template === "fullbleed" && !!heroSrc;
 
   const renderCta = (center: boolean) =>
     lp.cta_text && ctaHref ? (
@@ -348,10 +381,7 @@ export function PublicLandingView({
 
     ubicacion:
       lp.location_enabled &&
-      (location.address ||
-        location.map_embed_url ||
-        comunas.length > 0 ||
-        (location.hours ?? []).length > 0) ? (
+      (location.address || mapSrc || comunas.length > 0 || (location.hours ?? []).length > 0) ? (
         <section data-section="ubicacion" className={PAD_TIGHT}>
           <div className="max-w-5xl mx-auto">
             {heading(
@@ -409,7 +439,7 @@ export function PublicLandingView({
                   </div>
                 )}
               </div>
-              {location.map_embed_url &&
+              {mapSrc &&
                 (preview ? (
                   <div
                     className="w-full rounded-2xl border grid place-items-center text-sm"
@@ -419,12 +449,13 @@ export function PublicLandingView({
                   </div>
                 ) : (
                   <iframe
-                    src={location.map_embed_url}
+                    src={mapSrc}
                     title={`Mapa de ${realTitle || "la ubicación"}`}
                     className="w-full rounded-2xl border"
                     style={{ borderColor: p.border, aspectRatio: "4 / 3" }}
                     loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
+                    referrerPolicy="no-referrer"
+                    sandbox="allow-scripts allow-same-origin allow-popups"
                   />
                 ))}
             </div>
@@ -506,7 +537,7 @@ export function PublicLandingView({
             style={{ color: "#ffffff" }}
           >
             <img
-              src={lp.hero_image_url}
+              src={heroSrc ?? undefined}
               alt=""
               width={heroDims.width}
               height={heroDims.height}
@@ -532,9 +563,9 @@ export function PublicLandingView({
         ) : template === "centered" ? (
           <section data-section="hero" className={`${PAD} max-w-3xl mx-auto text-center`}>
             {heroText(true)}
-            {lp.hero_image_url && (
+            {heroSrc && (
               <img
-                src={lp.hero_image_url}
+                src={heroSrc}
                 alt=""
                 width={heroDims.width}
                 height={heroDims.height}
@@ -551,9 +582,9 @@ export function PublicLandingView({
             className={`${PAD} max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center`}
           >
             {heroText(false)}
-            {lp.hero_image_url && (
+            {heroSrc && (
               <img
-                src={lp.hero_image_url}
+                src={heroSrc}
                 alt=""
                 width={heroDims.width}
                 height={heroDims.height}
@@ -584,31 +615,28 @@ export function PublicLandingView({
             )}
           </div>
           <ul className="text-sm space-y-2 min-w-0" style={{ color: p.muted }}>
-            {footer.email && (
+            {emailHref && (
               <li>
                 <a
                   className="inline-flex items-center gap-1.5 hover:underline break-all"
-                  href={`mailto:${footer.email}`}
+                  href={emailHref}
                 >
                   <Mail className="w-4 h-4 shrink-0" aria-hidden="true" /> {footer.email}
                 </a>
               </li>
             )}
-            {phone && (
+            {phone && telHref && (
               <li>
-                <a
-                  className="inline-flex items-center gap-1.5 hover:underline"
-                  href={`tel:${phone.replace(/[^\d+]/g, "")}`}
-                >
+                <a className="inline-flex items-center gap-1.5 hover:underline" href={telHref}>
                   <Phone className="w-4 h-4 shrink-0" aria-hidden="true" /> {phone}
                 </a>
               </li>
             )}
-            {footer.whatsapp && !waUrl && (
+            {footerWa && !waUrl && (
               <li>
                 <a
                   className="inline-flex items-center gap-1.5 hover:underline"
-                  href={`https://wa.me/${footer.whatsapp.replace(/\D/g, "")}`}
+                  href={`https://wa.me/${footerWa.slice(1)}`}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -619,25 +647,21 @@ export function PublicLandingView({
           </ul>
           <div className="text-sm space-y-3" style={{ color: p.muted }}>
             <div className="flex items-center gap-2">
-              {footer.instagram && (
-                <SocialLink href={footer.instagram} label="Instagram">
-                  <Instagram className="w-5 h-5" aria-hidden="true" />
+              {socials.map(([label, href]) => (
+                <SocialLink key={label} href={href} label={label}>
+                  {label === "Instagram" ? (
+                    <Instagram className="w-5 h-5" aria-hidden="true" />
+                  ) : label === "Facebook" ? (
+                    <Facebook className="w-5 h-5" aria-hidden="true" />
+                  ) : (
+                    <span className="font-semibold text-xs">TikTok</span>
+                  )}
                 </SocialLink>
-              )}
-              {footer.facebook && (
-                <SocialLink href={footer.facebook} label="Facebook">
-                  <Facebook className="w-5 h-5" aria-hidden="true" />
-                </SocialLink>
-              )}
-              {footer.tiktok && (
-                <SocialLink href={footer.tiktok} label="TikTok">
-                  <span className="font-semibold text-xs">TikTok</span>
-                </SocialLink>
-              )}
+              ))}
             </div>
-            {(footer.legal ?? []).length > 0 && (
+            {legal.length > 0 && (
               <ul className="space-y-1">
-                {(footer.legal ?? []).map((l, i) => (
+                {legal.map((l, i) => (
                   <li key={i}>
                     <a href={l.url} className="hover:underline" target="_blank" rel="noreferrer">
                       {l.label}

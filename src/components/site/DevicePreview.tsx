@@ -173,15 +173,14 @@ function FramePortal({
     doc.close();
     const stop = mirrorStyles(doc);
     // Vista previa: los enlaces (wa.me, redes, anclas) no navegan ni abren pestañas.
-    doc.addEventListener(
-      "click",
-      (e) => {
-        // instanceof no sirve entre documentos (cada iframe tiene su propio Element).
-        const target = e.target as Element | null;
-        if (target?.closest?.("a[href]")) e.preventDefault();
-      },
-      true,
-    );
+    const blockLinks = (e: MouseEvent) => {
+      // instanceof no sirve entre documentos (cada iframe tiene su propio Element).
+      const target = e.target as Element | null;
+      if (target?.closest?.("a[href]")) e.preventDefault();
+    };
+    const blockSubmit = (e: Event) => e.preventDefault();
+    doc.addEventListener("click", blockLinks, true);
+    doc.addEventListener("submit", blockSubmit, true);
     doc.documentElement.style.colorScheme = "light";
     doc.body.style.margin = "0";
     const root = doc.createElement("div");
@@ -190,6 +189,8 @@ function FramePortal({
     setMount(root);
     onDocument?.(doc);
     return () => {
+      doc.removeEventListener("click", blockLinks, true);
+      doc.removeEventListener("submit", blockSubmit, true);
       stop();
       onDocument?.(null);
       setMount(null);

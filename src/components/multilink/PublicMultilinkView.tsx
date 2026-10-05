@@ -1,6 +1,10 @@
 import { useEffect, useMemo } from "react";
 import { trackEvent } from "@/lib/track";
 import { bestOn } from "@/lib/landingTheme";
+import { safeImageSrc } from "@/lib/site/safeUrl";
+import { jsonLd } from "@/lib/site/landingSeo";
+
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 import { itemLinkKind } from "@/lib/site/multilinkDraft";
 import { LinkIcon } from "@/components/multilink/LinkIcon";
 import {
@@ -54,7 +58,7 @@ const SOCIAL_ICON: Record<SocialNetwork, typeof Instagram> = {
 };
 
 export function PublicMultilinkView({
-  ml,
+  ml: rawMl,
   items,
   preview = false,
 }: {
@@ -63,6 +67,12 @@ export function PublicMultilinkView({
   /** Editor preview: no tracking, no viewport-height shell. */
   preview?: boolean;
 }) {
+  // Datos del cliente: sólo colores hex e imágenes https llegan al DOM/CSS.
+  const ml: Multilink = {
+    ...rawMl,
+    theme_color: HEX_COLOR.test(rawMl.theme_color ?? "") ? rawMl.theme_color : "#111827",
+    avatar_url: safeImageSrc(rawMl.avatar_url),
+  };
   useEffect(() => {
     if (preview) return;
     trackEvent("page_view", { type: "multilink", id: ml.id });
@@ -100,8 +110,8 @@ export function PublicMultilinkView({
   const panelBackground = theme.isDark ? "rgba(13,13,15,0.96)" : "rgba(250,248,245,0.98)";
   const subtleBorder = theme.isDark ? "rgba(255,255,255,0.1)" : "rgba(10,10,10,0.09)";
   const coverBackground =
-    bg.type === "image" && bg.url
-      ? `url(${bg.url}) center / cover`
+    bg.type === "image" && safeImageSrc(bg.url)
+      ? `url("${safeImageSrc(bg.url)}") center / cover`
       : bg.type === "gradient"
         ? `linear-gradient(${bg.angle}deg, ${bg.from}, ${bg.to})`
         : bg.type === "solid"
@@ -148,7 +158,7 @@ export function PublicMultilinkView({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+            __html: jsonLd(structuredData),
           }}
         />
       )}
@@ -194,6 +204,9 @@ export function PublicMultilinkView({
                 {ml.avatar_url ? (
                   <img
                     src={ml.avatar_url}
+                    width={96}
+                    height={96}
+                    fetchPriority="high"
                     alt={`Foto de ${ml.title}`}
                     className="w-full h-full object-cover"
                   />
@@ -351,6 +364,7 @@ function PublicItem({
   }
 
   const href = itemHref(item);
+  const thumb = safeImageSrc(item.thumbnail_url);
   const isWa = item.kind === "whatsapp";
   const accent = isWa ? "#25D366" : color;
   // Only http(s) destinations belong in a new tab — mailto:/tel: used to leave an
@@ -372,10 +386,12 @@ function PublicItem({
           outlineColor: accent,
         }}
       >
-        {item.thumbnail_url && (
+        {thumb && (
           <img
-            src={item.thumbnail_url}
+            src={thumb}
             alt=""
+            width={440}
+            height={160}
             loading="lazy"
             decoding="async"
             className="w-full h-40 object-cover"
@@ -405,10 +421,12 @@ function PublicItem({
       className={`group relative flex min-h-14 items-center gap-3 py-3 pr-10 pl-3.5 text-left shadow-sm focus-visible:outline-2 focus-visible:outline-offset-4 ${visual.className}`}
       style={{ ...visual.style, outlineColor: theme.color }}
     >
-      {item.thumbnail_url ? (
+      {thumb ? (
         <img
-          src={item.thumbnail_url}
+          src={thumb}
           alt=""
+          width={36}
+          height={36}
           loading="lazy"
           decoding="async"
           className="shrink-0 w-9 h-9 rounded-lg object-cover"

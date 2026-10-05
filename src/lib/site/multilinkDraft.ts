@@ -4,6 +4,7 @@
  */
 import { socialNetwork, videoEmbedUrl, type Multilink, type MultilinkItem } from "@/lib/multilink";
 import { detectLinkKind, LINK_KIND_LABEL, type LinkKind } from "@/lib/site/linkKind";
+import { safeHref } from "@/lib/site/safeUrl";
 import { normalizeChileMobile, normalizeUrl, urlError, whatsappError } from "@/lib/site/validation";
 
 export const TEMP_PREFIX = "tmp-";
@@ -151,7 +152,11 @@ export function validateItems(items: MultilinkItem[]): ItemErrors {
       const raw = normalizeUrl(i.url);
       if (!raw) e[`${i.id}.url`] = "Pega la URL de destino";
       else {
-        const err = /^(mailto:|tel:)/i.test(raw) ? null : urlError(raw);
+        const err = /^(mailto:|tel:)/i.test(raw)
+          ? safeHref(raw)
+            ? null
+            : "Email o teléfono inválido"
+          : urlError(raw);
         if (err) e[`${i.id}.url`] = err;
       }
     }

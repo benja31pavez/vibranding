@@ -1,3 +1,5 @@
+import { safeHref, safeMapEmbedSrc } from "@/lib/site/safeUrl";
+
 /**
  * Validaciones compartidas por los editores de landing y multienlace.
  * Pensadas para pymes chilenas: WhatsApp móvil +569XXXXXXXX y URLs http(s).
@@ -50,14 +52,8 @@ export function normalizeUrl(raw: string | null | undefined): string {
 }
 
 export function isValidHttpUrl(raw: string | null | undefined): boolean {
-  const v = (raw ?? "").trim();
-  if (!v) return false;
-  try {
-    const u = new URL(v);
-    return (u.protocol === "https:" || u.protocol === "http:") && u.hostname.includes(".");
-  } catch {
-    return false;
-  }
+  const v = safeHref(raw);
+  return !!v && /^https?:\/\//i.test(v);
 }
 
 /** Error para una URL opcional. Acepta anclas internas (#contacto). */
@@ -77,12 +73,11 @@ export function emailError(raw: string | null | undefined): string | null {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? null : "Email inválido";
 }
 
-/** Google Maps: sólo se puede incrustar la URL de "Insertar un mapa". */
+/** Google Maps: sólo se puede incrustar la URL de "Insertar un mapa" (google.com / google.cl). */
 export function mapEmbedError(raw: string | null | undefined): string | null {
   const v = (raw ?? "").trim();
   if (!v) return null;
-  if (!isValidHttpUrl(v)) return "URL inválida";
-  return /^https:\/\/(www\.)?google\.[a-z.]+\/maps\/embed/i.test(v)
+  return safeMapEmbedSrc(v)
     ? null
     : "Usa el enlace de Google Maps → Compartir → Insertar un mapa (empieza con https://www.google.com/maps/embed)";
 }

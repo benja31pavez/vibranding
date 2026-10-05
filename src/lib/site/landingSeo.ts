@@ -14,6 +14,7 @@ import {
   type OpeningHour,
 } from "@/lib/landingTheme";
 import { normalizeChileMobile } from "@/lib/site/validation";
+import { safeImageSrc, safeWebUrl } from "@/lib/site/safeUrl";
 
 type LandingLike = Record<string, any>;
 type ServiceItem = { title: string; description?: string };
@@ -76,7 +77,8 @@ export function buildLandingStructuredData(lp: LandingLike): object[] {
     };
     const description = landingSeoDescription(lp);
     if (description) business.description = description;
-    if (lp.hero_image_url) business.image = lp.hero_image_url;
+    const image = safeImageSrc(lp.hero_image_url);
+    if (image) business.image = image;
 
     const showLocation = !!lp.location_enabled;
     const street = (showLocation ? location.address : null) || footer.address;
@@ -100,7 +102,9 @@ export function buildLandingStructuredData(lp: LandingLike): object[] {
     if (phone) business.telephone = phone;
     if (footer.email) business.email = footer.email;
 
-    const sameAs = [footer.instagram, footer.facebook, footer.tiktok].filter(Boolean);
+    const sameAs = [footer.instagram, footer.facebook, footer.tiktok]
+      .map((u) => safeWebUrl(u))
+      .filter((u): u is string => !!u);
     if (sameAs.length > 0) business.sameAs = sameAs;
 
     if (showLocation) {
@@ -150,5 +154,9 @@ export function buildLandingStructuredData(lp: LandingLike): object[] {
 
 /** JSON seguro para <script type="application/ld+json">. */
 export function jsonLd(node: object): string {
-  return JSON.stringify(node).replace(/</g, "\\u003c");
+  // Escapa "<" (cierre de </script>) y U+2028/U+2029 (fin de línea en JS antiguo).
+  return JSON.stringify(node)
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }

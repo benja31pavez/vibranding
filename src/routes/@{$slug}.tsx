@@ -3,13 +3,15 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { trackEvent } from "@/lib/track";
 import { PublicLandingView } from "@/components/landing/PublicLandingView";
+import { LANDING_PUBLIC_COLUMNS } from "@/lib/site/publicColumns";
+import { safeImageSrc } from "@/lib/site/safeUrl";
 import { landingCanonicalUrl, landingSeoDescription, landingSeoTitle } from "@/lib/site/landingSeo";
 
 export const Route = createFileRoute("/@{$slug}")({
   loader: async ({ params }) => {
     const { data, error } = await supabase
       .from("landing_pages")
-      .select("*")
+      .select(LANDING_PUBLIC_COLUMNS)
       .eq("slug", params.slug)
       .eq("published", true)
       .maybeSingle();
@@ -24,12 +26,14 @@ export const Route = createFileRoute("/@{$slug}")({
     const title = landingSeoTitle(lp);
     const description = landingSeoDescription(lp);
     const url = landingCanonicalUrl(lp.slug);
+    const image = safeImageSrc(lp.hero_image_url);
+    const themeColor = /^#[0-9a-f]{6}$/i.test(lp.theme_color ?? "") ? lp.theme_color : "#111827";
     return {
       links: [{ rel: "canonical", href: url }],
       meta: [
         { title },
         { name: "description", content: description },
-        { name: "theme-color", content: lp.theme_color || "#6366f1" },
+        { name: "theme-color", content: themeColor },
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { name: "twitter:title", content: title },
@@ -38,12 +42,12 @@ export const Route = createFileRoute("/@{$slug}")({
         { property: "og:url", content: url },
         { property: "og:locale", content: "es_CL" },
         { property: "og:site_name", content: (lp.hero_title || title).trim() },
-        { name: "twitter:card", content: lp.hero_image_url ? "summary_large_image" : "summary" },
-        ...(lp.hero_image_url
+        { name: "twitter:card", content: image ? "summary_large_image" : "summary" },
+        ...(image
           ? [
-              { property: "og:image", content: lp.hero_image_url },
+              { property: "og:image", content: image },
               { property: "og:image:alt", content: title },
-              { name: "twitter:image", content: lp.hero_image_url },
+              { name: "twitter:image", content: image },
             ]
           : []),
       ],
