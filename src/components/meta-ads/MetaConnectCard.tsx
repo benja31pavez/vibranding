@@ -16,6 +16,7 @@ import {
   type MetaConnection,
 } from "@/lib/meta/connection.functions";
 import { useInvalidateClientCapabilities } from "@/hooks/use-client-capabilities";
+import { metaOAuthErrorMessage } from "@/lib/meta/oauthErrors";
 
 export function MetaConnectCard({ clientId }: { clientId: string }) {
   const [conn, setConn] = useState<MetaConnection | null>(null);
@@ -50,11 +51,11 @@ export function MetaConnectCard({ clientId }: { clientId: string }) {
     load();
     const params = new URLSearchParams(window.location.search);
     const status = params.get("meta");
-    const detail = params.get("meta_error");
+    const code = params.get("meta_error");
     if (status === "conectado")
-      detail ? toast.warning(detail) : toast.success("Cuenta de Meta conectada");
+      code ? toast.warning(metaOAuthErrorMessage(code)) : toast.success("Cuenta de Meta conectada");
     if (status === "cancelado") toast.info("Conexión con Meta cancelada");
-    if (status === "error") toast.error(detail ?? "No se pudo conectar con Meta");
+    if (status === "error") toast.error(metaOAuthErrorMessage(code));
   }, [clientId]);
 
   const connect = async () => {
