@@ -1,28 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
+import { batchStatus, missingBatchesError, parseBatchParams } from "@/lib/cron/batch";
 
-const INT_RE = /^\d{1,6}$/;
 const DEFAULT_LIMIT = 8;
 /** Tope por llamada: run_http_cron_job corta la petición a los 15 s. */
 const MAX_LIMIT = 8;
-
-function parseParams(
-  params: URLSearchParams,
-): { offset: number; limit: number } | { error: string } {
-  const offset = params.get("offset") ?? "0";
-  const limit = params.get("limit") ?? String(DEFAULT_LIMIT);
-  if (!INT_RE.test(offset)) return { error: "offset debe ser un entero >= 0" };
-  if (!INT_RE.test(limit) || Number(limit) < 1 || Number(limit) > MAX_LIMIT) {
-    return { error: `limit debe estar entre 1 y ${MAX_LIMIT}` };
-  }
-  return { offset: Number(offset), limit: Number(limit) };
-}
 
 /**
  * Ingesta diaria de Google Ads (últimos 3 días, upsert idempotente en
  * google_ads_insights_daily). La llaman los jobs 'google_ads_ingest_<offset>'
  * (migración 20261012000400_cron_google_ads) con x-dispatch-secret.
  * Cada llamada procesa UN lote (?offset=&limit=, máx. 8) y responde next_offset.
+ * El último job lleva &last=1: si aún quedan cuentas responde 500 ("faltan lotes").
  * Solo lectura en Google: nunca crea ni modifica campañas.
  */
 export const Route = createFileRoute("/api/public/google/ingest-daily")({
@@ -44,7 +33,10 @@ export const Route = createFileRoute("/api/public/google/ingest-daily")({
           return new Response("Forbidden", { status: 403 });
         }
 
-        const parsed = parseParams(new URL(request.url).searchParams);
+        const parsed = parseBatchParams(new URL(request.url).searchParams, {
+          defaultLimit: DEFAULT_LIMIT,
+          maxLimit: MAX_LIMIT,
+        });
         if ("error" in parsed) return Response.json({ error: parsed.error }, { status: 400 });
 
         const { getGoogleAdsConfig } = await import("@/lib/google-ads/config.server");
@@ -80,9 +72,13 @@ export const Route = createFileRoute("/api/public/google/ingest-daily")({
         const { runIngestBatch } = await import("@/lib/google-ads/ingest.server");
         try {
           const summary = await runIngestBatch(parsed);
-          // Un lote que no escribió nada por errores nunca debe parecer éxito.
-          const status = summary.failed === 0 ? 200 : summary.succeeded > 0 ? 207 : 500;
-          return Response.json(summary, { status });
+          const missing = missingBatchesError(parsed.last, summary.next_offset);
+          if (missing) {
+            console.error("[google ingest]", missing);
+            return Response.json({ ...summary, error: missing }, { status: 500 });
+          }
+          // Cualquier fallo responde 500: job_runs toma todo 2xx (incluido 207) como éxito.
+          return Response.json(summary, { status: batchStatus(summary.failed) });
         } catch (e) {
           console.error("[google ingest] error", (e as Error).message);
           return Response.json(

@@ -18,6 +18,7 @@
     "check:month-plan": "node scripts/check-month-plan.mjs",
     "check:briefing": "node scripts/check-briefing.mjs",
     "check:mensajeria": "node scripts/check-mensajeria.mjs",
+    "check:cron-batch": "node scripts/check-cron-batch.mjs",
     "check:automations": "node scripts/check-automations.mjs",
     "check:cleanup-billing": "node scripts/check-cleanup-billing.mjs",
     "check:diagnostico-outcome": "node scripts/check-diagnostico-outcome.mjs",
