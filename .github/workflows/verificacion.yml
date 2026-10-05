@@ -51,3 +51,9 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         run: npm run build
+
+      # Smoke de paginas publicas sobre el build local (wrangler dev en localhost,
+      # sin credenciales ni trafico a produccion). El script detiene wrangler al terminar.
+      - name: Smoke public pages
+        timeout-minutes: 3
+        run: npm run smoke:public
