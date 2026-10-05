@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ErrorState, ListSkeleton } from "@/components/app";
+import { ErrorState, ListSkeleton, PageHeader } from "@/components/app";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
@@ -296,22 +296,12 @@ export function PricingPanel() {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl">
-      <div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            <span className="font-brand text-gradient-brand bg-gradient-brand-animated">
-              Servicios
-            </span>
-          </h1>
-          <SaveIndicator state={saveState} />
-        </div>
-        <p className="text-muted-foreground text-sm mt-1">
-          Los 3 planes de VIBRANDING (precios en CLP con IVA incluido) y los servicios adicionales
-          que puedes sumar. Estos valores son los mismos para todos tus clientes y se usan al
-          generar contratos.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Precios"
+        description="Los 3 planes de VIBRANDING (precios en CLP con IVA incluido) y los servicios adicionales que puedes sumar. Estos valores son los mismos para todos tus clientes y se usan al generar contratos."
+        actions={<SaveIndicator state={saveState} />}
+      />
 
       {/* Plans (fixed, CLP, IVA incluido) */}
       <div className="space-y-3">
