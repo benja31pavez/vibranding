@@ -87,10 +87,7 @@ function LoginPage() {
         <div className="relative max-w-md px-12">
           <h1 className="text-4xl md:text-5xl font-semibold leading-[1.1] tracking-tight">
             En{" "}
-            <Link
-              to="/"
-              className="font-bold italic text-gradient-brand bg-gradient-brand-animated"
-            >
+            <Link to="/" className="font-brand text-gradient-brand bg-gradient-brand-animated">
               Vibranding
             </Link>{" "}
             hacemos que tu marca vibre.
@@ -103,7 +100,7 @@ function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6">
         <form onSubmit={submit} className="w-full max-w-sm space-y-5">
           <Link to="/" className="lg:hidden inline-block">
-            <span className="text-3xl font-bold italic tracking-tight text-gradient-brand bg-gradient-brand-animated">
+            <span className="font-brand text-3xl tracking-tight text-gradient-brand bg-gradient-brand-animated">
               Vibranding
             </span>
           </Link>

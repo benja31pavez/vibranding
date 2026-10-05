@@ -2,14 +2,13 @@ import {
   Bell,
   ChevronDown,
   ChevronLeft,
-  Clapperboard,
-  Copy,
   Ellipsis,
   Grid3x3,
   SquareUser,
   UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CarouselIcon, ReelsIcon } from "./igIcons";
 import { Bar, BrandAvatar } from "./parts";
 import { SWATCHES, vars } from "./tokens";
 
@@ -50,9 +49,11 @@ function PostTile({ index }: { index: number }) {
       style={{ ...(isNew ? {} : previousCell(index)), background: SWATCHES[POSTS[index]] }}
     >
       {badge === "reel" && (
-        <Clapperboard className="absolute right-1 top-1 h-2.5 w-2.5 text-white" />
+        <ReelsIcon className="absolute right-1 top-1 h-2.5 w-2.5 text-white drop-shadow" />
       )}
-      {badge === "carousel" && <Copy className="absolute right-1 top-1 h-2.5 w-2.5 text-white" />}
+      {badge === "carousel" && (
+        <CarouselIcon className="absolute right-1 top-1 h-2.5 w-2.5 text-white drop-shadow" />
+      )}
     </span>
   );
 }
@@ -136,7 +137,7 @@ export function PhoneFeed({ className }: { className?: string }) {
             <Grid3x3 className="h-3.5 w-3.5" />
           </span>
           <span className="flex justify-center py-1.5">
-            <Clapperboard className="h-3.5 w-3.5" />
+            <ReelsIcon className="h-3.5 w-3.5" />
           </span>
           <span className="flex justify-center py-1.5">
             <SquareUser className="h-3.5 w-3.5" />
