@@ -4,6 +4,7 @@ import { trackLandingEvent } from "@/lib/track";
 import { submitDiagnostico } from "@/lib/leads/diagnostico.functions";
 import {
   BUDGETS,
+  CONSENT_TEXT,
   DiagnosticoInput,
   GOALS,
   type PlanInterest,
@@ -220,10 +221,9 @@ export function DiagnosticoForm({ plan, onDone }: { plan?: PlanInterest; onDone:
             className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--brand-2)]"
           />
           <span>
-            Acepto que Vibranding me contacte por este medio (WhatsApp o correo) para enviarme el diagnóstico.
-            Tus datos se usan solo para esto; revisa la{" "}
-            <a href="/privacy" className="font-medium underline underline-offset-4">
-              política de privacidad
+            {CONSENT_TEXT} Tus datos se usan solo para esto; revisa la{" "}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-4">
+              política de privacidad<span className="sr-only"> (se abre en otra pestaña)</span>
             </a>
             .
           </span>

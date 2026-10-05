@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Check, ClipboardCheck, Dumbbell, HeartPulse, Home as HomeIcon } from "lucide-react";
+import { trackLandingEvent } from "@/lib/track";
 import { cn } from "@/lib/utils";
 import { SectionHeading } from "./shared";
 import { translations } from "@/i18n/translations";
@@ -61,6 +62,8 @@ export function DiagnosticoLink({
     <Link
       to="/diagnostico"
       search={plan ? { plan } : {}}
+      // contact_click = CTA de diagnóstico; los botones de WhatsApp registran whatsapp_click.
+      onClick={() => trackLandingEvent("contact_click", "es")}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         size === "lg" ? "h-12 px-7 text-base" : "h-10 px-4 text-sm",

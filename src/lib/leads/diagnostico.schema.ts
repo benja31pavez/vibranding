@@ -33,13 +33,36 @@ const budgetValues = BUDGETS.map((b) => b.value) as [BudgetValue, ...BudgetValue
 /** Teléfono chileno o internacional: 8 a 15 dígitos, con +, espacios o guiones. */
 const PHONE_RE = /^\+?[\d\s()-]{8,20}$/;
 
-const requiredText = (max: number, msg: string) => z.string().trim().min(2, msg).max(max, `Máximo ${max} caracteres`);
+/** Caracteres de control (incluye CR/LF): nunca válidos en campos de una línea. */
+const CONTROL_RE = /[\u0000-\u001f\u007f]/;
+const NO_CONTROL = "Usa solo texto, sin saltos de línea ni caracteres especiales";
+
+const requiredText = (max: number, msg: string) =>
+  z.string().trim().min(2, msg).max(max, `Máximo ${max} caracteres`).refine((v) => !CONTROL_RE.test(v), NO_CONTROL);
+
+/** Texto y versión EXACTOS del checkbox; se guardan en prospect_consents. Cambia la versión si cambias el texto. */
+export const CONSENT_TEXT =
+  "Acepto que Vibranding me contacte por este medio (WhatsApp o correo) para enviarme el diagnóstico.";
+export const CONSENT_VERSION = "diagnostico-v1-2026-10";
+
+/** Honeypot lleno (cualquier largo) = bot. */
+export function isHoneypotHit(input: unknown): boolean {
+  if (!input || typeof input !== "object") return false;
+  const v = (input as { website?: unknown }).website;
+  return typeof v === "string" && v.trim().length > 0;
+}
 
 export const DiagnosticoInput = z.object({
   negocio: requiredText(120, "Escribe el nombre de tu negocio"),
   rubro: requiredText(80, "Cuéntanos tu rubro"),
   comuna: requiredText(80, "Escribe tu comuna"),
-  presencia: z.string().trim().max(200, "Máximo 200 caracteres").optional().or(z.literal("")),
+  presencia: z
+    .string()
+    .trim()
+    .max(200, "Máximo 200 caracteres")
+    .refine((v) => !CONTROL_RE.test(v), NO_CONTROL)
+    .optional()
+    .or(z.literal("")),
   whatsapp: z
     .string()
     .trim()
@@ -50,8 +73,8 @@ export const DiagnosticoInput = z.object({
   presupuesto: z.enum(budgetValues).optional().default(""),
   plan: z.enum(PLAN_INTERESTS).optional(),
   consentimiento: z.boolean().refine((v) => v, "Necesitamos tu autorización para contactarte"),
-  /** Campo oculto: solo lo llenan los bots. */
-  website: z.string().max(200).optional(),
+  /** Campo oculto: solo lo llenan los bots (se revisa antes con isHoneypotHit). */
+  website: z.string().optional(),
 });
 
 export type DiagnosticoInput = z.infer<typeof DiagnosticoInput>;

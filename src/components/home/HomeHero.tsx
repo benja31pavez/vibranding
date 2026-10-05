@@ -38,12 +38,17 @@ export function HomeHero() {
 
         <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
           <DiagnosticoLink />
-          <WhatsAppCta variant="outline">{hero.ctaPrimary}</WhatsAppCta>
-        </div>
-        <p className="mt-4 text-sm">
-          <a href="#planes" className="font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground">
+          <a
+            href="#planes"
+            className="inline-flex h-12 items-center justify-center rounded-full border border-foreground/15 bg-background px-7 text-base font-semibold hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
             {hero.ctaSecondary}
           </a>
+        </div>
+        <p className="mt-4 flex justify-center">
+          <WhatsAppCta variant="outline" size="sm" className="border-transparent hover:border-foreground/15">
+            {hero.ctaPrimary}
+          </WhatsAppCta>
         </p>
 
         <ul className="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">

@@ -18,6 +18,8 @@
 import { platformAdminEmails } from "@/lib/auth/platformAdmin.server";
 import { DEFAULT_FROM, sendViaResend, toHtml } from "@/lib/bookings/notify.server";
 import {
+  CONSENT_TEXT,
+  CONSENT_VERSION,
   DIAGNOSTICO_SOURCE,
   budgetLabel,
   goalLabel,
@@ -26,6 +28,9 @@ import {
 } from "./diagnostico.schema";
 
 const ORG_CACHE_MS = 10 * 60 * 1000;
+/** Si no se pudo resolver la org, no reintenta listUsers en cada envío. */
+const ORG_NEGATIVE_CACHE_MS = 2 * 60 * 1000;
+const SUBJECT_MAX = 120;
 const USERS_PER_PAGE = 200;
 const MAX_USER_PAGES = 25;
 const UNIQUE_VIOLATION = "23505";
@@ -33,7 +38,21 @@ const UNIQUE_VIOLATION = "23505";
 type Admin = (typeof import("@/integrations/supabase/client.server"))["supabaseAdmin"];
 type Target = { orgId: string; ownerEmail: string };
 
-let cachedTarget: { value: Target; at: number } | null = null;
+/** Error de BD/Auth que solo expone el código (nunca mensajes que puedan traer datos). */
+class DbError extends Error {
+  constructor(readonly step: string, readonly code: string | undefined) {
+    super(`${step}: ${code ?? "sin código"}`);
+    this.name = "DbError";
+  }
+}
+
+/** Log de error con solo paso + código. */
+function logError(e: unknown): void {
+  if (e instanceof DbError) console.error(`[diagnostico] ${e.step} falló (code ${e.code ?? "?"})`);
+  else console.error(`[diagnostico] error inesperado (${(e as Error)?.name ?? "desconocido"})`);
+}
+
+let cachedTarget: { value: Target | null; at: number } | null = null;
 
 async function getAdmin(): Promise<Admin> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -47,7 +66,7 @@ async function findPlatformAdminUser(admin: Admin): Promise<{ id: string; email:
   const found = new Map<string, string>();
   for (let page = 1; page <= MAX_USER_PAGES; page++) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: USERS_PER_PAGE });
-    if (error) throw new Error(`listUsers: ${error.message}`);
+    if (error) throw new DbError("listUsers", error.code ?? String(error.status ?? ""));
     for (const u of data.users) {
       const email = (u.email ?? "").trim().toLowerCase();
       if (email && u.email_confirmed_at && allowed.includes(email)) found.set(email, u.id);
@@ -60,9 +79,15 @@ async function findPlatformAdminUser(admin: Admin): Promise<{ id: string; email:
 
 /** Org destino de los leads de la web, o null si no se puede resolver (ver cabecera). */
 export async function resolveLeadsTarget(admin: Admin, now = Date.now()): Promise<Target | null> {
-  if (cachedTarget && now - cachedTarget.at < ORG_CACHE_MS) return cachedTarget.value;
+  if (cachedTarget) {
+    const ttl = cachedTarget.value ? ORG_CACHE_MS : ORG_NEGATIVE_CACHE_MS;
+    if (now - cachedTarget.at < ttl) return cachedTarget.value;
+  }
   const user = await findPlatformAdminUser(admin);
-  if (!user) return null;
+  if (!user) {
+    cachedTarget = { value: null, at: now };
+    return null;
+  }
   const { data, error } = await admin
     .from("org_members")
     .select("org_id")
@@ -71,8 +96,11 @@ export async function resolveLeadsTarget(admin: Admin, now = Date.now()): Promis
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (error) throw new Error(`org_members: ${error.message}`);
-  if (!data) return null;
+  if (error) throw new DbError("org_members", error.code);
+  if (!data) {
+    cachedTarget = { value: null, at: now };
+    return null;
+  }
   const value = { orgId: data.org_id, ownerEmail: user.email };
   cachedTarget = { value, at: now };
   return value;
@@ -122,8 +150,57 @@ async function findExisting(admin: Admin, orgId: string, input: DiagnosticoInput
 
 export type SaveOutcome = "created" | "noted" | "no_org" | "error";
 
-/** Crea el prospecto o agrega la nota al existente. Nunca lanza: devuelve el resultado. */
-export async function saveDiagnosticoLead(input: DiagnosticoInput): Promise<{ outcome: SaveOutcome; ownerEmail: string | null }> {
+/** Columnas de las tablas nuevas (aún no están en types.ts hasta aplicar la migración). */
+type UntypedAdmin = {
+  from: (t: string) => { insert: (row: Record<string, unknown>) => PromiseLike<{ error: { code?: string } | null }> };
+};
+
+/** Tabla aún no creada (PostgREST PGRST205 / Postgres 42P01). */
+const MISSING_TABLE = new Set(["PGRST205", "42P01"]);
+
+async function sha256(value: string): Promise<string> {
+  const { createHash } = await import("crypto");
+  return createHash("sha256").update(value).digest("hex");
+}
+
+/**
+ * Registra el consentimiento (Ley 21.719) en prospect_consents. Tolera que la
+ * migración 20261012000200 aún no esté aplicada: log y sigue. Nunca lanza.
+ */
+async function recordConsent(
+  admin: Admin,
+  orgId: string,
+  prospectId: string | null,
+  input: DiagnosticoInput,
+  ipHash: string | null,
+): Promise<void> {
+  try {
+    const salt = process.env["IP_HASH_SALT"]?.trim() ?? "";
+    const { error } = await (admin as unknown as UntypedAdmin).from("prospect_consents").insert({
+      org_id: orgId,
+      prospect_id: prospectId,
+      email_hash: await sha256(`${input.email.trim().toLowerCase()}:${salt}`),
+      channel: "web_diagnostico",
+      consent_text: CONSENT_TEXT,
+      consent_version: CONSENT_VERSION,
+      ip_hash: ipHash,
+    });
+    if (!error) return;
+    if (MISSING_TABLE.has(error.code ?? "")) {
+      console.error("[diagnostico] prospect_consents no existe aún: aplica la migración 20261012000200");
+      return;
+    }
+    throw new DbError("insert prospect_consents", error.code);
+  } catch (e) {
+    logError(e);
+  }
+}
+
+/** Crea el prospecto o agrega la nota al existente, y registra el consentimiento. Nunca lanza. */
+export async function saveDiagnosticoLead(
+  input: DiagnosticoInput,
+  ipHash: string | null,
+): Promise<{ outcome: SaveOutcome; ownerEmail: string | null }> {
   try {
     const admin = await getAdmin();
     const target = await resolveLeadsTarget(admin);
@@ -135,35 +212,48 @@ export async function saveDiagnosticoLead(input: DiagnosticoInput): Promise<{ ou
     const unparsed = input.presencia && !presence.instagram && !presence.web ? input.presencia : null;
     const note = buildLeadNote(input, unparsed);
 
-    const { error } = await admin.from("prospects").insert({
-      org_id: target.orgId,
-      nombre: input.negocio,
-      rubro: input.rubro,
-      comuna: input.comuna,
-      web: presence.web,
-      instagram: presence.instagram,
-      email_publico: input.email,
-      telefono_publico: input.whatsapp,
-      fuente: DIAGNOSTICO_SOURCE,
-      estado: "nuevo",
-      notas: note,
-    });
-    if (!error) return { outcome: "created", ownerEmail: target.ownerEmail };
-    if (error.code !== UNIQUE_VIOLATION) throw new Error(`insert prospects: ${error.code ?? ""} ${error.message}`);
+    const { data: created, error } = await admin
+      .from("prospects")
+      .insert({
+        org_id: target.orgId,
+        nombre: input.negocio,
+        rubro: input.rubro,
+        comuna: input.comuna,
+        web: presence.web,
+        instagram: presence.instagram,
+        email_publico: input.email,
+        telefono_publico: input.whatsapp,
+        fuente: DIAGNOSTICO_SOURCE,
+        estado: "nuevo",
+        notas: note,
+      })
+      .select("id")
+      .single();
+    if (!error) {
+      await recordConsent(admin, target.orgId, created.id, input, ipHash);
+      return { outcome: "created", ownerEmail: target.ownerEmail };
+    }
+    if (error.code !== UNIQUE_VIOLATION) throw new DbError("insert prospects", error.code);
 
     const existingId = await findExisting(admin, target.orgId, input);
-    if (!existingId) throw new Error("prospecto duplicado pero no encontrado (clave nombre+comuna)");
+    // El consentimiento se guarda igual (con o sin prospecto encontrado).
+    await recordConsent(admin, target.orgId, existingId, input, ipHash);
+    if (!existingId) throw new DbError("buscar duplicado", "not_found");
     const { error: noteError } = await admin.rpc("append_prospect_note", {
       _prospect_id: existingId,
-      _note: `${note} · WhatsApp: ${input.whatsapp} · correo: ${input.email}`.slice(0, 300),
+      _note: `${note} · (no verificado, enviado desde la web) WhatsApp: ${input.whatsapp} · correo: ${input.email}`.slice(0, 300),
     });
-    if (noteError) throw new Error(`append_prospect_note: ${noteError.message}`);
+    if (noteError) throw new DbError("append_prospect_note", noteError.code);
     return { outcome: "noted", ownerEmail: target.ownerEmail };
   } catch (e) {
-    // Sin datos del visitante en el log: solo el motivo técnico.
-    console.error("[diagnostico] no se pudo guardar el prospecto:", (e as Error)?.message ?? e);
+    logError(e);
     return { outcome: "error", ownerEmail: null };
   }
+}
+
+/** Asunto de una línea: sin CR/LF ni controles, máx. 120 caracteres. */
+export function safeSubject(raw: string): string {
+  return raw.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, SUBJECT_MAX);
 }
 
 const OUTCOME_LABEL: Record<SaveOutcome, string> = {
@@ -201,12 +291,14 @@ export async function notifyDiagnosticoLead(
     await sendViaResend(apiKey, process.env["RESEND_FROM"]?.trim() || DEFAULT_FROM, {
       kind: "dueño",
       to,
-      subject: `Diagnóstico gratis: ${input.negocio} (${input.comuna})`,
+      subject: safeSubject(`Diagnóstico gratis: ${input.negocio} (${input.comuna})`),
       text: lines.join("\n"),
       html: toHtml(lines),
       replyTo: input.email,
     });
   } catch (e) {
-    console.error("[diagnostico] aviso por correo falló:", (e as Error)?.message ?? e);
+    // Solo el estado HTTP (el mensaje de Resend puede traer la dirección).
+    const status = /Resend (\d+)/.exec((e as Error)?.message ?? "")?.[1] ?? "?";
+    console.error(`[diagnostico] aviso por correo falló (status ${status})`);
   }
 }
