@@ -78,7 +78,7 @@ export function ObjectivesColumn({
           : undefined
       }
       actions={
-        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onCreate}>
+        <Button size="sm" className="h-7 px-2 text-xs" onClick={onCreate}>
           <Plus aria-hidden className="mr-1 h-3.5 w-3.5" /> Nuevo objetivo
         </Button>
       }
@@ -101,9 +101,6 @@ export function ObjectivesColumn({
       ) : rows.length === 0 ? (
         <div className="rounded-app-lg border border-dashed border-border-subtle p-4 text-center text-sm text-muted-foreground">
           <p>Aún no hay objetivos para este cliente.</p>
-          <Button size="sm" variant="outline" className="mt-2" onClick={onCreate}>
-            Nuevo objetivo
-          </Button>
         </div>
       ) : (
         <FitList
