@@ -114,7 +114,12 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       body: JSON.stringify(body),
     });
     const json = await res.json();
-    if (!res.ok) throw Object.assign(new Error(json.error || "Error"), { code: json.code as string | undefined });
+    if (!res.ok) {
+      throw Object.assign(new Error(json.error || "Error"), {
+        code: json.code as string | undefined,
+        requiresConfirmation: json.requiresConfirmation as Record<string, number> | undefined,
+      });
+    }
     return json;
   };
 
@@ -123,13 +128,13 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       try {
         await authedFetch("/api/meta-ads/update", { entity, id, patch });
       } catch (e: any) {
-        // High daily budgets need an explicit, human confirmation before reaching Meta.
-        if (e?.code !== BUDGET_CONFIRMATION_REQUIRED) throw e;
-        if (!confirm(`${e.message}\n\n¿Enviar este presupuesto a Meta de todas formas?`)) {
+        // High amounts need an explicit, human confirmation of the exact amounts before reaching Meta.
+        if (e?.code !== BUDGET_CONFIRMATION_REQUIRED || !e.requiresConfirmation) throw e;
+        if (!confirm(`${e.message}\n\n¿Enviar estos montos a Meta de todas formas?`)) {
           toast.warning("Presupuesto no enviado a Meta");
           return;
         }
-        await authedFetch("/api/meta-ads/update", { entity, id, patch, confirmHighBudget: true });
+        await authedFetch("/api/meta-ads/update", { entity, id, patch, confirmedAmounts: e.requiresConfirmation });
       }
     } catch (e: any) {
       toast.error(`Meta: ${e.message}`);
@@ -313,6 +318,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Error al sincronizar");
       toast.success(`Sincronizado: ${json.campaigns ?? 0} campañas · ${json.adsets ?? 0} conjuntos · ${json.ads ?? 0} anuncios · ${json.insights ?? 0} métricas`);
+      if (json.warning) toast.warning(json.warning);
       await load();
     } catch (e: any) {
       toast.error(e.message);

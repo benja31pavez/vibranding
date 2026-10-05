@@ -2,7 +2,8 @@ import { graphBase } from "@/lib/meta/version";
 import { denyUnlessClientEditor } from "@/lib/auth/clientAccess.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import { toMetaAmount, dailyBudgetConfirmationMessage, BUDGET_CONFIRMATION_REQUIRED, MetaCurrencyError } from "@/lib/meta/currency";
+import { toMetaAmount, budgetConfirmationRequest, BUDGET_CONFIRMATION_REQUIRED, MetaCurrencyError } from "@/lib/meta/currency";
+import { createCampaignBodySchema, zodMessage } from "@/lib/meta-ads/apiSchemas";
 import { resolveAdAccountCurrency } from "@/lib/meta/accountCurrency.server";
 
 export const Route = createFileRoute("/api/meta-ads/create-campaign")({
@@ -19,8 +20,9 @@ export const Route = createFileRoute("/api/meta-ads/create-campaign")({
             global: { headers: { Authorization: authHeader } },
           });
 
-          const { campaignId, confirmHighBudget } = (await request.json()) as { campaignId?: string; confirmHighBudget?: boolean };
-          if (!campaignId) return json({ error: "campaignId requerido" }, 400);
+          const parsed = createCampaignBodySchema.safeParse(await request.json().catch(() => null));
+          if (!parsed.success) return json({ error: zodMessage(parsed.error) }, 400);
+          const { campaignId, confirmedAmounts } = parsed.data;
 
           const { data: c } = await userClient
             .from("meta_ads_campaigns").select("*").eq("id", campaignId).maybeSingle();
@@ -50,10 +52,14 @@ export const Route = createFileRoute("/api/meta-ads/create-campaign")({
           if (c.daily_budget || c.lifetime_budget) {
             // Meta wants minimum units per the account currency offset (CLP = 1, USD = 100).
             const currency = await resolveAdAccountCurrency(adAcc, token, acc.currency);
-            const confirmMsg = dailyBudgetConfirmationMessage({
-              dailyBudget: c.daily_budget, currency, confirmed: confirmHighBudget === true,
-            });
-            if (confirmMsg) return json({ error: confirmMsg, code: BUDGET_CONFIRMATION_REQUIRED }, 409);
+            const pending = budgetConfirmationRequest(
+              { daily: c.daily_budget, lifetime: c.lifetime_budget },
+              currency,
+              confirmedAmounts,
+            );
+            if (pending) {
+              return json({ error: pending.message, code: BUDGET_CONFIRMATION_REQUIRED, requiresConfirmation: pending.amounts }, 409);
+            }
             if (c.daily_budget) params.set("daily_budget", String(toMetaAmount(c.daily_budget, currency)));
             if (c.lifetime_budget) params.set("lifetime_budget", String(toMetaAmount(c.lifetime_budget, currency)));
           }

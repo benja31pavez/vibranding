@@ -57,14 +57,47 @@ export function getMetaCurrencyOffset(currency: string | null | undefined): 1 | 
   return offset;
 }
 
-/** Converts an amount in base units (e.g. 10000 CLP, 12.5 USD) to Meta's integer minimum units. */
-export function toMetaAmount(amount: number | string, currency: string | null | undefined): number {
+/** Largest amount (base units) accepted for any Meta money field; anything above is a typo. */
+export const MAX_META_AMOUNT = 1e12;
+
+export interface ToMetaAmountOptions {
+  /** 0 is rejected unless the caller explicitly allows it for this field. */
+  allowZero?: boolean;
+}
+
+/**
+ * Converts an amount in base units (e.g. 10000 CLP, 12.5 USD) to Meta's integer
+ * minimum units. Rejects negatives, 0 (unless allowed), amounts above
+ * MAX_META_AMOUNT, decimals on offset-1 currencies and sub-cent amounts on
+ * offset-100 currencies, so nothing is silently rounded.
+ */
+export function toMetaAmount(
+  amount: number | string,
+  currency: string | null | undefined,
+  options: ToMetaAmountOptions = {},
+): number {
   const offset = getMetaCurrencyOffset(currency);
-  const value = Number(amount);
+  const code = normalizeCode(currency);
+  const value = typeof amount === "number" ? amount : Number(String(amount).trim() || NaN);
   if (!Number.isFinite(value) || value < 0) {
     throw new MetaCurrencyError(`Monto inválido para Meta: ${String(amount)}`);
   }
-  return Math.round(value * offset);
+  if (value === 0 && !options.allowZero) {
+    throw new MetaCurrencyError("Un monto de 0 no es válido para un presupuesto de Meta.");
+  }
+  if (value > MAX_META_AMOUNT) {
+    throw new MetaCurrencyError(`Monto demasiado alto para Meta: ${String(amount)} ${code}`);
+  }
+  const scaled = value * offset;
+  const rounded = Math.round(scaled);
+  if (Math.abs(scaled - rounded) > 1e-6) {
+    throw new MetaCurrencyError(
+      offset === 1
+        ? `${code} no usa decimales en Meta: ${String(amount)} debe ser un número entero.`
+        : `${code} admite como máximo 2 decimales en Meta: ${String(amount)}.`,
+    );
+  }
+  return rounded;
 }
 
 /** Converts a Meta minimum-unit value (e.g. "10000" CLP, "1250" USD cents) back to base units. */
@@ -88,7 +121,6 @@ export function fromMetaAmountOrNull(
 
 /**
  * Safety cap on a DAILY budget, in base units of the ad account's currency.
- * Anything above requires the caller to send `confirmHighBudget: true`.
  * Baseline: 500.000 CLP/day; other currencies are rough equivalents (2026),
  * kept deliberately round. A currency not listed here always requires
  * explicit confirmation (fail closed) instead of guessing an exchange rate.
@@ -105,30 +137,73 @@ export const MAX_DAILY_BUDGET_WITHOUT_CONFIRMATION: Readonly<Record<string, numb
   UYU: 22_000,
 });
 
-export interface BudgetCheckInput {
-  /** Daily budget in base units of the account currency. */
-  dailyBudget: number | null | undefined;
-  currency: string | null | undefined;
-  confirmed: boolean;
+/** Lifetime budgets and spend caps may be up to this many times the daily cap without confirmation. */
+export const LIFETIME_CAP_MULTIPLIER = 15;
+
+/** Money fields that go through the confirmation check. */
+export type GuardedAmountKey = "daily" | "lifetime" | "spendCap" | "bid";
+export type GuardedAmounts = Partial<Record<GuardedAmountKey, number | null | undefined>>;
+export type ConfirmedAmounts = Partial<Record<GuardedAmountKey, number>>;
+
+const AMOUNT_LABELS: Record<GuardedAmountKey, string> = {
+  daily: "presupuesto diario",
+  lifetime: "presupuesto total",
+  spendCap: "límite de gasto",
+  bid: "puja máxima",
+};
+
+/** Caps per field for a currency, or null when the currency has no defined cap. */
+export function budgetLimitsFor(currency: string | null | undefined): Record<GuardedAmountKey, number> | null {
+  const daily = MAX_DAILY_BUDGET_WITHOUT_CONFIRMATION[normalizeCode(currency)];
+  if (daily === undefined) return null;
+  const lifetime = daily * LIFETIME_CAP_MULTIPLIER;
+  return { daily, lifetime, spendCap: lifetime, bid: daily };
+}
+
+export interface BudgetConfirmationRequest {
+  /** User-facing explanation. */
+  message: string;
+  /** Exact amounts the user must confirm; send them back as `confirmedAmounts`. */
+  amounts: ConfirmedAmounts;
 }
 
 /**
- * Returns a user-facing message when the daily budget needs explicit
- * confirmation, or null when it is within the cap (or already confirmed).
+ * Checks every guarded amount against the currency caps. Returns null when all
+ * are within caps or each exceeding amount was confirmed with the EXACT same
+ * value; otherwise returns what still needs confirmation. Unknown-cap
+ * currencies require confirmation of every positive amount.
  */
-export function dailyBudgetConfirmationMessage({ dailyBudget, currency, confirmed }: BudgetCheckInput): string | null {
-  if (confirmed || dailyBudget === null || dailyBudget === undefined) return null;
-  const amount = Number(dailyBudget);
-  if (!Number.isFinite(amount) || amount <= 0) return null;
+export function budgetConfirmationRequest(
+  amounts: GuardedAmounts,
+  currency: string | null | undefined,
+  confirmed: ConfirmedAmounts | null | undefined,
+): BudgetConfirmationRequest | null {
   const code = normalizeCode(currency);
-  const cap = MAX_DAILY_BUDGET_WITHOUT_CONFIRMATION[code];
+  const limits = budgetLimitsFor(code);
   const fmt = (n: number) => `${n.toLocaleString("es-CL")} ${code}`;
-  if (cap === undefined) {
-    return `Presupuesto diario de ${fmt(amount)}: no hay tope de seguridad definido para ${code || "esta moneda"}. Confirma explícitamente que quieres enviarlo a Meta.`;
+  const pending: ConfirmedAmounts = {};
+  const reasons: string[] = [];
+  for (const key of Object.keys(AMOUNT_LABELS) as GuardedAmountKey[]) {
+    const raw = amounts[key];
+    if (raw === null || raw === undefined) continue;
+    const amount = Number(raw);
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+    const cap = limits?.[key];
+    if (cap !== undefined && amount <= cap) continue;
+    if (confirmed?.[key] === amount) continue;
+    pending[key] = amount;
+    reasons.push(
+      cap === undefined
+        ? `${AMOUNT_LABELS[key]} de ${fmt(amount)} (sin tope definido para ${code || "esta moneda"})`
+        : `${AMOUNT_LABELS[key]} de ${fmt(amount)} supera el tope de ${fmt(cap)}`,
+    );
   }
-  if (amount <= cap) return null;
-  return `El presupuesto diario de ${fmt(amount)} supera el tope de seguridad de ${fmt(cap)}. Confirma explícitamente que quieres gastar ese monto por día.`;
+  if (reasons.length === 0) return null;
+  return {
+    message: `Requiere confirmación explícita: ${reasons.join("; ")}.`,
+    amounts: pending,
+  };
 }
 
-/** Error code returned by the API when a budget needs explicit confirmation. */
+/** Error code returned by the API when an amount needs explicit confirmation. */
 export const BUDGET_CONFIRMATION_REQUIRED = "BUDGET_CONFIRMATION_REQUIRED";

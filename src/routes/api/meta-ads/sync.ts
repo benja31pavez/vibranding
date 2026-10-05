@@ -2,8 +2,8 @@ import { graphBase } from "@/lib/meta/version";
 import { denyUnlessClientEditor } from "@/lib/auth/clientAccess.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import { fromMetaAmountOrNull, MetaCurrencyError } from "@/lib/meta/currency";
-import { resolveAdAccountCurrency } from "@/lib/meta/accountCurrency.server";
+import { fromMetaAmountOrNull, getMetaCurrencyOffset, MetaCurrencyError } from "@/lib/meta/currency";
+import { fetchLiveAdAccountCurrency } from "@/lib/meta/accountCurrency.server";
 
 export const Route = createFileRoute("/api/meta-ads/sync")({
   server: {
@@ -36,8 +36,31 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
           const tok = encodeURIComponent(token);
           const base = graphBase();
           // Budgets come back in minimum units per the account currency offset.
-          const currency = await resolveAdAccountCurrency(adAcc, token, account.currency);
-          const money = (v: unknown) => fromMetaAmountOrNull(v as string | number | null | undefined, currency);
+          // Keep meta_accounts.currency in sync with Meta's live value.
+          const cached = account.currency ? String(account.currency).trim().toUpperCase() : null;
+          const live = await fetchLiveAdAccountCurrency(adAcc, token);
+          if (live && live !== cached) {
+            if (cached) console.warn(`[meta-sync] moneda de ${adAcc} cambió: ${cached} -> ${live}`);
+            const { error: curErr } = await userClient.from("meta_accounts").update({ currency: live }).eq("id", account.id);
+            if (curErr) console.error("[meta-sync] no se pudo guardar la moneda", curErr.message);
+          }
+          const currency = live ?? cached;
+          // Unknown currency/offset: sync everything except money fields (left untouched).
+          let moneyWarning: string | null = null;
+          try {
+            getMetaCurrencyOffset(currency);
+          } catch (e) {
+            moneyWarning = e instanceof MetaCurrencyError ? e.message : "Moneda desconocida";
+            console.warn(`[meta-sync] ${adAcc}: se omiten presupuestos: ${moneyWarning}`);
+          }
+          const moneyFields = (fields: Record<string, unknown>): Record<string, number | null | string> => {
+            if (moneyWarning || !currency) return {};
+            const out: Record<string, number | null | string> = { currency };
+            for (const [k, v] of Object.entries(fields)) {
+              out[k] = fromMetaAmountOrNull(v as string | number | null | undefined, currency);
+            }
+            return out;
+          };
 
           // 1) Campaigns
           const cFields = "id,name,objective,status,daily_budget,lifetime_budget,start_time,stop_time,bid_strategy,spend_cap,buying_type";
@@ -54,10 +77,7 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
               client_id: clientId, meta_account_id: account.id, fb_campaign_id: c.id, name: c.name ?? "Campaña",
               objective: mapObjective(c.objective),
               status: (c.status ?? "DRAFT") as string,
-              daily_budget: money(c.daily_budget),
-              lifetime_budget: money(c.lifetime_budget),
-              spend_cap: money(c.spend_cap),
-              currency,
+              ...moneyFields({ daily_budget: c.daily_budget, lifetime_budget: c.lifetime_budget, spend_cap: c.spend_cap }),
               bid_strategy: c.bid_strategy ?? null,
               buying_type: c.buying_type ?? "AUCTION",
               start_time: c.start_time ? c.start_time.slice(0, 10) : null,
@@ -96,11 +116,9 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
                 const payload = {
                   client_id: clientId, meta_account_id: account.id, campaign_id: campLocal, fb_adset_id: a.id,
                   name: a.name ?? "Conjunto", status: a.status ?? "DRAFT",
-                  daily_budget: money(a.daily_budget),
-                  lifetime_budget: money(a.lifetime_budget),
+                  ...stripCurrency(moneyFields({ daily_budget: a.daily_budget, lifetime_budget: a.lifetime_budget, bid_amount: a.bid_amount })),
                   optimization_goal: a.optimization_goal ?? null,
                   billing_event: a.billing_event ?? null,
-                  bid_amount: money(a.bid_amount),
                   start_time: a.start_time ?? null, end_time: a.end_time ?? null,
                   age_min: t.age_min ?? null, age_max: t.age_max ?? null,
                   genders: gender, countries: (t.geo_locations?.countries ?? []).join(","),
@@ -157,7 +175,10 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
           }
 
           await userClient.from("meta_accounts").update({ last_synced_at: new Date().toISOString() }).eq("id", account.id);
-          return json({ campaigns: campaignsCount, adsets: adsetsCount, ads: adsCount });
+          return json({
+            campaigns: campaignsCount, adsets: adsetsCount, ads: adsCount,
+            ...(moneyWarning ? { warning: `Presupuestos no sincronizados: ${moneyWarning}` } : {}),
+          });
         } catch (e: any) {
           if (e instanceof MetaCurrencyError) return json({ error: e.message }, 400);
           return json({ error: e?.message ?? "Error inesperado" }, 500);
@@ -169,6 +190,12 @@ export const Route = createFileRoute("/api/meta-ads/sync")({
 
 function json(obj: unknown, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
+}
+
+/** Ad sets have no currency column; drop it from the money fields. */
+function stripCurrency<T extends Record<string, unknown>>(fields: T): Omit<T, "currency"> {
+  const { currency: _currency, ...rest } = fields;
+  return rest;
 }
 
 function mapObjective(o?: string): string {

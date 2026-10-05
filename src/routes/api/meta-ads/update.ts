@@ -2,14 +2,9 @@ import { graphBase } from "@/lib/meta/version";
 import { denyUnlessClientEditor } from "@/lib/auth/clientAccess.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import { toMetaAmount, dailyBudgetConfirmationMessage, BUDGET_CONFIRMATION_REQUIRED, MetaCurrencyError } from "@/lib/meta/currency";
+import { toMetaAmount, budgetConfirmationRequest, BUDGET_CONFIRMATION_REQUIRED, MetaCurrencyError } from "@/lib/meta/currency";
 import { resolveAdAccountCurrency } from "@/lib/meta/accountCurrency.server";
-
-/** Fields Meta expresses in the currency's minimum unit (see src/lib/meta/currency.ts). */
-const MONEY_FIELDS = ["daily_budget", "lifetime_budget", "spend_cap", "bid_amount"] as const;
-type MoneyField = (typeof MONEY_FIELDS)[number];
-
-type Entity = "campaign" | "adset" | "ad";
+import { MONEY_PATCH_FIELDS, updateBodySchema, zodMessage, type MoneyPatchField } from "@/lib/meta-ads/apiSchemas";
 
 export const Route = createFileRoute("/api/meta-ads/update")({
   server: {
@@ -23,15 +18,15 @@ export const Route = createFileRoute("/api/meta-ads/update")({
             global: { headers: { Authorization: authHeader } },
           });
 
-          const { entity, id, patch, confirmHighBudget } = (await request.json()) as {
-            entity: Entity; id: string; patch: Record<string, any>; confirmHighBudget?: boolean;
-          };
-          if (!entity || !id) return j({ error: "Datos incompletos" }, 400);
+          const parsed = updateBodySchema.safeParse(await request.json().catch(() => null));
+          if (!parsed.success) return j({ error: zodMessage(parsed.error) }, 400);
+          const { entity, id, confirmedAmounts, allowZero = [] } = parsed.data;
+          const patch = parsed.data.patch as Record<string, any>;
 
           const base = graphBase();
           const params = new URLSearchParams();
           // Money is converted once the account currency is known (after auth).
-          const money: Partial<Record<MoneyField, number>> = {};
+          const money: Partial<Record<MoneyPatchField, number>> = {};
           let fbId: string | null = null;
           let rowClientId: string | null = null;
 
@@ -126,13 +121,19 @@ export const Route = createFileRoute("/api/meta-ads/update")({
             if (!acc?.ad_account_id) return j({ error: "Configura la cuenta publicitaria" }, 400);
             const adAcc = acc.ad_account_id.startsWith("act_") ? acc.ad_account_id : `act_${acc.ad_account_id}`;
             const currency = await resolveAdAccountCurrency(adAcc, token, acc.currency);
-            const confirmMsg = dailyBudgetConfirmationMessage({
-              dailyBudget: money.daily_budget, currency, confirmed: confirmHighBudget === true,
-            });
-            if (confirmMsg) return j({ error: confirmMsg, code: BUDGET_CONFIRMATION_REQUIRED }, 409);
-            for (const field of MONEY_FIELDS) {
+            const pending = budgetConfirmationRequest(
+              { daily: money.daily_budget, lifetime: money.lifetime_budget, spendCap: money.spend_cap, bid: money.bid_amount },
+              currency,
+              confirmedAmounts,
+            );
+            if (pending) {
+              return j({ error: pending.message, code: BUDGET_CONFIRMATION_REQUIRED, requiresConfirmation: pending.amounts }, 409);
+            }
+            for (const field of MONEY_PATCH_FIELDS) {
               const amount = money[field];
-              if (amount !== undefined) params.set(field, String(toMetaAmount(amount, currency)));
+              if (amount !== undefined) {
+                params.set(field, String(toMetaAmount(amount, currency, { allowZero: allowZero.includes(field) })));
+              }
             }
           }
 
