@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchAllRows } from "@/lib/db/fetchAllRows";
@@ -23,6 +23,8 @@ export const DEFAULT_FUNNEL_DAYS: FunnelRangeDays = 30;
 
 const PENDING_STATUSES = ["enviada", "vista"] as const;
 const PENDING_LIMIT = 50;
+/** Se piden más filas que las que se muestran porque las de prospectos en baja se descartan después. */
+const PENDING_FETCH = 150;
 
 function sinceUtc(days: number): string {
   return chileMidnightUtc(addDaysYmd(chileToday(), -(days - 1)));
@@ -56,7 +58,10 @@ async function loadFunnel(days: FunnelRangeDays): Promise<FunnelData> {
         .range(a, b),
     ),
   ]);
-  return { funnel: computeFunnel(prospects, proposals), sources: computeSources(prospects, proposals) };
+  return {
+    funnel: computeFunnel(prospects, proposals),
+    sources: computeSources(prospects, proposals),
+  };
 }
 
 export function useFunnel(days: FunnelRangeDays) {
@@ -65,6 +70,7 @@ export function useFunnel(days: FunnelRangeDays) {
   return useQuery({
     queryKey: ["reports", "growth", "funnel", userId, days],
     enabled: Boolean(userId),
+    placeholderData: keepPreviousData,
     queryFn: () => loadFunnel(days),
   });
 }
@@ -77,13 +83,23 @@ async function loadRecurringTrend(): Promise<TrendPoint[]> {
       .from("payments")
       .select("id,amount,currency,paid_at")
       .eq("status", "paid")
-      .eq("kind", "mensual")
+      // Recurrente = kind "mensual" o ligado a una suscripción. kind NULL sin suscripción
+      // son cobros antiguos/manuales de tipo desconocido: se excluyen (ver monthlyTrend).
+      .or("kind.eq.mensual,subscription_id.not.is.null")
       .gte("paid_at", from)
       .order("id")
       .range(a, b),
   );
   const payments = rows.flatMap((p) =>
-    p.paid_at ? [{ amount: p.amount, currency: p.currency, month: chileDate(new Date(p.paid_at)).slice(0, 7) }] : [],
+    p.paid_at
+      ? [
+          {
+            amount: p.amount,
+            currency: p.currency,
+            month: chileDate(new Date(p.paid_at)).slice(0, 7),
+          },
+        ]
+      : [],
   );
   return monthlyTrend(payments, months);
 }
@@ -109,9 +125,18 @@ export interface PendingProposal {
   recipient: string;
   /** Prospecto en "frío": se lista, pero no se marca para seguimiento. */
   cold: boolean;
+  /** Ya pasó expires_at aunque el estado siga "enviada"/"vista". */
+  expired: boolean;
 }
 
-async function loadPendingProposals(): Promise<PendingProposal[]> {
+export interface PendingProposals {
+  items: PendingProposal[];
+  /** true si había más de PENDING_LIMIT y se muestran solo las más antiguas. */
+  truncated: boolean;
+  limit: number;
+}
+
+async function loadPendingProposals(): Promise<PendingProposals> {
   const { data, error } = await supabase
     .from("proposals")
     .select(
@@ -119,21 +144,23 @@ async function loadPendingProposals(): Promise<PendingProposal[]> {
     )
     .in("status", [...PENDING_STATUSES])
     .order("sent_at", { ascending: true, nullsFirst: false })
-    .limit(PENDING_LIMIT);
+    .limit(PENDING_FETCH);
   if (error) throw new Error(error.message);
-  return (data ?? [])
-    .filter((p) => p.prospect?.estado !== EXCLUDED_STATE)
-    .map((p) => ({
-      id: p.id,
-      title: p.title,
-      amount_clp: p.amount_clp,
-      status: p.status,
-      sent_at: p.sent_at,
-      viewed_at: p.viewed_at,
-      expires_at: p.expires_at,
-      recipient: p.prospect?.nombre ?? p.client?.name ?? "Sin destinatario",
-      cold: p.prospect?.estado === "frio",
-    }));
+  const now = Date.now();
+  const rows = (data ?? []).filter((p) => p.prospect?.estado !== EXCLUDED_STATE);
+  const items = rows.slice(0, PENDING_LIMIT).map((p) => ({
+    id: p.id,
+    title: p.title,
+    amount_clp: p.amount_clp,
+    status: p.status,
+    sent_at: p.sent_at,
+    viewed_at: p.viewed_at,
+    expires_at: p.expires_at,
+    recipient: p.prospect?.nombre ?? p.client?.name ?? "Sin destinatario",
+    cold: p.prospect?.estado === "frio",
+    expired: p.expires_at ? Date.parse(p.expires_at) < now : false,
+  }));
+  return { items, truncated: rows.length > PENDING_LIMIT, limit: PENDING_LIMIT };
 }
 
 export function usePendingProposals() {

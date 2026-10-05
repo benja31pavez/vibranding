@@ -33,14 +33,21 @@ export function PendingProposalsPanel() {
         />
       ) : query.isPending ? (
         <ListSkeleton rows={3} label="Cargando propuestas" />
-      ) : query.data.length === 0 ? (
+      ) : query.data.items.length === 0 ? (
         <EmptyState icon={FileText} size="compact" title="No hay propuestas pendientes." />
       ) : (
-        <ul className="divide-y divide-border-subtle">
-          {query.data.map((p) => (
-            <PendingRow key={p.id} proposal={p} />
-          ))}
-        </ul>
+        <>
+          <ul className="divide-y divide-border-subtle">
+            {query.data.items.map((p) => (
+              <PendingRow key={p.id} proposal={p} />
+            ))}
+          </ul>
+          {query.data.truncated && (
+            <p className="pt-2 text-xs text-muted-foreground">
+              Mostrando las {query.data.limit} más antiguas.
+            </p>
+          )}
+        </>
       )}
     </Panel>
   );
@@ -48,7 +55,7 @@ export function PendingProposalsPanel() {
 
 function PendingRow({ proposal: p }: { proposal: PendingProposal }) {
   const age = daysSince(p.sent_at);
-  const needsFollowUp = !p.cold && age !== null && age >= FOLLOW_UP_AFTER_DAYS;
+  const needsFollowUp = !p.cold && !p.expired && age !== null && age >= FOLLOW_UP_AFTER_DAYS;
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 py-3">
       <div className="min-w-0">
@@ -66,6 +73,7 @@ function PendingRow({ proposal: p }: { proposal: PendingProposal }) {
         </p>
       </div>
       <div className="flex items-center gap-2">
+        {p.expired && <StatusBadge status="expired" label="Vencida" tone="neutral" />}
         {p.cold && <StatusBadge status="frio" label="Prospecto frío" tone="info" />}
         {needsFollowUp && <StatusBadge status="follow" label="Hacer seguimiento" tone="warning" />}
         <StatusBadge

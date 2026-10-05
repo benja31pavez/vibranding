@@ -5,7 +5,9 @@
  * No hay historial de cambios de estado de prospectos, así que cada etapa se
  * deduce del estado actual + las propuestas ligadas al prospecto:
  *  - Nuevos: prospectos creados en el período (sin "baja"; "frío" sí cuenta).
- *  - Contactados: estado distinto de "nuevo", con último contacto o con propuesta.
+ *  - Contactados: estado contactado/respondió/demo/propuesta/ganado, con último
+ *    contacto o con propuesta. Un "frío" o "perdido" sin ninguna de esas señales
+ *    no cuenta como contactado (pudo descartarse sin contacto).
  *  - Propuesta enviada: propuesta enviada/vista/aceptada/rechazada/expirada,
  *    estado "propuesta" o ganado.
  *  - Ganados: estado "ganado", propuesta aceptada o convertido en cliente.
@@ -58,8 +60,10 @@ export interface SourceRow {
 }
 
 export const EXCLUDED_STATE = "baja";
+/** Estados de proposals.status (CHECK proposals_status_chk) posteriores al envío. */
 const SENT_STATUSES = new Set(["enviada", "vista", "aceptada", "rechazada", "expirada"]);
 const PROPOSAL_STATES = new Set(["propuesta", "ganado"]);
+const CONTACTED_STATES = new Set(["contactado", "respondio", "demo", "propuesta", "ganado"]);
 const DAY_MS = 86_400_000;
 
 const STAGE_LABELS: Readonly<Record<FunnelStageKey, string>> = {
@@ -127,12 +131,16 @@ function firstAcceptedAt(proposals: readonly FunnelProposal[]): number | null {
   return times.length ? Math.min(...times) : null;
 }
 
-function progressOf(prospect: FunnelProspect, proposals: readonly FunnelProposal[]): ProspectProgress {
+function progressOf(
+  prospect: FunnelProspect,
+  proposals: readonly FunnelProposal[],
+): ProspectProgress {
   const accepted = proposals.some((p) => p.status === "aceptada");
   const sent = proposals.some((p) => Boolean(p.sent_at) || SENT_STATUSES.has(p.status));
   const won = prospect.estado === "ganado" || accepted || Boolean(prospect.client_id);
   const proposalSent = won || sent || PROPOSAL_STATES.has(prospect.estado);
-  const contacted = proposalSent || prospect.estado !== "nuevo" || Boolean(prospect.ultimo_contacto);
+  const contacted =
+    proposalSent || CONTACTED_STATES.has(prospect.estado) || Boolean(prospect.ultimo_contacto);
   const acceptedAt = firstAcceptedAt(proposals);
   const createdAt = Date.parse(prospect.created_at);
   const closeDays =
@@ -197,7 +205,6 @@ export function computeSources(
   return [...rows.entries()]
     .map(([source, r]) => ({ source, ...r, winRate: conversionPct(r.ganados, r.nuevos) }))
     .sort(
-      (a, b) =>
-        b.ganados - a.ganados || (b.winRate ?? 0) - (a.winRate ?? 0) || b.nuevos - a.nuevos,
+      (a, b) => b.ganados - a.ganados || (b.winRate ?? 0) - (a.winRate ?? 0) || b.nuevos - a.nuevos,
     );
 }

@@ -61,6 +61,7 @@ const prospects = [
   prospect("f", "nuevo", { fuente: "Referido" }), // tiene propuesta aceptada
   prospect("g", "baja"), // excluido
   prospect("h", "nuevo", { ultimo_contacto: "2026-09-02T12:00:00Z", fuente: "" }),
+  // c (frío sin contacto) no cuenta como contactado.
 ];
 const proposals = [
   { prospect_id: "d", status: "vista", sent_at: "2026-09-05T12:00:00Z", accepted_at: null },
@@ -85,15 +86,29 @@ check("median", () => {
 check("embudo: etapas, baja excluida, frío cuenta", () => {
   const f = g.computeFunnel(prospects, proposals);
   const counts = Object.fromEntries(f.stages.map((s) => [s.key, s.count]));
-  assert.deepEqual(counts, { nuevos: 7, contactados: 6, propuesta: 3, ganados: 2 });
+  assert.deepEqual(counts, { nuevos: 7, contactados: 5, propuesta: 3, ganados: 2 });
   assert.equal(f.stages[0].conversionFromPrev, null);
-  assert.equal(f.stages[1].conversionFromPrev, 85.7);
-  assert.equal(f.stages[2].conversionFromPrev, 50);
+  assert.equal(f.stages[1].conversionFromPrev, 71.4);
+  assert.equal(f.stages[2].conversionFromPrev, 60);
   assert.equal(f.stages[3].conversionFromPrev, 66.7);
   assert.equal(f.overallConversion, 28.6);
   // e: 10 días, f: 20 días → mediana 15.
   assert.equal(f.medianDaysToClose, 15);
   assert.equal(f.closedWithDate, 2);
+});
+
+check("embudo: perdido/frío solo cuentan como contactados con señal", () => {
+  const f = g.computeFunnel(
+    [
+      prospect("p1", "perdido"),
+      prospect("p2", "perdido", { ultimo_contacto: "2026-09-03T12:00:00Z" }),
+      prospect("p3", "frio"),
+      prospect("p4", "frio"),
+    ],
+    [{ prospect_id: "p4", status: "rechazada", sent_at: "2026-09-04T12:00:00Z", accepted_at: null }],
+  );
+  const counts = Object.fromEntries(f.stages.map((s) => [s.key, s.count]));
+  assert.deepEqual(counts, { nuevos: 4, contactados: 2, propuesta: 1, ganados: 0 });
 });
 
 check("embudo: etapas monótonas y vacío", () => {
@@ -133,7 +148,7 @@ check("meta: clientes que faltan", () => {
   assert.equal(s.gap, 610_030);
   assert.equal(s.clientsNeeded, 5);
   assert.equal(s.clientsPerMonth, 1);
-  assert.equal(s.progressPct, 39);
+  assert.equal(s.progressPct, 38.9);
   const zero = g.computeGoal({
     mrr: 0, goal: 1_000_000, recurringClients: 0, fallbackTicket: 129_990, currentMonth: "2026-10",
   });
@@ -145,6 +160,17 @@ check("meta: clientes que faltan", () => {
   });
   assert.equal(done.clientsNeeded, 0);
   assert.equal(done.progressPct, 100);
+  const almost = g.computeGoal({
+    mrr: 999_999, goal: 1_000_000, recurringClients: 5, fallbackTicket: 129_990, currentMonth: "2026-10",
+  });
+  assert.equal(almost.progressPct, 99.9);
+  assert.equal(almost.clientsNeeded, 1);
+  assert.equal(almost.pastDeadline, false);
+  const late = g.computeGoal({
+    mrr: 100, goal: 1_000_000, recurringClients: 1, fallbackTicket: 129_990, currentMonth: "2027-05",
+  });
+  assert.equal(late.pastDeadline, true);
+  assert.equal(late.monthsRemaining, 0);
 });
 
 check("tendencia mensual", () => {
