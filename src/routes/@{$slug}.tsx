@@ -32,6 +32,8 @@ export const Route = createFileRoute("/@{$slug}")({
         { name: "theme-color", content: lp.theme_color || "#6366f1" },
         { property: "og:title", content: title },
         { property: "og:description", content: description },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
         { property: "og:type", content: "website" },
         { property: "og:url", content: url },
         { property: "og:locale", content: "es_CL" },

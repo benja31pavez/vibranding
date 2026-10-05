@@ -35,6 +35,7 @@ import {
 } from "@/lib/landingTheme";
 import { landingWhatsappUrl } from "@/lib/landingWhatsapp";
 import { buildLandingStructuredData, jsonLd, landingPhone } from "@/lib/site/landingSeo";
+import { formatChileMobile } from "@/lib/site/validation";
 import { LandingContactForm } from "@/components/landing/LandingContactForm";
 import { WhatsappFab } from "@/components/landing/WhatsappFab";
 
@@ -92,7 +93,8 @@ export function PublicLandingView({
   const footer = asObject<LandingFooter>(lp.footer);
   const waUrl = landingWhatsappUrl(lp as any);
   const comunas = (location.comunas ?? []).filter(Boolean);
-  const phone = landingPhone(lp);
+  const rawPhone = landingPhone(lp);
+  const phone = rawPhone ? formatChileMobile(rawPhone) : null;
 
   const [lightbox, setLightbox] = useState<number | null>(null);
 
@@ -228,7 +230,7 @@ export function PublicLandingView({
             <ul className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {gallery.map((g, i) =>
                 g.before_url ? (
-                  <li key={i} className="col-span-2 md:col-span-3">
+                  <li key={i} className="col-span-2 md:col-span-3 w-full max-w-4xl mx-auto">
                     <BeforeAfter item={g} palette={p} />
                   </li>
                 ) : (
@@ -473,6 +475,28 @@ export function PublicLandingView({
           dangerouslySetInnerHTML={{ __html: jsonLd(node) }}
         />
       ))}
+
+      {displayTitle && (
+        <header className="border-b" style={{ borderColor: p.border }}>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+            <span className="font-bold tracking-tight truncate" style={{ color: p.brandText }}>
+              {displayTitle}
+            </span>
+            {(waUrl || lp.contact_enabled) && (
+              <a
+                href={waUrl ?? "#contacto"}
+                onClick={waUrl ? onWhatsappClick : onCtaClick}
+                {...(waUrl ? { target: "_blank", rel: "noreferrer" } : {})}
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2"
+                style={{ background: p.brand, color: p.onBrand, outlineColor: p.brand }}
+              >
+                {waUrl && <MessageCircle className="w-4 h-4" aria-hidden="true" />}
+                {waUrl ? "Escríbenos" : "Contacto"}
+              </a>
+            )}
+          </div>
+        </header>
+      )}
 
       <main>
         {onImage ? (

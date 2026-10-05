@@ -242,7 +242,7 @@ export function PublicMultilinkView({
               )}
             </div>
 
-            <div className="mt-9 flex items-center justify-center gap-2 opacity-35">
+            <div className="mt-9 flex items-center justify-center gap-2 opacity-60">
               <span className="h-px w-6" style={{ background: theme.color }} />
               <span className="text-[9px] font-semibold uppercase">Multienlace</span>
               <span className="h-px w-6" style={{ background: theme.color }} />
