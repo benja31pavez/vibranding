@@ -73,6 +73,34 @@ check("motivo de escalamiento acotado", () => {
   assert.ok(r.length < 200);
 });
 
+check("redacta teléfonos", () => {
+  assert.equal(d.redactDigits("to 56912345678 failed"), "to [redactado] failed");
+  assert.equal(d.redactDigits("HTTP 500"), "HTTP 500");
+});
+check("escalamiento redacta y pausa motivo", () => assert.doesNotMatch(d.escalationReason("send 56912345678"), /\d{7,}/));
+check("transitorio: sin código / red", () => assert.equal(d.isTransientError(new Error("fetch failed")), true));
+check("transitorio: conexión 08006", () => assert.equal(d.isTransientError(Object.assign(new Error("x"), { code: "08006" })), true));
+check("transitorio: HTTP 503 y 429", () => {
+  assert.equal(d.isTransientError({ status: 503 }), true);
+  assert.equal(d.isTransientError({ status: 429 }), true);
+});
+check("permanente: HTTP 400 de Meta", () => assert.equal(d.isTransientError({ status: 400 }), false));
+check("permanente: esquema 42703 / PGRST204", () => {
+  assert.equal(d.isTransientError({ code: "42703" }), false);
+  assert.equal(d.isTransientError({ code: "PGRST204" }), false);
+});
+check("permanente: PermanentError", () => assert.equal(d.isTransientError(new d.PermanentError("token revocado")), false));
+check("dbError conserva el código", () => {
+  const e = d.dbError("ctx", { code: "23502", message: "null value" });
+  assert.equal(e.code, "23502");
+  assert.equal(e.message, "ctx: null value");
+  assert.equal(d.isTransientError(e), false);
+});
+check("lease de 5 min y timeout 15s", () => {
+  assert.equal(d.DISPATCH_LEASE_MS, 300000);
+  assert.equal(d.OUTBOUND_TIMEOUT_MS, 15000);
+});
+
 if (failures.length) {
   console.error(`check-mensajeria: ${failures.length} fallo(s)`);
   for (const f of failures) console.error(`  ✗ ${f}`);

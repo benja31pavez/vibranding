@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
-import { webhookStatus } from "@/lib/messaging/delivery";
+import { isTransientError, redactDigits, webhookStatus } from "@/lib/messaging/delivery";
 
 /**
  * Instagram webhook: `comments` for comment-to-DM automation and `messages`
@@ -59,7 +59,18 @@ export const Route = createFileRoute("/api/public/instagram/webhook")({
 
         // Process every event even if one fails, then report: a non-200 makes
         // Meta redeliver, and the handlers are idempotent (comment_id / mid).
+        // Only transient failures (DB/network/5xx) ask for a retry; permanent
+        // ones would fail again, so they are logged and acknowledged.
         let failures = 0;
+        const recordFailure = (kind: string, err: any) => {
+          const detail = redactDigits(String(err?.message ?? err));
+          if (isTransientError(err)) {
+            failures++;
+            console.error(`[ig webhook] ${kind} handling failed (transient)`, detail);
+          } else {
+            console.error(`[ig-webhook][PERMANENTE] ${kind} handling failed`, detail);
+          }
+        };
         for (const entry of payload.entry as any[]) {
           const igAccountId = String(entry.id ?? "");
           if (!igAccountId) continue;
@@ -80,8 +91,7 @@ export const Route = createFileRoute("/api/public/instagram/webhook")({
                 at: v.timestamp ? new Date(v.timestamp).toISOString() : at,
               });
             } catch (err: any) {
-              failures++;
-              console.error("[ig webhook] comment handling failed", err?.message);
+              recordFailure("comment", err);
             }
           }
 
@@ -89,8 +99,7 @@ export const Route = createFileRoute("/api/public/instagram/webhook")({
             try {
               await handleIgMessage(igAccountId, m);
             } catch (err: any) {
-              failures++;
-              console.error("[ig webhook] message handling failed", err?.message);
+              recordFailure("message", err);
             }
           }
         }

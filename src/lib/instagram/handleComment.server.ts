@@ -2,7 +2,7 @@
 // Every attempt is logged in ig_automation_events, which is also the
 // idempotency guard against Meta's webhook retries.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { isUniqueViolation } from "@/lib/messaging/delivery";
+import { dbError, isUniqueViolation } from "@/lib/messaging/delivery";
 import {
   bumpTrigger,
   insertIgMessage,
@@ -36,7 +36,7 @@ export async function handleIgComment(igAccountId: string, c: IncomingComment) {
     .eq("client_id", clientId)
     .eq("is_active", true)
     .order("priority", { ascending: false });
-  if (triggersError) throw new Error(`handleIgComment triggers: ${triggersError.message}`);
+  if (triggersError) throw dbError("handleIgComment triggers", triggersError);
   const triggers = ((triggerRows ?? []) as unknown as IgTrigger[]).filter(
     (t) => !t.ig_media_id || (c.mediaId && t.ig_media_id === c.mediaId),
   );
@@ -57,7 +57,7 @@ export async function handleIgComment(igAccountId: string, c: IncomingComment) {
     .single();
   if (claimError) {
     if (isUniqueViolation(claimError)) return { skipped: "duplicate" as const };
-    throw new Error(`handleIgComment claim: ${claimError.message}`);
+    throw dbError("handleIgComment claim", claimError);
   }
   if (!claim?.id) throw new Error("handleIgComment claim: no id returned");
   const eventId = claim.id as string;

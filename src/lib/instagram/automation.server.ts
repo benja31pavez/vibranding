@@ -4,7 +4,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { graphUrl } from "@/lib/meta/version";
 import { getMetaToken } from "@/lib/meta/tokens.server";
-import { classifyInsert, type InsertOutcome } from "@/lib/messaging/delivery";
+import { classifyInsert, dbError, type InsertOutcome } from "@/lib/messaging/delivery";
 
 export type IgTrigger = {
   id: string;
@@ -48,7 +48,7 @@ export async function resolveIgAccount(igAccountId: string) {
     .eq("ig_account_id", igAccountId)
     .maybeSingle();
   // A DB error is not "unknown account": throw so the webhook asks for a retry.
-  if (error) throw new Error(`resolveIgAccount: ${error.message}`);
+  if (error) throw dbError("resolveIgAccount", error);
   if (!account?.id) return null;
   const token = await getMetaToken(account.id);
   if (!token) return null;
@@ -129,7 +129,7 @@ export async function upsertIgConversation(args: {
     .eq("channel", "instagram")
     .eq("contact_wa_id", args.contactId)
     .maybeSingle();
-  if (findError) throw new Error(`upsertIgConversation select: ${findError.message}`);
+  if (findError) throw dbError("upsertIgConversation select", findError);
 
   if (existing?.id) {
     const { error: updateError } = await supabaseAdmin
@@ -144,7 +144,7 @@ export async function upsertIgConversation(args: {
         ...(args.isLead ? { is_lead: true } : {}),
       })
       .eq("id", existing.id);
-    if (updateError) throw new Error(`upsertIgConversation update: ${updateError.message}`);
+    if (updateError) throw dbError("upsertIgConversation update", updateError);
     return existing.id as string;
   }
 
@@ -166,7 +166,7 @@ export async function upsertIgConversation(args: {
     })
     .select("id")
     .single();
-  if (insertError) throw new Error(`upsertIgConversation insert: ${insertError.message}`);
+  if (insertError) throw dbError("upsertIgConversation insert", insertError);
   return (created?.id as string) ?? null;
 }
 
@@ -193,6 +193,24 @@ export async function insertIgMessage(args: {
     timestamp: args.at,
   });
   return classifyInsert(error, "insertIgMessage");
+}
+
+/**
+ * +1 unread on an Instagram conversation. Called only after the inbound
+ * message row was stored, so a redelivered mid never bumps twice.
+ */
+export async function bumpIgUnread(conversationId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("whatsapp_conversations")
+    .select("unread_count")
+    .eq("id", conversationId)
+    .maybeSingle();
+  if (error) throw dbError("bumpIgUnread select", error);
+  const { error: updateError } = await supabaseAdmin
+    .from("whatsapp_conversations")
+    .update({ unread_count: (data?.unread_count ?? 0) + 1 })
+    .eq("id", conversationId);
+  if (updateError) throw dbError("bumpIgUnread update", updateError);
 }
 
 /** True when the contact wrote within the last 24 hours. */

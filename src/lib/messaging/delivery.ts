@@ -27,7 +27,7 @@ export type InsertOutcome = "inserted" | "duplicate";
 export function classifyInsert(error: DbError, context: string): InsertOutcome {
   if (!error) return "inserted";
   if (isUniqueViolation(error)) return "duplicate";
-  throw new Error(`${context}: ${error.message ?? "unknown db error"}`);
+  throw dbError(context, error);
 }
 
 /**
@@ -58,6 +58,46 @@ export function planDispatchRetry(previousAttempts: number | null | undefined, n
   };
 }
 
+/** Lease on a claimed WhatsApp reply: if the runner dies, it is retried after this. */
+export const DISPATCH_LEASE_MS = 5 * 60_000;
+
+/** Timeout for outbound HTTP calls (Meta Graph, AI gateway). */
+export const OUTBOUND_TIMEOUT_MS = 15_000;
+
+/** Masks long digit runs (phone numbers, ids) before they reach logs or the UI. */
+export function redactDigits(text: string): string {
+  return text.replace(/\d{7,}/g, "[redactado]");
+}
+
 export function escalationReason(lastError: string): string {
-  return `El bot no pudo responder tras ${DISPATCH_MAX_ATTEMPTS} intentos: ${lastError.slice(0, 120)}`;
+  return `El bot no pudo responder tras ${DISPATCH_MAX_ATTEMPTS} intentos: ${redactDigits(lastError).slice(0, 120)}`;
+}
+
+/** A failure a retry cannot fix (validation, schema, revoked token, Meta 4xx). */
+export class PermanentError extends Error {
+  readonly permanent = true;
+}
+
+/** Error carrying the Postgres/PostgREST code so the webhook can classify it. */
+export function dbError(context: string, error: { code?: string | null; message?: string | null }): Error {
+  const err = new Error(`${context}: ${error.message ?? "db error"}`) as Error & { code?: string };
+  if (error.code) err.code = error.code;
+  return err;
+}
+
+// Postgres classes a retry will not fix: data exception, integrity, syntax /
+// undefined column (schema), PL/pgSQL raise. PGRST1xx/2xx = bad request / schema cache.
+const PERMANENT_CODE = /^(22|23|42|P0)|^PGRST[12]/;
+
+/**
+ * True when Meta should redeliver: DB/network/timeouts/5xx. Errors without a
+ * code (fetch failed, aborted) are treated as transient.
+ */
+export function isTransientError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return true;
+  const e = err as { permanent?: boolean; code?: unknown; status?: unknown };
+  if (e.permanent) return false;
+  if (typeof e.status === "number") return e.status >= 500 || e.status === 429;
+  if (typeof e.code === "string" && e.code) return !PERMANENT_CODE.test(e.code);
+  return true;
 }
