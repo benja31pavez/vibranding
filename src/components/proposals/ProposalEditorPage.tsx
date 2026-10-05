@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { FileText } from "lucide-react";
 import { EmptyState, ErrorState, ListSkeleton, PageContainer, PageHeader, type BreadcrumbItem } from "@/components/app";
+import { canCreateProposalFor } from "@/lib/proposals/recommend";
 import { ProposalEditor } from "./ProposalEditor";
 import { useCanEditRecipient as useCanEdit, useRecipient, type ProposalRow } from "./proposalQueries";
 
@@ -52,6 +53,12 @@ export function ProposalEditorPage({ target, existing }: Props) {
         <ErrorState message={recipient.error.message} onRetry={() => void recipient.refetch()} />
       ) : !recipient.data ? (
         <EmptyState icon={FileText} title="No encontramos el destinatario" description="Puede que no tengas acceso." />
+      ) : !existing && !canCreateProposalFor(recipient.data.prospect?.estado) ? (
+        <EmptyState
+          icon={FileText}
+          title="Este prospecto pidió no ser contactado"
+          description="No se le pueden enviar propuestas mientras esté de baja."
+        />
       ) : (
         <ProposalEditor
           key={existing ? `${existing.id}-${existing.status}-${existing.sent_at ?? ""}` : "new"}
