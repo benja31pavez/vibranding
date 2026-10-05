@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InstagramPage } from "@/components/pages/InstagramPage";
 import { ContentCalendar } from "@/components/instagram/ContentCalendar";
 import { PostFeedbackPanel } from "@/components/instagram/PostFeedbackPanel";
+import { EngagementCard } from "@/components/instagram/EngagementCard";
 
 export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
   validateSearch: (s: Record<string, unknown>): { tab?: "grid" | "calendario" } => ({
@@ -49,6 +50,7 @@ function InstagramTabsPage() {
   return (
     <div className="space-y-4">
       <PostFeedbackPanel clientId={clientId} />
+      <EngagementCard clientId={clientId} />
       <Tabs
         value={tab}
         onValueChange={(v) => navigate({ search: { tab: v as "grid" | "calendario" } })}
