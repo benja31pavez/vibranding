@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { WhatsAppCta } from "./shared";
+import { stickyHeaderClass, WhatsAppCta } from "./shared";
+import { useScrolled } from "@/hooks/use-motion";
 import { translations } from "@/i18n/translations";
 
 export function HomeHeader() {
   const t = translations.es; // The public home is Spanish-only (Chile).
   const nav = t.home.nav;
+  const scrolled = useScrolled();
   const links = [
     { href: "#servicios", label: nav.services },
     { href: "#planes", label: nav.plans },
@@ -13,7 +15,7 @@ export function HomeHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/50 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
+    <header className={stickyHeaderClass(scrolled)}>
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-10">
         <Link to="/" className="shrink-0" aria-label="Vibranding, inicio">
           <span className="font-brand text-2xl md:text-3xl tracking-tight text-gradient-brand-strong">
@@ -25,7 +27,7 @@ export function HomeHeader() {
             <a
               key={l.href}
               href={l.href}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="relative text-muted-foreground transition-colors after:absolute after:-bottom-1 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-300 hover:text-foreground hover:after:scale-x-100 motion-reduce:after:transition-none"
             >
               {l.label}
             </a>

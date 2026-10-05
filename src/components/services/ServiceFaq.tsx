@@ -10,14 +10,14 @@ export function ServiceFaqSection({ service }: { service: ServiceContent }) {
         <SectionTitle id="faq-titulo" eyebrow="Preguntas frecuentes">
           Lo que más nos preguntan
         </SectionTitle>
-        <div className="divide-y rounded-2xl border bg-card">
+        <div data-reveal className="divide-y rounded-2xl border bg-card">
           {service.faqs.map((f) => (
-            <details key={f.q} className="group px-5 py-1">
+            <details key={f.q} className="faq-item group px-5 py-1">
               <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-left font-semibold [&::-webkit-details-marker]:hidden">
                 <span className="text-base">{f.q}</span>
                 <ChevronDown
                   aria-hidden
-                  className="h-5 w-5 shrink-0 transition-transform group-open:rotate-180"
+                  className="h-5 w-5 shrink-0 transition-transform duration-300 group-open:rotate-180 motion-reduce:transition-none"
                 />
               </summary>
               <p className="pb-4 text-base text-muted-foreground text-pretty">{f.a}</p>

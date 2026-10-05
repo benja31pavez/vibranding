@@ -12,7 +12,7 @@ export function SectionTitle({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mb-8 max-w-2xl">
+    <div data-reveal className="mb-8 max-w-2xl">
       {eyebrow && <p className={EYEBROW_CLASS}>{eyebrow}</p>}
       <h2
         id={id}
@@ -33,7 +33,7 @@ export function ProblemSolutionSection({ service }: { service: ServiceContent })
           <SectionTitle id="problema-titulo" eyebrow="El problema">
             {problem.title}
           </SectionTitle>
-          <ul className="space-y-4">
+          <ul data-reveal-stagger className="space-y-4">
             {problem.points.map((p) => (
               <li key={p} className="flex items-start gap-3 text-base">
                 <X aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
@@ -42,7 +42,7 @@ export function ProblemSolutionSection({ service }: { service: ServiceContent })
             ))}
           </ul>
         </div>
-        <div className="rounded-3xl border bg-card p-6 md:p-8">
+        <div data-reveal className="card-fx rounded-3xl border bg-card p-6 md:p-8">
           <p className={EYEBROW_CLASS}>La solución</p>
           <h2 className="mt-2 text-2xl font-semibold leading-tight tracking-tight text-balance md:text-3xl">
             {solution.title}
@@ -72,11 +72,11 @@ export function IncludesSection({ service }: { service: ServiceContent }) {
         <SectionTitle id="incluye-titulo" eyebrow="Qué incluye">
           Esto es lo que recibes
         </SectionTitle>
-        <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+        <ul data-reveal-stagger className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {service.includes.map((item) => (
             <li
               key={item}
-              className="flex items-start gap-3 rounded-2xl border bg-card p-4 text-base sm:p-5"
+              className="card-fx flex items-start gap-3 rounded-2xl border bg-card p-4 text-base sm:p-5"
             >
               <Check aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--brand-1)]" />
               <span>{item}</span>
@@ -95,11 +95,11 @@ export function ProcessSection({ service }: { service: ServiceContent }) {
         <SectionTitle id="proceso-titulo" eyebrow="Cómo trabajamos">
           Paso a paso
         </SectionTitle>
-        <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ol data-reveal-stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {service.steps.map((step, i) => (
             <li
               key={step.title}
-              className="flex items-start gap-4 rounded-2xl border bg-card p-4 sm:block sm:p-5"
+              className="card-fx flex items-start gap-4 rounded-2xl border bg-card p-4 sm:block sm:p-5"
             >
               <span
                 aria-hidden

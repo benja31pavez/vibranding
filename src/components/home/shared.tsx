@@ -21,6 +21,7 @@ export function SectionHeading({
 }) {
   return (
     <div
+      data-reveal
       className={cn(
         "mb-10 md:mb-14",
         align === "center" ? "text-center mx-auto max-w-2xl" : "max-w-xl",
@@ -40,11 +41,21 @@ export function SectionHeading({
   );
 }
 
+/** Sticky header surface: light and see-through at the top, solid with blur once scrolled. */
+export function stickyHeaderClass(scrolled: boolean): string {
+  return cn(
+    "sticky top-0 z-40 border-b transition-[background-color,border-color,box-shadow] duration-300 motion-reduce:transition-none",
+    scrolled
+      ? "border-border/60 bg-background/80 shadow-[0_8px_24px_-18px_rgb(0_0_0/0.25)] backdrop-blur-md supports-[backdrop-filter]:bg-background/70"
+      : "border-transparent bg-background/40 backdrop-blur-sm",
+  );
+}
+
 type CtaVariant = "primary" | "outline" | "light";
 
 const VARIANTS: Record<CtaVariant, string> = {
   primary:
-    "bg-gradient-brand-strong text-white shadow-lg shadow-[color:var(--brand-2)]/25 hover:brightness-110",
+    "btn-shine bg-gradient-brand-strong text-white shadow-lg shadow-[color:var(--brand-2)]/25 hover:brightness-110",
   outline: "border border-foreground/15 bg-background text-foreground hover:bg-secondary",
   light: "bg-white text-[oklch(0.25_0.05_265)] hover:bg-white/90",
 };
@@ -71,7 +82,7 @@ export function WhatsAppCta({
       rel="noopener noreferrer"
       onClick={() => trackLandingEvent("whatsapp_click", lang)}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "btn-fx inline-flex items-center justify-center gap-2 rounded-full font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         size === "lg" ? "h-12 px-7 text-base" : "h-10 px-4 text-sm",
         VARIANTS[variant],
         className,

@@ -47,7 +47,7 @@ type LinkVariant = "primary" | "outline" | "onDark";
 
 const LINK_VARIANTS: Record<LinkVariant, string> = {
   primary:
-    "bg-gradient-brand-strong text-white shadow-lg shadow-[color:var(--brand-2)]/25 hover:brightness-110",
+    "btn-shine bg-gradient-brand-strong text-white shadow-lg shadow-[color:var(--brand-2)]/25 hover:brightness-110",
   outline: "border border-foreground/15 bg-background text-foreground hover:bg-secondary",
   onDark: "border border-white/60 text-white hover:bg-white/10",
 };
@@ -73,7 +73,7 @@ export function DiagnosticoLink({
       // contact_click = CTA de diagnóstico; los botones de WhatsApp registran whatsapp_click.
       onClick={() => trackLandingEvent("contact_click", "es")}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "btn-fx inline-flex items-center justify-center gap-2 rounded-full font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         size === "lg" ? "h-12 px-7 text-base" : "h-10 px-4 text-sm",
         LINK_VARIANTS[variant],
         className,
@@ -100,11 +100,11 @@ export function ForWhomSection() {
         end="?"
         subtitle="Trabajamos con pymes de servicios."
       />
-      <ul className="grid gap-4 sm:grid-cols-3">
+      <ul data-reveal-stagger className="grid gap-4 sm:grid-cols-3">
         {niches.items.map((n, i) => {
           const Icon = NICHE_ICONS[i] ?? HomeIcon;
           return (
-            <li key={n.title} className="rounded-3xl border bg-card p-6">
+            <li key={n.title} className="card-fx rounded-3xl border bg-card p-6">
               <span className="grid h-11 w-11 place-items-center rounded-2xl bg-secondary">
                 <Icon aria-hidden className="h-5 w-5 text-[color:var(--brand-1)]" />
               </span>
@@ -114,7 +114,7 @@ export function ForWhomSection() {
           );
         })}
       </ul>
-      <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-dashed p-6">
+      <div data-reveal className="mx-auto mt-8 max-w-3xl rounded-3xl border border-dashed p-6">
         <h3 className="font-semibold">Es para ti si…</h3>
         <ul className="mt-3 space-y-2">
           {FOR_YOU_IF.map((item) => (
@@ -142,9 +142,9 @@ export function WorkWithUsSection() {
         accent="con nosotros"
         subtitle="Marca + Web se entrega en 72 horas hábiles desde que recibimos tu información y el pago."
       />
-      <ol className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <ol data-reveal-stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {PROCESS.map((step, i) => (
-          <li key={step.title} className="rounded-3xl border bg-card p-6">
+          <li key={step.title} className="card-fx rounded-3xl border bg-card p-6">
             <span
               className="font-brand text-4xl leading-none text-gradient-brand-strong"
               aria-hidden
@@ -156,11 +156,11 @@ export function WorkWithUsSection() {
           </li>
         ))}
       </ol>
-      <p className="mx-auto mt-8 max-w-3xl text-center text-sm text-muted-foreground">
+      <p data-reveal className="mx-auto mt-8 max-w-3xl text-center text-sm text-muted-foreground">
         En los planes mensuales te enviamos el calendario de contenido durante la primera semana y
         las campañas parten apenas apruebas los anuncios.
       </p>
-      <div className="mt-8 flex justify-center">
+      <div data-reveal className="mt-8 flex justify-center">
         <DiagnosticoLink />
       </div>
     </section>
@@ -171,7 +171,10 @@ export function WorkWithUsSection() {
 export function DiagnosticoBanner() {
   return (
     <section aria-labelledby="diagnostico-banner-title" className="px-4 md:px-10">
-      <div className="mx-auto flex max-w-5xl flex-col items-start gap-5 rounded-3xl border-2 border-[color:var(--brand-2)]/40 bg-card p-6 md:flex-row md:items-center md:justify-between md:p-8">
+      <div
+        className="hero-in mx-auto flex max-w-5xl flex-col items-start gap-5 rounded-3xl border-2 border-[color:var(--brand-2)]/40 bg-card p-6 md:flex-row md:items-center md:justify-between md:p-8"
+        style={{ "--d": "420ms" } as React.CSSProperties}
+      >
         <div>
           <h2 id="diagnostico-banner-title" className="text-xl font-semibold md:text-2xl">
             Diagnóstico gratis de tu marca
@@ -182,7 +185,7 @@ export function DiagnosticoBanner() {
           </p>
         </div>
         <DiagnosticoLink className="w-full shrink-0 md:w-auto">
-          Quiero mi diagnóstico <ArrowRight aria-hidden className="h-4 w-4" />
+          Quiero mi diagnóstico <ArrowRight aria-hidden className="btn-arrow h-4 w-4" />
         </DiagnosticoLink>
       </div>
     </section>

@@ -26,7 +26,9 @@ export function PortfolioSection({ portfolio }: { portfolio: PortfolioClientWith
         accent={copy.titleAccent}
         subtitle={copy.subtitle}
       />
-      <LogoMarquee clients={clients} />
+      <div data-reveal>
+        <LogoMarquee clients={clients} />
+      </div>
       <StaticLogoList clients={clients} />
       <div className="space-y-14">
         {clients
@@ -63,7 +65,7 @@ function LogoMarquee({ clients }: { clients: PortfolioClientWithWorks[] }) {
   return (
     <div className="relative mb-14 motion-reduce:hidden">
       <div className="overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
-        <ul className="flex w-max items-center animate-marquee hover:[animation-play-state:paused]">
+        <ul className="flex w-max items-center animate-marquee hover:[animation-play-state:paused] focus-within:[animation-play-state:paused]">
           {[...clients, ...clients].map((c, i) => (
             <li
               key={`${c.id}-${i}`}
@@ -98,7 +100,7 @@ function StaticLogoList({ clients }: { clients: PortfolioClientWithWorks[] }) {
 function ClientWorks({ client: c }: { client: PortfolioClientWithWorks }) {
   return (
     <div id={`client-${c.id}`}>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+      <div data-reveal className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div className="flex items-center gap-3">
           {c.logo_url && (
             <img
@@ -130,7 +132,7 @@ function ClientWorks({ client: c }: { client: PortfolioClientWithWorks }) {
           </a>
         )}
       </div>
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul data-reveal-stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {c.works.map((w) => (
           <li key={w.id}>
             <WorkCard work={w} clientName={c.name} />
@@ -143,7 +145,7 @@ function ClientWorks({ client: c }: { client: PortfolioClientWithWorks }) {
 
 function WorkCard({ work: w, clientName }: { work: PortfolioWork; clientName: string }) {
   const inner = (
-    <div className="group relative overflow-hidden rounded-2xl border bg-card transition-shadow duration-300 hover:shadow-xl">
+    <div className="card-fx group relative overflow-hidden rounded-2xl border bg-card">
       {w.image_url ? (
         <div className="aspect-[4/5] overflow-hidden bg-muted">
           <img
@@ -152,7 +154,7 @@ function WorkCard({ work: w, clientName }: { work: PortfolioWork; clientName: st
             width={800}
             height={1000}
             decoding="async"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
             loading="lazy"
           />
         </div>

@@ -21,12 +21,15 @@ export function PlansSection() {
           accent={p.titleAccent}
           subtitle={p.subtitle}
         />
-        <ul className="grid items-stretch gap-6 lg:grid-cols-3">
+        <ul data-reveal-stagger className="grid items-stretch gap-6 lg:grid-cols-3">
           {p.items.map((plan) => (
             <PlanCard key={plan.id} plan={plan} popularLabel={p.popular} ctaLabel={p.cta} />
           ))}
         </ul>
-        <p className="mx-auto mt-8 flex max-w-3xl items-start gap-2 text-sm text-muted-foreground">
+        <p
+          data-reveal
+          className="mx-auto mt-8 flex max-w-3xl items-start gap-2 text-sm text-muted-foreground"
+        >
           <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
           {p.adSpendNote}
         </p>
@@ -47,10 +50,10 @@ function PlanCard({
   return (
     <li
       className={cn(
-        "relative flex flex-col rounded-3xl bg-card p-6 md:p-8",
+        "card-fx relative flex flex-col rounded-3xl p-6 md:p-8",
         plan.highlighted
-          ? "border-2 border-[color:var(--brand-2)] shadow-xl shadow-[color:var(--brand-2)]/15"
-          : "border",
+          ? "plan-glow shadow-xl shadow-[color:var(--brand-2)]/20"
+          : "border bg-card",
       )}
     >
       {plan.highlighted && (
