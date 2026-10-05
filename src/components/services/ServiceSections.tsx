@@ -72,11 +72,11 @@ export function IncludesSection({ service }: { service: ServiceContent }) {
         <SectionTitle id="incluye-titulo" eyebrow="Qué incluye">
           Esto es lo que recibes
         </SectionTitle>
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {service.includes.map((item) => (
             <li
               key={item}
-              className="flex items-start gap-3 rounded-2xl border bg-card p-5 text-base"
+              className="flex items-start gap-3 rounded-2xl border bg-card p-4 text-base sm:p-5"
             >
               <Check aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--brand-1)]" />
               <span>{item}</span>
@@ -97,18 +97,23 @@ export function ProcessSection({ service }: { service: ServiceContent }) {
         </SectionTitle>
         <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {service.steps.map((step, i) => (
-            <li key={step.title} className="rounded-2xl border bg-card p-5">
+            <li
+              key={step.title}
+              className="flex items-start gap-4 rounded-2xl border bg-card p-4 sm:block sm:p-5"
+            >
               <span
                 aria-hidden
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-brand-strong text-sm font-semibold text-white"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-brand-strong text-sm font-semibold text-white"
               >
                 {i + 1}
               </span>
-              <h3 className="mt-4 text-lg font-semibold">
-                <span className="sr-only">Paso {i + 1}: </span>
-                {step.title}
-              </h3>
-              <p className="mt-2 text-sm text-muted-foreground">{step.desc}</p>
+              <div className="min-w-0">
+                <h3 className="pt-1 text-lg font-semibold leading-snug sm:mt-4 sm:pt-0">
+                  <span className="sr-only">Paso {i + 1}: </span>
+                  {step.title}
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground sm:mt-2">{step.desc}</p>
+              </div>
             </li>
           ))}
         </ol>

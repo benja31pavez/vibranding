@@ -137,7 +137,7 @@ export function PublicProposalView({ token, proposal, payment }: Props) {
         </Card>
       )}
 
-      <ContactCard title={proposal.title} />
+      <ContactCard title={proposal.title} open={open} />
     </PublicShell>
   );
 }
