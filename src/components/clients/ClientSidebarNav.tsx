@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
-  BarChart3, Circle, Flag, Globe, LayoutDashboard, Instagram, Lock, MessageCircle, Receipt, Settings2, UserPlus, Zap,
+  BarChart3, Circle, Flag, Globe, LayoutDashboard, Instagram, Lock, MessageCircle, Receipt, Search, Settings2, UserPlus, Zap,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ const SECTION_GROUP: Partial<Record<string, GroupKey>> = {
   bandeja: "operacion",
   sitio: "operacion",
   "meta-ads": "negocio",
+  "google-ads": "negocio",
   leads: "negocio",
   facturacion: "negocio",
   analytics: "negocio",
@@ -39,6 +40,7 @@ const ICONS: Partial<Record<string, IconComponent>> = {
   plan: Flag,
   instagram: Instagram,
   "meta-ads": MetaIcon,
+  "google-ads": Search,
   automatizacion: Zap,
   sitio: Globe,
   bandeja: MessageCircle,
