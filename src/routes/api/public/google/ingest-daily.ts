@@ -49,7 +49,27 @@ export const Route = createFileRoute("/api/public/google/ingest-daily")({
 
         const { getGoogleAdsConfig } = await import("@/lib/google-ads/config.server");
         if (!getGoogleAdsConfig()) {
-          // Sin credenciales no hay nada que hacer; no es un fallo del job.
+          // Sin credenciales pero con cuentas conectadas: la ingesta está rota
+          // (503, visible en el health del job). Sin cuentas no es un fallo.
+          const { countConnectedGoogleAdsAccounts } = await import(
+            "@/lib/google-ads/connected.server"
+          );
+          const connected = await countConnectedGoogleAdsAccounts().catch((e: Error) => {
+            console.error("[google ingest] no se pudieron contar las cuentas", e.message);
+            return -1;
+          });
+          if (connected !== 0) {
+            console.error("[google ingest] Google Ads no configurado con cuentas conectadas", {
+              connected,
+            });
+            return Response.json(
+              {
+                error: "Google Ads no configurado y hay (o no se pudo descartar) cuentas conectadas",
+                accounts: connected < 0 ? null : connected,
+              },
+              { status: 503 },
+            );
+          }
           return Response.json({
             skipped: "Google Ads no configurado",
             accounts: 0,
