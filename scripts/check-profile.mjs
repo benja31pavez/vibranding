@@ -48,6 +48,51 @@ eq("clave corta", u.passwordError("abc", "abc") !== null, true);
 eq("claves distintas", u.passwordError("abcdefgh", "abcdefgx"), "Las contraseñas no coinciden.");
 eq("clave ok", u.passwordError("abcdefgh", "abcdefgh"), null);
 
+// Cambio de contraseña con código enviado al email.
+eq("otp limpia espacios", u.sanitizeOtp("123 456"), "123456");
+eq("otp corta a 6", u.sanitizeOtp("12345678"), "123456");
+eq("otp solo dígitos", u.sanitizeOtp("ab12c3"), "123");
+eq("otp válido", u.isValidOtp("004567"), true);
+eq("otp corto", u.isValidOtp("12345"), false);
+eq("otp con letras", u.isValidOtp("12345a"), false);
+eq("otp largo", u.isValidOtp("1234567"), false);
+const sinCodigo = u.validatePasswordChange("12", "abcdefgh", "abcdefgh");
+eq("paso 2 sin código", Boolean(sinCodigo.code) && !sinCodigo.password, true);
+eq("paso 2 clave corta", Boolean(u.validatePasswordChange("123456", "abc", "abc").password), true);
+eq(
+  "paso 2 no coinciden",
+  u.validatePasswordChange("123456", "abcdefgh", "abcdefgx").password,
+  "Las contraseñas no coinciden.",
+);
+eq("paso 2 ambos malos", Object.keys(u.validatePasswordChange("", "a", "b")).length, 2);
+eq("paso 2 ok", Object.keys(u.validatePasswordChange("123456", "abcdefgh", "abcdefgh")).length, 0);
+eq("reenvío sin envío previo", u.resendSecondsLeft(null, 1000), 0);
+eq("reenvío recién enviado", u.resendSecondsLeft(1000, 1000), u.RESEND_COOLDOWN_SECONDS);
+eq("reenvío a los 59,5 s", u.resendSecondsLeft(0, 59_500), 1);
+eq("reenvío a los 60 s", u.resendSecondsLeft(0, 60_000), 0);
+eq(
+  "límite de envíos",
+  u.sendCodeErrorMessage({ code: "over_email_send_rate_limit" }),
+  u.RATE_LIMIT_MESSAGE,
+);
+eq("límite por status 429", u.sendCodeErrorMessage({ status: 429 }), u.RATE_LIMIT_MESSAGE);
+eq("envío falla genérico", u.sendCodeErrorMessage({ status: 500 }) !== u.RATE_LIMIT_MESSAGE, true);
+eq(
+  "código vencido",
+  u.changePasswordErrorMessage({ code: "reauthentication_not_valid" }),
+  u.INVALID_CODE_MESSAGE,
+);
+eq(
+  "código por mensaje",
+  u.changePasswordErrorMessage({ message: "Requested reauthentication nonce is invalid" }),
+  u.INVALID_CODE_MESSAGE,
+);
+eq(
+  "misma clave",
+  u.changePasswordErrorMessage({ code: "same_password" }).includes("distinta"),
+  true,
+);
+
 eq("vacío es válido", Object.keys(u.validateAgency(empty)).length, 0);
 const bad = u.validateAgency({
   ...empty,
