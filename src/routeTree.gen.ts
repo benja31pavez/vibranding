@@ -76,6 +76,7 @@ import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/cl
 import { Route as AppClientsClientIdPlanRouteImport } from './routes/_app/clients/$clientId/plan'
 import { Route as AppClientsClientIdSetupRouteImport } from './routes/_app/clients/$clientId/setup'
 import { Route as AppClientsClientIdSitioRouteImport } from './routes/_app/clients/$clientId/sitio'
+import { Route as ApiPublicAlertsRunRouteImport } from './routes/api/public/alerts/run'
 import { Route as ApiPublicBillingChargeMonthlyRouteImport } from './routes/api/public/billing/charge-monthly'
 import { Route as ApiPublicFlowConfirmRouteImport } from './routes/api/public/flow/confirm'
 import { Route as ApiPublicFlowReturnRouteImport } from './routes/api/public/flow/return'
@@ -438,6 +439,11 @@ const AppClientsClientIdSitioRoute = AppClientsClientIdSitioRouteImport.update({
   path: '/sitio',
   getParentRoute: () => AppClientsClientIdRoute,
 } as any)
+const ApiPublicAlertsRunRoute = ApiPublicAlertsRunRouteImport.update({
+  id: '/api/public/alerts/run',
+  path: '/api/public/alerts/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicBillingChargeMonthlyRoute =
   ApiPublicBillingChargeMonthlyRouteImport.update({
     id: '/api/public/billing/charge-monthly',
@@ -562,6 +568,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
   '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
+  '/api/public/alerts/run': typeof ApiPublicAlertsRunRoute
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
@@ -639,6 +646,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
   '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
+  '/api/public/alerts/run': typeof ApiPublicAlertsRunRoute
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
@@ -719,6 +727,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
   '/_app/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
   '/_app/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
+  '/api/public/alerts/run': typeof ApiPublicAlertsRunRoute
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
@@ -799,6 +808,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/plan'
     | '/clients/$clientId/setup'
     | '/clients/$clientId/sitio'
+    | '/api/public/alerts/run'
     | '/api/public/billing/charge-monthly'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
@@ -876,6 +886,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/plan'
     | '/clients/$clientId/setup'
     | '/clients/$clientId/sitio'
+    | '/api/public/alerts/run'
     | '/api/public/billing/charge-monthly'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
@@ -955,6 +966,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/plan'
     | '/_app/clients/$clientId/setup'
     | '/_app/clients/$clientId/sitio'
+    | '/api/public/alerts/run'
     | '/api/public/billing/charge-monthly'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
@@ -995,6 +1007,7 @@ export interface RootRouteChildren {
   ApiMetaAdsPublishFullRoute: typeof ApiMetaAdsPublishFullRoute
   ApiMetaAdsSyncRoute: typeof ApiMetaAdsSyncRoute
   ApiMetaAdsUpdateRoute: typeof ApiMetaAdsUpdateRoute
+  ApiPublicAlertsRunRoute: typeof ApiPublicAlertsRunRoute
   ApiPublicBillingChargeMonthlyRoute: typeof ApiPublicBillingChargeMonthlyRoute
   ApiPublicFlowConfirmRoute: typeof ApiPublicFlowConfirmRoute
   ApiPublicFlowReturnRoute: typeof ApiPublicFlowReturnRoute
@@ -1478,6 +1491,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdSitioRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/api/public/alerts/run': {
+      id: '/api/public/alerts/run'
+      path: '/api/public/alerts/run'
+      fullPath: '/api/public/alerts/run'
+      preLoaderRoute: typeof ApiPublicAlertsRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/billing/charge-monthly': {
       id: '/api/public/billing/charge-monthly'
       path: '/api/public/billing/charge-monthly'
@@ -1686,6 +1706,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMetaAdsPublishFullRoute: ApiMetaAdsPublishFullRoute,
   ApiMetaAdsSyncRoute: ApiMetaAdsSyncRoute,
   ApiMetaAdsUpdateRoute: ApiMetaAdsUpdateRoute,
+  ApiPublicAlertsRunRoute: ApiPublicAlertsRunRoute,
   ApiPublicBillingChargeMonthlyRoute: ApiPublicBillingChargeMonthlyRoute,
   ApiPublicFlowConfirmRoute: ApiPublicFlowConfirmRoute,
   ApiPublicFlowReturnRoute: ApiPublicFlowReturnRoute,
