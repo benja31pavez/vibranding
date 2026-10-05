@@ -16,7 +16,10 @@ export const Route = createFileRoute("/r/$token")({
           ? `Reporte de ${periodLabel(loaderData.period)} · ${loaderData.clientName} | Vibranding`
           : "Reporte mensual | Vibranding",
       },
-      { name: "description", content: "Resultados del mes de tu marca, preparados por Vibranding." },
+      {
+        name: "description",
+        content: "Resultados del mes de tu marca, preparados por Vibranding.",
+      },
       NOINDEX,
       { name: "referrer", content: "no-referrer" },
     ],
@@ -45,7 +48,11 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 function Notice({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-app-lg border bg-surface p-6 text-sm text-muted-foreground">{children}</div>;
+  return (
+    <div className="rounded-app-lg border bg-surface p-6 text-sm text-muted-foreground">
+      {children}
+    </div>
+  );
 }
 
 function PublicReportPage() {
@@ -53,7 +60,10 @@ function PublicReportPage() {
   if (!report) {
     return (
       <Shell>
-        <Notice>Este enlace no es válido o el reporte todavía no está disponible. Pide uno nuevo a tu equipo de Vibranding.</Notice>
+        <Notice>
+          Este enlace no es válido o el reporte todavía no está disponible. Pide uno nuevo a tu
+          equipo de Vibranding.
+        </Notice>
       </Shell>
     );
   }
@@ -64,9 +74,15 @@ function PublicReportPage() {
           <Printer aria-hidden className="mr-1.5 h-4 w-4" /> Imprimir o guardar PDF
         </Button>
       </div>
-      <ReportView clientName={report.clientName} period={report.period} data={report.data} summary={report.summary} />
+      <ReportView
+        clientName={report.clientName}
+        period={report.period}
+        data={report.data}
+        summary={report.summary}
+      />
       <footer className="mt-10 border-t pt-4 text-xs text-muted-foreground">
-        Preparado por Vibranding con datos reales de tus cuentas. Si una fuente no aparece, es porque no tuvo datos este mes.
+        Preparado por Vibranding con datos reales de tus cuentas. Si una fuente no aparece, es
+        porque no tuvo datos este mes.
       </footer>
     </Shell>
   );

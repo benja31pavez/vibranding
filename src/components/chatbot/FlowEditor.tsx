@@ -256,8 +256,8 @@ export function FlowEditor({
 
                         {step.kind === "save_lead" && (
                           <p className="text-xs text-muted-foreground">
-                            Guarda al contacto en Leads con todas las variables capturadas
-                            (nombre, correo, presupuesto…) y lo marca como lead.
+                            Guarda al contacto en Leads con todas las variables capturadas (nombre,
+                            correo, presupuesto…) y lo marca como lead.
                           </p>
                         )}
 
@@ -464,9 +464,7 @@ function QuestionStepFields({
                 maxLength={mode === "buttons" ? 20 : 24}
                 onChange={(e) =>
                   patch({
-                    choices: choices.map((x, j) =>
-                      j === i ? { ...x, label: e.target.value } : x,
-                    ),
+                    choices: choices.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)),
                   })
                 }
                 placeholder={`Opción ${i + 1}`}
@@ -532,9 +530,7 @@ function QuestionStepFields({
                 value={c.match}
                 onValueChange={(v) =>
                   patch({
-                    conditions: conditions.map((x, j) =>
-                      j === i ? { ...x, match: v as any } : x,
-                    ),
+                    conditions: conditions.map((x, j) => (j === i ? { ...x, match: v as any } : x)),
                   })
                 }
               >
@@ -616,13 +612,7 @@ function QuestionStepFields({
   );
 }
 
-function TagsField({
-  tags,
-  onChange,
-}: {
-  tags: string[];
-  onChange: (t: string[]) => void;
-}) {
+function TagsField({ tags, onChange }: { tags: string[]; onChange: (t: string[]) => void }) {
   const [input, setInput] = useState("");
   const add = () => {
     const t = input.trim();

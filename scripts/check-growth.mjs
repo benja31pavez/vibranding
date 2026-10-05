@@ -65,9 +65,24 @@ const prospects = [
 ];
 const proposals = [
   { prospect_id: "d", status: "vista", sent_at: "2026-09-05T12:00:00Z", accepted_at: null },
-  { prospect_id: "e", status: "aceptada", sent_at: "2026-09-05T12:00:00Z", accepted_at: "2026-09-11T12:00:00Z" },
-  { prospect_id: "f", status: "aceptada", sent_at: "2026-09-02T12:00:00Z", accepted_at: "2026-09-21T12:00:00Z" },
-  { prospect_id: "g", status: "aceptada", sent_at: "2026-09-02T12:00:00Z", accepted_at: "2026-09-03T12:00:00Z" },
+  {
+    prospect_id: "e",
+    status: "aceptada",
+    sent_at: "2026-09-05T12:00:00Z",
+    accepted_at: "2026-09-11T12:00:00Z",
+  },
+  {
+    prospect_id: "f",
+    status: "aceptada",
+    sent_at: "2026-09-02T12:00:00Z",
+    accepted_at: "2026-09-21T12:00:00Z",
+  },
+  {
+    prospect_id: "g",
+    status: "aceptada",
+    sent_at: "2026-09-02T12:00:00Z",
+    accepted_at: "2026-09-03T12:00:00Z",
+  },
   { prospect_id: null, status: "aceptada", sent_at: null, accepted_at: "2026-09-03T12:00:00Z" },
 ];
 
@@ -105,7 +120,14 @@ check("embudo: perdido/frío solo cuentan como contactados con señal", () => {
       prospect("p3", "frio"),
       prospect("p4", "frio"),
     ],
-    [{ prospect_id: "p4", status: "rechazada", sent_at: "2026-09-04T12:00:00Z", accepted_at: null }],
+    [
+      {
+        prospect_id: "p4",
+        status: "rechazada",
+        sent_at: "2026-09-04T12:00:00Z",
+        accepted_at: null,
+      },
+    ],
   );
   const counts = Object.fromEntries(f.stages.map((s) => [s.key, s.count]));
   assert.deepEqual(counts, { nuevos: 4, contactados: 2, propuesta: 1, ganados: 0 });
@@ -127,10 +149,25 @@ check("fuentes", () => {
   assert.equal(g.classifySource("Metalúrgica amiga"), "Otro");
   assert.equal(g.classifySource(""), "Otro");
   const rows = g.computeSources(prospects, proposals);
-  assert.deepEqual(rows[0], { source: "Referido", nuevos: 2, propuestas: 2, ganados: 2, winRate: 100 });
+  assert.deepEqual(rows[0], {
+    source: "Referido",
+    nuevos: 2,
+    propuestas: 2,
+    ganados: 2,
+    winRate: 100,
+  });
   const web = rows.find((r) => r.source === "Web · diagnóstico");
-  assert.deepEqual(web, { source: "Web · diagnóstico", nuevos: 2, propuestas: 1, ganados: 0, winRate: 0 });
-  assert.equal(rows.reduce((acc, r) => acc + r.nuevos, 0), 7);
+  assert.deepEqual(web, {
+    source: "Web · diagnóstico",
+    nuevos: 2,
+    propuestas: 1,
+    ganados: 0,
+    winRate: 0,
+  });
+  assert.equal(
+    rows.reduce((acc, r) => acc + r.nuevos, 0),
+    7,
+  );
 });
 
 check("meta: meses restantes", () => {
@@ -142,7 +179,11 @@ check("meta: meses restantes", () => {
 
 check("meta: clientes que faltan", () => {
   const s = g.computeGoal({
-    mrr: 389_970, goal: 1_000_000, recurringClients: 3, fallbackTicket: 129_990, currentMonth: "2026-10",
+    mrr: 389_970,
+    goal: 1_000_000,
+    recurringClients: 3,
+    fallbackTicket: 129_990,
+    currentMonth: "2026-10",
   });
   assert.equal(s.avgTicket, 129_990);
   assert.equal(s.gap, 610_030);
@@ -150,24 +191,40 @@ check("meta: clientes que faltan", () => {
   assert.equal(s.clientsPerMonth, 1);
   assert.equal(s.progressPct, 38.9);
   const zero = g.computeGoal({
-    mrr: 0, goal: 1_000_000, recurringClients: 0, fallbackTicket: 129_990, currentMonth: "2026-10",
+    mrr: 0,
+    goal: 1_000_000,
+    recurringClients: 0,
+    fallbackTicket: 129_990,
+    currentMonth: "2026-10",
   });
   assert.equal(zero.ticketIsFallback, true);
   assert.equal(zero.clientsNeeded, 8);
   assert.equal(zero.clientsPerMonth, 2);
   const done = g.computeGoal({
-    mrr: 1_200_000, goal: 1_000_000, recurringClients: 5, fallbackTicket: 129_990, currentMonth: "2026-10",
+    mrr: 1_200_000,
+    goal: 1_000_000,
+    recurringClients: 5,
+    fallbackTicket: 129_990,
+    currentMonth: "2026-10",
   });
   assert.equal(done.clientsNeeded, 0);
   assert.equal(done.progressPct, 100);
   const almost = g.computeGoal({
-    mrr: 999_999, goal: 1_000_000, recurringClients: 5, fallbackTicket: 129_990, currentMonth: "2026-10",
+    mrr: 999_999,
+    goal: 1_000_000,
+    recurringClients: 5,
+    fallbackTicket: 129_990,
+    currentMonth: "2026-10",
   });
   assert.equal(almost.progressPct, 99.9);
   assert.equal(almost.clientsNeeded, 1);
   assert.equal(almost.pastDeadline, false);
   const late = g.computeGoal({
-    mrr: 100, goal: 1_000_000, recurringClients: 1, fallbackTicket: 129_990, currentMonth: "2027-05",
+    mrr: 100,
+    goal: 1_000_000,
+    recurringClients: 1,
+    fallbackTicket: 129_990,
+    currentMonth: "2027-05",
   });
   assert.equal(late.pastDeadline, true);
   assert.equal(late.monthsRemaining, 0);

@@ -89,7 +89,14 @@ function zoneOffsetMs(instant: number, timeZone: string): number {
       .formatToParts(new Date(instant))
       .map((p) => [p.type, p.value]),
   );
-  const asUtc = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+  const asUtc = Date.UTC(
+    +parts.year,
+    +parts.month - 1,
+    +parts.day,
+    +parts.hour,
+    +parts.minute,
+    +parts.second,
+  );
   return asUtc - Math.floor(instant / 1000) * 1000;
 }
 
@@ -139,7 +146,9 @@ type InsightRow = {
 function insightsQuery(clientId: string, from: string, to: string) {
   return supabaseAdmin
     .from("ad_insights_daily")
-    .select("date,campaign_id,campaign_name,ad_id,spend,impressions,clicks,messaging_conversations_started")
+    .select(
+      "date,campaign_id,campaign_name,ad_id,spend,impressions,clicks,messaging_conversations_started",
+    )
     .eq("client_id", clientId)
     .eq("level", "ad")
     .gte("date", from)
@@ -160,13 +169,17 @@ async function assertNotTruncated(
 ): Promise<void> {
   const { data, error } = await probe;
   if (error) throw new Error(`[alerts] ${label}: ${error.message}`);
-  if ((data ?? []).length > 0) throw new Error(`[alerts] ${label}: se superó el tope de ${cap} filas`);
+  if ((data ?? []).length > 0)
+    throw new Error(`[alerts] ${label}: se superó el tope de ${cap} filas`);
 }
 
 async function loadInsights(clientId: string, from: string, to: string): Promise<InsightRow[]> {
   const rows: InsightRow[] = [];
   for (let start = 0; start < MAX_INSIGHT_ROWS; start += PAGE_SIZE) {
-    const { data, error } = await insightsQuery(clientId, from, to).range(start, start + PAGE_SIZE - 1);
+    const { data, error } = await insightsQuery(clientId, from, to).range(
+      start,
+      start + PAGE_SIZE - 1,
+    );
     if (error) throw new Error(`[alerts] insights: ${error.message}`);
     rows.push(...(data ?? []));
     if (!data || data.length < PAGE_SIZE) return rows;
@@ -203,7 +216,10 @@ async function loadAttributedResults(
   const byCampaignDay = new Map<string, number>();
   if (adToCampaign.size === 0) return byCampaignDay;
   for (let start = 0; start < MAX_ATTRIBUTION_ROWS; start += PAGE_SIZE) {
-    const { data, error } = await attributionsQuery(clientId, fromUtc).range(start, start + PAGE_SIZE - 1);
+    const { data, error } = await attributionsQuery(clientId, fromUtc).range(
+      start,
+      start + PAGE_SIZE - 1,
+    );
     if (error) throw new Error(`[alerts] atribuciones: ${error.message}`);
     for (const r of data ?? []) {
       const campaignId = r.ad_id ? adToCampaign.get(r.ad_id) : undefined;
@@ -265,7 +281,8 @@ async function loadCampaignPlans(clientId: string): Promise<CampaignPlan[]> {
 
   const adsetBudget = new Map<string, number>();
   for (const a of adsets.data ?? []) {
-    if (a.daily_budget) adsetBudget.set(a.campaign_id, (adsetBudget.get(a.campaign_id) ?? 0) + num(a.daily_budget));
+    if (a.daily_budget)
+      adsetBudget.set(a.campaign_id, (adsetBudget.get(a.campaign_id) ?? 0) + num(a.daily_budget));
   }
   return (campaigns.data ?? []).flatMap((c) =>
     c.fb_campaign_id
@@ -275,7 +292,9 @@ async function loadCampaignPlans(clientId: string): Promise<CampaignPlan[]> {
             name: c.name,
             status: c.status,
             objective: c.objective,
-            expectedDailyBudget: c.daily_budget ? num(c.daily_budget) : adsetBudget.get(c.id) || null,
+            expectedDailyBudget: c.daily_budget
+              ? num(c.daily_budget)
+              : adsetBudget.get(c.id) || null,
             startTime: c.start_time,
             stopTime: c.stop_time,
           },
@@ -310,7 +329,10 @@ function toSnapshot(a: AccountRow): AccountSnapshot {
 }
 
 /** Arma la entrada de las reglas para una cuenta (todo desde la BD, nada de Meta). */
-export async function loadEvaluationInput(account: AccountRow, now: Date): Promise<EvaluationInput> {
+export async function loadEvaluationInput(
+  account: AccountRow,
+  now: Date,
+): Promise<EvaluationInput> {
   const referenceDay = addDaysIso(localDate(now, account.timezone_name), -1);
   const base: EvaluationInput = {
     clientId: account.client_id,
@@ -335,7 +357,12 @@ export async function loadEvaluationInput(account: AccountRow, now: Date): Promi
   ]);
   const adToCampaign = new Map<string, string>();
   for (const r of rows) if (r.ad_id && r.campaign_id) adToCampaign.set(r.ad_id, r.campaign_id);
-  const attributed = await loadAttributedResults(account.client_id, adToCampaign, historyFromUtc, account.timezone_name);
+  const attributed = await loadAttributedResults(
+    account.client_id,
+    adToCampaign,
+    historyFromUtc,
+    account.timezone_name,
+  );
 
   return { ...base, days: toCampaignDays(rows, attributed), campaigns, unattributedMetaLeads };
 }
@@ -350,7 +377,13 @@ export interface ReconcileCounts {
   snoozed: number;
 }
 
-type OpenAlert = { id: string; dedupe_key: string | null; severity: string; message: string; kind: string };
+type OpenAlert = {
+  id: string;
+  dedupe_key: string | null;
+  severity: string;
+  message: string;
+  kind: string;
+};
 
 async function loadExistingAlerts(clientId: string, now: Date) {
   const snoozeFrom = new Date(now.getTime() - MANUAL_RESOLVE_SNOOZE_DAYS * DAY_MS).toISOString();
@@ -375,7 +408,9 @@ async function loadExistingAlerts(clientId: string, now: Date) {
   if (snoozed.error) throw new Error(`[alerts] resueltas: ${snoozed.error.message}`);
   return {
     open: (open.data ?? []) as OpenAlert[],
-    snoozedKeys: new Set((snoozed.data ?? []).map((r) => r.dedupe_key).filter((k): k is string => Boolean(k))),
+    snoozedKeys: new Set(
+      (snoozed.data ?? []).map((r) => r.dedupe_key).filter((k): k is string => Boolean(k)),
+    ),
   };
 }
 
@@ -403,7 +438,8 @@ async function insertAlerts(rows: Array<TablesInsert<"campaign_alerts">>): Promi
   let created = 0;
   for (const row of rows) {
     const { error: rowErr } = await supabaseAdmin.from("campaign_alerts").insert(row);
-    if (rowErr && rowErr.code !== UNIQUE_VIOLATION) throw new Error(`[alerts] crear: ${rowErr.message}`);
+    if (rowErr && rowErr.code !== UNIQUE_VIOLATION)
+      throw new Error(`[alerts] crear: ${rowErr.message}`);
     if (!rowErr) created++;
   }
   return created;
@@ -417,7 +453,9 @@ export async function reconcileAlerts(
 ): Promise<ReconcileCounts> {
   const counts: ReconcileCounts = { created: 0, updated: 0, resolved: 0, snoozed: 0 };
   const { open, snoozedKeys } = await loadExistingAlerts(clientId, now);
-  const openByKey = new Map(open.filter((a) => a.dedupe_key).map((a) => [a.dedupe_key as string, a]));
+  const openByKey = new Map(
+    open.filter((a) => a.dedupe_key).map((a) => [a.dedupe_key as string, a]),
+  );
   const wanted = new Set(result.candidates.map((c) => c.dedupeKey));
 
   const toUpdate: Array<TablesInsert<"campaign_alerts">> = [];
@@ -437,14 +475,18 @@ export async function reconcileAlerts(
 
   // Un solo upsert por id para todas las abiertas que cambiaron de mensaje o severidad.
   if (toUpdate.length > 0) {
-    const { error } = await supabaseAdmin.from("campaign_alerts").upsert(toUpdate, { onConflict: "id" });
+    const { error } = await supabaseAdmin
+      .from("campaign_alerts")
+      .upsert(toUpdate, { onConflict: "id" });
     if (error) throw new Error(`[alerts] actualizar: ${error.message}`);
     counts.updated = toUpdate.length;
   }
   if (toInsert.length > 0) counts.created = await insertAlerts(toInsert);
 
   const evaluated = new Set<string>(result.evaluated);
-  const toResolve = open.filter((a) => evaluated.has(a.kind) && a.dedupe_key && !wanted.has(a.dedupe_key));
+  const toResolve = open.filter(
+    (a) => evaluated.has(a.kind) && a.dedupe_key && !wanted.has(a.dedupe_key),
+  );
   if (toResolve.length > 0) {
     const { data, error } = await supabaseAdmin
       .from("campaign_alerts")
@@ -488,7 +530,11 @@ export interface AlertsRunSummary {
 }
 
 /** Ejecuta `fn` sobre `items` con a lo más `concurrency` tareas a la vez. */
-async function runPool<T>(items: T[], concurrency: number, fn: (item: T) => Promise<void>): Promise<void> {
+async function runPool<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
   let next = 0;
   const worker = async () => {
     while (next < items.length) {
@@ -523,7 +569,9 @@ export async function runCampaignAlerts(opts: AlertsBatchOptions = {}): Promise<
     .eq("clients.status", ACTIVE_STATUS);
   if (opts.clientId) q = q.eq("client_id", opts.clientId);
   // Se pide uno extra para saber si quedan más.
-  const { data: accounts, error } = await q.order("client_id", { ascending: true }).range(offset, offset + limit);
+  const { data: accounts, error } = await q
+    .order("client_id", { ascending: true })
+    .range(offset, offset + limit);
   if (error) throw new Error(`[alerts] cuentas: ${error.message}`);
 
   const batch = (accounts ?? []).slice(0, limit) as unknown as AccountRow[];
@@ -541,11 +589,20 @@ export async function runCampaignAlerts(opts: AlertsBatchOptions = {}): Promise<
     next_offset: (accounts ?? []).length > limit ? offset + limit : null,
   };
 
-  const outcomes: Array<{ clientId: string; counts?: ReconcileCounts; kinds?: string[]; error?: string }> = [];
+  const outcomes: Array<{
+    clientId: string;
+    counts?: ReconcileCounts;
+    kinds?: string[];
+    error?: string;
+  }> = [];
   await runPool(batch, CLIENT_CONCURRENCY, async (account) => {
     try {
       const { result, counts } = await runAlertsForAccount(account, now);
-      outcomes.push({ clientId: account.client_id, counts, kinds: result.candidates.map((c) => c.kind) });
+      outcomes.push({
+        clientId: account.client_id,
+        counts,
+        kinds: result.candidates.map((c) => c.kind),
+      });
     } catch (e) {
       const message = (e as Error).message;
       console.error("[alerts] cliente falló", { clientId: account.client_id, message });
@@ -555,7 +612,11 @@ export async function runCampaignAlerts(opts: AlertsBatchOptions = {}): Promise<
 
   return outcomes.reduce<AlertsRunSummary>((acc, o) => {
     if (o.error !== undefined) {
-      return { ...acc, failed: acc.failed + 1, errors: [...acc.errors, { clientId: o.clientId, message: o.error }] };
+      return {
+        ...acc,
+        failed: acc.failed + 1,
+        errors: [...acc.errors, { clientId: o.clientId, message: o.error }],
+      };
     }
     const byKind = { ...acc.by_kind };
     for (const k of o.kinds ?? []) byKind[k] = (byKind[k] ?? 0) + 1;
@@ -571,4 +632,3 @@ export async function runCampaignAlerts(opts: AlertsBatchOptions = {}): Promise<
     };
   }, summary);
 }
-

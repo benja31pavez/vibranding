@@ -48,7 +48,9 @@ export function SiteFooter() {
           <FooterLink href="/#planes">{t.footer.links.plans}</FooterLink>
           <FooterLink href="/#como">{t.footer.links.how}</FooterLink>
           <FooterLink href="/#nosotros">{t.footer.links.about}</FooterLink>
-          <FooterLink href="/#contacto" onClick={() => trackLandingEvent("contact_click", lang)}>{t.footer.links.contact}</FooterLink>
+          <FooterLink href="/#contacto" onClick={() => trackLandingEvent("contact_click", lang)}>
+            {t.footer.links.contact}
+          </FooterLink>
         </FooterCol>
 
         <FooterCol title={t.footer.columns.resources}>
@@ -81,11 +83,25 @@ function FooterCol({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
-function FooterLink({ to, href, children, onClick }: { to?: string; href?: string; children: React.ReactNode; onClick?: () => void }) {
+function FooterLink({
+  to,
+  href,
+  children,
+  onClick,
+}: {
+  to?: string;
+  href?: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
   if (to) {
     return (
       <li>
-        <Link to={to} onClick={onClick} className="text-sm text-foreground/80 hover:text-foreground">
+        <Link
+          to={to}
+          onClick={onClick}
+          className="text-sm text-foreground/80 hover:text-foreground"
+        >
           {children}
         </Link>
       </li>
@@ -108,7 +124,11 @@ function FooterLink({ to, href, children, onClick }: { to?: string; href?: strin
   };
   return (
     <li>
-      <a href={href} onClick={handleClick} className="text-sm text-foreground/80 hover:text-foreground">
+      <a
+        href={href}
+        onClick={handleClick}
+        className="text-sm text-foreground/80 hover:text-foreground"
+      >
         {children}
       </a>
     </li>

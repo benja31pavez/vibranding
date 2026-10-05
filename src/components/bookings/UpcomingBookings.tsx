@@ -52,7 +52,9 @@ export function UpcomingBookings() {
     load();
   }, [user]);
 
-  const upcoming = bookings.filter((b) => new Date(b.scheduled_at) >= new Date() && b.status !== "cancelled");
+  const upcoming = bookings.filter(
+    (b) => new Date(b.scheduled_at) >= new Date() && b.status !== "cancelled",
+  );
   const past = bookings.filter((b) => new Date(b.scheduled_at) < new Date());
 
   const cancel = async (id: string) => {
@@ -67,7 +69,9 @@ export function UpcomingBookings() {
 
   return (
     <div>
-      <h3 className="text-xs font-medium text-muted-foreground mb-2">Próximas reservas ({upcoming.length})</h3>
+      <h3 className="text-xs font-medium text-muted-foreground mb-2">
+        Próximas reservas ({upcoming.length})
+      </h3>
       {upcoming.length === 0 ? (
         <p className="text-xs text-muted-foreground">Aún no hay reservas.</p>
       ) : (
@@ -77,14 +81,25 @@ export function UpcomingBookings() {
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">
-                    {new Date(b.scheduled_at).toLocaleString("es-CL", { dateStyle: "medium", timeStyle: "short", timeZone: timezone })}
+                    {new Date(b.scheduled_at).toLocaleString("es-CL", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                      timeZone: timezone,
+                    })}
                   </div>
                   <div className="text-muted-foreground truncate">
                     {b.customer_name} · {b.customer_email}
                   </div>
-                  {b.notes && <div className="text-muted-foreground mt-0.5 italic truncate">"{b.notes}"</div>}
+                  {b.notes && (
+                    <div className="text-muted-foreground mt-0.5 italic truncate">"{b.notes}"</div>
+                  )}
                 </div>
-                <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => cancel(b.id)}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 shrink-0"
+                  onClick={() => cancel(b.id)}
+                >
                   <Trash2 className="w-3 h-3" />
                 </Button>
               </div>
@@ -94,11 +109,19 @@ export function UpcomingBookings() {
       )}
       {past.length > 0 && (
         <details className="mt-3">
-          <summary className="text-xs text-muted-foreground cursor-pointer">Pasadas ({past.length})</summary>
+          <summary className="text-xs text-muted-foreground cursor-pointer">
+            Pasadas ({past.length})
+          </summary>
           <ul className="space-y-1 mt-2">
             {past.map((b) => (
               <li key={b.id} className="rounded-lg border p-2 text-xs opacity-70">
-                <div>{new Date(b.scheduled_at).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short", timeZone: timezone })}</div>
+                <div>
+                  {new Date(b.scheduled_at).toLocaleString("es-CL", {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                    timeZone: timezone,
+                  })}
+                </div>
                 <div className="text-muted-foreground truncate">{b.customer_name}</div>
               </li>
             ))}

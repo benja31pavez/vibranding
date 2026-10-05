@@ -13,7 +13,11 @@ export function FaqSection() {
   const t = translations.es; // The public home is Spanish-only (Chile).
   const copy = t.home.faq;
   return (
-    <section id="preguntas" aria-labelledby="preguntas-title" className="scroll-mt-20 bg-secondary/50 py-16 md:py-24">
+    <section
+      id="preguntas"
+      aria-labelledby="preguntas-title"
+      className="scroll-mt-20 bg-secondary/50 py-16 md:py-24"
+    >
       <div className="mx-auto max-w-3xl px-4 md:px-10">
         <SectionHeading id="preguntas-title" title={copy.title} accent={copy.titleAccent} />
         <div className="divide-y rounded-3xl border bg-card">
@@ -21,14 +25,20 @@ export function FaqSection() {
             <details key={item.q} className="group px-5 md:px-7">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-left font-semibold [&::-webkit-details-marker]:hidden">
                 {item.q}
-                <ChevronDown aria-hidden className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                <ChevronDown
+                  aria-hidden
+                  className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                />
               </summary>
               <p className="pb-5 -mt-1 text-muted-foreground leading-relaxed">{item.a}</p>
             </details>
           ))}
         </div>
         <p className="mt-6 text-center text-sm">
-          <Link to="/faq" className="font-medium underline underline-offset-4 hover:text-[color:var(--brand-2)]">
+          <Link
+            to="/faq"
+            className="font-medium underline underline-offset-4 hover:text-[color:var(--brand-2)]"
+          >
             {copy.more}
           </Link>
         </p>
@@ -41,14 +51,24 @@ export function FinalCtaSection() {
   const t = translations.es; // The public home is Spanish-only (Chile).
   const c = t.home.finalCta;
   return (
-    <section id="contacto" aria-labelledby="contacto-title" className="scroll-mt-20 px-4 py-16 md:px-10 md:py-24">
+    <section
+      id="contacto"
+      aria-labelledby="contacto-title"
+      className="scroll-mt-20 px-4 py-16 md:px-10 md:py-24"
+    >
       <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-[oklch(0.22_0.05_268)] px-6 py-14 text-center text-white md:px-12 md:py-20">
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-60">
           <div className="blob absolute -top-20 -left-10 h-72 w-72 rounded-full bg-[color:var(--brand-1)]/50" />
-          <div className="blob absolute -bottom-20 -right-10 h-72 w-72 rounded-full bg-[color:var(--brand-2)]/50" style={{ animationDelay: "-6s" }} />
+          <div
+            className="blob absolute -bottom-20 -right-10 h-72 w-72 rounded-full bg-[color:var(--brand-2)]/50"
+            style={{ animationDelay: "-6s" }}
+          />
         </div>
         <div className="relative">
-          <h2 id="contacto-title" className="text-3xl font-semibold tracking-tight text-balance md:text-5xl">
+          <h2
+            id="contacto-title"
+            className="text-3xl font-semibold tracking-tight text-balance md:text-5xl"
+          >
             {c.title} <span className="font-brand">{c.titleAccent}</span>
             {c.titleEnd}
           </h2>

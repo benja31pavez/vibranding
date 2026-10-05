@@ -112,7 +112,8 @@ export interface PortalSnapshot {
 }
 
 export type PortalSnapshotResult =
-  { status: "ok"; snapshot: PortalSnapshot } | { status: "no_client" };
+  | { status: "ok"; snapshot: PortalSnapshot }
+  | { status: "no_client" };
 
 export interface CalendarPost {
   id: string;
@@ -280,16 +281,20 @@ export interface CalendarDay {
 /** Junta posts y entregas del mes y los agrupa por día (orden cronológico). */
 export function groupCalendar(calendar: PortalCalendar): CalendarDay[] {
   const entries: CalendarEntry[] = [
-    ...calendar.posts.map((post): CalendarEntry => ({
-      kind: "post",
-      day: chileDayKey(post.scheduledAt),
-      post,
-    })),
-    ...calendar.deliverables.map((deliverable): CalendarEntry => ({
-      kind: "deliverable",
-      day: deliverable.dueDate.slice(0, 10),
-      deliverable,
-    })),
+    ...calendar.posts.map(
+      (post): CalendarEntry => ({
+        kind: "post",
+        day: chileDayKey(post.scheduledAt),
+        post,
+      }),
+    ),
+    ...calendar.deliverables.map(
+      (deliverable): CalendarEntry => ({
+        kind: "deliverable",
+        day: deliverable.dueDate.slice(0, 10),
+        deliverable,
+      }),
+    ),
   ];
   const byDay = entries.reduce<Map<string, CalendarEntry[]>>((acc, entry) => {
     acc.set(entry.day, [...(acc.get(entry.day) ?? []), entry]);

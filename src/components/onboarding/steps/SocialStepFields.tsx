@@ -15,7 +15,8 @@ const PLACEHOLDER: Readonly<Record<LinkKey, string>> = {
 
 /** Paso 3: redes y sitio web (link https o @usuario). */
 export function SocialStepFields({ state, update, errors }: StepProps) {
-  const setLink = (key: LinkKey, value: string) => update({ links_redes: { ...state.links_redes, [key]: value } });
+  const setLink = (key: LinkKey, value: string) =>
+    update({ links_redes: { ...state.links_redes, [key]: value } });
   return (
     <div className="space-y-5">
       <p className="text-sm text-muted-foreground">

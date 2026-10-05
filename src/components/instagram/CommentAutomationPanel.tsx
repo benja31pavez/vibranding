@@ -9,15 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import {
-  MessageSquare,
-  Plus,
-  Trash2,
-  Send,
-  AlertTriangle,
-  Zap,
-  Loader2,
-} from "lucide-react";
+import { MessageSquare, Plus, Trash2, Send, AlertTriangle, Zap, Loader2 } from "lucide-react";
 
 type Trigger = {
   id: string;
@@ -86,7 +78,9 @@ export function CommentAutomationPanel({ clientId }: { clientId: string }) {
         .order("published_at", { ascending: false, nullsFirst: false })
         .limit(60),
       (supabase.from("ig_automation_events" as any) as any)
-        .select("id,commenter_username,comment_text,matched,dm_status,dm_error,reply_status,created_at")
+        .select(
+          "id,commenter_username,comment_text,matched,dm_status,dm_error,reply_status,created_at",
+        )
         .eq("client_id", clientId)
         .order("created_at", { ascending: false })
         .limit(15),

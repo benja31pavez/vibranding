@@ -32,9 +32,7 @@ type WAAccount = {
   social_links: { label: string; url: string }[] | null;
   catalog: { name: string; price?: string; url?: string; image_url?: string }[] | null;
   business_name: string | null;
-  business_hours:
-    | { day: number; enabled: boolean; open: string; close: string }[]
-    | null;
+  business_hours: { day: number; enabled: boolean; open: string; close: string }[] | null;
   timezone: string | null;
 };
 
@@ -174,7 +172,11 @@ async function scheduleDispatchRetry(conv: Record<string, any>, reason: string) 
     .update(patch as any)
     .eq("id", conv.id);
   if (error) {
-    console.error("[ALERTA][dispatch] could not reschedule reply", conv.id, redactDigits(error.message));
+    console.error(
+      "[ALERTA][dispatch] could not reschedule reply",
+      conv.id,
+      redactDigits(error.message),
+    );
     throw dbError("reschedule failed", error);
   }
   console.error(
@@ -248,7 +250,11 @@ async function releaseLease(convId: string, lease: string) {
     .eq("id", convId)
     .eq("pending_response_at", lease);
   if (error) {
-    console.error("[ALERTA][dispatch] could not release lease", convId, redactDigits(error.message));
+    console.error(
+      "[ALERTA][dispatch] could not release lease",
+      convId,
+      redactDigits(error.message),
+    );
   }
 }
 
@@ -304,7 +310,10 @@ async function answerConversation(conv: Record<string, any>): Promise<AnswerResu
 
   const socials = (acc.social_links ?? []).filter((s) => s?.url?.trim());
   const catalog = (acc.catalog ?? []).filter((c) => c?.name?.trim());
-  const { summary: hoursSummary, nowOpen } = describeHours(acc.business_hours, acc.timezone ?? "America/Santiago");
+  const { summary: hoursSummary, nowOpen } = describeHours(
+    acc.business_hours,
+    acc.timezone ?? "America/Santiago",
+  );
   const profileBlock = [
     acc.business_name ? `Nombre del negocio: ${acc.business_name}` : "",
     acc.website_url ? `Sitio web: ${acc.website_url}` : "",
@@ -313,10 +322,7 @@ async function answerConversation(conv: Record<string, any>): Promise<AnswerResu
       : "",
     catalog.length
       ? `Catálogo:\n${catalog
-          .map(
-            (c) =>
-              `- ${c.name}${c.price ? ` (${c.price})` : ""}${c.url ? ` → ${c.url}` : ""}`,
-          )
+          .map((c) => `- ${c.name}${c.price ? ` (${c.price})` : ""}${c.url ? ` → ${c.url}` : ""}`)
           .join("\n")}`
       : "",
     hoursSummary
@@ -352,7 +358,9 @@ async function answerConversation(conv: Record<string, any>): Promise<AnswerResu
     if (settings && settings.length > 0) {
       const siteOrigin = process.env["PUBLIC_SITE_URL"]?.trim().replace(/\/+$/, "") || null;
       if (!siteOrigin) {
-        console.error("[ALERTA][wa dispatch] PUBLIC_SITE_URL no configurada: el bot no puede compartir el link de reservas.");
+        console.error(
+          "[ALERTA][wa dispatch] PUBLIC_SITE_URL no configurada: el bot no puede compartir el link de reservas.",
+        );
       }
       const now = new Date();
       const in14d = new Date(now.getTime() + 14 * 86_400_000);
@@ -367,13 +375,21 @@ async function answerConversation(conv: Record<string, any>): Promise<AnswerResu
       if (upcomingError) throw dbError("load bookings", upcomingError);
 
       const lines = settings.map((s) => {
-        const hrs = (s.hours as any as { day: number; enabled: boolean; open: string; close: string }[])
+        const hrs = (
+          s.hours as any as { day: number; enabled: boolean; open: string; close: string }[]
+        )
           .map((h) => (h.enabled ? `${DAY_NAMES[h.day]} ${h.open}-${h.close}` : null))
           .filter(Boolean)
           .join(", ");
         const taken = (upcoming ?? [])
           .filter((u) => u.settings_id === s.id)
-          .map((u) => new Date(u.scheduled_at).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short", timeZone: s.timezone }))
+          .map((u) =>
+            new Date(u.scheduled_at).toLocaleString("es-CL", {
+              dateStyle: "short",
+              timeStyle: "short",
+              timeZone: s.timezone,
+            }),
+          )
           .join("; ");
         const linkLine = siteOrigin ? `\n  Link: ${siteOrigin}/book/${s.slug}` : "";
         return `- ${s.display_name}${linkLine}\n  Citas de ${s.slot_minutes} min · ${hrs}\n  Reglas: solo se puede agendar desde MAÑANA (zona horaria ${s.timezone}) hasta 30 días en adelante. NO se permite agendar el mismo día.\n  Slots ya ocupados (próximos 14 días): ${taken || "ninguno"}`;
@@ -383,7 +399,9 @@ async function answerConversation(conv: Record<string, any>): Promise<AnswerResu
   }
 
   // Knowledge base — answered Q&A from the owner enriches the bot's understanding.
-  const { data: knowledge, error: knowledgeError } = await (supabaseAdmin.from("bot_knowledge" as any) as any)
+  const { data: knowledge, error: knowledgeError } = await (
+    supabaseAdmin.from("bot_knowledge" as any) as any
+  )
     .select("question,answer")
     .eq("account_id", acc.id)
     .eq("status", "answered")
@@ -436,7 +454,11 @@ async function answerConversation(conv: Record<string, any>): Promise<AnswerResu
   });
   if (logError) {
     // Never throw here: after a successful send a retry would double-message.
-    console.error("[ALERTA][dispatch] reply not logged in inbox", convId, redactDigits(logError.message));
+    console.error(
+      "[ALERTA][dispatch] reply not logged in inbox",
+      convId,
+      redactDigits(logError.message),
+    );
   }
   if (!sent.ok) return { ok: false, error: `send failed: ${redactDigits(sent.error ?? "error")}` };
 
@@ -447,7 +469,11 @@ async function answerConversation(conv: Record<string, any>): Promise<AnswerResu
   try {
     await finishAfterSend(conv, acc, apiKey, text, history);
   } catch (e: any) {
-    console.error("[dispatch] post-send bookkeeping failed", convId, redactDigits(String(e?.message)));
+    console.error(
+      "[dispatch] post-send bookkeeping failed",
+      convId,
+      redactDigits(String(e?.message)),
+    );
   }
   return { ok: true };
 }
@@ -486,21 +512,40 @@ async function finishAfterSend(
     .from("whatsapp_conversations")
     .update(updatePatch as any)
     .eq("id", convId);
-  if (patchError) console.error("[dispatch] conversation update after send failed", convId, redactDigits(patchError.message));
+  if (patchError)
+    console.error(
+      "[dispatch] conversation update after send failed",
+      convId,
+      redactDigits(patchError.message),
+    );
 
   // Dynamic learning: when we had to hand off, ask the AI to identify ONE
   // missing piece of info the owner should provide so the bot can answer
   // similar messages autonomously next time. Insert as a pending question.
   if (handoff) {
     try {
-      const recentUser = history.filter((h) => h.role === "user").slice(-3).map((h) => h.content).join("\n");
+      const recentUser = history
+        .filter((h) => h.role === "user")
+        .slice(-3)
+        .map((h) => h.content)
+        .join("\n");
       const gapPrompt = `Eres un coach que ayuda a un dueño de negocio a entrenar a su bot de WhatsApp. El bot acaba de derivar esta consulta a un humano porque no supo responder. Tu tarea: redactar UNA sola pregunta breve y específica (máx. 140 caracteres) que el dueño debería responder para que el bot pueda manejar consultas similares por sí solo. NO repitas información ya conocida. Responde SOLO con la pregunta, sin comillas ni prefijos.\n\nMensajes del cliente:\n${recentUser}\n\nLo que el bot respondió (derivó):\n${text}`;
-      const gap = await callAI(apiKey, acc.ai_model, gapPrompt, [{ role: "user", content: "Genera la pregunta." }]);
-      const question = gap.text?.trim().replace(/^["'\s]+|["'\s]+$/g, "").slice(0, 280);
+      const gap = await callAI(apiKey, acc.ai_model, gapPrompt, [
+        { role: "user", content: "Genera la pregunta." },
+      ]);
+      const question = gap.text
+        ?.trim()
+        .replace(/^["'\s]+|["'\s]+$/g, "")
+        .slice(0, 280);
       if (question && question.length > 8) {
         const { data: existing } = await (supabaseAdmin.from("bot_knowledge" as any) as any)
-          .select("question").eq("account_id", acc.id);
-        const norm = (s: string) => s.toLowerCase().replace(/[¿?¡!.,;:]/g, "").trim();
+          .select("question")
+          .eq("account_id", acc.id);
+        const norm = (s: string) =>
+          s
+            .toLowerCase()
+            .replace(/[¿?¡!.,;:]/g, "")
+            .trim();
         const exists = ((existing ?? []) as Array<{ question: string }>).some(
           (e) => norm(e.question) === norm(question),
         );
@@ -544,7 +589,9 @@ export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
         const nowIso = new Date().toISOString();
 
         // 1) Resume flows whose "espera" step is due.
-        const { data: dueRuns, error: dueRunsError } = await (supabaseAdmin.from("whatsapp_flow_runs" as any) as any)
+        const { data: dueRuns, error: dueRunsError } = await (
+          supabaseAdmin.from("whatsapp_flow_runs" as any) as any
+        )
           .select("*")
           .eq("status", "running")
           .not("next_run_at", "is", null)
@@ -588,7 +635,11 @@ export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
             flowsResumed++;
           } catch (e: any) {
             failed++;
-            console.error("[dispatch] flow resume failed", run.id, redactDigits(String(e?.message)));
+            console.error(
+              "[dispatch] flow resume failed",
+              run.id,
+              redactDigits(String(e?.message)),
+            );
           }
         }
 
@@ -601,7 +652,10 @@ export const Route = createFileRoute("/api/public/whatsapp/dispatch")({
           .limit(25);
         if (dueError) {
           console.error("[dispatch] due conversations query failed", dueError.message);
-          return Response.json({ error: "due_query_failed", flows_resumed: flowsResumed }, { status: 500 });
+          return Response.json(
+            { error: "due_query_failed", flows_resumed: flowsResumed },
+            { status: 500 },
+          );
         }
 
         const ids = (due ?? []).map((r) => r.id);

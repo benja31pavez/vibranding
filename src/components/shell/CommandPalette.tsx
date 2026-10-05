@@ -1,7 +1,13 @@
 import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
-  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator,
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ClientAvatar } from "./ClientAvatar";
@@ -81,7 +87,9 @@ export function CommandPalette({ open, onOpenChange, onToggle }: CommandPaletteP
           <CommandInput placeholder="Buscar clientes o secciones…" />
           <CommandList className="max-h-[min(60vh,420px)]">
             {isLoading && (
-              <div role="status" className="px-4 py-3 text-sm text-muted-foreground">Cargando clientes…</div>
+              <div role="status" className="px-4 py-3 text-sm text-muted-foreground">
+                Cargando clientes…
+              </div>
             )}
             {isError && (
               <div role="alert" className="px-4 py-3 text-sm text-destructive">
@@ -100,7 +108,9 @@ export function CommandPalette({ open, onOpenChange, onToggle }: CommandPaletteP
                     <ClientAvatar name={c.name} className="h-6 w-6 text-[11px]" />
                     <span className="min-w-0 flex-1 truncate">{c.name}</span>
                     {c.instagram_handle && (
-                      <span className="truncate text-xs text-muted-foreground">@{c.instagram_handle}</span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        @{c.instagram_handle}
+                      </span>
                     )}
                   </CommandItem>
                 ))}

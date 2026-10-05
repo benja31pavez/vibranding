@@ -16,7 +16,10 @@ export const Route = createFileRoute("/_app/clients/$clientId/bandeja")({
       { title: "Bandeja de WhatsApp | Vibranding" },
       { name: "description", content: "Conversaciones de WhatsApp del cliente en un solo lugar." },
       { property: "og:title", content: "Bandeja de WhatsApp | Vibranding" },
-      { property: "og:description", content: "Conversaciones de WhatsApp del cliente en un solo lugar." },
+      {
+        property: "og:description",
+        content: "Conversaciones de WhatsApp del cliente en un solo lugar.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

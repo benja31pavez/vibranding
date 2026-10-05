@@ -6,19 +6,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import { MessageCircle, Globe, Download, Search, Filter, Tag as TagIcon, X, Megaphone, Link2, Plus } from "lucide-react";
+  MessageCircle,
+  Globe,
+  Download,
+  Search,
+  Filter,
+  Tag as TagIcon,
+  X,
+  Megaphone,
+  Link2,
+  Plus,
+} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/app";
 import { chileToday } from "@/lib/dates/chile";
-
 
 type Source = "whatsapp" | "landing" | "meta_ads" | "multilink";
 type Status = "new" | "contacted" | "won" | "lost";
@@ -36,7 +48,10 @@ type Lead = {
 };
 
 const STATUS_LABEL: Record<Status, string> = {
-  new: "Nuevo", contacted: "Contactado", won: "Ganado", lost: "Perdido",
+  new: "Nuevo",
+  contacted: "Contactado",
+  won: "Ganado",
+  lost: "Perdido",
 };
 const STATUS_COLOR: Record<Status, string> = {
   new: "bg-blue-500/15 text-blue-600 border-blue-500/30",
@@ -60,7 +75,9 @@ export function LeadsPage({ clientId }: { clientId: string }) {
     const [waRes, lpRes, extraRes, metaRes] = await Promise.all([
       supabase
         .from("whatsapp_conversations")
-        .select("id,contact_name,contact_wa_id,last_message_preview,last_message_at,created_at,is_lead,needs_human_followup")
+        .select(
+          "id,contact_name,contact_wa_id,last_message_preview,last_message_at,created_at,is_lead,needs_human_followup",
+        )
         .eq("client_id", clientId)
         .or("is_lead.eq.true,needs_human_followup.eq.true")
         .order("last_message_at", { ascending: false, nullsFirst: false }),
@@ -88,7 +105,9 @@ export function LeadsPage({ clientId }: { clientId: string }) {
     const meta = new Map<string, { status: Status; notes: string | null; tags: string[] }>();
     for (const m of (metaRes.data ?? []) as any[]) {
       meta.set(`${m.source}:${m.source_id}`, {
-        status: m.status, notes: m.notes, tags: m.tags ?? [],
+        status: m.status,
+        notes: m.notes,
+        tags: m.tags ?? [],
       });
     }
     const get = (s: Source, id: string) =>
@@ -128,22 +147,30 @@ export function LeadsPage({ clientId }: { clientId: string }) {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [clientId]);
+  useEffect(() => {
+    load();
+  }, [clientId]);
 
-  const upsertMeta = async (lead: Lead, patch: Partial<Pick<Lead, "status" | "notes" | "tags">>) => {
+  const upsertMeta = async (
+    lead: Lead,
+    patch: Partial<Pick<Lead, "status" | "notes" | "tags">>,
+  ) => {
     const next = { ...lead, ...patch };
     const same = (l: Lead) => l.source === lead.source && l.source_id === lead.source_id;
     const applyPatch = (l: Lead) => ({ ...l, ...patch });
     setLeads((ls) => ls.map((l) => (same(l) ? applyPatch(l) : l)));
     setEditing((cur) => (cur && same(cur) ? applyPatch(cur) : cur));
-    const { error } = await (supabase.from("lead_meta" as any) as any).upsert({
-      client_id: clientId,
-      source: lead.source,
-      source_id: lead.source_id,
-      status: next.status,
-      notes: next.notes,
-      tags: next.tags,
-    }, { onConflict: "client_id,source,source_id" });
+    const { error } = await (supabase.from("lead_meta" as any) as any).upsert(
+      {
+        client_id: clientId,
+        source: lead.source,
+        source_id: lead.source_id,
+        status: next.status,
+        notes: next.notes,
+        tags: next.tags,
+      },
+      { onConflict: "client_id,source,source_id" },
+    );
     if (error) {
       // Revertir solo los campos de este patch, y solo si nadie los cambió después.
       const revert = (l: Lead): Lead => {
@@ -164,7 +191,10 @@ export function LeadsPage({ clientId }: { clientId: string }) {
     return leads.filter((l) => {
       if (filterSource !== "all" && l.source !== filterSource) return false;
       if (filterStatus !== "all" && l.status !== filterStatus) return false;
-      if (q && !`${l.name} ${l.contact} ${l.message ?? ""} ${l.tags.join(" ")}`.toLowerCase().includes(q))
+      if (
+        q &&
+        !`${l.name} ${l.contact} ${l.message ?? ""} ${l.tags.join(" ")}`.toLowerCase().includes(q)
+      )
         return false;
       return true;
     });
@@ -180,15 +210,19 @@ export function LeadsPage({ clientId }: { clientId: string }) {
     const rows = [
       ["Origen", "Nombre", "Contacto", "Estado", "Etiquetas", "Notas", "Mensaje", "Fecha"],
       ...filtered.map((l) => [
-        l.source, l.name, l.contact, STATUS_LABEL[l.status],
-        l.tags.join("|"), (l.notes ?? "").replace(/\n/g, " "),
+        l.source,
+        l.name,
+        l.contact,
+        STATUS_LABEL[l.status],
+        l.tags.join("|"),
+        (l.notes ?? "").replace(/\n/g, " "),
         (l.message ?? "").replace(/\n/g, " "),
         new Date(l.created_at).toISOString(),
       ]),
     ];
-    const csv = rows.map((r) =>
-      r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")
-    ).join("\n");
+    const csv = rows
+      .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -204,7 +238,8 @@ export function LeadsPage({ clientId }: { clientId: string }) {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
           <p className="text-sm text-muted-foreground">
-            Todos los leads del cliente: Meta Ads, Multienlace, Landing Page y WhatsApp en un solo lugar.
+            Todos los leads del cliente: Meta Ads, Multienlace, Landing Page y WhatsApp en un solo
+            lugar.
           </p>
         </div>
         <div className="flex gap-2">
@@ -237,7 +272,10 @@ export function LeadsPage({ clientId }: { clientId: string }) {
           />
         </div>
         <Select value={filterSource} onValueChange={(v) => setFilterSource(v as any)}>
-          <SelectTrigger className="w-[180px]"><Filter className="w-3 h-3 mr-1" /><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[180px]">
+            <Filter className="w-3 h-3 mr-1" />
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los orígenes</SelectItem>
             <SelectItem value="meta_ads">Meta Ads</SelectItem>
@@ -247,7 +285,9 @@ export function LeadsPage({ clientId }: { clientId: string }) {
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
-          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los estados</SelectItem>
             <SelectItem value="new">Nuevo</SelectItem>
@@ -292,7 +332,9 @@ export function LeadsPage({ clientId }: { clientId: string }) {
                       {STATUS_LABEL[lead.status]}
                     </Badge>
                     {lead.tags.slice(0, 3).map((t) => (
-                      <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>
+                      <Badge key={t} variant="secondary" className="text-[10px]">
+                        {t}
+                      </Badge>
                     ))}
                   </div>
                   <div className="text-xs text-muted-foreground truncate mt-0.5">
@@ -331,8 +373,13 @@ export function LeadsPage({ clientId }: { clientId: string }) {
                 )}
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Estado</div>
-                  <Select value={editing.status} onValueChange={(v) => upsertMeta(editing, { status: v as Status })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select
+                    value={editing.status}
+                    onValueChange={(v) => upsertMeta(editing, { status: v as Status })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="new">Nuevo</SelectItem>
                       <SelectItem value="contacted">Contactado</SelectItem>
@@ -381,10 +428,17 @@ function TagEditor({ value, onChange }: { value: string[]; onChange: (v: string[
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
           placeholder="Añade y presiona Enter"
         />
-        <Button variant="outline" onClick={add}>Añadir</Button>
+        <Button variant="outline" onClick={add}>
+          Añadir
+        </Button>
       </div>
       <div className="flex flex-wrap gap-1.5 mt-2">
         {value.map((t) => (
@@ -430,22 +484,31 @@ function AddLeadDialog({ clientId, onCreated }: { clientId: string; onCreated: (
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Lead agregado");
-    setName(""); setContact(""); setMessage(""); setOpen(false);
+    setName("");
+    setContact("");
+    setMessage("");
+    setOpen(false);
     onCreated();
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button><Plus className="w-4 h-4 mr-1" /> Nuevo lead</Button>
+        <Button>
+          <Plus className="w-4 h-4 mr-1" /> Nuevo lead
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Nuevo lead</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Nuevo lead</DialogTitle>
+        </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="space-y-1.5">
             <Label>Origen</Label>
             <Select value={source} onValueChange={(v) => setSource(v as Source)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="meta_ads">Meta Ads</SelectItem>
                 <SelectItem value="multilink">Multienlace</SelectItem>
@@ -467,7 +530,9 @@ function AddLeadDialog({ clientId, onCreated }: { clientId: string; onCreated: (
             <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Crear lead"}</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Guardando…" : "Crear lead"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -18,7 +18,8 @@ interface LinkState {
 function parseRpcResult(value: unknown): LinkState | null {
   if (!value || typeof value !== "object") return null;
   const { token, expires_at: expiresAt } = value as Record<string, unknown>;
-  if (typeof token !== "string" || !TOKEN_PATTERN.test(token) || typeof expiresAt !== "string") return null;
+  if (typeof token !== "string" || !TOKEN_PATTERN.test(token) || typeof expiresAt !== "string")
+    return null;
   return { token, expiresAt };
 }
 
@@ -30,7 +31,13 @@ function currentLink(overview: FichaOverview): LinkState | null {
 }
 
 /** Genera (o renueva) el link público del formulario de onboarding y permite copiarlo. */
-export function OnboardingLinkPanel({ clientId, overview }: { clientId: string; overview: FichaOverview }) {
+export function OnboardingLinkPanel({
+  clientId,
+  overview,
+}: {
+  clientId: string;
+  overview: FichaOverview;
+}) {
   const queryClient = useQueryClient();
   const [generated, setGenerated] = useState<LinkState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -41,14 +48,21 @@ export function OnboardingLinkPanel({ clientId, overview }: { clientId: string; 
     setGenerated(null);
   }, [clientId]);
   const link = generated ?? currentLink(overview);
-  const url = link && typeof window !== "undefined" ? `${window.location.origin}/onboarding/${link.token}` : null;
+  const url =
+    link && typeof window !== "undefined"
+      ? `${window.location.origin}/onboarding/${link.token}`
+      : null;
 
   const rotate = async () => {
     setBusy(true);
     const { data, error } = await supabase.rpc("rotate_onboarding_token", { _client_id: clientId });
     setBusy(false);
     if (error) {
-      toast.error(error.message.includes("not authorized") ? "No tienes permisos para generar el link." : error.message);
+      toast.error(
+        error.message.includes("not authorized")
+          ? "No tienes permisos para generar el link."
+          : error.message,
+      );
       return;
     }
     const parsed = parseRpcResult(data);
@@ -58,7 +72,9 @@ export function OnboardingLinkPanel({ clientId, overview }: { clientId: string; 
     }
     setGenerated(parsed);
     void queryClient.invalidateQueries({ queryKey: fichaKeys.overview(userKey, clientId) });
-    toast.success(link ? "Link renovado; el anterior dejó de funcionar" : "Link de onboarding generado");
+    toast.success(
+      link ? "Link renovado; el anterior dejó de funcionar" : "Link de onboarding generado",
+    );
   };
 
   const copy = async () => {
@@ -80,7 +96,13 @@ export function OnboardingLinkPanel({ clientId, overview }: { clientId: string; 
       {url && link ? (
         <div className="space-y-2">
           <div className="flex gap-2">
-            <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} aria-label="Link de onboarding" className="text-xs" />
+            <Input
+              readOnly
+              value={url}
+              onFocus={(e) => e.currentTarget.select()}
+              aria-label="Link de onboarding"
+              className="text-xs"
+            />
             <Button size="sm" variant="outline" onClick={copy} aria-label="Copiar link">
               <Copy aria-hidden className="h-4 w-4" />
             </Button>
@@ -91,7 +113,13 @@ export function OnboardingLinkPanel({ clientId, overview }: { clientId: string; 
         <p className="text-sm text-muted-foreground">No hay un link vigente para este cliente.</p>
       )}
       {overview.canEdit && (
-        <Button size="sm" variant={url ? "ghost" : "default"} onClick={rotate} disabled={busy} className="mt-3">
+        <Button
+          size="sm"
+          variant={url ? "ghost" : "default"}
+          onClick={rotate}
+          disabled={busy}
+          className="mt-3"
+        >
           <RefreshCw aria-hidden className={`mr-1.5 h-4 w-4 ${busy ? "animate-spin" : ""}`} />
           {url ? "Generar uno nuevo" : "Generar link de onboarding"}
         </Button>

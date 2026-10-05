@@ -298,9 +298,7 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando métricas…
         </div>
       )}
-      {error && (
-        <Empty>No se pudieron cargar las métricas: {(error as Error).message}</Empty>
-      )}
+      {error && <Empty>No se pudieron cargar las métricas: {(error as Error).message}</Empty>}
 
       {data && (
         <>
@@ -312,8 +310,8 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
             <CardContent className="space-y-3">
               {f!.started === 0 ? (
                 <Empty>
-                  No hay conversaciones de WhatsApp iniciadas en este periodo, así que el embudo
-                  no tiene nada que medir.
+                  No hay conversaciones de WhatsApp iniciadas en este periodo, así que el embudo no
+                  tiene nada que medir.
                 </Empty>
               ) : (
                 <>
@@ -325,9 +323,7 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
                         <div key={s.label} className="rounded-lg border p-3">
                           <div className="text-xs text-muted-foreground">{s.label}</div>
                           {unmeasured ? (
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              Sin marcar
-                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">Sin marcar</div>
                           ) : (
                             <>
                               <div className="text-2xl font-semibold">{num(s.value)}</div>
@@ -507,8 +503,7 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
             <CardContent>
               {(data.heatmap ?? []).length === 0 ? (
                 <Empty>
-                  Sin primeras respuestas registradas en este periodo, no hay tiempos que
-                  graficar.
+                  Sin primeras respuestas registradas en este periodo, no hay tiempos que graficar.
                 </Empty>
               ) : (
                 <div className="space-y-2 overflow-x-auto">
@@ -597,9 +592,7 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
                         </div>
                         <div className="min-w-0 text-xs">
                           <div className="truncate font-medium">{p.post_id}</div>
-                          <div className="mt-1 text-muted-foreground">
-                            Alcance {num(p.reach)}
-                          </div>
+                          <div className="mt-1 text-muted-foreground">Alcance {num(p.reach)}</div>
                           <div className="text-muted-foreground">
                             Interacciones {num(p.engagement)}
                           </div>
@@ -615,7 +608,6 @@ export function AnalyticsDashboard({ clientId }: { clientId: string }) {
 
           {/* 6 — Qué funciona */}
           <WhatWorks clientId={clientId} from={r.from} to={r.to} />
-
         </>
       )}
     </div>

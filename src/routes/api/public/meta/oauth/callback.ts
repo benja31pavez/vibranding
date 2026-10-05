@@ -100,16 +100,18 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
           const pages = pagesRes.data;
           const discoveryErrors = [adAccountsRes.error, pagesRes.error].filter(Boolean).join(" · ");
           const adAccount = (adAccounts.data ?? [])[0] ?? null;
-          const page = (pages.data ?? []).find((p: any) => p.instagram_business_account)
-            ?? (pages.data ?? [])[0]
-            ?? null;
+          const page =
+            (pages.data ?? []).find((p: any) => p.instagram_business_account) ??
+            (pages.data ?? [])[0] ??
+            null;
           const igAccount = page?.instagram_business_account ?? null;
 
           // Only mark as connected if something usable was discovered.
           const connected = Boolean(adAccount || igAccount);
           if (!connected) {
-            const msg = discoveryErrors
-              || "No se descubrió ninguna cuenta publicitaria ni de Instagram con este token. Revisa permisos y roles en la app de Meta.";
+            const msg =
+              discoveryErrors ||
+              "No se descubrió ninguna cuenta publicitaria ni de Instagram con este token. Revisa permisos y roles en la app de Meta.";
             console.error("[meta oauth] discovery empty", { clientId: state.clientId, msg });
             // Persist the failure so the diagnostics page can show it.
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -132,14 +134,15 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
               clientId: state.clientId,
               msg: e?.message,
             });
-            return back("error", /ya está asignada/.test(e?.message ?? "") ? "asset_taken" : "save_failed");
+            return back(
+              "error",
+              /ya está asignada/.test(e?.message ?? "") ? "asset_taken" : "save_failed",
+            );
           }
 
           // 3. Persist the connection (one per client) and vault the token.
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { data: saved, error } = await (
-            supabaseAdmin.from("meta_accounts" as any) as any
-          )
+          const { data: saved, error } = await (supabaseAdmin.from("meta_accounts" as any) as any)
             .upsert(
               {
                 client_id: state.clientId,

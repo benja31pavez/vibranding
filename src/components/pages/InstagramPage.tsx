@@ -3,8 +3,18 @@ import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/app";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { IdentityEditor, ConfigEditor, PostsEditor, HighlightsEditor } from "@/components/InstagramEditor";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  IdentityEditor,
+  ConfigEditor,
+  PostsEditor,
+  HighlightsEditor,
+} from "@/components/InstagramEditor";
 import { IphonePreview } from "@/components/IphonePreview";
 import { GridVersionBar } from "@/components/instagram/GridVersionBar";
 import { VersionGrid } from "@/components/instagram/VersionGrid";
@@ -14,7 +24,8 @@ import { loadGridVersions, type GridVersion } from "@/lib/instagram/gridVersions
 type View = "current" | "proposed" | "compare";
 
 export function InstagramPage({ clientId }: { clientId: string }) {
-  const { client, ig, setProfile, setPosts, setHighlights, setComments, reloadIG, igError } = useActiveClient();
+  const { client, ig, setProfile, setPosts, setHighlights, setComments, reloadIG, igError } =
+    useActiveClient();
   const [view, setView] = useState<View>("proposed");
   const [versions, setVersions] = useState<GridVersion[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -27,10 +38,15 @@ export function InstagramPage({ clientId }: { clientId: string }) {
       const rows = await loadGridVersions(clientId);
       setVersions(rows);
       const newest = rows.find((v) => !v.is_baseline) ?? rows[0] ?? null;
-      setSelectedId((prev) => selectId ?? (prev && rows.some((v) => v.id === prev) ? prev : newest?.id ?? null));
+      setSelectedId(
+        (prev) =>
+          selectId ?? (prev && rows.some((v) => v.id === prev) ? prev : (newest?.id ?? null)),
+      );
       const baseline = rows.find((v) => v.is_baseline) ?? rows[rows.length - 1] ?? null;
-      setLeftId((prev) => (prev && rows.some((v) => v.id === prev) ? prev : baseline?.id ?? null));
-      setRightId((prev) => (prev && rows.some((v) => v.id === prev) ? prev : newest?.id ?? null));
+      setLeftId((prev) =>
+        prev && rows.some((v) => v.id === prev) ? prev : (baseline?.id ?? null),
+      );
+      setRightId((prev) => (prev && rows.some((v) => v.id === prev) ? prev : (newest?.id ?? null)));
       await reloadIG();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,7 +91,10 @@ export function InstagramPage({ clientId }: { clientId: string }) {
   const newest = versions.find((v) => !v.is_baseline) ?? null;
   // A brand-new manual version is a work in progress until the next one exists.
   const versionEditable =
-    !!selected && !selected.is_baseline && selected.source === "manual" && selected.id === newest?.id;
+    !!selected &&
+    !selected.is_baseline &&
+    selected.source === "manual" &&
+    selected.id === newest?.id;
 
   const previewPosts =
     view === "proposed"
@@ -152,29 +171,61 @@ export function InstagramPage({ clientId }: { clientId: string }) {
                 <strong className="text-accent">Propuesta · plan editable</strong> — tu plan de
                 contenido. Vive en una pista aparte del grid Actual sincronizado.
               </p>
-              <Accordion type="single" collapsible defaultValue="identity" className="w-full space-y-2">
+              <Accordion
+                type="single"
+                collapsible
+                defaultValue="identity"
+                className="w-full space-y-2"
+              >
                 <AccordionItem value="identity" className="border rounded-xl bg-surface px-4">
-                  <AccordionTrigger className="text-base font-semibold hover:no-underline">Identidad</AccordionTrigger>
+                  <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                    Identidad
+                  </AccordionTrigger>
                   <AccordionContent className="pt-2">
-                    <IdentityEditor profile={profile} setProfile={setProfile} clientId={clientId} side="proposed" />
+                    <IdentityEditor
+                      profile={profile}
+                      setProfile={setProfile}
+                      clientId={clientId}
+                      side="proposed"
+                    />
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="config" className="border rounded-xl bg-surface px-4">
-                  <AccordionTrigger className="text-base font-semibold hover:no-underline">Configuración</AccordionTrigger>
+                  <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                    Configuración
+                  </AccordionTrigger>
                   <AccordionContent className="pt-2">
                     <ConfigEditor profile={profile} setProfile={setProfile} side="proposed" />
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="highlights" className="border rounded-xl bg-surface px-4">
-                  <AccordionTrigger className="text-base font-semibold hover:no-underline">Historias destacadas</AccordionTrigger>
+                  <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                    Historias destacadas
+                  </AccordionTrigger>
                   <AccordionContent className="pt-2">
-                    <HighlightsEditor clientId={clientId} highlights={ig.highlights} setHighlights={setHighlights} type="proposed" />
+                    <HighlightsEditor
+                      clientId={clientId}
+                      highlights={ig.highlights}
+                      setHighlights={setHighlights}
+                      type="proposed"
+                    />
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="posts" className="border rounded-xl bg-surface px-4">
-                  <AccordionTrigger className="text-base font-semibold hover:no-underline">Publicaciones</AccordionTrigger>
+                  <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                    Publicaciones
+                  </AccordionTrigger>
                   <AccordionContent className="pt-2">
-                    <PostsEditor clientId={clientId} posts={ig.posts} setPosts={setPosts} type="proposed" profile={profile} setProfile={setProfile} comments={ig.comments} setComments={setComments} />
+                    <PostsEditor
+                      clientId={clientId}
+                      posts={ig.posts}
+                      setPosts={setPosts}
+                      type="proposed"
+                      profile={profile}
+                      setProfile={setProfile}
+                      comments={ig.comments}
+                      setComments={setComments}
+                    />
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -185,11 +236,13 @@ export function InstagramPage({ clientId }: { clientId: string }) {
 
       <div className="lg:sticky lg:top-8 lg:self-start space-y-3">
         <div className="flex justify-center gap-1 bg-secondary rounded-full p-1 max-w-[340px] mx-auto">
-          {([
-            ["current", "Actual"],
-            ["proposed", "Propuesta"],
-            ["compare", "Comparar"],
-          ] as [View, string][]).map(([v, label]) => (
+          {(
+            [
+              ["current", "Actual"],
+              ["proposed", "Propuesta"],
+              ["compare", "Comparar"],
+            ] as [View, string][]
+          ).map(([v, label]) => (
             <button
               key={v}
               onClick={() => setView(v)}

@@ -18,7 +18,10 @@ async function toResult(): Promise<Response> {
     const { publicOrigin } = await import("@/lib/meta/oauth.server");
     location = `${publicOrigin()}${RESULT_PATH}`;
   } catch (e) {
-    console.error("[flow return] PUBLIC_SITE_URL no configurada; uso SITE_URL", (e as Error).message);
+    console.error(
+      "[flow return] PUBLIC_SITE_URL no configurada; uso SITE_URL",
+      (e as Error).message,
+    );
   }
   return new Response(null, { status: 303, headers: { Location: location } });
 }

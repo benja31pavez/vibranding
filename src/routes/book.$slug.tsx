@@ -2,7 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getBookingPage, createBooking } from "@/lib/bookings/bookings.functions";
-import { bookingWindow, DEFAULT_BOOKING_TZ, safeTimeZone, zonedDayKey, zonedToUTC } from "@/lib/bookings/tz";
+import {
+  bookingWindow,
+  DEFAULT_BOOKING_TZ,
+  safeTimeZone,
+  zonedDayKey,
+  zonedToUTC,
+} from "@/lib/bookings/tz";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,7 +33,9 @@ export const Route = createFileRoute("/book/$slug")({
     <div className="min-h-screen grid place-items-center p-6 text-center">
       <div>
         <h1 className="text-2xl font-semibold">No pudimos cargar la agenda</h1>
-        <p className="text-muted-foreground mt-2">{error instanceof Error ? error.message : "Error inesperado"}</p>
+        <p className="text-muted-foreground mt-2">
+          {error instanceof Error ? error.message : "Error inesperado"}
+        </p>
       </div>
     </div>
   ),
@@ -41,7 +49,13 @@ export const Route = createFileRoute("/book/$slug")({
 type Settings = {
   id: string;
   display_name: string;
-  hours: { day: number; enabled: boolean; open: string; close: string; breaks?: { start: string; end: string }[] }[];
+  hours: {
+    day: number;
+    enabled: boolean;
+    open: string;
+    close: string;
+    breaks?: { start: string; end: string }[];
+  }[];
   slot_minutes: number;
   timezone: string;
   intro: string | null;
@@ -50,8 +64,18 @@ type Settings = {
 const DAY_LABELS = ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"];
 const MINI_DAY_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
 const MONTH_NAMES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
 ];
 
 type TakenRange = { start: number; end: number };
@@ -74,10 +98,20 @@ function addDays(d: Date, n: number) {
 }
 
 function sameUTCDay(a: Date, b: Date) {
-  return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
+  return (
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
+  );
 }
 
-function buildSlots(date: Date, settings: Settings, taken: TakenRange[], viewerTz: string, minBookable: Date) {
+function buildSlots(
+  date: Date,
+  settings: Settings,
+  taken: TakenRange[],
+  viewerTz: string,
+  minBookable: Date,
+) {
   // calendar day in owner's tz
   const y = date.getUTCFullYear();
   const mo = date.getUTCMonth();
@@ -104,7 +138,11 @@ function buildSlots(date: Date, settings: Settings, taken: TakenRange[], viewerT
   });
   const now = new Date();
   const slots: { iso: string; label: string; disabled: boolean }[] = [];
-  for (let m = oh * 60 + om; m + settings.slot_minutes <= ch * 60 + cm; m += settings.slot_minutes) {
+  for (
+    let m = oh * 60 + om;
+    m + settings.slot_minutes <= ch * 60 + cm;
+    m += settings.slot_minutes
+  ) {
     const inBreak = breaks.some((b) => m < b.e && m + settings.slot_minutes > b.s);
     if (inBreak) continue;
     // Build the actual UTC moment representing this wall-clock time in the owner's tz.
@@ -112,7 +150,12 @@ function buildSlots(date: Date, settings: Settings, taken: TakenRange[], viewerT
     const iso = slotUTC.toISOString();
     let label: string;
     if (useViewerTz) {
-      label = fmt.format(slotUTC).replace(/\s/g, "").toLowerCase().replace("a.m.", "am").replace("p.m.", "pm");
+      label = fmt
+        .format(slotUTC)
+        .replace(/\s/g, "")
+        .toLowerCase()
+        .replace("a.m.", "am")
+        .replace("p.m.", "pm");
     } else {
       const hour12 = Math.floor(m / 60);
       const min = m % 60;
@@ -172,7 +215,9 @@ function BookingPage() {
         setEmailEnabled(Boolean(r.emailEnabled));
         setTurnstileSiteKey(r.turnstileSiteKey ?? null);
         // Default to viewer's local tz so the user immediately sees their own clock
-        setViewerTz(Intl.DateTimeFormat().resolvedOptions().timeZone || (r.settings as any).timezone);
+        setViewerTz(
+          Intl.DateTimeFormat().resolvedOptions().timeZone || (r.settings as any).timezone,
+        );
         setTaken(
           r.taken.map((t) => {
             const start = new Date(t.scheduled_at).getTime();
@@ -189,15 +234,21 @@ function BookingPage() {
     setMonthCursor(new Date(Date.UTC(today0.getUTCFullYear(), today0.getUTCMonth(), 1)));
   }, [today0]);
 
-  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
+  const weekDays = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
+    [weekStart],
+  );
 
   const miniGrid = useMemo(() => {
     const first = new Date(monthCursor);
     first.setUTCDate(1);
     const offset = (first.getUTCDay() + 6) % 7;
-    const daysInMonth = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+    const daysInMonth = new Date(
+      Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0),
+    ).getUTCDate();
     const cells: (Date | null)[] = Array(offset).fill(null);
-    for (let i = 1; i <= daysInMonth; i++) cells.push(new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), i)));
+    for (let i = 1; i <= daysInMonth; i++)
+      cells.push(new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), i)));
     while (cells.length % 7 !== 0) cells.push(null);
     return cells;
   }, [monthCursor]);
@@ -213,7 +264,9 @@ function BookingPage() {
     );
   }
   if (!settings) {
-    return <div className="min-h-screen grid place-items-center text-muted-foreground">Cargando…</div>;
+    return (
+      <div className="min-h-screen grid place-items-center text-muted-foreground">Cargando…</div>
+    );
   }
 
   if (done) {
@@ -223,7 +276,13 @@ function BookingPage() {
           <CheckCircle2 className="w-12 h-12 text-primary mx-auto" />
           <h1 className="text-2xl font-semibold mt-4">¡Reserva confirmada!</h1>
           <p className="text-muted-foreground mt-2">
-            Te esperamos el {new Date(done.when).toLocaleString("es-CL", { dateStyle: "full", timeStyle: "short", timeZone: viewerTz || settings.timezone })}.
+            Te esperamos el{" "}
+            {new Date(done.when).toLocaleString("es-CL", {
+              dateStyle: "full",
+              timeStyle: "short",
+              timeZone: viewerTz || settings.timezone,
+            })}
+            .
           </p>
           <p className="text-sm text-muted-foreground mt-4">
             {emailEnabled
@@ -291,7 +350,9 @@ function BookingPage() {
             <CalendarDays className="w-6 h-6" />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight">{settings.display_name}</h1>
-          {settings.intro && <p className="text-muted-foreground mt-2 max-w-xl mx-auto">{settings.intro}</p>}
+          {settings.intro && (
+            <p className="text-muted-foreground mt-2 max-w-xl mx-auto">{settings.intro}</p>
+          )}
           <p className="text-sm text-muted-foreground mt-1 inline-flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" /> Citas de {settings.slot_minutes} min
           </p>
@@ -308,21 +369,25 @@ function BookingPage() {
                   onChange={(e) => setViewerTz(e.target.value)}
                   className="text-xs border border-border rounded-md px-2 py-1 bg-background"
                 >
-                  {Array.from(new Set([
-                    settings.timezone,
-                    Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    "America/Santiago",
-                    "America/Argentina/Buenos_Aires",
-                    "America/Mexico_City",
-                    "America/Bogota",
-                    "America/Lima",
-                    "America/New_York",
-                    "America/Los_Angeles",
-                    "Europe/Madrid",
-                    "Europe/London",
-                    "UTC",
-                  ])).map((tz) => (
-                    <option key={tz} value={tz}>{tz}</option>
+                  {Array.from(
+                    new Set([
+                      settings.timezone,
+                      Intl.DateTimeFormat().resolvedOptions().timeZone,
+                      "America/Santiago",
+                      "America/Argentina/Buenos_Aires",
+                      "America/Mexico_City",
+                      "America/Bogota",
+                      "America/Lima",
+                      "America/New_York",
+                      "America/Los_Angeles",
+                      "Europe/Madrid",
+                      "Europe/London",
+                      "UTC",
+                    ]),
+                  ).map((tz) => (
+                    <option key={tz} value={tz}>
+                      {tz}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -335,13 +400,25 @@ function BookingPage() {
                     {MONTH_NAMES[monthCursor.getUTCMonth()]} de {monthCursor.getUTCFullYear()}
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={prevMonth} className="p-1 rounded hover:bg-muted text-muted-foreground"><ChevronLeft className="w-4 h-4" /></button>
-                    <button onClick={nextMonth} className="p-1 rounded hover:bg-muted text-muted-foreground"><ChevronRight className="w-4 h-4" /></button>
+                    <button
+                      onClick={prevMonth}
+                      className="p-1 rounded hover:bg-muted text-muted-foreground"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={nextMonth}
+                      className="p-1 rounded hover:bg-muted text-muted-foreground"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
                 <div className="grid grid-cols-7 gap-1 text-center">
                   {MINI_DAY_LABELS.map((l) => (
-                    <div key={l} className="text-[10px] text-muted-foreground py-1">{l}</div>
+                    <div key={l} className="text-[10px] text-muted-foreground py-1">
+                      {l}
+                    </div>
                   ))}
                   {miniGrid.map((d, i) => {
                     if (!d) return <div key={i} />;
@@ -357,16 +434,18 @@ function BookingPage() {
                         onClick={() => {
                           const target = mondayOf(d);
                           setWeekStart(target < minWeek ? minWeek : target);
-                          setMonthCursor(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)));
+                          setMonthCursor(
+                            new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)),
+                          );
                         }}
                         className={`text-xs h-8 w-8 mx-auto rounded-full flex items-center justify-center transition ${
                           disabled
                             ? "text-muted-foreground/40 line-through cursor-not-allowed"
                             : selected
-                            ? "bg-primary text-primary-foreground font-medium"
-                            : inWeek
-                            ? "bg-primary/10 text-foreground hover:bg-primary/20"
-                            : "text-foreground hover:bg-muted"
+                              ? "bg-primary text-primary-foreground font-medium"
+                              : inWeek
+                                ? "bg-primary/10 text-foreground hover:bg-primary/20"
+                                : "text-foreground hover:bg-muted"
                         }`}
                       >
                         {d.getUTCDate()}
@@ -379,7 +458,11 @@ function BookingPage() {
               {/* Week grid */}
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <button onClick={goPrevWeek} disabled={!canPrev} className="p-1.5 rounded-full hover:bg-muted disabled:opacity-30 text-muted-foreground">
+                  <button
+                    onClick={goPrevWeek}
+                    disabled={!canPrev}
+                    className="p-1.5 rounded-full hover:bg-muted disabled:opacity-30 text-muted-foreground"
+                  >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <div className="grid grid-cols-7 gap-2 flex-1">
@@ -388,21 +471,29 @@ function BookingPage() {
                       const isPast = d < minBookable;
                       return (
                         <div key={d.toISOString()} className="text-center">
-                          <div className="text-[10px] text-muted-foreground tracking-wider">{DAY_LABELS[(d.getUTCDay() + 6) % 7]}</div>
-                          <div className={`mt-1 mx-auto w-9 h-9 rounded-full flex items-center justify-center text-lg ${
-                            isPast
-                              ? "text-muted-foreground/40 line-through"
-                              : isToday
-                              ? "bg-primary text-primary-foreground font-medium"
-                              : "text-foreground"
-                          }`}>
+                          <div className="text-[10px] text-muted-foreground tracking-wider">
+                            {DAY_LABELS[(d.getUTCDay() + 6) % 7]}
+                          </div>
+                          <div
+                            className={`mt-1 mx-auto w-9 h-9 rounded-full flex items-center justify-center text-lg ${
+                              isPast
+                                ? "text-muted-foreground/40 line-through"
+                                : isToday
+                                  ? "bg-primary text-primary-foreground font-medium"
+                                  : "text-foreground"
+                            }`}
+                          >
                             {d.getUTCDate()}
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                  <button onClick={goNextWeek} disabled={!canNext} className="p-1.5 rounded-full hover:bg-muted disabled:opacity-30 text-muted-foreground">
+                  <button
+                    onClick={goNextWeek}
+                    disabled={!canNext}
+                    className="p-1.5 rounded-full hover:bg-muted disabled:opacity-30 text-muted-foreground"
+                  >
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -410,7 +501,16 @@ function BookingPage() {
                   {weekDays.map((d) => {
                     const isPast = d < minBookable;
                     const outOfRange = d > maxDay;
-                    const slots = isPast || outOfRange ? [] : buildSlots(d, settings, taken, viewerTz || settings.timezone, minBookableInstant);
+                    const slots =
+                      isPast || outOfRange
+                        ? []
+                        : buildSlots(
+                            d,
+                            settings,
+                            taken,
+                            viewerTz || settings.timezone,
+                            minBookableInstant,
+                          );
                     return (
                       <div key={d.toISOString()} className="space-y-2">
                         {slots.length === 0 ? (
@@ -436,31 +536,52 @@ function BookingPage() {
           </Card>
         ) : (
           <Card className="max-w-lg mx-auto p-6">
-            <button onClick={() => setSelectedISO(null)} className="text-sm text-muted-foreground hover:text-foreground mb-4">
+            <button
+              onClick={() => setSelectedISO(null)}
+              className="text-sm text-muted-foreground hover:text-foreground mb-4"
+            >
               ← Cambiar horario
             </button>
             <div className="mb-5">
               <div className="text-sm text-muted-foreground">Horario seleccionado</div>
               <div className="text-lg font-semibold">
-                {new Date(selectedISO).toLocaleString("es-CL", { dateStyle: "full", timeStyle: "short", timeZone: viewerTz || settings.timezone })}
+                {new Date(selectedISO).toLocaleString("es-CL", {
+                  dateStyle: "full",
+                  timeStyle: "short",
+                  timeZone: viewerTz || settings.timezone,
+                })}
               </div>
             </div>
             <div className="space-y-3">
               <div>
                 <Label>Nombre</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Email</Label>
-                <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Teléfono (opcional)</Label>
-                <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <Input
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Notas (opcional)</Label>
-                <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                <Textarea
+                  rows={3}
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                />
               </div>
               {turnstileSiteKey && (
                 <TurnstileWidget
@@ -471,7 +592,12 @@ function BookingPage() {
               )}
               <Button
                 onClick={handleSubmit}
-                disabled={confirming || !form.name || !form.email || (Boolean(turnstileSiteKey) && !turnstileToken)}
+                disabled={
+                  confirming ||
+                  !form.name ||
+                  !form.email ||
+                  (Boolean(turnstileSiteKey) && !turnstileToken)
+                }
                 className="w-full"
               >
                 {confirming ? "Confirmando…" : "Confirmar reserva"}

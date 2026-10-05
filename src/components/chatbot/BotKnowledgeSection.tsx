@@ -40,12 +40,16 @@ export function BotKnowledgeSection({ clientId }: { clientId: string }) {
 
   const load = async () => {
     const { data: acc } = await supabase
-      .from("whatsapp_accounts").select("id").eq("client_id", clientId).maybeSingle();
+      .from("whatsapp_accounts")
+      .select("id")
+      .eq("client_id", clientId)
+      .maybeSingle();
     if (!acc) return;
     setAccountId(acc.id);
 
     const { data } = await (supabase.from("bot_knowledge" as any) as any)
-      .select("*").eq("account_id", acc.id)
+      .select("*")
+      .eq("account_id", acc.id)
       .order("status", { ascending: true })
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
@@ -54,12 +58,16 @@ export function BotKnowledgeSection({ clientId }: { clientId: string }) {
     // Seed onboarding if empty
     if (list.length === 0) {
       const rows = ONBOARDING.map((q, i) => ({
-        account_id: acc.id, client_id: clientId, question: q,
-        origin: "onboarding", sort_order: i,
+        account_id: acc.id,
+        client_id: clientId,
+        question: q,
+        origin: "onboarding",
+        sort_order: i,
       }));
       await (supabase.from("bot_knowledge" as any) as any).insert(rows);
       const { data: d2 } = await (supabase.from("bot_knowledge" as any) as any)
-        .select("*").eq("account_id", acc.id)
+        .select("*")
+        .eq("account_id", acc.id)
         .order("status", { ascending: true })
         .order("sort_order", { ascending: true });
       list = (d2 ?? []) as KItem[];
@@ -68,7 +76,9 @@ export function BotKnowledgeSection({ clientId }: { clientId: string }) {
     setDrafts(Object.fromEntries(list.map((k) => [k.id, k.answer ?? ""])));
   };
 
-  useEffect(() => { load(); }, [clientId]);
+  useEffect(() => {
+    load();
+  }, [clientId]);
 
   const save = async (id: string) => {
     const answer = drafts[id]?.trim();
@@ -83,13 +93,13 @@ export function BotKnowledgeSection({ clientId }: { clientId: string }) {
 
   const dismiss = async (id: string) => {
     await (supabase.from("bot_knowledge" as any) as any)
-      .update({ status: "dismissed" }).eq("id", id);
+      .update({ status: "dismissed" })
+      .eq("id", id);
     load();
   };
 
   const reopen = async (id: string) => {
-    await (supabase.from("bot_knowledge" as any) as any)
-      .update({ status: "pending" }).eq("id", id);
+    await (supabase.from("bot_knowledge" as any) as any).update({ status: "pending" }).eq("id", id);
     load();
   };
 
@@ -110,14 +120,19 @@ export function BotKnowledgeSection({ clientId }: { clientId: string }) {
           <div className="flex-1">
             <div className="font-semibold">Aprendizaje del bot</div>
             <div className="text-xs text-muted-foreground">
-              Responde estas preguntas para que el bot sea mucho más inteligente. Tus respuestas se inyectan en el contexto del bot automáticamente.
+              Responde estas preguntas para que el bot sea mucho más inteligente. Tus respuestas se
+              inyectan en el contexto del bot automáticamente.
             </div>
           </div>
           {pending.length > 0 && (
-            <Badge variant="default">{pending.length} pendiente{pending.length === 1 ? "" : "s"}</Badge>
+            <Badge variant="default">
+              {pending.length} pendiente{pending.length === 1 ? "" : "s"}
+            </Badge>
           )}
           {answered.length > 0 && (
-            <Badge variant="secondary">{answered.length} respondida{answered.length === 1 ? "" : "s"}</Badge>
+            <Badge variant="secondary">
+              {answered.length} respondida{answered.length === 1 ? "" : "s"}
+            </Badge>
           )}
         </button>
 
@@ -170,7 +185,9 @@ export function BotKnowledgeSection({ clientId }: { clientId: string }) {
                   {answered.map((q) => (
                     <div key={q.id} className="border rounded p-2">
                       <div className="font-medium">{q.question}</div>
-                      <div className="text-muted-foreground mt-1 whitespace-pre-wrap">{q.answer}</div>
+                      <div className="text-muted-foreground mt-1 whitespace-pre-wrap">
+                        {q.answer}
+                      </div>
                       <button
                         onClick={() => reopen(q.id)}
                         className="text-[10px] text-primary mt-1 hover:underline"

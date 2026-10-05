@@ -40,7 +40,11 @@ const test = (name, fn) => {
 const u = (s) => new URL(s);
 
 test("producción: DENY + frame-ancestors 'none' + nosniff + referrer", () => {
-  for (const url of ["https://vibranding.pro/", "https://vibranding.pro/clients/x/landing", "https://vibranding.lovable.app/m/foo"]) {
+  for (const url of [
+    "https://vibranding.pro/",
+    "https://vibranding.pro/clients/x/landing",
+    "https://vibranding.lovable.app/m/foo",
+  ]) {
     const r = h.securityHeadersFor(u(url));
     assert.equal(r["X-Frame-Options"], "DENY", url);
     assert.equal(r["Content-Security-Policy"], "frame-ancestors 'none'", url);
@@ -59,9 +63,19 @@ test("hosts de vista previa de Lovable: permiten lovable.dev, sin X-Frame-Option
     assert.equal(h.isLovablePreviewHost(host), true, host);
     const r = h.securityHeadersFor(u(`https://${host}/`));
     assert.equal(r["X-Frame-Options"], undefined, host);
-    assert.match(r["Content-Security-Policy"], /^frame-ancestors 'self' https:\/\/lovable\.dev/, host);
+    assert.match(
+      r["Content-Security-Policy"],
+      /^frame-ancestors 'self' https:\/\/lovable\.dev/,
+      host,
+    );
   }
-  for (const host of ["vibranding.lovable.app", "vibranding.pro", "evil-lovable.app", "lovable.app.evil.com", "localhost"]) {
+  for (const host of [
+    "vibranding.lovable.app",
+    "vibranding.pro",
+    "evil-lovable.app",
+    "lovable.app.evil.com",
+    "localhost",
+  ]) {
     assert.equal(h.isLovablePreviewHost(host), false, host);
   }
 });
@@ -69,13 +83,19 @@ test("hosts de vista previa de Lovable: permiten lovable.dev, sin X-Frame-Option
 test("merge: no pisa cabeceras existentes y suma frame-ancestors a una CSP previa", () => {
   const url = u("https://vibranding.pro/p/abc");
   const merged = h.mergeSecurityHeaders(
-    new Headers({ "Referrer-Policy": "no-referrer", "Content-Security-Policy": "default-src 'self'" }),
+    new Headers({
+      "Referrer-Policy": "no-referrer",
+      "Content-Security-Policy": "default-src 'self'",
+    }),
     url,
   );
   assert.equal(merged.get("Referrer-Policy"), "no-referrer");
   assert.equal(merged.get("Content-Security-Policy"), "default-src 'self'; frame-ancestors 'none'");
   assert.equal(merged.get("X-Frame-Options"), "DENY");
-  const keep = h.mergeSecurityHeaders(new Headers({ "Content-Security-Policy": "frame-ancestors 'self'" }), url);
+  const keep = h.mergeSecurityHeaders(
+    new Headers({ "Content-Security-Policy": "frame-ancestors 'self'" }),
+    url,
+  );
   assert.equal(keep.get("Content-Security-Policy"), "frame-ancestors 'self'");
 });
 

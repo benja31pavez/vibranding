@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { PLANS } from "@/lib/pricing/plans";
 import {
   BAJA_NOTICE,
@@ -41,8 +48,12 @@ function toForm(p: Prospect | null): ProspectFormInput {
     email_publico: p.email_publico ?? "",
     telefono_publico: p.telefono_publico ?? "",
     fuente: p.fuente,
-    estado: PROSPECT_STATES.includes(p.estado as never) ? (p.estado as ProspectFormInput["estado"]) : "nuevo",
-    producto_sugerido: (PLANS.some((pl) => pl.key === p.producto_sugerido) ? p.producto_sugerido : "") as ProspectFormInput["producto_sugerido"],
+    estado: PROSPECT_STATES.includes(p.estado as never)
+      ? (p.estado as ProspectFormInput["estado"])
+      : "nuevo",
+    producto_sugerido: (PLANS.some((pl) => pl.key === p.producto_sugerido)
+      ? p.producto_sugerido
+      : "") as ProspectFormInput["producto_sugerido"],
     notas: p.notas ?? "",
     ultimo_contacto: toDateInput(p.ultimo_contacto),
   };
@@ -51,15 +62,33 @@ function toForm(p: Prospect | null): ProspectFormInput {
 const selectCls =
   "h-9 w-full rounded-app-sm border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-function Field({ id, label, error, hint, children }: {
-  id: string; label: string; error?: string; hint?: string; children: ReactNode;
+function Field({
+  id,
+  label,
+  error,
+  hint,
+  children,
+}: {
+  id: string;
+  label: string;
+  error?: string;
+  hint?: string;
+  children: ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
       {children}
-      {hint && !error && <p id={`${id}-hint`} className="text-xs text-muted-foreground">{hint}</p>}
-      {error && <p id={`${id}-error`} role="alert" className="text-xs text-danger-strong">{error}</p>}
+      {hint && !error && (
+        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      )}
+      {error && (
+        <p id={`${id}-error`} role="alert" className="text-xs text-danger-strong">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -102,8 +131,10 @@ export function ProspectSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, prospectId]);
 
-  const set = <K extends keyof ProspectFormInput>(key: K) => (value: ProspectFormInput[K]) =>
-    setForm((f) => ({ ...f, [key]: value }));
+  const set =
+    <K extends keyof ProspectFormInput>(key: K) =>
+    (value: ProspectFormInput[K]) =>
+      setForm((f) => ({ ...f, [key]: value }));
   const leavingBaja = isBaja && form.estado !== "baja";
   const motivoClean = motivo.trim().replace(/\s+/g, " ");
   const busy = save.isPending || revoke.isPending;
@@ -114,7 +145,8 @@ export function ProspectSheet({
     if (!(REVOKE_TARGET_STATES as readonly string[]).includes(form.estado)) {
       return `Al salir de baja el prospecto no puede quedar como ${STATE_META[form.estado].label}.`;
     }
-    if (!confirmUnbaja) return "Confirma que el prospecto retiró su solicitud de baja antes de cambiar el estado.";
+    if (!confirmUnbaja)
+      return "Confirma que el prospecto retiró su solicitud de baja antes de cambiar el estado.";
     if (motivoClean.length < REVOKE_MOTIVO_MIN || motivoClean.length > REVOKE_MOTIVO_MAX) {
       return `Indica el motivo (entre ${REVOKE_MOTIVO_MIN} y ${REVOKE_MOTIVO_MAX} caracteres).`;
     }
@@ -139,7 +171,11 @@ export function ProspectSheet({
         // Primero se guardan los demás campos (sigue en baja) y luego la RPC sale de baja:
         // así la línea que la RPC agrega a las notas no se pisa.
         await save.mutateAsync({ id: prospect.id, values: { ...parsed.data, estado: "baja" } });
-        await revoke.mutateAsync({ id: prospect.id, motivo: motivoClean, estado: form.estado as RevokeTargetState });
+        await revoke.mutateAsync({
+          id: prospect.id,
+          motivo: motivoClean,
+          estado: form.estado as RevokeTargetState,
+        });
         toast.success(`Baja revocada: ${prospect.nombre} → ${STATE_META[form.estado].label}`);
         onOpenChange(false);
         return;
@@ -168,53 +204,113 @@ export function ProspectSheet({
       <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>{prospect ? "Editar prospecto" : "Nuevo prospecto"}</SheetTitle>
-          <SheetDescription>Guarda solo datos públicos de contacto del negocio, nunca datos personales.</SheetDescription>
+          <SheetDescription>
+            Guarda solo datos públicos de contacto del negocio, nunca datos personales.
+          </SheetDescription>
         </SheetHeader>
         <form onSubmit={submit} noValidate className="mt-4 space-y-4">
-          <Field id="pr-nombre" label="Nombre del negocio *" error={errors.nombre}>{input("nombre", { required: true })}</Field>
+          <Field id="pr-nombre" label="Nombre del negocio *" error={errors.nombre}>
+            {input("nombre", { required: true })}
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="pr-rubro" label="Rubro" error={errors.rubro}>{input("rubro")}</Field>
-            <Field id="pr-comuna" label="Comuna" error={errors.comuna}>{input("comuna")}</Field>
+            <Field id="pr-rubro" label="Rubro" error={errors.rubro}>
+              {input("rubro")}
+            </Field>
+            <Field id="pr-comuna" label="Comuna" error={errors.comuna}>
+              {input("comuna")}
+            </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="pr-web" label="Web" error={errors.web}>{input("web", { placeholder: "misitio.cl", inputMode: "url" })}</Field>
-            <Field id="pr-instagram" label="Instagram" error={errors.instagram}>{input("instagram", { placeholder: "@usuario o URL" })}</Field>
+            <Field id="pr-web" label="Web" error={errors.web}>
+              {input("web", { placeholder: "misitio.cl", inputMode: "url" })}
+            </Field>
+            <Field id="pr-instagram" label="Instagram" error={errors.instagram}>
+              {input("instagram", { placeholder: "@usuario o URL" })}
+            </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="pr-email_publico" label="Correo público" error={errors.email_publico}>{input("email_publico", { type: "email", inputMode: "email" })}</Field>
-            <Field id="pr-telefono_publico" label="Teléfono público" error={errors.telefono_publico}>{input("telefono_publico", { type: "tel", placeholder: "+56 9 1234 5678" })}</Field>
+            <Field id="pr-email_publico" label="Correo público" error={errors.email_publico}>
+              {input("email_publico", { type: "email", inputMode: "email" })}
+            </Field>
+            <Field
+              id="pr-telefono_publico"
+              label="Teléfono público"
+              error={errors.telefono_publico}
+            >
+              {input("telefono_publico", { type: "tel", placeholder: "+56 9 1234 5678" })}
+            </Field>
           </div>
-          <Field id="pr-fuente" label="Fuente del dato *" error={errors.fuente} hint="Dónde se vio el contacto (ej. sitio web, página Contacto).">
+          <Field
+            id="pr-fuente"
+            label="Fuente del dato *"
+            error={errors.fuente}
+            hint="Dónde se vio el contacto (ej. sitio web, página Contacto)."
+          >
             {input("fuente", { required: true })}
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="pr-estado" label="Estado" error={errors.estado}>
-              <select id="pr-estado" className={selectCls} value={form.estado} onChange={(e) => set("estado")(e.target.value as ProspectFormInput["estado"])}>
-                {PROSPECT_STATES.map((s) => <option key={s} value={s}>{STATE_META[s].label}</option>)}
+              <select
+                id="pr-estado"
+                className={selectCls}
+                value={form.estado}
+                onChange={(e) => set("estado")(e.target.value as ProspectFormInput["estado"])}
+              >
+                {PROSPECT_STATES.map((s) => (
+                  <option key={s} value={s}>
+                    {STATE_META[s].label}
+                  </option>
+                ))}
               </select>
             </Field>
-            <Field id="pr-producto_sugerido" label="Producto sugerido" error={errors.producto_sugerido}>
-              <select id="pr-producto_sugerido" className={selectCls} value={form.producto_sugerido} onChange={(e) => set("producto_sugerido")(e.target.value as ProspectFormInput["producto_sugerido"])}>
+            <Field
+              id="pr-producto_sugerido"
+              label="Producto sugerido"
+              error={errors.producto_sugerido}
+            >
+              <select
+                id="pr-producto_sugerido"
+                className={selectCls}
+                value={form.producto_sugerido}
+                onChange={(e) =>
+                  set("producto_sugerido")(e.target.value as ProspectFormInput["producto_sugerido"])
+                }
+              >
                 <option value="">Sin definir</option>
-                {PLANS.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+                {PLANS.map((p) => (
+                  <option key={p.key} value={p.key}>
+                    {p.label}
+                  </option>
+                ))}
               </select>
             </Field>
           </div>
           {form.estado === "baja" && (
-            <div role="alert" className="flex gap-2 rounded-app-md border border-danger/40 bg-danger-subtle p-3 text-sm text-danger-strong">
+            <div
+              role="alert"
+              className="flex gap-2 rounded-app-md border border-danger/40 bg-danger-subtle p-3 text-sm text-danger-strong"
+            >
               <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
               <p>{BAJA_NOTICE}</p>
             </div>
           )}
           {leavingBaja && !canRevoke && (
-            <p role="alert" className="rounded-app-md border border-danger/40 bg-danger-subtle p-3 text-sm text-danger-strong">
+            <p
+              role="alert"
+              className="rounded-app-md border border-danger/40 bg-danger-subtle p-3 text-sm text-danger-strong"
+            >
               Solo un owner/admin de la organización puede revocar una baja.
             </p>
           )}
           {leavingBaja && canRevoke && (
             <div className="space-y-3 rounded-app-md border border-warning/40 bg-warning-subtle p-3 text-sm text-warning-strong">
               <label className="flex items-start gap-2">
-                <input type="checkbox" checked={confirmUnbaja} onChange={(e) => setConfirmUnbaja(e.target.checked)} className="mt-0.5" />
+                <input
+                  type="checkbox"
+                  checked={confirmUnbaja}
+                  onChange={(e) => setConfirmUnbaja(e.target.checked)}
+                  className="mt-0.5"
+                />
                 Confirmo que el prospecto retiró por escrito su solicitud de no ser contactado.
               </label>
               <div className="space-y-1.5">
@@ -229,18 +325,36 @@ export function ProspectSheet({
                   className="bg-background text-foreground"
                 />
                 <p id="pr-motivo-baja-hint" className="text-xs">
-                  Cómo y cuándo retiró la solicitud ({REVOKE_MOTIVO_MIN}–{REVOKE_MOTIVO_MAX} caracteres). Queda en las notas.
+                  Cómo y cuándo retiró la solicitud ({REVOKE_MOTIVO_MIN}–{REVOKE_MOTIVO_MAX}{" "}
+                  caracteres). Queda en las notas.
                 </p>
               </div>
             </div>
           )}
-          <Field id="pr-ultimo_contacto" label="Último contacto" error={errors.ultimo_contacto}>{input("ultimo_contacto", { type: "date" })}</Field>
+          <Field id="pr-ultimo_contacto" label="Último contacto" error={errors.ultimo_contacto}>
+            {input("ultimo_contacto", { type: "date" })}
+          </Field>
           <Field id="pr-notas" label="Notas" error={errors.notas}>
-            <Textarea id="pr-notas" rows={4} value={form.notas} onChange={(e) => set("notas")(e.target.value)} />
+            <Textarea
+              id="pr-notas"
+              rows={4}
+              value={form.notas}
+              onChange={(e) => set("notas")(e.target.value)}
+            />
           </Field>
           <SheetFooter className="gap-2 sm:justify-between">
-            <div>{prospect && <ConvertAction prospect={prospect} onConvert={onConvert} label="Convertir en cliente" />}</div>
-            <Button type="submit" disabled={busy}>{busy ? "Guardando…" : "Guardar"}</Button>
+            <div>
+              {prospect && (
+                <ConvertAction
+                  prospect={prospect}
+                  onConvert={onConvert}
+                  label="Convertir en cliente"
+                />
+              )}
+            </div>
+            <Button type="submit" disabled={busy}>
+              {busy ? "Guardando…" : "Guardar"}
+            </Button>
           </SheetFooter>
         </form>
         {prospect && (

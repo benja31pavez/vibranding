@@ -4,7 +4,11 @@ import { Eye, Instagram, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Money, StatusBadge } from "@/components/app";
 import { findPlan } from "@/lib/pricing/plans";
@@ -37,7 +41,11 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
     <header className="flex flex-col gap-4 rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs md:flex-row md:items-center">
       <div className="flex min-w-0 flex-1 items-center gap-4">
         <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-app-lg bg-surface-2 text-xl font-semibold">
-          {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : client.name[0]?.toUpperCase()}
+          {avatar ? (
+            <img src={avatar} alt="" className="h-full w-full object-cover" />
+          ) : (
+            client.name[0]?.toUpperCase()
+          )}
         </div>
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -78,13 +86,19 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {!canEdit && (
-              <p className="px-2 py-1.5 text-xs text-muted-foreground">Solo lectura: no puedes editar este cliente.</p>
+              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                Solo lectura: no puedes editar este cliente.
+              </p>
             )}
             <DropdownMenuItem disabled={!canEdit} onSelect={() => setRenameOpen(true)}>
               <Pencil aria-hidden className="mr-2 h-4 w-4" /> Renombrar
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled={!canEdit} onSelect={() => setDeleteOpen(true)} className="text-danger-strong focus:text-danger-strong">
+            <DropdownMenuItem
+              disabled={!canEdit}
+              onSelect={() => setDeleteOpen(true)}
+              className="text-danger-strong focus:text-danger-strong"
+            >
               <Trash2 aria-hidden className="mr-2 h-4 w-4" /> Eliminar cliente
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -98,7 +112,12 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
         handle={client.instagram_handle}
         onSubmit={renameClient}
       />
-      <DeleteClientDialog open={deleteOpen} onOpenChange={setDeleteOpen} name={client.name} onConfirm={deleteClient} />
+      <DeleteClientDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        name={client.name}
+        onConfirm={deleteClient}
+      />
     </header>
   );
 }
@@ -108,7 +127,13 @@ export function ClientStatusBadge({ status }: { status: string }) {
   return <StatusBadge status={status} label={meta?.label} tone={meta?.tone} />;
 }
 
-function HeaderFacts({ overview, loading }: { overview: FichaOverview | undefined; loading: boolean }) {
+function HeaderFacts({
+  overview,
+  loading,
+}: {
+  overview: FichaOverview | undefined;
+  loading: boolean;
+}) {
   if (loading) return <Skeleton className="h-4 w-64" />;
   if (!overview) return null;
   const plan = findPlan(overview.billing?.plan_key);

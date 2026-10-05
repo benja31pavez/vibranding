@@ -73,14 +73,19 @@ export const acceptProposal = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<AcceptResult> => {
     privateHeaders();
     const { write, limitKey, clientIpHash } = await security();
-    if (!write.allow(limitKey("write", data.token))) return { ok: false, reason: "error", message: RATE_LIMITED };
+    if (!write.allow(limitKey("write", data.token)))
+      return { ok: false, reason: "error", message: RATE_LIMITED };
 
     let ipHash: string | null;
     try {
       ipHash = await clientIpHash();
     } catch (e) {
       console.error("[proposals] [ALERTA] no se puede aceptar sin IP_HASH_SALT", e);
-      return { ok: false, reason: "error", message: "No pudimos registrar tu aceptación. Escríbenos y lo resolvemos." };
+      return {
+        ok: false,
+        reason: "error",
+        message: "No pudimos registrar tu aceptación. Escríbenos y lo resolvemos.",
+      };
     }
 
     const { acceptPublicProposal } = await import("./public.server");
@@ -101,7 +106,8 @@ export const startProposalPayment = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<StartPaymentResult> => {
     privateHeaders();
     const { write, limitKey } = await security();
-    if (!write.allow(limitKey("write", data.token))) return { state: "unavailable", message: RATE_LIMITED };
+    if (!write.allow(limitKey("write", data.token)))
+      return { state: "unavailable", message: RATE_LIMITED };
     const { startProposalPayment: start } = await import("./public.server");
     return start(data.token, data.email || null);
   });

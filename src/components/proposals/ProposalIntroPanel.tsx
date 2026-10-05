@@ -54,7 +54,12 @@ export function ProposalIntroPanel({ generated, linkToken, linkIsDraft }: Props)
           onChange={(e) => setOverride(e.target.value)}
         />
         <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="outline" onClick={() => void copy(text, "Mensaje copiado")}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => void copy(text, "Mensaje copiado")}
+          >
             <Copy aria-hidden className="mr-1.5 h-3.5 w-3.5" /> Copiar mensaje
           </Button>
           {linkToken && (
@@ -65,7 +70,9 @@ export function ProposalIntroPanel({ generated, linkToken, linkIsDraft }: Props)
               onClick={() =>
                 void copy(
                   `${text}\n\n${publicProposalUrl(linkToken)}`,
-                  linkIsDraft ? "Copiado. El link funcionará cuando marques la propuesta como enviada." : "Mensaje con link copiado",
+                  linkIsDraft
+                    ? "Copiado. El link funcionará cuando marques la propuesta como enviada."
+                    : "Mensaje con link copiado",
                 )
               }
             >

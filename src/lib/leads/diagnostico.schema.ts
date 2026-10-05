@@ -34,11 +34,17 @@ const budgetValues = BUDGETS.map((b) => b.value) as [BudgetValue, ...BudgetValue
 const PHONE_RE = /^\+?[\d\s()-]{8,20}$/;
 
 /** Caracteres de control (incluye CR/LF): nunca válidos en campos de una línea. */
+// eslint-disable-next-line no-control-regex -- intencional: elimina caracteres de control
 const CONTROL_RE = /[\u0000-\u001f\u007f]/;
 const NO_CONTROL = "Usa solo texto, sin saltos de línea ni caracteres especiales";
 
 const requiredText = (max: number, msg: string) =>
-  z.string().trim().min(2, msg).max(max, `Máximo ${max} caracteres`).refine((v) => !CONTROL_RE.test(v), NO_CONTROL);
+  z
+    .string()
+    .trim()
+    .min(2, msg)
+    .max(max, `Máximo ${max} caracteres`)
+    .refine((v) => !CONTROL_RE.test(v), NO_CONTROL);
 
 /** Texto y versión EXACTOS del checkbox; se guardan en prospect_consents. Cambia la versión si cambias el texto. */
 export const CONSENT_TEXT =
@@ -96,7 +102,10 @@ export function budgetLabel(value: string | undefined): string | null {
  * Separa "Instagram o web" en una de las dos columnas del prospecto.
  * "@marca", "instagram.com/marca" → instagram "@marca"; un dominio o URL → web.
  */
-export function splitPresence(raw: string | undefined): { instagram: string | null; web: string | null } {
+export function splitPresence(raw: string | undefined): {
+  instagram: string | null;
+  web: string | null;
+} {
   const value = (raw ?? "").trim();
   if (!value) return { instagram: null, web: null };
   const ig = value.match(/^(?:https?:\/\/)?(?:www\.)?instagram\.com\/([A-Za-z0-9._]{1,30})/i);

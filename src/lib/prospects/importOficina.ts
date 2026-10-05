@@ -42,7 +42,10 @@ const optStr = z.string().nullish();
 const officeRowSchema = z
   .object({
     id: optStr,
-    negocio: z.string({ required_error: "Falta el nombre del negocio", invalid_type_error: "Nombre inválido" }),
+    negocio: z.string({
+      required_error: "Falta el nombre del negocio",
+      invalid_type_error: "Nombre inválido",
+    }),
     rubro: optStr,
     nicho: optStr,
     comuna: optStr,
@@ -57,7 +60,9 @@ const officeRowSchema = z
     prioridad: z.number().nullish(),
     estado: optStr,
     proximoPaso: z.object({ fecha: optStr, accion: optStr }).nullish(),
-    historial: z.array(z.object({ fecha: optStr, accion: optStr, nota: optStr }).passthrough()).nullish(),
+    historial: z
+      .array(z.object({ fecha: optStr, accion: optStr, nota: optStr }).passthrough())
+      .nullish(),
   })
   .passthrough();
 
@@ -97,17 +102,23 @@ export function parseOfficeFile(text: string): unknown[] {
   }
   const rows = Array.isArray(data)
     ? data
-    : data && typeof data === "object" && Array.isArray((data as { prospectos?: unknown }).prospectos)
+    : data &&
+        typeof data === "object" &&
+        Array.isArray((data as { prospectos?: unknown }).prospectos)
       ? (data as { prospectos: unknown[] }).prospectos
       : null;
-  if (!rows) throw new Error("No se encontró la lista \"prospectos\" en el archivo.");
-  if (rows.length > MAX_FILE_ROWS) throw new Error(`El archivo tiene más de ${MAX_FILE_ROWS} prospectos.`);
+  if (!rows) throw new Error('No se encontró la lista "prospectos" en el archivo.');
+  if (rows.length > MAX_FILE_ROWS)
+    throw new Error(`El archivo tiene más de ${MAX_FILE_ROWS} prospectos.`);
   return rows;
 }
 
 function lastContactDate(row: OfficeRow): string {
   const dates = (row.historial ?? [])
-    .filter((h) => h.accion && CONTACT_ACTIONS.has(h.accion) && h.fecha && /^\d{4}-\d{2}-\d{2}/.test(h.fecha))
+    .filter(
+      (h) =>
+        h.accion && CONTACT_ACTIONS.has(h.accion) && h.fecha && /^\d{4}-\d{2}-\d{2}/.test(h.fecha),
+    )
     .map((h) => (h.fecha as string).slice(0, 10))
     .sort();
   return dates[dates.length - 1] ?? "";
@@ -137,14 +148,19 @@ function buildNotes(row: OfficeRow): string {
   if (row.senal) lines.push(`Señal: ${row.senal}`);
   if (row.nicho) lines.push(`Nicho: ${row.nicho}`);
   if (row.prioridad != null) lines.push(`Prioridad: ${row.prioridad}`);
-  if (row.origen?.tipo) lines.push(`Origen: ${row.origen.tipo}${row.origen.ref ? ` (${row.origen.ref})` : ""}`);
+  if (row.origen?.tipo)
+    lines.push(`Origen: ${row.origen.tipo}${row.origen.ref ? ` (${row.origen.ref})` : ""}`);
   if (row.canal) lines.push(`Canal próximo contacto: ${row.canal}`);
   if (row.proximoPaso?.accion) {
-    lines.push(`Próximo paso: ${row.proximoPaso.accion}${row.proximoPaso.fecha ? ` el ${row.proximoPaso.fecha}` : ""}`);
+    lines.push(
+      `Próximo paso: ${row.proximoPaso.accion}${row.proximoPaso.fecha ? ` el ${row.proximoPaso.fecha}` : ""}`,
+    );
   }
-  if (row.estado === "frio") lines.push("En la oficina estaba \"frío\": no respondió al correo ni al recordatorio.");
+  if (row.estado === "frio")
+    lines.push('En la oficina estaba "frío": no respondió al correo ni al recordatorio.');
   // Solo los que venían como "perdido" llevan plazo de "no contactar".
-  if (row.estado === "perdido") lines.push(noContactNote(addMonthsIso(lastHistoryDate(row), NO_CONTACT_MONTHS)));
+  if (row.estado === "perdido")
+    lines.push(noContactNote(addMonthsIso(lastHistoryDate(row), NO_CONTACT_MONTHS)));
   if (row.id) lines.push(`ID oficina: ${row.id}`);
   return lines.join("\n");
 }
@@ -155,14 +171,17 @@ function resolveFuente(row: OfficeRow, hasContact: boolean): string | null {
   if (fuente) return `${fuente} (oficina de agentes)`;
   if (hasContact) return null;
   const tipo = row.origen?.tipo?.trim();
-  return tipo ? `Oficina de agentes · ${tipo}${row.origen?.ref ? ` (${row.origen.ref})` : ""}` : null;
+  return tipo
+    ? `Oficina de agentes · ${tipo}${row.origen?.ref ? ` (${row.origen.ref})` : ""}`
+    : null;
 }
 
 type MapResult = { ok: true; candidate: ImportCandidate } | { ok: false; reason: string };
 
 function mapRow(raw: unknown): MapResult {
   const parsed = officeRowSchema.safeParse(raw);
-  if (!parsed.success) return { ok: false, reason: parsed.error.issues[0]?.message ?? "Fila inválida" };
+  if (!parsed.success)
+    return { ok: false, reason: parsed.error.issues[0]?.message ?? "Fila inválida" };
   const row = parsed.data;
 
   const estado = STATE_MAP[row.estado ?? "nuevo"];
@@ -171,7 +190,8 @@ function mapRow(raw: unknown): MapResult {
   const contacto = row.contacto?.trim() ?? "";
   const email = contacto && isEmail(contacto) ? contacto : "";
   const phone = contacto && !email && isPhone(contacto) ? contacto : "";
-  if (contacto && !email && !phone) return { ok: false, reason: "Contacto que no es correo ni teléfono" };
+  if (contacto && !email && !phone)
+    return { ok: false, reason: "Contacto que no es correo ni teléfono" };
 
   const fuente = resolveFuente(row, Boolean(contacto));
   if (!fuente) return { ok: false, reason: "Sin fuente del contacto (fuenteContacto)" };
@@ -186,7 +206,9 @@ function mapRow(raw: unknown): MapResult {
     telefono_publico: phone,
     fuente,
     estado,
-    producto_sugerido: ["marca-web", "contenido", "crecimiento"].includes(row.productoSugerido ?? "")
+    producto_sugerido: ["marca-web", "contenido", "crecimiento"].includes(
+      row.productoSugerido ?? "",
+    )
       ? row.productoSugerido
       : "",
     notas: buildNotes(row),
@@ -209,7 +231,10 @@ function rowLabel(raw: unknown, index: number): string {
 }
 
 /** Valida, mapea y deduplica (nombre+comuna o email) contra la BD y dentro del mismo archivo. */
-export function planImport(rows: readonly unknown[], existing: readonly ExistingProspect[]): ImportPlan {
+export function planImport(
+  rows: readonly unknown[],
+  existing: readonly ExistingProspect[],
+): ImportPlan {
   const seenKeys = new Set(existing.map((p) => dedupeKey(p.nombre, p.comuna)));
   const seenEmails = new Set(
     existing.map((p) => p.email_publico?.toLowerCase()).filter((e): e is string => Boolean(e)),

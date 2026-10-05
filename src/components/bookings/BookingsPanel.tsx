@@ -10,7 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Copy, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -76,12 +82,17 @@ function TimeSlider({
   );
 }
 
-
 type Settings = {
   id: string;
   slug: string;
   display_name: string;
-  hours: { day: number; enabled: boolean; open: string; close: string; breaks?: { start: string; end: string }[] }[];
+  hours: {
+    day: number;
+    enabled: boolean;
+    open: string;
+    close: string;
+    breaks?: { start: string; end: string }[];
+  }[];
   slot_minutes: number;
   timezone: string;
   notification_email: string | null;
@@ -89,7 +100,6 @@ type Settings = {
   intro: string | null;
   client_id: string | null;
 };
-
 
 /** Allowed appointment lengths, in minutes. */
 const SLOT_OPTIONS = [15, 30, 45, 60, 90] as const;
@@ -118,8 +128,8 @@ export function BookingsPanel() {
     load();
   }, [user]);
 
-
-  if (!settings || !draftHours) return <div className="p-6 text-muted-foreground text-sm">Cargando agenda…</div>;
+  if (!settings || !draftHours)
+    return <div className="p-6 text-muted-foreground text-sm">Cargando agenda…</div>;
 
   const save = async (patch: Partial<Settings>) => {
     const { error } = await supabase
@@ -157,32 +167,44 @@ export function BookingsPanel() {
     setDraftHours(draftHours.map((h) => (h.day === day ? { ...h, [field]: value } : h)));
   };
   const addBreak = (day: number) => {
-    setDraftHours(draftHours.map((h) =>
-      h.day === day ? { ...h, breaks: [...(h.breaks ?? []), { start: "13:00", end: "14:00" }] } : h,
-    ));
+    setDraftHours(
+      draftHours.map((h) =>
+        h.day === day
+          ? { ...h, breaks: [...(h.breaks ?? []), { start: "13:00", end: "14:00" }] }
+          : h,
+      ),
+    );
   };
   const updateBreak = (day: number, idx: number, field: "start" | "end", value: string) => {
-    setDraftHours(draftHours.map((h) =>
-      h.day === day
-        ? { ...h, breaks: (h.breaks ?? []).map((b, i) => (i === idx ? { ...b, [field]: value } : b)) }
-        : h,
-    ));
+    setDraftHours(
+      draftHours.map((h) =>
+        h.day === day
+          ? {
+              ...h,
+              breaks: (h.breaks ?? []).map((b, i) => (i === idx ? { ...b, [field]: value } : b)),
+            }
+          : h,
+      ),
+    );
   };
   const removeBreak = (day: number, idx: number) => {
-    setDraftHours(draftHours.map((h) =>
-      h.day === day ? { ...h, breaks: (h.breaks ?? []).filter((_, i) => i !== idx) } : h,
-    ));
+    setDraftHours(
+      draftHours.map((h) =>
+        h.day === day ? { ...h, breaks: (h.breaks ?? []).filter((_, i) => i !== idx) } : h,
+      ),
+    );
   };
 
   const publicUrl = `${window.location.origin}/book/${settings.slug}`;
-
 
   return (
     <div className="space-y-6">
       <Card className="p-6">
         <div className="flex flex-wrap items-end gap-4 justify-between">
           <div className="min-w-0 flex-1">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Tu link de reservas</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+              Tu link de reservas
+            </div>
             <div className="flex items-center gap-2">
               <Input readOnly value={publicUrl} />
               <Button
@@ -195,7 +217,9 @@ export function BookingsPanel() {
                 <Copy className="w-4 h-4" />
               </Button>
               <Button variant="outline" asChild>
-                <a href={publicUrl} target="_blank" rel="noreferrer">Ver</a>
+                <a href={publicUrl} target="_blank" rel="noreferrer">
+                  Ver
+                </a>
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
@@ -212,18 +236,24 @@ export function BookingsPanel() {
       <Card className="p-6 space-y-4">
         <div>
           <Label className="text-base">Configuración</Label>
-          <p className="text-sm text-muted-foreground">Personaliza el nombre, mensaje, horarios y duración.</p>
+          <p className="text-sm text-muted-foreground">
+            Personaliza el nombre, mensaje, horarios y duración.
+          </p>
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <Label>Nombre visible</Label>
             <Input
               defaultValue={settings.display_name}
-              onBlur={(e) => e.target.value !== settings.display_name && save({ display_name: e.target.value })}
+              onBlur={(e) =>
+                e.target.value !== settings.display_name && save({ display_name: e.target.value })
+              }
             />
           </div>
           <div>
-            <Label className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> Email para alertas</Label>
+            <Label className="flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5" /> Email para alertas
+            </Label>
             <Input
               type="email"
               placeholder={user?.email ?? "tucorreo@dominio.com"}
@@ -258,13 +288,15 @@ export function BookingsPanel() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(SLOT_OPTIONS as readonly number[]).includes(settings.slot_minutes)
-                  ? null
-                  : (
-                    <SelectItem value={String(settings.slot_minutes)}>{settings.slot_minutes} min</SelectItem>
-                  )}
+                {(SLOT_OPTIONS as readonly number[]).includes(settings.slot_minutes) ? null : (
+                  <SelectItem value={String(settings.slot_minutes)}>
+                    {settings.slot_minutes} min
+                  </SelectItem>
+                )}
                 {SLOT_OPTIONS.map((m) => (
-                  <SelectItem key={m} value={String(m)}>{m} min</SelectItem>
+                  <SelectItem key={m} value={String(m)}>
+                    {m} min
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -297,21 +329,41 @@ export function BookingsPanel() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(TIMEZONES.includes(settings.timezone) ? TIMEZONES : [settings.timezone, ...TIMEZONES]).map((tz) => (
-                      <SelectItem key={tz} value={tz} className="text-xs">{tz}</SelectItem>
+                    {(TIMEZONES.includes(settings.timezone)
+                      ? TIMEZONES
+                      : [settings.timezone, ...TIMEZONES]
+                    ).map((tz) => (
+                      <SelectItem key={tz} value={tz} className="text-xs">
+                        {tz}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">Las horas se expresan en esta zona horaria. Los bloques son de {settings.slot_minutes} minutos desde la hora de inicio. Desactiva los días sin reuniones. Recuerda guardar.</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Las horas se expresan en esta zona horaria. Los bloques son de{" "}
+                {settings.slot_minutes} minutos desde la hora de inicio. Desactiva los días sin
+                reuniones. Recuerda guardar.
+              </p>
             </div>
             <div className="flex items-center gap-2">
               {hoursDirty && (
-                <Button type="button" size="sm" variant="ghost" onClick={resetHours} disabled={savingHours}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={resetHours}
+                  disabled={savingHours}
+                >
                   Descartar
                 </Button>
               )}
-              <Button type="button" size="sm" onClick={saveHours} disabled={!hoursDirty || savingHours}>
+              <Button
+                type="button"
+                size="sm"
+                onClick={saveHours}
+                disabled={!hoursDirty || savingHours}
+              >
                 {savingHours ? "Guardando…" : hoursDirty ? "Guardar horario" : "Guardado"}
               </Button>
             </div>
@@ -321,10 +373,16 @@ export function BookingsPanel() {
               const openM = hhmmToMinutes(h.open);
               const closeM = hhmmToMinutes(h.close);
               return (
-                <div key={h.day} className={`border rounded-lg p-3 space-y-3 ${!h.enabled ? "bg-muted/30" : ""}`}>
+                <div
+                  key={h.day}
+                  className={`border rounded-lg p-3 space-y-3 ${!h.enabled ? "bg-muted/30" : ""}`}
+                >
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="w-12 text-sm font-medium">{DAYS[h.day]}</div>
-                    <Switch checked={h.enabled} onCheckedChange={(v) => setHour(h.day, "enabled", v)} />
+                    <Switch
+                      checked={h.enabled}
+                      onCheckedChange={(v) => setHour(h.day, "enabled", v)}
+                    />
                     {h.enabled ? (
                       <>
                         <div className="flex-1 min-w-[260px] grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -332,8 +390,12 @@ export function BookingsPanel() {
                             <div className="text-[11px] text-muted-foreground mb-1">Inicio</div>
                             <TimeSlider
                               value={openM}
-                              onChange={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 30)))}
-                              onCommit={(v) => setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 30)))}
+                              onChange={(v) =>
+                                setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 30)))
+                              }
+                              onCommit={(v) =>
+                                setHour(h.day, "open", minutesToHHMM(Math.min(v, closeM - 30)))
+                              }
                               max={1410}
                             />
                           </div>
@@ -341,8 +403,12 @@ export function BookingsPanel() {
                             <div className="text-[11px] text-muted-foreground mb-1">Fin</div>
                             <TimeSlider
                               value={closeM}
-                              onChange={(v) => setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 30)))}
-                              onCommit={(v) => setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 30)))}
+                              onChange={(v) =>
+                                setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 30)))
+                              }
+                              onCommit={(v) =>
+                                setHour(h.day, "close", minutesToHHMM(Math.max(v, openM + 30)))
+                              }
                               min={30}
                             />
                           </div>
@@ -358,7 +424,9 @@ export function BookingsPanel() {
                         </Button>
                       </>
                     ) : (
-                      <span className="text-xs text-muted-foreground italic">Sin reuniones este día</span>
+                      <span className="text-xs text-muted-foreground italic">
+                        Sin reuniones este día
+                      </span>
                     )}
                   </div>
                   {h.enabled && (h.breaks ?? []).length > 0 && (
@@ -372,18 +440,41 @@ export function BookingsPanel() {
                             <div className="flex-1 min-w-[260px] grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <TimeSlider
                                 value={bs}
-                                onChange={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 30)))}
-                                onCommit={(v) => updateBreak(h.day, i, "start", minutesToHHMM(Math.min(v, be - 30)))}
+                                onChange={(v) =>
+                                  updateBreak(
+                                    h.day,
+                                    i,
+                                    "start",
+                                    minutesToHHMM(Math.min(v, be - 30)),
+                                  )
+                                }
+                                onCommit={(v) =>
+                                  updateBreak(
+                                    h.day,
+                                    i,
+                                    "start",
+                                    minutesToHHMM(Math.min(v, be - 30)),
+                                  )
+                                }
                                 max={1410}
                               />
                               <TimeSlider
                                 value={be}
-                                onChange={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 30)))}
-                                onCommit={(v) => updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 30)))}
+                                onChange={(v) =>
+                                  updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 30)))
+                                }
+                                onCommit={(v) =>
+                                  updateBreak(h.day, i, "end", minutesToHHMM(Math.max(v, bs + 30)))
+                                }
                                 min={30}
                               />
                             </div>
-                            <Button type="button" size="sm" variant="ghost" onClick={() => removeBreak(h.day, i)}>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeBreak(h.day, i)}
+                            >
                               <X className="w-3.5 h-3.5" />
                             </Button>
                           </div>
@@ -396,9 +487,7 @@ export function BookingsPanel() {
             })}
           </div>
         </div>
-
       </Card>
-
     </div>
   );
 }

@@ -8,13 +8,29 @@
  * `amount_clp` = total del primer pago = pagos únicos + primer mes de lo mensual.
  */
 import { z } from "zod";
-import { PLANS, findPlan, splitVat, type Billing, type PlanKey, type VatBreakdown } from "@/lib/pricing/plans";
+import {
+  PLANS,
+  findPlan,
+  splitVat,
+  type Billing,
+  type PlanKey,
+  type VatBreakdown,
+} from "@/lib/pricing/plans";
 import type { StatusTone } from "@/components/app/status-badge";
 
-export const PROPOSAL_STATUSES = ["borrador", "enviada", "vista", "aceptada", "rechazada", "expirada"] as const;
+export const PROPOSAL_STATUSES = [
+  "borrador",
+  "enviada",
+  "vista",
+  "aceptada",
+  "rechazada",
+  "expirada",
+] as const;
 export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number];
 
-export const PROPOSAL_STATUS_META: Readonly<Record<ProposalStatus, { label: string; tone: StatusTone }>> = {
+export const PROPOSAL_STATUS_META: Readonly<
+  Record<ProposalStatus, { label: string; tone: StatusTone }>
+> = {
   borrador: { label: "Borrador", tone: "neutral" },
   enviada: { label: "Enviada", tone: "info" },
   vista: { label: "Vista", tone: "info" },
@@ -56,7 +72,13 @@ export function parseItems(value: unknown): ProposalItem[] {
 export function planItem(key: PlanKey): ProposalItem {
   const plan = findPlan(key);
   if (!plan) throw new Error(`Plan desconocido: ${key}`);
-  return { type: "plan", key: plan.key, label: plan.label, amount: plan.price, billing: plan.billing };
+  return {
+    type: "plan",
+    key: plan.key,
+    label: plan.label,
+    amount: plan.price,
+    billing: plan.billing,
+  };
 }
 
 export interface ProposalTotals {
@@ -89,19 +111,27 @@ export function validateDraft(input: { title: string; items: readonly ProposalIt
   if (!ProposalItemsSchema.safeParse(input.items).success) {
     errors.push("Revisa los ítems: cada uno necesita descripción y un monto entero.");
   }
-  if (input.items.some((i) => i.amount < 0 && i.type === "plan")) errors.push("El plan no puede tener monto negativo.");
+  if (input.items.some((i) => i.amount < 0 && i.type === "plan"))
+    errors.push("El plan no puede tener monto negativo.");
   const totals = computeTotals(input.items);
-  if (totals.oneTime < 0 || totals.monthly < 0) errors.push("Los descuentos no pueden dejar un total negativo.");
+  if (totals.oneTime < 0 || totals.monthly < 0)
+    errors.push("Los descuentos no pueden dejar un total negativo.");
   return errors;
 }
 
 /** true si la propuesta tiene cobro mensual (por ítems o por el plan). */
-export function hasMonthlyBilling(planKey: string | null, items: readonly Pick<ProposalItem, "billing">[]): boolean {
+export function hasMonthlyBilling(
+  planKey: string | null,
+  items: readonly Pick<ProposalItem, "billing">[],
+): boolean {
   return items.some((i) => i.billing === "monthly") || findPlan(planKey)?.billing === "monthly";
 }
 
 /** Condiciones que se muestran (y se aceptan) según el contenido de la propuesta. */
-export function proposalConditions(planKey: string | null, items: readonly ProposalItem[]): string[] {
+export function proposalConditions(
+  planKey: string | null,
+  items: readonly ProposalItem[],
+): string[] {
   const plan = findPlan(planKey);
   const hasMonthly = hasMonthlyBilling(planKey, items);
   const minMonths = plan?.minMonths ?? 3;
@@ -133,9 +163,10 @@ export function chileDatePlusDays(days: number, now: Date = new Date()): string 
 
 /** Offset de Chile (p. ej. "-03:00") vigente a mediodía de `isoDate`. */
 function chileOffset(isoDate: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: CHILE_TZ, timeZoneName: "longOffset" }).formatToParts(
-    new Date(`${isoDate}T12:00:00Z`),
-  );
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: CHILE_TZ,
+    timeZoneName: "longOffset",
+  }).formatToParts(new Date(`${isoDate}T12:00:00Z`));
   const raw = parts.find((p) => p.type === "timeZoneName")?.value ?? "GMT-03:00";
   return raw === "GMT" ? "+00:00" : raw.replace("GMT", "");
 }
@@ -158,14 +189,25 @@ export function formatChileDate(iso: string | null): string {
   if (!iso) return "—";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("es-CL", { timeZone: CHILE_TZ, day: "numeric", month: "long", year: "numeric" }).format(
-    date,
-  );
+  return new Intl.DateTimeFormat("es-CL", {
+    timeZone: CHILE_TZ,
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
 }
 
 /** Estado efectivo: enviada/vista con vencimiento pasado se muestra como expirada (igual que la BD). */
-export function effectiveStatus(status: string, expiresAt: string | null, now = Date.now()): string {
-  if ((status === "enviada" || status === "vista") && expiresAt && new Date(expiresAt).getTime() <= now) {
+export function effectiveStatus(
+  status: string,
+  expiresAt: string | null,
+  now = Date.now(),
+): string {
+  if (
+    (status === "enviada" || status === "vista") &&
+    expiresAt &&
+    new Date(expiresAt).getTime() <= now
+  ) {
     return "expirada";
   }
   return status;

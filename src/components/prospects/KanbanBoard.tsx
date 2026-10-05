@@ -37,9 +37,12 @@ function makeAnnouncements(byId: Map<string, Prospect>): Announcements {
   const name = (id: string | number) => byId.get(String(id))?.nombre ?? "Prospecto";
   return {
     onDragStart: ({ active }) => `Tomaste ${name(active.id)}.`,
-    onDragOver: ({ active, over }) => `${name(active.id)} está sobre la columna ${labelOf(over?.id)}.`,
+    onDragOver: ({ active, over }) =>
+      `${name(active.id)} está sobre la columna ${labelOf(over?.id)}.`,
     onDragEnd: ({ active, over }) =>
-      over ? `${name(active.id)} se soltó en ${labelOf(over.id)}.` : `${name(active.id)} se soltó sin cambios.`,
+      over
+        ? `${name(active.id)} se soltó en ${labelOf(over.id)}.`
+        : `${name(active.id)} se soltó sin cambios.`,
     onDragCancel: ({ active }) => `Se canceló el arrastre de ${name(active.id)}.`,
   };
 }
@@ -52,7 +55,10 @@ const DROP_OFFSET_PX = 12;
  * Con teclado, las flechas saltan de columna en columna (izq./arriba = anterior,
  * der./abajo = siguiente) en vez de mover la tarjeta píxel a píxel.
  */
-const columnCoordinateGetter: KeyboardCoordinateGetter = (event, { context, currentCoordinates }) => {
+const columnCoordinateGetter: KeyboardCoordinateGetter = (
+  event,
+  { context, currentCoordinates },
+) => {
   const forward = NEXT_KEYS.has(event.code);
   if (!forward && !PREV_KEYS.has(event.code)) return undefined;
   event.preventDefault();
@@ -64,7 +70,9 @@ const columnCoordinateGetter: KeyboardCoordinateGetter = (event, { context, curr
   if (columns.length === 0) return currentCoordinates;
   const currentIndex = columns.findIndex((c) => c.id === String(context.over?.id ?? ""));
   const nextIndex =
-    currentIndex === -1 ? 0 : Math.min(columns.length - 1, Math.max(0, currentIndex + (forward ? 1 : -1)));
+    currentIndex === -1
+      ? 0
+      : Math.min(columns.length - 1, Math.max(0, currentIndex + (forward ? 1 : -1)));
   const target = columns[nextIndex].rect;
   // Igual que sortableKeyboardCoordinates: compensar la distancia entre el puntero y la tarjeta.
   const collision = context.collisionRect;
@@ -105,7 +113,10 @@ function Column({
     >
       <header className="flex items-center justify-between gap-2 px-1 pb-2">
         <h2 className="text-sm font-semibold text-foreground">
-          {title} <span className="ml-1 text-xs font-normal tabular-nums text-muted-foreground">{count}</span>
+          {title}{" "}
+          <span className="ml-1 text-xs font-normal tabular-nums text-muted-foreground">
+            {count}
+          </span>
         </h2>
         {headerAction}
       </header>
@@ -116,7 +127,11 @@ function Column({
 
 function CardList({ items, actions }: { items: Prospect[]; actions: CardActions }) {
   if (items.length === 0) {
-    return <p className="rounded-app-md border border-dashed border-border-strong p-3 text-center text-xs text-muted-foreground">Suelta aquí</p>;
+    return (
+      <p className="rounded-app-md border border-dashed border-border-strong p-3 text-center text-xs text-muted-foreground">
+        Suelta aquí
+      </p>
+    );
   }
   return (
     <ul className="space-y-2">
@@ -127,7 +142,13 @@ function CardList({ items, actions }: { items: Prospect[]; actions: CardActions 
   );
 }
 
-export function KanbanBoard({ prospects, actions }: { prospects: Prospect[]; actions: CardActions }) {
+export function KanbanBoard({
+  prospects,
+  actions,
+}: {
+  prospects: Prospect[];
+  actions: CardActions;
+}) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [closedOpen, setClosedOpen] = useState(false);
   const sensors = useSensors(
@@ -150,7 +171,8 @@ export function KanbanBoard({ prospects, actions }: { prospects: Prospect[]; act
     setActiveId(null);
     const prospect = byId.get(String(e.active.id));
     const target = String(e.over?.id ?? "").replace(COLUMN_PREFIX, "");
-    if (prospect && isProspectState(target) && target !== prospect.estado) actions.onMove(prospect, target);
+    if (prospect && isProspectState(target) && target !== prospect.estado)
+      actions.onMove(prospect, target);
   };
 
   return (
@@ -159,13 +181,22 @@ export function KanbanBoard({ prospects, actions }: { prospects: Prospect[]; act
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDragCancel={() => setActiveId(null)}
-      accessibility={{ announcements, screenReaderInstructions: { draggable: SCREEN_READER_INSTRUCTIONS } }}
+      accessibility={{
+        announcements,
+        screenReaderInstructions: { draggable: SCREEN_READER_INSTRUCTIONS },
+      }}
     >
       <div className="-mx-2 flex gap-3 overflow-x-auto px-2 pb-3">
         {OPEN_STATES.map((state) => {
           const items = byState.get(state) ?? [];
           return (
-            <Column key={state} state={state} title={STATE_META[state].label} count={items.length} className="w-64 shrink-0">
+            <Column
+              key={state}
+              state={state}
+              title={STATE_META[state].label}
+              count={items.length}
+              className="w-64 shrink-0"
+            >
               <CardList items={items} actions={actions} />
             </Column>
           );
@@ -221,15 +252,27 @@ function ClosedColumn({
       aria-expanded={open}
       className="flex items-center gap-1 rounded-app-sm px-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      {open ? <ChevronDown aria-hidden className="h-3.5 w-3.5" /> : <ChevronRight aria-hidden className="h-3.5 w-3.5" />}
+      {open ? (
+        <ChevronDown aria-hidden className="h-3.5 w-3.5" />
+      ) : (
+        <ChevronRight aria-hidden className="h-3.5 w-3.5" />
+      )}
       {open ? "Ocultar" : "Ver"}
     </button>
   );
 
   if (!open) {
     return (
-      <Column state="perdido" title="Cerrados" count={count} className="w-40 shrink-0" headerAction={toggle}>
-        <p className="px-1 text-xs text-muted-foreground">Perdidos y bajas. Suelta aquí para marcar como perdido.</p>
+      <Column
+        state="perdido"
+        title="Cerrados"
+        count={count}
+        className="w-40 shrink-0"
+        headerAction={toggle}
+      >
+        <p className="px-1 text-xs text-muted-foreground">
+          Perdidos y bajas. Suelta aquí para marcar como perdido.
+        </p>
       </Column>
     );
   }

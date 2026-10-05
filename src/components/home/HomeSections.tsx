@@ -1,5 +1,13 @@
 import {
-  Bot, Camera, Megaphone, MonitorSmartphone, Palette, Search, ShoppingBag, Sparkles, ThumbsUp,
+  Bot,
+  Camera,
+  Megaphone,
+  MonitorSmartphone,
+  Palette,
+  Search,
+  ShoppingBag,
+  Sparkles,
+  ThumbsUp,
 } from "lucide-react";
 import { SectionHeading } from "./shared";
 import { translations } from "@/i18n/translations";
@@ -12,7 +20,10 @@ export function BenefitsSection() {
   const t = translations.es; // The public home is Spanish-only (Chile).
   const b = t.home.benefits;
   return (
-    <section aria-labelledby="beneficios-title" className="mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24">
+    <section
+      aria-labelledby="beneficios-title"
+      className="mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24"
+    >
       <SectionHeading id="beneficios-title" title={b.title} accent={b.titleAccent} />
       <ol className="grid gap-5 md:grid-cols-3">
         {b.items.map((item, i) => {
@@ -22,7 +33,9 @@ export function BenefitsSection() {
               <div className="flex items-center gap-3">
                 <span
                   className="grid h-11 w-11 place-items-center rounded-2xl text-white"
-                  style={{ background: `linear-gradient(135deg, ${TONES[i]}, color-mix(in oklab, ${TONES[i]} 60%, black))` }}
+                  style={{
+                    background: `linear-gradient(135deg, ${TONES[i]}, color-mix(in oklab, ${TONES[i]} 60%, black))`,
+                  }}
                 >
                   <Icon aria-hidden className="h-5 w-5" />
                 </span>
@@ -41,9 +54,18 @@ export function ServicesSection() {
   const t = translations.es; // The public home is Spanish-only (Chile).
   const s = t.home.services;
   return (
-    <section id="servicios" aria-labelledby="servicios-title" className="scroll-mt-20 bg-secondary/50 py-16 md:py-24">
+    <section
+      id="servicios"
+      aria-labelledby="servicios-title"
+      className="scroll-mt-20 bg-secondary/50 py-16 md:py-24"
+    >
       <div className="mx-auto max-w-7xl px-4 md:px-10">
-        <SectionHeading id="servicios-title" title={s.title} accent={s.titleAccent} subtitle={s.subtitle} />
+        <SectionHeading
+          id="servicios-title"
+          title={s.title}
+          accent={s.titleAccent}
+          subtitle={s.subtitle}
+        />
         <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {s.items.map((item, i) => {
             const Icon = SERVICE_ICONS[i] ?? Sparkles;

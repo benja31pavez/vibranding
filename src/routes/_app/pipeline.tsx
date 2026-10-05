@@ -23,7 +23,9 @@ export const Route = createFileRoute("/_app/pipeline")({
   /** `prospecto`: abre la ficha de ese prospecto (enlace desde "Seguimientos sugeridos"). */
   validateSearch: (search: Record<string, unknown>): { vista?: "tabla"; prospecto?: string } => ({
     ...(search.vista === "tabla" ? { vista: "tabla" as const } : {}),
-    ...(typeof search.prospecto === "string" && UUID_RE.test(search.prospecto) ? { prospecto: search.prospecto } : {}),
+    ...(typeof search.prospecto === "string" && UUID_RE.test(search.prospecto)
+      ? { prospecto: search.prospecto }
+      : {}),
   }),
   component: PipelinePage,
 });
@@ -37,14 +39,20 @@ function ViewToggle({ view, onChange }: { view: View; onChange: (v: View) => voi
       className={cn(
         "inline-flex items-center gap-1.5 rounded-app-sm px-2.5 py-1.5 text-sm font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        view === value ? "bg-surface text-foreground shadow-app-xs" : "text-muted-foreground hover:text-foreground",
+        view === value
+          ? "bg-surface text-foreground shadow-app-xs"
+          : "text-muted-foreground hover:text-foreground",
       )}
     >
       <Icon aria-hidden className="h-4 w-4" /> {label}
     </button>
   );
   return (
-    <div role="group" aria-label="Vista" className="inline-flex rounded-app-md border border-border-subtle bg-surface-2 p-0.5">
+    <div
+      role="group"
+      aria-label="Vista"
+      className="inline-flex rounded-app-md border border-border-subtle bg-surface-2 p-0.5"
+    >
       {item("kanban", "Kanban", KanbanSquare)}
       {item("tabla", "Tabla", Table2)}
     </div>
@@ -57,7 +65,10 @@ function PipelinePage() {
   const navigate = useNavigate({ from: "/pipeline" });
   const prospectsQuery = useProspects();
   const move = useMoveProspect();
-  const [editing, setEditing] = useState<{ open: boolean; prospect: Prospect | null }>({ open: false, prospect: null });
+  const [editing, setEditing] = useState<{ open: boolean; prospect: Prospect | null }>({
+    open: false,
+    prospect: null,
+  });
   const [importOpen, setImportOpen] = useState(false);
   const [converting, setConverting] = useState<Prospect | null>(null);
 
@@ -74,7 +85,9 @@ function PipelinePage() {
 
   const onMove = (p: Prospect, estado: ProspectState) => {
     if (p.estado === "baja" && estado !== "baja") {
-      toast.error(`${p.nombre} pidió la baja: no se puede volver a contactar. Si retiró la solicitud, un owner/admin puede revocarla desde la ficha del prospecto.`);
+      toast.error(
+        `${p.nombre} pidió la baja: no se puede volver a contactar. Si retiró la solicitud, un owner/admin puede revocarla desde la ficha del prospecto.`,
+      );
       return;
     }
     move.mutate(
@@ -84,13 +97,19 @@ function PipelinePage() {
           if (estado === "baja") toast.warning(BAJA_NOTICE, { duration: 10_000 });
           else if (estado === "ganado") {
             toast.success(`${p.nombre} pasó a Ganado`, {
-              action: { label: "Convertir en cliente", onClick: () => setConverting({ ...p, estado }) },
+              action: {
+                label: "Convertir en cliente",
+                onClick: () => setConverting({ ...p, estado }),
+              },
             });
           } else if (estado === "frio") {
-            toast.success(`${p.nombre} quedó en Fríos: no se le insistirá. Retómalo a mano cuando haga sentido.`);
+            toast.success(
+              `${p.nombre} quedó en Fríos: no se le insistirá. Retómalo a mano cuando haga sentido.`,
+            );
           } else toast.success(`${p.nombre} → ${STATE_META[estado].label}`);
         },
-        onError: (err) => toast.error(err instanceof Error ? err.message : "No se pudo mover el prospecto"),
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : "No se pudo mover el prospecto"),
       },
     );
   };
@@ -102,9 +121,15 @@ function PipelinePage() {
   };
 
   const content = () => {
-    if (prospectsQuery.isLoading) return <TableSkeleton rows={6} columns={5} label="Cargando prospectos" />;
+    if (prospectsQuery.isLoading)
+      return <TableSkeleton rows={6} columns={5} label="Cargando prospectos" />;
     if (prospectsQuery.error) {
-      return <ErrorState message={prospectsQuery.error.message} onRetry={() => void prospectsQuery.refetch()} />;
+      return (
+        <ErrorState
+          message={prospectsQuery.error.message}
+          onRetry={() => void prospectsQuery.refetch()}
+        />
+      );
     }
     if (prospects.length === 0) {
       return (
@@ -112,7 +137,11 @@ function PipelinePage() {
           icon={Target}
           title="Aún no hay prospectos"
           description="Crea uno a mano o importa el archivo de prospectos de la oficina de agentes."
-          action={<Button onClick={() => setImportOpen(true)}><FileJson aria-hidden className="mr-1 h-4 w-4" /> Importar JSON</Button>}
+          action={
+            <Button onClick={() => setImportOpen(true)}>
+              <FileJson aria-hidden className="mr-1 h-4 w-4" /> Importar JSON
+            </Button>
+          }
         />
       );
     }
@@ -130,7 +159,10 @@ function PipelinePage() {
         description="Embudo comercial: de nuevo a ganado. Arrastra las tarjetas o usa el selector de estado."
         actions={
           <>
-            <ViewToggle view={view} onChange={(v) => void navigate({ search: v === "tabla" ? { vista: "tabla" } : {} })} />
+            <ViewToggle
+              view={view}
+              onChange={(v) => void navigate({ search: v === "tabla" ? { vista: "tabla" } : {} })}
+            />
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <FileJson aria-hidden className="mr-1 h-4 w-4" /> Importar JSON
             </Button>
@@ -145,7 +177,10 @@ function PipelinePage() {
         open={editing.open}
         prospect={editing.prospect}
         onOpenChange={(open) => setEditing((s) => ({ ...s, open }))}
-        onConvert={(p) => { setEditing((s) => ({ ...s, open: false })); setConverting(p); }}
+        onConvert={(p) => {
+          setEditing((s) => ({ ...s, open: false }));
+          setConverting(p);
+        }}
       />
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} existing={prospects} />
       <ConvertDialog prospect={converting} onClose={() => setConverting(null)} />

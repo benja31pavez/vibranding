@@ -18,10 +18,15 @@ const NEXT_STEPS = [
 /** Confirmación tras enviar el onboarding. */
 export function OnboardingDone({ clientName }: { clientName: string }) {
   return (
-    <section className="space-y-6 rounded-app-lg border border-border-subtle bg-surface p-6 text-center shadow-app-xs sm:p-8" aria-live="polite">
+    <section
+      className="space-y-6 rounded-app-lg border border-border-subtle bg-surface p-6 text-center shadow-app-xs sm:p-8"
+      aria-live="polite"
+    >
       <CheckCircle2 aria-hidden className="mx-auto h-12 w-12 text-success" />
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-foreground">¡Listo! Ya tenemos todo para empezar</h1>
+        <h1 className="text-2xl font-semibold text-foreground">
+          ¡Listo! Ya tenemos todo para empezar
+        </h1>
         <p className="text-muted-foreground">Gracias por confiar en nosotros, {clientName}.</p>
       </div>
       <div className="text-left">

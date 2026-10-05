@@ -216,7 +216,10 @@ export function useApprovalsSummary() {
     enabled: Boolean(userId),
     queryFn: async (): Promise<ApprovalsSummary> => {
       const countFor = (kind: string) =>
-        supabase.from("approval_queue").select("ref_id", { count: "exact", head: true }).eq("kind", kind);
+        supabase
+          .from("approval_queue")
+          .select("ref_id", { count: "exact", head: true })
+          .eq("kind", kind);
       const [recent, ...counts] = await Promise.all([
         supabase
           .from("approval_queue")
@@ -319,7 +322,10 @@ export function usePipelineCounts() {
     queryFn: async (): Promise<Readonly<Record<string, number>>> => {
       const results = await Promise.all(
         PIPELINE_STAGES.map((s) =>
-          supabase.from("prospects").select("id", { count: "exact", head: true }).eq("estado", s.key),
+          supabase
+            .from("prospects")
+            .select("id", { count: "exact", head: true })
+            .eq("estado", s.key),
         ),
       );
       fail(results.find((r) => r.error)?.error ?? null);

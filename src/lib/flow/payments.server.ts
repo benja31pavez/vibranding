@@ -83,7 +83,12 @@ function paidDate(status: FlowPaymentStatus): string {
  * - mismatch: la orden no corresponde al cobro (commerceOrder, monto o moneda).
  */
 export type ApplyResult =
-  "paid" | "already_paid" | "duplicate" | "pending" | "rejected" | "mismatch";
+  | "paid"
+  | "already_paid"
+  | "duplicate"
+  | "pending"
+  | "rejected"
+  | "mismatch";
 
 /** Id del cobro a partir del commerceOrder ("<uuid>" o "<uuid>.<sufijo>"). */
 export function paymentIdFromCommerceOrder(commerceOrder: string): string | null {
@@ -210,7 +215,8 @@ export async function defaultPayerEmail(clientId: string): Promise<string | null
 }
 
 export type PaymentLinkResult =
-  { state: "link"; paymentUrl: string; reused: boolean } | { state: "already_paid" };
+  | { state: "link"; paymentUrl: string; reused: boolean }
+  | { state: "already_paid" };
 
 function assertChargeable(payment: PaymentRow): number {
   if (!OPEN_STATUSES.includes(payment.status)) {

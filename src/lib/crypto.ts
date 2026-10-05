@@ -28,8 +28,14 @@ export function timingSafeEqualHex(a: string, b: string): boolean {
  * ambos con el esperado como clave (longitud fija) y comparación constante.
  * Vacíos nunca coinciden.
  */
-export async function secretsMatch(provided: string | null | undefined, expected: string): Promise<boolean> {
+export async function secretsMatch(
+  provided: string | null | undefined,
+  expected: string,
+): Promise<boolean> {
   if (!provided || !expected) return false;
-  const [a, b] = await Promise.all([hmacSha256Hex(expected, provided), hmacSha256Hex(expected, expected)]);
+  const [a, b] = await Promise.all([
+    hmacSha256Hex(expected, provided),
+    hmacSha256Hex(expected, expected),
+  ]);
   return timingSafeEqualHex(a, b);
 }

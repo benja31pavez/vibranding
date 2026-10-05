@@ -5,7 +5,12 @@ const SIDEBAR_ROWS = 7;
 /** Esqueleto del shell mientras se resuelve la sesión (evita la pantalla en blanco). */
 export function ShellSkeleton() {
   return (
-    <div className="flex min-h-screen flex-col bg-background" role="status" aria-busy="true" aria-live="polite">
+    <div
+      className="flex min-h-screen flex-col bg-background"
+      role="status"
+      aria-busy="true"
+      aria-live="polite"
+    >
       <span className="sr-only">Cargando la plataforma…</span>
       <div className="flex h-14 items-center gap-3 border-b bg-sidebar px-4 md:px-6">
         <Skeleton className="h-6 w-28" />

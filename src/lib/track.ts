@@ -36,7 +36,7 @@ export function trackEvent(name: LandingEventName, source: EventSource, lang?: s
     _event_name: name,
     _source_type: source.type,
     _source_id: source.type === "site" ? null : source.id,
-    _item_id: source.type === "multilink" ? source.itemId ?? null : null,
+    _item_id: source.type === "multilink" ? (source.itemId ?? null) : null,
     _lang: lang ?? null,
     _path: window.location.pathname + window.location.search,
     _referrer: document.referrer || null,

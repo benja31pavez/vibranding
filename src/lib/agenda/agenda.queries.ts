@@ -11,7 +11,12 @@ import {
 } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { formatMoney, formatPlainAmount, isLegacyCurrency, legacyCurrencyLabel } from "@/lib/pricing/plans";
+import {
+  formatMoney,
+  formatPlainAmount,
+  isLegacyCurrency,
+  legacyCurrencyLabel,
+} from "@/lib/pricing/plans";
 import { chileDayStartIso, dayKeyOf } from "./dates";
 import type { AgendaItem, AgendaKind, AgendaRange } from "./types";
 
@@ -33,7 +38,8 @@ type ClientRef = { name: string } | null;
 
 /** Montos en CLP; un registro antiguo en otra moneda se marca, no se hace pasar por pesos. */
 function money(amount: number, currency: string | null | undefined): string {
-  if (isLegacyCurrency(currency)) return `${formatPlainAmount(amount)} (${legacyCurrencyLabel(currency)})`;
+  if (isLegacyCurrency(currency))
+    return `${formatPlainAmount(amount)} (${legacyCurrencyLabel(currency)})`;
   return formatMoney(amount);
 }
 

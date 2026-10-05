@@ -147,7 +147,11 @@ export interface ClpTotals {
 
 export const EMPTY_CLP_TOTALS: ClpTotals = { clp: 0, excludedCurrencies: [] };
 
-export function addClp(totals: ClpTotals, currency: string | null | undefined, amount: number): ClpTotals {
+export function addClp(
+  totals: ClpTotals,
+  currency: string | null | undefined,
+  amount: number,
+): ClpTotals {
   if (!isLegacyCurrency(currency)) return { ...totals, clp: totals.clp + toAmount(amount) };
   const code = normalizeCurrency(currency);
   if (totals.excludedCurrencies.includes(code)) return totals;

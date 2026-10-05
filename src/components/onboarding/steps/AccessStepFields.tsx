@@ -1,7 +1,12 @@
 import { Plus, ShieldAlert, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ACCESS_STATES, ACCESS_STATE_LABELS, MAX_ACCESSES, type AccessState } from "@/lib/onboarding/schema";
+import {
+  ACCESS_STATES,
+  ACCESS_STATE_LABELS,
+  MAX_ACCESSES,
+  type AccessState,
+} from "@/lib/onboarding/schema";
 import { newRowId, type AccessRow } from "../formState";
 import type { StepProps } from "./types";
 
@@ -11,29 +16,39 @@ export function AccessStepFields({ state, update, errors }: StepProps) {
     update({ accesos: state.accesos.map((r) => (r.id === id ? { ...r, ...patch } : r)) });
   const removeRow = (id: string) => update({ accesos: state.accesos.filter((r) => r.id !== id) });
   const addRow = () =>
-    update({ accesos: [...state.accesos, { id: newRowId(), servicio: "", estado: "pendiente", nota: "" }] });
+    update({
+      accesos: [...state.accesos, { id: newRowId(), servicio: "", estado: "pendiente", nota: "" }],
+    });
 
   return (
     <div className="space-y-5">
-      <div role="note" className="flex gap-3 rounded-app-lg border border-warning/40 bg-warning-subtle p-4 text-sm">
+      <div
+        role="note"
+        className="flex gap-3 rounded-app-lg border border-warning/40 bg-warning-subtle p-4 text-sm"
+      >
         <ShieldAlert aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-warning-strong" />
         <div className="space-y-1">
           <p className="font-semibold text-foreground">Nunca escribas contraseñas aquí.</p>
           <p className="text-muted-foreground">
-            Solo cuéntanos el estado de cada acceso. Te guiaremos para invitarnos como colaboradores desde cada
-            plataforma, sin compartir tus claves.
+            Solo cuéntanos el estado de cada acceso. Te guiaremos para invitarnos como colaboradores
+            desde cada plataforma, sin compartir tus claves.
           </p>
         </div>
       </div>
 
-      {errors.accesos_pendientes && <p className="text-sm text-danger-strong">{errors.accesos_pendientes}</p>}
+      {errors.accesos_pendientes && (
+        <p className="text-sm text-danger-strong">{errors.accesos_pendientes}</p>
+      )}
 
       <ul className="space-y-3">
         {state.accesos.map((row, i) => {
           const servicioErr = errors[`accesos_pendientes.${i}.servicio`];
           const notaErr = errors[`accesos_pendientes.${i}.nota`];
           return (
-            <li key={row.id} className="space-y-3 rounded-app-lg border border-border-subtle bg-surface p-4">
+            <li
+              key={row.id}
+              className="space-y-3 rounded-app-lg border border-border-subtle bg-surface p-4"
+            >
               <div className="flex items-start gap-2">
                 <div className="flex-1 space-y-1">
                   <label htmlFor={`${row.id}-servicio`} className="sr-only">
@@ -50,7 +65,13 @@ export function AccessStepFields({ state, update, errors }: StepProps) {
                   />
                   {servicioErr && <p className="text-xs text-danger-strong">{servicioErr}</p>}
                 </div>
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeRow(row.id)} aria-label={`Quitar ${row.servicio || "acceso"}`}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeRow(row.id)}
+                  aria-label={`Quitar ${row.servicio || "acceso"}`}
+                >
                   <Trash2 aria-hidden className="h-4 w-4" />
                 </Button>
               </div>

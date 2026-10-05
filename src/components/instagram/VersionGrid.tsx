@@ -44,9 +44,17 @@ export function VersionGrid({ clientId, posts }: { clientId: string; posts: IGPo
           const m = p.ig_media_id ? metrics[p.ig_media_id] : undefined;
           const img = p.cover_url || p.image_url;
           return (
-            <div key={p.id} className="group relative aspect-square overflow-hidden rounded-md bg-muted">
+            <div
+              key={p.id}
+              className="group relative aspect-square overflow-hidden rounded-md bg-muted"
+            >
               {img ? (
-                <img src={img} alt={p.caption?.slice(0, 60) ?? "Publicación"} className="w-full h-full object-cover" loading="lazy" />
+                <img
+                  src={img}
+                  alt={p.caption?.slice(0, 60) ?? "Publicación"}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
               ) : (
                 <div className="w-full h-full grid place-items-center text-muted-foreground">
                   <Icon className="w-5 h-5" />

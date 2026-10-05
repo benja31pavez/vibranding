@@ -7,8 +7,33 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { MediaUpload } from "./MediaUpload";
 import { uploadClientMedia } from "@/lib/uploadMedia";
-import { Image as ImageIcon, Layers, Film, Plus, Trash2, GripVertical, Loader2, Upload, X, Star, MapPin, Music, Heart, MessageCircle, Calendar as CalendarIcon, MoreVertical, ArrowUp, ArrowDown } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Image as ImageIcon,
+  Layers,
+  Film,
+  Plus,
+  Trash2,
+  GripVertical,
+  Loader2,
+  Upload,
+  X,
+  Star,
+  MapPin,
+  Music,
+  Heart,
+  MessageCircle,
+  Calendar as CalendarIcon,
+  MoreVertical,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -24,11 +49,26 @@ export type PostFormat = "photo" | "carousel" | "reel";
 export type AccountType = "personal" | "business";
 
 export const IG_CATEGORIES = [
-  "Artista", "Músico/Grupo de música", "Bloguero", "Ropa (marca)", "Comunidad",
-  "Creador digital", "Educación", "Emprendedor", "Salud/Belleza", "Editor",
-  "Escritor", "Blog personal", "Producto/Servicio", "Jugador", "Restaurante",
-  "Belleza, cosmética y cuidado personal", "Tienda de alimentos", "Fotógrafo",
-  "Compras y ventas al por menor", "Creador de reels",
+  "Artista",
+  "Músico/Grupo de música",
+  "Bloguero",
+  "Ropa (marca)",
+  "Comunidad",
+  "Creador digital",
+  "Educación",
+  "Emprendedor",
+  "Salud/Belleza",
+  "Editor",
+  "Escritor",
+  "Blog personal",
+  "Producto/Servicio",
+  "Jugador",
+  "Restaurante",
+  "Belleza, cosmética y cuidado personal",
+  "Tienda de alimentos",
+  "Fotógrafo",
+  "Compras y ventas al por menor",
+  "Creador de reels",
 ] as const;
 
 export interface IGProfile {
@@ -117,7 +157,12 @@ export interface IGHighlight {
 type Side = "current" | "proposed";
 
 function TextField({
-  label, value, onChange, onBlur, multiline, accent,
+  label,
+  value,
+  onChange,
+  onBlur,
+  multiline,
+  accent,
 }: {
   label: string;
   value: string;
@@ -129,7 +174,9 @@ function TextField({
   const Comp: any = multiline ? Textarea : Input;
   return (
     <div className="space-y-1.5">
-      <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>{label}</Label>
+      <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>
+        {label}
+      </Label>
       <Comp
         value={value}
         rows={multiline ? 3 : undefined}
@@ -141,7 +188,9 @@ function TextField({
 }
 
 function CircleCoverUpload({
-  clientId, value, onChange,
+  clientId,
+  value,
+  onChange,
 }: {
   clientId: string;
   value: string | null;
@@ -202,7 +251,11 @@ function CircleCoverUpload({
 }
 
 function NumField({
-  label, value, onChange, onBlur, accent,
+  label,
+  value,
+  onChange,
+  onBlur,
+  accent,
 }: {
   label: string;
   value: number;
@@ -212,7 +265,9 @@ function NumField({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>{label}</Label>
+      <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>
+        {label}
+      </Label>
       <Input
         type="number"
         value={value}
@@ -239,14 +294,21 @@ function useProfileHelpers(profile: IGProfile, setProfile: (p: IGProfile) => voi
   const resync = useResyncIG();
   const set = (patch: Partial<IGProfile>) => setProfile({ ...profile, ...patch });
   const save = async (patch: Partial<IGProfile>) => {
-    const res = await supabase.from("instagram_profiles").update(patch).eq("id", profile.id).select("id");
+    const res = await supabase
+      .from("instagram_profiles")
+      .update(patch)
+      .eq("id", profile.id)
+      .select("id");
     if (writeFailed(res)) resync();
   };
   return { set, save };
 }
 
 export function IdentityEditor({
-  profile, setProfile, clientId, side,
+  profile,
+  setProfile,
+  clientId,
+  side,
 }: {
   profile: IGProfile;
   setProfile: (p: IGProfile) => void;
@@ -287,7 +349,9 @@ export function IdentityEditor({
           }}
         />
         <div className="flex flex-col">
-          <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>Foto de perfil</Label>
+          <Label className={`text-xs ${accent ? "text-accent" : "text-muted-foreground"}`}>
+            Foto de perfil
+          </Label>
           <span className="text-[11px] text-muted-foreground">PNG o JPG</span>
         </div>
       </div>
@@ -299,7 +363,11 @@ export function IdentityEditor({
         <NumField label="Seguidos" accent={accent} {...num(followingKey)} />
       </div>
       <div className="space-y-1.5">
-        <Label className={`text-[10px] uppercase tracking-wider ${accent ? "text-accent" : "text-muted-foreground"}`}>Descripción del perfil</Label>
+        <Label
+          className={`text-[10px] uppercase tracking-wider ${accent ? "text-accent" : "text-muted-foreground"}`}
+        >
+          Descripción del perfil
+        </Label>
         <Textarea
           rows={3}
           placeholder="Bio que aparece bajo la categoría"
@@ -314,7 +382,9 @@ export function IdentityEditor({
 }
 
 export function ConfigEditor({
-  profile, setProfile, side,
+  profile,
+  setProfile,
+  side,
 }: {
   profile: IGProfile;
   setProfile: (p: IGProfile) => void;
@@ -335,7 +405,9 @@ export function ConfigEditor({
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tipo de cuenta</Label>
+        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          Tipo de cuenta
+        </Label>
         <select
           className="w-full h-9 rounded-md border bg-background px-2 text-sm"
           value={profile[accountTypeKey] as AccountType}
@@ -366,7 +438,9 @@ export function ConfigEditor({
           </label>
           {profile[categoryKey] !== null && (
             <>
-              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Categoría</Label>
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Categoría
+              </Label>
               <select
                 className="w-full h-9 rounded-md border bg-background px-2 text-sm"
                 value={(profile[categoryKey] as string) ?? ""}
@@ -377,15 +451,16 @@ export function ConfigEditor({
                 }}
               >
                 <option value="">— Selecciona —</option>
-                {IG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                {IG_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
               </select>
             </>
           )}
         </div>
       )}
-
-
-
 
       {(() => {
         const linkKey = `${side}_link` as keyof IGProfile;
@@ -566,7 +641,15 @@ const FORMATS: { value: PostFormat; label: string; Icon: typeof ImageIcon }[] = 
 const APPROVAL_QUEUE_FIELDS = ["approval_status", "archived_at", "caption"] as const;
 
 export function PostsEditor({
-  clientId, posts, setPosts, type, profile, setProfile, comments, setComments, versionId = null,
+  clientId,
+  posts,
+  setPosts,
+  type,
+  profile,
+  setProfile,
+  comments,
+  setComments,
+  versionId = null,
 }: {
   clientId: string;
   posts: IGPost[];
@@ -589,16 +672,19 @@ export function PostsEditor({
     0,
     Math.min(
       30,
-      (type === "proposed"
-        ? profile?.proposed_posts_count
-        : profile?.current_posts_count) ?? 6,
+      (type === "proposed" ? profile?.proposed_posts_count : profile?.current_posts_count) ?? 6,
     ),
   );
 
   useEffect(() => {
     (async () => {
       const existing = posts.filter(inScope);
-      const missing: { client_id: string; type: "current" | "proposed"; position: number; version_id: string | null }[] = [];
+      const missing: {
+        client_id: string;
+        type: "current" | "proposed";
+        position: number;
+        version_id: string | null;
+      }[] = [];
       for (let i = 0; i < desiredCount; i++) {
         if (!existing.find((p) => p.position === i)) {
           missing.push({ client_id: clientId, type, position: i, version_id: versionId });
@@ -612,7 +698,6 @@ export function PostsEditor({
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId, type, desiredCount, versionId]);
-
 
   const setLocal = (id: string, patch: Partial<IGPost>) => {
     setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
@@ -641,7 +726,11 @@ export function PostsEditor({
   const updateComment = async (id: string, patch: Partial<IGComment>) => {
     const previous = comments.find((c) => c.id === id);
     setComments((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
-    const res = await supabase.from("instagram_post_comments").update(patch).eq("id", id).select("id");
+    const res = await supabase
+      .from("instagram_post_comments")
+      .update(patch)
+      .eq("id", id)
+      .select("id");
     if (writeFailed(res) && previous) {
       setComments((prev) => prev.map((c) => (c.id === id ? previous : c)));
     }
@@ -655,7 +744,9 @@ export function PostsEditor({
     }
   };
 
-  const countKey = (type === "proposed" ? "proposed_posts_count" : "current_posts_count") as keyof IGProfile;
+  const countKey = (
+    type === "proposed" ? "proposed_posts_count" : "current_posts_count"
+  ) as keyof IGProfile;
 
   const addPost = async () => {
     const existing = posts.filter(inScope);
@@ -703,7 +794,11 @@ export function PostsEditor({
     );
     const posResults = await Promise.all(
       updates.map((u) =>
-        supabase.from("instagram_posts").update({ position: u.position }).eq("id", u.id).select("id"),
+        supabase
+          .from("instagram_posts")
+          .update({ position: u.position })
+          .eq("id", u.id)
+          .select("id"),
       ),
     );
     if (anyWriteFailed(posResults, "No se pudo reordenar")) resync();
@@ -720,9 +815,7 @@ export function PostsEditor({
     }
   };
 
-  const sorted = [...posts]
-    .filter(inScope)
-    .sort((a, b) => a.position - b.position);
+  const sorted = [...posts].filter(inScope).sort((a, b) => a.position - b.position);
 
   const [dragId, setDragId] = useState<string | null>(null);
 
@@ -743,7 +836,11 @@ export function PostsEditor({
     );
     const results = await Promise.all(
       updates.map((u) =>
-        supabase.from("instagram_posts").update({ position: u.position }).eq("id", u.id).select("id"),
+        supabase
+          .from("instagram_posts")
+          .update({ position: u.position })
+          .eq("id", u.id)
+          .select("id"),
       ),
     );
     if (anyWriteFailed(results, "No se pudo reordenar")) resync();
@@ -768,642 +865,700 @@ export function PostsEditor({
   return (
     <div className="space-y-3">
       <div className="rounded-xl border bg-surface overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/40">
-              <th className="text-left px-2 py-2 w-10">#</th>
-              <th className="text-left px-2 py-2 w-20">Imagen</th>
-              <th className="text-left px-2 py-2 w-28">Tipo</th>
-              <th className="text-left px-2 py-2 w-10" title="Mejores amigos">★</th>
-              <th className="text-left px-2 py-2 w-48">Fecha</th>
-              <th className="text-left px-2 py-2">Caption</th>
-              <th className="text-left px-2 py-2 w-20">Engagement</th>
-              <th className="text-left px-2 py-2 w-36">Métricas reales</th>
-              <th className="text-left px-2 py-2 w-44">Objetivo</th>
-              <th className="text-left px-2 py-2 w-10"></th>
-
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((p, idx) => {
-              const { date, time } = splitDateTime(p.scheduled_at);
-              return (
-                <tr
-                  key={p.id}
-                  draggable
-                  onDragStart={() => setDragId(p.id)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (dragId) reorder(dragId, p.id);
-                    setDragId(null);
-                  }}
-                  onDragEnd={() => setDragId(null)}
-                  className={`border-t align-middle transition-opacity ${
-                    dragId === p.id ? "opacity-40" : ""
-                  }`}
-                >
-                  <td className="px-2 py-2 text-muted-foreground text-[10px] tabular-nums">
-                    {idx + 1}
-                  </td>
-                  <td className="px-2 py-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className="w-14 h-14 rounded-md overflow-hidden bg-muted border hover:ring-2 hover:ring-foreground/20 flex items-center justify-center"
-                        >
-                          {p.image_url ? (
-                            <img src={p.image_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <Upload className="w-4 h-4 text-muted-foreground" />
-                          )}
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-72 space-y-3" align="start">
-                        <div className="space-y-1.5">
-                          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                            {p.format === "reel" ? "Imagen del reel" : "Imagen principal"}
-                          </Label>
-                          <MediaUpload
-                            clientId={clientId}
-                            value={p.image_url}
-                            onChange={(url) => {
-                              setLocal(p.id, { image_url: url });
-                              saveRemote(p.id, { image_url: url });
-                            }}
-                            showUrl={false}
-                          />
-                        </div>
-                        {p.format === "reel" && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/40">
+                <th className="text-left px-2 py-2 w-10">#</th>
+                <th className="text-left px-2 py-2 w-20">Imagen</th>
+                <th className="text-left px-2 py-2 w-28">Tipo</th>
+                <th className="text-left px-2 py-2 w-10" title="Mejores amigos">
+                  ★
+                </th>
+                <th className="text-left px-2 py-2 w-48">Fecha</th>
+                <th className="text-left px-2 py-2">Caption</th>
+                <th className="text-left px-2 py-2 w-20">Engagement</th>
+                <th className="text-left px-2 py-2 w-36">Métricas reales</th>
+                <th className="text-left px-2 py-2 w-44">Objetivo</th>
+                <th className="text-left px-2 py-2 w-10"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((p, idx) => {
+                const { date, time } = splitDateTime(p.scheduled_at);
+                return (
+                  <tr
+                    key={p.id}
+                    draggable
+                    onDragStart={() => setDragId(p.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (dragId) reorder(dragId, p.id);
+                      setDragId(null);
+                    }}
+                    onDragEnd={() => setDragId(null)}
+                    className={`border-t align-middle transition-opacity ${
+                      dragId === p.id ? "opacity-40" : ""
+                    }`}
+                  >
+                    <td className="px-2 py-2 text-muted-foreground text-[10px] tabular-nums">
+                      {idx + 1}
+                    </td>
+                    <td className="px-2 py-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="w-14 h-14 rounded-md overflow-hidden bg-muted border hover:ring-2 hover:ring-foreground/20 flex items-center justify-center"
+                          >
+                            {p.image_url ? (
+                              <img
+                                src={p.image_url}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Upload className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-72 space-y-3" align="start">
                           <div className="space-y-1.5">
                             <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                              Carátula (thumbnail del grid)
+                              {p.format === "reel" ? "Imagen del reel" : "Imagen principal"}
                             </Label>
                             <MediaUpload
                               clientId={clientId}
-                              value={p.cover_url}
+                              value={p.image_url}
                               onChange={(url) => {
-                                setLocal(p.id, { cover_url: url });
-                                saveRemote(p.id, { cover_url: url });
+                                setLocal(p.id, { image_url: url });
+                                saveRemote(p.id, { image_url: url });
                               }}
                               showUrl={false}
                             />
-                            <label className="flex items-center gap-2 text-xs pt-1">
-                              <input
-                                type="checkbox"
-                                checked={p.is_trial_reel}
-                                onChange={(e) => {
-                                  setLocal(p.id, { is_trial_reel: e.target.checked });
-                                  saveRemote(p.id, { is_trial_reel: e.target.checked });
-                                }}
-                              />
-                              Reel de prueba
-                            </label>
                           </div>
-                        )}
-                        {p.format !== "reel" && (
-                          <CarouselImages
-                            clientId={clientId}
-                            urls={p.carousel_urls ?? []}
-                            onChange={(urls) => {
-                              const patch: Partial<IGPost> = { carousel_urls: urls };
-                              // Auto-switch to carousel format when adding multiple slides
-                              if (urls.length > 1 && p.format !== "carousel") {
-                                patch.format = "carousel";
-                              }
-                              // Use first slide as cover if no main image yet
-                              if (!p.image_url && urls[0]) {
-                                patch.image_url = urls[0];
-                              }
-                              setLocal(p.id, patch);
-                              saveRemote(p.id, patch);
-                            }}
-                          />
-                        )}
-                      </PopoverContent>
-                    </Popover>
-                  </td>
-                  <td className="px-2 py-2">
-                    <div className="flex gap-1">
-                      {FORMATS.map(({ value, label, Icon }) => (
-                        <button
-                          key={value}
-                          type="button"
-                          title={label}
-                          onClick={() => {
-                            setLocal(p.id, { format: value });
-                            saveRemote(p.id, { format: value });
-                          }}
-                          className={`p-1.5 rounded-md transition-colors ${
-                            p.format === value
-                              ? "bg-foreground text-background"
-                              : "text-muted-foreground hover:bg-muted"
-                          }`}
-                        >
-                          <Icon className="w-3.5 h-3.5" />
-                        </button>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-2 py-2">
-                    <button
-                      type="button"
-                      title="Solo mejores amigos"
-                      onClick={() => {
-                        const v = !p.close_friends_only;
-                        setLocal(p.id, { close_friends_only: v });
-                        saveRemote(p.id, { close_friends_only: v });
-                      }}
-                      className={`p-1.5 rounded-md transition-colors ${
-                        p.close_friends_only
-                          ? "bg-emerald-500 text-white"
-                          : "text-muted-foreground hover:bg-muted"
-                      }`}
-                    >
-                      <Star
-                        className="w-3.5 h-3.5"
-                        fill={p.close_friends_only ? "currentColor" : "none"}
-                      />
-                    </button>
-                  </td>
-                  <td className="px-2 py-2">
-                    <div className="flex items-center gap-1">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className={cn(
-                              "h-8 px-2 text-xs font-normal justify-start gap-1.5 flex-1 min-w-0",
-                              !date && "text-muted-foreground",
-                            )}
-                          >
-                            <CalendarIcon className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">
-                              {date
-                                ? new Date(`${date}T00:00`).toLocaleDateString(undefined, {
-                                    day: "2-digit",
-                                    month: "short",
-                                    year: "2-digit",
-                                  })
-                                : "Fecha"}
-                            </span>
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={date ? new Date(`${date}T00:00`) : undefined}
-                            onSelect={(d) => {
-                              if (!d) return;
-                              const pad = (n: number) => String(n).padStart(2, "0");
-                              const ds = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-                              const v = combineDateTime(ds, time || "00:00");
-                              setLocal(p.id, { scheduled_at: v });
-                              saveRemote(p.id, { scheduled_at: v });
-                            }}
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
+                          {p.format === "reel" && (
+                            <div className="space-y-1.5">
+                              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                Carátula (thumbnail del grid)
+                              </Label>
+                              <MediaUpload
+                                clientId={clientId}
+                                value={p.cover_url}
+                                onChange={(url) => {
+                                  setLocal(p.id, { cover_url: url });
+                                  saveRemote(p.id, { cover_url: url });
+                                }}
+                                showUrl={false}
+                              />
+                              <label className="flex items-center gap-2 text-xs pt-1">
+                                <input
+                                  type="checkbox"
+                                  checked={p.is_trial_reel}
+                                  onChange={(e) => {
+                                    setLocal(p.id, { is_trial_reel: e.target.checked });
+                                    saveRemote(p.id, { is_trial_reel: e.target.checked });
+                                  }}
+                                />
+                                Reel de prueba
+                              </label>
+                            </div>
+                          )}
+                          {p.format !== "reel" && (
+                            <CarouselImages
+                              clientId={clientId}
+                              urls={p.carousel_urls ?? []}
+                              onChange={(urls) => {
+                                const patch: Partial<IGPost> = { carousel_urls: urls };
+                                // Auto-switch to carousel format when adding multiple slides
+                                if (urls.length > 1 && p.format !== "carousel") {
+                                  patch.format = "carousel";
+                                }
+                                // Use first slide as cover if no main image yet
+                                if (!p.image_url && urls[0]) {
+                                  patch.image_url = urls[0];
+                                }
+                                setLocal(p.id, patch);
+                                saveRemote(p.id, patch);
+                              }}
+                            />
+                          )}
                         </PopoverContent>
                       </Popover>
-                      <Input
-                        type="time"
-                        value={time}
-                        disabled={!date}
-                        onChange={(e) => {
-                          const v = combineDateTime(date, e.target.value);
-                          setLocal(p.id, { scheduled_at: v });
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex gap-1">
+                        {FORMATS.map(({ value, label, Icon }) => (
+                          <button
+                            key={value}
+                            type="button"
+                            title={label}
+                            onClick={() => {
+                              setLocal(p.id, { format: value });
+                              saveRemote(p.id, { format: value });
+                            }}
+                            className={`p-1.5 rounded-md transition-colors ${
+                              p.format === value
+                                ? "bg-foreground text-background"
+                                : "text-muted-foreground hover:bg-muted"
+                            }`}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                          </button>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-2 py-2">
+                      <button
+                        type="button"
+                        title="Solo mejores amigos"
+                        onClick={() => {
+                          const v = !p.close_friends_only;
+                          setLocal(p.id, { close_friends_only: v });
+                          saveRemote(p.id, { close_friends_only: v });
                         }}
-                        onBlur={(e) => {
-                          const v = combineDateTime(date, e.target.value);
-                          saveRemote(p.id, { scheduled_at: v });
-                        }}
-                        className="h-8 text-xs w-[88px] px-2"
-                      />
-                    </div>
-                  </td>
-                  <td className="px-2 py-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className="w-full text-left text-xs px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] line-clamp-2 whitespace-pre-wrap break-words"
-                          title={p.caption ?? "Editar caption"}
-                        >
-                          {p.caption?.trim() ? p.caption : (
-                            <span className="text-muted-foreground">Caption…</span>
-                          )}
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-96 space-y-3" align="start">
-                        <div className="space-y-1">
-                          <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                            Caption
-                          </Label>
-                          <Textarea
-                            autoFocus
-                            placeholder="Escribe el caption…"
-                            value={p.caption ?? ""}
-                            rows={8}
-                            onChange={(e) => setLocal(p.id, { caption: e.target.value })}
-                            onBlur={(e) => saveRemote(p.id, { caption: e.target.value || null })}
-                            className="text-sm mt-1"
-                          />
-                          <div className="text-[10px] text-muted-foreground text-right">
-                            {(p.caption ?? "").length} caracteres
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1">
-                            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                              <MapPin className="w-3 h-3" /> Ubicación
-                            </Label>
-                            <Input
-                              placeholder="Ej: Las Condes, Santiago"
-                              value={p.location ?? ""}
-                              onChange={(e) => setLocal(p.id, { location: e.target.value })}
-                              onBlur={(e) => saveRemote(p.id, { location: e.target.value || null })}
-                              className="h-8 text-xs"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                              <Music className="w-3 h-3" /> Música
-                            </Label>
-                            <Input
-                              placeholder="Artista — Canción"
-                              value={p.music ?? ""}
-                              onChange={(e) => setLocal(p.id, { music: e.target.value })}
-                              onBlur={(e) => saveRemote(p.id, { music: e.target.value || null })}
-                              className="h-8 text-xs"
-                            />
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </td>
-                  <td className="px-2 py-2">
-                    {(() => {
-                      const postComments = comments
-                        .filter((c) => c.post_id === p.id)
-                        .sort((a, b) => a.position - b.position);
-                      const hasAny = !!(p.music || p.location || p.likes_count || postComments.length);
-                      return (
+                        className={`p-1.5 rounded-md transition-colors ${
+                          p.close_friends_only
+                            ? "bg-emerald-500 text-white"
+                            : "text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <Star
+                          className="w-3.5 h-3.5"
+                          fill={p.close_friends_only ? "currentColor" : "none"}
+                        />
+                      </button>
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex items-center gap-1">
                         <Popover>
                           <PopoverTrigger asChild>
-                            <button
+                            <Button
                               type="button"
-                              className={`w-full flex items-center justify-center gap-1 text-[10px] px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] ${hasAny ? "text-foreground" : "text-muted-foreground"}`}
-                              title="Música, ubicación, likes, comentarios"
+                              variant="outline"
+                              className={cn(
+                                "h-8 px-2 text-xs font-normal justify-start gap-1.5 flex-1 min-w-0",
+                                !date && "text-muted-foreground",
+                              )}
                             >
-                              <Heart className="w-3 h-3" />
-                              <span className="tabular-nums">{p.likes_count ?? 0}</span>
-                              <MessageCircle className="w-3 h-3 ml-1" />
-                              <span className="tabular-nums">{postComments.length}</span>
-                            </button>
+                              <CalendarIcon className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">
+                                {date
+                                  ? new Date(`${date}T00:00`).toLocaleDateString(undefined, {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "2-digit",
+                                    })
+                                  : "Fecha"}
+                              </span>
+                            </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-96 space-y-3" align="start">
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={date ? new Date(`${date}T00:00`) : undefined}
+                              onSelect={(d) => {
+                                if (!d) return;
+                                const pad = (n: number) => String(n).padStart(2, "0");
+                                const ds = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                                const v = combineDateTime(ds, time || "00:00");
+                                setLocal(p.id, { scheduled_at: v });
+                                saveRemote(p.id, { scheduled_at: v });
+                              }}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <Input
+                          type="time"
+                          value={time}
+                          disabled={!date}
+                          onChange={(e) => {
+                            const v = combineDateTime(date, e.target.value);
+                            setLocal(p.id, { scheduled_at: v });
+                          }}
+                          onBlur={(e) => {
+                            const v = combineDateTime(date, e.target.value);
+                            saveRemote(p.id, { scheduled_at: v });
+                          }}
+                          className="h-8 text-xs w-[88px] px-2"
+                        />
+                      </div>
+                    </td>
+                    <td className="px-2 py-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="w-full text-left text-xs px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] line-clamp-2 whitespace-pre-wrap break-words"
+                            title={p.caption ?? "Editar caption"}
+                          >
+                            {p.caption?.trim() ? (
+                              p.caption
+                            ) : (
+                              <span className="text-muted-foreground">Caption…</span>
+                            )}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-96 space-y-3" align="start">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                              Caption
+                            </Label>
+                            <Textarea
+                              autoFocus
+                              placeholder="Escribe el caption…"
+                              value={p.caption ?? ""}
+                              rows={8}
+                              onChange={(e) => setLocal(p.id, { caption: e.target.value })}
+                              onBlur={(e) => saveRemote(p.id, { caption: e.target.value || null })}
+                              className="text-sm mt-1"
+                            />
+                            <div className="text-[10px] text-muted-foreground text-right">
+                              {(p.caption ?? "").length} caracteres
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1">
                               <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                                <Heart className="w-3 h-3" /> Likes
+                                <MapPin className="w-3 h-3" /> Ubicación
                               </Label>
                               <Input
-                                type="number"
-                                min={0}
-                                value={p.likes_count ?? 0}
-                                onChange={(e) => setLocal(p.id, { likes_count: Number(e.target.value) })}
-                                onBlur={(e) => saveRemote(p.id, { likes_count: Number(e.target.value) })}
+                                placeholder="Ej: Las Condes, Santiago"
+                                value={p.location ?? ""}
+                                onChange={(e) => setLocal(p.id, { location: e.target.value })}
+                                onBlur={(e) =>
+                                  saveRemote(p.id, { location: e.target.value || null })
+                                }
                                 className="h-8 text-xs"
                               />
                             </div>
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                <Music className="w-3 h-3" /> Música
+                              </Label>
+                              <Input
+                                placeholder="Artista — Canción"
+                                value={p.music ?? ""}
+                                onChange={(e) => setLocal(p.id, { music: e.target.value })}
+                                onBlur={(e) => saveRemote(p.id, { music: e.target.value || null })}
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </td>
+                    <td className="px-2 py-2">
+                      {(() => {
+                        const postComments = comments
+                          .filter((c) => c.post_id === p.id)
+                          .sort((a, b) => a.position - b.position);
+                        const hasAny = !!(
+                          p.music ||
+                          p.location ||
+                          p.likes_count ||
+                          postComments.length
+                        );
+                        return (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                className={`w-full flex items-center justify-center gap-1 text-[10px] px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] ${hasAny ? "text-foreground" : "text-muted-foreground"}`}
+                                title="Música, ubicación, likes, comentarios"
+                              >
+                                <Heart className="w-3 h-3" />
+                                <span className="tabular-nums">{p.likes_count ?? 0}</span>
+                                <MessageCircle className="w-3 h-3 ml-1" />
+                                <span className="tabular-nums">{postComments.length}</span>
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-96 space-y-3" align="start">
+                              <div className="space-y-1">
                                 <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                                  <MessageCircle className="w-3 h-3" /> Comentarios
+                                  <Heart className="w-3 h-3" /> Likes
                                 </Label>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-6 text-[10px] px-2"
-                                  onClick={() => addComment(p.id)}
-                                >
-                                  <Plus className="w-3 h-3 mr-0.5" /> Añadir
-                                </Button>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  value={p.likes_count ?? 0}
+                                  onChange={(e) =>
+                                    setLocal(p.id, { likes_count: Number(e.target.value) })
+                                  }
+                                  onBlur={(e) =>
+                                    saveRemote(p.id, { likes_count: Number(e.target.value) })
+                                  }
+                                  className="h-8 text-xs"
+                                />
                               </div>
-                              {postComments.length === 0 && (
-                                <p className="text-[10px] text-muted-foreground italic">Sin comentarios.</p>
-                              )}
-                              {postComments.map((c) => (
-                                <div key={c.id} className="flex items-start gap-1">
-                                  <Input
-                                    placeholder="usuario"
-                                    value={c.username}
-                                    onChange={(e) => setComments((prev) => prev.map((x) => x.id === c.id ? { ...x, username: e.target.value } : x))}
-                                    onBlur={(e) => updateComment(c.id, { username: e.target.value })}
-                                    className="h-7 text-xs w-24"
-                                  />
-                                  <Input
-                                    placeholder="Comentario…"
-                                    value={c.text}
-                                    onChange={(e) => setComments((prev) => prev.map((x) => x.id === c.id ? { ...x, text: e.target.value } : x))}
-                                    onBlur={(e) => updateComment(c.id, { text: e.target.value })}
-                                    className="h-7 text-xs flex-1"
-                                  />
+                              <div className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                    <MessageCircle className="w-3 h-3" /> Comentarios
+                                  </Label>
                                   <Button
                                     type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-7 w-7 shrink-0"
-                                    onClick={() => removeComment(c.id)}
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 text-[10px] px-2"
+                                    onClick={() => addComment(p.id)}
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Plus className="w-3 h-3 mr-0.5" /> Añadir
                                   </Button>
                                 </div>
-                              ))}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      );
-                    })()}
-                  </td>
-                  <td className="px-2 py-2">
-                    <div className="flex items-center gap-1">
-                      {(() => {
-                        const m = p.ig_media_id ? metrics[p.ig_media_id] : undefined;
-                        if (!p.ig_media_id) {
-                          return (
-                            <span className="text-[10px] text-muted-foreground italic">
-                              Sin vincular
-                            </span>
-                          );
-                        }
-                        if (!m) {
-                          return (
-                            <span className="text-[10px] text-muted-foreground italic">
-                              Sin métricas aún
-                            </span>
-                          );
-                        }
-                        return (
-                          <span
-                            className="text-[10px] tabular-nums leading-tight"
-                            title={`Métricas del ${m.date}`}
-                          >
-                            <span className="block">Alcance {m.reach.toLocaleString("es-CL")}</span>
-                            <span className="block">Interac. {m.engagement.toLocaleString("es-CL")}</span>
-                            <span className="block">Guardados {m.saves.toLocaleString("es-CL")}</span>
-                          </span>
+                                {postComments.length === 0 && (
+                                  <p className="text-[10px] text-muted-foreground italic">
+                                    Sin comentarios.
+                                  </p>
+                                )}
+                                {postComments.map((c) => (
+                                  <div key={c.id} className="flex items-start gap-1">
+                                    <Input
+                                      placeholder="usuario"
+                                      value={c.username}
+                                      onChange={(e) =>
+                                        setComments((prev) =>
+                                          prev.map((x) =>
+                                            x.id === c.id ? { ...x, username: e.target.value } : x,
+                                          ),
+                                        )
+                                      }
+                                      onBlur={(e) =>
+                                        updateComment(c.id, { username: e.target.value })
+                                      }
+                                      className="h-7 text-xs w-24"
+                                    />
+                                    <Input
+                                      placeholder="Comentario…"
+                                      value={c.text}
+                                      onChange={(e) =>
+                                        setComments((prev) =>
+                                          prev.map((x) =>
+                                            x.id === c.id ? { ...x, text: e.target.value } : x,
+                                          ),
+                                        )
+                                      }
+                                      onBlur={(e) => updateComment(c.id, { text: e.target.value })}
+                                      className="h-7 text-xs flex-1"
+                                    />
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7 shrink-0"
+                                      onClick={() => removeComment(c.id)}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                         );
                       })()}
-                      <MediaMatchPopover
-                        clientId={clientId}
-                        postId={p.id}
-                        igMediaId={p.ig_media_id ?? null}
-                        onMatched={(igMediaId, publishedAt) =>
-                          setLocal(p.id, { ig_media_id: igMediaId, published_at: publishedAt })
-                        }
-                      />
-                    </div>
-                  </td>
-                  <td className="px-2 py-2">
-                    {(() => {
-                      const OBJECTIVE_GROUPS: { category: string; items: string[] }[] = [
-                        {
-                          category: "Venta",
-                          items: [
-                            "Vender",
-                            "Promocionar oferta",
-                            "Para hacer anuncios",
-                            "Lanzar producto",
-                            "Mostrar producto",
-                            "FOMO o escasez",
-                            "Desmitificar precios",
-                          ],
-                        },
-                        {
-                          category: "Leads y tráfico",
-                          items: [
-                            "Generar leads",
-                            "Dirigir tráfico web",
-                            "Que me escriban por DM",
-                            "Sorteo o giveaway",
-                          ],
-                        },
-                        {
-                          category: "Comunidad e interacción",
-                          items: [
-                            "Generar interacción",
-                            "Construir comunidad",
-                            "Abrir debate",
-                            "Encuesta o dinámica",
-                            "Reacción a comentario",
-                            "Reto o desafío",
-                            "Que lo compartan",
-                            "Que lo guarden",
-                          ],
-                        },
-                        {
-                          category: "Alcance y viralidad",
-                          items: [
-                            "Aumentar alcance",
-                            "Hacer un reel viral",
-                            "Reaccionar a tendencia",
-                            "Publicación colaborativa",
-                            "Nostalgia",
-                          ],
-                        },
-                        {
-                          category: "Educación y valor",
-                          items: [
-                            "Educar",
-                            "Tutorial o how-to",
-                            "Carrusel educativo",
-                            "Consejo rápido",
-                            "Explicar el proceso",
-                            "Preguntas frecuentes",
-                            "Mitos vs realidades",
-                            "Errores comunes",
-                            "Hacer una lista",
-                            "Revelar datos curiosos",
-                            "Revelar un secreto",
-                            "Recomendación de libro o podcast",
-                            "Noticia de la industria",
-                          ],
-                        },
-                        {
-                          category: "Marca y posicionamiento",
-                          items: [
-                            "Posicionar marca",
-                            "Contar historia de marca",
-                            "Cita de autoridad",
-                            "Activismo o causas",
-                            "Inspirar",
-                            "Frase o reflexión",
-                          ],
-                        },
-                        {
-                          category: "Detrás de cámaras",
-                          items: [
-                            "Behind the scenes",
-                            "Presentar equipo",
-                            "Proceso de creación",
-                            "Día de la vida",
-                            "Spoiler de novedad",
-                            "Bloopers",
-
-                          ],
-                        },
-                        {
-                          category: "Prueba social",
-                          items: [
-                            "Destacar testimonios",
-                            "Repost de cliente",
-                            "Caso de éxito",
-                            "Agradecimiento a clientes",
-                            "Celebrar un logro",
-                            "Recopilar opiniones",
-                            "Antes y después",
-                            "Expectativa vs realidad",
-                            "Comparativa o vs",
-                            "Hacer unboxing",
-                            "Historias de fracaso",
-                          ],
-                        },
-                        {
-                          category: "Entretenimiento",
-                          items: [
-                            "Entretener",
-                            "Anunciar evento",
-                            "Mini serie",
-                            "Skit o sketch",
-                            "Parodia",
-                            "Humor o meme",
-                            "Trend de audio",
-                            "Baile o coreografía",
-                            "Lip sync",
-                            "Storytime",
-                            "POV (punto de vista)",
-                            "ASMR",
-                            "Reacción en vivo",
-                            "Juego o trivia",
-                            "Esto o aquello",
-                            "Tier list o ranking",
-                            "Cuenta regresiva",
-                            "Celebrar fecha especial",
-                            "Tag o cadena",
-                            "Cover musical",
-                            "Mini documental",
-                          ],
-                        },
-                      ];
-
-                      const selected = (p.objective ?? "")
-                        .split(",")
-                        .map((s) => s.trim())
-                        .filter(Boolean);
-                      const toggle = (opt: string) => {
-                        const next = selected.includes(opt)
-                          ? selected.filter((s) => s !== opt)
-                          : [...selected, opt];
-                        const value = next.join(", ");
-                        setLocal(p.id, { objective: value });
-                        saveRemote(p.id, { objective: value || null });
-                      };
-                      return (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              className="w-full text-left text-xs px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] flex items-center gap-1.5"
-                              title={selected.join(", ") || "Definir objetivo"}
-                            >
-                              <span className={`inline-block w-1.5 h-1.5 rounded-full ${selected.length > 0 ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
-                              <span className={selected.length > 0 ? "" : "text-muted-foreground"}>
-                                {selected.length > 0 ? `Definido (${selected.length})` : "Por definir"}
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex items-center gap-1">
+                        {(() => {
+                          const m = p.ig_media_id ? metrics[p.ig_media_id] : undefined;
+                          if (!p.ig_media_id) {
+                            return (
+                              <span className="text-[10px] text-muted-foreground italic">
+                                Sin vincular
                               </span>
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-72 max-h-80 overflow-y-auto" align="start">
-                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                              Objetivos de la publicación
-                            </Label>
-                            <div className="mt-2 space-y-3">
-                              {OBJECTIVE_GROUPS.map((group) => (
-                                <div key={group.category}>
-                                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 px-1.5 mb-1 border-b pb-1">
-                                    {group.category}
-                                  </div>
-                                  <div className="space-y-1">
-                                    {group.items.map((opt) => {
-                                      const checked = selected.includes(opt);
-                                      return (
-                                        <label
-                                          key={opt}
-                                          className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1.5 py-1"
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => toggle(opt)}
-                                            className="accent-primary"
-                                          />
-                                          <span>{opt}</span>
-                                        </label>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                            );
+                          }
+                          if (!m) {
+                            return (
+                              <span className="text-[10px] text-muted-foreground italic">
+                                Sin métricas aún
+                              </span>
+                            );
+                          }
+                          return (
+                            <span
+                              className="text-[10px] tabular-nums leading-tight"
+                              title={`Métricas del ${m.date}`}
+                            >
+                              <span className="block">
+                                Alcance {m.reach.toLocaleString("es-CL")}
+                              </span>
+                              <span className="block">
+                                Interac. {m.engagement.toLocaleString("es-CL")}
+                              </span>
+                              <span className="block">
+                                Guardados {m.saves.toLocaleString("es-CL")}
+                              </span>
+                            </span>
+                          );
+                        })()}
+                        <MediaMatchPopover
+                          clientId={clientId}
+                          postId={p.id}
+                          igMediaId={p.ig_media_id ?? null}
+                          onMatched={(igMediaId, publishedAt) =>
+                            setLocal(p.id, { ig_media_id: igMediaId, published_at: publishedAt })
+                          }
+                        />
+                      </div>
+                    </td>
+                    <td className="px-2 py-2">
+                      {(() => {
+                        const OBJECTIVE_GROUPS: { category: string; items: string[] }[] = [
+                          {
+                            category: "Venta",
+                            items: [
+                              "Vender",
+                              "Promocionar oferta",
+                              "Para hacer anuncios",
+                              "Lanzar producto",
+                              "Mostrar producto",
+                              "FOMO o escasez",
+                              "Desmitificar precios",
+                            ],
+                          },
+                          {
+                            category: "Leads y tráfico",
+                            items: [
+                              "Generar leads",
+                              "Dirigir tráfico web",
+                              "Que me escriban por DM",
+                              "Sorteo o giveaway",
+                            ],
+                          },
+                          {
+                            category: "Comunidad e interacción",
+                            items: [
+                              "Generar interacción",
+                              "Construir comunidad",
+                              "Abrir debate",
+                              "Encuesta o dinámica",
+                              "Reacción a comentario",
+                              "Reto o desafío",
+                              "Que lo compartan",
+                              "Que lo guarden",
+                            ],
+                          },
+                          {
+                            category: "Alcance y viralidad",
+                            items: [
+                              "Aumentar alcance",
+                              "Hacer un reel viral",
+                              "Reaccionar a tendencia",
+                              "Publicación colaborativa",
+                              "Nostalgia",
+                            ],
+                          },
+                          {
+                            category: "Educación y valor",
+                            items: [
+                              "Educar",
+                              "Tutorial o how-to",
+                              "Carrusel educativo",
+                              "Consejo rápido",
+                              "Explicar el proceso",
+                              "Preguntas frecuentes",
+                              "Mitos vs realidades",
+                              "Errores comunes",
+                              "Hacer una lista",
+                              "Revelar datos curiosos",
+                              "Revelar un secreto",
+                              "Recomendación de libro o podcast",
+                              "Noticia de la industria",
+                            ],
+                          },
+                          {
+                            category: "Marca y posicionamiento",
+                            items: [
+                              "Posicionar marca",
+                              "Contar historia de marca",
+                              "Cita de autoridad",
+                              "Activismo o causas",
+                              "Inspirar",
+                              "Frase o reflexión",
+                            ],
+                          },
+                          {
+                            category: "Detrás de cámaras",
+                            items: [
+                              "Behind the scenes",
+                              "Presentar equipo",
+                              "Proceso de creación",
+                              "Día de la vida",
+                              "Spoiler de novedad",
+                              "Bloopers",
+                            ],
+                          },
+                          {
+                            category: "Prueba social",
+                            items: [
+                              "Destacar testimonios",
+                              "Repost de cliente",
+                              "Caso de éxito",
+                              "Agradecimiento a clientes",
+                              "Celebrar un logro",
+                              "Recopilar opiniones",
+                              "Antes y después",
+                              "Expectativa vs realidad",
+                              "Comparativa o vs",
+                              "Hacer unboxing",
+                              "Historias de fracaso",
+                            ],
+                          },
+                          {
+                            category: "Entretenimiento",
+                            items: [
+                              "Entretener",
+                              "Anunciar evento",
+                              "Mini serie",
+                              "Skit o sketch",
+                              "Parodia",
+                              "Humor o meme",
+                              "Trend de audio",
+                              "Baile o coreografía",
+                              "Lip sync",
+                              "Storytime",
+                              "POV (punto de vista)",
+                              "ASMR",
+                              "Reacción en vivo",
+                              "Juego o trivia",
+                              "Esto o aquello",
+                              "Tier list o ranking",
+                              "Cuenta regresiva",
+                              "Celebrar fecha especial",
+                              "Tag o cadena",
+                              "Cover musical",
+                              "Mini documental",
+                            ],
+                          },
+                        ];
 
-                          </PopoverContent>
-                        </Popover>
-                      );
-                    })()}
-                  </td>
-                  <td className="px-2 py-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          disabled={idx === 0}
-                          onClick={() => { if (idx > 0) reorder(p.id, sorted[idx - 1].id); }}
-                        >
-                          <ArrowUp className="w-4 h-4 mr-2" /> Subir
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          disabled={idx === sorted.length - 1}
-                          onClick={() => { if (idx < sorted.length - 1) reorder(p.id, sorted[idx + 1].id); }}
-                        >
-                          <ArrowDown className="w-4 h-4 mr-2" /> Bajar
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => removePost(p.id)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" /> Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                        const selected = (p.objective ?? "")
+                          .split(",")
+                          .map((s) => s.trim())
+                          .filter(Boolean);
+                        const toggle = (opt: string) => {
+                          const next = selected.includes(opt)
+                            ? selected.filter((s) => s !== opt)
+                            : [...selected, opt];
+                          const value = next.join(", ");
+                          setLocal(p.id, { objective: value });
+                          saveRemote(p.id, { objective: value || null });
+                        };
+                        return (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                className="w-full text-left text-xs px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50 min-h-[32px] flex items-center gap-1.5"
+                                title={selected.join(", ") || "Definir objetivo"}
+                              >
+                                <span
+                                  className={`inline-block w-1.5 h-1.5 rounded-full ${selected.length > 0 ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
+                                />
+                                <span
+                                  className={selected.length > 0 ? "" : "text-muted-foreground"}
+                                >
+                                  {selected.length > 0
+                                    ? `Definido (${selected.length})`
+                                    : "Por definir"}
+                                </span>
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-72 max-h-80 overflow-y-auto" align="start">
+                              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                Objetivos de la publicación
+                              </Label>
+                              <div className="mt-2 space-y-3">
+                                {OBJECTIVE_GROUPS.map((group) => (
+                                  <div key={group.category}>
+                                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 px-1.5 mb-1 border-b pb-1">
+                                      {group.category}
+                                    </div>
+                                    <div className="space-y-1">
+                                      {group.items.map((opt) => {
+                                        const checked = selected.includes(opt);
+                                        return (
+                                          <label
+                                            key={opt}
+                                            className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1.5 py-1"
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={checked}
+                                              onChange={() => toggle(opt)}
+                                              className="accent-primary"
+                                            />
+                                            <span>{opt}</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        );
+                      })()}
+                    </td>
+                    <td className="px-2 py-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            disabled={idx === 0}
+                            onClick={() => {
+                              if (idx > 0) reorder(p.id, sorted[idx - 1].id);
+                            }}
+                          >
+                            <ArrowUp className="w-4 h-4 mr-2" /> Subir
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={idx === sorted.length - 1}
+                            onClick={() => {
+                              if (idx < sorted.length - 1) reorder(p.id, sorted[idx + 1].id);
+                            }}
+                          >
+                            <ArrowDown className="w-4 h-4 mr-2" /> Bajar
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => removePost(p.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" /> Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
-      </div>
-      <Button type="button" variant="outline" size="sm" onClick={addPost} disabled={sorted.length >= 30}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={addPost}
+        disabled={sorted.length >= 30}
+      >
         <Plus className="w-4 h-4 mr-1" /> Añadir publicación
       </Button>
     </div>
@@ -1411,7 +1566,10 @@ export function PostsEditor({
 }
 
 export function HighlightsEditor({
-  clientId, highlights, setHighlights, type,
+  clientId,
+  highlights,
+  setHighlights,
+  type,
 }: {
   clientId: string;
   highlights: IGHighlight[];
@@ -1419,9 +1577,7 @@ export function HighlightsEditor({
   type: "current" | "proposed";
 }) {
   const resync = useResyncIG();
-  const items = highlights
-    .filter((h) => h.type === type)
-    .sort((a, b) => a.position - b.position);
+  const items = highlights.filter((h) => h.type === type).sort((a, b) => a.position - b.position);
 
   const add = async () => {
     const position = items.length ? Math.max(...items.map((i) => i.position)) + 1 : 0;
@@ -1471,7 +1627,11 @@ export function HighlightsEditor({
     );
     const results = await Promise.all(
       updates.map((u) =>
-        supabase.from("instagram_highlights").update({ position: u.position }).eq("id", u.id).select("id"),
+        supabase
+          .from("instagram_highlights")
+          .update({ position: u.position })
+          .eq("id", u.id)
+          .select("id"),
       ),
     );
     if (anyWriteFailed(results, "No se pudo reordenar")) resync();
@@ -1523,9 +1683,11 @@ export function HighlightsEditor({
                     <Input
                       placeholder="Título"
                       value={h.title ?? ""}
-                      onChange={(e) => setHighlights((prev) =>
-                        prev.map((x) => (x.id === h.id ? { ...x, title: e.target.value } : x))
-                      )}
+                      onChange={(e) =>
+                        setHighlights((prev) =>
+                          prev.map((x) => (x.id === h.id ? { ...x, title: e.target.value } : x)),
+                        )
+                      }
                       onBlur={(e) => update(h.id, { title: e.target.value || null })}
                       className="text-xs h-8"
                     />
@@ -1538,7 +1700,8 @@ export function HighlightsEditor({
                           className="inline-flex items-center gap-2 text-xs px-2 py-1.5 rounded-md border bg-background hover:bg-muted/50"
                         >
                           <Upload className="w-3 h-3" />
-                          {(h.media_urls ?? []).length} archivo{(h.media_urls ?? []).length === 1 ? "" : "s"}
+                          {(h.media_urls ?? []).length} archivo
+                          {(h.media_urls ?? []).length === 1 ? "" : "s"}
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-80 space-y-2" align="start">
@@ -1547,7 +1710,10 @@ export function HighlightsEditor({
                         </div>
                         <div className="grid grid-cols-3 gap-1">
                           {(h.media_urls ?? []).map((url, i) => (
-                            <div key={i} className="relative group aspect-[9/16] rounded overflow-hidden bg-muted">
+                            <div
+                              key={i}
+                              className="relative group aspect-[9/16] rounded overflow-hidden bg-muted"
+                            >
                               <img src={url} alt="" className="w-full h-full object-cover" />
                               <button
                                 type="button"
@@ -1610,7 +1776,9 @@ function toLocalInput(iso: string) {
 }
 
 function CarouselImages({
-  clientId, urls, onChange,
+  clientId,
+  urls,
+  onChange,
 }: {
   clientId: string;
   urls: string[];
@@ -1699,7 +1867,11 @@ function CarouselImages({
           onClick={() => imgInputRef.current?.click()}
           className="flex-1 h-8 text-xs"
         >
-          {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+          {uploading ? (
+            <Loader2 className="w-3 h-3 animate-spin mr-1" />
+          ) : (
+            <Upload className="w-3 h-3 mr-1" />
+          )}
           Subir imagen
         </Button>
         <Button
@@ -1710,13 +1882,15 @@ function CarouselImages({
           onClick={() => pdfInputRef.current?.click()}
           className="flex-1 h-8 text-xs"
         >
-          {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+          {uploading ? (
+            <Loader2 className="w-3 h-3 animate-spin mr-1" />
+          ) : (
+            <Upload className="w-3 h-3 mr-1" />
+          )}
           Subir PDF
         </Button>
       </div>
-      {progress && (
-        <p className="text-[10px] text-muted-foreground">{progress}</p>
-      )}
+      {progress && <p className="text-[10px] text-muted-foreground">{progress}</p>}
       <input
         ref={imgInputRef}
         type="file"

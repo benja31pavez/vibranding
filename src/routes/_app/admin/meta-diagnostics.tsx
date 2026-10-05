@@ -138,7 +138,11 @@ function MetaDiagnosticsPage() {
       <PageHeader
         title="Diagnóstico de Meta"
         description="Credenciales, permisos y prueba de ingesta de la integración con Meta."
-        breadcrumb={canSeeConfig ? [{ label: "Salud", to: "/admin/health" }, { label: "Diagnóstico de Meta" }] : undefined}
+        breadcrumb={
+          canSeeConfig
+            ? [{ label: "Salud", to: "/admin/health" }, { label: "Diagnóstico de Meta" }]
+            : undefined
+        }
       />
 
       {loading && <ListSkeleton rows={4} label="Cargando diagnóstico" />}
@@ -160,11 +164,17 @@ function MetaDiagnosticsPage() {
                 </>
               ) : (
                 <ConfigSummary
-                  ok={env.META_APP_ID && env.META_APP_SECRET && env.PUBLIC_SITE_URL && env.DISPATCH_SECRET}
+                  ok={
+                    env.META_APP_ID &&
+                    env.META_APP_SECRET &&
+                    env.PUBLIC_SITE_URL &&
+                    env.DISPATCH_SECRET
+                  }
                 />
               )}
               <p className="text-xs text-muted-foreground pt-2">
-                Versión de Graph API en uso: <span className="font-mono">{env.META_GRAPH_VERSION}</span>
+                Versión de Graph API en uso:{" "}
+                <span className="font-mono">{env.META_GRAPH_VERSION}</span>
               </p>
             </CardContent>
           </Card>
@@ -249,11 +259,15 @@ function MetaDiagnosticsPage() {
                     </div>
                     <div>
                       Última descarga:{" "}
-                      {a.lastSyncedAt ? new Date(a.lastSyncedAt).toLocaleString("es-CL") : "pendiente"}
+                      {a.lastSyncedAt
+                        ? new Date(a.lastSyncedAt).toLocaleString("es-CL")
+                        : "pendiente"}
                     </div>
                     {a.tokenError && <div className="text-destructive">Token: {a.tokenError}</div>}
                     {a.lastSyncError && (
-                      <div className="text-destructive">Última sincronización: {a.lastSyncError}</div>
+                      <div className="text-destructive">
+                        Última sincronización: {a.lastSyncError}
+                      </div>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
@@ -282,8 +296,8 @@ function MetaDiagnosticsPage() {
                     </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    “Probar conexión completa” devuelve la respuesta cruda de Meta:
-                    report_run_id, cada async_status y el objeto de error completo.
+                    “Probar conexión completa” devuelve la respuesta cruda de Meta: report_run_id,
+                    cada async_status y el objeto de error completo.
                   </p>
                 </div>
               ))}

@@ -33,7 +33,11 @@ function ClientShell() {
   const existence = useQuery({
     queryKey: fichaKeys.exists(userKey, clientId),
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("id").eq("id", clientId).maybeSingle();
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("id", clientId)
+        .maybeSingle();
       if (error) throw new Error(error.message);
       return data !== null;
     },

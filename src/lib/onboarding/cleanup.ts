@@ -37,8 +37,9 @@ export function countReasons(rows: readonly OrphanRow[]): Record<string, number>
 
 export function chunk<T>(items: readonly T[], size: number, maxChunks: number): T[][] {
   if (size < 1) throw new Error("chunk: size debe ser >= 1");
-  return Array.from({ length: Math.min(Math.ceil(items.length / size), Math.max(0, maxChunks)) }, (_, i) =>
-    items.slice(i * size, (i + 1) * size),
+  return Array.from(
+    { length: Math.min(Math.ceil(items.length / size), Math.max(0, maxChunks)) },
+    (_, i) => items.slice(i * size, (i + 1) * size),
   );
 }
 
@@ -50,5 +51,7 @@ export function reservationPathsToDelete(
   rows: readonly OrphanRow[],
   clearedPaths: ReadonlySet<string>,
 ): string[] {
-  return rows.filter((r) => r.reason === "reserva_vencida" && clearedPaths.has(r.path)).map((r) => r.path);
+  return rows
+    .filter((r) => r.reason === "reserva_vencida" && clearedPaths.has(r.path))
+    .map((r) => r.path);
 }

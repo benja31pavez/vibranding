@@ -20,7 +20,10 @@ export const Route = createFileRoute("/review/$token")({
         content: "Revisa el entregable, aprueba o solicita cambios con un enlace privado.",
       },
       { property: "og:title", content: "Revisión de entregable | Vibranding" },
-      { property: "og:description", content: "Aprueba o solicita cambios desde tu enlace de revisión." },
+      {
+        property: "og:description",
+        content: "Aprueba o solicita cambios desde tu enlace de revisión.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex, nofollow" },
@@ -70,7 +73,11 @@ function PublicReview() {
       return;
     }
     toast.success(
-      kind === "approval" ? "¡Gracias! Entregable aprobado" : kind === "change_request" ? "Cambios enviados" : "Comentario enviado",
+      kind === "approval"
+        ? "¡Gracias! Entregable aprobado"
+        : kind === "change_request"
+          ? "Cambios enviados"
+          : "Comentario enviado",
     );
     load();
   };
@@ -97,7 +104,11 @@ function PublicReview() {
         ) : (
           <>
             <div className="max-w-xs">
-              <Input placeholder="Tu nombre (opcional)" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input
+                placeholder="Tu nombre (opcional)"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
             </div>
             <ReviewThread
               deliverable={data.deliverable}

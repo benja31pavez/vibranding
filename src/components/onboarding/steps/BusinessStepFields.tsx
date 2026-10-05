@@ -14,7 +14,8 @@ export function BusinessStepFields({ state, update, errors }: StepProps) {
     optional: true,
   });
   const colors = splitColors(state.colores);
-  const colorError = errors.colores ?? Object.entries(errors).find(([k]) => k.startsWith("colores."))?.[1];
+  const colorError =
+    errors.colores ?? Object.entries(errors).find(([k]) => k.startsWith("colores."))?.[1];
   return (
     <div className="space-y-5">
       <TextField
@@ -56,8 +57,17 @@ export function BusinessStepFields({ state, update, errors }: StepProps) {
       {colors.length > 0 && (
         <ul className="flex flex-wrap gap-2" aria-label="Colores ingresados">
           {colors.map((c, i) => (
-            <li key={`${c}-${i}`} className="flex items-center gap-1.5 rounded-full border border-border-subtle px-2.5 py-1 text-xs">
-              {HEX.test(c) && <span aria-hidden className="h-3 w-3 rounded-full border border-border-subtle" style={{ backgroundColor: c }} />}
+            <li
+              key={`${c}-${i}`}
+              className="flex items-center gap-1.5 rounded-full border border-border-subtle px-2.5 py-1 text-xs"
+            >
+              {HEX.test(c) && (
+                <span
+                  aria-hidden
+                  className="h-3 w-3 rounded-full border border-border-subtle"
+                  style={{ backgroundColor: c }}
+                />
+              )}
               {c}
             </li>
           ))}

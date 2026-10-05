@@ -84,7 +84,11 @@ export function AlertActions({ alert, canResolve = true }: AlertActionsProps) {
           disabled={busy}
           onClick={() => void onResolve()}
         >
-          {busy ? <Loader2 aria-hidden className="h-3 w-3 animate-spin" /> : <Check aria-hidden className="h-3 w-3" />}
+          {busy ? (
+            <Loader2 aria-hidden className="h-3 w-3 animate-spin" />
+          ) : (
+            <Check aria-hidden className="h-3 w-3" />
+          )}
           Marcar como resuelta
         </Button>
       )}

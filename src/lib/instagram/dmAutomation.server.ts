@@ -77,7 +77,11 @@ export async function runDmAutomation(args: {
     .maybeSingle();
   // Unknown state: do not risk talking over a human or re-sending the welcome.
   if (convError) {
-    console.error("[ig-dm-automation] conversation query failed", args.conversationId, convError.message);
+    console.error(
+      "[ig-dm-automation] conversation query failed",
+      args.conversationId,
+      convError.message,
+    );
     return { skipped: "db_error" as const };
   }
 

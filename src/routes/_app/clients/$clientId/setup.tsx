@@ -27,7 +27,10 @@ export const Route = createFileRoute("/_app/clients/$clientId/setup")({
       { title: "Configurar cliente | Vibranding" },
       { name: "description", content: "Pasos ordenados para activar cada sección del cliente." },
       { property: "og:title", content: "Configurar cliente | Vibranding" },
-      { property: "og:description", content: "Pasos ordenados para activar cada sección del cliente." },
+      {
+        property: "og:description",
+        content: "Pasos ordenados para activar cada sección del cliente.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -152,8 +155,6 @@ function SetupPage() {
   const [to, setTo] = useState(() => iso(new Date(Date.now() - 86400000)));
   const [from, setFrom] = useState(() => iso(new Date(Date.now() - 7 * 86400000)));
 
-  
-
   const doIngest = async () => {
     if (!account?.id) return;
     setIngesting(true);
@@ -172,8 +173,8 @@ function SetupPage() {
   const metaInstructions = (
     <>
       <p>
-        Da acceso de lectura a la cuenta publicitaria y a la cuenta de Instagram del cliente, y
-        pega la clave de acceso en la tarjeta de conexión de Meta Ads.
+        Da acceso de lectura a la cuenta publicitaria y a la cuenta de Instagram del cliente, y pega
+        la clave de acceso en la tarjeta de conexión de Meta Ads.
       </p>
       <p className="flex items-center gap-1.5">
         <ScopesInfo />
@@ -211,7 +212,9 @@ function SetupPage() {
           />
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="secondary">
-              <Link to="/clients/$clientId/meta-ads" params={{ clientId }}>Reconfigurar</Link>
+              <Link to="/clients/$clientId/meta-ads" params={{ clientId }}>
+                Reconfigurar
+              </Link>
             </Button>
             <Button asChild size="sm" variant="link" className="px-0">
               <Link to="/admin/meta-diagnostics">Ver diagnóstico</Link>
@@ -224,7 +227,9 @@ function SetupPage() {
           {metaInstructions}
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm">
-              <Link to="/clients/$clientId/meta-ads" params={{ clientId }}>Abrir conexión de Meta</Link>
+              <Link to="/clients/$clientId/meta-ads" params={{ clientId }}>
+                Abrir conexión de Meta
+              </Link>
             </Button>
             <Button asChild size="sm" variant="outline">
               <Link to="/admin/meta-diagnostics">Diagnóstico de Meta</Link>
@@ -248,7 +253,9 @@ function SetupPage() {
           />
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="secondary">
-              <Link to="/clients/$clientId/meta-ads" params={{ clientId }}>Cambiar</Link>
+              <Link to="/clients/$clientId/meta-ads" params={{ clientId }}>
+                Cambiar
+              </Link>
             </Button>
             <Button asChild size="sm" variant="link" className="px-0">
               <Link to="/admin/meta-diagnostics">Ver diagnóstico</Link>
@@ -262,7 +269,9 @@ function SetupPage() {
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>Elige la cuenta publicitaria del cliente en el selector de activos de Meta.</p>
           <Button asChild size="sm">
-            <Link to="/clients/$clientId/meta-ads" params={{ clientId }}>Elegir cuenta publicitaria</Link>
+            <Link to="/clients/$clientId/meta-ads" params={{ clientId }}>
+              Elegir cuenta publicitaria
+            </Link>
           </Button>
         </div>
       ),
@@ -286,7 +295,9 @@ function SetupPage() {
           />
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="secondary">
-              <Link to="/clients/$clientId/meta-ads" params={{ clientId }}>Cambiar</Link>
+              <Link to="/clients/$clientId/meta-ads" params={{ clientId }}>
+                Cambiar
+              </Link>
             </Button>
             <Button asChild size="sm" variant="link" className="px-0">
               <Link to="/admin/meta-diagnostics">Ver diagnóstico</Link>
@@ -300,7 +311,9 @@ function SetupPage() {
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>Selecciona la cuenta profesional de Instagram vinculada a la página del cliente.</p>
           <Button asChild size="sm">
-            <Link to="/clients/$clientId/meta-ads" params={{ clientId }}>Vincular Instagram</Link>
+            <Link to="/clients/$clientId/meta-ads" params={{ clientId }}>
+              Vincular Instagram
+            </Link>
           </Button>
         </div>
       ),
@@ -353,7 +366,11 @@ function SetupPage() {
               variant={caps.ingest_ran ? "secondary" : "default"}
             >
               {ingesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {ingesting ? "Sincronizando…" : caps.ingest_ran ? "Volver a sincronizar" : "Sincronizar ahora"}
+              {ingesting
+                ? "Sincronizando…"
+                : caps.ingest_ran
+                  ? "Volver a sincronizar"
+                  : "Sincronizar ahora"}
             </Button>
           </div>
 
@@ -405,7 +422,11 @@ function SetupPage() {
         <div className="space-y-3">
           <Facts lines={["Número de la Cloud API conectado · el bot puede recibir y responder"]} />
           <Button asChild size="sm" variant="secondary">
-            <Link to="/clients/$clientId/bandeja" params={{ clientId }} search={{ tab: "whatsapp" }}>
+            <Link
+              to="/clients/$clientId/bandeja"
+              params={{ clientId }}
+              search={{ tab: "whatsapp" }}
+            >
               Reconfigurar
             </Link>
           </Button>
@@ -417,7 +438,11 @@ function SetupPage() {
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>Conecta el número de la Cloud API para recibir conversaciones y activar el bot.</p>
           <Button asChild size="sm">
-            <Link to="/clients/$clientId/bandeja" params={{ clientId }} search={{ tab: "whatsapp" }}>
+            <Link
+              to="/clients/$clientId/bandeja"
+              params={{ clientId }}
+              search={{ tab: "whatsapp" }}
+            >
               Conectar WhatsApp
             </Link>
           </Button>
@@ -434,14 +459,18 @@ function SetupPage() {
         <div className="space-y-3">
           <Facts lines={["Ya hay conversaciones marcadas: Analítica puede calcular el embudo"]} />
           <Button asChild size="sm" variant="secondary">
-            <Link to="/clients/$clientId/backfill" params={{ clientId }}>Seguir marcando</Link>
+            <Link to="/clients/$clientId/backfill" params={{ clientId }}>
+              Seguir marcando
+            </Link>
           </Button>
         </div>
       ) : (
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>Marca cada conversación como respondida, calificada, cerrada o perdida.</p>
           <Button asChild size="sm">
-            <Link to="/clients/$clientId/backfill" params={{ clientId }}>Ir a marcar conversaciones</Link>
+            <Link to="/clients/$clientId/backfill" params={{ clientId }}>
+              Ir a marcar conversaciones
+            </Link>
           </Button>
         </div>
       ),
@@ -506,16 +535,28 @@ function SetupPage() {
                       : "border border-primary text-primary"
                 }`}
               >
-                {s.state === "done" ? <Check className="h-4 w-4" /> : s.state === "blocked" ? <Lock className="h-3 w-3" /> : index + 1}
+                {s.state === "done" ? (
+                  <Check className="h-4 w-4" />
+                ) : s.state === "blocked" ? (
+                  <Lock className="h-3 w-3" />
+                ) : (
+                  index + 1
+                )}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{s.title}</span>
                 <span className="block truncate text-xs text-muted-foreground">{s.unlocks}</span>
               </span>
-              <Badge variant={s.state === "done" ? "default" : s.state === "blocked" ? "outline" : "secondary"}>
+              <Badge
+                variant={
+                  s.state === "done" ? "default" : s.state === "blocked" ? "outline" : "secondary"
+                }
+              >
                 {s.state === "done" ? "Listo" : s.state === "blocked" ? "Bloqueado" : "Disponible"}
               </Badge>
-              <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${open === s.n ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 transition-transform ${open === s.n ? "rotate-180" : ""}`}
+              />
             </button>
             {open === s.n && (
               <div className="px-4 pb-4 pl-14">
@@ -557,7 +598,7 @@ function InstagramSyncStep({
           res.mediaCount === 0
             ? "Sincronizado · la cuenta no tiene publicaciones"
             : `Versión "${res.label}" creada con ${res.mediaCount} publicaciones reales.` +
-              (res.note ? ` ${res.note}` : ""),
+                (res.note ? ` ${res.note}` : ""),
         );
         await onDone();
       } else {
@@ -572,14 +613,17 @@ function InstagramSyncStep({
 
   return (
     <div className="space-y-3 text-sm text-muted-foreground">
-      {lastSyncAt && (
-        <Facts lines={[`Última sincronización: ${fmtDate(lastSyncAt)}`]} />
-      )}
+      {lastSyncAt && <Facts lines={[`Última sincronización: ${fmtDate(lastSyncAt)}`]} />}
       <p>
         Trae las publicaciones reales de la cuenta al grid Actual. No modifica tu propuesta ni el
         estado inicial.
       </p>
-      <Button size="sm" variant={lastSyncAt ? "secondary" : "default"} onClick={run} disabled={busy}>
+      <Button
+        size="sm"
+        variant={lastSyncAt ? "secondary" : "default"}
+        onClick={run}
+        disabled={busy}
+      >
         {busy && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
         {busy ? "Sincronizando…" : lastSyncAt ? "Volver a sincronizar" : "Sincronizar Instagram"}
       </Button>

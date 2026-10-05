@@ -2,7 +2,10 @@ import { graphBase } from "@/lib/meta/version";
 import { MetaCurrencyError, getMetaCurrencyOffset } from "@/lib/meta/currency";
 
 /** Reads the ad account's currency live from Meta; null when Meta can't be reached. */
-export async function fetchLiveAdAccountCurrency(adAccountId: string, token: string): Promise<string | null> {
+export async function fetchLiveAdAccountCurrency(
+  adAccountId: string,
+  token: string,
+): Promise<string | null> {
   try {
     const url = `${graphBase()}/${adAccountId}?fields=currency&access_token=${encodeURIComponent(token)}`;
     const res = await fetch(url);

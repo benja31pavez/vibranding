@@ -74,7 +74,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       ...(matches.some(isNotFoundMatch)
         ? [{ title: NOT_FOUND_TITLE }, NOINDEX_META]
-        : [{ title: DEFAULT_SEO.title }, { name: "description", content: DEFAULT_SEO.description }]),
+        : [
+            { title: DEFAULT_SEO.title },
+            { name: "description", content: DEFAULT_SEO.description },
+          ]),
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },

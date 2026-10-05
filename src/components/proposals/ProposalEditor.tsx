@@ -6,7 +6,13 @@ import { Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PLANS, findPlan, planPriceLabel, type PlanKey } from "@/lib/pricing/plans";
 import {
   DEFAULT_VALIDITY_DAYS,
@@ -49,13 +55,25 @@ interface Props {
 }
 
 /** Señales del diagnóstico y plan recomendado (solo prospectos). */
-function prospectInsights(recipient: Recipient): { signals: DiagnosticoSignals; recommendation: PlanRecommendation } | null {
+function prospectInsights(
+  recipient: Recipient,
+): { signals: DiagnosticoSignals; recommendation: PlanRecommendation } | null {
   if (recipient.kind !== "prospect" || !recipient.prospect) return null;
   const signals = readDiagnosticoSignals(recipient.prospect.notas);
-  return { signals, recommendation: recommendPlan({ productoSugerido: recipient.prospect.productoSugerido, signals }) };
+  return {
+    signals,
+    recommendation: recommendPlan({
+      productoSugerido: recipient.prospect.productoSugerido,
+      signals,
+    }),
+  };
 }
 
-function initialState(recipient: Recipient, existing: ProposalRow | undefined, recommended: PlanKey | null) {
+function initialState(
+  recipient: Recipient,
+  existing: ProposalRow | undefined,
+  recommended: PlanKey | null,
+) {
   const items = parseItems(existing?.items ?? []);
   const plan = items.find((i) => i.type === "plan");
   // Propuesta nueva para un prospecto: parte con el plan recomendado.
@@ -64,7 +82,9 @@ function initialState(recipient: Recipient, existing: ProposalRow | undefined, r
     title: existing?.title ?? `Propuesta para ${recipient.name}`,
     planKey: (startPlan ?? NO_PLAN) as PlanKey | typeof NO_PLAN,
     extras: items.filter((i) => i.type === "extra").map(toExtraRow),
-    expiresDate: existing ? toChileDate(existing.expires_at) : chileDatePlusDays(DEFAULT_VALIDITY_DAYS),
+    expiresDate: existing
+      ? toChileDate(existing.expires_at)
+      : chileDatePlusDays(DEFAULT_VALIDITY_DAYS),
     status: (existing?.status ?? "borrador") as string,
   };
 }
@@ -86,7 +106,10 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
   // Una propuesta nueva ya creada queda bloqueada mientras se navega a su página (evita duplicados).
   const locked = !canEdit || existing?.status === "aceptada" || (!existing && save.isSuccess);
 
-  const items = useMemo(() => buildItems(state.planKey, state.extras), [state.planKey, state.extras]);
+  const items = useMemo(
+    () => buildItems(state.planKey, state.extras),
+    [state.planKey, state.extras],
+  );
   const totals = computeTotals(items);
   const errors = validateDraft({ title: state.title, items });
   const statusOptions = MANUAL_STATUSES.includes(state.status as ProposalStatus)
@@ -123,9 +146,16 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
       {
         onSuccess: ({ id, prospectStage }) => {
           toast.success(existing ? "Propuesta guardada" : "Propuesta creada");
-          if (prospectStage === "advanced") toast.success(`${recipient.name} pasó a la etapa Propuesta`);
-          if (prospectStage === "failed") toast.warning("No se pudo mover el prospecto a Propuesta; cámbialo a mano.");
-          if (!existing) void navigate({ to: "/proposals/$proposalId", params: { proposalId: id }, replace: true });
+          if (prospectStage === "advanced")
+            toast.success(`${recipient.name} pasó a la etapa Propuesta`);
+          if (prospectStage === "failed")
+            toast.warning("No se pudo mover el prospecto a Propuesta; cámbialo a mano.");
+          if (!existing)
+            void navigate({
+              to: "/proposals/$proposalId",
+              params: { proposalId: id },
+              replace: true,
+            });
         },
         onError: (err) => toast.error(err.message),
       },
@@ -173,11 +203,17 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
                   value={state.expiresDate}
                   onChange={(e) => set("expiresDate", e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">Por defecto {DEFAULT_VALIDITY_DAYS} días. Hora de Chile.</p>
+                <p className="text-xs text-muted-foreground">
+                  Por defecto {DEFAULT_VALIDITY_DAYS} días. Hora de Chile.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="proposal-status">Estado</Label>
-                <Select value={state.status} onValueChange={(v) => set("status", v)} disabled={locked}>
+                <Select
+                  value={state.status}
+                  onValueChange={(v) => set("status", v)}
+                  disabled={locked}
+                >
                   <SelectTrigger id="proposal-status">
                     <SelectValue />
                   </SelectTrigger>
@@ -189,14 +225,20 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">El link público funciona desde "Enviada".</p>
+                <p className="text-xs text-muted-foreground">
+                  El link público funciona desde "Enviada".
+                </p>
               </div>
             </div>
           </fieldset>
         </Panel>
 
         <Panel title="Plan" description="Precios con IVA incluido (src/lib/pricing/plans.ts).">
-          <Select value={state.planKey} onValueChange={(v) => set("planKey", v as PlanKey)} disabled={locked}>
+          <Select
+            value={state.planKey}
+            onValueChange={(v) => set("planKey", v as PlanKey)}
+            disabled={locked}
+          >
             <SelectTrigger aria-label="Plan">
               <SelectValue />
             </SelectTrigger>
@@ -209,7 +251,9 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
               ))}
             </SelectContent>
           </Select>
-          {selectedPlan && <p className="mt-2 text-sm text-muted-foreground">{selectedPlan.description}</p>}
+          {selectedPlan && (
+            <p className="mt-2 text-sm text-muted-foreground">{selectedPlan.description}</p>
+          )}
           {insights && !existing && (
             <p className="mt-2 text-xs text-muted-foreground">
               {recommendedPlan ? `Recomendado: ${recommendedPlan.label}. ` : ""}
@@ -227,13 +271,18 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
         )}
 
         <Panel title="Adicionales y descuentos">
-          <ExtraItemsEditor items={state.extras} onChange={(rows) => set("extras", rows)} disabled={locked} />
+          <ExtraItemsEditor
+            items={state.extras}
+            onChange={(rows) => set("extras", rows)}
+            disabled={locked}
+          />
         </Panel>
 
         {!locked && (
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" disabled={save.isPending || errors.length > 0}>
-              <Save aria-hidden className="mr-1.5 h-4 w-4" /> {existing ? "Guardar cambios" : "Crear propuesta"}
+              <Save aria-hidden className="mr-1.5 h-4 w-4" />{" "}
+              {existing ? "Guardar cambios" : "Crear propuesta"}
             </Button>
             {errors.length > 0 && <p className="text-sm text-muted-foreground">{errors[0]}</p>}
           </div>
@@ -243,7 +292,11 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
       <aside className="space-y-6 lg:col-span-2" aria-label="Resumen de la propuesta">
         <Panel
           title="Resumen"
-          actions={existing ? <ProposalStatusBadge status={existing.status} expiresAt={existing.expires_at} /> : undefined}
+          actions={
+            existing ? (
+              <ProposalStatusBadge status={existing.status} expiresAt={existing.expires_at} />
+            ) : undefined
+          }
         >
           <p className="mb-3 text-sm text-muted-foreground">
             Para <span className="font-medium text-foreground">{recipient.name}</span>
@@ -251,7 +304,10 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
             {recipient.prospect?.email && (
               <>
                 <br />
-                <a href={`mailto:${encodeURIComponent(recipient.prospect.email)}`} className="text-xs hover:underline">
+                <a
+                  href={`mailto:${encodeURIComponent(recipient.prospect.email)}`}
+                  className="text-xs hover:underline"
+                >
                   {recipient.prospect.email}
                 </a>
               </>

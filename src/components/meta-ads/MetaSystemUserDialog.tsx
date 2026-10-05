@@ -35,7 +35,13 @@ type Assets = {
   scopes: string[];
   expiresAt: string | null;
   adAccounts: { id: string; name: string; timezone_name: string | null; source: string }[];
-  igAccounts: { id: string; username: string; page_id: string | null; page_name: string | null; source: string }[];
+  igAccounts: {
+    id: string;
+    username: string;
+    page_id: string | null;
+    page_name: string | null;
+    source: string;
+  }[];
   warnings: string[];
 };
 
@@ -346,8 +352,7 @@ export function MetaSystemUserDialog({
                       const owner = takenOwner(a.id);
                       return (
                         <SelectItem key={a.id} value={a.id} disabled={!!owner}>
-                          {a.name} · {a.id} ({a.source})
-                          {owner ? ` — ya asignada a ${owner}` : ""}
+                          {a.name} · {a.id} ({a.source}){owner ? ` — ya asignada a ${owner}` : ""}
                         </SelectItem>
                       );
                     })}
@@ -385,8 +390,8 @@ export function MetaSystemUserDialog({
               )}
 
               <div className="text-xs text-muted-foreground">
-                Permisos del token: {assets.scopes.length ? assets.scopes.join(", ") : "—"} ·
-                Vence: {assets.expiresAt ? new Date(assets.expiresAt).toLocaleString("es-CL") : "nunca"}
+                Permisos del token: {assets.scopes.length ? assets.scopes.join(", ") : "—"} · Vence:{" "}
+                {assets.expiresAt ? new Date(assets.expiresAt).toLocaleString("es-CL") : "nunca"}
               </div>
 
               <div className="flex justify-end gap-2">

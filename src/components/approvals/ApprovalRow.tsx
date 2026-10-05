@@ -198,7 +198,11 @@ function OpenLink({ item }: { item: ApprovalItem }) {
 function OpenProposalButton({ item }: { item: ApprovalItem }) {
   return (
     <Button size="sm" variant="outline" asChild>
-      <Link to="/proposals/$proposalId" params={{ proposalId: item.refId }} aria-label={`Abrir ${item.title}`}>
+      <Link
+        to="/proposals/$proposalId"
+        params={{ proposalId: item.refId }}
+        aria-label={`Abrir ${item.title}`}
+      >
         <ExternalLink aria-hidden className="mr-1 h-3.5 w-3.5" /> Abrir propuesta
       </Link>
     </Button>

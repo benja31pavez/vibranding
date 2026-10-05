@@ -1,6 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
-import { PROPOSAL_STATUS_META, effectiveStatus, formatChileDate, isProposalStatus } from "@/lib/proposals/model";
+import {
+  PROPOSAL_STATUS_META,
+  effectiveStatus,
+  formatChileDate,
+  isProposalStatus,
+} from "@/lib/proposals/model";
 import { useRecipientProposals, type Recipient } from "./proposalQueries";
 
 /** Estados en los que una propuesta sigue abierta (sin contar las vencidas). */
@@ -20,8 +25,16 @@ export function OpenProposalWarning({ recipient }: { recipient: Pick<Recipient, 
     >
       <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
       <p>
-        Ya tiene una propuesta abierta ({isProposalStatus(open.status) ? PROPOSAL_STATUS_META[open.status].label.toLowerCase() : open.status}, creada el {formatChileDate(open.created_at)}).{" "}
-        <Link to="/proposals/$proposalId" params={{ proposalId: open.id }} className="font-medium underline">
+        Ya tiene una propuesta abierta (
+        {isProposalStatus(open.status)
+          ? PROPOSAL_STATUS_META[open.status].label.toLowerCase()
+          : open.status}
+        , creada el {formatChileDate(open.created_at)}).{" "}
+        <Link
+          to="/proposals/$proposalId"
+          params={{ proposalId: open.id }}
+          className="font-medium underline"
+        >
           Abrir “{open.title || "Propuesta sin título"}”
         </Link>{" "}
         antes de crear otra.

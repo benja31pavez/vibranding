@@ -9,7 +9,13 @@ import { EmptyState, ErrorState, ListSkeleton, Panel, StatusBadge } from "@/comp
 import { Button } from "@/components/ui/button";
 import { getOnboardingFileUrl } from "@/lib/onboarding/intake.functions";
 import { safeExternalHref } from "@/lib/onboarding/links";
-import { ACCESS_STATE_LABELS, LINK_LABELS, displayFileName, type AccessState, type LinkKey } from "@/lib/onboarding/schema";
+import {
+  ACCESS_STATE_LABELS,
+  LINK_LABELS,
+  displayFileName,
+  type AccessState,
+  type LinkKey,
+} from "@/lib/onboarding/schema";
 import { fichaKeys, formatDate, useUserKey } from "./fichaQueries";
 
 type Intake = Tables<"client_intake">;
@@ -26,13 +32,21 @@ function parseAccesses(value: unknown): AccessEntry[] {
     if (!v || typeof v !== "object") return [];
     const { servicio, estado, nota } = v as Record<string, unknown>;
     if (typeof servicio !== "string") return [];
-    return [{ servicio, estado: typeof estado === "string" ? estado : "pendiente", nota: typeof nota === "string" ? nota : undefined }];
+    return [
+      {
+        servicio,
+        estado: typeof estado === "string" ? estado : "pendiente",
+        nota: typeof nota === "string" ? nota : undefined,
+      },
+    ];
   });
 }
 
 function parseLinks(value: unknown): Array<[string, string]> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return [];
-  return Object.entries(value as Record<string, unknown>).flatMap(([k, v]) => (typeof v === "string" ? [[k, v] as [string, string]] : []));
+  return Object.entries(value as Record<string, unknown>).flatMap(([k, v]) =>
+    typeof v === "string" ? [[k, v] as [string, string]] : [],
+  );
 }
 
 const ACCESS_TONE: Readonly<Record<string, "success" | "warning" | "neutral">> = {
@@ -42,13 +56,23 @@ const ACCESS_TONE: Readonly<Record<string, "success" | "warning" | "neutral">> =
 };
 
 /** Datos que el cliente envió en el formulario público de onboarding (solo lectura, solo editores). */
-export function OnboardingIntakePanel({ clientId, canEdit }: { clientId: string; canEdit: boolean }) {
+export function OnboardingIntakePanel({
+  clientId,
+  canEdit,
+}: {
+  clientId: string;
+  canEdit: boolean;
+}) {
   const userKey = useUserKey();
   const intake = useQuery({
     queryKey: fichaKeys.intake(userKey, clientId),
     enabled: canEdit,
     queryFn: async (): Promise<Intake | null> => {
-      const { data, error } = await supabase.from("client_intake").select("*").eq("client_id", clientId).maybeSingle();
+      const { data, error } = await supabase
+        .from("client_intake")
+        .select("*")
+        .eq("client_id", clientId)
+        .maybeSingle();
       if (error) throw new Error(error.message);
       return data;
     },
@@ -57,7 +81,9 @@ export function OnboardingIntakePanel({ clientId, canEdit }: { clientId: string;
   if (!canEdit) {
     return (
       <Panel title="Onboarding" icon={ClipboardList}>
-        <p className="text-sm text-muted-foreground">Solo los editores del cliente pueden ver los datos del onboarding.</p>
+        <p className="text-sm text-muted-foreground">
+          Solo los editores del cliente pueden ver los datos del onboarding.
+        </p>
       </Panel>
     );
   }
@@ -67,15 +93,27 @@ export function OnboardingIntakePanel({ clientId, canEdit }: { clientId: string;
     <Panel
       title="Onboarding"
       icon={ClipboardList}
-      description={data ? `Enviado el ${formatDate(data.submitted_at)}` : "Datos que el cliente completa en su link de onboarding."}
+      description={
+        data
+          ? `Enviado el ${formatDate(data.submitted_at)}`
+          : "Datos que el cliente completa en su link de onboarding."
+      }
       actions={data ? <StatusBadge status="done" label="Recibido" /> : null}
     >
       {intake.isLoading ? (
         <ListSkeleton rows={3} label="Cargando onboarding" />
       ) : intake.error ? (
-        <ErrorState message={intake.error.message} onRetry={() => void intake.refetch()} retrying={intake.isFetching} />
+        <ErrorState
+          message={intake.error.message}
+          onRetry={() => void intake.refetch()}
+          retrying={intake.isFetching}
+        />
       ) : !data ? (
-        <EmptyState size="compact" title="Aún no envía el formulario" description="Comparte el link de onboarding para que el cliente complete sus datos." />
+        <EmptyState
+          size="compact"
+          title="Aún no envía el formulario"
+          description="Comparte el link de onboarding para que el cliente complete sus datos."
+        />
       ) : (
         <IntakeDetails clientId={clientId} intake={data} />
       )}
@@ -88,7 +126,9 @@ function Row({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="grid gap-0.5 sm:grid-cols-3 sm:gap-3">
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-      <dd className="whitespace-pre-line break-words text-sm text-foreground sm:col-span-2">{value}</dd>
+      <dd className="whitespace-pre-line break-words text-sm text-foreground sm:col-span-2">
+        {value}
+      </dd>
     </div>
   );
 }
@@ -96,7 +136,9 @@ function Row({ label, value }: { label: string; value: string | null }) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h3>
       {children}
     </div>
   );
@@ -138,9 +180,16 @@ function IntakeDetails({ clientId, intake }: { clientId: string; intake: Intake 
               const label = LINK_LABELS[network as LinkKey] ?? network;
               return (
                 <li key={network} className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="w-24 shrink-0 text-xs font-medium text-muted-foreground">{label}</span>
+                  <span className="w-24 shrink-0 text-xs font-medium text-muted-foreground">
+                    {label}
+                  </span>
                   {href ? (
-                    <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 break-all text-primary hover:underline">
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="inline-flex items-center gap-1 break-all text-primary hover:underline"
+                    >
                       {value} <ExternalLink aria-hidden className="h-3 w-3 shrink-0" />
                     </a>
                   ) : (
@@ -157,7 +206,10 @@ function IntakeDetails({ clientId, intake }: { clientId: string; intake: Intake 
         <Section title="Accesos">
           <ul className="space-y-2">
             {accesses.map((a, i) => (
-              <li key={`${a.servicio}-${i}`} className="flex flex-wrap items-start justify-between gap-2 text-sm">
+              <li
+                key={`${a.servicio}-${i}`}
+                className="flex flex-wrap items-start justify-between gap-2 text-sm"
+              >
                 <div className="min-w-0">
                   <p className="text-foreground">{a.servicio}</p>
                   {a.nota && <p className="break-words text-xs text-muted-foreground">{a.nota}</p>}
@@ -215,13 +267,28 @@ function FileRow({ clientId, path }: { clientId: string; path: string }) {
       </span>
       {fresh ? (
         <Button asChild size="sm" variant="outline">
-          <a href={fresh} target="_blank" rel="noopener noreferrer" aria-label={`Descargar ${name}`}>
+          <a
+            href={fresh}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Descargar ${name}`}
+          >
             <Download aria-hidden className="mr-1 h-4 w-4" /> Descargar
           </a>
         </Button>
       ) : (
-        <Button size="sm" variant="ghost" onClick={() => void prepare()} disabled={busy} aria-label={`Preparar descarga de ${name}`}>
-          {busy ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : <Download aria-hidden className="h-4 w-4" />}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => void prepare()}
+          disabled={busy}
+          aria-label={`Preparar descarga de ${name}`}
+        >
+          {busy ? (
+            <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download aria-hidden className="h-4 w-4" />
+          )}
         </Button>
       )}
     </li>

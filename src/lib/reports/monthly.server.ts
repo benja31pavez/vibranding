@@ -72,9 +72,14 @@ const metric = (value: number, previous: number | null | undefined): Metric => (
 
 const ratio = (cost: number, count: number) => (count > 0 ? cost / count : null);
 
-function adsBlock(cur: RawAds, prev: RawAds | null, leads?: { cur: number; prev: number | null }): AdsBlock {
+function adsBlock(
+  cur: RawAds,
+  prev: RawAds | null,
+  leads?: { cur: number; prev: number | null },
+): AdsBlock {
   // Costos unitarios solo con una moneda en ambos meses.
-  const sameCurrency = !cur.mixedCurrency && (!prev || (!prev.mixedCurrency && prev.currency === cur.currency));
+  const sameCurrency =
+    !cur.mixedCurrency && (!prev || (!prev.mixedCurrency && prev.currency === cur.currency));
   const prevComparable = sameCurrency ? prev : null;
   const cpa = sameCurrency ? ratio(cur.spend, cur.conversions) : null;
   const prevCpa = prevComparable ? ratio(prevComparable.spend, prevComparable.conversions) : null;
@@ -94,7 +99,10 @@ function adsBlock(cur: RawAds, prev: RawAds | null, leads?: { cur: number; prev:
   return block;
 }
 
-function instagramBlock(cur: RawInstagram, prev: RawInstagram | null): MonthlyReportData["instagram"] {
+function instagramBlock(
+  cur: RawInstagram,
+  prev: RawInstagram | null,
+): MonthlyReportData["instagram"] {
   const net = (r: RawInstagram | null) =>
     r?.followersEnd != null && r.followersStart != null ? r.followersEnd - r.followersStart : null;
   return {
@@ -112,7 +120,10 @@ function instagramBlock(cur: RawInstagram, prev: RawInstagram | null): MonthlyRe
 const sumValues = (r: Record<string, number>) => Object.values(r).reduce((s, n) => s + n, 0);
 
 /** Snapshot completo del mes `period` para un cliente (sin guardar). */
-export async function buildReportData(clientId: string, period: string): Promise<MonthlyReportData> {
+export async function buildReportData(
+  clientId: string,
+  period: string,
+): Promise<MonthlyReportData> {
   if (!isValidPeriod(period)) throw new Error(`Periodo inválido: ${period}`);
   const [cur, prev] = await Promise.all([
     collectMonth(clientId, period, true),
@@ -130,7 +141,8 @@ export async function buildReportData(clientId: string, period: string): Promise
 
   if (cur.landing || prev.landing) {
     const l = cur.landing;
-    const contacts = (x: RawLanding | null) => (x ? x.whatsappClicks + x.contactClicks + x.formSubmits : 0);
+    const contacts = (x: RawLanding | null) =>
+      x ? x.whatsappClicks + x.contactClicks + x.formSubmits : 0;
     data.landing = {
       visits: metric(l?.visits ?? 0, prev.landing?.visits ?? null),
       contacts: metric(contacts(l), prev.landing ? contacts(prev.landing) : null),
@@ -269,7 +281,11 @@ export interface MonthlyRunSummary {
 }
 
 /** Ejecuta `fn` sobre `items` con a lo más `concurrency` tareas a la vez. */
-async function runPool<T>(items: T[], concurrency: number, fn: (item: T) => Promise<void>): Promise<void> {
+async function runPool<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
   let next = 0;
   const worker = async () => {
     while (next < items.length) {
@@ -284,7 +300,9 @@ async function runPool<T>(items: T[], concurrency: number, fn: (item: T) => Prom
  * Genera el reporte del mes para un lote de clientes activos (orden estable por id).
  * Devuelve `next_offset` para que el cron llame de nuevo hasta que sea null.
  */
-export async function generateReportsForActiveClients(opts: BatchOptions = {}): Promise<MonthlyRunSummary> {
+export async function generateReportsForActiveClients(
+  opts: BatchOptions = {},
+): Promise<MonthlyRunSummary> {
   const period = opts.period ?? defaultReportPeriod();
   if (!isValidPeriod(period)) throw new Error(`Periodo inválido: ${period}`);
   const offset = Math.max(0, opts.offset ?? 0);
@@ -293,7 +311,9 @@ export async function generateReportsForActiveClients(opts: BatchOptions = {}): 
   let q = supabaseAdmin.from("clients").select("id").eq("status", ACTIVE_STATUS);
   if (opts.clientId) q = q.eq("id", opts.clientId);
   // Se pide uno extra para saber si quedan más.
-  const { data: clients, error } = await q.order("id", { ascending: true }).range(offset, offset + limit);
+  const { data: clients, error } = await q
+    .order("id", { ascending: true })
+    .range(offset, offset + limit);
   if (error) throw new Error(`[reports] clientes: ${error.message}`);
 
   const batch = (clients ?? []).slice(0, limit);

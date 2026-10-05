@@ -4,11 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -21,7 +31,13 @@ interface RenameDialogProps {
   onSubmit: (name: string, handle: string) => Promise<Result>;
 }
 
-export function RenameClientDialog({ open, onOpenChange, name, handle, onSubmit }: RenameDialogProps) {
+export function RenameClientDialog({
+  open,
+  onOpenChange,
+  name,
+  handle,
+  onSubmit,
+}: RenameDialogProps) {
   const [draftName, setDraftName] = useState(name);
   const [draftHandle, setDraftHandle] = useState(handle ?? "");
   const [saving, setSaving] = useState(false);
@@ -52,11 +68,19 @@ export function RenameClientDialog({ open, onOpenChange, name, handle, onSubmit 
         <form onSubmit={submit} className="space-y-4">
           <DialogHeader>
             <DialogTitle>Renombrar cliente</DialogTitle>
-            <DialogDescription>Cambia el nombre visible y el usuario de Instagram.</DialogDescription>
+            <DialogDescription>
+              Cambia el nombre visible y el usuario de Instagram.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">
             <Label htmlFor="rename-name">Nombre</Label>
-            <Input id="rename-name" value={draftName} onChange={(e) => setDraftName(e.target.value)} autoFocus required />
+            <Input
+              id="rename-name"
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              autoFocus
+              required
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="rename-handle">Instagram</Label>
@@ -68,7 +92,9 @@ export function RenameClientDialog({ open, onOpenChange, name, handle, onSubmit 
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
             <Button type="submit" disabled={saving || !draftName.trim()}>
               {saving ? "Guardando…" : "Guardar"}
             </Button>
@@ -112,7 +138,12 @@ export function DeleteClientDialog({ open, onOpenChange, name, onConfirm }: Dele
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={(next) => { if (!deleting) onOpenChange(next); }}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!deleting) onOpenChange(next);
+      }}
+    >
       <AlertDialogContent>
         <form onSubmit={confirm} className="space-y-4">
           <AlertDialogHeader>
@@ -125,10 +156,18 @@ export function DeleteClientDialog({ open, onOpenChange, name, onConfirm }: Dele
             <Label htmlFor="delete-confirm">
               Escribe <span className="font-semibold text-foreground">{name}</span> para confirmar
             </Label>
-            <Input id="delete-confirm" disabled={deleting} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
+            <Input
+              id="delete-confirm"
+              disabled={deleting}
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoComplete="off"
+            />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel type="button" disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel type="button" disabled={deleting}>
+              Cancelar
+            </AlertDialogCancel>
             <Button type="submit" variant="destructive" disabled={!matches || deleting}>
               {deleting ? "Eliminando…" : "Eliminar cliente"}
             </Button>

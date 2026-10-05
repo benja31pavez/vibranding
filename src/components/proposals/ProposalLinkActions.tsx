@@ -23,7 +23,9 @@ export function ProposalLinkActions({ proposal, showOpen = false, size = "sm" }:
       return;
     }
     toast.success(
-      isDraft ? "Link copiado. Funcionará cuando marques la propuesta como enviada." : "Link copiado",
+      isDraft
+        ? "Link copiado. Funcionará cuando marques la propuesta como enviada."
+        : "Link copiado",
     );
   };
 
@@ -39,13 +41,23 @@ export function ProposalLinkActions({ proposal, showOpen = false, size = "sm" }:
         <Copy aria-hidden className="mr-1.5 h-3.5 w-3.5" /> Copiar link
       </Button>
       {isDraft && (
-        <Button type="button" size={size} variant="outline" onClick={send} disabled={markSent.isPending}>
+        <Button
+          type="button"
+          size={size}
+          variant="outline"
+          onClick={send}
+          disabled={markSent.isPending}
+        >
           <Send aria-hidden className="mr-1.5 h-3.5 w-3.5" /> Marcar enviada
         </Button>
       )}
       {showOpen && !isDraft && (
         <Button size={size} variant="ghost" asChild>
-          <a href={`${publicProposalPath(proposal.token)}?vista=interna`} target="_blank" rel="noreferrer">
+          <a
+            href={`${publicProposalPath(proposal.token)}?vista=interna`}
+            target="_blank"
+            rel="noreferrer"
+          >
             <ExternalLink aria-hidden className="mr-1.5 h-3.5 w-3.5" /> Abrir
           </a>
         </Button>

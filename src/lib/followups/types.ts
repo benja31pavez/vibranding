@@ -25,7 +25,9 @@ export type FollowupTarget =
 
 /** Link para el mensaje: ruta pública relativa (se le antepone el origen) o URL absoluta. */
 export type FollowupLink =
-  { kind: "path"; path: string } | { kind: "absolute"; url: string } | null;
+  | { kind: "path"; path: string }
+  | { kind: "absolute"; url: string }
+  | null;
 
 /** Datos con que se arma la plantilla del mensaje. */
 export interface TemplateData {

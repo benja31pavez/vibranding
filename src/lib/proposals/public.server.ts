@@ -73,11 +73,19 @@ interface DbError {
 }
 
 /** rpc sin tipar que devuelve el error (con code) en vez de lanzar. */
-async function rpcRaw(fn: string, args: Record<string, unknown>): Promise<{ data: unknown; error: DbError | null }> {
+async function rpcRaw(
+  fn: string,
+  args: Record<string, unknown>,
+): Promise<{ data: unknown; error: DbError | null }> {
   const db = await admin();
-  return (db as unknown as {
-    rpc: (f: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: DbError | null }>;
-  }).rpc(fn, args);
+  return (
+    db as unknown as {
+      rpc: (
+        f: string,
+        a: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: DbError | null }>;
+    }
+  ).rpc(fn, args);
 }
 
 /**
@@ -149,7 +157,9 @@ export function paymentRef(proposalId: string): string {
 const PAYMENT_LOOKUP_ERROR = "No pudimos revisar el estado del pago.";
 
 /** Cobro de la propuesta por payments.proposal_id. "missing" si la columna no existe. */
-async function findByProposalId(row: ProposalRow & { client_id: string }): Promise<PaymentRow | null | "missing"> {
+async function findByProposalId(
+  row: ProposalRow & { client_id: string },
+): Promise<PaymentRow | null | "missing"> {
   const db = await admin();
   const { data, error } = await db
     .from("payments")
@@ -166,7 +176,9 @@ async function findByProposalId(row: ProposalRow & { client_id: string }): Promi
 }
 
 /** Cobro de la propuesta por la marca en la descripción (cobros previos a la v3). */
-async function findByDescription(row: ProposalRow & { client_id: string }): Promise<PaymentRow | null> {
+async function findByDescription(
+  row: ProposalRow & { client_id: string },
+): Promise<PaymentRow | null> {
   const db = await admin();
   const { data, error } = await db
     .from("payments")
@@ -197,16 +209,21 @@ export class AmountMismatchError extends Error {
   }
 }
 
-async function createProposalPayment(row: ProposalRow & { client_id: string }): Promise<PaymentRow> {
+async function createProposalPayment(
+  row: ProposalRow & { client_id: string },
+): Promise<PaymentRow> {
   const totals = computeTotals(parseItems(row.items));
   // Con la v3 el trigger t_proposals_amount recalcula amount_clp desde los ítems; se
   // valida igual por si hay propuestas anteriores con montos desalineados.
   if (totals.firstCharge !== row.amount_clp || totals.firstCharge <= 0) {
-    console.error("[proposals] [ALERTA] monto de la propuesta no coincide con sus ítems; no se crea el cobro", {
-      proposalId: row.id,
-      amountClp: row.amount_clp,
-      itemsTotal: totals.firstCharge,
-    });
+    console.error(
+      "[proposals] [ALERTA] monto de la propuesta no coincide con sus ítems; no se crea el cobro",
+      {
+        proposalId: row.id,
+        amountClp: row.amount_clp,
+        itemsTotal: totals.firstCharge,
+      },
+    );
     throw new AmountMismatchError();
   }
   const kind = chargeKind(totals);
@@ -239,14 +256,20 @@ async function createProposalPayment(row: ProposalRow & { client_id: string }): 
   }
   if (error || !data) {
     console.error("[proposals] no se pudo crear el cobro", row.id, error?.message);
-    throw new Error("Tu aceptación quedó registrada, pero no pudimos generar el cobro. Te contactaremos.");
+    throw new Error(
+      "Tu aceptación quedó registrada, pero no pudimos generar el cobro. Te contactaremos.",
+    );
   }
   return data;
 }
 
 /** Texto apto para notas: sin caracteres de control ni saltos de línea, recortado. */
 function noteSafe(text: string, max: number): string {
-  return text.replace(/[\p{Cc}\p{Cf}\u2028\u2029]+/gu, " ").replace(/\s+/g, " ").trim().slice(0, max);
+  return text
+    .replace(/[\p{Cc}\p{Cf}\u2028\u2029]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
 }
 
 /** append_prospect_note recorta a 300 caracteres; con el prefijo la nota cabe entera. */
@@ -260,9 +283,13 @@ const NOTE_MAX = 260;
 async function appendRecipientNote(row: ProposalRow, text: string): Promise<void> {
   const note = `[Propuesta ${todayInChile()}] ${noteSafe(text, NOTE_MAX)}`;
   if (!row.client_id && row.prospect_id) {
-    const { data, error } = await rpcRaw("append_prospect_note", { _prospect_id: row.prospect_id, _note: note });
+    const { data, error } = await rpcRaw("append_prospect_note", {
+      _prospect_id: row.prospect_id,
+      _note: note,
+    });
     if (!error) {
-      if (data !== true) console.error("[proposals] no se encontró el prospecto para anotar", row.prospect_id);
+      if (data !== true)
+        console.error("[proposals] no se encontró el prospecto para anotar", row.prospect_id);
       return;
     }
     if (!isMissingFunction(error, "append_prospect_note")) {
@@ -282,14 +309,19 @@ async function appendNoteReadWrite(row: ProposalRow, note: string): Promise<void
       ? ({ table: "prospects", column: "notas", id: row.prospect_id } as const)
       : null;
   if (!target) return;
-  const { data, error } = await (db.from(target.table) as any).select(target.column).eq("id", target.id).maybeSingle();
+  const { data, error } = await (db.from(target.table) as any)
+    .select(target.column)
+    .eq("id", target.id)
+    .maybeSingle();
   if (error) {
     console.error("[proposals] no se pudo leer las notas", target.table, target.id, error.message);
     return;
   }
   const current = ((data as Record<string, string | null> | null)?.[target.column] ?? "").trim();
   const next = current ? `${current}\n${note}` : note;
-  const { error: upErr } = await (db.from(target.table) as any).update({ [target.column]: next }).eq("id", target.id);
+  const { error: upErr } = await (db.from(target.table) as any)
+    .update({ [target.column]: next })
+    .eq("id", target.id);
   if (upErr) console.error("[proposals] no se pudo anotar", target.table, target.id, upErr.message);
 }
 
@@ -310,13 +342,17 @@ function paymentState(payment: PaymentRow | null, flow: boolean): PublicPaymentS
  * (accept_proposal con already=false): su FOR UPDATE serializa, así que un
  * único request crea el cobro. Con already=true solo se busca, nunca se crea.
  */
-async function resolvePayment(row: ProposalRow, opts: { create: boolean }): Promise<PublicPaymentState> {
+async function resolvePayment(
+  row: ProposalRow,
+  opts: { create: boolean },
+): Promise<PublicPaymentState> {
   if (row.amount_clp <= 0) return { state: "none" };
   if (!row.client_id) return { state: "contact" };
   const flow = await isFlowEnabled();
   const existing = await findProposalPayment(row);
   const payment =
-    existing ?? (opts.create ? await createProposalPayment({ ...row, client_id: row.client_id }) : null);
+    existing ??
+    (opts.create ? await createProposalPayment({ ...row, client_id: row.client_id }) : null);
   return paymentState(payment, flow);
 }
 
@@ -330,7 +366,11 @@ const viewMarkLimiter = createRateLimiter(1, TEN_MINUTES);
 const flowLinkLimiter = createRateLimiter(3, HOUR);
 
 /** enviada → vista solo si parece una persona (ver viewTracking.ts). */
-async function markViewedIfHuman(token: string, status: string, signal: ViewSignal): Promise<boolean> {
+async function markViewedIfHuman(
+  token: string,
+  status: string,
+  signal: ViewSignal,
+): Promise<boolean> {
   if (status !== "enviada" || !decideMarkViewed(signal).mark) return false;
   if (!viewMarkLimiter.allow(`view-mark:${token}`)) return false;
   try {
@@ -344,14 +384,20 @@ async function markViewedIfHuman(token: string, status: string, signal: ViewSign
 
 const TOKEN_RE = /^[0-9a-f]{48}$/;
 
-export async function loadPublicProposal(token: string, signal: ViewSignal): Promise<PublicProposalResult> {
+export async function loadPublicProposal(
+  token: string,
+  signal: ViewSignal,
+): Promise<PublicProposalResult> {
   if (!TOKEN_RE.test(token)) return { ok: false };
-  const res = (await rpc("get_proposal_by_token", { _token: token })) as
-    | { ok?: boolean; proposal?: Record<string, unknown> }
-    | null;
+  const res = (await rpc("get_proposal_by_token", { _token: token })) as {
+    ok?: boolean;
+    proposal?: Record<string, unknown>;
+  } | null;
   if (!res?.ok || !res.proposal) return { ok: false };
   const loaded = toPublic(res.proposal);
-  const proposal = (await markViewedIfHuman(token, loaded.status, signal)) ? { ...loaded, status: "vista" } : loaded;
+  const proposal = (await markViewedIfHuman(token, loaded.status, signal))
+    ? { ...loaded, status: "vista" }
+    : loaded;
 
   if (proposal.status !== "aceptada") return { ok: true, proposal, payment: null };
   const row = await loadRow(token);
@@ -371,7 +417,11 @@ async function callAcceptProposal(
   extraText: string,
 ): Promise<{ res: AcceptRpcResult; legacy: boolean }> {
   const base = { _token: input.token, _name: input.name, _ip_hash: input.ipHash };
-  const { data, error } = await rpcRaw("accept_proposal", { ...base, _rut: input.rut, _extra_text: extraText });
+  const { data, error } = await rpcRaw("accept_proposal", {
+    ...base,
+    _rut: input.rut,
+    _extra_text: extraText,
+  });
   if (!error) return { res: data as AcceptRpcResult, legacy: false };
   if (!isMissingFunction(error, "accept_proposal")) {
     console.error("[proposals] accept_proposal falló", error.message);
@@ -387,7 +437,11 @@ function conditionsText(row: ProposalRow): string {
 
 export type AcceptResult =
   | { ok: true; already: boolean; payment: PublicPaymentState }
-  | { ok: false; reason: "invalid" | "name_required" | "expirada" | "rechazada" | "aceptada" | "error"; message?: string };
+  | {
+      ok: false;
+      reason: "invalid" | "name_required" | "expirada" | "rechazada" | "aceptada" | "error";
+      message?: string;
+    };
 
 /** Texto que se agrega al texto aceptado: condiciones visibles y RUT declarado. */
 function acceptanceAddendum(row: ProposalRow, rut: string | null): string {
@@ -409,9 +463,19 @@ export async function acceptPublicProposal(input: {
   const { res, legacy } = await callAcceptProposal(input, conditionsText(loaded));
   if (!res?.ok) {
     const reason = res?.reason;
-    if (reason === "invalid_rut") return { ok: false, reason: "error", message: "El RUT no es válido. Revísalo e intenta de nuevo." };
+    if (reason === "invalid_rut")
+      return {
+        ok: false,
+        reason: "error",
+        message: "El RUT no es válido. Revísalo e intenta de nuevo.",
+      };
     const known = ["invalid", "name_required", "expirada", "rechazada", "aceptada"] as const;
-    return { ok: false, reason: (known as readonly string[]).includes(reason ?? "") ? (reason as (typeof known)[number]) : "invalid" };
+    return {
+      ok: false,
+      reason: (known as readonly string[]).includes(reason ?? "")
+        ? (reason as (typeof known)[number])
+        : "invalid",
+    };
   }
   const already = Boolean(res.already);
   const row: ProposalRow = { ...loaded, status: "aceptada" };
@@ -419,7 +483,10 @@ export async function acceptPublicProposal(input: {
   if (!already) {
     if (legacy) await appendAcceptanceText(row, input.rut);
     if (!row.client_id) {
-      await appendRecipientNote(row, `Aceptó "${row.title ?? ""}" (${input.name}). Falta crear el cliente y el cobro.`);
+      await appendRecipientNote(
+        row,
+        `Aceptó "${row.title ?? ""}" (${input.name}). Falta crear el cliente y el cobro.`,
+      );
     }
   }
 
@@ -431,7 +498,11 @@ export async function acceptPublicProposal(input: {
     }
     return { ok: true, already, payment };
   } catch (e) {
-    console.error("[proposals] aceptada pero falló el cobro", row.id, e instanceof Error ? e.message : e);
+    console.error(
+      "[proposals] aceptada pero falló el cobro",
+      row.id,
+      e instanceof Error ? e.message : e,
+    );
     return { ok: true, already, payment: { state: "transfer" } };
   }
 }
@@ -455,7 +526,11 @@ async function appendAcceptanceText(row: ProposalRow, rut: string | null): Promi
 
 async function tryAppendAcceptanceText(row: ProposalRow, rut: string | null): Promise<boolean> {
   const db = await admin();
-  const { data, error: readErr } = await db.from("proposals").select("accepted_text").eq("id", row.id).single();
+  const { data, error: readErr } = await db
+    .from("proposals")
+    .select("accepted_text")
+    .eq("id", row.id)
+    .single();
   if (readErr || !data?.accepted_text) {
     console.error("[proposals] no se pudo leer el texto aceptado", row.id, readErr?.message);
     return false;
@@ -476,12 +551,20 @@ async function tryAppendAcceptanceText(row: ProposalRow, rut: string | null): Pr
 }
 
 /** Crea (o reutiliza) el link de Flow. null si no se pudo (p. ej. falta email). */
-async function tryCreateFlowLink(token: string, row: ProposalRow, email: string | null): Promise<string | null> {
+async function tryCreateFlowLink(
+  token: string,
+  row: ProposalRow,
+  email: string | null,
+): Promise<string | null> {
   try {
     const result = await startPaymentForRow(token, row, email);
     return result.state === "link" ? result.paymentUrl : null;
   } catch (e) {
-    console.error("[proposals] no se pudo crear el link de Flow", row.id, e instanceof Error ? e.message : e);
+    console.error(
+      "[proposals] no se pudo crear el link de Flow",
+      row.id,
+      e instanceof Error ? e.message : e,
+    );
     return null;
   }
 }
@@ -495,25 +578,45 @@ export type StartPaymentResult =
  * Pagador: el email del portal del cliente si existe; el escrito en la página
  * solo si no hay ninguno. Máximo 3 intentos de link por token por hora.
  */
-async function startPaymentForRow(token: string, row: ProposalRow, email: string | null): Promise<StartPaymentResult> {
-  if (row.status !== "aceptada") return { state: "unavailable", message: "La propuesta aún no está aceptada." };
+async function startPaymentForRow(
+  token: string,
+  row: ProposalRow,
+  email: string | null,
+): Promise<StartPaymentResult> {
+  if (row.status !== "aceptada")
+    return { state: "unavailable", message: "La propuesta aún no está aceptada." };
   if (!(await isFlowEnabled())) {
-    return { state: "unavailable", message: "El pago en línea no está disponible. Te enviaremos los datos de pago." };
+    return {
+      state: "unavailable",
+      message: "El pago en línea no está disponible. Te enviaremos los datos de pago.",
+    };
   }
   const payment = await findProposalPayment(row);
-  if (!payment) return { state: "unavailable", message: "Aún no hay un cobro asociado. Te contactaremos para el pago." };
+  if (!payment)
+    return {
+      state: "unavailable",
+      message: "Aún no hay un cobro asociado. Te contactaremos para el pago.",
+    };
   if (payment.status === "paid") return { state: "already_paid" };
   if (!flowLinkLimiter.allow(`flow-link:${token}`)) {
-    return { state: "unavailable", message: "Ya generamos varios links de pago. Intenta de nuevo en una hora o escríbenos." };
+    return {
+      state: "unavailable",
+      message: "Ya generamos varios links de pago. Intenta de nuevo en una hora o escríbenos.",
+    };
   }
   const { ensurePaymentLink, defaultPayerEmail } = await import("@/lib/flow/payments.server");
   const payer = (await defaultPayerEmail(payment.client_id)) ?? email;
   const result = await ensurePaymentLink(payment, payer);
-  return result.state === "link" ? { state: "link", paymentUrl: result.paymentUrl } : { state: "already_paid" };
+  return result.state === "link"
+    ? { state: "link", paymentUrl: result.paymentUrl }
+    : { state: "already_paid" };
 }
 
 /** "Pagar ahora": genera o reutiliza el link de Flow del cobro de la propuesta. */
-export async function startProposalPayment(token: string, email: string | null): Promise<StartPaymentResult> {
+export async function startProposalPayment(
+  token: string,
+  email: string | null,
+): Promise<StartPaymentResult> {
   const row = await loadRow(token);
   if (!row) return { state: "unavailable", message: "Este link no es válido." };
   try {
@@ -524,7 +627,9 @@ export async function startProposalPayment(token: string, email: string | null):
     if (/email/i.test(message)) {
       return { state: "unavailable", message: "Ingresa tu email para generar el link de pago." };
     }
-    return { state: "unavailable", message: "No pudimos generar el link de pago. Te contactaremos con los datos." };
+    return {
+      state: "unavailable",
+      message: "No pudimos generar el link de pago. Te contactaremos con los datos.",
+    };
   }
 }
-

@@ -38,7 +38,15 @@ export function HeaderNav({ path }: { path: string }) {
 }
 
 /** Lista vertical reutilizada en el Sheet móvil. */
-export function VerticalNavList({ items, path, label }: { items: readonly NavItem[]; path: string; label: string }) {
+export function VerticalNavList({
+  items,
+  path,
+  label,
+}: {
+  items: readonly NavItem[];
+  path: string;
+  label: string;
+}) {
   return (
     <nav aria-label={label}>
       <ul className="space-y-0.5">

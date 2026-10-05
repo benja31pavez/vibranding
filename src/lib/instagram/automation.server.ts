@@ -22,7 +22,11 @@ export type IgTrigger = {
 export const MESSAGING_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 function normalize(s: string): string {
-  return (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  return (s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
 
 export function matchesTrigger(text: string, t: IgTrigger): boolean {

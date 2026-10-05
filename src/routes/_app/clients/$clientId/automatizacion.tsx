@@ -62,14 +62,14 @@ function AutomationTabsPage() {
             <Info className="w-4 h-4" /> Sobre los mensajes a nuevos seguidores
           </p>
           <p className="text-muted-foreground">
-            Meta no expone un webhook de nuevo seguidor en la Graph API pública. El
-            “seguir → DM” existe solo como beta privada, con ManyChat como socio exclusivo, y las
-            cuentas con menos de ~1.000 seguidores por lo general no son elegibles. Por eso aquí no
-            construimos ni prometemos mensajes disparados por seguimiento.
+            Meta no expone un webhook de nuevo seguidor en la Graph API pública. El “seguir → DM”
+            existe solo como beta privada, con ManyChat como socio exclusivo, y las cuentas con
+            menos de ~1.000 seguidores por lo general no son elegibles. Por eso aquí no construimos
+            ni prometemos mensajes disparados por seguimiento.
           </p>
           <p className="text-muted-foreground">
-            La forma que sí cumple las reglas para saludar a nuevos seguidores es usar
-            disparadores por <strong>palabra clave</strong>, por <strong>comentario</strong> o por{" "}
+            La forma que sí cumple las reglas para saludar a nuevos seguidores es usar disparadores
+            por <strong>palabra clave</strong>, por <strong>comentario</strong> o por{" "}
             <strong>respuesta a historia</strong>. Un comentario abre una ventana de mensajería de{" "}
             <strong>7 días</strong>; una respuesta a historia abre <strong>24 horas</strong>.
           </p>
