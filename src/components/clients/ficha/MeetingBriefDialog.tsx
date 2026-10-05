@@ -14,6 +14,7 @@ import {
 import { useClientHealth } from "@/components/clients/health/healthQueries";
 import { chileToday } from "@/lib/dates/chile";
 import {
+  briefPeriodLabel,
   briefToPrintHtml,
   briefToText,
   buildMeetingBrief,
@@ -32,15 +33,32 @@ interface MeetingBriefButtonProps {
 /** Botón "Resumen para reunión" + diálogo con el brief de los últimos 30 días. */
 export function MeetingBriefButton({ clientId, clientName, overview }: MeetingBriefButtonProps) {
   const [open, setOpen] = useState(false);
+  // Se fija al abrir: el período no cambia mientras el diálogo está abierto.
+  const [today, setToday] = useState(() => chileToday());
+  const openDialog = () => {
+    setToday(chileToday());
+    setOpen(true);
+  };
   return (
     <>
-      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+      <Button size="sm" variant="outline" onClick={openDialog}>
         <ClipboardList aria-hidden className="mr-1.5 h-4 w-4" /> Resumen para reunión
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Resumen para reunión</DialogTitle>
+            <DialogDescription>
+              {briefPeriodLabel(today)} Armado solo con datos registrados en la plataforma.
+            </DialogDescription>
+          </DialogHeader>
           {open && (
-            <MeetingBriefContent clientId={clientId} clientName={clientName} overview={overview} />
+            <MeetingBriefContent
+              clientId={clientId}
+              clientName={clientName}
+              overview={overview}
+              today={today}
+            />
           )}
         </DialogContent>
       </Dialog>
@@ -54,8 +72,12 @@ function intakeApplies(overview: FichaOverview | undefined): boolean {
   return overview.status === "onboarding" || Boolean(overview.billing?.onboarding_token);
 }
 
-function MeetingBriefContent({ clientId, clientName, overview }: MeetingBriefButtonProps) {
-  const [today] = useState(() => chileToday());
+function MeetingBriefContent({
+  clientId,
+  clientName,
+  overview,
+  today,
+}: MeetingBriefButtonProps & { today: string }) {
   const data = useMeetingBriefData(clientId, today, true);
   const healthQuery = useClientHealth(clientId);
   const healthPending = healthQuery.isPending && !healthQuery.isError;
@@ -97,52 +119,47 @@ function MeetingBriefContent({ clientId, clientName, overview }: MeetingBriefBut
       );
       return;
     }
+    // Sin referencia de vuelta a la app; el diálogo de impresión se abre al cargar.
+    win.opener = null;
     win.document.open();
-    win.document.write(briefToPrintHtml(brief));
+    win.document.write(briefToPrintHtml(brief, { autoPrint: true }));
     win.document.close();
     win.focus();
-    win.print();
   };
 
   return (
     <>
-      <DialogHeader>
-        <DialogTitle>Resumen para reunión</DialogTitle>
-        <DialogDescription>
-          {brief?.periodLabel ?? "Últimos 30 días."} Armado solo con datos registrados en la
-          plataforma.
-        </DialogDescription>
-      </DialogHeader>
-
-      {data.isError ? (
-        <ErrorState
-          message={data.error.message}
-          onRetry={() => void data.refetch()}
-          retrying={data.isFetching}
-        />
-      ) : !brief ? (
-        <ListSkeleton rows={6} label="Armando el resumen" />
-      ) : (
-        <div className="space-y-4">
-          {brief.sections.map((s) => (
-            <section key={s.key} aria-labelledby={`brief-${s.key}`}>
-              <h3 id={`brief-${s.key}`} className="mb-1 text-sm font-semibold">
-                {s.title}
-              </h3>
-              <ul className="space-y-0.5 text-sm text-foreground">
-                {s.lines.map((line, i) => (
-                  <li
-                    key={i}
-                    className={line.startsWith("  ") ? "pl-4 text-muted-foreground" : undefined}
-                  >
-                    {line.trim()}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
+      <div aria-live="polite" aria-busy={!brief && !data.isError}>
+        {data.isError ? (
+          <ErrorState
+            message={data.error.message}
+            onRetry={() => void data.refetch()}
+            retrying={data.isFetching}
+          />
+        ) : !brief ? (
+          <ListSkeleton rows={6} label="Armando el resumen" />
+        ) : (
+          <div className="space-y-4">
+            {brief.sections.map((s) => (
+              <section key={s.key} aria-labelledby={`brief-${s.key}`}>
+                <h3 id={`brief-${s.key}`} className="mb-1 text-sm font-semibold">
+                  {s.title}
+                </h3>
+                <ul className="space-y-0.5 text-sm text-foreground">
+                  {s.lines.map((line, i) => (
+                    <li
+                      key={i}
+                      className={line.startsWith("  ") ? "pl-4 text-muted-foreground" : undefined}
+                    >
+                      {line.trim()}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        )}
+      </div>
 
       <DialogFooter className="gap-2">
         <Button variant="outline" onClick={print} disabled={!brief}>

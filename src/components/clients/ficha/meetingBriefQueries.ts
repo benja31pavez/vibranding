@@ -2,7 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PAGE_SIZE, type PageResult } from "@/lib/db/fetchAllRows";
 import { addDaysYmd } from "@/lib/dates/chile";
-import { briefWindows, type MeetingBriefInput } from "@/lib/briefing/meetingBrief";
+import {
+  BRIEF_APPROVAL_KINDS,
+  briefWindows,
+  type BriefListKey,
+  type MeetingBriefInput,
+} from "@/lib/briefing/meetingBrief";
 import { useUserKey } from "./fichaQueries";
 
 /**
@@ -15,13 +20,20 @@ const LIST_LIMIT = 200;
 const APPROVALS_LIMIT = 50;
 const PAYMENTS_LIMIT = 50;
 const REPORTS_LIMIT = 12;
-/** Páginas máximas de insights por plataforma; al alcanzarlas no se muestran totales. */
-const INSIGHT_PAGES = 3;
+/**
+ * Páginas máximas de insights por plataforma (60 días). Meta guarda una fila por
+ * anuncio y día: 20 páginas ≈ 330 anuncios activos a diario. Al llegar al tope
+ * no se muestran totales.
+ */
+const INSIGHT_PAGES = 20;
 
 export const BRIEF_LOAD_ERROR = "No pudimos armar el resumen. Intenta de nuevo.";
 
-export type BriefData = Omit<MeetingBriefInput, "clientName" | "today" | "health">;
+export type BriefData = Omit<MeetingBriefInput, "clientName" | "today" | "health" | "healthError">;
 
+type QueryResult<T> = { data: T | null; error: { message: string } | null };
+
+/** Pagina con orden estable hasta una página incompleta o INSIGHT_PAGES (truncated). */
 async function fetchCapped<T>(page: (from: number, to: number) => PageResult<T>) {
   const rows: T[] = [];
   for (let i = 0; i < INSIGHT_PAGES; i += 1) {
@@ -34,16 +46,22 @@ async function fetchCapped<T>(page: (from: number, to: number) => PageResult<T>)
   return { rows, truncated: true };
 }
 
-function must<T>(res: { data: T | null; error: { message: string } | null }): T {
+function must<T>(res: QueryResult<T>): T | null {
   if (res.error) throw new Error(res.error.message);
-  return res.data as T;
+  return res.data;
+}
+
+/** Lista pedida con `limit + 1`: devuelve hasta `limit` filas y si había más. */
+function bounded<T>(res: QueryResult<T[]>, limit: number) {
+  const rows = must(res) ?? [];
+  return { rows: rows.slice(0, limit), partial: rows.length > limit };
 }
 
 async function loadBriefData(clientId: string, today: string): Promise<BriefData> {
   const w = briefWindows(today);
-  // Un día de margen hacia atrás: los timestamps se filtran exacto (hora de Chile) en el armado.
+  // Márgenes en UTC alrededor de los días de Chile; el armado filtra exacto en hora de Chile.
   const since = `${addDaysYmd(w.from, -1)}T00:00:00Z`;
-  const insightsFrom = w.prevFrom;
+  const until = `${addDaysYmd(w.nextTo, 1)}T12:00:00Z`;
 
   const [deliverables, posts, tasks, reports, approvals, payments, intake, meta, google] =
     await Promise.all([
@@ -55,16 +73,17 @@ async function loadBriefData(clientId: string, today: string): Promise<BriefData
           `and(status.eq.done,updated_at.gte.${since}),and(status.neq.done,due_date.lte.${w.nextTo})`,
         )
         .order("updated_at", { ascending: false })
-        .limit(LIST_LIMIT),
+        .limit(LIST_LIMIT + 1),
       supabase
         .from("instagram_posts")
         .select("approved_at,published_at,scheduled_at")
         .eq("client_id", clientId)
         .is("archived_at", null)
         .or(
-          `published_at.gte.${since},approved_at.gte.${since},and(scheduled_at.gte.${since},scheduled_at.lte.${w.nextTo}T23:59:59Z)`,
+          `published_at.gte.${since},approved_at.gte.${since},and(scheduled_at.gte.${since},scheduled_at.lte.${until})`,
         )
-        .limit(LIST_LIMIT),
+        .order("updated_at", { ascending: false })
+        .limit(LIST_LIMIT + 1),
       supabase
         .from("client_tasks")
         .select("title,status,due_date,updated_at")
@@ -73,34 +92,36 @@ async function loadBriefData(clientId: string, today: string): Promise<BriefData
           `and(status.eq.done,updated_at.gte.${since}),and(status.neq.done,due_date.lte.${w.nextTo})`,
         )
         .order("due_date", { ascending: true, nullsFirst: false })
-        .limit(LIST_LIMIT),
+        .limit(LIST_LIMIT + 1),
       supabase
         .from("monthly_reports")
-        .select("period,sent_at")
+        .select("sent_at")
         .eq("client_id", clientId)
         .gte("sent_at", since)
-        .limit(REPORTS_LIMIT),
+        .limit(REPORTS_LIMIT + 1),
       supabase
         .from("approval_queue")
         .select("kind,title,created_at")
         .eq("client_id", clientId)
+        .in("kind", [...BRIEF_APPROVAL_KINDS])
         .order("created_at", { ascending: true })
-        .limit(APPROVALS_LIMIT),
+        .limit(APPROVALS_LIMIT + 1),
       supabase
         .from("payments")
-        .select("amount,currency,status,due_date,description")
+        .select("amount,currency,status,due_date")
         .eq("client_id", clientId)
         .in("status", ["pending", "overdue"])
         .order("due_date", { ascending: true, nullsFirst: false })
-        .limit(PAYMENTS_LIMIT),
+        .limit(PAYMENTS_LIMIT + 1),
       supabase.from("client_intake").select("client_id").eq("client_id", clientId).maybeSingle(),
+      // La sincronización de Meta escribe solo filas por anuncio (level = 'ad'); se suman en el armado.
       fetchCapped((from, to) =>
         supabase
           .from("ad_insights_daily")
-          .select("id,date,spend,currency,messaging_conversations_started")
+          .select("date,spend,currency,messaging_conversations_started")
           .eq("client_id", clientId)
-          .eq("level", "campaign")
-          .gte("date", insightsFrom)
+          .eq("level", "ad")
+          .gte("date", w.prevFrom)
           .lte("date", today)
           .order("date", { ascending: false })
           .order("id")
@@ -109,9 +130,9 @@ async function loadBriefData(clientId: string, today: string): Promise<BriefData
       fetchCapped((from, to) =>
         supabase
           .from("google_ads_insights_daily")
-          .select("id,date,cost_clp,conversions")
+          .select("date,cost_clp,conversions")
           .eq("client_id", clientId)
-          .gte("date", insightsFrom)
+          .gte("date", w.prevFrom)
           .lte("date", today)
           .order("date", { ascending: false })
           .order("id")
@@ -119,17 +140,28 @@ async function loadBriefData(clientId: string, today: string): Promise<BriefData
       ),
     ]);
 
+  const lists = {
+    deliverables: bounded(deliverables, LIST_LIMIT),
+    posts: bounded(posts, LIST_LIMIT),
+    tasks: bounded(tasks, LIST_LIMIT),
+    reports: bounded(reports, REPORTS_LIMIT),
+    approvals: bounded(approvals, APPROVALS_LIMIT),
+    payments: bounded(payments, PAYMENTS_LIMIT),
+  };
+  const partialLists = (Object.keys(lists) as BriefListKey[]).filter((k) => lists[k].partial);
+
   return {
-    deliverables: must(deliverables) ?? [],
-    posts: must(posts) ?? [],
-    tasks: must(tasks) ?? [],
-    reports: must(reports) ?? [],
-    approvals: must(approvals) ?? [],
-    payments: (must(payments) ?? []).map((p) => ({ ...p, amount: Number(p.amount) })),
+    deliverables: lists.deliverables.rows,
+    posts: lists.posts.rows,
+    tasks: lists.tasks.rows,
+    reports: lists.reports.rows,
+    approvals: lists.approvals.rows,
+    payments: lists.payments.rows.map((p) => ({ ...p, amount: Number(p.amount) })),
     intakeSubmitted: Boolean(must(intake)),
     meta: meta.rows,
     google: google.rows,
-    campaignsTruncated: meta.truncated || google.truncated,
+    campaignsPartial: { meta: meta.truncated, google: google.truncated },
+    partialLists,
   };
 }
 

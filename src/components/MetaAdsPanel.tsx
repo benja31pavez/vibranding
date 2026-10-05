@@ -20,6 +20,12 @@ import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { MediaUpload } from "./MediaUpload";
 import { BUDGET_CONFIRMATION_REQUIRED } from "@/lib/meta/currency";
 import { CampaignWizard } from "./meta-ads/CampaignWizard";
+import { fetchAllRows } from "@/lib/db/fetchAllRows";
+import { addDaysYmd, chileToday } from "@/lib/dates/chile";
+import { aggregateByCampaignDay } from "@/lib/meta-ads/campaignInsights";
+
+/** Días de métricas que se muestran por campaña. */
+const INSIGHTS_LOOKBACK_DAYS = 90;
 
 interface DiscoverPage {
   id: string;
@@ -179,12 +185,20 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
       supabase.from("meta_ads_campaigns").select("*").eq("client_id", clientId).order("position"),
       supabase.from("meta_ads_adsets").select("*").eq("client_id", clientId).order("position"),
       supabase.from("meta_ads_ads").select("*").eq("client_id", clientId).order("position"),
-      supabase
-        .from("ad_insights_daily")
-        .select("id,campaign_id,date,impressions,reach,clicks,ctr,spend,cpm,messaging_conversations_started")
-        .eq("client_id", clientId)
-        .eq("level", "campaign")
-        .order("date", { ascending: false }),
+      // La sincronización guarda filas por anuncio: se leen completas (paginadas) y se agregan por campaña y día.
+      fetchAllRows((from, to) =>
+        supabase
+          .from("ad_insights_daily")
+          .select("campaign_id,date,impressions,reach,clicks,spend,messaging_conversations_started")
+          .eq("client_id", clientId)
+          .eq("level", "ad")
+          .gte("date", addDaysYmd(chileToday(), -INSIGHTS_LOOKBACK_DAYS))
+          .order("date", { ascending: false })
+          .order("id")
+          .range(from, to),
+      )
+        .then((data) => ({ data, error: null }))
+        .catch((e: unknown) => ({ data: null, error: { message: e instanceof Error ? e.message : String(e) } })),
     ]);
     const firstError = [acRes, csRes, asRes, adsRes, insRes].find((r) => r.error)?.error;
     if (firstError) throw new Error(firstError.message);
@@ -193,7 +207,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     setCampaigns((csRes.data ?? []) as Campaign[]);
     setAdsets((asRes.data ?? []) as AdSet[]);
     setAds((adsRes.data ?? []) as Ad[]);
-    setInsights((insRes.data ?? []) as Insight[]);
+    setInsights(aggregateByCampaignDay(insRes.data ?? []));
   };
 
   useEffect(() => { load(); }, [clientId]);
@@ -663,7 +677,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
                               <tr className="text-left border-b">
                                 <th className="py-1 pr-2">Fecha</th>
                                 <th className="py-1 pr-2">Impr.</th>
-                                <th className="py-1 pr-2">Alcance</th>
+                                <th className="py-1 pr-2" title="Suma del alcance de cada anuncio: puede contar personas repetidas">Alcance</th>
                                 <th className="py-1 pr-2">Clics</th>
                                 <th className="py-1 pr-2">CTR %</th>
                                 <th className="py-1 pr-2">Gasto</th>
