@@ -60,12 +60,15 @@ const LINK_VARIANTS: Record<LinkVariant, string> = {
 export function DiagnosticoLink({
   children = DIAGNOSTICO_CTA,
   plan,
+  cta,
   variant = "primary",
   size = "lg",
   className,
 }: {
   children?: React.ReactNode;
   plan?: "marca-web" | "contenido" | "crecimiento";
+  /** Id del botón para Estadísticas (por defecto "plan:<plan>" o "diagnostico"). */
+  cta?: string;
   variant?: LinkVariant;
   size?: "sm" | "lg";
   className?: string;
@@ -76,7 +79,7 @@ export function DiagnosticoLink({
       search={plan ? { plan } : {}}
       // contact_click = CTA de diagnóstico; los botones de WhatsApp registran whatsapp_click.
       onClick={() =>
-        trackLandingEvent("contact_click", "es", plan ? `plan:${plan}` : "diagnostico")
+        trackLandingEvent("contact_click", "es", cta ?? (plan ? `plan:${plan}` : "diagnostico"))
       }
       className={cn(
         "btn-fx inline-flex items-center justify-center gap-2 rounded-full font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -101,8 +104,8 @@ export function ForWhomSection() {
     >
       <SectionHeading
         id="para-quien-title"
-        title="¿Para quién"
-        accent="es Vibranding"
+        title="¿Para quién es"
+        accent="Vibranding"
         end="?"
         subtitle="Trabajamos con pymes de servicios."
       />
