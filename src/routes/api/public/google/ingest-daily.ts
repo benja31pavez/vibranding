@@ -57,8 +57,8 @@ export const Route = createFileRoute("/api/public/google/ingest-daily")({
             console.error("[google ingest]", missing);
             return Response.json({ ...summary, error: missing }, { status: 500 });
           }
-          // Un lote que no escribió nada por errores nunca debe parecer éxito.
-          return Response.json(summary, { status: batchStatus(summary.failed, summary.succeeded) });
+          // Cualquier fallo responde 500: job_runs toma todo 2xx (incluido 207) como éxito.
+          return Response.json(summary, { status: batchStatus(summary.failed) });
         } catch (e) {
           console.error("[google ingest] error", (e as Error).message);
           return Response.json(

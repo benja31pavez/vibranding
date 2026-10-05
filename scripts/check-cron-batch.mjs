@@ -66,12 +66,18 @@ check("missingBatchesError: último job sin cuentas pendientes", () =>
 check("missingBatchesError: último job con cuentas pendientes", () =>
   assert.equal(b.missingBatchesError(true, 24), "faltan lotes: agrega un job con offset 24"));
 
-check("batchStatus", () => {
-  assert.equal(b.batchStatus(0, 0), 200);
-  assert.equal(b.batchStatus(0, 3), 200);
-  assert.equal(b.batchStatus(1, 2), 207);
-  assert.equal(b.batchStatus(3, 0), 500);
+check("batchStatus: cualquier fallo es 500 (job_runs toma 207 como éxito)", () => {
+  assert.equal(b.batchStatus(0), 200);
+  assert.equal(b.batchStatus(1), 500);
+  assert.equal(b.batchStatus(3), 500);
 });
+
+check("isBatchedCall solo con offset", () => {
+  assert.equal(b.isBatchedCall(q("offset=0&limit=3")), true);
+  assert.equal(b.isBatchedCall(q("")), false);
+  assert.equal(b.isBatchedCall(q("date=2026-10-01")), false);
+});
+check("CRON_CALL_BUDGET_MS bajo los 15 s del cron", () => assert.ok(b.CRON_CALL_BUDGET_MS < 15_000));
 
 check("splitBatch con más filas que el límite", () =>
   assert.deepEqual(b.splitBatch([1, 2, 3, 4], 6, 3), { batch: [1, 2, 3], nextOffset: 9 }));
@@ -80,6 +86,25 @@ check("splitBatch en el último lote", () =>
 check("splitBatch exactamente el límite", () =>
   assert.deepEqual(b.splitBatch([1, 2, 3], 0, 3), { batch: [1, 2, 3], nextOffset: null }));
 check("META_MAX_BATCH_LIMIT es 3", () => assert.equal(b.META_MAX_BATCH_LIMIT, 3));
+
+// withDeadline (async)
+const timedOut = () => "pendiente";
+const slow = new Promise((r) => setTimeout(() => r("ok"), 200));
+const asyncChecks = [
+  ["withDeadline devuelve el resultado a tiempo", async () =>
+    assert.equal(await b.withDeadline(Promise.resolve("ok"), Date.now() + 1000, timedOut), "ok")],
+  ["withDeadline corta al vencer el plazo", async () =>
+    assert.equal(await b.withDeadline(slow, Date.now() + 20, timedOut), "pendiente")],
+  ["withDeadline con plazo ya vencido", async () =>
+    assert.equal(await b.withDeadline(Promise.resolve("ok"), Date.now() - 1, timedOut), "pendiente")],
+];
+for (const [name, fn] of asyncChecks) {
+  try {
+    await fn();
+  } catch (e) {
+    failures.push(`${name}: ${e.message}`);
+  }
+}
 
 if (failures.length > 0) {
   console.error(`check-cron-batch: ${failures.length} fallo(s)`);

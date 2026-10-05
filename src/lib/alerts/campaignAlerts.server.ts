@@ -136,25 +136,61 @@ type InsightRow = {
   messaging_conversations_started: number;
 };
 
+function insightsQuery(clientId: string, from: string, to: string) {
+  return supabaseAdmin
+    .from("ad_insights_daily")
+    .select("date,campaign_id,campaign_name,ad_id,spend,impressions,clicks,messaging_conversations_started")
+    .eq("client_id", clientId)
+    .eq("level", "ad")
+    .gte("date", from)
+    .lte("date", to)
+    .order("date", { ascending: true })
+    .order("entity_id", { ascending: true });
+}
+
+/**
+ * Tras leer `cap` filas, pide UNA más: si existe, los datos quedarían
+ * truncados y se lanza error (el cliente cuenta como fallido y no se evalúa ni
+ * se auto-resuelve nada con ellos). Justo `cap` filas no es un fallo.
+ */
+async function assertNotTruncated(
+  probe: PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>,
+  label: string,
+  cap: number,
+): Promise<void> {
+  const { data, error } = await probe;
+  if (error) throw new Error(`[alerts] ${label}: ${error.message}`);
+  if ((data ?? []).length > 0) throw new Error(`[alerts] ${label}: se superó el tope de ${cap} filas`);
+}
+
 async function loadInsights(clientId: string, from: string, to: string): Promise<InsightRow[]> {
   const rows: InsightRow[] = [];
   for (let start = 0; start < MAX_INSIGHT_ROWS; start += PAGE_SIZE) {
-    const { data, error } = await supabaseAdmin
-      .from("ad_insights_daily")
-      .select("date,campaign_id,campaign_name,ad_id,spend,impressions,clicks,messaging_conversations_started")
-      .eq("client_id", clientId)
-      .eq("level", "ad")
-      .gte("date", from)
-      .lte("date", to)
-      .order("date", { ascending: true })
-      .order("entity_id", { ascending: true })
-      .range(start, start + PAGE_SIZE - 1);
+    const { data, error } = await insightsQuery(clientId, from, to).range(start, start + PAGE_SIZE - 1);
     if (error) throw new Error(`[alerts] insights: ${error.message}`);
     rows.push(...(data ?? []));
     if (!data || data.length < PAGE_SIZE) return rows;
   }
-  // Datos truncados: no se evalúa ni se auto-resuelve nada con ellos; el cliente cuenta como fallido.
-  throw new Error(`[alerts] insights: se alcanzó el tope de ${MAX_INSIGHT_ROWS} filas`);
+  await assertNotTruncated(
+    insightsQuery(clientId, from, to).range(MAX_INSIGHT_ROWS, MAX_INSIGHT_ROWS),
+    "insights",
+    MAX_INSIGHT_ROWS,
+  );
+  return rows;
+}
+
+function attributionsQuery(clientId: string, fromUtc: string) {
+  return (
+    supabaseAdmin
+      .from("attributions")
+      .select("ad_id,first_seen_at")
+      .eq("client_id", clientId)
+      .not("ad_id", "is", null)
+      .gte("first_seen_at", fromUtc)
+      // Orden estable para que la paginación no salte ni repita filas.
+      .order("first_seen_at", { ascending: true })
+      .order("id", { ascending: true })
+  );
 }
 
 /** Conversaciones de WhatsApp atribuidas a un anuncio, por campaña y día local. */
@@ -167,16 +203,7 @@ async function loadAttributedResults(
   const byCampaignDay = new Map<string, number>();
   if (adToCampaign.size === 0) return byCampaignDay;
   for (let start = 0; start < MAX_ATTRIBUTION_ROWS; start += PAGE_SIZE) {
-    const { data, error } = await supabaseAdmin
-      .from("attributions")
-      .select("ad_id,first_seen_at")
-      .eq("client_id", clientId)
-      .not("ad_id", "is", null)
-      .gte("first_seen_at", fromUtc)
-      // Orden estable para que la paginación no salte ni repita filas.
-      .order("first_seen_at", { ascending: true })
-      .order("id", { ascending: true })
-      .range(start, start + PAGE_SIZE - 1);
+    const { data, error } = await attributionsQuery(clientId, fromUtc).range(start, start + PAGE_SIZE - 1);
     if (error) throw new Error(`[alerts] atribuciones: ${error.message}`);
     for (const r of data ?? []) {
       const campaignId = r.ad_id ? adToCampaign.get(r.ad_id) : undefined;
@@ -186,8 +213,12 @@ async function loadAttributedResults(
     }
     if (!data || data.length < PAGE_SIZE) return byCampaignDay;
   }
-  // Datos truncados: no se evalúa ni se auto-resuelve nada con ellos; el cliente cuenta como fallido.
-  throw new Error(`[alerts] atribuciones: se alcanzó el tope de ${MAX_ATTRIBUTION_ROWS} filas`);
+  await assertNotTruncated(
+    attributionsQuery(clientId, fromUtc).range(MAX_ATTRIBUTION_ROWS, MAX_ATTRIBUTION_ROWS),
+    "atribuciones",
+    MAX_ATTRIBUTION_ROWS,
+  );
+  return byCampaignDay;
 }
 
 /** Suma los anuncios por campaña y día, y agrega las conversaciones atribuidas. */

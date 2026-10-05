@@ -9,6 +9,17 @@ const INT_RE = /^\d{1,6}$/;
  */
 export const META_MAX_BATCH_LIMIT = 3;
 
+/**
+ * Presupuesto de tiempo por llamada: run_http_cron_job corta a los 15 s, así
+ * que el endpoint responde antes (a los 12 s) para que el resultado quede en job_runs.
+ */
+export const CRON_CALL_BUDGET_MS = 12_000;
+
+/** Los jobs del cron siempre mandan ?offset=; una llamada sin offset es manual o del job viejo. */
+export function isBatchedCall(params: URLSearchParams): boolean {
+  return params.has("offset");
+}
+
 export type BatchParams = { offset: number; limit: number; last: boolean };
 
 /**
@@ -48,10 +59,36 @@ export function missingBatchesError(last: boolean, nextOffset: number | null): s
   return `faltan lotes: agrega un job con offset ${nextOffset}`;
 }
 
-/** 200 si todo salió bien, 207 si algunos fallaron, 500 si ninguno funcionó. */
-export function batchStatus(failed: number, succeeded: number): 200 | 207 | 500 {
-  if (failed === 0) return 200;
-  return succeeded > 0 ? 207 : 500;
+/**
+ * 200 si todo salió bien; 500 si algo falló. Estos endpoints solo los llama
+ * el cron y job_runs cuenta cualquier 2xx (incluido 207) como éxito, así que
+ * un lote con fallos nunca puede responder 2xx. El detalle va en el cuerpo.
+ */
+export function batchStatus(failed: number): 200 | 500 {
+  return failed === 0 ? 200 : 500;
+}
+
+/**
+ * Espera `work` hasta `deadlineMs` (epoch ms). Si no termina a tiempo devuelve
+ * `onTimeout()`; la promesa original sigue sola (no se cancela).
+ */
+export async function withDeadline<T>(
+  work: Promise<T>,
+  deadlineMs: number,
+  onTimeout: () => T,
+  now: () => number = Date.now,
+): Promise<T> {
+  const remaining = deadlineMs - now();
+  if (remaining <= 0) return onTimeout();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(onTimeout()), remaining);
+  });
+  try {
+    return await Promise.race([work, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**

@@ -69,8 +69,7 @@ export const Route = createFileRoute("/api/public/reports/monthly")({
             console.error("[reports monthly]", missing);
             return Response.json({ ...body, error: missing }, { status: 500 });
           }
-          const ok = summary.generated + summary.skipped_sent;
-          return Response.json(body, { status: batchStatus(summary.failed, ok) });
+          return Response.json(body, { status: batchStatus(summary.failed) });
         } catch (e) {
           console.error("[reports monthly] error", (e as Error).message);
           return Response.json({ error: (e as Error).message }, { status: 500 });

@@ -62,7 +62,7 @@ export const Route = createFileRoute("/api/public/alerts/run")({
             console.error("[alerts run]", missing);
             return Response.json({ ...body, error: missing }, { status: 500 });
           }
-          return Response.json(body, { status: batchStatus(summary.failed, summary.evaluated) });
+          return Response.json(body, { status: batchStatus(summary.failed) });
         } catch (e) {
           console.error("[alerts run] error", (e as Error).message);
           return Response.json({ error: "No se pudieron evaluar las alertas" }, { status: 500 });

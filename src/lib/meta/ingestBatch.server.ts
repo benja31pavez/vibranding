@@ -1,6 +1,6 @@
 // Un lote de la ingesta diaria de Meta (lo llama /api/public/meta/ingest-daily).
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { META_MAX_BATCH_LIMIT, splitBatch } from "@/lib/cron/batch";
+import { META_MAX_BATCH_LIMIT, splitBatch, withDeadline } from "@/lib/cron/batch";
 import { getMetaToken } from "@/lib/meta/tokens.server";
 import { ingestAccountDay, type IngestResult } from "@/lib/meta/insights.server";
 
@@ -43,6 +43,12 @@ async function ingestOne(
   }
 }
 
+/** Mensaje de una cuenta que no terminó antes del límite: cuenta como fallida. */
+export const PENDING_ERROR = "pendiente: no terminó antes del límite de tiempo del cron";
+
+/** Mínimo de tiempo restante para empezar otro lote en una llamada sin offset. */
+const MIN_BATCH_START_MS = 3_000;
+
 const rowsOf = (r: MetaAccountOutcome, key: "adRows" | "postRows") =>
   "adRows" in r ? Number(r[key] ?? 0) : 0;
 
@@ -52,6 +58,8 @@ export async function runMetaIngestBatch(opts: {
   limit: number;
   date?: string;
   windowDays: number;
+  /** Epoch ms: las cuentas que no terminen a tiempo quedan como "pendiente" (fallidas). */
+  deadlineMs: number;
 }): Promise<MetaIngestBatchSummary> {
   const limit = Math.min(META_MAX_BATCH_LIMIT, Math.max(1, opts.limit));
   const offset = Math.max(0, opts.offset);
@@ -66,7 +74,16 @@ export async function runMetaIngestBatch(opts: {
 
   const { batch, nextOffset } = splitBatch((data ?? []) as MetaAccountRow[], offset, limit);
   const results = await Promise.all(
-    batch.map((account) => ingestOne(account, opts.date, opts.windowDays)),
+    batch.map((account) =>
+      withDeadline<MetaAccountOutcome>(
+        ingestOne(account, opts.date, opts.windowDays),
+        opts.deadlineMs,
+        () => {
+          console.error("[meta ingest] cuenta pendiente por tiempo", { accountId: account.id });
+          return { accountId: account.id, error: PENDING_ERROR };
+        },
+      ),
+    ),
   );
 
   const failed = results.filter((r) => r.error).length;
@@ -83,4 +100,39 @@ export async function runMetaIngestBatch(opts: {
     next_offset: nextOffset,
     results,
   };
+}
+
+function mergeSummaries(a: MetaIngestBatchSummary, b: MetaIngestBatchSummary): MetaIngestBatchSummary {
+  return {
+    offset: a.offset,
+    accounts: a.accounts + b.accounts,
+    succeeded: a.succeeded + b.succeeded,
+    failed: a.failed + b.failed,
+    rowsWritten: a.rowsWritten + b.rowsWritten,
+    adRows: a.adRows + b.adRows,
+    postRows: a.postRows + b.postRows,
+    next_offset: b.next_offset,
+    results: [...a.results, ...b.results],
+  };
+}
+
+/**
+ * Llamada sin offset (job viejo 'meta_insights_daily' o manual): recorre lotes
+ * hasta terminar o agotar el presupuesto. Si queda trabajo, next_offset != null.
+ */
+export async function runMetaIngestAll(opts: {
+  date?: string;
+  windowDays: number;
+  deadlineMs: number;
+}): Promise<MetaIngestBatchSummary> {
+  let summary = await runMetaIngestBatch({ ...opts, offset: 0, limit: META_MAX_BATCH_LIMIT });
+  while (summary.next_offset !== null && opts.deadlineMs - Date.now() >= MIN_BATCH_START_MS) {
+    const next = await runMetaIngestBatch({
+      ...opts,
+      offset: summary.next_offset,
+      limit: META_MAX_BATCH_LIMIT,
+    });
+    summary = mergeSummaries(summary, next);
+  }
+  return summary;
 }
