@@ -14,6 +14,7 @@ import { Route as AtChar123slugChar125RouteImport } from './routes/@{$slug}'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as DataDeletionRouteImport } from './routes/data-deletion'
+import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as LandingRouteImport } from './routes/landing'
 import { Route as LoginRouteImport } from './routes/login'
@@ -109,6 +110,11 @@ const CookiesRoute = CookiesRouteImport.update({
 const DataDeletionRoute = DataDeletionRouteImport.update({
   id: '/data-deletion',
   path: '/data-deletion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiagnosticoRoute = DiagnosticoRouteImport.update({
+  id: '/diagnostico',
+  path: '/diagnostico',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaqRoute = FaqRouteImport.update({
@@ -501,6 +507,7 @@ export interface FileRoutesByFullPath {
   '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
+  '/diagnostico': typeof DiagnosticoRoute
   '/faq': typeof FaqRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
@@ -579,6 +586,7 @@ export interface FileRoutesByTo {
   '/@{$slug}': typeof AtChar123slugChar125RouteWithChildren
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
+  '/diagnostico': typeof DiagnosticoRoute
   '/faq': typeof FaqRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
@@ -658,6 +666,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/cookies': typeof CookiesRoute
   '/data-deletion': typeof DataDeletionRoute
+  '/diagnostico': typeof DiagnosticoRoute
   '/faq': typeof FaqRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
@@ -738,6 +747,7 @@ export interface FileRouteTypes {
     | '/@{$slug}'
     | '/cookies'
     | '/data-deletion'
+    | '/diagnostico'
     | '/faq'
     | '/landing'
     | '/login'
@@ -816,6 +826,7 @@ export interface FileRouteTypes {
     | '/@{$slug}'
     | '/cookies'
     | '/data-deletion'
+    | '/diagnostico'
     | '/faq'
     | '/landing'
     | '/login'
@@ -894,6 +905,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/cookies'
     | '/data-deletion'
+    | '/diagnostico'
     | '/faq'
     | '/landing'
     | '/login'
@@ -974,6 +986,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   CookiesRoute: typeof CookiesRoute
   DataDeletionRoute: typeof DataDeletionRoute
+  DiagnosticoRoute: typeof DiagnosticoRoute
   FaqRoute: typeof FaqRoute
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
@@ -1042,6 +1055,13 @@ declare module '@tanstack/react-router' {
       path: '/data-deletion'
       fullPath: '/data-deletion'
       preLoaderRoute: typeof DataDeletionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diagnostico': {
+      id: '/diagnostico'
+      path: '/diagnostico'
+      fullPath: '/diagnostico'
+      preLoaderRoute: typeof DiagnosticoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/faq': {
@@ -1665,6 +1685,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   CookiesRoute: CookiesRoute,
   DataDeletionRoute: DataDeletionRoute,
+  DiagnosticoRoute: DiagnosticoRoute,
   FaqRoute: FaqRoute,
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,

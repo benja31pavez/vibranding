@@ -133,6 +133,11 @@ export function NoContactBadge({ prospect }: { prospect: Prospect }) {
   return <StatusBadge status="no-contactar" label={`No contactar hasta ${formatShortDate(`${until}T12:00:00`)}`} tone="warning" />;
 }
 
+/** Llegó solo desde el sitio (p. ej. fuente "web: diagnóstico"). */
+export function isWebLead(prospect: Pick<Prospect, "fuente">): boolean {
+  return prospect.fuente.trim().toLowerCase().startsWith("web:");
+}
+
 export function CardBody({ prospect }: { prospect: Prospect }) {
   const plan = findPlan(prospect.producto_sugerido);
   const meta = [prospect.rubro, prospect.comuna].filter(Boolean).join(" · ");
@@ -142,6 +147,7 @@ export function CardBody({ prospect }: { prospect: Prospect }) {
       {meta && <p className="truncate text-xs text-muted-foreground">{meta}</p>}
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         <NoContactBadge prospect={prospect} />
+        {isWebLead(prospect) && <StatusBadge status="web" label="Web" tone="success" />}
         {plan && <StatusBadge status={plan.key} label={plan.label} tone="info" />}
         <span className="text-xs tabular-nums text-muted-foreground">
           Últ. contacto: {formatShortDate(prospect.ultimo_contacto)}
