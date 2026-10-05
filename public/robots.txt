@@ -8,6 +8,11 @@ Disallow: /reset-password
 
 # Panel interno (rutas privadas _app)
 Disallow: /dashboard
+Disallow: /agenda
+Disallow: /approvals
+Disallow: /billing
+Disallow: /pipeline
+Disallow: /proposals
 Disallow: /clients
 Disallow: /calendar
 Disallow: /reports
