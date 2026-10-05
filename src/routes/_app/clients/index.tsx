@@ -17,7 +17,9 @@ import { EmptyState, ErrorState, PageContainer, PageHeader } from "@/components/
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { HealthBadge, useClientsHealth } from "@/components/clients/health";
+import {
+  HEALTH_LOAD_ERROR, HealthBadge, invalidateClientHealth, useClientsHealth,
+} from "@/components/clients/health";
 import { HEALTH_LEVEL_META, compareByRisk, type ClientHealth, type HealthLevel } from "@/lib/health";
 
 export const Route = createFileRoute("/_app/clients/")({
@@ -36,7 +38,7 @@ type SortMode = "recent" | "risk";
 type LevelFilter = HealthLevel | "all";
 
 const SORT_LABEL: Readonly<Record<SortMode, string>> = {
-  recent: "Actividad reciente",
+  recent: "Recientes",
   risk: "En riesgo primero",
 };
 
@@ -47,7 +49,9 @@ function arrangeClients(
   sort: SortMode,
   level: LevelFilter,
 ): Client[] {
-  const filtered = level === "all" ? [...clients] : clients.filter((c) => health?.get(c.id)?.level === level);
+  // Sin datos de salud (cargando o error) el filtro no aplica.
+  const filtered =
+    level === "all" || !health ? [...clients] : clients.filter((c) => health.get(c.id)?.level === level);
   if (sort !== "risk" || !health) return filtered;
   return filtered.sort((a, b) => compareByRisk(health.get(a.id), health.get(b.id)));
 }
@@ -55,7 +59,7 @@ function arrangeClients(
 function ClientsList() {
   const { user } = useAuth();
   const health = useClientsHealth();
-  const [sort, setSort] = useState<SortMode>("risk");
+  const [sort, setSort] = useState<SortMode>("recent");
   const [level, setLevel] = useState<LevelFilter>("all");
   const queryClient = useQueryClient();
   const [clients, setClients] = useState<Client[]>([]);
@@ -105,6 +109,7 @@ function ClientsList() {
     toast.success("Cliente creado");
     load();
     void invalidateShellClients(queryClient);
+    void invalidateClientHealth(queryClient);
   };
 
   return (
@@ -170,8 +175,12 @@ function ClientsList() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={level} onValueChange={(v) => setLevel(v as LevelFilter)}>
-              <SelectTrigger className="h-9 w-[180px]" aria-label="Filtrar por salud">
+            <Select
+              value={level}
+              onValueChange={(v) => setLevel(v as LevelFilter)}
+              disabled={!health.data}
+            >
+              <SelectTrigger className="h-9 w-[200px]" aria-label="Filtrar por salud">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -181,9 +190,12 @@ function ClientsList() {
                 ))}
               </SelectContent>
             </Select>
+            <span className="text-xs text-muted-foreground">
+              Los prospectos y terminados no se puntúan.
+            </span>
             {health.isError && (
               <span role="alert" className="flex items-center gap-2 text-xs text-danger-strong">
-                No pudimos calcular la salud.
+                {HEALTH_LOAD_ERROR}
                 <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => void health.refetch()} disabled={health.isFetching}>
                   Reintentar
                 </Button>

@@ -14,10 +14,14 @@ export function HealthBadge({ health, loading, className }: HealthBadgeProps) {
   if (!health) return null;
   const meta = HEALTH_LEVEL_META[health.level];
   const reasons = health.reasons.map((r) => r.label).join(" · ");
+  const title =
+    health.level === "sin_datos"
+      ? "Hay demasiados registros para calcular la salud con certeza"
+      : reasons || "Sin señales de riesgo";
+  // Los motivos se muestran como texto junto a la pastilla (lista y ficha); el title es solo apoyo.
   return (
-    <span title={reasons || "Sin señales de riesgo"} className={className}>
+    <span title={title} className={className}>
       <StatusBadge status={`salud_${health.level}`} label={meta.label} tone={meta.tone} />
-      {reasons && <span className="sr-only">: {reasons}</span>}
     </span>
   );
 }

@@ -3,7 +3,7 @@ import { ErrorState, ListSkeleton, Panel, TONE_CLASSES } from "@/components/app"
 import { HEALTH_LEVEL_META } from "@/lib/health";
 import { cn } from "@/lib/utils";
 import { HealthBadge } from "./HealthBadge";
-import { useClientHealth } from "./healthQueries";
+import { HEALTH_LOAD_ERROR, useClientHealth } from "./healthQueries";
 
 const SEVERITY_TONE = { risk: "danger", warning: "warning" } as const;
 
@@ -16,7 +16,7 @@ export function ClientHealthCard({ clientId }: { clientId: string }) {
     return (
       <ErrorState
         title="No pudimos calcular la salud del cliente"
-        message={query.error.message}
+        message={HEALTH_LOAD_ERROR}
         onRetry={() => void query.refetch()}
         retrying={query.isFetching}
       />
@@ -36,6 +36,11 @@ export function ClientHealthCard({ clientId }: { clientId: string }) {
     >
       {query.isPending || !health ? (
         <ListSkeleton rows={2} label="Calculando salud del cliente" />
+      ) : health.level === "sin_datos" ? (
+        <p className="text-sm text-muted-foreground">
+          Sin datos suficientes: este cliente tiene demasiados registros para calcular su salud con
+          certeza.
+        </p>
       ) : health.reasons.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           Todo en orden: sin cobros vencidos, aprobaciones trabadas ni alertas abiertas.

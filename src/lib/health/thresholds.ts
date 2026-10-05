@@ -17,16 +17,14 @@ export const HEALTH_THRESHOLDS = {
   alertWarnDays: 3,
   /** Reporte del mes cerrado sin enviar: se exige desde este día del mes. */
   reportGraceDayOfMonth: 7,
-  /** Sin actividad con el cliente: desde N días → Atención. */
+  /** Sin respuesta/actividad del cliente: desde N días → Atención. */
   inactivityWarnDays: 21,
-  /** Sin actividad con el cliente: desde N días → En riesgo. */
+  /** Sin respuesta/actividad del cliente: desde N días → En riesgo. */
   inactivityRiskDays: 45,
   /** Ventana de búsqueda de actividad (más atrás no se consulta). */
   activityLookbackDays: 60,
-  /** Fin de permanencia mínima dentro de N días → Atención (conversar renovación). */
+  /** Fin de permanencia mínima dentro de N días → Atención (nunca En riesgo: es una oportunidad). */
   renewalWarnDays: 30,
-  /** Fin de permanencia mínima dentro de N días → En riesgo. */
-  renewalRiskDays: 7,
   /** Onboarding sin completar: desde N días desde el alta → Atención. */
   onboardingWarnDays: 7,
   /** Onboarding sin completar: desde N días desde el alta → En riesgo. */

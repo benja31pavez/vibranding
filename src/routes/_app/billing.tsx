@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { invalidateClientHealth } from "@/components/clients/health/healthKeys";
 import { CheckCircle2, Receipt, Repeat, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +57,7 @@ function BillingPage() {
   const requestId = useRef(0);
   const today = todayInChile();
   const mrr = useMrr();
+  const queryClient = useQueryClient();
 
   const load = async () => {
     const id = ++requestId.current;
@@ -89,6 +92,7 @@ function BillingPage() {
     else if (err) toast.error(`No se pudo actualizar el pago: ${err.message}`);
     else toast.success("Cobro marcado como pagado");
     load();
+    void invalidateClientHealth(queryClient);
   };
 
   return (

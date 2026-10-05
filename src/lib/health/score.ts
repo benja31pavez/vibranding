@@ -5,6 +5,8 @@
  * - Sin E/S ni React: se prueba con datos falsos y `now` fijo (scripts/check-health.mjs).
  * - Fechas de calendario en America/Santiago.
  * - Solo clientes activos, en onboarding o pausados (prospecto/terminado → sin puntaje).
+ * - Pausados: solo cobro vencido y renovación, y como máximo "Atención".
+ * - Si alguna consulta llegó a su tope para un cliente → "Sin datos suficientes".
  */
 import { addDaysYmd, chileDate } from "@/lib/dates/chile";
 import {
@@ -22,12 +24,18 @@ import type {
 } from "./types";
 
 export const HEALTH_LEVEL_META: Readonly<
-  Record<HealthLevel, { label: string; tone: "success" | "warning" | "danger"; rank: number }>
+  Record<
+    HealthLevel,
+    { label: string; tone: "success" | "warning" | "danger" | "neutral"; rank: number }
+  >
 > = {
   en_riesgo: { label: "En riesgo", tone: "danger", rank: 0 },
   atencion: { label: "Atención", tone: "warning", rank: 1 },
   bien: { label: "Bien", tone: "success", rank: 2 },
+  sin_datos: { label: "Sin datos suficientes", tone: "neutral", rank: 3 },
 };
+/** Rango de los clientes sin puntaje (prospecto/terminado): siempre al final. */
+const UNSCORED_RANK = 4;
 
 // ------------------------------------------------------------------ fechas
 
@@ -116,7 +124,7 @@ interface ClientContext {
 }
 
 type Grouped = {
-  [K in keyof Omit<HealthSources, "clients" | "onboarding">]: Map<
+  [K in keyof Omit<HealthSources, "clients" | "onboarding" | "partialClientIds">]: Map<
     string,
     HealthSources[K][number][]
   >;
@@ -201,9 +209,8 @@ function reportReason(ctx: ClientContext, g: Grouped): HealthReason | null {
   if (ctx.client.status !== "activo") return null;
   const period = closedPeriod(ctx.today);
   const dayOfMonth = Number(ctx.today.slice(8, 10));
-  // Solo se exige si el cliente ya estaba antes de que empezara el mes en curso.
-  const currentMonthStart = `${ctx.today.slice(0, 7)}-01`;
-  if (dayOfMonth < T.reportGraceDayOfMonth || ctx.startYmd >= currentMonthStart) return null;
+  // Solo se exige si el cliente ya estaba antes de que empezara el mes cerrado.
+  if (dayOfMonth < T.reportGraceDayOfMonth || ctx.startYmd >= period) return null;
   const sent = (g.reports.get(ctx.client.id) ?? []).some((r) => r.period === period && r.sent_at);
   if (sent) return null;
   return {
@@ -214,7 +221,7 @@ function reportReason(ctx: ClientContext, g: Grouped): HealthReason | null {
   };
 }
 
-/** Días desde la última actividad; la fecha de alta cuenta como actividad. */
+/** Días desde la última señal del cliente; la fecha de alta cuenta como señal. */
 export function daysSinceActivity(ctx: ClientContext, g: Grouped): number {
   const stamps = (g.activity.get(ctx.client.id) ?? []).flatMap((a) => {
     const ymd = toYmd(a.at);
@@ -230,10 +237,10 @@ function inactivityReason(ctx: ClientContext, inactiveDays: number): HealthReaso
   if (!severity) return null;
   const label =
     inactiveDays > T.activityLookbackDays
-      ? `Sin actividad hace más de ${days(T.activityLookbackDays)}`
-      : `Sin actividad hace ${days(inactiveDays)}`;
+      ? `Sin respuesta del cliente hace más de ${days(T.activityLookbackDays)}`
+      : `Sin respuesta del cliente hace ${days(inactiveDays)}`;
   return {
-    code: "sin_actividad",
+    code: "sin_respuesta_cliente",
     severity,
     label,
     action: "Escribirle para saber cómo va y proponer el contenido de las próximas semanas.",
@@ -252,11 +259,11 @@ function renewalReason(ctx: ClientContext, g: Grouped): HealthReason | null {
   if (left > T.renewalWarnDays) return null;
   return {
     code: "renovacion_cercana",
-    severity: left <= T.renewalRiskDays ? "risk" : "warning",
+    severity: "warning",
     label:
       left === 0
-        ? "La permanencia mínima termina hoy"
-        : `La permanencia mínima termina en ${days(left)}`,
+        ? "Renovación próxima: la permanencia mínima termina hoy"
+        : `Renovación próxima: la permanencia mínima termina en ${days(left)}`,
     action: "Agendar una reunión de resultados y proponer la renovación (o un plan mejor).",
   };
 }
@@ -281,23 +288,20 @@ function onboardingReason(
   };
 }
 
-function pausedReason(ctx: ClientContext): HealthReason | null {
-  if (ctx.client.status !== "pausado") return null;
-  return {
-    code: "servicio_pausado",
-    severity: "warning",
-    label: "Servicio pausado",
-    action: "Confirmar la fecha de retorno y mantener el contacto mientras tanto.",
-  };
-}
-
 // ------------------------------------------------------------------ puntaje
 
-function levelOf(reasons: readonly HealthReason[]): HealthLevel {
+function levelOf(reasons: readonly HealthReason[], paused: boolean): HealthLevel {
+  if (!reasons.length) return "bien";
+  if (paused) return "atencion";
   if (reasons.some((r) => r.severity === "risk")) return "en_riesgo";
-  if (reasons.length >= T.warningsForRisk) return "en_riesgo";
-  return reasons.length ? "atencion" : "bien";
+  return reasons.length >= T.warningsForRisk ? "en_riesgo" : "atencion";
 }
+
+/** Motivos que cuentan para un cliente pausado (no se le exige entrega ni respuesta). */
+const PAUSED_REASONS: ReadonlySet<HealthReason["code"]> = new Set([
+  "cobro_vencido",
+  "renovacion_cercana",
+]);
 
 function scoreOf(reasons: readonly HealthReason[]): number {
   const penalty = reasons.reduce((sum, r) => sum + HEALTH_WEIGHTS[r.severity], 0);
@@ -313,6 +317,7 @@ function scoreClient(
   const startYmd = toYmd(client.started_at) ?? toYmd(client.created_at) ?? today;
   const ctx: ClientContext = { client, today, startYmd: startYmd > today ? today : startYmd };
   const inactiveDays = daysSinceActivity(ctx, g);
+  const paused = client.status === "pausado";
   const reasons = [
     overdueReason(ctx, g),
     approvalReason(ctx, g),
@@ -322,14 +327,14 @@ function scoreClient(
     onboardingReason(ctx, sources.onboarding),
     inactivityReason(ctx, inactiveDays),
     reportReason(ctx, g),
-    pausedReason(ctx),
   ]
     .filter((r): r is HealthReason => r !== null)
+    .filter((r) => !paused || PAUSED_REASONS.has(r.code))
     // Estable: los de riesgo primero, conservando el orden de prioridad de arriba.
     .sort((a, b) => Number(b.severity === "risk") - Number(a.severity === "risk"));
   return {
     clientId: client.id,
-    level: levelOf(reasons),
+    level: levelOf(reasons, paused),
     score: scoreOf(reasons),
     reasons,
     nextAction: reasons[0]?.action ?? null,
@@ -349,22 +354,41 @@ export function computeClientHealth(sources: HealthSources, now: Date): Map<stri
     activity: groupBy(sources.activity, (r) => r.client_id),
     subscriptions: groupBy(sources.subscriptions, (r) => r.client_id),
   };
+  const partial = new Set(sources.partialClientIds);
   return new Map(
     sources.clients
       .filter((c) => SCORED_CLIENT_STATUSES.has(c.status))
-      .map((c) => [c.id, scoreClient(c, g, sources, today)] as const),
+      .map(
+        (c) =>
+          [
+            c.id,
+            partial.has(c.id) ? insufficient(c.id) : scoreClient(c, g, sources, today),
+          ] as const,
+      ),
   );
+}
+
+function insufficient(clientId: string): ClientHealth {
+  return {
+    clientId,
+    level: "sin_datos",
+    score: HEALTH_MAX_SCORE,
+    reasons: [],
+    nextAction: null,
+    daysSinceActivity: null,
+  };
 }
 
 /** Orden "En riesgo primero": nivel, luego puntaje (peor primero). Sin puntaje al final. */
 export function compareByRisk(a: ClientHealth | undefined, b: ClientHealth | undefined): number {
-  const rank = (h: ClientHealth | undefined) => (h ? HEALTH_LEVEL_META[h.level].rank : 3);
+  const rank = (h: ClientHealth | undefined) =>
+    h ? HEALTH_LEVEL_META[h.level].rank : UNSCORED_RANK;
   return rank(a) - rank(b) || (a?.score ?? HEALTH_MAX_SCORE) - (b?.score ?? HEALTH_MAX_SCORE);
 }
 
 /** Cuántos clientes hay en cada nivel. */
 export function countByLevel(health: Iterable<ClientHealth>): Record<HealthLevel, number> {
-  const counts: Record<HealthLevel, number> = { bien: 0, atencion: 0, en_riesgo: 0 };
+  const counts: Record<HealthLevel, number> = { bien: 0, atencion: 0, en_riesgo: 0, sin_datos: 0 };
   for (const h of health) counts[h.level] += 1;
   return counts;
 }

@@ -19,6 +19,8 @@ import {
   type InstagramDecision,
 } from "@/lib/approvals";
 
+import { invalidateClientHealth } from "@/components/clients/health/healthKeys";
+
 /** Keys de React Query de la bandeja; acotadas por usuario para no mezclar sesiones. */
 export const approvalKeys = {
   all: ["approvals"] as const,
@@ -31,6 +33,8 @@ export function invalidateApprovalQueue(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: approvalKeys.all }),
     // Bloque "Aprobaciones" del dashboard: su key se acota por usuario, así que se compara por forma.
     queryClient.invalidateQueries({ predicate: (q) => isDashboardApprovalsKey(q.queryKey) }),
+    // Aprobar/rechazar piezas cambia la "Salud del cliente".
+    invalidateClientHealth(queryClient),
   ]);
 }
 

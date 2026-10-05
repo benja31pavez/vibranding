@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { AlertTriangle, CalendarClock, HeartPulse, RotateCw, Target, Users } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { UseQueryResult } from "@tanstack/react-query";
@@ -111,16 +112,22 @@ function MrrCard({ query }: { query: UseQueryResult<MrrSummary> }) {
   );
 }
 
-/** Clientes en riesgo según "Salud del cliente" (src/lib/health). */
+/**
+ * Clientes en riesgo según "Salud del cliente" (src/lib/health). Los pausados
+ * nunca llegan a "En riesgo" (su nivel se limita a Atención), así que no cuentan.
+ * Se habilita tras el primer pintado para no competir con los KPIs principales.
+ */
 function AtRiskCard() {
-  const health = useClientsHealth();
+  const [painted, setPainted] = useState(false);
+  useEffect(() => setPainted(true), []);
+  const health = useClientsHealth({ enabled: painted });
   const counts = health.data ? countByLevel(health.data.values()) : null;
   const atRisk = counts?.en_riesgo ?? 0;
   return (
     <StatCard
       icon={HeartPulse}
       label="Clientes en riesgo"
-      loading={health.isPending && !health.isError}
+      loading={!painted || (health.isPending && !health.isError)}
       value={
         health.isError ? (
           <RetryValue query={health} />

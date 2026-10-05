@@ -1,6 +1,7 @@
 /** Tipos de "Salud del cliente". Sin dependencias de React ni Supabase. */
 
-export type HealthLevel = "bien" | "atencion" | "en_riesgo";
+/** "sin_datos": alguna consulta llegó a su tope y no se puede puntuar con certeza. */
+export type HealthLevel = "bien" | "atencion" | "en_riesgo" | "sin_datos";
 export type HealthSeverity = "warning" | "risk";
 
 export type HealthReasonCode =
@@ -9,10 +10,9 @@ export type HealthReasonCode =
   | "cambios_sin_resolver"
   | "alerta_campana"
   | "reporte_sin_enviar"
-  | "sin_actividad"
+  | "sin_respuesta_cliente"
   | "renovacion_cercana"
-  | "onboarding_incompleto"
-  | "servicio_pausado";
+  | "onboarding_incompleto";
 
 export interface HealthReason {
   code: HealthReasonCode;
@@ -78,7 +78,7 @@ export interface HealthReportInput {
   sent_at: string | null;
 }
 
-/** Marca de actividad con el cliente (comentario, aprobación, pago, reporte, entrega). */
+/** Señal del lado del cliente: comentario suyo, aprobación, pago o reporte enviado. */
 export interface HealthActivityInput {
   client_id: string;
   at: string | null;
@@ -108,4 +108,6 @@ export interface HealthSources {
   activity: readonly HealthActivityInput[];
   subscriptions: readonly HealthSubscriptionInput[];
   onboarding: HealthOnboardingInput;
+  /** Clientes cuyos datos quedaron incompletos (tope de filas): no se puntúan. */
+  partialClientIds: readonly string[];
 }

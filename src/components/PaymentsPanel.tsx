@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateClientHealth } from "@/components/clients/health/healthKeys";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,12 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
   const [editing, setEditing] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  /** Recarga la lista y la "Salud del cliente" (cobros vencidos/pagados). */
+  const reloadAfterWrite = () => {
+    load();
+    void invalidateClientHealth(queryClient);
+  };
 
   // Contador de solicitudes: ignora respuestas viejas si llega una carga más nueva.
   const requestId = useRef(0);
@@ -153,20 +160,20 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
     if (error) return toast.error(error.message);
     setDraft({ description: "", amount: "", due_date: "" });
     setAdding(false);
-    load();
+    reloadAfterWrite();
   };
 
   const changeStatus = async (id: string, status: Status) => {
     const error = await setPaymentStatus(id, status);
     if (error) toast.error(error);
-    load();
+    reloadAfterWrite();
   };
 
   const remove = async (id: string) => {
     const { data, error } = await supabase.from("payments").delete().eq("id", id).select("id");
     if (error) toast.error(`No se pudo eliminar el pago: ${error.message}`);
     else if (writeDenied(error, data)) toast.error(NO_PERMISSION);
-    load();
+    reloadAfterWrite();
   };
 
   const totals = items.reduce<{ paid: ClpTotals; pending: ClpTotals }>(
@@ -264,7 +271,7 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
         payment={editing}
         canChangeStatus={canChangeStatus}
         onClose={() => setEditing(null)}
-        onSaved={() => { setEditing(null); load(); }}
+        onSaved={() => { setEditing(null); reloadAfterWrite(); }}
       />
     </div>
   );

@@ -56,6 +56,7 @@ const empty = {
   activity: [],
   subscriptions: [],
   onboarding: { withToken: [], submitted: [] },
+  partialClientIds: [],
 };
 
 /** Cliente sano: actividad reciente y reporte del mes cerrado enviado. */
@@ -158,6 +159,16 @@ expect(
   run("r", { reports: [] }, { started_at: "2026-10-02", created_at: iso("2026-10-02") })?.level,
   "bien",
 );
+expect(
+  "cliente que partió dentro del mes cerrado no exige reporte",
+  run("r", { reports: [] }, { started_at: "2026-09-10", created_at: iso("2026-09-10") })?.level,
+  "bien",
+);
+expect(
+  "cliente que partió antes del mes cerrado sí exige reporte",
+  codes(run("r", { reports: [] }, { started_at: "2026-08-31", created_at: iso("2026-08-31") })),
+  "reporte_sin_enviar",
+);
 
 // --- inactividad
 const idle = (n) => {
@@ -185,9 +196,16 @@ expect(
   "atencion",
 );
 expect(
-  "permanencia termina en 5 días → riesgo",
+  "permanencia termina en 5 días → solo atención",
   run("s", sub(h.addMonthsYmd(addDays(TODAY, 5), -6), 6))?.level,
-  "en_riesgo",
+  "atencion",
+);
+expect(
+  "renovación se rotula como próxima",
+  /^Renovación próxima/.test(
+    run("s", sub(h.addMonthsYmd(addDays(TODAY, 5), -6), 6))?.reasons[0].label ?? "",
+  ),
+  true,
 );
 expect("permanencia lejana → bien", run("s", sub("2026-09-01", 12))?.level, "bien");
 expect("permanencia ya cumplida → bien", run("s", sub("2025-01-01", 6))?.level, "bien");
@@ -216,7 +234,57 @@ expect(
 );
 
 // --- estados
-expect("pausado → atención", codes(run("z", {}, { status: "pausado" })), "servicio_pausado");
+expect(
+  "pausado sin cobros ni renovación → bien",
+  run("z", {}, { status: "pausado" })?.level,
+  "bien",
+);
+const pausedOverdue = run(
+  "z",
+  { ...pay("overdue", ago(30), "z"), ...appr(30, "z"), ...alert("critical", 0, "z"), reports: [] },
+  { status: "pausado" },
+);
+expect("pausado con cobro muy vencido → máximo atención", pausedOverdue?.level, "atencion");
+expect("pausado solo considera cobro y renovación", codes(pausedOverdue), "cobro_vencido");
+expect(
+  "pausado con renovación → atención",
+  codes(
+    run(
+      "z",
+      {
+        subscriptions: [
+          {
+            client_id: "z",
+            status: "activa",
+            started_at: h.addMonthsYmd(addDays(TODAY, 10), -3),
+            min_months: 3,
+          },
+        ],
+      },
+      { status: "pausado" },
+    ),
+  ),
+  "renovacion_cercana",
+);
+expect("pausado no aparece en riesgo", h.countByLevel([pausedOverdue]).en_riesgo, 0);
+
+// --- datos incompletos
+const partial = h
+  .computeClientHealth(
+    { ...empty, clients: [client("t")], ...pay("overdue", ago(30), "t"), partialClientIds: ["t"] },
+    NOW,
+  )
+  .get("t");
+expect("tope alcanzado → sin datos suficientes", partial?.level, "sin_datos");
+expect("sin datos no muestra motivos", partial?.reasons.length, 0);
+expect("sin datos va después de bien", [partial, run("a")].sort(h.compareByRisk)[0]?.level, "bien");
+
+// --- sin respuesta del cliente
+expect(
+  "motivo de inactividad = sin respuesta del cliente",
+  codes(idle(T.inactivityWarnDays)),
+  "sin_respuesta_cliente",
+);
 expect("prospecto → sin puntaje", run("z", {}, { status: "prospecto" }), undefined);
 expect("terminado → sin puntaje", run("z", {}, { status: "terminado" }), undefined);
 
@@ -242,7 +310,7 @@ expect("orden En riesgo primero", sorted.join(","), "en_riesgo,atencion,bien,non
 expect(
   "conteo por nivel",
   JSON.stringify(h.countByLevel([run("a"), many])),
-  JSON.stringify({ bien: 1, atencion: 0, en_riesgo: 1 }),
+  JSON.stringify({ bien: 1, atencion: 0, en_riesgo: 1, sin_datos: 0 }),
 );
 
 // --- textos en español, sin moneda extranjera
