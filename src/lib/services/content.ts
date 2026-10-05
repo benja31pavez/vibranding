@@ -258,7 +258,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
       },
       {
         q: "¿Con qué tipo de negocios trabajan?",
-        a: "Los rubros donde más encaja nuestro trabajo son servicios y oficios del hogar, salud y profesionales, y gimnasios y estética. Si tu rubro es otro, el diagnóstico gratis nos sirve para ver si podemos ayudarte.",
+        a: "Trabajamos con pymes y emprendimientos de cualquier rubro. El diagnóstico gratis nos sirve para conocer tu negocio y proponerte por dónde partir.",
       },
     ],
     whatsappMessage:

@@ -41,14 +41,14 @@ const homeEs = {
     titleLead: "Marketing digital para pymes chilenas que quieren",
     titleAccent: "más clientes",
     subtitle:
-      "Creamos tu marca, tu contenido y tus campañas en Meta Ads y Google Ads, y las optimizamos mes a mes para que más personas te encuentren y te escriban por WhatsApp.",
+      "Te apoyamos con la imagen visual de tu marca, la planificación de tu contenido, campañas en Meta Ads y Google Ads y un embudo de ventas, para que más personas te encuentren y te escriban por WhatsApp.",
     priceLine: "Planes desde $129.990 + IVA/mes.",
     ctaPrimary: "Cotiza por WhatsApp",
     ctaSecondary: "Ver planes",
     trust: ["Precios claros en pesos", "Factura o boleta"],
   },
   niches: {
-    title: "Trabajamos sobre todo con",
+    title: "Algunos rubros con los que trabajamos",
     items: [
       {
         title: "Servicios y oficios del hogar",
@@ -300,7 +300,7 @@ const es: Dict = {
       },
       {
         q: "¿Con qué tipo de negocios trabajan?",
-        a: "Con pymes y profesionales de todo Chile. Trabajamos sobre todo con servicios y oficios del hogar (paisajismo, piscinas, remodelación), salud y profesionales, gimnasios y estética. Si tu rubro es otro, escríbenos igual y te decimos con honestidad si te podemos ayudar.",
+        a: "Con pymes, emprendimientos y profesionales de todo Chile, de cualquier rubro: servicios, comercio, salud, gimnasios, estética, gastronomía y más. Si tienes dudas, escríbenos y te decimos con honestidad cómo te podemos ayudar.",
       },
       {
         q: "¿Cómo se paga?",

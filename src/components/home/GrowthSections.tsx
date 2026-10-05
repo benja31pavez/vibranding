@@ -107,7 +107,7 @@ export function ForWhomSection() {
         title="¿Para quién es"
         accent="Vibranding"
         end="?"
-        subtitle="Trabajamos con pymes de servicios."
+        subtitle="Pymes y emprendimientos de cualquier rubro. Algunos ejemplos:"
       />
       <ul data-reveal-stagger className="grid gap-4 sm:grid-cols-3">
         {niches.items.map((n, i) => {
