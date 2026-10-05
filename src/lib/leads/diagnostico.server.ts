@@ -15,6 +15,13 @@
  * recién creado y el resultado es "error". Si el prospecto ya existía, se
  * intenta registrar el consentimiento igual y, si falla, solo se loguea.
  *
+ * Marketing (opcional, independiente): si el visitante marcó la casilla de
+ * novedades, se registra OTRA fila en prospect_consents (purpose = 'marketing')
+ * y solo si quedó registrada se marca prospects.marketing_opt_in = true. Si
+ * falla (p. ej. migración 20261012001900 sin aplicar), el lead se guarda igual
+ * con marketing_opt_in = false (default) y se loguea. Un prospecto en 'baja'
+ * cuenta siempre como sin permiso (ver acceptsMarketingEmail).
+ *
  * Duplicados: prospects tiene índices únicos (org, email) y (org, nombre+comuna).
  * Se inserta y, si choca (23505), se busca el existente y se le agrega una nota
  * con append_prospect_note en vez de duplicarlo. No se cambia su estado
@@ -26,7 +33,10 @@ import {
   CONSENT_TEXT,
   CONSENT_VERSION,
   DIAGNOSTICO_SOURCE,
+  MARKETING_CONSENT_TEXT,
+  MARKETING_CONSENT_VERSION,
   budgetLabel,
+  buildInfoNoteLines,
   goalLabel,
   splitPresence,
   type DiagnosticoInput,
@@ -169,6 +179,9 @@ async function findExisting(
 type UntypedAdmin = {
   from: (t: string) => {
     insert: (row: Record<string, unknown>) => PromiseLike<{ error: { code?: string } | null }>;
+    update: (row: Record<string, unknown>) => {
+      eq: (col: string, value: string) => PromiseLike<{ error: { code?: string } | null }>;
+    };
   };
 };
 
@@ -215,6 +228,46 @@ async function recordConsent(
   throw new DbError("insert prospect_consents", error.code);
 }
 
+/**
+ * Consentimiento de marketing (opcional): su propia fila en prospect_consents y,
+ * si quedó registrada, prospects.marketing_opt_in = true. Nunca lanza ni bloquea
+ * el lead: si algo falla, marketing_opt_in queda en false (default) y se loguea.
+ */
+async function recordMarketingConsent(
+  admin: Admin,
+  orgId: string,
+  prospectId: string | null,
+  input: DiagnosticoInput,
+  ipHash: string | null,
+): Promise<void> {
+  if (!input.marketing) return;
+  try {
+    const untyped = admin as unknown as UntypedAdmin;
+    const { error } = await untyped.from("prospect_consents").insert({
+      org_id: orgId,
+      prospect_id: prospectId,
+      email_hash: await emailHash(input),
+      channel: "web_diagnostico",
+      purpose: "marketing",
+      consent_text: MARKETING_CONSENT_TEXT,
+      consent_version: MARKETING_CONSENT_VERSION,
+      ip_hash: ipHash,
+    });
+    if (error) throw new DbError("insert prospect_consents (marketing)", error.code);
+    if (!prospectId) return;
+    const { error: optError } = await untyped
+      .from("prospects")
+      .update({ marketing_opt_in: true, marketing_opt_in_at: new Date().toISOString() })
+      .eq("id", prospectId);
+    if (optError) throw new DbError("update prospects.marketing_opt_in", optError.code);
+  } catch (e) {
+    console.error(
+      "[diagnostico][MARKETING_SIN_REGISTRAR] lead guardado sin opt-in de marketing (¿migración 20261012001900?)",
+    );
+    logError(e);
+  }
+}
+
 /** Sin consentimiento registrado no se deja un prospecto nuevo: se borra el recién creado. */
 async function rollbackProspect(admin: Admin, prospectId: string): Promise<void> {
   const { error } = await admin.from("prospects").delete().eq("id", prospectId);
@@ -256,6 +309,8 @@ export async function saveDiagnosticoLead(
     const unparsed =
       input.presencia && !presence.instagram && !presence.web ? input.presencia : null;
     const note = buildLeadNote(input, unparsed);
+    // Texto libre en líneas propias (marca INFO_NOTE_MARK): recommend.ts no las lee.
+    const infoLines = buildInfoNoteLines(input.info);
 
     const { data: created, error } = await admin
       .from("prospects")
@@ -270,7 +325,7 @@ export async function saveDiagnosticoLead(
         telefono_publico: input.whatsapp,
         fuente: DIAGNOSTICO_SOURCE,
         estado: "nuevo",
-        notas: note,
+        notas: [note, ...infoLines].join("\n"),
       })
       .select("id")
       .single();
@@ -281,6 +336,7 @@ export async function saveDiagnosticoLead(
         await rollbackProspect(admin, created.id);
         throw consentError;
       }
+      await recordMarketingConsent(admin, target.orgId, created.id, input, ipHash);
       return { outcome: "created", ownerEmail: target.ownerEmail };
     }
     if (error.code !== UNIQUE_VIOLATION) throw new DbError("insert prospects", error.code);
@@ -298,6 +354,14 @@ export async function saveDiagnosticoLead(
         ),
     });
     if (noteError) throw new DbError("append_prospect_note", noteError.code);
+    for (const line of infoLines) {
+      const { error: infoError } = await admin.rpc("append_prospect_note", {
+        _prospect_id: existingId,
+        _note: line,
+      });
+      if (infoError) logError(new DbError("append_prospect_note (info)", infoError.code));
+    }
+    await recordMarketingConsent(admin, target.orgId, existingId, input, ipHash);
     return { outcome: "noted", ownerEmail: target.ownerEmail };
   } catch (e) {
     logError(e);
@@ -324,6 +388,16 @@ const OUTCOME_LABEL: Record<SaveOutcome, string> = {
   no_org: "ATENCIÓN: no se guardó en la plataforma (no se resolvió la org del administrador).",
   error: "ATENCIÓN: no se guardó en la plataforma (error de base de datos, ver logs).",
 };
+
+/** "Información adicional" en una línea, sin controles (para el aviso por correo). */
+function flatInfo(raw: string | undefined): string {
+  return (
+    (raw ?? "")
+      // eslint-disable-next-line no-control-regex -- intencional: elimina caracteres de control
+      .replace(/[\u0000-\u001f\u007f\u2028\u2029\s]+/g, " ")
+      .trim()
+  );
+}
 
 let warnedNoMail = false;
 
@@ -357,6 +431,8 @@ export async function notifyDiagnosticoLead(
     `Quiere lograr: ${goalLabel(input.objetivo)}`,
     `Presupuesto: ${budgetLabel(input.presupuesto) ?? "-"}`,
     `Plan de interés: ${input.plan ?? "-"}`,
+    `Acepta correos de marketing: ${input.marketing ? "sí" : "no"}`,
+    `Información adicional: ${flatInfo(input.info) || "-"}`,
   ];
   try {
     await sendViaResend(apiKey, process.env["RESEND_FROM"]?.trim() || DEFAULT_FROM, {

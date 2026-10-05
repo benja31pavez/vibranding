@@ -7,6 +7,8 @@ import {
   CONSENT_TEXT,
   DiagnosticoInput,
   GOALS,
+  INFO_MAX,
+  MARKETING_CONSENT_TEXT,
   type PlanInterest,
 } from "@/lib/leads/diagnostico.schema";
 import { whatsappUrl } from "@/lib/site";
@@ -21,10 +23,13 @@ type FieldName =
   | "email"
   | "objetivo"
   | "presupuesto"
-  | "consentimiento";
+  | "info"
+  | "consentimiento"
+  | "marketing";
 
-type Values = Record<Exclude<FieldName, "consentimiento">, string> & {
+type Values = Record<Exclude<FieldName, "consentimiento" | "marketing">, string> & {
   consentimiento: boolean;
+  marketing: boolean;
   website: string;
 };
 
@@ -37,7 +42,9 @@ const EMPTY: Values = {
   email: "",
   objetivo: "",
   presupuesto: "",
+  info: "",
   consentimiento: false,
+  marketing: false,
   website: "",
 };
 
@@ -50,7 +57,9 @@ const FIELD_ORDER: FieldName[] = [
   "email",
   "objetivo",
   "presupuesto",
+  "info",
   "consentimiento",
+  "marketing",
 ];
 
 const NOT_SAVED_MESSAGE = "No pudimos registrar tu solicitud. Escríbenos por WhatsApp.";
@@ -64,6 +73,19 @@ type FormError = { text: string; whatsapp: boolean };
 
 const inputCls =
   "block h-12 w-full rounded-xl border border-input bg-background px-4 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-[invalid=true]:border-destructive";
+
+/** Asterisco visible de campo obligatorio (los lectores usan aria-required). */
+function RequiredMark() {
+  return (
+    <span aria-hidden="true" className="ml-0.5 text-red-700 dark:text-red-300">
+      *
+    </span>
+  );
+}
+
+function OptionalMark() {
+  return <span className="font-normal text-muted-foreground">(opcional)</span>;
+}
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
@@ -138,7 +160,7 @@ export function DiagnosticoForm({
     [hint, errors[name] ? `${name}-error` : null].filter(Boolean).join(" ") || undefined;
 
   const textField = (
-    name: Exclude<FieldName, "objetivo" | "presupuesto" | "consentimiento">,
+    name: Exclude<FieldName, "objetivo" | "presupuesto" | "info" | "consentimiento" | "marketing">,
     label: string,
     opts: {
       type?: string;
@@ -151,8 +173,15 @@ export function DiagnosticoForm({
   ) => (
     <div>
       <label htmlFor={`dg-${name}`} className="mb-1.5 block text-sm font-semibold">
-        {label}{" "}
-        {opts.optional && <span className="font-normal text-muted-foreground">(opcional)</span>}
+        {label}
+        {opts.optional ? (
+          <>
+            {" "}
+            <OptionalMark />
+          </>
+        ) : (
+          <RequiredMark />
+        )}
       </label>
       {opts.hint && (
         <p id={`${name}-hint`} className="mb-1.5 text-sm text-muted-foreground">
@@ -167,6 +196,7 @@ export function DiagnosticoForm({
         inputMode={opts.inputMode}
         placeholder={opts.placeholder}
         required={!opts.optional}
+        aria-required={opts.optional ? undefined : true}
         aria-invalid={errors[name] ? true : undefined}
         aria-describedby={describedBy(name, opts.hint ? `${name}-hint` : undefined)}
         value={values[name]}
@@ -186,7 +216,8 @@ export function DiagnosticoForm({
       aria-describedby="dg-required-note"
     >
       <p id="dg-required-note" className="text-sm text-muted-foreground">
-        Todos los campos son obligatorios salvo los marcados como opcionales. Toma 1 minuto.
+        Los campos con <span aria-hidden="true">*</span>
+        <span className="sr-only">asterisco</span> son obligatorios. Toma 1 minuto.
       </p>
 
       {textField("negocio", "Nombre de tu negocio", {
@@ -220,8 +251,16 @@ export function DiagnosticoForm({
         })}
       </div>
 
-      <fieldset aria-describedby={errors.objetivo ? "objetivo-error" : undefined}>
-        <legend className="mb-2 text-sm font-semibold">¿Qué quieres lograr primero?</legend>
+      <fieldset
+        role="radiogroup"
+        aria-required="true"
+        aria-invalid={errors.objetivo ? true : undefined}
+        aria-describedby={errors.objetivo ? "objetivo-error" : undefined}
+      >
+        <legend className="mb-2 text-sm font-semibold">
+          ¿Qué quieres lograr con Vibranding?
+          <RequiredMark />
+        </legend>
         <div className="grid gap-2 sm:grid-cols-2">
           {GOALS.map((g) => (
             <label
@@ -249,8 +288,7 @@ export function DiagnosticoForm({
 
       <div>
         <label htmlFor="dg-presupuesto" className="mb-1.5 block text-sm font-semibold">
-          Presupuesto aproximado para marketing{" "}
-          <span className="font-normal text-muted-foreground">(opcional)</span>
+          Presupuesto aproximado para marketing <OptionalMark />
         </label>
         <select
           id="dg-presupuesto"
@@ -265,6 +303,32 @@ export function DiagnosticoForm({
             </option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label htmlFor="dg-info" className="mb-1.5 block text-sm font-semibold">
+          Información adicional <OptionalMark />
+        </label>
+        <textarea
+          id="dg-info"
+          name="info"
+          rows={4}
+          maxLength={INFO_MAX}
+          placeholder="Cuéntanos lo que quieras: qué te preocupa hoy, qué has probado, plazos…"
+          aria-invalid={errors.info ? true : undefined}
+          aria-describedby={describedBy("info", "info-count")}
+          value={values.info}
+          onChange={(e) => set("info", e.target.value)}
+          className={cn(inputCls, "h-auto min-h-28 resize-y py-3")}
+        />
+        <p
+          id="info-count"
+          className="mt-1 text-right text-xs tabular-nums text-muted-foreground"
+          aria-live="polite"
+        >
+          {values.info.length}/{INFO_MAX}
+        </p>
+        <FieldError id="info-error" message={errors.info} />
       </div>
 
       {/* Honeypot: invisible para personas y lectores de pantalla. */}
@@ -288,6 +352,7 @@ export function DiagnosticoForm({
             name="consentimiento"
             checked={values.consentimiento}
             onChange={(e) => set("consentimiento", e.target.checked)}
+            aria-required="true"
             aria-invalid={errors.consentimiento ? true : undefined}
             aria-describedby={describedBy("consentimiento")}
             className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--brand-2)]"
@@ -303,9 +368,26 @@ export function DiagnosticoForm({
               política de privacidad<span className="sr-only"> (se abre en otra pestaña)</span>
             </a>
             .
+            <RequiredMark />
           </span>
         </label>
         <FieldError id="consentimiento-error" message={errors.consentimiento} />
+      </div>
+
+      {/* Consentimiento de marketing: opcional, desmarcado e independiente del anterior. */}
+      <div>
+        <label className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed">
+          <input
+            type="checkbox"
+            name="marketing"
+            checked={values.marketing}
+            onChange={(e) => set("marketing", e.target.checked)}
+            className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--brand-2)]"
+          />
+          <span>
+            {MARKETING_CONSENT_TEXT} <OptionalMark />
+          </span>
+        </label>
       </div>
 
       {formError && (

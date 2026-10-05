@@ -17,7 +17,7 @@
  *
  * Revisión: `npm run check:recommend`.
  */
-import { BUDGETS, GOALS, PLAN_INTERESTS } from "@/lib/leads/diagnostico.schema";
+import { BUDGETS, GOALS, INFO_NOTE_MARK, PLAN_INTERESTS } from "@/lib/leads/diagnostico.schema";
 import { PLANS, findPlan, planPriceLabel, type Plan, type PlanKey } from "@/lib/pricing/plans";
 
 export type GoalValue = (typeof GOALS)[number]["value"];
@@ -47,11 +47,14 @@ const FREE_TEXT_FIELD = /presencia:/i;
 /**
  * Solo las líneas del diagnóstico y solo hasta "presencia:": lo que escribe el
  * visitante en ese campo no puede colar un "quiere:" o "plan de interés:" falso.
+ * Las líneas de "Información adicional" (INFO_NOTE_MARK, texto libre) se ignoran
+ * enteras aunque traigan un "Diagnóstico web" escrito por el visitante.
  */
 function trustedDiagnosticoText(notes: string): string {
   return notes
     .split("\n")
     .map((line) => {
+      if (line.trimStart().startsWith(INFO_NOTE_MARK)) return "";
       const start = line.indexOf(DIAGNOSTICO_NOTE_MARK);
       return start < 0 ? "" : (line.slice(start).split(FREE_TEXT_FIELD)[0] ?? "");
     })
