@@ -1,11 +1,13 @@
 /**
- * "Pedir reseña": reglas y plantillas puras para pedirle a un cliente contento
- * una reseña de Google de Vibranding y, si quiere, un testimonio corto.
+ * "Pedir reseña": reglas y plantillas puras para pedirle a un cliente una
+ * reseña de Google de Vibranding y, si quiere, un testimonio corto.
  *
  * - Sin E/S ni React: se prueba con scripts/check-reviews.mjs.
  * - Nunca envía nada: el dueño copia el mensaje o lo abre en WhatsApp/correo.
  * - Política de Google: nada a cambio de la reseña (sin descuentos, regalos ni
- *   beneficios) y sin pedir solo reseñas positivas. Tampoco urgencia falsa.
+ *   beneficios), sin pedir solo reseñas positivas y SIN SOLICITUD SELECTIVA: el
+ *   momento se decide solo por tiempo (antigüedad y última vez que se pidió),
+ *   nunca por salud ni satisfacción del cliente. Tampoco urgencia falsa.
  */
 
 // ------------------------------------------------------------------ umbrales
@@ -16,15 +18,13 @@ export const REVIEW_MIN_ACTIVE_DAYS = 60;
 export const REVIEW_COOLDOWN_DAYS = 90;
 /** Único estado de cliente en que se sugiere. */
 export const REVIEW_CLIENT_STATUS = "activo";
-/** Nivel de salud requerido (src/lib/health). */
-export const REVIEW_HEALTH_LEVEL = "bien";
-/** Motivo de salud que bloquea la sugerencia aunque el nivel fuera "bien". */
-export const REVIEW_BLOCKING_REASON = "cobro_vencido";
 
 // ------------------------------------------------------------------ textos
 
 export const REVIEW_SUBJECT = "¿Nos ayudas con una reseña?";
-export const REVIEW_GOOD_MOMENT_LABEL = "Buen momento para pedir reseña";
+export const REVIEW_GOOD_MOMENT_LABEL = "Momento para pedir reseña";
+export const REVIEW_FAIRNESS_NOTE =
+  "Pídela a todos tus clientes por igual; no filtres por quién está contento ni desalientes reseñas negativas.";
 export const REVIEW_MISSING_URL_NOTICE =
   "Configura tu link de reseñas de Google (VITE_GOOGLE_REVIEW_URL)";
 
@@ -132,11 +132,7 @@ export interface ReviewMomentInput {
   clientStatus: string | null | undefined;
   /** clients.started_at (o created_at si no hay inicio). */
   startedAt: string | null | undefined;
-  /** Nivel de salud (src/lib/health) o null si no se pudo calcular. */
-  healthLevel: string | null | undefined;
-  /** Códigos de motivos de salud abiertos. */
-  healthReasonCodes?: readonly string[];
-  /** ¿Tiene algún cobro vencido? */
+  /** ¿Tiene algún cobro vencido? (tema de cobranza, no de satisfacción) */
   hasOverduePayments: boolean;
   /** Última vez (YYYY-MM-DD) que se pidió reseña a este cliente, o null. */
   lastAskedYmd: string | null | undefined;
@@ -156,15 +152,21 @@ export function askedRecently(lastAskedYmd: string | null | undefined, today: st
   return Boolean(last) && daysBetween(last as string, today) < REVIEW_COOLDOWN_DAYS;
 }
 
-/** Salud "bien" + activo ≥ 60 días + sin cobros vencidos + no pedido en 90 días. */
+/**
+ * Activo ≥ 60 días + no pedido en 90 días (+ sin cobros vencidos, por cobranza).
+ * No depende de la salud ni del ánimo del cliente: política de Google.
+ */
 export function isGoodMomentForReview(input: ReviewMomentInput): boolean {
   if (input.clientStatus !== REVIEW_CLIENT_STATUS) return false;
-  if (input.healthLevel !== REVIEW_HEALTH_LEVEL) return false;
   if (input.hasOverduePayments) return false;
-  if ((input.healthReasonCodes ?? []).includes(REVIEW_BLOCKING_REASON)) return false;
   const days = activeDays(input.startedAt, input.today);
   if (days === null || days < REVIEW_MIN_ACTIVE_DAYS) return false;
   return !askedRecently(input.lastAskedYmd, input.today);
+}
+
+/** Motivo neutral de la sugerencia en "Inicio". */
+export function reviewSuggestionReason(days: number): string {
+  return `Lleva ${days} días con nosotros: buen momento para pedir una reseña o testimonio.`;
 }
 
 // ------------------------------------------------------------------ "ya se pidió" (localStorage)
@@ -201,6 +203,10 @@ export function parseReviewAsked(raw: string | null, today: string): ReviewAsked
   }
 }
 
-export function withReviewAsked(map: ReviewAskedMap, clientId: string, today: string): ReviewAskedMap {
+export function withReviewAsked(
+  map: ReviewAskedMap,
+  clientId: string,
+  today: string,
+): ReviewAskedMap {
   return { ...map, [clientId]: today };
 }

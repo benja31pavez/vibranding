@@ -1,7 +1,8 @@
 /**
- * Seguimiento sugerido "pedir_resena" para "Inicio": clientes contentos
- * (salud "bien", activos ≥ 60 días, sin cobros vencidos) a los que no se les
- * pidió reseña en los últimos 90 días. Puro: el llamador entrega los datos.
+ * Seguimiento sugerido "pedir_resena" para "Inicio": clientes activos hace
+ * ≥ 60 días, sin cobros vencidos, a los que no se les pidió reseña en los
+ * últimos 90 días. No depende de la salud ni de la satisfacción (política de
+ * Google contra la solicitud selectiva). Puro: el llamador entrega los datos.
  * Nunca envía nada; solo sugiere.
  */
 import {
@@ -9,6 +10,7 @@ import {
   activeDays,
   isGoodMomentForReview,
   normalizeReviewUrl,
+  reviewSuggestionReason,
   type ReviewAskedMap,
 } from "@/lib/reviews/requestReview";
 import { finalize, whatsappDigits } from "./rules";
@@ -24,15 +26,8 @@ export interface ReviewCandidate {
   phone: string | null;
 }
 
-export interface ReviewHealth {
-  level: string;
-  reasonCodes: readonly string[];
-}
-
 export interface ReviewSuggestionSources {
   candidates: readonly ReviewCandidate[];
-  /** Salud por cliente (sin entrada = no se sugiere). */
-  health: ReadonlyMap<string, ReviewHealth>;
   /** Clientes con algún cobro vencido. */
   overdueClientIds: ReadonlySet<string>;
   asked: ReviewAskedMap;
@@ -43,13 +38,10 @@ export interface ReviewSuggestionSources {
 export function reviewFollowups(src: ReviewSuggestionSources): Followup[] {
   const url = normalizeReviewUrl(src.googleReviewUrl);
   return src.candidates.flatMap((c) => {
-    const health = src.health.get(c.id);
     const startedAt = c.started_at ?? c.created_at;
     const ok = isGoodMomentForReview({
       clientStatus: c.status,
       startedAt,
-      healthLevel: health?.level,
-      healthReasonCodes: health?.reasonCodes,
       hasOverduePayments: src.overdueClientIds.has(c.id),
       lastAskedYmd: src.asked[c.id],
       today: src.today,
@@ -61,7 +53,7 @@ export function reviewFollowups(src: ReviewSuggestionSources): Followup[] {
         refId: c.id,
         ageDays: 0,
         kind: "pedir_resena",
-        reason: `Cliente contento hace ${days} días: buen momento para pedir reseña o testimonio.`,
+        reason: reviewSuggestionReason(days),
         businessName: c.name,
         clientId: c.id,
         prospectId: null,

@@ -290,7 +290,10 @@ function planLabel(key: string | null | undefined): string | null {
   return findPlan(key)?.label ?? null;
 }
 
-export type Draft = Omit<Followup, "id" | "priority" | "score"> & { refId: string; ageDays: number };
+export type Draft = Omit<Followup, "id" | "priority" | "score"> & {
+  refId: string;
+  ageDays: number;
+};
 
 export function finalize(d: Draft): Followup {
   const { refId, ageDays, ...rest } = d;

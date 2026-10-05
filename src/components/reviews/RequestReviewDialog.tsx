@@ -13,11 +13,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { copyText, loadClientContact } from "@/components/billing/PaymentReminderDialog";
+import { copyText, loadClientContact } from "@/lib/billing/clientContact";
 import { reminderMailtoHref, reminderWhatsappHref } from "@/lib/billing/reminders";
 import { SIGNATURE } from "@/lib/followups/templates";
 import { GOOGLE_REVIEW_URL } from "@/lib/site";
-import { REVIEW_MISSING_URL_NOTICE, buildReviewRequest } from "@/lib/reviews/requestReview";
+import {
+  REVIEW_FAIRNESS_NOTE,
+  REVIEW_MISSING_URL_NOTICE,
+  buildReviewRequest,
+} from "@/lib/reviews/requestReview";
 
 const CONTACT_STALE_MS = 5 * 60_000;
 
@@ -82,9 +86,10 @@ export function RequestReviewDialog({
             Pedir reseña
           </DialogTitle>
           <DialogDescription>
-            {clientName}. Revisa el mensaje; nada se envía solo. Nunca ofrezcas nada a cambio de
-            una reseña.
+            {clientName}. Revisa el mensaje; nada se envía solo. Nunca ofrezcas nada a cambio de una
+            reseña.
           </DialogDescription>
+          <p className="text-xs text-muted-foreground">{REVIEW_FAIRNESS_NOTE}</p>
         </DialogHeader>
 
         {!request.includesGoogle && (

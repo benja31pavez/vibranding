@@ -3,7 +3,6 @@ import { Sparkles, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Panel, TONE_CLASSES } from "@/components/app";
 import { Button } from "@/components/ui/button";
-import { useClientHealth } from "@/components/clients/health";
 import { cn } from "@/lib/utils";
 import { longDateLabel } from "@/lib/followups/rules";
 import {
@@ -24,18 +23,15 @@ export function RequestReviewPanel({
   clientName: string;
 }) {
   const [open, setOpen] = useState(false);
-  const { health } = useClientHealth(clientId);
-  const candidates = useReviewCandidates();
+  const candidates = useReviewCandidates({ clientId });
   const { asked, today, markAsked } = useReviewAsked();
 
   const candidate = candidates.data?.candidates.find((c) => c.id === clientId);
   const goodMoment =
-    Boolean(candidate && health) &&
+    Boolean(candidate) &&
     isGoodMomentForReview({
       clientStatus: candidate?.status,
       startedAt: candidate?.started_at ?? candidate?.created_at,
-      healthLevel: health?.level,
-      healthReasonCodes: health?.reasons.map((r) => r.code),
       hasOverduePayments: Boolean(candidates.data?.overdueClientIds.has(clientId)),
       lastAskedYmd: asked[clientId],
       today,
@@ -53,7 +49,7 @@ export function RequestReviewPanel({
     <Panel
       title="Reseñas y testimonios"
       icon={Star}
-      description="Una reseña en Google o un testimonio de un cliente contento ayuda a cerrar nuevos clientes."
+      description="Las reseñas en Google y los testimonios de clientes ayudan a cerrar nuevos clientes."
       actions={
         <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
           <Star aria-hidden className="mr-1 h-3.5 w-3.5" /> Pedir reseña
@@ -73,10 +69,12 @@ export function RequestReviewPanel({
           </span>
         )}
         {lastAsked ? (
-          <span className="text-xs">Pedida el {longDateLabel(lastAsked)} (registro de este navegador).</span>
+          <span className="text-xs">
+            Pedida el {longDateLabel(lastAsked)} (registro de este navegador).
+          </span>
         ) : !goodMoment ? (
           <span className="text-xs">
-            Conviene pedirla cuando el cliente está contento y al día con sus pagos.
+            Se sugiere a los 60 días como cliente activo, como máximo cada 90 días.
           </span>
         ) : null}
       </div>

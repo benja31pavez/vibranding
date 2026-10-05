@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BellRing, Copy, Mail, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,51 +20,7 @@ import {
   STAGE_LABEL,
   type ReminderPayment,
 } from "@/lib/billing/reminders";
-
-export interface ClientContact {
-  name: string | null;
-  phone: string | null;
-  email: string | null;
-}
-
-/** Contacto del cliente: ficha de onboarding y, si falta el correo, el usuario del portal. */
-export async function loadClientContact(clientId: string): Promise<ClientContact> {
-  const [intake, portalUser] = await Promise.all([
-    supabase
-      .from("client_intake")
-      .select("contacto_nombre,contacto_telefono,contacto_email,email_facturacion")
-      .eq("client_id", clientId)
-      .maybeSingle(),
-    supabase
-      .from("client_users")
-      .select("email")
-      .eq("client_id", clientId)
-      .not("email", "is", null)
-      .order("created_at", { ascending: true })
-      .limit(1),
-  ]);
-  if (intake.error) throw intake.error;
-  if (portalUser.error) console.warn("[cobros] no se pudo leer el correo del portal", portalUser.error);
-  const i = intake.data;
-  return {
-    name: i?.contacto_nombre?.trim() || null,
-    phone: i?.contacto_telefono?.trim() || null,
-    email:
-      i?.email_facturacion?.trim() ||
-      i?.contacto_email?.trim() ||
-      portalUser.data?.[0]?.email?.trim() ||
-      null,
-  };
-}
-
-export async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { copyText, loadClientContact } from "@/lib/billing/clientContact";
 
 /**
  * Arma el mensaje según la etapa del vencimiento. Nunca envía nada: el dueño

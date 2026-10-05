@@ -45,13 +45,15 @@ function messageFor(f: Followup): string {
   return buildMessage({ ...f.template, link: resolveLink(f.link, origin()) });
 }
 
-async function copyMessage(f: Followup) {
+async function copyMessage(f: Followup): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(messageFor(f));
     toast.success("Mensaje copiado");
+    return true;
   } catch (e) {
     console.error("[seguimientos] no se pudo copiar el mensaje", e);
     toast.error("No se pudo copiar. Revisa los permisos del portapapeles.");
+    return false;
   }
 }
 
@@ -119,11 +121,14 @@ function FollowupRow({
   item,
   showOpen,
   onDone,
+  onContacted,
   busy,
 }: {
   item: Followup;
   showOpen: boolean;
   onDone: (f: Followup) => void;
+  /** Se llama tras copiar o abrir WhatsApp (p. ej. registra el pedido de reseña). */
+  onContacted: (f: Followup) => void;
   busy: boolean;
 }) {
   const wa = item.whatsappPhone ? whatsappHref(item.whatsappPhone, messageFor(item)) : null;
@@ -147,13 +152,18 @@ function FollowupRow({
           size="sm"
           variant="ghost"
           className="h-7 text-xs"
-          onClick={() => void copyMessage(item)}
+          onClick={() => void copyMessage(item).then((ok) => ok && onContacted(item))}
         >
           <Copy aria-hidden className="mr-1 h-3.5 w-3.5" /> Copiar mensaje
         </Button>
         {wa && (
           <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
-            <a href={wa} target="_blank" rel="noopener noreferrer">
+            <a
+              href={wa}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => onContacted(item)}
+            >
               <MessageCircle aria-hidden className="mr-1 h-3.5 w-3.5" /> Abrir WhatsApp
             </a>
           </Button>
@@ -228,6 +238,13 @@ export function FollowupsPanel({
     else toast.warning("Oculto por ahora; este navegador no permite recordarlo hasta mañana.");
   };
 
+  // Pedir reseña: copiar o abrir WhatsApp ya cuenta como pedida (90 días).
+  const onContacted = (f: Followup) => {
+    if (f.kind === "pedir_resena" && f.clientId && !markAsked(f.clientId)) {
+      toast.warning("Este navegador no permite recordarlo; puede volver a aparecer.");
+    }
+  };
+
   if (hideWhenEmpty && query.isSuccess && visible.length === 0) return null;
 
   const shown = showAll ? visible : visible.slice(0, limit);
@@ -272,6 +289,7 @@ export function FollowupsPanel({
               item={f}
               showOpen={!(hideOpenForProspect && f.target.screen === "prospect")}
               onDone={onDone}
+              onContacted={onContacted}
               busy={record.isPending && record.variables === f.prospectId}
             />
           ))}

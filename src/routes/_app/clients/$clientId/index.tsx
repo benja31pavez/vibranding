@@ -22,7 +22,11 @@ import { MonthPlanPanel } from "@/components/clients/ficha/MonthPlanPanel";
 import { FollowupsPanel } from "@/components/followups/FollowupsPanel";
 import { ClientHealthCard } from "@/components/clients/health";
 import { RequestReviewPanel } from "@/components/reviews/RequestReviewPanel";
-import { PERMISSION_DENIED_MSG, useFichaHealth, useFichaOverview } from "@/components/clients/ficha/fichaQueries";
+import {
+  PERMISSION_DENIED_MSG,
+  useFichaHealth,
+  useFichaOverview,
+} from "@/components/clients/ficha/fichaQueries";
 
 export const Route = createFileRoute("/_app/clients/$clientId/")({
   component: ClientFichaPage,
@@ -39,9 +43,18 @@ function ClientFichaPage() {
       <ClientHeader clientId={clientId} overview={overview.data} loading={overview.isLoading} />
 
       {health.error && !health.isLoading ? (
-        <ErrorState message={health.error.message} onRetry={() => void health.refetch()} retrying={health.isFetching} />
+        <ErrorState
+          message={health.error.message}
+          onRetry={() => void health.refetch()}
+          retrying={health.isFetching}
+        />
       ) : (
-        <HealthCards clientId={clientId} health={health.data} loading={health.isLoading} planKey={overview.data?.billing?.plan_key ?? null} />
+        <HealthCards
+          clientId={clientId}
+          health={health.data}
+          loading={health.isLoading}
+          planKey={overview.data?.billing?.plan_key ?? null}
+        />
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -50,7 +63,10 @@ function ClientFichaPage() {
           <RequestReviewPanel clientId={clientId} clientName={client?.name ?? ""} />
           <FollowupsPanel scope={{ clientId }} hideWhenEmpty />
           {health.data && (
-            <CampaignAlertsPanel alerts={health.data.alerts} canEdit={Boolean(overview.data?.canEdit)} />
+            <CampaignAlertsPanel
+              alerts={health.data.alerts}
+              canEdit={Boolean(overview.data?.canEdit)}
+            />
           )}
           <PendingApprovalPanel
             clientId={clientId}
@@ -60,7 +76,9 @@ function ClientFichaPage() {
             onRetry={() => void health.refetch()}
           />
           <ProposalsPanel clientId={clientId} canEdit={Boolean(overview.data?.canEdit)} />
-          {overview.data && <OnboardingIntakePanel clientId={clientId} canEdit={overview.data.canEdit} />}
+          {overview.data && (
+            <OnboardingIntakePanel clientId={clientId} canEdit={overview.data.canEdit} />
+          )}
           <UpcomingContentPanel clientId={clientId} />
           {overview.data && (
             <MonthPlanPanel
@@ -69,7 +87,11 @@ function ClientFichaPage() {
               canEdit={overview.data.canEdit}
             />
           )}
-          <ReportsPanel clientId={clientId} clientName={client?.name ?? ""} canEdit={overview.data?.canEdit ?? false} />
+          <ReportsPanel
+            clientId={clientId}
+            clientName={client?.name ?? ""}
+            canEdit={overview.data?.canEdit ?? false}
+          />
           <BusinessDescription
             clientId={clientId}
             value={client?.business_description ?? ""}

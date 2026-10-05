@@ -50,8 +50,10 @@ function check(name, fn) {
 const TODAY = "2026-10-20";
 const GOOGLE = "https://g.page/r/abc123/review";
 // Política de Google: nada a cambio de una reseña. Tampoco urgencia falsa.
-const INCENTIVE = /descuento|regalo|gratis a cambio|a cambio de|sorteo|premio|beneficio|cup[oó]n|\bgratis\b/i;
-const URGENCY = /urgente|hoy mismo|antes del|[uú]ltim[oa] (d[ií]a|oportunidad)|ahora mismo|cuanto antes/i;
+const INCENTIVE =
+  /descuento|regalo|gratis a cambio|a cambio de|sorteo|premio|beneficio|cup[oó]n|\bgratis\b/i;
+const URGENCY =
+  /urgente|hoy mismo|antes del|[uú]ltim[oa] (d[ií]a|oportunidad)|ahora mismo|cuanto antes/i;
 const ONLY_POSITIVE = /5 estrellas|cinco estrellas|reseña positiva|buena reseña/i;
 
 const allTexts = () => [
@@ -98,7 +100,15 @@ check("con link: pide reseña de Google con el link y testimonio opcional", () =
   assert.equal(m.subject, r.REVIEW_SUBJECT);
 });
 check("sin link: solo testimonio, sin mencionar Google", () => {
-  for (const url of ["", null, undefined, "   ", "http://inseguro.cl", "no es url", "javascript:alert(1)"]) {
+  for (const url of [
+    "",
+    null,
+    undefined,
+    "   ",
+    "http://inseguro.cl",
+    "no es url",
+    "javascript:alert(1)",
+  ]) {
     const m = r.buildReviewRequest({ businessName: "Panadería Sol", googleReviewUrl: url });
     assert.equal(m.includesGoogle, false, String(url));
     assert.doesNotMatch(m.body, /Google|https?:/);
@@ -106,11 +116,18 @@ check("sin link: solo testimonio, sin mencionar Google", () => {
   }
 });
 check("saluda al contacto por su primer nombre", () => {
-  const m = r.buildReviewRequest({ businessName: "Panadería Sol", contactName: "  María José Pérez " });
+  const m = r.buildReviewRequest({
+    businessName: "Panadería Sol",
+    contactName: "  María José Pérez ",
+  });
   assert.match(m.body, /^Hola María, ¿cómo estás\?/);
 });
 check("aviso de link faltante", () =>
-  assert.equal(r.REVIEW_MISSING_URL_NOTICE, "Configura tu link de reseñas de Google (VITE_GOOGLE_REVIEW_URL)"));
+  assert.equal(
+    r.REVIEW_MISSING_URL_NOTICE,
+    "Configura tu link de reseñas de Google (VITE_GOOGLE_REVIEW_URL)",
+  ),
+);
 check("GOOGLE_REVIEW_URL vacío fuera de Vite", () => assert.equal(r.GOOGLE_REVIEW_URL, ""));
 check("plantilla de seguimiento pedir_resena con firma", () => {
   const m = r.buildMessage({
@@ -131,27 +148,28 @@ const moment = (over = {}) =>
   r.isGoodMomentForReview({
     clientStatus: "activo",
     startedAt: "2026-08-01",
-    healthLevel: "bien",
-    healthReasonCodes: [],
     hasOverduePayments: false,
     lastAskedYmd: null,
     today: TODAY,
     ...over,
   });
-check("cliente contento, 80 días, al día = sí", () => assert.equal(moment(), true));
+check("activo 80 días, al día = sí", () => assert.equal(moment(), true));
 check("exactamente 60 días = sí; 59 = no", () => {
   assert.equal(moment({ startedAt: "2026-08-21" }), true);
   assert.equal(moment({ startedAt: "2026-08-22" }), false);
 });
-check("salud distinta de bien = no", () => {
-  for (const level of ["atencion", "en_riesgo", "sin_datos", null, undefined]) {
-    assert.equal(moment({ healthLevel: level }), false, String(level));
+check("no depende de la salud ni de la satisfacción (sin solicitud selectiva)", () => {
+  for (const level of ["bien", "atencion", "en_riesgo", "sin_datos"]) {
+    assert.equal(
+      moment({ healthLevel: level, healthReasonCodes: ["sin_respuesta_cliente"] }),
+      true,
+      level,
+    );
   }
 });
-check("cobro vencido = no", () => {
-  assert.equal(moment({ hasOverduePayments: true }), false);
-  assert.equal(moment({ healthReasonCodes: ["cobro_vencido"] }), false);
-});
+check("cobro vencido = no (cobranza)", () =>
+  assert.equal(moment({ hasOverduePayments: true }), false),
+);
 check("no activo = no", () => {
   for (const status of ["onboarding", "pausado", "terminado", "prospecto"]) {
     assert.equal(moment({ clientStatus: status }), false, status);
@@ -162,12 +180,19 @@ check("pedida hace < 90 días = no; 90 o más = sí", () => {
   assert.equal(moment({ lastAskedYmd: "2026-07-23" }), false); // 89 días
   assert.equal(moment({ lastAskedYmd: "2026-07-22" }), true); // 90 días
 });
-check("acepta timestamps ISO como inicio", () => assert.equal(moment({ startedAt: "2026-08-01T15:00:00Z" }), true));
+check("acepta timestamps ISO como inicio", () =>
+  assert.equal(moment({ startedAt: "2026-08-01T15:00:00Z" }), true),
+);
 
 // localStorage
-check("clave por usuario", () => assert.equal(r.reviewAskedStorageKey("u1"), "vb:resenas:pedida:u1"));
+check("clave por usuario", () =>
+  assert.equal(r.reviewAskedStorageKey("u1"), "vb:resenas:pedida:u1"),
+);
 check("parse descarta basura y pedidos de hace 90+ días", () => {
-  const map = r.parseReviewAsked(JSON.stringify({ a: "2026-10-01", b: "2026-07-01", c: 3, d: "x" }), TODAY);
+  const map = r.parseReviewAsked(
+    JSON.stringify({ a: "2026-10-01", b: "2026-07-01", c: 3, d: "x" }),
+    TODAY,
+  );
   assert.deepEqual(map, { a: "2026-10-01" });
   assert.deepEqual(r.parseReviewAsked("{no json", TODAY), {});
   assert.deepEqual(r.parseReviewAsked("[1]", TODAY), {});
@@ -193,7 +218,6 @@ const cand = (over = {}) => ({
 const suggest = (over = {}) =>
   r.reviewFollowups({
     candidates: [cand()],
-    health: new Map([["c1", { level: "bien", reasonCodes: [] }]]),
     overdueClientIds: new Set(),
     asked: {},
     today: TODAY,
@@ -210,17 +234,41 @@ check("sugiere pedir_resena con prioridad baja y link de Google", () => {
   assert.deepEqual(f.target, { screen: "client", clientId: "c1" });
   assert.equal(f.whatsappPhone, "+56 9 1234 5678");
   assert.equal(f.recordsProspectContact, false);
-  assert.match(f.reason, /80 días/);
+  assert.equal(
+    f.reason,
+    "Lleva 80 días con nosotros: buen momento para pedir una reseña o testimonio.",
+  );
 });
-check("sin link de Google: sin link en la sugerencia", () => assert.equal(suggest({ googleReviewUrl: "" })[0].link, null));
+check("sin link de Google: sin link en la sugerencia", () =>
+  assert.equal(suggest({ googleReviewUrl: "" })[0].link, null),
+);
 check("teléfono inválido: sin WhatsApp", () =>
-  assert.equal(suggest({ candidates: [cand({ phone: "123" })] })[0].whatsappPhone, null));
-check("no sugiere si ya se pidió en 90 días", () => assert.equal(suggest({ asked: { c1: "2026-09-01" } }).length, 0));
-check("no sugiere con cobro vencido", () => assert.equal(suggest({ overdueClientIds: new Set(["c1"]) }).length, 0));
-check("no sugiere sin salud calculada", () => assert.equal(suggest({ health: new Map() }).length, 0));
+  assert.equal(suggest({ candidates: [cand({ phone: "123" })] })[0].whatsappPhone, null),
+);
+check("no sugiere si ya se pidió en 90 días", () =>
+  assert.equal(suggest({ asked: { c1: "2026-09-01" } }).length, 0),
+);
+check("no sugiere con cobro vencido", () =>
+  assert.equal(suggest({ overdueClientIds: new Set(["c1"]) }).length, 0),
+);
+check("textos neutrales: sin 'contento' ni 'satisfecho'", () => {
+  const texts = [
+    r.REVIEW_GOOD_MOMENT_LABEL,
+    r.reviewSuggestionReason(80),
+    suggest()[0].reason,
+    ...allTexts(),
+  ];
+  for (const t of texts) assert.doesNotMatch(t, /content[oa]|satisfech[oa]|feliz con/i, t);
+  assert.equal(r.REVIEW_GOOD_MOMENT_LABEL, "Momento para pedir reseña");
+  assert.match(r.REVIEW_FAIRNESS_NOTE, /a todos tus clientes por igual/);
+});
 check("usa created_at si no hay started_at", () => {
   assert.equal(suggest({ candidates: [cand({ started_at: null })] }).length, 1);
-  assert.equal(suggest({ candidates: [cand({ started_at: null, created_at: "2026-10-01T00:00:00Z" })] }).length, 0);
+  assert.equal(
+    suggest({ candidates: [cand({ started_at: null, created_at: "2026-10-01T00:00:00Z" })] })
+      .length,
+    0,
+  );
 });
 
 if (failures.length > 0) {
