@@ -2,7 +2,12 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { CheckCircle2, CircleSlash, Clock3, ShieldCheck } from "lucide-react";
 import { findPlan } from "@/lib/pricing/plans";
-import { computeTotals, formatChileDate, proposalConditions } from "@/lib/proposals/model";
+import {
+  computeTotals,
+  formatChileDate,
+  hasMonthlyBilling,
+  proposalConditions,
+} from "@/lib/proposals/model";
 import type {
   AcceptResult,
   PublicPaymentState,
@@ -64,7 +69,7 @@ export function PublicProposalView({ token, proposal, payment }: Props) {
   const plan = findPlan(proposal.planKey);
   const planKey = plan?.key ?? null;
   const totals = computeTotals(proposal.items);
-  const hasMonthly = totals.monthly > 0 || plan?.billing === "monthly";
+  const hasMonthly = hasMonthlyBilling(proposal.planKey, proposal.items);
   const conditions = proposalConditions(proposal.planKey, proposal.items);
   const status = accepted ? "aceptada" : proposal.status;
   const open = status === "enviada" || status === "vista";
@@ -96,9 +101,11 @@ export function PublicProposalView({ token, proposal, payment }: Props) {
         <ProposalLines items={proposal.items} />
       </Card>
 
-      <Card title="Tus primeros 30 días">
-        <Timeline steps={first30Days(planKey)} />
-      </Card>
+      {open && (
+        <Card title="Tus primeros 30 días">
+          <Timeline steps={first30Days(planKey)} />
+        </Card>
+      )}
 
       {open && (
         <Card title="Cómo seguimos">

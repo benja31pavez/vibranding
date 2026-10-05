@@ -10,6 +10,9 @@
 import { translations } from "@/i18n/translations";
 import type { PlanKey } from "@/lib/pricing/plans";
 
+export const TIMELINE_NOTE =
+  "Calendario referencial: los plazos dependen de que tengamos tu información y aprobaciones a tiempo.";
+
 export interface WeekStep {
   readonly week: string;
   readonly title: string;

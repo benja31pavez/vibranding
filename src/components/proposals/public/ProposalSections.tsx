@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { CalendarClock, Check, MessageCircle } from "lucide-react";
 import {
   Accordion,
@@ -11,7 +11,7 @@ import { formatMoney } from "@/lib/pricing/plans";
 import { formatChileDate, type ProposalTotals } from "@/lib/proposals/model";
 import { whatsappUrl } from "@/lib/site";
 import { cn } from "@/lib/utils";
-import { PROCESS_STEPS, type FaqItem, type WeekStep } from "./proposalContent";
+import { PROCESS_STEPS, TIMELINE_NOTE, type FaqItem, type WeekStep } from "./proposalContent";
 
 export const ACCEPT_ANCHOR = "aceptar";
 const DAY_MS = 86_400_000;
@@ -20,7 +20,8 @@ export function Card({ title, id, children }: { title: string; id?: string; chil
   return (
     <section
       id={id}
-      className="scroll-mt-6 rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs sm:p-6"
+      tabIndex={id ? -1 : undefined}
+      className="scroll-mt-6 rounded-app-lg outline-none focus-visible:ring-2 focus-visible:ring-ring border border-border-subtle bg-surface p-5 shadow-app-xs sm:p-6"
     >
       <h2 className="mb-4 text-base font-semibold text-foreground">{title}</h2>
       {children}
@@ -28,16 +29,46 @@ export function Card({ title, id, children }: { title: string; id?: string; chil
   );
 }
 
-/** "$249.990/mes" o "$149.990 pago único" (si hay ambos: mensual + pago único aparte). */
-export function priceSummary(
-  totals: ProposalTotals,
-): { main: string; detail: string | null } | null {
-  if (totals.monthly === 0 && totals.oneTime === 0) return null;
-  if (totals.monthly > 0) {
-    const detail = totals.oneTime !== 0 ? `+ ${formatMoney(totals.oneTime)} pago único` : null;
-    return { main: `${formatMoney(totals.monthly)}/mes`, detail };
+export interface PriceSummary {
+  /** Precio principal (nunca negativo). */
+  main: string;
+  /** Pago único extra o descuento, si aplica. */
+  detail: string | null;
+  /** "Primer pago: $X" cuando hay mensualidad y pago único. */
+  firstCharge: string | null;
+}
+
+/**
+ * Resumen de precio para el hero y la barra móvil. Solo CLP (`formatMoney`).
+ * Pago único extra solo si es > 0; si es negativo se muestra como descuento.
+ */
+export function priceSummary(totals: ProposalTotals): PriceSummary | null {
+  const monthly = Math.max(0, totals.monthly);
+  if (monthly > 0) {
+    const detail =
+      totals.oneTime > 0
+        ? `+ ${formatMoney(totals.oneTime)} pago único`
+        : totals.oneTime < 0
+          ? `− ${formatMoney(-totals.oneTime)} descuento`
+          : null;
+    const firstCharge =
+      totals.oneTime > 0 ? `Primer pago: ${formatMoney(Math.max(0, totals.firstCharge))}` : null;
+    return { main: `${formatMoney(monthly)}/mes`, detail, firstCharge };
   }
-  return { main: formatMoney(totals.oneTime), detail: "pago único" };
+  const oneTime = Math.max(0, totals.oneTime);
+  if (oneTime === 0) return null;
+  return { main: formatMoney(oneTime), detail: "pago único", firstCharge: null };
+}
+
+/** Lleva al formulario de aceptación con scroll suave y le pasa el foco. */
+export function goToAccept(event: MouseEvent<HTMLAnchorElement>) {
+  const target = document.getElementById(ACCEPT_ANCHOR);
+  if (!target) return;
+  event.preventDefault();
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  target.focus({ preventScroll: true });
+  history.replaceState(null, "", `#${ACCEPT_ANCHOR}`);
 }
 
 export function contactUrl(title: string | null): string {
@@ -116,6 +147,11 @@ export function ProposalHero({
               <span className="text-sm text-muted-foreground tabular-nums">{price.detail}</span>
             )}
           </p>
+          {price.firstCharge && (
+            <p className="mt-1 text-sm font-medium text-foreground tabular-nums">
+              {price.firstCharge}
+            </p>
+          )}
           <p className="mt-1 text-xs text-muted-foreground">Pesos chilenos (CLP) · IVA incluido</p>
         </div>
       )}
@@ -125,7 +161,9 @@ export function ProposalHero({
       {open && (
         <div className="hidden gap-3 sm:flex">
           <Button asChild size="lg">
-            <a href={`#${ACCEPT_ANCHOR}`}>Aceptar propuesta</a>
+            <a href={`#${ACCEPT_ANCHOR}`} onClick={goToAccept}>
+              Aceptar propuesta
+            </a>
           </Button>
           <ContactButton title={title} variant="outline" />
         </div>
@@ -169,25 +207,28 @@ export function FeatureList({ features }: { features: readonly string[] }) {
 
 export function Timeline({ steps }: { steps: readonly WeekStep[] }) {
   return (
-    <ol className="space-y-5 border-l border-border-subtle pl-5">
-      {steps.map((s) => (
-        <li key={s.week} className="relative">
-          <span
-            aria-hidden
-            className="absolute -left-[25px] top-1.5 h-2.5 w-2.5 rounded-full bg-primary"
-          />
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {s.week}
-          </p>
-          <p className="font-medium text-foreground">{s.title}</p>
-          <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
-            {s.items.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </li>
-      ))}
-    </ol>
+    <>
+      <ol className="space-y-5 border-l border-border-subtle pl-5">
+        {steps.map((s) => (
+          <li key={s.week} className="relative">
+            <span
+              aria-hidden
+              className="absolute -left-[25px] top-1.5 h-2.5 w-2.5 rounded-full bg-primary"
+            />
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {s.week}
+            </p>
+            <p className="font-medium text-foreground">{s.title}</p>
+            <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
+              {s.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-5 text-xs text-muted-foreground">{TIMELINE_NOTE}</p>
+    </>
   );
 }
 
@@ -231,7 +272,7 @@ export function ContactCard({ title }: { title: string | null }) {
       <div>
         <h2 className="text-base font-semibold text-foreground">¿Tienes dudas antes de aceptar?</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Escríbele directo a Benjamín Pavez, fundador de Vibranding. Te responde en horario hábil.
+          Escríbele directo por WhatsApp a Benjamín Pavez, fundador de Vibranding.
         </p>
       </div>
       <ContactButton title={title} className="shrink-0" />
@@ -256,9 +297,9 @@ export function StickyAcceptBar({ totals }: { totals: ProposalTotals }) {
     <div
       className={cn(
         "fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-surface/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-app-lg backdrop-blur transition-transform sm:hidden",
-        formVisible && "translate-y-full",
+        formVisible && "invisible translate-y-full",
       )}
-      aria-hidden={formVisible}
+      inert={formVisible}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
@@ -276,7 +317,7 @@ export function StickyAcceptBar({ totals }: { totals: ProposalTotals }) {
           )}
         </div>
         <Button asChild size="lg" className="shrink-0">
-          <a href={`#${ACCEPT_ANCHOR}`} tabIndex={formVisible ? -1 : undefined}>
+          <a href={`#${ACCEPT_ANCHOR}`} onClick={goToAccept}>
             Aceptar propuesta
           </a>
         </Button>
