@@ -1,5 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useBarePanel } from "./bare-panel";
+import { InfoHint } from "./InfoHint";
 
 export interface EmptyStateProps {
   icon?: ComponentType<{ className?: string }>;
@@ -20,7 +22,20 @@ export function EmptyState({
   size = "default",
   className,
 }: EmptyStateProps) {
+  const bare = useBarePanel();
   const compact = size === "compact";
+  // Dentro de una sección compacta (ficha): una sola línea; la explicación va en el "i".
+  if (bare) {
+    return (
+      <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 py-1", className)}>
+        <p className="flex items-center gap-1 text-sm text-muted-foreground">
+          {title}
+          {description && <InfoHint>{description}</InfoHint>}
+        </p>
+        {action}
+      </div>
+    );
+  }
   return (
     <div
       className={cn(

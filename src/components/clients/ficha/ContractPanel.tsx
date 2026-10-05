@@ -5,10 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { EmptyState, ErrorState, ListSkeleton, Money, Panel, StatusBadge } from "@/components/app";
 import { fichaKeys, formatDate, useUserKey } from "./fichaQueries";
 
-/** Último contrato del cliente con su estado y montos. */
-export function ContractPanel({ clientId }: { clientId: string }) {
+/** Último contrato del cliente (null si no tiene). */
+export function useLatestContract(clientId: string) {
   const userKey = useUserKey();
-  const query = useQuery({
+  return useQuery({
     queryKey: fichaKeys.contract(userKey, clientId),
     queryFn: async () => {
       const { data, error } = await supabase
@@ -22,6 +22,11 @@ export function ContractPanel({ clientId }: { clientId: string }) {
       return data;
     },
   });
+}
+
+/** Último contrato del cliente con su estado y montos. */
+export function ContractPanel({ clientId }: { clientId: string }) {
+  const query = useLatestContract(clientId);
   const contract = query.data;
 
   return (

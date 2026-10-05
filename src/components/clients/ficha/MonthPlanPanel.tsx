@@ -25,6 +25,30 @@ interface MonthPlanPanelProps {
   canEdit: boolean;
 }
 
+/** Ayuda del "i" de Plan del mes. */
+export function MonthPlanInfo({ clientId }: { clientId: string }) {
+  return (
+    <>
+      <p>
+        Tareas internas del mes según el plan del cliente. No se publica nada ni se avisa al
+        cliente.
+      </p>
+      <p className="mt-2">
+        Las tareas quedan en{" "}
+        <Link
+          to="/clients/$clientId/plan"
+          params={{ clientId }}
+          search={{ tab: "tareas" }}
+          className="text-primary hover:underline"
+        >
+          Plan › Tareas
+        </Link>{" "}
+        y en la Agenda, como «Por hacer».
+      </p>
+    </>
+  );
+}
+
 /** "Generar plan del mes": arma las tareas internas del mes según el plan del cliente. */
 export function MonthPlanPanel({ clientId, planKey, canEdit }: MonthPlanPanelProps) {
   const userKey = useUserKey();
@@ -46,18 +70,14 @@ export function MonthPlanPanel({ clientId, planKey, canEdit }: MonthPlanPanelPro
   if (!canEdit) return null;
 
   return (
-    <Panel
-      title="Plan del mes"
-      icon={CalendarRange}
-      description="Tareas internas del mes según el plan del cliente. No se publica nada ni se avisa al cliente."
-    >
+    <Panel title="Plan del mes" icon={CalendarRange}>
       {!plan ? (
         <p className="text-sm text-muted-foreground">
           Este cliente aún no tiene un plan asignado. Asígnalo en «Plan y facturación» para generar
           su plan del mes.
         </p>
       ) : (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm text-muted-foreground">
             <span className="font-medium text-foreground">{plan.label}</span> · {items.length}{" "}
             tareas sugeridas
@@ -81,18 +101,6 @@ export function MonthPlanPanel({ clientId, planKey, canEdit }: MonthPlanPanelPro
           </div>
         </div>
       )}
-      <p className="mt-3 text-xs text-muted-foreground">
-        Las tareas quedan en{" "}
-        <Link
-          to="/clients/$clientId/plan"
-          params={{ clientId }}
-          search={{ tab: "tareas" }}
-          className="text-primary hover:underline"
-        >
-          Plan › Tareas
-        </Link>{" "}
-        y en la Agenda, como «Por hacer».
-      </p>
       {plan && open && (
         <MonthPlanDialog
           clientId={clientId}

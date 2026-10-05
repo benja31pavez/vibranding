@@ -31,7 +31,10 @@ function ClientShell() {
   const { client, reloadClient, clientError } = useActiveClient();
   const userKey = useUserKey();
   const matchRoute = useMatchRoute();
-  const fitsScreen = Boolean(matchRoute({ to: "/clients/$clientId/plan", params: { clientId } }));
+  const fitsScreen = Boolean(
+    matchRoute({ to: "/clients/$clientId/plan", params: { clientId } }) ||
+    matchRoute({ to: "/clients/$clientId", params: { clientId } }),
+  );
   const existence = useQuery({
     queryKey: fichaKeys.exists(userKey, clientId),
     queryFn: async () => {

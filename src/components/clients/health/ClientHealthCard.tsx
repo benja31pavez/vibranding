@@ -30,7 +30,6 @@ export function ClientHealthCard({ clientId }: { clientId: string }) {
     <Panel
       title="Salud del cliente"
       icon={HeartPulse}
-      description="Señales de retención: cobros, aprobaciones, alertas, reportes, actividad y renovación."
       actions={<HealthBadge health={health} loading={query.isPending} />}
       tone={health?.level === "en_riesgo" ? "warning" : "default"}
     >

@@ -37,6 +37,9 @@ const PRIORITY_META: Readonly<Record<FollowupPriority, { label: string; tone: St
 
 const DEFAULT_LIMIT = 8;
 
+/** Ayuda del "i" de Seguimientos sugeridos. */
+export const FOLLOWUPS_INFO = "Qué contactar hoy para que nada se enfríe. Tú revisas y envías.";
+
 /** Los links de los mensajes siempre apuntan al dominio público (nunca a una preview). */
 function origin(): string {
   return SITE_URL;
@@ -312,7 +315,7 @@ export function FollowupsPanel({
     <Panel
       icon={Send}
       title="Seguimientos sugeridos"
-      description="Qué contactar hoy para que nada se enfríe. Tú revisas y envías."
+      info={FOLLOWUPS_INFO}
       actions={
         visible.length > limit ? (
           <Button
