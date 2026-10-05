@@ -35,6 +35,7 @@ import { ProposalLines } from "./ProposalLines";
 import { ProposalIntroPanel } from "./ProposalIntroPanel";
 import { ProposalLinkActions } from "./ProposalLinkActions";
 import { ProposalStatusBadge } from "./ProposalsPanel";
+import { OpenProposalWarning } from "./OpenProposalWarning";
 import { useSaveProposal, type ProposalRow, type Recipient } from "./proposalQueries";
 
 const NO_PLAN = "none";
@@ -82,7 +83,8 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
   const [state, setState] = useState(() =>
     initialState(recipient, existing, insights?.recommendation.planKey ?? null),
   );
-  const locked = !canEdit || existing?.status === "aceptada";
+  // Una propuesta nueva ya creada queda bloqueada mientras se navega a su página (evita duplicados).
+  const locked = !canEdit || existing?.status === "aceptada" || (!existing && save.isSuccess);
 
   const items = useMemo(() => buildItems(state.planKey, state.extras), [state.planKey, state.extras]);
   const totals = computeTotals(items);
@@ -96,7 +98,7 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (locked) return;
+    if (locked || save.isPending || save.isSuccess) return;
     if (errors.length > 0) {
       toast.error(errors[0]);
       return;
@@ -150,6 +152,7 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
             <Lock aria-hidden className="h-4 w-4" /> Propuesta aceptada: ya no se puede editar.
           </p>
         )}
+        {!existing && <OpenProposalWarning recipient={recipient} />}
         <Panel title="Datos">
           <fieldset disabled={locked} className="space-y-4">
             <div className="space-y-1.5">
@@ -248,7 +251,7 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
             {recipient.prospect?.email && (
               <>
                 <br />
-                <a href={`mailto:${recipient.prospect.email}`} className="text-xs hover:underline">
+                <a href={`mailto:${encodeURIComponent(recipient.prospect.email)}`} className="text-xs hover:underline">
                   {recipient.prospect.email}
                 </a>
               </>

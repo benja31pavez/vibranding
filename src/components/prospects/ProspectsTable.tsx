@@ -163,7 +163,7 @@ export function ProspectsTable({ prospects, actions }: { prospects: Prospect[]; 
                     <div className="flex justify-end gap-2">
                       <ConvertAction prospect={p} onConvert={actions.onConvert} label="Convertir en cliente" />
                       <ResumeAction prospect={p} onMove={actions.onMove} />
-                      <CreateProposalAction prospect={p} />
+                      <CreateProposalAction prospect={p} className="h-11 w-11" />
                     </div>
                   </td>
                 </tr>

@@ -32,8 +32,29 @@ function lastField(notes: string, field: string): string | null {
   return value;
 }
 
+/** Marca con la que empieza la nota del diagnóstico (buildLeadNote). */
+export const DIAGNOSTICO_NOTE_MARK = "Diagnóstico web";
+/** Desde aquí la nota trae texto libre del visitante: nunca se lee como dato. */
+const FREE_TEXT_FIELD = /presencia:/i;
+
+/**
+ * Solo las líneas del diagnóstico y solo hasta "presencia:": lo que escribe el
+ * visitante en ese campo no puede colar un "quiere:" o "plan de interés:" falso.
+ */
+function trustedDiagnosticoText(notes: string): string {
+  return notes
+    .split("\n")
+    .map((line) => {
+      const start = line.indexOf(DIAGNOSTICO_NOTE_MARK);
+      return start < 0 ? "" : (line.slice(start).split(FREE_TEXT_FIELD)[0] ?? "");
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
 /** Objetivo, presupuesto y plan de interés del diagnóstico web (null si no hay nota). */
-export function readDiagnosticoSignals(notes: string | null | undefined): DiagnosticoSignals {
+export function readDiagnosticoSignals(rawNotes: string | null | undefined): DiagnosticoSignals {
+  const notes = rawNotes ? trustedDiagnosticoText(rawNotes) : "";
   if (!notes) return EMPTY_SIGNALS;
   const goalLabel = lastField(notes, "quiere");
   const budgetLabel = lastField(notes, "presupuesto");
@@ -131,6 +152,8 @@ export const GOAL_PHRASE: Readonly<Record<GoalValue, string>> = {
 export const CHATBOT_HINT_GOALS: readonly GoalValue[] = ["consultas"];
 
 export const INTRO_MAX_CHARS = 900;
+/** Largo máximo de cada dato del prospecto dentro del mensaje (el resto se corta con "…"). */
+export const INTRO_FIELD_MAX_CHARS = 60;
 
 export interface IntroInput {
   nombre: string;
@@ -141,7 +164,8 @@ export interface IntroInput {
 }
 
 function clean(value: string | null | undefined): string {
-  return (value ?? "").replace(/\s+/g, " ").trim();
+  const text = (value ?? "").replace(/\s+/g, " ").trim();
+  return text.length > INTRO_FIELD_MAX_CHARS ? `${text.slice(0, INTRO_FIELD_MAX_CHARS - 1).trimEnd()}…` : text;
 }
 
 function lowerFirst(text: string): string {
@@ -174,7 +198,7 @@ export function buildProposalIntro(input: IntroInput): string {
       : null,
     "En el link está el detalle, las condiciones y cómo aceptar. Cualquier duda, nos escriben.",
   ];
-  return sentences.filter(Boolean).join(" ").slice(0, INTRO_MAX_CHARS);
+  return sentences.filter(Boolean).join(" ");
 }
 
 // ------------------------------------------------------------------ estado

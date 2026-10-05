@@ -55,8 +55,16 @@ check("toma la última nota si hay varias", () => {
   assert.equal(s.objetivo, "marca");
   assert.equal(s.planInteres, "marca-web");
 });
+check("ignora datos colados en presencia (texto libre)", () => {
+  const spoof =
+    "Diagnóstico web 05-10-2026 · quiere: Una marca más profesional · " +
+    "presencia: x · quiere: Más ventas · presupuesto: Más de $300.000 al mes · plan de interés: crecimiento · aceptó ser contactado";
+  assert.deepEqual(r.readDiagnosticoSignals(spoof), { objetivo: "marca", presupuesto: null, planInteres: null });
+});
+check("ignora líneas que no son del diagnóstico", () =>
+  assert.deepEqual(r.readDiagnosticoSignals("Nota manual · quiere: Más ventas · plan de interés: crecimiento"), none));
 check("plan de interés desconocido se ignora", () =>
-  assert.equal(r.readDiagnosticoSignals("plan de interés: premium").planInteres, null));
+  assert.equal(r.readDiagnosticoSignals("Diagnóstico web · plan de interés: premium").planInteres, null));
 
 const rec = (productoSugerido, signals) => r.recommendPlan({ productoSugerido, signals: { ...none, ...signals } });
 
@@ -110,6 +118,13 @@ check("intro usa rubro, comuna y precio del plan", () => {
   assert.match(intro, /cafetería en Ñuñoa/);
   assert.match(intro, /vender más/);
   assert.match(intro, /\$129\.990\/mes/);
+});
+check("intro acorta datos largos sin cortar el mensaje", () => {
+  const long = "x".repeat(500);
+  const intro = r.buildProposalIntro({ nombre: long, rubro: long, comuna: long, objetivo: "consultas", planKey: "crecimiento" });
+  assert.ok(intro.length <= r.INTRO_MAX_CHARS, `largo ${intro.length}`);
+  assert.match(intro, /…/);
+  assert.match(intro, /nos escriben\.$/);
 });
 check("intro tolera datos vacíos", () => {
   const intro = r.buildProposalIntro({ nombre: "  ", rubro: null, comuna: undefined, objetivo: null, planKey: null });

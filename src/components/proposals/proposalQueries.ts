@@ -4,7 +4,12 @@ import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { invalidateApprovalQueue } from "@/hooks/use-approval-queue";
 import { publicProposalPath, type ProposalItem } from "@/lib/proposals/model";
-import { PRE_PROPOSAL_STATES, PROPOSAL_STAGE, shouldAdvanceToProposal } from "@/lib/proposals/recommend";
+import {
+  PRE_PROPOSAL_STATES,
+  PROPOSAL_STAGE,
+  canCreateProposalFor,
+  shouldAdvanceToProposal,
+} from "@/lib/proposals/recommend";
 
 export type ProposalRow = Pick<
   Tables<"proposals">,
@@ -205,8 +210,11 @@ export interface SaveResult {
  * ganado nunca se tocan aunque el dato local esté desactualizado). Nunca lanza:
  * la propuesta ya quedó creada.
  */
-async function advanceProspectStage(recipient: Recipient): Promise<SaveResult["prospectStage"]> {
-  if (recipient.kind !== "prospect" || !shouldAdvanceToProposal(recipient.prospect?.estado)) return "unchanged";
+async function advanceProspectStage(
+  recipient: Recipient,
+  estado: string | null,
+): Promise<SaveResult["prospectStage"]> {
+  if (recipient.kind !== "prospect" || !shouldAdvanceToProposal(estado)) return "unchanged";
   const { data, error } = await supabase
     .from("prospects")
     .update({ estado: PROPOSAL_STAGE })
@@ -215,6 +223,17 @@ async function advanceProspectStage(recipient: Recipient): Promise<SaveResult["p
     .select("id");
   if (error) return "failed";
   return (data ?? []).length > 0 ? "advanced" : "unchanged";
+}
+
+/** Estado actual del prospecto (no el del caché). Lanza si está de baja: no se le envían propuestas. */
+async function currentProspectEstado(prospectId: string): Promise<string> {
+  const { data, error } = await supabase.from("prospects").select("estado").eq("id", prospectId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("No encontramos el prospecto.");
+  if (!canCreateProposalFor(data.estado)) {
+    throw new Error("Este prospecto pidió no ser contactado: no se le pueden enviar propuestas.");
+  }
+  return data.estado;
 }
 
 export function useSaveProposal() {
@@ -240,6 +259,7 @@ export function useSaveProposal() {
         if (!data) throw new Error("La propuesta ya fue aceptada y no se puede editar.");
         return { id: data.id, prospectStage: "unchanged" };
       }
+      const freshEstado = recipient.kind === "prospect" ? await currentProspectEstado(recipient.id) : null;
       const { data, error } = await supabase
         .from("proposals")
         .insert({
@@ -252,7 +272,7 @@ export function useSaveProposal() {
         .select("id")
         .single();
       if (error) throw writeError(error);
-      return { id: data.id, prospectStage: await advanceProspectStage(recipient) };
+      return { id: data.id, prospectStage: await advanceProspectStage(recipient, freshEstado) };
     },
     onSuccess: (result) =>
       Promise.all([

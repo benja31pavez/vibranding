@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Copy, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Panel } from "@/components/app";
@@ -31,18 +31,11 @@ async function copy(text: string, ok: string) {
  * No se guarda en la BD: se arma de nuevo desde los datos del prospecto.
  */
 export function ProposalIntroPanel({ generated, linkToken, linkIsDraft }: Props) {
-  const [text, setText] = useState(generated);
-  const [edited, setEdited] = useState(false);
-
-  // Sigue al plan elegido mientras no se haya editado a mano.
-  useEffect(() => {
-    if (!edited) setText(generated);
-  }, [generated, edited]);
-
-  const reset = () => {
-    setEdited(false);
-    setText(generated);
-  };
+  // Sin edición manual, el texto sigue al plan elegido.
+  const [override, setOverride] = useState<string | null>(null);
+  const text = override ?? generated;
+  const edited = override !== null;
+  const reset = () => setOverride(null);
 
   return (
     <Panel
@@ -58,10 +51,7 @@ export function ProposalIntroPanel({ generated, linkToken, linkIsDraft }: Props)
           rows={6}
           maxLength={INTRO_MAX_CHARS}
           value={text}
-          onChange={(e) => {
-            setEdited(true);
-            setText(e.target.value);
-          }}
+          onChange={(e) => setOverride(e.target.value)}
         />
         <div className="flex flex-wrap gap-2">
           <Button type="button" size="sm" variant="outline" onClick={() => void copy(text, "Mensaje copiado")}>
