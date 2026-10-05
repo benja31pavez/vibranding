@@ -3,6 +3,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { setGoogleAdsRefreshToken } from "@/lib/google-ads/tokens.server";
 import type { CustomerOption } from "@/lib/google-ads/gaql";
+import type { AuthSource } from "@/lib/google-ads/agency";
 
 export type GoogleAdsStatus = "pendiente" | "conectada" | "error" | "desconectada";
 
@@ -14,6 +15,8 @@ export type GoogleAdsAccountRow = {
   manager_customer_id: string | null;
   status: GoogleAdsStatus;
   token_secret_id: string | null;
+  /** 'cliente' = token propio (compatibilidad); 'agencia' = MCC de la agencia. */
+  auth_source: AuthSource;
   last_synced_at: string | null;
   last_sync_error: string | null;
 };
@@ -31,7 +34,9 @@ export class ConnectionError extends Error {
 }
 
 const ACCOUNT_COLUMNS =
-  "id,client_id,org_id,customer_id,manager_customer_id,status,token_secret_id,last_synced_at,last_sync_error";
+  "id,client_id,org_id,customer_id,manager_customer_id,status,token_secret_id,auth_source,last_synced_at,last_sync_error";
+
+export const GOOGLE_ADS_ACCOUNT_COLUMNS = ACCOUNT_COLUMNS;
 
 export async function getClientOrgId(clientId: string): Promise<string> {
   const { data, error } = await supabaseAdmin
@@ -81,14 +86,20 @@ function isUniqueViolation(err: { code?: string } | null): boolean {
   return err?.code === "23505";
 }
 
-/** Crea o actualiza la conexión del cliente y guarda el refresh token en Vault. */
+/**
+ * Crea o actualiza la conexión del cliente. Con authSource 'cliente' guarda el
+ * refresh token propio en Vault; con 'agencia' borra el token propio (si había)
+ * y la cuenta se lee con la MCC de la agencia.
+ */
 export async function saveConnection(input: {
   clientId: string;
   orgId: string;
   option: CustomerOption;
   status: GoogleAdsStatus;
   refreshToken?: string;
+  authSource?: AuthSource;
 }): Promise<GoogleAdsAccountRow> {
+  const authSource = input.authSource ?? "cliente";
   const { data, error } = await supabaseAdmin
     .from("google_ads_accounts")
     .upsert(
@@ -98,6 +109,7 @@ export async function saveConnection(input: {
         customer_id: input.option.customerId,
         manager_customer_id: input.option.managerId,
         status: input.status,
+        auth_source: authSource,
         last_sync_error: null,
       },
       { onConflict: "client_id" },
@@ -114,6 +126,12 @@ export async function saveConnection(input: {
     throw new ConnectionError("save_failed", "No se pudo guardar la conexión de Google Ads");
   }
   const row = data as GoogleAdsAccountRow;
+  if (authSource === "agencia") {
+    if (!row.token_secret_id) return row;
+    // Pasó a la MCC de la agencia: el token propio ya no se usa.
+    await setGoogleAdsRefreshToken(row.id, null);
+    return { ...row, token_secret_id: null };
+  }
   if (input.refreshToken) {
     try {
       await setGoogleAdsRefreshToken(row.id, input.refreshToken);
@@ -134,10 +152,14 @@ export async function saveConnection(input: {
 }
 
 /** Borra el token de Vault y la conexión. Las métricas descargadas se conservan. */
-export async function deleteConnection(accountId: string): Promise<void> {
+export async function deleteConnection(accountId: string, clientId?: string): Promise<void> {
   await setGoogleAdsRefreshToken(accountId, null);
   const { error } = await supabaseAdmin.from("google_ads_accounts").delete().eq("id", accountId);
   if (error) throw new Error("No se pudo desconectar Google Ads");
+  if (clientId) {
+    const { clearBillingStatus } = await import("@/lib/google-ads/billing.server");
+    await clearBillingStatus(clientId);
+  }
 }
 
 export async function markSyncResult(

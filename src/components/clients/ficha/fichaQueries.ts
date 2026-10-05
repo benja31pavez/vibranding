@@ -102,7 +102,7 @@ export type OpenPayment = Pick<
 >;
 export type OpenAlert = Pick<
   Tables<"campaign_alerts">,
-  "id" | "client_id" | "severity" | "message" | "platform" | "created_at" | "data"
+  "id" | "client_id" | "severity" | "message" | "platform" | "kind" | "created_at" | "data"
 >;
 
 export interface FichaHealth {
@@ -133,7 +133,7 @@ export function useFichaHealth(clientId: string) {
           .limit(100),
         supabase
           .from("campaign_alerts")
-          .select("id,client_id,severity,message,platform,created_at,data")
+          .select("id,client_id,severity,message,platform,kind,created_at,data")
           .eq("client_id", clientId)
           .is("resolved_at", null)
           .order("created_at", { ascending: false })

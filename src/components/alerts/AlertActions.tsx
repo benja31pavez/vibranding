@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient, type Query } from "@tanstack/react-query";
-import { Check, ExternalLink, Loader2 } from "lucide-react";
+import { Check, CreditCard, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Json } from "@/integrations/supabase/types";
 import { resolveCampaignAlert } from "@/lib/alerts/campaignAlerts.functions";
 import { healthKeys } from "@/components/clients/health/healthKeys";
+import { BILLING_ALERT_KIND } from "@/lib/google-ads/billing";
+import { CardUpdateDialog } from "@/components/google-ads/CardUpdateDialog";
 
 const ADS_MANAGER_PREFIX = "https://adsmanager.facebook.com/adsmanager/";
 
@@ -28,18 +30,30 @@ function showsAlerts(query: Query): boolean {
   );
 }
 
+function verdictOf(data: Json | undefined): string | null {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const v = (data as Record<string, Json | undefined>).verdict;
+  return typeof v === "string" ? v : null;
+}
+
 interface AlertActionsProps {
-  alert: { id: string; client_id: string; data?: Json };
+  alert: { id: string; client_id: string; data?: Json; kind?: string; platform?: string };
   /** Editores del cliente; los demás solo ven los links. */
   canResolve?: boolean;
 }
 
-/** "Marcar como resuelta" + link a Meta Ads del cliente para una alerta de campaña. */
+/**
+ * "Marcar como resuelta" + link a las campañas del cliente. Para "Pago de pauta"
+ * (billing_google) agrega el mensaje listo para pedirle al cliente que actualice su tarjeta.
+ */
 export function AlertActions({ alert, canResolve = true }: AlertActionsProps) {
   const resolve = useServerFn(resolveCampaignAlert);
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
   const external = adsManagerLink(alert.data);
+  const isBilling = alert.kind === BILLING_ALERT_KIND;
+  const isGoogle = alert.platform === "google";
 
   const onResolve = async () => {
     setBusy(true);
@@ -57,7 +71,27 @@ export function AlertActions({ alert, canResolve = true }: AlertActionsProps) {
 
   return (
     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-      {external ? (
+      {isBilling && canResolve && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-xs"
+          onClick={() => setCardOpen(true)}
+        >
+          <CreditCard aria-hidden className="h-3 w-3" />
+          Avisar al cliente
+        </Button>
+      )}
+      {isGoogle ? (
+        <Link
+          to="/clients/$clientId/google-ads"
+          params={{ clientId: alert.client_id }}
+          className="text-primary hover:underline"
+        >
+          Ver Google Ads
+        </Link>
+      ) : external ? (
         <a
           href={external}
           target="_blank"
@@ -91,6 +125,14 @@ export function AlertActions({ alert, canResolve = true }: AlertActionsProps) {
           )}
           Marcar como resuelta
         </Button>
+      )}
+      {isBilling && (
+        <CardUpdateDialog
+          open={cardOpen}
+          onOpenChange={setCardOpen}
+          clientId={alert.client_id}
+          verdict={verdictOf(alert.data)}
+        />
       )}
     </div>
   );
