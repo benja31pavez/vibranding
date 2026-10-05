@@ -42,22 +42,44 @@ const DecisionInput = z
 
 const NOT_PORTAL_USER = "Esta acción es solo para clientes con acceso al portal.";
 
-/** Resuelve el modo y el cliente. Devuelve null si el usuario no tiene cliente asignado. */
+const PREVIEW_DENIED =
+  "No tienes acceso al portal de este cliente. Pídele acceso a un administrador de tu equipo.";
+const ACCESS_FAILED = "No pudimos verificar tu acceso. Intenta de nuevo en un momento.";
+const TOO_MANY = "Vas muy rápido. Espera un minuto y vuelve a intentarlo.";
+
+/**
+ * Resuelve el modo y el cliente. Devuelve null si el usuario no tiene cliente
+ * asignado. Los errores salen con mensajes legibles (sin detalles internos).
+ */
 async function resolveAccess(
   db: Db,
   userId: string,
   previewClientId: string | undefined,
 ): Promise<PortalAccess | null> {
-  if (previewClientId) {
-    const { getClientOrgRole, ClientAccessError } = await import("@/lib/auth/clientAccess.server");
-    const role = await getClientOrgRole(userId, previewClientId);
-    if (!role) throw new ClientAccessError("No tienes acceso a este cliente");
-    return { mode: "preview", clientId: previewClientId, db };
+  try {
+    if (previewClientId) {
+      const { getClientOrgRole } = await import("@/lib/auth/clientAccess.server");
+      const role = await getClientOrgRole(userId, previewClientId);
+      if (!role) throw new PortalAccessDenied();
+      return { mode: "preview", clientId: previewClientId, db };
+    }
+    const { resolvePortalClientId } = await import("./portal.server");
+    const clientId = await resolvePortalClientId(db);
+    return clientId ? { mode: "client", clientId, db } : null;
+  } catch (e) {
+    if (e instanceof PortalAccessDenied) throw new Error(PREVIEW_DENIED);
+    const { ClientAccessError } = await import("@/lib/auth/clientAccess.server");
+    if (e instanceof ClientAccessError) throw new Error(PREVIEW_DENIED);
+    console.error("[portal] verificación de acceso falló", {
+      userId,
+      previewClientId,
+      error: e instanceof Error ? e.message : e,
+    });
+    throw new Error(ACCESS_FAILED);
   }
-  const { resolvePortalClientId } = await import("./portal.server");
-  const clientId = await resolvePortalClientId(db);
-  return clientId ? { mode: "client", clientId, db } : null;
 }
+
+class PortalAccessDenied extends Error {}
 
 export const getPortalSnapshot = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -109,6 +131,7 @@ export const decidePortalItem = createServerFn({ method: "POST" })
     const access = await resolveAccess(context.supabase, context.userId, undefined);
     if (!access) throw new Error(NOT_PORTAL_USER);
     const server = await import("./portal.server");
+    if (!(await server.allowDecision(context.userId))) throw new Error(TOO_MANY);
     try {
       return await server.decidePortalItem(
         access,

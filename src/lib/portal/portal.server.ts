@@ -16,8 +16,10 @@ import type { Database } from "@/integrations/supabase/types";
 import { todayInChile } from "@/lib/billing/dates";
 import { periodRange } from "@/lib/reports/period";
 import { isReportData } from "@/lib/reports/types";
+import { isMissingColumnError } from "./postNotes";
 import {
   DEFAULT_APPROVAL_NOTE,
+  NOTE_MAX_LENGTH,
   pickKeyFigures,
   planLabel,
   splitPayments,
@@ -51,6 +53,8 @@ const PROPOSALS_LIMIT = 10;
 const PAYMENTS_LIMIT = 36;
 const POSTS_PENDING_LIMIT = 30;
 const CALENDAR_LIMIT = 200;
+const VISIBLE_COMMENT_KINDS = ["comment", "approval", "change_request"] as const;
+const VISIBLE_COMMENT_ROLES = ["agency", "client", "guest"] as const;
 const POST_COLUMNS = "id,caption,format,image_url,cover_url,carousel_urls,scheduled_at";
 
 async function adminDb(): Promise<Db> {
@@ -139,6 +143,9 @@ async function loadApprovals(access: PortalAccess): Promise<PortalApprovals> {
       .select("id,deliverable_id,kind,body,author_role,author_name,created_at")
       .eq("client_id", clientId)
       .in("deliverable_id", ids)
+      // Solo tipos y autores conocidos y visibles para el cliente (nunca notas internas).
+      .in("kind", [...VISIBLE_COMMENT_KINDS])
+      .in("author_role", [...VISIBLE_COMMENT_ROLES])
       .order("created_at");
     fail(error);
     for (const c of data ?? []) {
@@ -261,7 +268,13 @@ async function loadProposals({ db, clientId }: PortalAccess): Promise<PortalProp
 export async function loadPortalSnapshot(access: PortalAccess): Promise<PortalSnapshot> {
   const { db, clientId } = access;
   const clientRes = await db.from("clients").select("name").eq("id", clientId).maybeSingle();
-  fail(clientRes.error);
+  if (clientRes.error) {
+    console.error("[portal] no se pudo leer el cliente", {
+      clientId,
+      error: clientRes.error.message,
+    });
+    throw new Error("No pudimos cargar tu portal. Intenta de nuevo en un momento.");
+  }
 
   const [approvals, report, billing, proposals] = await Promise.all([
     section("aprobaciones", clientId, () => loadApprovals(access)),
@@ -327,6 +340,19 @@ export async function loadPortalCalendar(
       : [],
   );
   return { month, posts, deliverables };
+}
+
+/** Como máximo 20 decisiones por usuario por minuto (en memoria del Worker, best effort). */
+const DECISIONS_PER_MINUTE = 20;
+const MINUTE_MS = 60_000;
+let decisionLimiter: { allow(key: string): boolean } | null = null;
+
+export async function allowDecision(userId: string): Promise<boolean> {
+  if (!decisionLimiter) {
+    const { createRateLimiter } = await import("@/lib/security/ipRateLimit.server");
+    decisionLimiter = createRateLimiter(DECISIONS_PER_MINUTE, MINUTE_MS);
+  }
+  return decisionLimiter.allow(`portal-decision:${userId}`);
 }
 
 /* ───────────────────────── Decisiones (solo modo client) ───────────────────────── */
@@ -408,38 +434,85 @@ async function decideDeliverable(
   return { ok: true, noteSaved: await tryAddClientComment(access, author, input.id, input) };
 }
 
+/**
+ * Guarda la decisión del post (UPDATE condicional). Intenta incluir la nota
+ * del cliente (approval_note*, migración 20261012000300); si las columnas aún
+ * no existen, repite sin ellas. Devuelve null si el post ya no estaba pendiente.
+ */
+async function updatePostDecision(
+  access: PortalAccess,
+  author: DecisionAuthor,
+  input: DecisionInput,
+): Promise<{ noteStored: boolean } | null> {
+  const admin = await adminDb();
+  const approved = input.decision === "approve";
+  const now = new Date().toISOString();
+  const base = {
+    approval_status: approved ? "aprobado" : "cambios",
+    approved_at: approved ? now : null,
+    // approved_by es uuid sin FK (platform_v2): guarda el usuario del portal que aprobó.
+    approved_by: approved ? author.userId : null,
+  };
+  const withNote = {
+    ...base,
+    approval_note: (input.note.trim() || DEFAULT_APPROVAL_NOTE).slice(0, NOTE_MAX_LENGTH),
+    approval_note_at: now,
+    approval_note_read: false,
+  };
+  const run = (patch: Record<string, unknown>) =>
+    admin
+      .from("instagram_posts")
+      .update(patch as never)
+      .eq("id", input.id)
+      .eq("client_id", access.clientId)
+      .eq("approval_status", "pendiente")
+      .is("archived_at", null)
+      .select("id");
+
+  let noteStored = true;
+  let res = await run(withNote);
+  if (isMissingColumnError(res.error)) {
+    console.warn("[portal] columnas approval_note* no existen aún; decisión sin nota en el post");
+    noteStored = false;
+    res = await run(base);
+  }
+  fail(res.error);
+  return res.data && res.data.length > 0 ? { noteStored } : null;
+}
+
+/** Entregable vinculado al post (para dejar la nota en su hilo). Errores → null. */
+async function linkedDeliverableId(access: PortalAccess, postId: string): Promise<string | null> {
+  const { data, error } = await access.db
+    .from("deliverables")
+    .select("id")
+    .eq("client_id", access.clientId)
+    .eq("instagram_post_id", postId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error("[portal] no se pudo buscar el entregable vinculado", {
+      clientId: access.clientId,
+      postId,
+      error: error.message,
+    });
+    return null;
+  }
+  return data?.id ?? null;
+}
+
 async function decidePost(
   access: PortalAccess,
   author: DecisionAuthor,
   input: DecisionInput,
 ): Promise<DecisionResult> {
-  const admin = await adminDb();
-  const approved = input.decision === "approve";
-  const { data, error } = await admin
-    .from("instagram_posts")
-    .update({
-      approval_status: approved ? "aprobado" : "cambios",
-      approved_at: approved ? new Date().toISOString() : null,
-      approved_by: approved ? author.userId : null,
-    })
-    .eq("id", input.id)
-    .eq("client_id", access.clientId)
-    .eq("approval_status", "pendiente")
-    .is("archived_at", null)
-    .select("id");
-  fail(error);
-  if (!data || data.length === 0) return { ok: false, reason: "stale" };
+  const saved = await updatePostDecision(access, author, input);
+  if (!saved) return { ok: false, reason: "stale" };
+  // La nota quedó en el post (y el equipo la ve como no leída): no duplicar el aviso.
+  if (saved.noteStored) return { ok: true, noteSaved: true };
 
-  // Aviso al equipo: en el hilo del entregable vinculado al post, si existe.
-  const { data: linked, error: linkErr } = await access.db
-    .from("deliverables")
-    .select("id")
-    .eq("client_id", access.clientId)
-    .eq("instagram_post_id", input.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  fail(linkErr);
+  // Sin la migración: aviso en el hilo del entregable vinculado, si existe.
+  const linked = await linkedDeliverableId(access, input.id);
   if (!linked) {
     console.warn("[portal] post decidido sin entregable vinculado; la nota no queda registrada", {
       clientId: access.clientId,
@@ -448,7 +521,7 @@ async function decidePost(
     });
     return { ok: true, noteSaved: false };
   }
-  return { ok: true, noteSaved: await tryAddClientComment(access, author, linked.id, input) };
+  return { ok: true, noteSaved: await tryAddClientComment(access, author, linked, input) };
 }
 
 export function decidePortalItem(
