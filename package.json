@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "check:proposal-copy": "node scripts/check-proposal-copy.mjs",
+    "check:growth": "node scripts/check-growth.mjs",
     "check:health": "node scripts/check-health.mjs"
   },
   "dependencies": {
