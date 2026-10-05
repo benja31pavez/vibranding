@@ -270,6 +270,20 @@ export interface CampaignAlertsSummary {
   open: CampaignAlert[];
   /** Filas históricas (abiertas o resueltas). 0 = nada genera alertas todavía. */
   everCount: number;
+  /** Clientes (con alertas abiertas) que el usuario puede editar: solo ellos ven "Marcar como resuelta". */
+  editableClientIds: ReadonlySet<string>;
+}
+
+/** can_edit_client por cada cliente con alertas abiertas (pocos: tope ALERTS_LIMIT). */
+async function editableClients(clientIds: string[]): Promise<Set<string>> {
+  const checks = await Promise.all(
+    clientIds.map(async (id) => {
+      const { data, error } = await supabase.rpc("can_edit_client", { _client_id: id });
+      // Si la función falla, se oculta el botón: el servidor igual valida al resolver.
+      return !error && Boolean(data) ? id : null;
+    }),
+  );
+  return new Set(checks.filter((id): id is string => id !== null));
 }
 
 export function useOpenCampaignAlerts() {
@@ -288,7 +302,9 @@ export function useOpenCampaignAlerts() {
         supabase.from("campaign_alerts").select("id", { count: "exact", head: true }),
       ]);
       fail(open.error ?? ever.error);
-      return { open: [...(open.data ?? [])].sort(bySeverity), everCount: ever.count ?? 0 };
+      const rows = open.data ?? [];
+      const editableClientIds = await editableClients([...new Set(rows.map((a) => a.client_id))]);
+      return { open: [...rows].sort(bySeverity), everCount: ever.count ?? 0, editableClientIds };
     },
   });
 }

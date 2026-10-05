@@ -44,6 +44,15 @@ export const CPA_RISE_CRITICAL = 1;
 export const ZERO_SPEND_DAYS = 2;
 
 /**
+ * Reglas de presupuesto (overspend y budget_mismatch) APAGADAS.
+ * Activar cuando se mergee el fix de moneda de presupuestos Meta: hoy
+ * sync/create/update/publish multiplican o dividen daily_budget por 100 en
+ * cualquier moneda, y en CLP (sin centavos en Meta) el presupuesto guardado
+ * puede quedar 100× desfasado, lo que dispararía alertas falsas.
+ */
+export const ENABLE_BUDGET_RULES = false;
+
+/**
  * Sobregasto diario respecto del presupuesto diario guardado.
  * Meta puede gastar hasta un 75 % más que el presupuesto diario en un día
  * puntual (compensa en la semana), por eso 1,5× es "Atención" y sobre 2×

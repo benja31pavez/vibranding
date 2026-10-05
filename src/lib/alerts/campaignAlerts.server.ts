@@ -38,13 +38,16 @@ import {
 } from "./campaignAlerts.rules";
 
 const ACTIVE_STATUS = "activo";
+const DEFAULT_TIME_ZONE = "America/Santiago";
 const PLATFORM = "meta";
-export const DEFAULT_BATCH_LIMIT = 10;
+/** Lote chico: run_http_cron_job corta la petición a los 15 s. */
+export const DEFAULT_BATCH_LIMIT = 8;
 /** ~9 consultas por cliente; Workers permite 1000 subrequests por invocación. */
 export const MAX_BATCH_LIMIT = 15;
 const CLIENT_CONCURRENCY = 3;
 const PAGE_SIZE = 1000;
 const MAX_INSIGHT_ROWS = 20_000;
+const MAX_ATTRIBUTION_ROWS = 10_000;
 /** Días de historia que necesitan las reglas (base de CPL + ventana reciente). */
 const HISTORY_DAYS = CPA_BASELINE_DAYS + CPA_RECENT_DAYS;
 const DAY_MS = 86_400_000;
@@ -60,13 +63,46 @@ export function localDate(instant: Date | string, timeZone: string | null): stri
   const d = typeof instant === "string" ? new Date(instant) : instant;
   try {
     return new Intl.DateTimeFormat("en-CA", {
-      timeZone: timeZone || "America/Santiago",
+      timeZone: timeZone || DEFAULT_TIME_ZONE,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
     }).format(d);
   } catch {
     return d.toISOString().slice(0, 10);
+  }
+}
+
+/** Desfase (ms) de la zona respecto de UTC en el instante dado. */
+function zoneOffsetMs(instant: number, timeZone: string): number {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })
+      .formatToParts(new Date(instant))
+      .map((p) => [p.type, p.value]),
+  );
+  const asUtc = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+  return asUtc - Math.floor(instant / 1000) * 1000;
+}
+
+/** Instante UTC (ISO) de la medianoche local de `date` en la zona de la cuenta. */
+export function localMidnightUtc(date: string, timeZone: string | null): string {
+  const tz = timeZone || DEFAULT_TIME_ZONE;
+  const naive = Date.parse(`${date}T00:00:00Z`);
+  try {
+    const first = naive - zoneOffsetMs(naive, tz);
+    // Segunda pasada por si la medianoche cae en un cambio de horario.
+    return new Date(naive - zoneOffsetMs(first, tz)).toISOString();
+  } catch {
+    return new Date(naive).toISOString();
   }
 }
 
@@ -130,20 +166,27 @@ async function loadAttributedResults(
 ): Promise<Map<string, number>> {
   const byCampaignDay = new Map<string, number>();
   if (adToCampaign.size === 0) return byCampaignDay;
-  const { data, error } = await supabaseAdmin
-    .from("attributions")
-    .select("ad_id,first_seen_at")
-    .eq("client_id", clientId)
-    .not("ad_id", "is", null)
-    .gte("first_seen_at", fromUtc)
-    .limit(PAGE_SIZE);
-  if (error) throw new Error(`[alerts] atribuciones: ${error.message}`);
-  for (const r of data ?? []) {
-    const campaignId = r.ad_id ? adToCampaign.get(r.ad_id) : undefined;
-    if (!campaignId) continue;
-    const key = `${campaignId}|${localDate(r.first_seen_at, timeZone)}`;
-    byCampaignDay.set(key, (byCampaignDay.get(key) ?? 0) + 1);
+  for (let start = 0; start < MAX_ATTRIBUTION_ROWS; start += PAGE_SIZE) {
+    const { data, error } = await supabaseAdmin
+      .from("attributions")
+      .select("ad_id,first_seen_at")
+      .eq("client_id", clientId)
+      .not("ad_id", "is", null)
+      .gte("first_seen_at", fromUtc)
+      // Orden estable para que la paginación no salte ni repita filas.
+      .order("first_seen_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(start, start + PAGE_SIZE - 1);
+    if (error) throw new Error(`[alerts] atribuciones: ${error.message}`);
+    for (const r of data ?? []) {
+      const campaignId = r.ad_id ? adToCampaign.get(r.ad_id) : undefined;
+      if (!campaignId) continue;
+      const key = `${campaignId}|${localDate(r.first_seen_at, timeZone)}`;
+      byCampaignDay.set(key, (byCampaignDay.get(key) ?? 0) + 1);
+    }
+    if (!data || data.length < PAGE_SIZE) return byCampaignDay;
   }
+  console.warn("[alerts] atribuciones: se alcanzó el tope de filas", { clientId });
   return byCampaignDay;
 }
 
@@ -250,10 +293,9 @@ export async function loadEvaluationInput(account: AccountRow, now: Date): Promi
   if (!account.ad_account_id) return base;
 
   const firstDay = dayRange(referenceDay, HISTORY_DAYS)[0];
-  // Margen de un día para cubrir la diferencia entre UTC y la zona de la cuenta.
-  const historyFromUtc = new Date(Date.parse(`${firstDay}T00:00:00Z`) - DAY_MS).toISOString();
+  const historyFromUtc = localMidnightUtc(firstDay, account.timezone_name);
   const noResultsFrom = dayRange(referenceDay, NO_RESULTS_WINDOW_DAYS)[0];
-  const noResultsFromUtc = new Date(Date.parse(`${noResultsFrom}T00:00:00Z`)).toISOString();
+  const noResultsFromUtc = localMidnightUtc(noResultsFrom, account.timezone_name);
 
   const [rows, campaigns, unattributedMetaLeads] = await Promise.all([
     loadInsights(account.client_id, firstDay, referenceDay),
@@ -318,6 +360,24 @@ function insertPayload(clientId: string, c: AlertCandidate): TablesInsert<"campa
   };
 }
 
+/**
+ * Inserta las alertas nuevas de un cliente en una sola petición. Si otra
+ * ejecución abrió alguna entre la lectura y la escritura (índice único de
+ * abiertas), reintenta fila por fila e ignora las que ya existen.
+ */
+async function insertAlerts(rows: Array<TablesInsert<"campaign_alerts">>): Promise<number> {
+  const { error } = await supabaseAdmin.from("campaign_alerts").insert(rows);
+  if (!error) return rows.length;
+  if (error.code !== UNIQUE_VIOLATION) throw new Error(`[alerts] crear: ${error.message}`);
+  let created = 0;
+  for (const row of rows) {
+    const { error: rowErr } = await supabaseAdmin.from("campaign_alerts").insert(row);
+    if (rowErr && rowErr.code !== UNIQUE_VIOLATION) throw new Error(`[alerts] crear: ${rowErr.message}`);
+    if (!rowErr) created++;
+  }
+  return created;
+}
+
 /** Lleva campaign_alerts al estado que dicen las reglas para este cliente. */
 export async function reconcileAlerts(
   clientId: string,
@@ -329,28 +389,28 @@ export async function reconcileAlerts(
   const openByKey = new Map(open.filter((a) => a.dedupe_key).map((a) => [a.dedupe_key as string, a]));
   const wanted = new Set(result.candidates.map((c) => c.dedupeKey));
 
+  const toUpdate: Array<TablesInsert<"campaign_alerts">> = [];
+  const toInsert: Array<TablesInsert<"campaign_alerts">> = [];
   for (const c of result.candidates) {
     const existing = openByKey.get(c.dedupeKey);
     if (existing) {
-      if (existing.message === c.message && existing.severity === c.severity) continue;
-      const { error } = await supabaseAdmin
-        .from("campaign_alerts")
-        .update({ message: c.message, severity: c.severity, data: c.data as Json })
-        .eq("id", existing.id)
-        .is("resolved_at", null);
-      if (error) throw new Error(`[alerts] actualizar: ${error.message}`);
-      counts.updated++;
-      continue;
-    }
-    if (snoozedKeys.has(c.dedupeKey)) {
+      if (existing.message !== c.message || existing.severity !== c.severity) {
+        toUpdate.push({ ...insertPayload(clientId, c), id: existing.id });
+      }
+    } else if (snoozedKeys.has(c.dedupeKey)) {
       counts.snoozed++;
-      continue;
+    } else {
+      toInsert.push(insertPayload(clientId, c));
     }
-    const { error } = await supabaseAdmin.from("campaign_alerts").insert(insertPayload(clientId, c));
-    // Otra ejecución la abrió entre la lectura y la escritura: ya existe, está bien.
-    if (error && error.code !== UNIQUE_VIOLATION) throw new Error(`[alerts] crear: ${error.message}`);
-    if (!error) counts.created++;
   }
+
+  // Un solo upsert por id para todas las abiertas que cambiaron de mensaje o severidad.
+  if (toUpdate.length > 0) {
+    const { error } = await supabaseAdmin.from("campaign_alerts").upsert(toUpdate, { onConflict: "id" });
+    if (error) throw new Error(`[alerts] actualizar: ${error.message}`);
+    counts.updated = toUpdate.length;
+  }
+  if (toInsert.length > 0) counts.created = await insertAlerts(toInsert);
 
   const evaluated = new Set<string>(result.evaluated);
   const toResolve = open.filter((a) => evaluated.has(a.kind) && a.dedupe_key && !wanted.has(a.dedupe_key));
@@ -481,37 +541,3 @@ export async function runCampaignAlerts(opts: AlertsBatchOptions = {}): Promise<
   }, summary);
 }
 
-function mergeSummaries(a: AlertsRunSummary, b: AlertsRunSummary): AlertsRunSummary {
-  const byKind = { ...a.by_kind };
-  for (const [k, n] of Object.entries(b.by_kind)) byKind[k] = (byKind[k] ?? 0) + n;
-  return {
-    offset: a.offset,
-    clients: a.clients + b.clients,
-    evaluated: a.evaluated + b.evaluated,
-    failed: a.failed + b.failed,
-    created: a.created + b.created,
-    updated: a.updated + b.updated,
-    resolved: a.resolved + b.resolved,
-    snoozed: a.snoozed + b.snoozed,
-    by_kind: byKind,
-    errors: [...a.errors, ...b.errors],
-    next_offset: b.next_offset,
-  };
-}
-
-/**
- * Encadena lotes desde `opts.offset` hasta evaluar `maxClients` clientes o
- * terminar. Con maxClients <= limit equivale a un solo lote.
- */
-export async function runCampaignAlertsChained(
-  opts: AlertsBatchOptions,
-  maxClients: number,
-): Promise<AlertsRunSummary> {
-  const now = opts.now ?? new Date();
-  let summary = await runCampaignAlerts({ ...opts, now });
-  while (summary.next_offset !== null && summary.clients < maxClients) {
-    const limit = Math.min(opts.limit ?? DEFAULT_BATCH_LIMIT, maxClients - summary.clients);
-    summary = mergeSummaries(summary, await runCampaignAlerts({ ...opts, offset: summary.next_offset, limit, now }));
-  }
-  return summary;
-}

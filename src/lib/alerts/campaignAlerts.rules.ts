@@ -13,6 +13,7 @@ import {
   CPA_RECENT_DAYS,
   CPA_RISE_CRITICAL,
   CPA_RISE_WARNING,
+  ENABLE_BUDGET_RULES,
   INGEST_STALE_HOURS,
   NO_RESULTS_WINDOW_DAYS,
   OBJECTIVES_WITHOUT_RESULTS,
@@ -448,11 +449,11 @@ export function evaluateCampaignAlerts(input: EvaluationInput): EvaluationResult
     ...spendNoResults(ctx, campaignIds),
     ...cpaSpike(ctx, campaignIds),
     ...zeroSpendActive(ctx),
-    ...overspend(ctx),
+    ...(ENABLE_BUDGET_RULES ? overspend(ctx) : []),
   );
-  evaluated.push(
-    "zero_spend_active",
-    ...(ctx.thresholds ? (["spend_no_results", "cpa_spike", "overspend", "budget_mismatch"] as const) : []),
-  );
+  evaluated.push("zero_spend_active");
+  if (ctx.thresholds) evaluated.push("spend_no_results", "cpa_spike");
+  // Apagadas: no se evalúan, así que tampoco se auto-resuelven alertas de presupuesto.
+  if (ctx.thresholds && ENABLE_BUDGET_RULES) evaluated.push("overspend", "budget_mismatch");
   return { candidates, evaluated };
 }

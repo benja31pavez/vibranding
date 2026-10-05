@@ -19,7 +19,7 @@ const PLATFORM_LABEL: Readonly<Record<string, string>> = { meta: "Meta", google:
  * Alertas de campañas abiertas, de más a menos severa. Las crea y auto-resuelve
  * el job diario 'campaign_alerts' (/api/public/alerts/run). Si la tabla nunca
  * tuvo filas el bloque se oculta (aún no corrió o no hay clientes con Meta).
- * "Marcar como resuelta" valida en el servidor que el usuario pueda editar el cliente.
+ * "Marcar como resuelta" solo se muestra si can_edit_client; el servidor lo vuelve a validar.
  */
 export function CampaignAlerts() {
   const query = useOpenCampaignAlerts();
@@ -35,7 +35,7 @@ export function CampaignAlerts() {
       tone={query.data?.open.some((a) => a.severity === "critical") ? "warning" : "default"}
     >
       <BlockState query={query} loadingLabel="Cargando alertas de campañas">
-        {({ open: alerts }) =>
+        {({ open: alerts, editableClientIds }) =>
           alerts.length === 0 ? (
             <EmptyState
               size="compact"
@@ -58,7 +58,7 @@ export function CampaignAlerts() {
                         </Link>{" "}
                         · {PLATFORM_LABEL[a.platform] ?? a.platform} · {formatShortDate(a.created_at)}
                       </p>
-                      <AlertActions alert={a} />
+                      <AlertActions alert={a} canResolve={editableClientIds.has(a.client_id)} />
                     </div>
                   </li>
                 );
