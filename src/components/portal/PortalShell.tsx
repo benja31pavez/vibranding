@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TeamContact } from "@/components/proposals/public/TeamContact";
 
 interface PortalShellProps {
   clientName?: string;
@@ -30,8 +31,15 @@ export function PortalShell({ clientName, onSignOut, children }: PortalShellProp
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-6 md:max-w-5xl md:px-6 md:py-8">{children}</main>
-      <footer className="mx-auto max-w-3xl px-4 pb-8 text-center text-xs text-muted-foreground md:max-w-5xl">
-        ¿Dudas? Escríbele a tu equipo de Vibranding. Estamos para ayudarte.
+      <footer className="mx-auto max-w-3xl px-4 pb-10 md:max-w-5xl md:px-6">
+        <TeamContact
+          title="Tu equipo en Vibranding"
+          whatsappMessage={
+            clientName
+              ? `Hola, soy de ${clientName} y tengo una consulta: `
+              : "Hola, tengo una consulta sobre mi marca: "
+          }
+        />
       </footer>
     </div>
   );

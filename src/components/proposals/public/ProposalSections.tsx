@@ -11,6 +11,7 @@ import { formatMoney } from "@/lib/pricing/plans";
 import { formatChileDate, type ProposalTotals } from "@/lib/proposals/model";
 import { whatsappUrl } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { TeamContact } from "./TeamContact";
 import { PROCESS_STEPS, TIMELINE_NOTE, type FaqItem, type WeekStep } from "./proposalContent";
 
 export const ACCEPT_ANCHOR = "aceptar";
@@ -82,9 +83,13 @@ export function goToAccept(event: MouseEvent<HTMLAnchorElement>) {
   history.replaceState(null, "", `#${ACCEPT_ANCHOR}`);
 }
 
-export function contactUrl(title: string | null): string {
+function contactMessage(title: string | null): string {
   const about = title ? ` "${title}"` : "";
-  return whatsappUrl(`Hola Benja, estoy revisando la propuesta${about} y tengo una consulta: `);
+  return `Hola Benja, estoy revisando la propuesta${about} y tengo una consulta: `;
+}
+
+export function contactUrl(title: string | null): string {
+  return whatsappUrl(contactMessage(title));
 }
 
 /** Días que quedan (calculado en el cliente para no desalinear el SSR). */
@@ -192,7 +197,6 @@ export function ProposalHero({
 
 const IVA_SUFFIX = " + IVA";
 
-/** Monto grande; el sufijo "/mes" va más chico para que el número mande. */
 /** "$129.990 + IVA/mes" → monto grande + sufijo (" + IVA/mes" o " + IVA") en pequeño. */
 function PriceAmount({ value }: { value: string }) {
   const suffixAt = value.indexOf(IVA_SUFFIX);
@@ -306,17 +310,11 @@ export function Faq({ items }: { items: readonly FaqItem[] }) {
 
 export function ContactCard({ title, open = true }: { title: string | null; open?: boolean }) {
   return (
-    <section className="flex flex-col gap-4 rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs sm:flex-row sm:items-center sm:justify-between sm:p-6">
-      <div>
-        <h2 className="text-lg font-semibold tracking-tight text-foreground">
-          {open ? "¿Tienes dudas antes de aceptar?" : "¿Tienes dudas?"}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Escríbele directo por WhatsApp a Benjamín Pavez, fundador de Vibranding.
-        </p>
-      </div>
-      <ContactButton title={title} className="shrink-0" />
-    </section>
+    <TeamContact
+      title={open ? "¿Tienes dudas antes de aceptar?" : "¿Tienes dudas?"}
+      whatsappMessage={contactMessage(title)}
+      buttonLabel="Hablar con Benja"
+    />
   );
 }
 

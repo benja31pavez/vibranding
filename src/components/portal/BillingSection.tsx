@@ -116,11 +116,11 @@ function PaymentRow({ payment, readOnly }: { payment: PortalPayment; readOnly: b
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="break-words text-sm font-medium">{paymentTitle(payment)}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {payment.dueDate
-              ? `Vence el ${formatShortDate(payment.dueDate)}`
-              : "Sin fecha de vencimiento"}
-          </p>
+          {payment.dueDate && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Vence el {formatShortDate(payment.dueDate)}
+            </p>
+          )}
         </div>
         <StatusBadge
           status={payment.status}

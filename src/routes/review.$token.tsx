@@ -2,6 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ListSkeleton } from "@/components/app";
+import { formatChileDate } from "@/lib/proposals/model";
 import { toast } from "sonner";
 import {
   ReviewThread,
@@ -48,6 +51,7 @@ function PublicReview() {
   const load = useCallback(async () => {
     const { data: res, error } = await supabase.rpc("review_link_get", { _token: token });
     if (error) {
+      console.error("[review] no se pudo cargar el enlace", error);
       setData({ ok: false, reason: "invalid" });
       return;
     }
@@ -67,7 +71,7 @@ function PublicReview() {
       _name: name.trim() || undefined,
     });
     setBusy(false);
-    const ok = (res as any)?.ok;
+    const ok = (res as { ok?: boolean } | null)?.ok;
     if (error || !ok) {
       toast.error("No se pudo enviar. El enlace puede haber expirado.");
       return;
@@ -84,28 +88,36 @@ function PublicReview() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-sidebar/95">
-        <div className="max-w-3xl mx-auto flex items-center h-16 px-6">
+      <header className="border-b border-border-subtle bg-sidebar/95">
+        <div className="mx-auto flex h-14 max-w-3xl items-center px-4 md:h-16 md:px-6">
           <span className="font-brand text-2xl tracking-tight text-gradient-brand bg-gradient-brand-animated">
             Vibranding
           </span>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-6 py-10 space-y-5">
+      <main className="mx-auto max-w-3xl space-y-5 px-4 py-8 md:px-6 md:py-10">
         <h1 className="text-2xl font-semibold tracking-tight">Revisión de entregable</h1>
 
         {!data ? (
-          <div className="text-muted-foreground text-sm">Cargando…</div>
+          <ListSkeleton rows={3} label="Cargando el entregable" />
         ) : !data.ok || !data.deliverable ? (
-          <div className="rounded-2xl border bg-surface p-6 text-sm text-muted-foreground">
-            Este enlace de revisión no es válido o ya expiró. Pide uno nuevo a tu equipo.
+          <div
+            role="alert"
+            className="rounded-app-lg border border-border-subtle bg-surface p-6 text-sm text-muted-foreground"
+          >
+            Este enlace de revisión no es válido o ya expiró. Pide uno nuevo a tu equipo de
+            Vibranding.
           </div>
         ) : (
           <>
-            <div className="max-w-xs">
+            <div className="max-w-xs space-y-1.5">
+              <Label htmlFor="review-name">Tu nombre (opcional)</Label>
               <Input
-                placeholder="Tu nombre (opcional)"
+                id="review-name"
+                autoComplete="name"
+                maxLength={80}
+                placeholder="Así sabemos quién comenta"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -118,7 +130,7 @@ function PublicReview() {
             />
             {data.expires_at && (
               <p className="text-xs text-muted-foreground">
-                Este enlace expira el {new Date(data.expires_at).toLocaleDateString()}.
+                Este enlace vence el {formatChileDate(data.expires_at)}.
               </p>
             )}
           </>

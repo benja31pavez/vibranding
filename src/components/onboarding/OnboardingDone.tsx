@@ -1,4 +1,5 @@
 import { CheckCircle2 } from "lucide-react";
+import { TeamContact } from "@/components/proposals/public/TeamContact";
 
 const NEXT_STEPS = [
   {
@@ -45,6 +46,11 @@ export function OnboardingDone({ clientName }: { clientName: string }) {
           ))}
         </ol>
       </div>
+      <TeamContact
+        title="¿Se te quedó algo?"
+        whatsappMessage={`Hola, soy de ${clientName} y acabo de enviar el formulario de bienvenida. Quería agregar: `}
+        className="border-dashed text-left shadow-none"
+      />
     </section>
   );
 }

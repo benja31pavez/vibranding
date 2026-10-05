@@ -1,4 +1,4 @@
-import { CreditCard, ExternalLink } from "lucide-react";
+import { CreditCard, ExternalLink, LifeBuoy, MessageCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -8,6 +8,7 @@ import {
   type AdsGuide,
 } from "@/lib/ads-billing/guides";
 import type { AdsPlatform } from "@/lib/ads-billing/combined";
+import { whatsappUrl } from "@/lib/site";
 import type { StepProps } from "./types";
 
 /**
@@ -89,9 +90,38 @@ export function AdsStepFields({ state, update }: StepProps) {
           onCheckedChange={(v) => setCard(p, v)}
         />
       ))}
+
+      {platforms && platforms.length > 0 && <AdsHelpNote />}
     </div>
   );
 }
+
+/** Salida para quien se complica: puede seguir y lo hacemos juntos. */
+function AdsHelpNote() {
+  return (
+    <div className="flex flex-col gap-3 rounded-app-lg border border-border-subtle bg-surface-2 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex gap-3">
+        <LifeBuoy aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+        <p className="text-muted-foreground">
+          <span className="font-medium text-foreground">¿Te complicaste?</span> Sigue con el
+          formulario sin marcarlo: te acompañamos paso a paso por WhatsApp o videollamada.
+        </p>
+      </div>
+      <a
+        href={whatsappUrl(ADS_HELP_MESSAGE)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-app-md border border-border-subtle bg-surface px-3 font-medium text-primary hover:bg-muted"
+      >
+        <MessageCircle aria-hidden className="h-4 w-4" /> Pedir ayuda
+        <span className="sr-only">por WhatsApp (se abre en otra pestaña)</span>
+      </a>
+    </div>
+  );
+}
+
+const ADS_HELP_MESSAGE =
+  "Hola, estoy completando el formulario de bienvenida y necesito ayuda para agregar mi tarjeta en la cuenta publicitaria.";
 
 function GuideCard({
   guide,
