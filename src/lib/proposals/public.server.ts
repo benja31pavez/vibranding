@@ -46,7 +46,8 @@ export type PublicPaymentState =
   | { state: "transfer" };
 
 export type PublicProposalResult =
-  { ok: false } | { ok: true; proposal: PublicProposal; payment: PublicPaymentState | null };
+  | { ok: false }
+  | { ok: true; proposal: PublicProposal; payment: PublicPaymentState | null };
 
 interface ProposalRow {
   id: string;

@@ -107,7 +107,14 @@ const SATURDAY = 6;
 const SUNDAY = 0;
 
 export type MonthPlanKind =
-  "calendario" | "post" | "reel" | "google" | "campanas" | "reporte" | "reunion" | "proyecto";
+  | "calendario"
+  | "post"
+  | "reel"
+  | "google"
+  | "campanas"
+  | "reporte"
+  | "reunion"
+  | "proyecto";
 
 export interface MonthPlanItem {
   /** Clave estable dentro del mes (p. ej. "post-3"); forma parte del marcador. */

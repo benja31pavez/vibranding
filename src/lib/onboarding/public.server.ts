@@ -72,7 +72,8 @@ export async function loadOnboarding(token: string): Promise<OnboardingInfo> {
 // ------------------------------------------------------------------ subida
 
 export type UploadUrlResult =
-  { ok: true; path: string; uploadToken: string } | { ok: false; message: string };
+  | { ok: true; path: string; uploadToken: string }
+  | { ok: false; message: string };
 
 const PREPARE_FAILED = "No pudimos preparar la subida. Intenta de nuevo en unos minutos.";
 

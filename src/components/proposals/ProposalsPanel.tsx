@@ -32,7 +32,8 @@ function statusHint(p: ProposalRow): string {
 }
 
 type PanelTarget =
-  { clientId: string; prospectId?: undefined } | { prospectId: string; clientId?: undefined };
+  | { clientId: string; prospectId?: undefined }
+  | { prospectId: string; clientId?: undefined };
 
 /**
  * Propuestas de un cliente (en su ficha) o de un prospecto (en su Sheet):

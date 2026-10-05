@@ -9,7 +9,8 @@ import {
 import { NO_PERMISSION, isMissingRpc, writeError, type Prospect } from "./prospectsData";
 
 export type ConvertResult =
-  { ok: true; clientId: string; warnings: string[] } | { ok: false; error: string };
+  | { ok: true; clientId: string; warnings: string[] }
+  | { ok: false; error: string };
 
 /** Plan a asignar: el producto sugerido del prospecto, si es un plan vigente. */
 export function suggestedPlan(prospect: Pick<Prospect, "producto_sugerido">): Plan | null {

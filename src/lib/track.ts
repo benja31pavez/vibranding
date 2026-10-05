@@ -1,7 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type LandingEventName =
-  "page_view" | "link_click" | "whatsapp_click" | "contact_click" | "contact_submit";
+  | "page_view"
+  | "link_click"
+  | "whatsapp_click"
+  | "contact_click"
+  | "contact_submit";
 
 export type EventSource =
   | { type: "site" }

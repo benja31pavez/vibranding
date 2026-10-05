@@ -35,7 +35,8 @@ export interface ViewSignal {
 }
 
 export type ViewDecision =
-  { mark: true } | { mark: false; reason: "method" | "prefetch" | "bot" | "internal" };
+  | { mark: true }
+  | { mark: false; reason: "method" | "prefetch" | "bot" | "internal" };
 
 export function decideMarkViewed(signal: ViewSignal): ViewDecision {
   const method = signal.method.toUpperCase();
