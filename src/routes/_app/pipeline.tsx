@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { FileJson, KanbanSquare, Plus, Table2, Target } from "lucide-react";
 import { toast } from "sonner";
-import { EmptyState, ErrorState, PageHeader, TableSkeleton } from "@/components/app";
+import { EmptyState, ErrorState, PageContainer, PageHeader, TableSkeleton } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { ConvertDialog } from "@/components/prospects/ConvertDialog";
 import { ImportDialog } from "@/components/prospects/ImportDialog";
@@ -110,7 +110,7 @@ function PipelinePage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1600px] space-y-6 px-6 py-8 md:px-10">
+    <PageContainer className="space-y-6">
       <PageHeader
         title="Prospectos"
         description="Embudo comercial: de nuevo a ganado. Arrastra las tarjetas o usa el selector de estado."
@@ -135,6 +135,6 @@ function PipelinePage() {
       />
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} existing={prospects} />
       <ConvertDialog prospect={converting} onClose={() => setConverting(null)} />
-    </div>
+    </PageContainer>
   );
 }

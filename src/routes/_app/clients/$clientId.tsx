@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { UserX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientProvider, useActiveClient } from "@/contexts/ActiveClientContext";
-import { EmptyState, ErrorState, ListSkeleton } from "@/components/app";
+import { EmptyState, ErrorState, ListSkeleton, PAGE_CONTAINER_CLASS } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { fichaKeys, useUserKey } from "@/components/clients/ficha/fichaQueries";
 
@@ -20,7 +20,7 @@ function ClientLayout() {
   );
 }
 
-const SHELL_CLASS = "max-w-7xl mx-auto px-6 md:px-10 py-8";
+const SHELL_CLASS = PAGE_CONTAINER_CLASS;
 
 /**
  * Contenedor de las pantallas de un cliente. Verifica que el cliente exista (o sea

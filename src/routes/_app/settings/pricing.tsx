@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PricingPanel } from "@/components/PricingPanel";
+import { PageContainer } from "@/components/app";
 
 export const Route = createFileRoute("/_app/settings/pricing")({
   component: PricingSettingsPage,
@@ -7,8 +8,8 @@ export const Route = createFileRoute("/_app/settings/pricing")({
 
 function PricingSettingsPage() {
   return (
-    <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
+    <PageContainer>
       <PricingPanel />
-    </div>
+    </PageContainer>
   );
 }

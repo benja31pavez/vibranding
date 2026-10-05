@@ -1,4 +1,5 @@
 export { PageHeader, type PageHeaderProps, type BreadcrumbItem } from "./page-header";
+export { PageContainer, PAGE_CONTAINER_CLASS, type PageContainerProps } from "./page-container";
 export { StatCard, type StatCardProps, type StatDelta } from "./stat-card";
 export { Panel, type PanelProps } from "./panel";
 export { EmptyState, type EmptyStateProps } from "./empty-state";

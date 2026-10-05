@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState, ErrorState, PageHeader } from "@/components/app";
+import { EmptyState, ErrorState, PageContainer, PageHeader } from "@/components/app";
 
 export const Route = createFileRoute("/_app/clients/")({
   component: ClientsList,
@@ -75,7 +75,7 @@ function ClientsList() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-6 py-8 md:px-10">
+    <PageContainer className="space-y-6">
       <PageHeader
         title="Clientes"
         description="Gestiona las asesorías de cada uno."
@@ -148,7 +148,7 @@ function ClientsList() {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

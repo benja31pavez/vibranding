@@ -15,7 +15,7 @@ import {
   type OrgTokenStatus,
 } from "@/lib/meta/connection.functions";
 import { validateOrgMetaToken } from "@/lib/meta/bulkConnect.functions";
-import { ConfirmDialog, ErrorState, ListSkeleton } from "@/components/app";
+import { ConfirmDialog, ErrorState, ListSkeleton, PageContainer } from "@/components/app";
 
 export const Route = createFileRoute("/_app/settings/meta")({
   head: () => ({
@@ -111,7 +111,7 @@ function OrgMetaTokenPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 sm:px-6 space-y-4">
+    <PageContainer className="max-w-3xl space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <KeyRound className="w-5 h-5" /> Token de Meta de la organización
@@ -231,6 +231,6 @@ function OrgMetaTokenPage() {
           </Button>
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 }

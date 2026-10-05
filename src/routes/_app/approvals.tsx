@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { FilterX, Inbox } from "lucide-react";
 import { useMemo } from "react";
 import { ApprovalRow } from "@/components/approvals/ApprovalRow";
-import { EmptyState, ErrorState, ListSkeleton, PageHeader, Panel } from "@/components/app";
+import { EmptyState, ErrorState, ListSkeleton, PageContainer, PageHeader, Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -81,7 +81,7 @@ function ApprovalsPage() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 sm:px-6 md:px-10">
+      <PageContainer className="space-y-6">
         <PageHeader
           title="Aprobaciones"
           description={
@@ -203,7 +203,7 @@ function ApprovalsPage() {
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
     </TooltipProvider>
   );
 }

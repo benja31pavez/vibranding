@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 import { FileText } from "lucide-react";
-import { EmptyState, ErrorState, ListSkeleton, PageHeader, type BreadcrumbItem } from "@/components/app";
+import { EmptyState, ErrorState, ListSkeleton, PageContainer, PageHeader, type BreadcrumbItem } from "@/components/app";
 import { ProposalEditor } from "./ProposalEditor";
 import { useCanEditRecipient as useCanEdit, useRecipient, type ProposalRow } from "./proposalQueries";
 
 /** Márgenes de página de las pantallas de propuestas (el layout _app no los pone). */
 export function ProposalPageShell({ children }: { children: ReactNode }) {
-  return <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6 md:px-10">{children}</div>;
+  return <PageContainer className="max-w-5xl space-y-6">{children}</PageContainer>;
 }
 
 interface Props {
