@@ -6,7 +6,7 @@ const FOLD_RATIO = 0.9;
 const REVEAL_ROOT_MARGIN = "0px 0px -8% 0px";
 const SCROLLED_OFFSET_PX = 8;
 
-function prefersReducedMotion(): boolean {
+export function prefersReducedMotion(): boolean {
   return (
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches

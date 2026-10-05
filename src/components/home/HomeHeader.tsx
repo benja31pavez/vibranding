@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { stickyHeaderClass, WhatsAppCta } from "./shared";
+import { stickyHeaderClass } from "./shared";
+import { DiagnosticoLink } from "./GrowthSections";
 import { useScrolled } from "@/hooks/use-motion";
 import { translations } from "@/i18n/translations";
 
@@ -40,10 +41,10 @@ export function HomeHeader() {
           >
             {nav.clientAccess}
           </Link>
-          <WhatsAppCta size="sm">
+          <DiagnosticoLink size="sm" cta="diagnostico:header">
             <span className="sm:hidden">{nav.ctaShort}</span>
             <span className="hidden sm:inline">{nav.cta}</span>
-          </WhatsAppCta>
+          </DiagnosticoLink>
         </div>
       </div>
     </header>

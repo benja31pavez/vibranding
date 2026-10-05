@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { SiteFooter } from "@/components/SiteFooter";
 import { HomeHeader } from "@/components/home/HomeHeader";
 import { HomeHero } from "@/components/home/HomeHero";
-import { BenefitsSection, ServicesSection } from "@/components/home/HomeSections";
+import { BenefitsSection } from "@/components/home/BenefitsSection";
+import { ServicesSection } from "@/components/home/ServicesSection";
 import {
   DiagnosticoBanner,
   ForWhomSection,

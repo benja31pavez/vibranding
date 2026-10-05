@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "./motion.css";
 @import "./components/home/mockups/mockups.css";
+@import "./components/home/sections.css";
 @source "../src";
 
 @font-face {

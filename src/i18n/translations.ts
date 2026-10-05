@@ -33,8 +33,8 @@ const homeEs = {
     how: "Cómo trabajamos",
     faq: "Preguntas",
     clientAccess: "Acceso clientes",
-    cta: "Cotiza por WhatsApp",
-    ctaShort: "Cotizar",
+    cta: "Pide tu diagnóstico gratis",
+    ctaShort: "Diagnóstico gratis",
   },
   hero: {
     badge: "Agencia en Santiago · Pymes de todo Chile",
