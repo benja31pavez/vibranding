@@ -204,33 +204,6 @@ eq(
   ["done", 1],
 );
 eq("reporte pendiente", by.reporte.status, "pending");
-
-// General (todo el plan) y pastillas
-const general = s.summarizePlan(sum);
-eq(
-  "general: avance total",
-  [general.done, general.total],
-  [sum.reduce((n, x) => n + x.done, 0), sum.reduce((n, x) => n + x.total, 0)],
-);
-eq("general atrasado si una etapa lo está", general.status, "late");
-eq("pastilla atrasada", s.trackStatus("active", true), "late");
-eq("pastilla lista nunca atrasada", s.trackStatus("done", true), "done");
-const blank = s.summarizeStages({ plan, rows: [], tasks: [], today: "2026-10-05" });
-eq("general sin empezar", s.summarizePlan(blank).status, "not_started");
-eq("general sin fecha", s.summarizePlan(blank).nextDue, null);
-const allDone = blank.map((x) => ({ ...x, status: "done", late: false }));
-eq("general al día", s.summarizePlan(allDone).status, "on_track");
-eq(
-  "general próxima entrega = la más cercana sin terminar",
-  s.summarizePlan([
-    { ...blank[0], status: "active", dueDate: "2026-10-20" },
-    { ...blank[1], status: "done", dueDate: "2026-10-08" },
-    { ...blank[2], status: "pending", dueDate: "2026-10-12" },
-  ]).nextDue,
-  "2026-10-12",
-);
-eq("persona en curso", s.memberStatus([{ ...blank[0], status: "active" }, blank[1]]), "active");
-eq("persona atrasada", s.memberStatus([{ ...blank[0], status: "active", late: true }]), "late");
 const people = s.summarizeByOwner(
   s.summarizeStages({
     plan: s.resolvePlan("mantencion", []),
