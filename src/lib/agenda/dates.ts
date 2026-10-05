@@ -1,6 +1,7 @@
 /** Fechas de la Agenda. Los días se representan como "YYYY-MM-DD" en hora de Chile. */
 import { BILLING_TIME_ZONE, todayInChile } from "@/lib/billing/dates";
 import { zonedToUTC } from "@/lib/bookings/tz";
+import { formatTimeInZone } from "@/lib/prefs/formatInZone";
 import type { AgendaRange, AgendaView } from "./types";
 
 export const AGENDA_TIME_ZONE = BILLING_TIME_ZONE;
@@ -103,15 +104,12 @@ export function dayKeyOf(date: string, allDay: boolean): string {
   return allDay ? date.slice(0, 10) : DAY_KEY_FMT.format(new Date(date));
 }
 
-const TIME_FMT = new Intl.DateTimeFormat("es-CL", {
-  timeZone: AGENDA_TIME_ZONE,
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-});
-
-export function formatTime(iso: string): string {
-  return TIME_FMT.format(new Date(iso));
+/**
+ * Hora de un evento ("14:30"). Por defecto en Chile; el panel pasa la zona del usuario
+ * (preferencia del perfil) solo para mostrarla. El día del evento sigue siendo el de Chile.
+ */
+export function formatTime(iso: string, timeZone: string = AGENDA_TIME_ZONE): string {
+  return formatTimeInZone(iso, timeZone);
 }
 
 // Las claves de día se formatean en UTC para no desplazarlas por la zona del navegador.

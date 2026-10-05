@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { loadPricing } from "@/components/PricingPanel";
+import { isMissingColumnError } from "@/lib/db/missingColumn";
 
 /**
  * Datos de "Editar perfil": perfil del dueño (user_profiles) y datos de la agencia
@@ -54,12 +55,7 @@ export interface AgencyProfile {
   hasExtended: boolean;
 }
 
-/** PostgREST: columna inexistente en el esquema (migración pendiente). */
-const MISSING_COLUMN_CODES = new Set(["PGRST204", "42703"]);
-
-export function isMissingColumnError(error: { code?: string } | null): boolean {
-  return Boolean(error?.code && MISSING_COLUMN_CODES.has(error.code));
-}
+export { isMissingColumnError };
 
 const text = (v: unknown): string => (typeof v === "string" ? v : "");
 
