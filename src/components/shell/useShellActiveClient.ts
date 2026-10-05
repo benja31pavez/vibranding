@@ -1,49 +1,28 @@
-import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ClientSummary } from "./useClientList";
 import { shellKeys } from "./shellQueries";
+import {
+  readStoredClientId,
+  useStoredActiveClientId,
+  writeStoredClientId,
+} from "./activeClientStore";
 
-const STORAGE_KEY = "activeClientId";
 const CLIENT_ID_IN_PATH = /^\/clients\/([0-9a-f-]{36})/i;
-
-function readStoredId(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return localStorage.getItem(STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeStoredId(id: string | null) {
-  if (typeof window === "undefined") return;
-  try {
-    if (id) localStorage.setItem(STORAGE_KEY, id);
-    else localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // Almacenamiento bloqueado (modo privado): el cliente activo solo vive en memoria.
-  }
-}
 
 /**
  * Cliente activo del panel izquierdo: se toma de la URL (/clients/:id) o del último
  * cliente abierto (localStorage). Usa React Query para refrescarse al invalidar ["shell"].
  */
 export function useShellActiveClient(path: string, userId: string | undefined) {
-  const navigate = useNavigate();
   const idFromUrl = path.match(CLIENT_ID_IN_PATH)?.[1] ?? null;
-  const [storedId, setStoredId] = useState<string | null>(null);
+  // localStorage solo existe en el cliente: el hook lo lee tras montar y al cambiar.
+  const storedId = useStoredActiveClientId();
 
-  // localStorage solo existe en el cliente: se lee tras montar y cuando cambia la ruta.
+  // Abrir la ficha de un cliente lo deja como activo.
   useEffect(() => {
-    if (idFromUrl) {
-      writeStoredId(idFromUrl);
-      setStoredId(idFromUrl);
-    } else {
-      setStoredId(readStoredId());
-    }
+    if (idFromUrl && readStoredClientId() !== idFromUrl) writeStoredClientId(idFromUrl);
   }, [idFromUrl]);
 
   const targetId = idFromUrl ?? storedId;
@@ -69,17 +48,10 @@ export function useShellActiveClient(path: string, userId: string | undefined) {
   // El cliente guardado ya no existe (borrado o sin acceso): olvidarlo.
   useEffect(() => {
     if (isSuccess && data === null && targetId) {
-      writeStoredId(null);
-      setStoredId(null);
+      writeStoredClientId(null);
     }
   }, [isSuccess, data, targetId]);
 
-  const clearActive = useCallback(() => {
-    writeStoredId(null);
-    setStoredId(null);
-    if (path.startsWith("/clients/")) navigate({ to: "/clients" });
-  }, [navigate, path]);
-
   const activeClient = targetId && data ? data : null;
-  return { activeClient, clearActive };
+  return { activeClient };
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Instagram, Plus } from "lucide-react";
+import { Instagram, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -10,9 +10,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EmptyState, ErrorState, FitList, FitPage, PageHeader } from "@/components/app";
+import {
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  FitList,
+  FitPage,
+  PageHeader,
+} from "@/components/app";
 import { HEALTH_LOAD_ERROR, HealthBadge, useClientsHealth } from "@/components/clients/health";
-import { HEALTH_LEVEL_META, type ClientHealth, type HealthLevel } from "@/lib/health";
+import { HEALTH_LEVEL_META, type HealthLevel } from "@/lib/health";
+import {
+  disconnectActiveClient,
+  useStoredActiveClientId,
+} from "@/components/shell/activeClientStore";
 import {
   SORT_LABEL,
   arrangeClients,
@@ -21,6 +32,7 @@ import {
   type LevelFilter,
   type SortMode,
 } from "./clientsListData";
+import { ClientCard } from "./ClientCard";
 import { NewClientDialog } from "./NewClientDialog";
 
 /** Ancho mínimo de una tarjeta de cliente en la grilla de escritorio (px). */
@@ -34,6 +46,8 @@ export function ClientsListPage() {
   const [sort, setSort] = useState<SortMode>("recent");
   const [level, setLevel] = useState<LevelFilter>("all");
   const [open, setOpen] = useState(false);
+  const activeClientId = useStoredActiveClientId();
+  const [disconnecting, setDisconnecting] = useState<ClientListItem | null>(null);
   const clients = query.data;
 
   const visible = useMemo(
@@ -150,54 +164,26 @@ export function ClientsListPage() {
                   client={c}
                   health={health.data?.get(c.id)}
                   healthLoading={health.isPending && !health.isError}
+                  isActive={c.id === activeClientId}
+                  onDisconnect={setDisconnecting}
                 />
               )}
             />
           )}
         </>
       )}
+      <ConfirmDialog
+        open={disconnecting !== null}
+        onOpenChange={(o) => !o && setDisconnecting(null)}
+        title={`¿Desconectar ${disconnecting?.name ?? "este cliente"}?`}
+        description="El panel izquierdo dejará de mostrar sus secciones. No se borra ningún dato: puedes volver a elegirlo cuando quieras desde el selector o su tarjeta."
+        confirmLabel="Desconectar"
+        onConfirm={() => {
+          disconnectActiveClient();
+          setDisconnecting(null);
+        }}
+      />
     </FitPage>
-  );
-}
-
-function ClientCard({
-  client: c,
-  health: h,
-  healthLoading,
-}: {
-  client: ClientListItem;
-  health: ClientHealth | undefined;
-  healthLoading: boolean;
-}) {
-  return (
-    <Link
-      to="/clients/$clientId"
-      params={{ clientId: c.id }}
-      className="group block h-full rounded-app-lg border border-border-subtle bg-surface px-4 py-3 shadow-app-xs transition-shadow hover:border-border-strong hover:shadow-app-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold">{c.name}</h3>
-          <div className="mt-0.5 flex h-5 items-center gap-1 text-sm text-muted-foreground">
-            {c.instagram_handle && (
-              <>
-                <Instagram aria-hidden className="h-3.5 w-3.5" /> @{c.instagram_handle}
-              </>
-            )}
-          </div>
-        </div>
-        <ArrowRight
-          aria-hidden
-          className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1"
-        />
-      </div>
-      <div className="mt-2 flex min-h-5 items-center gap-2">
-        <HealthBadge health={h} loading={healthLoading} />
-        {h && h.reasons[0] && (
-          <span className="truncate text-xs text-muted-foreground">{h.reasons[0].label}</span>
-        )}
-      </div>
-    </Link>
   );
 }
 
