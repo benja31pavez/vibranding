@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 
 const Input = z.object({
@@ -22,12 +21,9 @@ export type ContactSubmitResult = { ok: boolean; reason?: "invalid" | "rate_limi
 export const submitLandingContact = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => Input.parse(input))
   .handler(async ({ data }): Promise<ContactSubmitResult> => {
-    const req = getRequest();
-    const ip =
-      req.headers.get("cf-connecting-ip") ??
-      req.headers.get("x-real-ip") ??
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      null;
+    // Misma regla de confianza que el resto (solo cf-connecting-ip en Cloudflare).
+    const { clientIp } = await import("@/lib/security/ipRateLimit.server");
+    const ip = clientIp();
 
     const { createHash } = await import("crypto");
     const ipHash = ip

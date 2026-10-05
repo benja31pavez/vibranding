@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -132,16 +131,6 @@ const RATE_LIMITED = "Demasiadas reservas en poco tiempo. Intenta más tarde.";
 /** ip hash -> recent attempt timestamps. In-memory, so it is a first line only. */
 const ipAttempts = new Map<string, number[]>();
 
-function clientIp(): string | null {
-  const req = getRequest();
-  return (
-    req?.headers.get("cf-connecting-ip") ??
-    req?.headers.get("x-real-ip") ??
-    req?.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    null
-  );
-}
-
 function hashSalt(): string {
   return process.env["IP_HASH_SALT"] ?? process.env["SUPABASE_PROJECT_SALT"] ?? "landing";
 }
@@ -191,6 +180,8 @@ export const createBooking = createServerFn({ method: "POST" })
     }) => parseOrThrow(BookingInput, d),
   )
   .handler(async ({ data }) => {
+    // Misma regla de confianza que el resto (solo cf-connecting-ip en Cloudflare).
+    const { clientIp } = await import("@/lib/security/ipRateLimit.server");
     const ip = clientIp();
     if (!allowIpAttempt(await clientIpHash(ip))) throw new Error(RATE_LIMITED);
 
