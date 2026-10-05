@@ -1,5 +1,6 @@
 import { findPlan, type Plan } from "@/lib/pricing/plans";
 import { ORGANIZATION_ID, SITE_URL } from "@/lib/site";
+import { MARKETING_META, MARKETING_ORG_SCRIPT } from "@/lib/marketingSeo";
 import { PLAN_SUMMARY, type ServiceContent } from "./content";
 
 export function serviceUrl(service: ServiceContent): string {
@@ -87,7 +88,7 @@ export function buildServiceHead(service: ServiceContent) {
     meta: [
       { title: service.title },
       { name: "description", content: service.description },
-      { property: "og:type", content: "website" },
+      ...MARKETING_META,
       { property: "og:title", content: service.title },
       { property: "og:description", content: service.description },
       { property: "og:url", content: url },
@@ -96,6 +97,9 @@ export function buildServiceHead(service: ServiceContent) {
       { name: "twitter:description", content: service.description },
     ],
     links: [{ rel: "canonical", href: url }],
-    scripts: [{ type: "application/ld+json", children: buildServiceJsonLd(service) }],
+    scripts: [
+      MARKETING_ORG_SCRIPT,
+      { type: "application/ld+json", children: buildServiceJsonLd(service) },
+    ],
   };
 }
