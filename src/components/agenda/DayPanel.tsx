@@ -1,5 +1,5 @@
 import { CalendarX2, ChevronRight } from "lucide-react";
-import { EmptyState, StatusBadge } from "@/components/app";
+import { EmptyState, FitList, StatusBadge } from "@/components/app";
 import { useUserPrefs } from "@/hooks/use-user-prefs";
 import { formatLongDay, formatTime } from "@/lib/agenda/dates";
 import { AGENDA_KIND_LABEL, type AgendaItem } from "@/lib/agenda/types";
@@ -21,11 +21,11 @@ export function DayPanel({ day, isToday, items, className }: DayPanelProps) {
     <section aria-labelledby="agenda-day-title" aria-live="polite" className={className}>
       <h2
         id="agenda-day-title"
-        className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold"
+        className="mb-3 flex shrink-0 flex-wrap items-center gap-2 text-sm font-semibold"
       >
-        <span className="capitalize">{formatLongDay(day)}</span>
+        <span className="inline-block first-letter:uppercase">{formatLongDay(day)}</span>
         {isToday && (
-          <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
+          <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
             Hoy
           </span>
         )}
@@ -34,25 +34,22 @@ export function DayPanel({ day, isToday, items, className }: DayPanelProps) {
         </span>
       </h2>
       {!isChileTime && (
-        <p className="-mt-2 mb-3 text-xs text-muted-foreground">
+        <p className="-mt-2 mb-3 shrink-0 text-xs text-muted-foreground">
           Horas en tu zona ({timeZone.replace(/_/g, " ")}). Los días son los de Chile.
         </p>
       )}
       {items.length === 0 ? (
-        <EmptyState
-          size="compact"
-          icon={CalendarX2}
-          title="Nada agendado"
-          description="No hay eventos para este día con los filtros actuales."
-        />
+        <EmptyState size="compact" icon={CalendarX2} title="Nada agendado" />
       ) : (
-        <ul className="space-y-2">
-          {items.map((item) => (
-            <li key={item.id}>
-              <DayItem item={item} timeZone={timeZone} />
-            </li>
-          ))}
-        </ul>
+        <FitList
+          items={items}
+          getKey={(item) => item.id}
+          label="Eventos del día"
+          gap={8}
+          divided={false}
+          mobileShowAll
+          renderItem={(item) => <DayItem item={item} timeZone={timeZone} />}
+        />
       )}
     </section>
   );

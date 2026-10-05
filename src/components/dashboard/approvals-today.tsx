@@ -33,7 +33,6 @@ export function ApprovalsTab() {
             className="py-3"
             icon={Inbox}
             title="Nada esperando tu aprobación."
-            description="Todo al día por ahora."
           />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-2">

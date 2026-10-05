@@ -138,7 +138,7 @@ function MonthView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCa
       role="grid"
       aria-label="Calendario del mes. Usa las flechas para moverte entre días."
       onKeyDown={onKeyDown}
-      className="w-full"
+      className="w-full md:flex md:h-full md:flex-col"
     >
       <div role="rowgroup">
         <div role="row" className="grid grid-cols-7 gap-1 pb-1">
@@ -147,14 +147,18 @@ function MonthView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCa
               key={d}
               role="columnheader"
               aria-label={WEEKDAY_LONG[i]}
-              className="px-1 text-center text-[11px] font-medium text-muted-foreground sm:text-left"
+              className="px-1 text-center text-xs font-medium text-muted-foreground sm:text-left"
             >
               {d}
             </div>
           ))}
         </div>
       </div>
-      <div role="rowgroup" className="space-y-1">
+      {/* Escritorio: las semanas se reparten el alto disponible (mínimo para 3 eventos). */}
+      <div
+        role="rowgroup"
+        className="flex flex-col gap-1 md:grid md:min-h-0 md:flex-1 md:auto-rows-[minmax(5.75rem,1fr)]"
+      >
         {weeks.map((week) => (
           <div key={week[0]} role="row" className="grid grid-cols-7 gap-1">
             {week.map((day) => {
@@ -163,7 +167,12 @@ function MonthView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCa
               const isToday = day === today;
               const outside = !sameMonth(day, selected);
               return (
-                <div key={day} role="gridcell" aria-selected={isSelected} className="min-w-0">
+                <div
+                  key={day}
+                  role="gridcell"
+                  aria-selected={isSelected}
+                  className="min-w-0 md:min-h-0"
+                >
                   <button
                     type="button"
                     data-day={day}
@@ -173,7 +182,7 @@ function MonthView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCa
                     aria-current={isToday ? "date" : undefined}
                     onClick={() => onSelectDay(day)}
                     className={cn(
-                      "flex h-14 w-full flex-col gap-1 overflow-hidden rounded-app-sm border p-1 text-left transition-colors sm:h-28 sm:p-1.5",
+                      "flex h-14 w-full flex-col gap-1 overflow-hidden rounded-app-sm border p-1 text-left transition-colors sm:h-28 sm:p-1.5 md:h-full",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       isSelected
                         ? "border-primary bg-primary/5"
@@ -182,25 +191,26 @@ function MonthView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCa
                     )}
                   >
                     <DayDescription id={descId("mes", day)} items={items} />
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-medium",
-                        isToday && "bg-primary text-primary-foreground",
+                    <span aria-hidden className="flex shrink-0 items-center justify-between gap-1">
+                      <span
+                        className={cn(
+                          "grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-medium",
+                          isToday && "bg-primary text-primary-foreground",
+                        )}
+                      >
+                        {dayOfMonth(day)}
+                      </span>
+                      {items.length > MAX_CHIPS && (
+                        <span className="hidden truncate pr-0.5 text-xs text-muted-foreground sm:inline">
+                          +{items.length - MAX_CHIPS} más
+                        </span>
                       )}
-                    >
-                      {dayOfMonth(day)}
                     </span>
                     <DayDots items={items} />
                     <div aria-hidden className="hidden min-w-0 flex-col gap-0.5 sm:flex">
                       {items.slice(0, MAX_CHIPS).map((it) => (
                         <AgendaChip key={it.id} item={it} />
                       ))}
-                      {items.length > MAX_CHIPS && (
-                        <span className="px-1 text-[11px] text-muted-foreground">
-                          +{items.length - MAX_CHIPS} más
-                        </span>
-                      )}
                     </div>
                   </button>
                 </div>
@@ -241,8 +251,9 @@ function WeekView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCal
       role="grid"
       aria-label="Calendario de la semana. Usa las flechas para moverte entre días."
       onKeyDown={onKeyDown}
+      className="md:h-full"
     >
-      <div role="row" className="grid grid-cols-1 gap-2 sm:grid-cols-7 sm:gap-1">
+      <div role="row" className="grid grid-cols-1 gap-2 sm:grid-cols-7 sm:gap-1 md:h-full">
         {days.map((day) => {
           const items = itemsByDay.get(day) ?? [];
           const isSelected = day === selected;
@@ -253,7 +264,7 @@ function WeekView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCal
               role="gridcell"
               aria-selected={isSelected}
               className={cn(
-                "flex min-w-0 flex-col gap-1.5 rounded-app-sm border p-1.5 sm:min-h-64",
+                "flex min-w-0 flex-col gap-1.5 rounded-app-sm border p-1.5 sm:min-h-64 md:min-h-0",
                 isSelected ? "border-primary bg-primary/5" : "border-border-subtle",
               )}
             >
@@ -281,9 +292,9 @@ function WeekView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCal
                 <DayDescription id={descId("semana", day)} items={items} />
               </button>
               {items.length === 0 ? (
-                <p className="px-1 text-[11px] text-muted-foreground sm:sr-only">Sin eventos</p>
+                <p className="px-1 text-xs text-muted-foreground sm:sr-only">Sin eventos</p>
               ) : (
-                <ul className="flex flex-col gap-1">
+                <ul className="flex flex-col gap-1 md:min-h-0 md:flex-1 md:overflow-y-auto">
                   {items.map((it) => (
                     <li key={it.id} className="min-w-0">
                       <AgendaChip item={it} asLink />
@@ -317,8 +328,8 @@ function ListView({ range, today, itemsByDay }: AgendaCalendarProps) {
     <ol className="space-y-4">
       {days.map((day) => (
         <li key={day}>
-          <h3 className="mb-1.5 flex items-center gap-2 text-xs font-semibold capitalize text-muted-foreground">
-            {formatLongDay(day)}
+          <h3 className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <span className="inline-block first-letter:uppercase">{formatLongDay(day)}</span>
             {day === today && (
               <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] normal-case text-primary-foreground">
                 Hoy
@@ -342,7 +353,12 @@ function ListView({ range, today, itemsByDay }: AgendaCalendarProps) {
 
 export function AgendaCalendarSkeleton() {
   return (
-    <div role="status" aria-live="polite" aria-busy className="space-y-1">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-busy
+      className="space-y-1 md:min-h-0 md:flex-1 md:overflow-hidden"
+    >
       <span className="sr-only">Cargando agenda…</span>
       {Array.from({ length: 5 }, (_, r) => (
         <div key={r} className="grid grid-cols-7 gap-1">

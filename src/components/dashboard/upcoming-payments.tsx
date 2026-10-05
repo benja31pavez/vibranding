@@ -69,7 +69,6 @@ export function PaymentsTab() {
             className="py-3"
             icon={Wallet}
             title="Sin cobros esta semana."
-            description="No hay pagos vencidos ni por vencer."
           />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-2">
