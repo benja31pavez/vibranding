@@ -4,7 +4,7 @@
  * Uso: node scripts/check-cron-batch.mjs
  */
 import { build } from "esbuild";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -104,6 +104,25 @@ for (const [name, fn] of asyncChecks) {
   } catch (e) {
     failures.push(`${name}: ${e.message}`);
   }
+}
+
+// Toda ruta que llama el cron (URLs de run_http_cron_job en las migraciones)
+// debe responder con batchStatus y nunca 207: job_runs toma cualquier 2xx como éxito.
+const migDir = join(root, "supabase/migrations");
+const cronPaths = new Set();
+for (const f of readdirSync(migDir).filter((n) => n.endsWith(".sql"))) {
+  const sql = readFileSync(join(migDir, f), "utf8");
+  for (const m of sql.matchAll(/https?:\/\/[^'\s?]+?(\/api\/public\/[\w\-/]+)/g)) cronPaths.add(m[1]);
+}
+check("hay rutas llamadas por el cron", () => assert.ok(cronPaths.size > 0));
+for (const path of [...cronPaths].sort()) {
+  check(`ruta cron ${path} usa batchStatus y no responde 207`, () => {
+    const file = join(root, "src/routes", `${path}.ts`);
+    assert.ok(existsSync(file), `no existe ${file}`);
+    const src = readFileSync(file, "utf8");
+    assert.ok(src.includes("batchStatus("), "no usa batchStatus");
+    assert.ok(!/(status\s*:|\?|:)\s*207\b/.test(src), "responde 207");
+  });
 }
 
 if (failures.length > 0) {
