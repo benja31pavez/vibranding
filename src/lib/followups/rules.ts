@@ -210,7 +210,9 @@ const MAX_WA_DIGITS = 15;
 /** Normaliza un teléfono a dígitos internacionales para wa.me (Chile por defecto). null si no sirve. */
 export function whatsappDigits(phone: string | null | undefined): string | null {
   if (!phone) return null;
-  const digits = phone.replace(/\D/g, "").replace(/^00/, "");
+  const raw = phone.replace(/\D/g, "").replace(/^00/, "");
+  // Prefijo troncal: 09XXXXXXXX → 9XXXXXXXX.
+  const digits = raw.length === 10 && raw.startsWith("0") ? raw.slice(1) : raw;
   // Celular chileno sin código de país: 9XXXXXXXX.
   const full = digits.length === 9 && digits.startsWith("9") ? `56${digits}` : digits;
   return full.length >= MIN_WA_DIGITS && full.length <= MAX_WA_DIGITS ? full : null;

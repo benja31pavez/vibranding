@@ -3,9 +3,10 @@ import { EMPTY_CLP_TOTALS, addClp, type ClpTotals } from "@/lib/pricing/plans";
 import { firstDayOfMonth } from "@/lib/billing/dates";
 import { fetchAllRows } from "@/lib/db/fetchAllRows";
 import { isDueSoon, isPastDue } from "@/lib/billing/openPayments";
+import { sortByUrgency } from "@/lib/billing/reminders";
 
 export type BillingStatus = "pending" | "paid" | "overdue" | "cancelled";
-export type BillingFilter = "vencidos" | "por_vencer" | "mes" | "todos";
+export type BillingFilter = "por_recordar" | "vencidos" | "por_vencer" | "mes" | "todos";
 
 export interface BillingRow {
   id: string;
@@ -19,6 +20,7 @@ export interface BillingRow {
   paid_at: string | null;
   period: string | null;
   payment_url: string | null;
+  created_at: string;
 }
 
 export interface BillingData {
@@ -26,7 +28,7 @@ export interface BillingData {
 }
 
 const PAYMENT_COLUMNS =
-  "id,client_id,description,amount,currency,status,due_date,paid_at,period,payment_url,clients(name)";
+  "id,client_id,description,amount,currency,status,due_date,paid_at,period,payment_url,created_at,clients(name)";
 
 /**
  * Todos los cobros, paginados de a 1000: así "Vencidos", "Por vencer" y los
@@ -58,6 +60,7 @@ function inMonth(date: string | null, month: string): boolean {
 
 export function filterRows(rows: readonly BillingRow[], filter: BillingFilter, today: string) {
   const month = firstDayOfMonth(today);
+  if (filter === "por_recordar") return sortByUrgency(rows, today);
   if (filter === "vencidos") return rows.filter((r) => isOverdue(r, today));
   if (filter === "por_vencer") {
     return rows

@@ -13,7 +13,8 @@
     "check:proposal-copy": "node scripts/check-proposal-copy.mjs",
     "check:growth": "node scripts/check-growth.mjs",
     "check:health": "node scripts/check-health.mjs",
-    "check:recommend": "node scripts/check-recommend.mjs"
+    "check:recommend": "node scripts/check-recommend.mjs",
+    "check:reminders": "node scripts/check-reminders.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
