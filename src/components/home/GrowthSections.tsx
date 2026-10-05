@@ -193,28 +193,3 @@ export function WorkWithUsSection() {
     </section>
   );
 }
-
-/** Franja de diagnóstico gratis, justo después del hero. */
-export function DiagnosticoBanner() {
-  return (
-    <section aria-labelledby="diagnostico-banner-title" className="px-4 md:px-10">
-      <div
-        className="hero-in mx-auto flex max-w-5xl flex-col items-start gap-5 rounded-3xl border-2 border-[color:var(--brand-2)]/40 bg-card p-6 md:flex-row md:items-center md:justify-between md:p-8"
-        style={{ "--d": "420ms" } as React.CSSProperties}
-      >
-        <div>
-          <h2 id="diagnostico-banner-title" className="text-xl font-semibold md:text-2xl">
-            Diagnóstico gratis de tu marca
-          </h2>
-          <p className="mt-2 max-w-xl text-muted-foreground">
-            Cuéntanos de tu negocio en 1 minuto. Revisamos tu Instagram, tu web y tu ficha de
-            Google, y te decimos qué haríamos primero. Sin compromiso.
-          </p>
-        </div>
-        <DiagnosticoLink className="w-full shrink-0 md:w-auto">
-          Quiero mi diagnóstico <ArrowRight aria-hidden className="btn-arrow h-4 w-4" />
-        </DiagnosticoLink>
-      </div>
-    </section>
-  );
-}
