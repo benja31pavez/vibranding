@@ -76,7 +76,6 @@ export const Route = createFileRoute("/api/public/meta/oauth/callback")({
         }
 
         try {
-
           // 2. Discover the first ad account, page and linked IG account.
           // Errors are captured, never swallowed: without them the flow fails silently.
           const [adAccountsRes, pagesRes] = await Promise.all([
