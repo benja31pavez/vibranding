@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "check:proposal-copy": "node scripts/check-proposal-copy.mjs"
+    "check:proposal-copy": "node scripts/check-proposal-copy.mjs",
+    "check:growth": "node scripts/check-growth.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
