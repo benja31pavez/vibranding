@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Receipt, Repeat, Wallet } from "lucide-react";
+import { BellRing, CheckCircle2, Receipt, Repeat, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, Money, MoneyTotals, PageContainer, PageHeader, StatCard, StatusBadge, TableSkeleton } from "@/components/app";
 import { PaymentLinkButton } from "@/components/billing/PaymentLinkButton";
+import { PaymentReminderDialog } from "@/components/billing/PaymentReminderDialog";
+import { useAuth } from "@/hooks/use-auth";
 import {
   computeTotals,
   filterRows,
@@ -18,6 +20,8 @@ import {
 import { periodLabel, todayInChile } from "@/lib/billing/dates";
 import { useMrr } from "@/lib/billing/mrr";
 import { UPCOMING_DAYS } from "@/lib/billing/openPayments";
+import { wasRemindedToday, withReminded, type RemindedMap } from "@/lib/billing/reminders";
+import { readReminded, writeReminded } from "@/lib/billing/remindedStore";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/billing")({
@@ -38,6 +42,7 @@ export const Route = createFileRoute("/_app/billing")({
 const NO_PERMISSION = "No tienes permisos para esta acción";
 
 const FILTERS: ReadonlyArray<{ value: BillingFilter; label: string }> = [
+  { value: "por_recordar", label: "Por recordar" },
   { value: "vencidos", label: "Vencidos" },
   { value: "por_vencer", label: `Por vencer (${UPCOMING_DAYS} días)` },
   { value: "mes", label: "Este mes" },
@@ -51,10 +56,23 @@ const fmtDate = (iso: string | null) =>
 function BillingPage() {
   const [data, setData] = useState<BillingData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<BillingFilter>("vencidos");
+  const [filter, setFilter] = useState<BillingFilter>("por_recordar");
   const requestId = useRef(0);
   const today = todayInChile();
   const mrr = useMrr();
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
+  const [reminded, setReminded] = useState<RemindedMap>({});
+
+  useEffect(() => {
+    setReminded(readReminded(today, userId));
+  }, [today, userId]);
+
+  const markReminded = (paymentId: string) => {
+    const next = withReminded(reminded, paymentId, today);
+    setReminded(next);
+    writeReminded(next, userId);
+  };
 
   const load = async () => {
     const id = ++requestId.current;
@@ -75,7 +93,14 @@ function BillingPage() {
   }, []);
 
   const totals = useMemo(() => computeTotals(data?.rows ?? [], today), [data, today]);
-  const visible = useMemo(() => filterRows(data?.rows ?? [], filter, today), [data, filter, today]);
+  const visible = useMemo(() => {
+    const rows = filterRows(data?.rows ?? [], filter, today);
+    if (filter !== "por_recordar") return rows;
+    // Los ya recordados hoy bajan al final, manteniendo el orden por urgencia.
+    const pending = rows.filter((r) => !wasRemindedToday(reminded, r.id, today));
+    const done = rows.filter((r) => wasRemindedToday(reminded, r.id, today));
+    return [...pending, ...done];
+  }, [data, filter, today, reminded]);
   const loading = data === null && error === null;
 
   const markPaid = async (row: BillingRow) => {
@@ -157,7 +182,9 @@ function BillingPage() {
         <EmptyState
           icon={Receipt}
           title={
-            filter === "vencidos"
+            filter === "por_recordar"
+              ? "No hay cobros por recordar."
+              : filter === "vencidos"
               ? "No hay cobros vencidos."
               : filter === "por_vencer"
                 ? `No hay cobros que venzan en los próximos ${UPCOMING_DAYS} días.`
@@ -166,7 +193,14 @@ function BillingPage() {
           description="Los cobros se registran desde la ficha de cada cliente, en Facturación."
         />
       ) : (
-        <BillingTable rows={visible} today={today} onMarkPaid={markPaid} onChanged={load} />
+        <BillingTable
+          rows={visible}
+          today={today}
+          reminded={reminded}
+          onReminded={markReminded}
+          onMarkPaid={markPaid}
+          onChanged={load}
+        />
       )}
     </PageContainer>
   );
@@ -175,11 +209,15 @@ function BillingPage() {
 function BillingTable({
   rows,
   today,
+  reminded,
+  onReminded,
   onMarkPaid,
   onChanged,
 }: {
   rows: readonly BillingRow[];
   today: string;
+  reminded: RemindedMap;
+  onReminded: (paymentId: string) => void;
   onMarkPaid: (row: BillingRow) => void;
   onChanged: () => void;
 }) {
@@ -240,11 +278,17 @@ function BillingTable({
                   {fmtDate(r.due_date)}
                 </td>
                 <td className="px-4 py-3">
-                  <StatusBadge status={late ? "overdue" : r.status} />
+                  <div className="flex flex-col items-start gap-1">
+                    <StatusBadge status={late ? "overdue" : r.status} />
+                    {open && wasRemindedToday(reminded, r.id, today) && (
+                      <span className="text-xs text-muted-foreground">Recordado hoy</span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3">
                   {open && (
                     <div className="flex justify-end gap-2">
+                      <RemindButton row={r} today={today} onReminded={() => onReminded(r.id)} />
                       <PaymentLinkButton payment={r} onChanged={onChanged} />
                       <Button size="sm" variant="ghost" onClick={() => onMarkPaid(r)}>
                         Marcar pagado
@@ -258,5 +302,36 @@ function BillingTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+function RemindButton({
+  row,
+  today,
+  onReminded,
+}: {
+  row: BillingRow;
+  today: string;
+  onReminded: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        <BellRing className="mr-1 h-3.5 w-3.5" aria-hidden />
+        Recordar pago
+      </Button>
+      {open && (
+        <PaymentReminderDialog
+          open={open}
+          onOpenChange={setOpen}
+          payment={row}
+          clientId={row.client_id}
+          clientName={row.client_name}
+          today={today}
+          onReminded={onReminded}
+        />
+      )}
+    </>
   );
 }
