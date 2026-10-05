@@ -1,9 +1,12 @@
-import { AlertTriangle, CalendarClock, RotateCw, Target, Users } from "lucide-react";
+import { AlertTriangle, CalendarClock, HeartPulse, RotateCw, Target, Users } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Money, MoneyTotals, StatCard } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { META_MRR_CLP } from "@/lib/pricing/plans";
+import { useClientsHealth } from "@/components/clients/health";
+import { countByLevel } from "@/lib/health";
 import { UPCOMING_DAYS, useClientIndex, useMrr, useOpenPayments, type MrrSummary } from "./queries";
 
 /** Valor de una tarjeta cuya query falló: aviso + reintento de esa query. */
@@ -21,7 +24,7 @@ function RetryValue({ query }: { query: UseQueryResult<unknown> }) {
 
 const plural = (n: number) => `${n} ${n === 1 ? "cliente" : "clientes"}`;
 
-/** Franja de KPIs: MRR vs meta, clientes activos, cobros próximos y vencidos. */
+/** Franja de KPIs: MRR vs meta, clientes activos, en riesgo, cobros próximos y vencidos. */
 export function KpiStrip() {
   const mrr = useMrr();
   const clients = useClientIndex();
@@ -30,7 +33,7 @@ export function KpiStrip() {
   const overdueCount = payments.data?.overdue.length ?? 0;
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       <MrrCard query={mrr} />
       <StatCard
         icon={Users}
@@ -38,6 +41,7 @@ export function KpiStrip() {
         loading={clients.isPending && !clients.isError}
         value={clients.isError ? <RetryValue query={clients} /> : (clients.data?.activeCount ?? 0)}
       />
+      <AtRiskCard />
       <StatCard
         icon={CalendarClock}
         label={`Cobros próximos ${UPCOMING_DAYS} días`}
@@ -100,6 +104,37 @@ function MrrCard({ query }: { query: UseQueryResult<MrrSummary> }) {
               Suscripciones <Money amount={data.fromSubscriptions} /> ({plural(data.subscriptionClients)}) ·
               Facturación manual <Money amount={data.fromBilling} /> ({plural(data.billingClients)})
             </span>
+          </span>
+        )
+      }
+    />
+  );
+}
+
+/** Clientes en riesgo según "Salud del cliente" (src/lib/health). */
+function AtRiskCard() {
+  const health = useClientsHealth();
+  const counts = health.data ? countByLevel(health.data.values()) : null;
+  const atRisk = counts?.en_riesgo ?? 0;
+  return (
+    <StatCard
+      icon={HeartPulse}
+      label="Clientes en riesgo"
+      loading={health.isPending && !health.isError}
+      value={
+        health.isError ? (
+          <RetryValue query={health} />
+        ) : (
+          <span className={cn(atRisk > 0 && "text-danger-strong")}>{atRisk}</span>
+        )
+      }
+      hint={
+        counts && (
+          <span>
+            {counts.atencion} en atención ·{" "}
+            <Link to="/clients" className="font-medium text-foreground underline-offset-2 hover:underline">
+              Ver clientes
+            </Link>
           </span>
         )
       }
