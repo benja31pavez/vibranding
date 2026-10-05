@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { withoutBots } from "@/lib/analytics/bots";
 import { Button } from "@/components/ui/button";
 import {
   CartesianGrid,
@@ -15,6 +16,7 @@ import { Activity, MessageCircle, MousePointerClick, Users } from "lucide-react"
 import type { MultilinkItem } from "@/lib/multilink";
 
 type EventRow = {
+  user_agent?: string | null;
   event_name: string;
   item_id: string | null;
   referrer: string | null;
@@ -70,7 +72,9 @@ export function MultilinkAnalytics({
     from.setHours(0, 0, 0, 0);
     supabase
       .from("landing_events")
-      .select("event_name,item_id,referrer,utm_source,utm_medium,utm_campaign,created_at")
+      .select(
+        "event_name,item_id,referrer,utm_source,utm_medium,utm_campaign,created_at,user_agent",
+      )
       .eq("client_id", clientId)
       .eq("source_type", "multilink")
       .eq("source_id", multilinkId)
@@ -78,7 +82,7 @@ export function MultilinkAnalytics({
       .order("created_at", { ascending: true })
       .then(({ data }) => {
         if (cancelled) return;
-        setRows((data ?? []) as EventRow[]);
+        setRows(withoutBots((data ?? []) as EventRow[]));
         setLoading(false);
       });
     return () => {

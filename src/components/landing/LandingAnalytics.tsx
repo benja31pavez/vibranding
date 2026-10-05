@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { withoutBots } from "@/lib/analytics/bots";
 import { Button } from "@/components/ui/button";
 import {
   CartesianGrid,
@@ -13,6 +14,7 @@ import {
 import { Activity, MessageCircle, MousePointerClick, Send, Users } from "lucide-react";
 
 type EventRow = {
+  user_agent?: string | null;
   event_name: string;
   referrer: string | null;
   utm_source: string | null;
@@ -56,7 +58,7 @@ export function LandingAnalytics({ clientId, landingId }: { clientId: string; la
     from.setHours(0, 0, 0, 0);
     supabase
       .from("landing_events")
-      .select("event_name,referrer,utm_source,utm_medium,created_at")
+      .select("event_name,referrer,utm_source,utm_medium,created_at,user_agent")
       .eq("client_id", clientId)
       .eq("source_type", "landing")
       .eq("source_id", landingId)
@@ -64,7 +66,7 @@ export function LandingAnalytics({ clientId, landingId }: { clientId: string; la
       .order("created_at", { ascending: true })
       .then(({ data }) => {
         if (cancelled) return;
-        setRows((data ?? []) as EventRow[]);
+        setRows(withoutBots((data ?? []) as EventRow[]));
         setLoading(false);
       });
     return () => {

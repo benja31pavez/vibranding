@@ -119,7 +119,7 @@ export function DiagnosticoForm({
     try {
       const res = await submitDiagnostico({ data: parsed.data });
       if (res.ok) {
-        trackLandingEvent("contact_submit", "es");
+        trackLandingEvent("contact_submit", "es", plan ? `diagnostico:${plan}` : "diagnostico");
         onDone(parsed.data.negocio);
         return;
       }

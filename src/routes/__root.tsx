@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { SitePageViews } from "@/components/analytics/SitePageViews";
 import { AuthProvider } from "@/hooks/use-auth";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { translations } from "@/i18n/translations";
@@ -118,6 +119,7 @@ function RootComponent() {
       <LanguageProvider>
         <AuthProvider>
           <Outlet />
+          <SitePageViews />
           <Toaster />
         </AuthProvider>
       </LanguageProvider>

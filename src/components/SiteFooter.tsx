@@ -19,7 +19,7 @@ export function SiteFooter() {
               href={whatsappUrl()}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => trackLandingEvent("whatsapp_click", lang)}
+              onClick={() => trackLandingEvent("whatsapp_click", lang, "whatsapp:footer")}
               className="hover:text-foreground"
             >
               WhatsApp {WHATSAPP_DISPLAY}
@@ -48,7 +48,10 @@ export function SiteFooter() {
           <FooterLink href="/#planes">{t.footer.links.plans}</FooterLink>
           <FooterLink href="/#como">{t.footer.links.how}</FooterLink>
           <FooterLink href="/#nosotros">{t.footer.links.about}</FooterLink>
-          <FooterLink href="/#contacto" onClick={() => trackLandingEvent("contact_click", lang)}>
+          <FooterLink
+            href="/#contacto"
+            onClick={() => trackLandingEvent("contact_click", lang, "contacto:footer")}
+          >
             {t.footer.links.contact}
           </FooterLink>
         </FooterCol>

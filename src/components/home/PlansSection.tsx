@@ -79,6 +79,7 @@ function PlanCard({
       <div className="mt-auto pt-8">
         <WhatsAppCta
           message={plan.whatsappMessage}
+          cta={`plan:${plan.id}`}
           variant={plan.highlighted ? "primary" : "outline"}
           className="w-full"
         >

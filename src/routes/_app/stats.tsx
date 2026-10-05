@@ -1,16 +1,20 @@
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MessageCircle, MousePointerClick } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { ClipboardCheck, MousePointerClick, Target, Users } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  EmptyState,
-  ErrorState,
-  PageContainer,
-  PageHeader,
-  StatCard,
-  TableSkeleton,
-} from "@/components/app";
+import { ErrorState, PageContainer, PageHeader, StatCard } from "@/components/app";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { FunnelPanel } from "@/components/stats/FunnelPanel";
+import { SourcesTable } from "@/components/stats/SourcesTable";
+import { TrendChart } from "@/components/stats/TrendChart";
+import { formatCount, formatRate } from "@/components/stats/format";
+import { aggregateSiteStats } from "@/lib/analytics/aggregate";
+import { loadDiagnosticoProspects, loadFirstEventAt, loadSiteEvents } from "@/lib/analytics/load";
+import { STATS_TIME_ZONE } from "@/lib/analytics/time";
+import { isCountingDisabled, setCountingDisabled } from "@/lib/track";
 
 export const Route = createFileRoute("/_app/stats")({
   component: StatsPage,
@@ -19,193 +23,165 @@ export const Route = createFileRoute("/_app/stats")({
       { title: "Estadísticas del landing · Vibranding" },
       {
         name: "description",
-        content: "Clics en Contacto y WhatsApp registrados desde la landing pública.",
+        content: "Visitas únicas, clics, diagnósticos y prospectos del sitio, sin bots ni equipo.",
       },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
 });
 
-const EVENTS = [
-  {
-    key: "contact_click",
-    label: "Clics en «Contacto»",
-    short: "Contacto",
-    icon: MousePointerClick,
-  },
-  { key: "whatsapp_click", label: "Clics en WhatsApp", short: "WhatsApp", icon: MessageCircle },
-] as const;
-type EventKey = (typeof EVENTS)[number]["key"];
+const RANGES = [7, 30, 90] as const;
+type RangeDays = (typeof RANGES)[number];
+const DATE = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeZone: STATS_TIME_ZONE });
 
-/** Ventanas de conteo: undefined = histórico total. */
-const WINDOWS = [
-  { key: "total", label: "Total", days: undefined },
-  { key: "d30", label: "Últimos 30 días", days: 30 },
-  { key: "d7", label: "Últimos 7 días", days: 7 },
-] as const;
-type WindowKey = (typeof WINDOWS)[number]["key"];
-
-const RECENT_LIMIT = 50;
-const DAY_MS = 86_400_000;
-const NUM = new Intl.NumberFormat("es-CL");
-const DATE_TIME = new Intl.DateTimeFormat("es-CL", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "America/Santiago",
-});
-
-type Counts = Record<EventKey, Record<WindowKey, number>>;
-interface RecentRow {
-  id: string;
-  event_name: string;
-  path: string | null;
-  referrer: string | null;
-  created_at: string;
+function useSiteStats(days: RangeDays) {
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
+  const data = useQuery({
+    queryKey: ["landing-stats", userId, days],
+    enabled: Boolean(userId),
+    queryFn: async () => {
+      const now = new Date();
+      const [events, prospectDates] = await Promise.all([
+        loadSiteEvents(days, now),
+        loadDiagnosticoProspects(days, now),
+      ]);
+      return { events, prospectDates, now };
+    },
+  });
+  const since = useQuery({
+    queryKey: ["landing-stats", userId, "since"],
+    enabled: Boolean(userId),
+    queryFn: loadFirstEventAt,
+  });
+  const stats = useMemo(
+    () =>
+      data.data
+        ? aggregateSiteStats(data.data.events.rows, {
+            days,
+            now: data.data.now,
+            prospectDates: data.data.prospectDates,
+          })
+        : null,
+    [data.data, days],
+  );
+  return { data, since, stats, truncated: data.data?.events.truncated ?? false };
 }
 
-/** Conteos exactos en la BD (sin traer filas): nunca se truncan. */
-async function loadCounts(): Promise<Counts> {
-  const now = Date.now();
-  const jobs = EVENTS.flatMap((e) =>
-    WINDOWS.map(async (w) => {
-      let q = supabase
-        .from("landing_events")
-        .select("id", { count: "exact", head: true })
-        .eq("source_type", "site")
-        .eq("event_name", e.key);
-      if (w.days) q = q.gte("created_at", new Date(now - w.days * DAY_MS).toISOString());
-      const { count, error } = await q;
-      if (error) throw new Error(error.message);
-      return { event: e.key, window: w.key, count: count ?? 0 };
-    }),
+/** "No contarme": se lee después de montar para no desalinear el SSR. */
+function NoCountToggle() {
+  const [disabled, setDisabled] = useState(false);
+  useEffect(() => setDisabled(isCountingDisabled()), []);
+  return (
+    <div className="flex items-center gap-2">
+      <Switch
+        id="no-contarme"
+        checked={disabled}
+        onCheckedChange={(v) => {
+          setCountingDisabled(v);
+          setDisabled(v);
+        }}
+      />
+      <Label htmlFor="no-contarme" className="text-xs text-muted-foreground">
+        No contar este navegador
+      </Label>
+    </div>
   );
-  const results = await Promise.all(jobs);
-  const empty = { total: 0, d30: 0, d7: 0 };
-  const counts: Counts = { contact_click: { ...empty }, whatsapp_click: { ...empty } };
-  return results.reduce<Counts>(
-    (acc, r) => ({ ...acc, [r.event]: { ...acc[r.event], [r.window]: r.count } }),
-    counts,
-  );
-}
-
-async function loadRecent(): Promise<RecentRow[]> {
-  const { data, error } = await supabase
-    .from("landing_events")
-    .select("id,event_name,path,referrer,created_at")
-    .eq("source_type", "site")
-    .in(
-      "event_name",
-      EVENTS.map((e) => e.key),
-    )
-    .order("created_at", { ascending: false })
-    .limit(RECENT_LIMIT);
-  if (error) throw new Error(error.message);
-  return (data ?? []) as RecentRow[];
 }
 
 function StatsPage() {
-  const { user } = useAuth();
-  const userId = user?.id ?? "";
-  const counts = useQuery({
-    queryKey: ["landing-stats", userId, "counts"],
-    enabled: Boolean(userId),
-    queryFn: loadCounts,
-  });
-  const recent = useQuery({
-    queryKey: ["landing-stats", userId, "recent"],
-    enabled: Boolean(userId),
-    queryFn: loadRecent,
-  });
+  const [days, setDays] = useState<RangeDays>(30);
+  const { data, since, stats, truncated } = useSiteStats(days);
+  const loading = data.isPending;
+  const stage = (key: string) => stats?.funnel.find((s) => s.key === key);
 
   return (
-    <PageContainer className="space-y-8">
+    <PageContainer className="space-y-4">
       <PageHeader
         title="Estadísticas del landing"
-        description="Clics registrados desde la landing pública."
+        description="Personas reales: sin bots, sin recargas repetidas y sin el equipo con sesión iniciada."
+        actions={
+          <>
+            <NoCountToggle />
+            <ToggleGroup
+              type="single"
+              size="sm"
+              variant="outline"
+              value={String(days)}
+              onValueChange={(v) => v && setDays(Number(v) as RangeDays)}
+              aria-label="Período"
+            >
+              {RANGES.map((r) => (
+                <ToggleGroupItem key={r} value={String(r)} className="px-3 text-xs">
+                  {r} días
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </>
+        }
       />
 
-      {counts.isError ? (
+      {data.isError ? (
         <ErrorState
-          message={counts.error instanceof Error ? counts.error.message : undefined}
-          onRetry={() => void counts.refetch()}
-          retrying={counts.isFetching}
+          message={data.error instanceof Error ? data.error.message : undefined}
+          onRetry={() => void data.refetch()}
+          retrying={data.isFetching}
         />
       ) : (
-        <div className="space-y-4">
-          {EVENTS.map(({ key, label, icon }) => (
-            <section key={key} aria-label={label} className="space-y-2">
-              <h2 className="text-sm font-medium text-muted-foreground">{label}</h2>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {WINDOWS.map((w) => (
-                  <StatCard
-                    key={w.key}
-                    icon={icon}
-                    label={w.label}
-                    loading={counts.isPending}
-                    value={NUM.format(counts.data?.[key][w.key] ?? 0)}
-                  />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-
-      <section className="space-y-3" aria-labelledby="recent-title">
-        <h2 id="recent-title" className="text-lg font-semibold">
-          Últimos clics
-        </h2>
-        {recent.isError ? (
-          <ErrorState
-            message={recent.error instanceof Error ? recent.error.message : undefined}
-            onRetry={() => void recent.refetch()}
-            retrying={recent.isFetching}
-          />
-        ) : recent.isPending ? (
-          <TableSkeleton rows={5} columns={4} label="Cargando últimos clics" />
-        ) : recent.data.length === 0 ? (
-          <EmptyState icon={MousePointerClick} title="Aún no hay clics registrados." />
-        ) : (
-          <div className="overflow-x-auto rounded-app-lg border border-border-subtle bg-surface shadow-app-xs">
-            <table className="w-full min-w-[560px] text-sm">
-              <thead className="border-b border-border-subtle text-left text-xs text-muted-foreground">
-                <tr>
-                  <th scope="col" className="px-4 py-2 font-medium">
-                    Evento
-                  </th>
-                  <th scope="col" className="px-4 py-2 font-medium">
-                    Ruta
-                  </th>
-                  <th scope="col" className="px-4 py-2 font-medium">
-                    Origen
-                  </th>
-                  <th scope="col" className="px-4 py-2 font-medium">
-                    Fecha
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.data.map((r) => (
-                  <tr key={r.id} className="border-b border-border-subtle last:border-0">
-                    <td className="px-4 py-2">
-                      {EVENTS.find((e) => e.key === r.event_name)?.short ?? r.event_name}
-                    </td>
-                    <td className="max-w-[200px] truncate px-4 py-2 text-muted-foreground">
-                      {r.path ?? "—"}
-                    </td>
-                    <td className="max-w-[200px] truncate px-4 py-2 text-muted-foreground">
-                      {r.referrer || "Directo"}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2 text-muted-foreground">
-                      {DATE_TIME.format(new Date(r.created_at))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCard
+              icon={Users}
+              label="Visitas únicas"
+              loading={loading}
+              value={formatCount(stage("visits")?.value ?? 0)}
+              hint={stats ? `${formatCount(stats.sample.sessions)} sesiones` : undefined}
+            />
+            <StatCard
+              icon={MousePointerClick}
+              label="Tasa de clic a CTA"
+              loading={loading}
+              value={formatRate(stage("cta")?.rateFromVisits ?? null)}
+              hint={`${formatCount(stage("cta")?.value ?? 0)} visitantes`}
+            />
+            <StatCard
+              icon={ClipboardCheck}
+              label="Diagnósticos enviados"
+              loading={loading}
+              value={formatCount(stage("submits")?.value ?? 0)}
+              hint={formatRate(stage("submits")?.rateFromVisits ?? null)}
+            />
+            <StatCard
+              icon={Target}
+              label="Conversión a prospecto"
+              loading={loading}
+              value={formatRate(stage("prospects")?.rateFromVisits ?? null)}
+              hint={`${formatCount(stage("prospects")?.value ?? 0)} prospectos`}
+            />
           </div>
-        )}
-      </section>
+
+          {stats && (
+            <>
+              <div className="grid gap-4 lg:grid-cols-3">
+                <FunnelPanel stages={stats.funnel} />
+                <div className="lg:col-span-2">
+                  <SourcesTable key={days} rows={stats.sources} />
+                </div>
+              </div>
+              <TrendChart stats={stats} />
+              <p className="text-xs text-muted-foreground">
+                Muestra: {formatCount(stats.sample.events)} eventos válidos ·{" "}
+                {formatCount(stats.sample.botsExcluded)} de bots excluidos
+                {stats.sample.legacyEvents > 0 &&
+                  ` · ${formatCount(stats.sample.legacyEvents)} antiguos sin sesión (cada uno cuenta 1)`}
+                {" · "}Datos desde {since.data ? DATE.format(new Date(since.data)) : "—"} · Días en
+                hora de Santiago
+                {truncated && " · Período con demasiados eventos: se muestran los primeros 30.000"}
+              </p>
+            </>
+          )}
+        </>
+      )}
     </PageContainer>
   );
 }
