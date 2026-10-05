@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "check:proposal-copy": "node scripts/check-proposal-copy.mjs",
-    "check:growth": "node scripts/check-growth.mjs"
+    "check:growth": "node scripts/check-growth.mjs",
+    "check:recommend": "node scripts/check-recommend.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
