@@ -1,6 +1,4 @@
 import { Search, ShoppingBag, Sparkles, ThumbsUp } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useScrollSteps } from "@/hooks/use-scroll-steps";
 import { translations } from "@/i18n/translations";
 import { SectionHeading } from "./shared";
 import { BENEFIT_MOCKUPS } from "./mockups/BenefitMockups";
@@ -8,22 +6,15 @@ import { BENEFIT_MOCKUPS } from "./mockups/BenefitMockups";
 const BENEFIT_ICONS = [Search, ThumbsUp, ShoppingBag];
 const TONES = ["var(--brand-1)", "var(--brand-2)", "var(--brand-3)"];
 
-/** Data attributes that drive the mockup assembly (see sections.css). */
-function playState(ready: boolean, playing: boolean): Record<string, string | undefined> {
-  if (!ready) return {};
-  return playing ? { "data-bx-play": "" } : { "data-bx-armed": "" };
-}
-
 /**
- * "Tres cosas que tu negocio necesita en internet". Desktop with motion: steps on a numbered
- * rail light up one by one while a sticky stage assembles each step's mockup. Mobile and
- * reduced motion: the mockup sits under each step (assembled once on mobile, static otherwise).
- * Without JS everything is visible and complete.
+ * "Tres cosas que tu negocio necesita en internet": three numbered cards side by side
+ * (stacked on mobile), each with its mockup. When a card scrolls into view (useScrollReveal
+ * marks it `data-revealed`) it rises in and its mockup assembles; on desktop the three reveal
+ * together, staggered, while the connector draws 1 → 2 → 3 (sections.css).
+ * Without JS, above the fold or with reduced motion everything is complete and static.
  */
 export function BenefitsSection() {
   const b = translations.es.home.benefits; // The public home is Spanish-only (Chile).
-  const { listRef, ready, active, played } = useScrollSteps(b.items.length);
-  const progress = ready ? active / Math.max(b.items.length - 1, 1) : 1;
 
   return (
     <section
@@ -31,85 +22,42 @@ export function BenefitsSection() {
       className="mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24"
     >
       <SectionHeading id="beneficios-title" title={b.title} accent={b.titleAccent} />
-      <div className="grid gap-10 lg:motion-safe:grid-cols-2 lg:motion-safe:gap-16">
-        <ol
-          ref={listRef}
-          className="relative space-y-8 lg:motion-safe:space-y-0 lg:motion-safe:py-[14vh]"
-        >
-          <span
-            aria-hidden
-            className="absolute bottom-6 left-[21px] top-6 w-0.5 rounded-full bg-border lg:motion-safe:bottom-[35vh] lg:motion-safe:top-[35vh]"
-          >
-            <span
-              className="block h-full w-full origin-top rounded-full bg-gradient-brand-strong motion-safe:transition-transform motion-safe:duration-700"
-              style={{ transform: `scaleY(${progress})` }}
-            />
-          </span>
+      <div className="relative mx-auto max-w-xl lg:max-w-none">
+        <ol className="bx-grid relative z-10 grid gap-10 lg:grid-cols-3 lg:gap-6">
           {b.items.map((item, i) => {
             const Icon = BENEFIT_ICONS[i] ?? Sparkles;
             const Mockup = BENEFIT_MOCKUPS[i];
-            const isOn = ready && i === active;
-            const isReached = !ready || i <= active;
             return (
-              <li
-                key={item.title}
-                className="relative pl-16 lg:motion-safe:flex lg:motion-safe:min-h-[42vh] lg:motion-safe:items-center lg:motion-reduce:grid lg:motion-reduce:grid-cols-2 lg:motion-reduce:items-center lg:motion-reduce:gap-10"
-              >
+              <li key={item.title} data-reveal className="bx-card flex flex-col">
                 <span
                   aria-hidden
-                  className={cn(
-                    "absolute left-0 top-5 z-10 grid h-11 w-11 place-items-center rounded-full border-2 text-sm font-bold transition-colors duration-500 lg:motion-safe:top-1/2 lg:motion-safe:-mt-[22px]",
-                    isReached
-                      ? "border-transparent bg-gradient-brand-strong text-white"
-                      : "border-border bg-card text-muted-foreground",
-                  )}
+                  className="bx-pop mx-auto grid h-11 w-11 place-items-center rounded-full bg-gradient-brand-strong text-sm font-bold text-white shadow-lg ring-4 ring-background"
                 >
                   {i + 1}
                 </span>
-                <div
-                  data-on={isOn ? "" : undefined}
-                  className={cn(
-                    "bx-glow relative w-full rounded-3xl border bg-card p-6 transition-opacity duration-500 md:p-7",
-                    ready && !isOn && "lg:opacity-45",
-                  )}
-                >
+                <div className="mt-4 flex flex-1 flex-col rounded-3xl border bg-card p-5 md:p-6">
                   <h3 className="flex items-center gap-2.5 text-xl font-semibold">
                     <Icon aria-hidden className="h-5 w-5" style={{ color: TONES[i] }} />
                     {item.title}
                   </h3>
                   <p className="mt-3 text-muted-foreground leading-relaxed">{item.desc}</p>
+                  {Mockup && (
+                    <div aria-hidden className="mt-6 flex flex-1 items-center justify-center">
+                      <Mockup />
+                    </div>
+                  )}
                 </div>
-                {Mockup && (
-                  <div
-                    aria-hidden
-                    {...playState(ready, played[i] ?? false)}
-                    className="mt-5 flex justify-center lg:motion-safe:hidden lg:motion-reduce:mt-0"
-                  >
-                    <Mockup />
-                  </div>
-                )}
               </li>
             );
           })}
         </ol>
-        <div aria-hidden className="hidden lg:motion-safe:block">
-          <div className="sticky top-[max(15vh,calc(50vh-320px))] grid h-[70vh] max-h-[640px] place-items-center">
-            {BENEFIT_MOCKUPS.map((Mockup, i) => (
-              <div
-                key={i}
-                {...(ready && i === active ? { "data-bx-play": "" } : {})}
-                className={cn(
-                  "flex w-full justify-center transition-[opacity,transform] duration-500 [grid-area:1/1] [&>*]:max-w-[400px] [&>*]:origin-center [&>*]:scale-[1.15] xl:[&>*]:scale-[1.25]",
-                  i === active
-                    ? "opacity-100"
-                    : "pointer-events-none translate-y-3 scale-[0.97] opacity-0",
-                )}
-              >
-                <Mockup />
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Connector between the badge centers (desktop); drawn when the grid reveals. */}
+        <span
+          aria-hidden
+          className="bx-line absolute left-[calc((100%-3rem)/6)] right-[calc((100%-3rem)/6)] top-[21px] hidden h-0.5 overflow-hidden rounded-full bg-border lg:block"
+        >
+          <span className="block h-full w-full origin-left bg-gradient-brand-strong" />
+        </span>
       </div>
     </section>
   );

@@ -5,8 +5,8 @@ import { SWATCHES, vars } from "./tokens";
 
 /**
  * Mini mockups for "Tres cosas que tu negocio necesita en internet" (decorative).
- * Pieces marked `bx-in` / `bx-pop` assemble one after another (delay `--d`) when their step
- * plays; the static frame is the finished mockup.
+ * Pieces marked `bx-in` / `bx-pop` assemble one after another (delay `--d`) when their card
+ * reveals; the static frame is the finished mockup. `bx-typing` dots loop as idle motion.
  */
 
 const CARD = "w-full max-w-[340px] rounded-2xl border bg-card text-foreground shadow-xl";
@@ -135,6 +135,18 @@ function BuyMock() {
         >
           ¡Perfecto, gracias!
         </p>
+        <span
+          className="bx-in ml-auto flex w-fit gap-1 rounded-xl rounded-tr-sm bg-[#D9FDD3] px-3 py-2.5 shadow-sm"
+          style={at(1.8)}
+        >
+          {[0, 1, 2].map((dot) => (
+            <span
+              key={dot}
+              className="bx-typing h-1.5 w-1.5 rounded-full bg-neutral-500"
+              style={vars({ "--i": dot })}
+            />
+          ))}
+        </span>
       </div>
       <div className="flex items-center gap-2 border-t px-3 py-2">
         <span className="flex-1 rounded-full bg-secondary px-3 py-1.5 text-[0.65rem] text-muted-foreground">
