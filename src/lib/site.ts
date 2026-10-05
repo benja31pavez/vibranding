@@ -13,6 +13,15 @@ export const WHATSAPP_NUMBER = "56989294014";
 export const WHATSAPP_DISPLAY = "+56 9 8929 4014";
 export const WHATSAPP_E164 = `+${WHATSAPP_NUMBER}`;
 
+/**
+ * Link para dejar una reseña de Google de Vibranding (Google Business Profile →
+ * "Pedir reseñas"). Se configura con VITE_GOOGLE_REVIEW_URL; vacío = no configurado.
+ * `?.` porque los scripts de check corren fuera de Vite (sin import.meta.env).
+ */
+export const GOOGLE_REVIEW_URL: string = String(
+  import.meta.env?.VITE_GOOGLE_REVIEW_URL ?? "",
+).trim();
+
 export const LEGAL_NAME = "VIBRANDING SpA";
 export const LEGAL_RUT = "78.505.344-3";
 

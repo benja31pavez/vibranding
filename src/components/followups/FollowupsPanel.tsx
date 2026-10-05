@@ -25,6 +25,8 @@ import {
 import { buildMessage } from "@/lib/followups/templates";
 import type { Followup, FollowupPriority, FollowupTarget } from "@/lib/followups/types";
 import { useFollowups, useRecordProspectContact } from "./followupsData";
+import { useReviewFollowups } from "@/components/reviews/reviewData";
+import { useReviewAsked } from "@/components/reviews/reviewAsked";
 
 const PRIORITY_META: Readonly<Record<FollowupPriority, { label: string; tone: StatusTone }>> = {
   alta: { label: "Alta", tone: "danger" },
@@ -197,8 +199,11 @@ export function FollowupsPanel({
   const record = useRecordProspectContact();
   const { isHidden, snooze } = useSnoozes();
   const [showAll, setShowAll] = useState(false);
+  // "Pedir reseña" solo en "Inicio" (en la ficha está el panel de reseñas).
+  const reviewItems = useReviewFollowups(!scope);
+  const { markAsked } = useReviewAsked();
 
-  const all = query.data ?? [];
+  const all = query.data ? [...query.data, ...reviewItems] : [];
   const visible = (scope ? followupsFor(all, scope) : all).filter((f) => !isHidden(f.id));
 
   const onDone = (f: Followup) => {
@@ -211,6 +216,11 @@ export function FollowupsPanel({
         onError: (e) =>
           toast.error(e instanceof Error ? e.message : "No se pudo registrar el contacto"),
       });
+      return;
+    }
+    if (f.kind === "pedir_resena" && f.clientId) {
+      if (markAsked(f.clientId)) toast.success("Listo: no se volverá a sugerir en 90 días");
+      else toast.warning("Este navegador no permite recordarlo; puede volver a aparecer.");
       return;
     }
     const saved = snooze(f.id);

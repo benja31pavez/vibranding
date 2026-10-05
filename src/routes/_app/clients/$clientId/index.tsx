@@ -21,6 +21,7 @@ import { ReportsPanel } from "@/components/clients/ficha/ReportsPanel";
 import { MonthPlanPanel } from "@/components/clients/ficha/MonthPlanPanel";
 import { FollowupsPanel } from "@/components/followups/FollowupsPanel";
 import { ClientHealthCard } from "@/components/clients/health";
+import { RequestReviewPanel } from "@/components/reviews/RequestReviewPanel";
 import { PERMISSION_DENIED_MSG, useFichaHealth, useFichaOverview } from "@/components/clients/ficha/fichaQueries";
 
 export const Route = createFileRoute("/_app/clients/$clientId/")({
@@ -46,6 +47,7 @@ function ClientFichaPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <ClientHealthCard clientId={clientId} />
+          <RequestReviewPanel clientId={clientId} clientName={client?.name ?? ""} />
           <FollowupsPanel scope={{ clientId }} hideWhenEmpty />
           {health.data && (
             <CampaignAlertsPanel alerts={health.data.alerts} canEdit={Boolean(overview.data?.canEdit)} />

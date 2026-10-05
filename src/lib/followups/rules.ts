@@ -43,6 +43,7 @@ const BASE_SCORE: Readonly<Record<FollowupKind, number>> = {
   onboarding_pendiente: 45,
   prospecto_sin_respuesta: 30,
   reporte_sin_enviar: 25,
+  pedir_resena: 15,
 };
 
 /** Días extra suman urgencia, con tope para no saltarse de categoría. */
@@ -58,6 +59,7 @@ const PRIORITY: Readonly<Record<FollowupKind, FollowupPriority>> = {
   onboarding_pendiente: "media",
   prospecto_sin_respuesta: "baja",
   reporte_sin_enviar: "baja",
+  pedir_resena: "baja",
 };
 
 /** Estados de prospecto que nunca se contactan desde aquí. */
@@ -288,9 +290,9 @@ function planLabel(key: string | null | undefined): string | null {
   return findPlan(key)?.label ?? null;
 }
 
-type Draft = Omit<Followup, "id" | "priority" | "score"> & { refId: string; ageDays: number };
+export type Draft = Omit<Followup, "id" | "priority" | "score"> & { refId: string; ageDays: number };
 
-function finalize(d: Draft): Followup {
+export function finalize(d: Draft): Followup {
   const { refId, ageDays, ...rest } = d;
   const bonus = Math.min(Math.max(ageDays, 0), MAX_AGE_BONUS);
   return {

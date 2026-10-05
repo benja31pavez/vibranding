@@ -22,14 +22,14 @@ import {
   type ReminderPayment,
 } from "@/lib/billing/reminders";
 
-interface ClientContact {
+export interface ClientContact {
   name: string | null;
   phone: string | null;
   email: string | null;
 }
 
 /** Contacto del cliente: ficha de onboarding y, si falta el correo, el usuario del portal. */
-async function loadClientContact(clientId: string): Promise<ClientContact> {
+export async function loadClientContact(clientId: string): Promise<ClientContact> {
   const [intake, portalUser] = await Promise.all([
     supabase
       .from("client_intake")
@@ -58,7 +58,7 @@ async function loadClientContact(clientId: string): Promise<ClientContact> {
   };
 }
 
-async function copyText(text: string): Promise<boolean> {
+export async function copyText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
     return true;
