@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { UserX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +30,8 @@ function ClientShell() {
   const { clientId } = Route.useParams();
   const { client, reloadClient, clientError } = useActiveClient();
   const userKey = useUserKey();
+  const matchRoute = useMatchRoute();
+  const fitsScreen = Boolean(matchRoute({ to: "/clients/$clientId/plan", params: { clientId } }));
   const existence = useQuery({
     queryKey: fichaKeys.exists(userKey, clientId),
     queryFn: async () => {
@@ -81,6 +83,15 @@ function ClientShell() {
     return (
       <div className={SHELL_CLASS}>
         <ListSkeleton rows={4} label="Cargando cliente" />
+      </div>
+    );
+  }
+
+  // Pantallas ya adaptadas a "una pantalla": usan su propio FitPage (alto completo, sin scroll).
+  if (fitsScreen) {
+    return (
+      <div className="flex min-h-0 flex-col md:h-full">
+        <Outlet key={clientId} />
       </div>
     );
   }

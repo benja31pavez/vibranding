@@ -1,66 +1,54 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DeliverablesList } from "@/components/DeliverablesList";
-import { ObjectivesList } from "@/components/ObjectivesList";
-import { ClientTasksList } from "@/components/ClientTasksList";
+import { PlanPage } from "@/components/plan/PlanPage";
+import { isStageKey, type StageKey } from "@/lib/delivery/planStages";
 
+/** Pestañas del diseño anterior: se aceptan para que los enlaces viejos sigan funcionando. */
 type TabKey = "etapas" | "objetivos" | "tareas";
 
+interface PlanSearch {
+  tab?: TabKey;
+  /** Etapa seleccionada (filtra el tablero de tareas). */
+  etapa?: StageKey;
+}
+
 export const Route = createFileRoute("/_app/clients/$clientId/plan")({
-  validateSearch: (s: Record<string, unknown>): { tab?: TabKey } => ({
+  validateSearch: (s: Record<string, unknown>): PlanSearch => ({
     tab:
-      s.tab === "objetivos"
-        ? "objetivos"
-        : s.tab === "tareas"
-          ? "tareas"
-          : s.tab === "etapas"
-            ? "etapas"
-            : undefined,
+      s.tab === "objetivos" || s.tab === "tareas" || s.tab === "etapas"
+        ? (s.tab as TabKey)
+        : undefined,
+    etapa: isStageKey(s.etapa) ? s.etapa : undefined,
   }),
   head: () => ({
     meta: [
       { title: "Plan del cliente | Vibranding" },
       {
         name: "description",
-        content: "Etapas, objetivos y tareas del plan de trabajo del cliente.",
+        content: "Etapas del plan contratado, objetivos y tareas del cliente.",
       },
       { property: "og:title", content: "Plan del cliente | Vibranding" },
       {
         property: "og:description",
-        content: "Etapas, objetivos y tareas del plan de trabajo del cliente.",
+        content: "Etapas del plan contratado, objetivos y tareas del cliente.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: PlanPage,
+  component: PlanRoute,
 });
 
-function PlanPage() {
+function PlanRoute() {
   const { clientId } = Route.useParams();
-  const { tab = "etapas" } = Route.useSearch();
+  const { etapa } = Route.useSearch();
   const navigate = Route.useNavigate();
-
   return (
-    <Tabs
-      value={tab}
-      onValueChange={(v) => navigate({ search: { tab: v as TabKey } })}
-      className="space-y-4"
-    >
-      <TabsList>
-        <TabsTrigger value="etapas">Etapas</TabsTrigger>
-        <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
-        <TabsTrigger value="tareas">Tareas</TabsTrigger>
-      </TabsList>
-      <TabsContent value="etapas">
-        <DeliverablesList clientId={clientId} />
-      </TabsContent>
-      <TabsContent value="objetivos">
-        <ObjectivesList clientId={clientId} />
-      </TabsContent>
-      <TabsContent value="tareas">
-        <ClientTasksList clientId={clientId} />
-      </TabsContent>
-    </Tabs>
+    <PlanPage
+      clientId={clientId}
+      stage={etapa ?? null}
+      onStageChange={(next) =>
+        navigate({ search: { etapa: next ?? undefined }, replace: true, resetScroll: false })
+      }
+    />
   );
 }
