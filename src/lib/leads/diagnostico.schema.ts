@@ -81,7 +81,7 @@ export type DiagnosticoInput = z.infer<typeof DiagnosticoInput>;
 
 export type DiagnosticoResult =
   | { ok: true }
-  | { ok: false; reason: "rate_limited" | "invalid" };
+  | { ok: false; reason: "rate_limited" | "invalid" | "not_saved" };
 
 export function goalLabel(value: string): string {
   return GOALS.find((g) => g.value === value)?.label ?? value;
