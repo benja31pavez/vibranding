@@ -23,6 +23,7 @@ import {
 import { toDateInput } from "./format";
 import { ConvertAction } from "./ProspectCard";
 import { ProposalsPanel } from "@/components/proposals/ProposalsPanel";
+import { FollowupsPanel } from "@/components/followups/FollowupsPanel";
 import { useCanEditRecipient } from "@/components/proposals/proposalQueries";
 import { useIsOrgManager, useRevokeBaja, useSaveProspect, type Prospect } from "./prospectsData";
 
@@ -241,6 +242,19 @@ export function ProspectSheet({
             <Button type="submit" disabled={busy}>{busy ? "Guardando…" : "Guardar"}</Button>
           </SheetFooter>
         </form>
+        {prospect && (
+          <div className="mt-6">
+            <FollowupsPanel
+              scope={{ prospectId: prospect.id }}
+              hideOpenForProspect
+              hideWhenEmpty
+              // Sincroniza el formulario: así "Guardar" (con o sin otros cambios) no pisa el contacto recién registrado.
+              onProspectContactRecorded={(id, contactedAt) => {
+                if (id === prospect.id) set("ultimo_contacto")(toDateInput(contactedAt));
+              }}
+            />
+          </div>
+        )}
         {prospect && (
           <div className="mt-6 border-t border-border-subtle pt-6">
             {/* Si el permiso no se pudo consultar, se muestra el botón y la BD decide (RLS). */}
