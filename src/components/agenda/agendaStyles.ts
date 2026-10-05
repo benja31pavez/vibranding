@@ -124,8 +124,8 @@ export function itemStatus(item: AgendaItem): { label: string; tone: StatusTone 
 }
 
 /** Texto completo para lectores de pantalla y tooltips. */
-export function describeItem(item: AgendaItem): string {
-  const when = item.allDay ? "todo el día" : formatTime(item.date);
+export function describeItem(item: AgendaItem, timeZone?: string): string {
+  const when = item.allDay ? "todo el día" : formatTime(item.date, timeZone);
   const status = itemStatus(item);
   return [AGENDA_KIND_LABEL[item.kind], item.clientName, when, item.title, status?.label]
     .filter(Boolean)

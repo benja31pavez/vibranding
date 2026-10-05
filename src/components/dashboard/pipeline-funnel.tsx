@@ -34,6 +34,7 @@ export function PipelineFunnel() {
                 className="py-2"
                 icon={Filter}
                 title="Sin prospectos todavía."
+                description="Cuando agregues prospectos verás aquí el embudo."
               />
             );
           }

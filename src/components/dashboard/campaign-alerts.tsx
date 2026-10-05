@@ -4,7 +4,8 @@ import { EmptyState, FitList, StatusBadge, type StatusTone } from "@/components/
 import { cn } from "@/lib/utils";
 import { AlertActions } from "@/components/alerts/AlertActions";
 import { BlockState } from "./block-state";
-import { formatShortDate, useClientIndex, useOpenCampaignAlerts } from "./queries";
+import { useUserPrefs } from "@/hooks/use-user-prefs";
+import { useClientIndex, useOpenCampaignAlerts } from "./queries";
 
 const SEVERITY: Readonly<Record<string, { label: string; tone: StatusTone }>> = {
   critical: { label: "Crítica", tone: "danger" },
@@ -22,6 +23,7 @@ const PLATFORM_LABEL: Readonly<Record<string, string>> = { meta: "Meta", google:
 export function AlertsTab() {
   const query = useOpenCampaignAlerts();
   const clients = useClientIndex();
+  const { formatDateTime } = useUserPrefs();
 
   return (
     <BlockState query={query} loadingLabel="Cargando alertas de campañas">
@@ -54,7 +56,7 @@ export function AlertsTab() {
                       >
                         {clients.data?.nameById.get(a.client_id) ?? "Cliente"}
                       </Link>{" "}
-                      · {PLATFORM_LABEL[a.platform] ?? a.platform} · {formatShortDate(a.created_at)}
+                      · {PLATFORM_LABEL[a.platform] ?? a.platform} · {formatDateTime(a.created_at)}
                     </span>
                   </p>
                   <AlertActions alert={a} canResolve={editableClientIds.has(a.client_id)} />

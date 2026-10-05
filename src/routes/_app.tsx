@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnmarkedOutcomes } from "@/hooks/use-unmarked-outcomes";
+import { useSyncLanguagePref } from "@/hooks/use-user-prefs";
 import { AppHeader } from "@/components/shell/AppHeader";
 import { AppShellFrame } from "@/components/shell/AppShellFrame";
 import { ClientSidebar } from "@/components/shell/ClientSidebar";
@@ -26,6 +27,8 @@ function AppLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { activeClient } = useShellActiveClient(path, session?.user?.id);
   const profile = useUserProfile(session?.user?.id);
+  // Idioma guardado en Preferencias → sitio público (el panel sigue en español).
+  useSyncLanguagePref();
   const { stale: unmarkedStale } = useUnmarkedOutcomes(activeClient?.id ?? null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
