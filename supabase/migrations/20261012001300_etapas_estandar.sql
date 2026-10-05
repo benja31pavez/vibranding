@@ -24,34 +24,23 @@
 -- estado `in_review` como "entregada".
 -- =====================================================================
 
--- 1. Columnas + CHECK -------------------------------------------------------
+-- 1. Columnas ---------------------------------------------------------------
 ALTER TABLE public.deliverables ADD COLUMN IF NOT EXISTS stage_key TEXT;
 ALTER TABLE public.client_tasks ADD COLUMN IF NOT EXISTS stage_key TEXT;
 ALTER TABLE public.client_tasks ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
 ALTER TABLE public.client_tasks ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
 
-ALTER TABLE public.deliverables DROP CONSTRAINT IF EXISTS deliverables_stage_key_chk;
-ALTER TABLE public.deliverables ADD CONSTRAINT deliverables_stage_key_chk CHECK (
-  stage_key IS NULL
-  OR stage_key IN ('estrategia', 'branding', 'diseno', 'planificacion', 'contenido', 'ads', 'landing', 'chatbot', 'optimizacion', 'reporte', 'entrega')
-);
+-- 2. Tareas ya entregadas: el estado in_review ("en revisión del cliente") se
+--    toma como entregada. Va antes del resto para leer el updated_at original.
+UPDATE public.client_tasks
+SET delivered_at = updated_at
+WHERE status = 'in_review' AND delivered_at IS NULL;
 
-ALTER TABLE public.client_tasks DROP CONSTRAINT IF EXISTS client_tasks_stage_key_chk;
-ALTER TABLE public.client_tasks ADD CONSTRAINT client_tasks_stage_key_chk CHECK (
-  stage_key IS NULL
-  OR stage_key IN ('estrategia', 'branding', 'diseno', 'planificacion', 'contenido', 'ads', 'landing', 'chatbot', 'optimizacion', 'reporte', 'entrega')
-);
+-- 3. Relleno de stage_key sin tocar updated_at (touch_updated_at desactivado).
+ALTER TABLE public.deliverables DISABLE TRIGGER t_del_u;
+ALTER TABLE public.client_tasks DISABLE TRIGGER t_client_tasks_u;
 
--- Aprobada implica entregada.
-ALTER TABLE public.client_tasks DROP CONSTRAINT IF EXISTS client_tasks_approved_after_delivered_chk;
-ALTER TABLE public.client_tasks ADD CONSTRAINT client_tasks_approved_after_delivered_chk CHECK (
-  approved_at IS NULL OR delivered_at IS NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_client_tasks_client_stage
-  ON public.client_tasks (client_id, stage_key);
-
--- 2. Etapas existentes: título (sin tildes, minúsculas) → clave -------------
+-- 3a. Etapas existentes: título (sin tildes, minúsculas) → clave -------------
 UPDATE public.deliverables d
 SET stage_key = m.stage_key
 FROM (
@@ -94,7 +83,7 @@ WHERE d.stage_key IS NULL
         )
       ) = m.title_norm;
 
--- 3. Tareas del "Plan del mes": marcador [plan-mes:AAAA-MM:tipo-n] → clave ---
+-- 3b. Tareas del "Plan del mes": marcador [plan-mes:AAAA-MM:tipo-n] → clave ---
 UPDATE public.client_tasks t
 SET stage_key = m.stage_key
 FROM (
@@ -125,8 +114,34 @@ WHERE t.stage_key IS NULL
 -- Diseño). Las tareas sin marcador quedan en NULL: la app las sigue
 -- clasificando por palabras del título hasta que alguien les asigne etapa.
 
--- 4. Tareas ya entregadas: el estado in_review ("en revisión del cliente") se
---    toma como entregada. Se conserva el estado; solo se fija la fecha.
-UPDATE public.client_tasks
-SET delivered_at = updated_at
-WHERE status = 'in_review' AND delivered_at IS NULL;
+ALTER TABLE public.deliverables ENABLE TRIGGER t_del_u;
+ALTER TABLE public.client_tasks ENABLE TRIGGER t_client_tasks_u;
+
+-- 4. CHECK (NOT VALID + VALIDATE) ------------------------------------------
+ALTER TABLE public.deliverables DROP CONSTRAINT IF EXISTS deliverables_stage_key_chk;
+ALTER TABLE public.deliverables ADD CONSTRAINT deliverables_stage_key_chk CHECK (
+  stage_key IS NULL
+  OR stage_key IN ('estrategia', 'branding', 'diseno', 'planificacion', 'contenido', 'ads', 'landing', 'chatbot', 'optimizacion', 'reporte', 'entrega')
+) NOT VALID;
+ALTER TABLE public.deliverables VALIDATE CONSTRAINT deliverables_stage_key_chk;
+
+ALTER TABLE public.client_tasks DROP CONSTRAINT IF EXISTS client_tasks_stage_key_chk;
+ALTER TABLE public.client_tasks ADD CONSTRAINT client_tasks_stage_key_chk CHECK (
+  stage_key IS NULL
+  OR stage_key IN ('estrategia', 'branding', 'diseno', 'planificacion', 'contenido', 'ads', 'landing', 'chatbot', 'optimizacion', 'reporte', 'entrega')
+) NOT VALID;
+ALTER TABLE public.client_tasks VALIDATE CONSTRAINT client_tasks_stage_key_chk;
+
+-- Aprobada implica entregada.
+ALTER TABLE public.client_tasks DROP CONSTRAINT IF EXISTS client_tasks_approved_after_delivered_chk;
+ALTER TABLE public.client_tasks ADD CONSTRAINT client_tasks_approved_after_delivered_chk CHECK (
+  approved_at IS NULL OR delivered_at IS NOT NULL
+) NOT VALID;
+ALTER TABLE public.client_tasks VALIDATE CONSTRAINT client_tasks_approved_after_delivered_chk;
+
+-- 5. Índice -----------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_client_tasks_client_stage
+  ON public.client_tasks (client_id, stage_key);
+
+-- 6. Recargar el esquema de PostgREST -----------------------------------------
+NOTIFY pgrst, 'reload schema';
