@@ -17,6 +17,7 @@
     "check:reminders": "node scripts/check-reminders.mjs",
     "check:month-plan": "node scripts/check-month-plan.mjs",
     "check:briefing": "node scripts/check-briefing.mjs",
+    "check:diagnostico-outcome": "node scripts/check-diagnostico-outcome.mjs",
     "check:all": "node scripts/check-all.mjs"
   },
   "dependencies": {
