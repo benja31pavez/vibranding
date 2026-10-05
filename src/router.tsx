@@ -17,6 +17,8 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
+    // En escritorio el panel interno hace scroll dentro de <main> (AppShellFrame), no en la ventana.
+    scrollToTopSelectors: ["#main"],
     defaultPreloadStaleTime: 0,
   });
 

@@ -2,6 +2,7 @@ import { Check, MapPin } from "lucide-react";
 import { WhatsAppCta } from "./shared";
 import { DiagnosticoLink } from "./GrowthSections";
 import { translations } from "@/i18n/translations";
+import { HeroShowcase } from "./mockups/HeroShowcase";
 
 /** Entrance delay (ms) for each hero row: badge → title → subtitle → CTAs → trust. */
 const delay = (ms: number) => ({ "--d": `${ms}ms` }) as React.CSSProperties;
@@ -25,69 +26,72 @@ export function HomeHero() {
         />
       </div>
 
-      <div className="mx-auto max-w-5xl px-4 pt-12 pb-14 text-center md:px-10 md:pt-24 md:pb-20">
-        <p
-          className="hero-in inline-flex items-center gap-2 rounded-full border bg-card/80 px-3 py-1 text-xs font-medium text-foreground/80 backdrop-blur"
-          style={delay(0)}
-        >
-          <MapPin aria-hidden className="h-3.5 w-3.5 text-[color:var(--brand-2)]" />
-          {hero.badge}
-        </p>
-        <h1
-          id="hero-title"
-          style={delay(70)}
-          className="hero-in mx-auto mt-6 max-w-4xl text-[2.1rem] font-semibold leading-[1.1] tracking-tight text-balance sm:text-5xl md:text-6xl"
-        >
-          {hero.titleLead}{" "}
-          <span className="font-brand text-gradient-brand-strong text-shimmer">
-            {hero.titleAccent}
-          </span>
-        </h1>
-        <p
-          className="hero-in mx-auto mt-5 max-w-2xl text-base text-muted-foreground text-pretty md:text-xl"
-          style={delay(160)}
-        >
-          {hero.subtitle}
-        </p>
-        <p
-          className="hero-in mt-4 text-sm font-semibold text-foreground md:text-base"
-          style={delay(220)}
-        >
-          {hero.priceLine}
-        </p>
-
-        <div
-          className="hero-in mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center"
-          style={delay(280)}
-        >
-          <DiagnosticoLink />
-          <a
-            href="#planes"
-            className="btn-fx inline-flex h-12 items-center justify-center rounded-full border border-foreground/15 bg-background px-7 text-base font-semibold hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      <div className="mx-auto grid max-w-5xl items-center gap-12 px-4 pt-12 pb-14 text-center md:px-10 md:pt-24 md:pb-20 lg:max-w-7xl lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-10 lg:pt-20 lg:text-left">
+        <div>
+          <p
+            className="hero-in inline-flex items-center gap-2 rounded-full border bg-card/80 px-3 py-1 text-xs font-medium text-foreground/80 backdrop-blur"
+            style={delay(0)}
           >
-            {hero.ctaSecondary}
-          </a>
+            <MapPin aria-hidden className="h-3.5 w-3.5 text-[color:var(--brand-2)]" />
+            {hero.badge}
+          </p>
+          <h1
+            id="hero-title"
+            style={delay(70)}
+            className="hero-in mx-auto mt-6 max-w-4xl text-[2.1rem] lg:mx-0 font-semibold leading-[1.1] tracking-tight text-balance sm:text-5xl md:text-6xl"
+          >
+            {hero.titleLead}{" "}
+            <span className="font-brand text-gradient-brand-strong text-shimmer">
+              {hero.titleAccent}
+            </span>
+          </h1>
+          <p
+            className="hero-in mx-auto mt-5 max-w-2xl text-base lg:mx-0 text-muted-foreground text-pretty md:text-xl"
+            style={delay(160)}
+          >
+            {hero.subtitle}
+          </p>
+          <p
+            className="hero-in mt-4 text-sm font-semibold text-foreground md:text-base"
+            style={delay(220)}
+          >
+            {hero.priceLine}
+          </p>
+
+          <div
+            className="hero-in mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center lg:justify-start"
+            style={delay(280)}
+          >
+            <DiagnosticoLink />
+            <a
+              href="#planes"
+              className="btn-fx inline-flex h-12 items-center justify-center rounded-full border border-foreground/15 bg-background px-7 text-base font-semibold hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              {hero.ctaSecondary}
+            </a>
+          </div>
+          <p className="hero-in mt-4 flex justify-center lg:justify-start" style={delay(330)}>
+            <WhatsAppCta
+              variant="outline"
+              size="sm"
+              className="border-transparent hover:border-foreground/15"
+            >
+              {hero.ctaPrimary}
+            </WhatsAppCta>
+          </p>
+
+          <ul
+            style={delay(380)}
+            className="hero-in mt-7 flex flex-wrap items-center justify-center gap-x-5 lg:justify-start gap-y-2 text-sm text-muted-foreground"
+          >
+            {hero.trust.map((item) => (
+              <li key={item} className="inline-flex items-center gap-1.5">
+                <Check aria-hidden className="h-4 w-4 text-[color:var(--brand-1)]" /> {item}
+              </li>
+            ))}
+          </ul>
         </div>
-        <p className="hero-in mt-4 flex justify-center" style={delay(330)}>
-          <WhatsAppCta
-            variant="outline"
-            size="sm"
-            className="border-transparent hover:border-foreground/15"
-          >
-            {hero.ctaPrimary}
-          </WhatsAppCta>
-        </p>
-
-        <ul
-          style={delay(380)}
-          className="hero-in mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground"
-        >
-          {hero.trust.map((item) => (
-            <li key={item} className="inline-flex items-center gap-1.5">
-              <Check aria-hidden className="h-4 w-4 text-[color:var(--brand-1)]" /> {item}
-            </li>
-          ))}
-        </ul>
+        <HeroShowcase className="hero-in" style={delay(300)} />
       </div>
     </section>
   );
