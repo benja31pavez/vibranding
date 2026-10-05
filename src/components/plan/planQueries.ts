@@ -217,6 +217,46 @@ export async function deletePlanTask(id: string): Promise<void> {
   if (!res.data || res.data.length === 0) throw new Error(PERMISSION_DENIED_MSG);
 }
 
+export interface StageDueTarget {
+  key: StageKey;
+  label: string;
+  /** Fila de `deliverables` de la etapa; sin fila se crea una con el nombre de la etapa. */
+  rowId: string | null;
+}
+
+/**
+ * Guarda la fecha de entrega de una etapa (`deliverables.due_date`). Si la etapa
+ * aún no tiene fila, la crea con el nombre de la etapa (y `stage_key` si la
+ * migración está aplicada), igual que se crearía desde la lista de entregables.
+ */
+export async function setStageDueDate(
+  clientId: string,
+  stage: StageDueTarget,
+  dueDate: string | null,
+): Promise<void> {
+  if (stage.rowId) {
+    const res = await supabase
+      .from("deliverables")
+      .update({ due_date: dueDate })
+      .eq("id", stage.rowId)
+      .select("id");
+    if (res.error) fail(res.error);
+    if (!res.data || res.data.length === 0) throw new Error(PERMISSION_DENIED_MSG);
+    return;
+  }
+  const base = { client_id: clientId, title: stage.label, due_date: dueDate };
+  const withKey = await supabase
+    .from("deliverables")
+    .insert({ ...base, stage_key: stage.key } as typeof base)
+    .select("id");
+  if (!withKey.error && withKey.data?.length) return;
+  if (withKey.error && !MISSING_COLUMN_CODES.has(withKey.error.code ?? "")) fail(withKey.error);
+  if (!withKey.error) throw new Error(PERMISSION_DENIED_MSG);
+  const res = await supabase.from("deliverables").insert(base).select("id");
+  if (res.error) fail(res.error);
+  if (!res.data || res.data.length === 0) throw new Error(PERMISSION_DENIED_MSG);
+}
+
 /** Refresca el Plan y todo lo que muestra tareas (Agenda, Hoy, ficha, aprobaciones). */
 export function invalidatePlan(queryClient: QueryClient, userKey: string, clientId: string) {
   return Promise.all([

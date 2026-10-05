@@ -11,6 +11,7 @@ import {
 } from "@/lib/delivery/planStages";
 import { TEAM, initials, type TeamMemberKey } from "@/lib/delivery/team";
 import { formatShortDate } from "./planFormat";
+import { StageMenu, type StageMenuActions } from "./StageMenu";
 
 const STATUS_ICONS: Readonly<Record<StageStatus, ComponentType<{ className?: string }>>> = {
   pending: Circle,
@@ -60,23 +61,40 @@ function ProgressBar({ pct, tone }: { pct: number; tone: string }) {
   );
 }
 
-function DueLabel({ dueDate, late }: { dueDate: string | null; late: boolean }) {
+function DueLabel({
+  dueDate,
+  late,
+  dense = false,
+}: {
+  dueDate: string | null;
+  late: boolean;
+  dense?: boolean;
+}) {
+  const empty = dense ? "Sin fecha" : "Sin fecha de entrega";
   return (
     <span className={cn("tabular-nums", late && "font-medium text-danger-strong")}>
-      {dueDate ? `Entrega ${formatShortDate(dueDate)}` : "Sin fecha de entrega"}
+      {dueDate ? `Entrega ${formatShortDate(dueDate)}` : empty}
       {late && " · atrasada"}
     </span>
   );
 }
 
+/** Esquina inferior derecha de la tarjeta, alineado con la línea de la fecha de entrega. */
+const STAGE_MENU_POSITION = "absolute bottom-1 right-1";
+const MEMBER_MENU_POSITION = "absolute bottom-2 right-3";
+
 export interface StageTrackProps {
   stages: readonly StageSummary[];
   selected: StageKey | null;
   onSelect: (key: StageKey | null) => void;
+  menu: StageMenuActions;
 }
 
-/** Recorrido de las etapas del plan: responsable, avance y fecha. Un clic filtra las tareas. */
-export function StageTrack({ stages, selected, onSelect }: StageTrackProps) {
+/**
+ * Recorrido de las etapas del plan: responsable, avance y fecha. Un clic filtra
+ * las tareas; el "⋯" de cada tarjeta edita la fecha de entrega de la etapa.
+ */
+export function StageTrack({ stages, selected, onSelect, menu }: StageTrackProps) {
   return (
     <nav aria-label="Etapas del plan">
       <ol className={cn("grid grid-cols-2 gap-2", gridCols(stages.length))}>
@@ -88,6 +106,12 @@ export function StageTrack({ stages, selected, onSelect }: StageTrackProps) {
               index={i}
               active={selected === stage.key}
               onClick={() => onSelect(selected === stage.key ? null : stage.key)}
+            />
+            <StageMenu
+              {...menu}
+              stages={[stage]}
+              label={`Fecha de entrega de ${stage.label}`}
+              className={STAGE_MENU_POSITION}
             />
             {i < stages.length - 1 && (
               <ChevronRight
@@ -166,8 +190,8 @@ function StageChip({
           {dense ? progress : `${progress} · ${stage.pct}%`}
         </span>
       </span>
-      <span className="text-[11px] text-muted-foreground">
-        <DueLabel dueDate={stage.dueDate} late={stage.late} />
+      <span className="pr-5 text-[11px] text-muted-foreground">
+        <DueLabel dueDate={stage.dueDate} late={stage.late} dense={dense} />
       </span>
     </button>
   );
@@ -178,10 +202,11 @@ export interface TeamTrackProps {
   stages: readonly StageSummary[];
   selected: StageKey | null;
   onSelect: (key: StageKey | null) => void;
+  menu: StageMenuActions;
 }
 
-/** Vista de Mantención: una tarjeta por persona del equipo con su avance. */
-export function TeamTrack({ members, stages, selected, onSelect }: TeamTrackProps) {
+/** Vista de Mantención: una tarjeta por persona; su "⋯" edita las fechas de sus etapas. */
+export function TeamTrack({ members, stages, selected, onSelect, menu }: TeamTrackProps) {
   return (
     <nav aria-label="Equipo del plan">
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -191,7 +216,7 @@ export function TeamTrack({ members, stages, selected, onSelect }: TeamTrackProp
           const target = own[0]?.key ?? null;
           const active = own.some((s) => s.key === selected);
           return (
-            <li key={m.owner} className="min-w-0">
+            <li key={m.owner} className="relative min-w-0">
               <button
                 type="button"
                 aria-pressed={active}
@@ -216,12 +241,18 @@ export function TeamTrack({ members, stages, selected, onSelect }: TeamTrackProp
                     </span>
                   </span>
                   <ProgressBar pct={m.pct} tone={m.pct === 100 ? "bg-success" : "bg-primary"} />
-                  <span className="flex flex-wrap justify-between gap-x-2 text-[11px] text-muted-foreground">
+                  <span className="flex flex-wrap justify-between gap-x-2 pr-5 text-[11px] text-muted-foreground">
                     <span className="truncate">{own.map((s) => s.label).join(" · ")}</span>
                     <DueLabel dueDate={m.dueDate} late={m.late} />
                   </span>
                 </span>
               </button>
+              <StageMenu
+                {...menu}
+                stages={own}
+                label={`Fechas de entrega de ${member.name}`}
+                className={MEMBER_MENU_POSITION}
+              />
             </li>
           );
         })}
