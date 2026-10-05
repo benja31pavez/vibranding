@@ -56,11 +56,11 @@ function ProposalRow({ proposal }: { proposal: PortalProposal }) {
   const meta = isProposalStatus(status) ? PROPOSAL_STATUS_META[status] : undefined;
   const open = OPEN_STATUSES.has(status);
   return (
-    <li className="rounded-app-lg border border-border-subtle bg-bg p-4">
+    <li className="rounded-app-lg border border-border-subtle bg-bg p-4 shadow-app-xs">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="break-words text-sm font-medium">{proposal.title}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             {open && proposal.expiresAt
               ? `Válida hasta el ${formatChileDate(proposal.expiresAt)}`
               : proposal.sentAt
@@ -71,8 +71,8 @@ function ProposalRow({ proposal }: { proposal: PortalProposal }) {
         <StatusBadge status={status} label={meta?.label} tone={meta?.tone} className="shrink-0" />
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <Money amount={proposal.amountClp} className="text-lg font-semibold" />
-        <Button asChild variant={open ? "default" : "outline"} className="h-11">
+        <Money amount={proposal.amountClp} className="text-2xl font-semibold tracking-tight" />
+        <Button asChild variant={open ? "default" : "outline"} className="h-11 w-full sm:w-auto">
           <a href={`/p/${encodeURIComponent(proposal.token)}`} target="_blank" rel="noreferrer">
             {open ? "Revisar y aceptar" : "Ver propuesta"}{" "}
             <ArrowRight aria-hidden className="ml-1.5 h-4 w-4" />

@@ -47,12 +47,12 @@ export function PortalView({ mode }: { mode: PortalMode }) {
   const pending = pendingCount(data?.approvals);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 md:space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+        <h1 className="text-balance font-display text-[1.625rem] font-semibold leading-tight tracking-tight md:text-4xl">
           {data?.clientName ? `Hola, ${data.clientName}` : "Tu portal"}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1.5 text-sm text-muted-foreground md:text-base">
           {loading
             ? "Preparando tu resumen…"
             : pending > 0
@@ -100,14 +100,15 @@ function DetailedAnalytics({ clientId }: { clientId: string }) {
   return (
     <details
       id="analitica"
-      className="scroll-mt-28 rounded-app-lg border border-border-subtle bg-surface shadow-app-xs"
+      className="group scroll-mt-32 rounded-app-lg border border-border-subtle bg-surface shadow-app-xs"
       onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
     >
-      <summary className="flex cursor-pointer items-center gap-2 px-5 py-4 text-sm font-semibold">
-        <LineChart aria-hidden className="h-4 w-4 text-muted-foreground" /> Analítica detallada
-        <span className="ml-auto text-xs font-normal text-muted-foreground">
-          {open ? "Ocultar" : "Ver"}
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-3 text-base font-semibold tracking-tight sm:px-5 [&::-webkit-details-marker]:hidden">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-app-md bg-primary/10 text-primary">
+          <LineChart aria-hidden className="h-[18px] w-[18px]" />
         </span>
+        Analítica detallada
+        <span className="ml-auto text-sm font-medium text-primary">{open ? "Ocultar" : "Ver"}</span>
       </summary>
       {open && (
         <div className="border-t border-border-subtle p-4">

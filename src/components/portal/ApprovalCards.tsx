@@ -8,6 +8,7 @@ import {
   MessagesSquare,
 } from "lucide-react";
 import { StatusBadge } from "@/components/app";
+import { cn } from "@/lib/utils";
 import {
   DELIVERABLE_TYPE_LABEL,
   POST_FORMAT_LABEL,
@@ -42,39 +43,46 @@ export function PostApprovalCard({ post, ...actions }: { post: PortalPostReview 
     : "este post";
 
   return (
-    <article className="overflow-hidden rounded-app-lg border border-border-subtle bg-bg">
-      <div className="relative aspect-square w-full bg-surface-2 sm:aspect-[4/3]">
+    <article className="flex h-full flex-col overflow-hidden rounded-app-lg border border-border-subtle bg-bg shadow-app-xs">
+      <div
+        className={cn(
+          "relative w-full bg-surface-2",
+          post.imageUrl ? "aspect-square sm:aspect-[4/3]" : "aspect-[16/9] sm:aspect-[4/3]",
+        )}
+      >
         {post.imageUrl ? (
           <img
             src={post.imageUrl}
             alt="Vista previa del post"
             loading="lazy"
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (
-          <div className="grid h-full place-items-center text-muted-foreground">
-            <Icon aria-hidden className="h-8 w-8" />
+          <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-surface-2 to-primary/5 text-muted-foreground">
+            <span className="grid h-14 w-14 place-items-center rounded-full bg-bg/80 shadow-app-xs">
+              <Icon aria-hidden className="h-6 w-6" />
+            </span>
           </div>
         )}
-        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-xs font-medium">
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/95 px-2.5 py-1 text-xs font-medium text-foreground shadow-app-xs backdrop-blur">
           <Icon aria-hidden className="h-3.5 w-3.5" /> {POST_FORMAT_LABEL[post.format] ?? "Post"} de
           Instagram
         </span>
       </div>
-      <div className="space-y-3 p-4">
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <CalendarClock aria-hidden className="h-3.5 w-3.5" />
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <CalendarClock aria-hidden className="h-3.5 w-3.5 shrink-0" />
           {post.scheduledAt
             ? `Se publicaría el ${formatDateTime(post.scheduledAt)}`
             : "Sin fecha de publicación aún"}
         </p>
         {caption ? (
-          <div className="text-sm">
+          <div className="text-sm leading-relaxed">
             <p className="whitespace-pre-line break-words">{shown}</p>
             {long && (
               <button
                 type="button"
-                className="mt-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+                className="mt-1 py-1 text-sm font-medium text-primary underline-offset-2 hover:underline"
                 onClick={() => setExpanded((v) => !v)}
               >
                 {expanded ? "Ver menos" : "Ver texto completo"}
@@ -84,7 +92,9 @@ export function PostApprovalCard({ post, ...actions }: { post: PortalPostReview 
         ) : (
           <p className="text-sm text-muted-foreground">Este post todavía no tiene texto.</p>
         )}
-        <DecisionControls itemLabel={label} {...actions} />
+        <div className="mt-auto pt-1">
+          <DecisionControls itemLabel={label} {...actions} />
+        </div>
       </div>
     </article>
   );
@@ -98,7 +108,7 @@ export function DeliverableApprovalCard({
   const isImage = (deliverable.mimeType ?? "").startsWith("image/") && Boolean(fileHref);
 
   return (
-    <article className="overflow-hidden rounded-app-lg border border-border-subtle bg-bg">
+    <article className="flex h-full flex-col overflow-hidden rounded-app-lg border border-border-subtle bg-bg shadow-app-xs">
       {isImage && fileHref && (
         <a href={fileHref} target="_blank" rel="noreferrer" className="block bg-surface-2">
           <img
@@ -109,7 +119,7 @@ export function DeliverableApprovalCard({
           />
         </a>
       )}
-      <div className="space-y-3 p-4">
+      <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <h3 className="break-words text-base font-semibold">{deliverable.title}</h3>
@@ -137,7 +147,9 @@ export function DeliverableApprovalCard({
           </a>
         )}
         <CommentThread comments={deliverable.comments} />
-        <DecisionControls itemLabel={`“${deliverable.title}”`} {...actions} />
+        <div className="mt-auto pt-1">
+          <DecisionControls itemLabel={`“${deliverable.title}”`} {...actions} />
+        </div>
       </div>
     </article>
   );

@@ -54,7 +54,7 @@ export function ApprovalsSection({
               description="No tienes nada pendiente por revisar. Te avisaremos cuando haya algo nuevo."
             />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {data.deliverables.map((d) => (
                 <DeliverableApprovalCard
                   key={d.id}
