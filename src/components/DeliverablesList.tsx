@@ -3,6 +3,12 @@ import { chileToday } from "@/lib/dates/chile";
 import { writeFailed } from "@/lib/writeCheck";
 import { ErrorState } from "@/components/app";
 import { useClientCapabilities } from "@/hooks/use-client-capabilities";
+import {
+  STAGE_KEYS,
+  resolvePlan,
+  stageKeyFromTitle,
+  type StageKey,
+} from "@/lib/delivery/planStages";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,45 +122,38 @@ type Row = {
 
 type FolderRow = { id: string; name: string; sort_order: number };
 
-/** Default set built from the six service stages, offered when a client has none. */
-const STARTER_STAGES: { title: string; type: DType; description: string }[] = [
-  { title: "Branding", type: "design", description: "Identidad visual, paleta y aplicaciones." },
-  {
-    title: "Optimización",
-    type: "report",
-    description: "Optimización del perfil y de la presencia actual.",
-  },
-  { title: "Contenido", type: "post", description: "Plan de contenido y primeras piezas." },
-  { title: "Ads", type: "report", description: "Estructura de campañas y creativos." },
-  { title: "Landing Page", type: "design", description: "Página de captación y textos." },
-  { title: "Chatbot", type: "other", description: "Flujos de respuesta automática en WhatsApp." },
-];
-
-/**
- * Etapas sugeridas según el plan contratado (client_billing.plan_key).
- * "Chatbot" solo aplica si el cliente tiene WhatsApp conectado.
- */
-const PLAN_STAGE_TITLES: Record<string, readonly string[]> = {
-  "marca-web": ["Branding", "Optimización", "Landing Page"],
-  contenido: ["Optimización", "Contenido"],
-  crecimiento: ["Optimización", "Contenido", "Ads", "Landing Page"],
-  mantencion: ["Contenido"],
+/** Tipo de entregable con que se crea cada etapa sugerida. */
+const STAGE_TYPE: Readonly<Record<StageKey, DType>> = {
+  estrategia: "report",
+  branding: "design",
+  diseno: "design",
+  planificacion: "post",
+  contenido: "post",
+  ads: "report",
+  landing: "design",
+  chatbot: "other",
+  optimizacion: "report",
+  reporte: "report",
+  entrega: "other",
 };
 
+/**
+ * Etapas sugeridas según el plan contratado (client_billing.plan_key), con las
+ * mismas plantillas que la vista Plan (`@/lib/delivery/planStages`). Chatbot
+ * solo se agrega si el cliente tiene WhatsApp conectado.
+ */
 function suggestedStages(planKey: string | null, hasWhatsapp: boolean) {
-  const titles =
-    (planKey && PLAN_STAGE_TITLES[planKey]) ||
-    STARTER_STAGES.map((s) => s.title).filter((t) => t !== "Chatbot");
-  const withChatbot = hasWhatsapp ? [...titles, "Chatbot"] : titles;
-  return STARTER_STAGES.filter((s) => withChatbot.includes(s.title));
+  return resolvePlan(planKey, hasWhatsapp ? ["chatbot"] : []).stages.map((s) => ({
+    title: s.label,
+    type: STAGE_TYPE[s.key],
+    description: s.detail,
+  }));
 }
 
-const STAGE_ORDER = STARTER_STAGES.map((stage) => stage.title.toLocaleLowerCase("es"));
-
+/** Orden de las etapas conocidas (mismo catálogo que la vista Plan); el resto va al final. */
 function stageRank(title: string) {
-  const normalized = title.trim().toLocaleLowerCase("es");
-  const index = STAGE_ORDER.indexOf(normalized);
-  return index === -1 ? STAGE_ORDER.length : index;
+  const key = stageKeyFromTitle(title);
+  return key ? STAGE_KEYS.indexOf(key) : STAGE_KEYS.length;
 }
 
 function stageIcon(title: string) {

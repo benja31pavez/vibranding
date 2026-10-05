@@ -52,6 +52,9 @@ export const CRECIMIENTO = {
   campaignReviewsPerWeek: 1,
 } as const;
 
+/** Claves con plan del mes: todas las de `PlanKey` (incluye "mantencion"). */
+export type MonthPlanKey = PlanKey;
+
 /** Marca + Web (pago único): pasos del proyecto, repartidos en el mes de entrega. */
 export const MARCA_WEB_STEPS = [
   { key: "inicio", title: "Reunión de inicio y recepción de información", at: 0 },
@@ -150,7 +153,7 @@ export interface MonthPlanItem {
 }
 
 export interface BuildMonthPlanInput {
-  readonly planKey: PlanKey;
+  readonly planKey: MonthPlanKey;
   /** "YYYY-MM". */
   readonly month: string;
   /** Hoy en Chile ("YYYY-MM-DD"). Si cae dentro del mes, no se agenda nada antes. */

@@ -238,11 +238,18 @@ function DatePicker({
   );
 }
 
-export function ObjectivesList({ clientId }: { clientId: string }) {
+export function ObjectivesList({
+  clientId,
+  initialAdding = false,
+}: {
+  clientId: string;
+  /** Abre directo el formulario de nuevo objetivo (botón "Nuevo objetivo" del Plan). */
+  initialAdding?: boolean;
+}) {
   const [items, setItems] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(initialAdding);
   const [editingId, setEditingId] = useState<string | null>(null);
   const emptyDraft = {
     title: "",

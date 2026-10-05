@@ -172,6 +172,18 @@ check("excluye feriados nacionales (incluidos los movidos)", () => {
   assert.equal(m.businessDays("2027-09").includes("2027-09-17"), false);
   assert.equal(m.businessDays("2026-10").includes("2026-10-12"), false);
 });
+check("mantención: 8 piezas al mes + calendario + reporte, sin reunión", () => {
+  const items = m.buildMonthPlan({ planKey: "mantencion", month: MONTH });
+  const pieces = items.filter((i) => i.kind === "post" || i.kind === "reel");
+  assert.equal(pieces.length, m.MANTENCION.postsPerWeek * m.WEEKS_PER_MONTH);
+  assert.equal(pieces.length, 8);
+  assert.equal(items.filter((i) => i.kind === "calendario").length, 1);
+  assert.equal(items.filter((i) => i.kind === "reporte").length, 1);
+  assert.equal(
+    items.some((i) => i.kind === "reunion"),
+    false,
+  );
+});
 check("ninguna tarea cae en feriado", () => {
   for (const month of ["2026-12", "2027-09", "2027-10"]) {
     for (const planKey of ["contenido", "crecimiento", "mantencion", "marca-web"]) {

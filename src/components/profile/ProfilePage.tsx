@@ -91,15 +91,7 @@ export function ProfileView({
   const current = SECTIONS.find((s) => s.key === section) ?? SECTIONS[0];
 
   return (
-    <FitPage
-      header={
-        <PageHeader
-          size="compact"
-          title="Editar perfil"
-          description="Tus datos, los de la agencia, tu contraseña y las preferencias de la plataforma."
-        />
-      }
-    >
+    <FitPage header={<PageHeader size="compact" title="Editar perfil" />}>
       <Tabs
         value={section}
         onValueChange={(v) => setSection(v as SectionKey)}
@@ -107,7 +99,7 @@ export function ProfileView({
         className="grid gap-4 md:h-full md:min-h-0 md:grid-cols-[240px_minmax(0,1fr)] md:gap-6"
       >
         <aside className="flex min-w-0 flex-col gap-3">
-          <IdentityCard email={email} owner={owner.data} agency={agency.data} />
+          <IdentityCard email={email} owner={owner.data} />
           <TabsList
             aria-label="Secciones del perfil"
             className="grid h-auto w-full grid-cols-2 gap-1 rounded-app-lg border border-border-subtle bg-surface p-1 md:flex md:flex-col md:items-stretch"
@@ -173,31 +165,17 @@ function Loaded<T>({
   return <>{children(state.data)}</>;
 }
 
-function IdentityCard({
-  email,
-  owner,
-  agency,
-}: {
-  email: string;
-  owner: OwnerProfile | undefined;
-  agency: AgencyProfile | undefined;
-}) {
+function IdentityCard({ email, owner }: { email: string; owner: OwnerProfile | undefined }) {
   const name = owner?.full_name?.trim() || "Sin nombre";
-  const role = owner?.job_title?.trim() || DEFAULT_JOB_TITLE;
-  const agencyName = agency?.values.agency_legal_name.trim() || AGENCY_DEFAULTS.legal_name;
   return (
-    <div className="flex items-center gap-3 rounded-app-lg border border-border-subtle bg-surface p-3 shadow-app-xs">
-      <Avatar className="h-12 w-12 border bg-surface-2">
+    <div className="flex flex-col items-center gap-2 rounded-app-lg border border-border-subtle bg-surface px-3 py-4 shadow-app-xs">
+      <Avatar className="h-16 w-16 border bg-surface-2">
         {owner?.avatar_url && <AvatarImage src={owner.avatar_url} alt="" />}
-        <AvatarFallback>{initialsOf(owner?.full_name ?? "", email || "?")}</AvatarFallback>
+        <AvatarFallback className="text-lg">
+          {initialsOf(owner?.full_name ?? "", email || "?")}
+        </AvatarFallback>
       </Avatar>
-      <div className="min-w-0 text-sm">
-        <p className="truncate font-semibold leading-tight">{name}</p>
-        <p className="truncate text-xs text-muted-foreground">
-          {role} · {agencyName}
-        </p>
-        <p className="truncate text-xs text-muted-foreground">{email}</p>
-      </div>
+      <p className="max-w-full truncate text-sm font-semibold">{name}</p>
     </div>
   );
 }
