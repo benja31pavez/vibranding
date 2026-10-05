@@ -32,10 +32,13 @@ export function BenefitsSection() {
     >
       <SectionHeading id="beneficios-title" title={b.title} accent={b.titleAccent} />
       <div className="grid gap-10 lg:motion-safe:grid-cols-2 lg:motion-safe:gap-16">
-        <ol ref={listRef} className="relative space-y-8 lg:motion-safe:space-y-0">
+        <ol
+          ref={listRef}
+          className="relative space-y-8 lg:motion-safe:space-y-0 lg:motion-safe:py-[14vh]"
+        >
           <span
             aria-hidden
-            className="absolute bottom-6 left-[21px] top-6 w-0.5 rounded-full bg-border lg:motion-safe:bottom-[25vh] lg:motion-safe:top-[25vh]"
+            className="absolute bottom-6 left-[21px] top-6 w-0.5 rounded-full bg-border lg:motion-safe:bottom-[35vh] lg:motion-safe:top-[35vh]"
           >
             <span
               className="block h-full w-full origin-top rounded-full bg-gradient-brand-strong motion-safe:transition-transform motion-safe:duration-700"
@@ -50,7 +53,7 @@ export function BenefitsSection() {
             return (
               <li
                 key={item.title}
-                className="relative pl-16 lg:motion-safe:flex lg:motion-safe:min-h-[50vh] lg:motion-safe:items-center lg:motion-reduce:grid lg:motion-reduce:grid-cols-2 lg:motion-reduce:items-center lg:motion-reduce:gap-10"
+                className="relative pl-16 lg:motion-safe:flex lg:motion-safe:min-h-[42vh] lg:motion-safe:items-center lg:motion-reduce:grid lg:motion-reduce:grid-cols-2 lg:motion-reduce:items-center lg:motion-reduce:gap-10"
               >
                 <span
                   aria-hidden
@@ -90,13 +93,13 @@ export function BenefitsSection() {
           })}
         </ol>
         <div aria-hidden className="hidden lg:motion-safe:block">
-          <div className="sticky top-[calc(50vh-200px)] grid h-[400px] place-items-center">
+          <div className="sticky top-[max(15vh,calc(50vh-320px))] grid h-[70vh] max-h-[640px] place-items-center">
             {BENEFIT_MOCKUPS.map((Mockup, i) => (
               <div
                 key={i}
                 {...(ready && i === active ? { "data-bx-play": "" } : {})}
                 className={cn(
-                  "flex w-full justify-center transition-[opacity,transform] duration-500 [grid-area:1/1]",
+                  "flex w-full justify-center transition-[opacity,transform] duration-500 [grid-area:1/1] [&>*]:max-w-[400px] [&>*]:origin-center [&>*]:scale-[1.15] xl:[&>*]:scale-[1.25]",
                   i === active
                     ? "opacity-100"
                     : "pointer-events-none translate-y-3 scale-[0.97] opacity-0",

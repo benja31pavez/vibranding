@@ -82,13 +82,15 @@ export function PhoneFeed({ className }: { className?: string }) {
           <Bell className="h-3.5 w-3.5" />
           <Ellipsis className="h-4 w-4" />
         </div>
-        <div className="flex items-center gap-3 px-3">
+        <div className="flex items-center gap-2 px-3 sm:gap-3">
           <BrandAvatar size="h-14 w-14 text-2xl" />
           <div className="grid flex-1 grid-cols-3 text-center">
             {STATS.map((label) => (
               <span key={label} className="flex flex-col items-center gap-1">
                 <Bar w="1.1rem" className="h-2 bg-foreground/25" />
-                <span className="text-[0.5rem] leading-none text-foreground/80">{label}</span>
+                <span className="text-[0.42rem] leading-none tracking-tight text-foreground/80 sm:text-[0.5rem] sm:tracking-normal">
+                  {label}
+                </span>
               </span>
             ))}
           </div>

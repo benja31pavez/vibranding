@@ -15,13 +15,17 @@ export function HeroShowcase({
 }) {
   return (
     <div aria-hidden className={className} style={style}>
-      <div className="relative mx-auto h-[470px] w-[330px] select-none sm:h-[540px] sm:w-[400px]">
-        <PhoneFeed className="absolute left-1/2 top-0 h-[460px] w-[226px] -translate-x-1/2 sm:h-[528px] sm:w-[260px]" />
-        {/* Bottom right, so the grid's first cell (where new posts land) stays in view. */}
-        <div className="absolute bottom-2 right-0 w-[150px] sm:bottom-4 sm:-right-4 sm:w-[176px]">
+      {/*
+        The phone sits left of center so both cards can float off its right edge: the WhatsApp
+        bubble overlaps only the bezel (never the profile header) and the ad card leaves the
+        grid's first cell (where new posts land) in view.
+      */}
+      <div className="relative mx-auto h-[470px] w-[343px] select-none sm:h-[540px] sm:w-[440px]">
+        <PhoneFeed className="absolute left-0 top-0 h-[460px] w-[226px] sm:left-2.5 sm:h-[528px] sm:w-[260px]" />
+        <div className="absolute bottom-2 right-0 w-[150px] sm:bottom-4 sm:right-6 sm:w-[176px]">
           <AdCard className="animate-gentle-float" />
         </div>
-        <div className="absolute right-0 top-14 w-[176px] sm:top-20 sm:w-[200px]">
+        <div className="absolute right-0 top-6 w-[140px] sm:top-6 sm:w-[190px]">
           <WhatsAppBubble className="animate-gentle-float [animation-delay:-3.5s]" />
         </div>
       </div>
