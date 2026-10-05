@@ -95,10 +95,15 @@ export function validateDraft(input: { title: string; items: readonly ProposalIt
   return errors;
 }
 
+/** true si la propuesta tiene cobro mensual (por ítems o por el plan). */
+export function hasMonthlyBilling(planKey: string | null, items: readonly Pick<ProposalItem, "billing">[]): boolean {
+  return items.some((i) => i.billing === "monthly") || findPlan(planKey)?.billing === "monthly";
+}
+
 /** Condiciones que se muestran (y se aceptan) según el contenido de la propuesta. */
 export function proposalConditions(planKey: string | null, items: readonly ProposalItem[]): string[] {
   const plan = findPlan(planKey);
-  const hasMonthly = items.some((i) => i.billing === "monthly") || plan?.billing === "monthly";
+  const hasMonthly = hasMonthlyBilling(planKey, items);
   const minMonths = plan?.minMonths ?? 3;
   const conditions: string[] = [];
   if (hasMonthly) {
