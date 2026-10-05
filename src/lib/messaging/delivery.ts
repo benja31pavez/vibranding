@@ -46,7 +46,10 @@ export type DispatchRetryPlan =
  * What to do after a failed AI reply attempt. `previousAttempts` is the stored
  * counter before this failure.
  */
-export function planDispatchRetry(previousAttempts: number | null | undefined, now: Date): DispatchRetryPlan {
+export function planDispatchRetry(
+  previousAttempts: number | null | undefined,
+  now: Date,
+): DispatchRetryPlan {
   const attempts = Math.max(0, Number(previousAttempts) || 0) + 1;
   if (attempts >= DISPATCH_MAX_ATTEMPTS) {
     return { escalate: true, attempts, pendingResponseAt: null };
@@ -79,7 +82,10 @@ export class PermanentError extends Error {
 }
 
 /** Error carrying the Postgres/PostgREST code so the webhook can classify it. */
-export function dbError(context: string, error: { code?: string | null; message?: string | null }): Error {
+export function dbError(
+  context: string,
+  error: { code?: string | null; message?: string | null },
+): Error {
   const err = new Error(`${context}: ${error.message ?? "db error"}`) as Error & { code?: string };
   if (error.code) err.code = error.code;
   return err;

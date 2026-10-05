@@ -1,4 +1,14 @@
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { fmtInt } from "@/lib/reports/format";
 
 const AXIS_FONT = 11;
@@ -41,13 +51,30 @@ export function DailyVisitsChart({ data }: { data: { date: string; visits: numbe
 export function LeadsBySourceChart({ data }: { data: { label: string; count: number }[] }) {
   const height = Math.max(96, data.length * 40);
   return (
-    <div className="w-full" style={{ height }} role="img" aria-label="Gráfico de contactos por canal">
+    <div
+      className="w-full"
+      style={{ height }}
+      role="img"
+      aria-label="Gráfico de contactos por canal"
+    >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ left: 8, right: 24, top: 0, bottom: 0 }}>
           <XAxis type="number" hide allowDecimals={false} />
-          <YAxis type="category" dataKey="label" width={112} fontSize={AXIS_FONT} tickLine={false} axisLine={false} />
+          <YAxis
+            type="category"
+            dataKey="label"
+            width={112}
+            fontSize={AXIS_FONT}
+            tickLine={false}
+            axisLine={false}
+          />
           <Tooltip formatter={(v: number) => [fmtInt(v), "Contactos"]} />
-          <Bar dataKey="count" fill="var(--primary)" radius={[0, 6, 6, 0]} isAnimationActive={false} />
+          <Bar
+            dataKey="count"
+            fill="var(--primary)"
+            radius={[0, 6, 6, 0]}
+            isAnimationActive={false}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

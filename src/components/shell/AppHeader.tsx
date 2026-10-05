@@ -21,7 +21,14 @@ interface AppHeaderProps {
 
 /** Header de 56px: gestión transversal de la agencia. */
 export function AppHeader({
-  path, user, profile, onSignOut, onOpenSearch, mobileNavOpen, onMobileNavOpenChange, clientTrigger,
+  path,
+  user,
+  profile,
+  onSignOut,
+  onOpenSearch,
+  mobileNavOpen,
+  onMobileNavOpenChange,
+  clientTrigger,
 }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-30 border-b bg-sidebar/95 backdrop-blur">

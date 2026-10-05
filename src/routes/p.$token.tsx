@@ -11,7 +11,8 @@ export const Route = createFileRoute("/p/$token")({
   validateSearch: (search: Record<string, unknown>): { vista?: string } =>
     typeof search.vista === "string" ? { vista: search.vista.slice(0, 20) } : {},
   loaderDeps: ({ search }) => ({ vista: search.vista }),
-  loader: ({ params, deps }) => getPublicProposal({ data: { token: params.token, vista: deps.vista } }),
+  loader: ({ params, deps }) =>
+    getPublicProposal({ data: { token: params.token, vista: deps.vista } }),
   head: () => ({
     meta: [
       { title: "Propuesta · VIBRANDING" },
@@ -26,7 +27,10 @@ export const Route = createFileRoute("/p/$token")({
   }),
   errorComponent: () => (
     <PublicShell>
-      <div role="alert" className="rounded-app-lg border border-border-subtle bg-surface p-6 text-sm text-muted-foreground">
+      <div
+        role="alert"
+        className="rounded-app-lg border border-border-subtle bg-surface p-6 text-sm text-muted-foreground"
+      >
         No pudimos cargar la propuesta. Vuelve a intentarlo en unos minutos.
       </div>
     </PublicShell>
@@ -44,8 +48,8 @@ function PublicProposalRoute() {
         <div className="rounded-app-lg border border-border-subtle bg-surface p-6">
           <h1 className="text-xl font-semibold text-foreground">Este link no es válido</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Puede que esté incompleto o que la propuesta ya no esté disponible. Pide uno nuevo a tu contacto en
-            Vibranding.
+            Puede que esté incompleto o que la propuesta ya no esté disponible. Pide uno nuevo a tu
+            contacto en Vibranding.
           </p>
         </div>
       </PublicShell>

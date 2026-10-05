@@ -6,10 +6,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export type WaSecretKind = "access_token" | "verify_token";
 
-export async function getWaSecret(
-  accountId: string,
-  kind: WaSecretKind,
-): Promise<string | null> {
+export async function getWaSecret(accountId: string, kind: WaSecretKind): Promise<string | null> {
   const { data, error } = await (supabaseAdmin.rpc as any)("wa_get_secret", {
     _account_id: accountId,
     _kind: kind,

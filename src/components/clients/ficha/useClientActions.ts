@@ -23,9 +23,13 @@ export function useClientActions(clientId: string, reloadClient: () => Promise<v
     const cleanName = name.trim();
     const cleanHandle = normalizeHandle(handle);
     if (!cleanName) return { ok: false, error: "El nombre no puede quedar vacío." };
-    if (cleanName.length > MAX_NAME_LENGTH) return { ok: false, error: "El nombre es demasiado largo." };
+    if (cleanName.length > MAX_NAME_LENGTH)
+      return { ok: false, error: "El nombre es demasiado largo." };
     if (cleanHandle && !HANDLE_PATTERN.test(cleanHandle)) {
-      return { ok: false, error: "El usuario de Instagram solo admite letras, números, puntos y guiones bajos." };
+      return {
+        ok: false,
+        error: "El usuario de Instagram solo admite letras, números, puntos y guiones bajos.",
+      };
     }
     const { data, error } = await supabase
       .from("clients")
@@ -42,7 +46,8 @@ export function useClientActions(clientId: string, reloadClient: () => Promise<v
   const deleteClient = async (): Promise<Result> => {
     const { data, error } = await supabase.from("clients").delete().eq("id", clientId).select("id");
     if (error) return { ok: false, error: writeErrorMessage(error) };
-    if (!data || data.length === 0) return { ok: false, error: "No tienes permisos para eliminar este cliente." };
+    if (!data || data.length === 0)
+      return { ok: false, error: "No tienes permisos para eliminar este cliente." };
     queryClient.removeQueries({ queryKey: fichaKeys.all(userKey, clientId) });
     queryClient.removeQueries({ queryKey: fichaKeys.exists(userKey, clientId) });
     try {

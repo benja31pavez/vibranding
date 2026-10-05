@@ -7,17 +7,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Trash2, Pencil, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { DEFAULT_CURRENCY, EMPTY_CLP_TOTALS, addClp, type ClpTotals } from "@/lib/pricing/plans";
 import {
-  ConfirmDialog, EmptyState, ErrorState, Money, MoneyTotals, StatCard, TableSkeleton, TONE_CLASSES, getStatus,
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  Money,
+  MoneyTotals,
+  StatCard,
+  TableSkeleton,
+  TONE_CLASSES,
+  getStatus,
 } from "@/components/app";
 import { PaymentLinkButton } from "@/components/billing/PaymentLinkButton";
 
@@ -61,8 +77,10 @@ interface Payment {
   payment_url: string | null;
 }
 
-const STATUS_LOCKED_HINT = "Solo un owner o admin de la organización puede cambiar el estado de un cobro.";
-const STATUS_UNVERIFIED_HINT = "No pudimos verificar permisos; si no corresponde, el cambio se rechazará.";
+const STATUS_LOCKED_HINT =
+  "Solo un owner o admin de la organización puede cambiar el estado de un cobro.";
+const STATUS_UNVERIFIED_HINT =
+  "No pudimos verificar permisos; si no corresponde, el cambio se rechazará.";
 
 const DATE_FMT = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeZone: "UTC" });
 /** YYYY-MM-DD (o timestamp) → "4 oct 2026" sin corrimiento de zona horaria. */
@@ -102,7 +120,8 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
   // Si no se pudo consultar el rol, se deja habilitado y la RPC decide (muestra su error).
   const canChangeStatus = manager.data !== false;
   useEffect(() => {
-    if (manager.isError) console.warn("[payments] no se pudo verificar manages_client", manager.error);
+    if (manager.isError)
+      console.warn("[payments] no se pudo verificar manages_client", manager.error);
   }, [manager.isError, manager.error]);
   const statusHint = manager.isError ? STATUS_UNVERIFIED_HINT : STATUS_LOCKED_HINT;
   const [editing, setEditing] = useState<Payment | null>(null);
@@ -178,20 +197,25 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
 
   const totals = items.reduce<{ paid: ClpTotals; pending: ClpTotals }>(
     (acc, p) => {
-      if (p.status === "paid") return { ...acc, paid: addClp(acc.paid, p.currency, Number(p.amount)) };
+      if (p.status === "paid")
+        return { ...acc, paid: addClp(acc.paid, p.currency, Number(p.amount)) };
       if (p.status === "pending" || p.status === "overdue") {
         return { ...acc, pending: addClp(acc.pending, p.currency, Number(p.amount)) };
       }
       return acc;
     },
-    { paid: EMPTY_CLP_TOTALS, pending: EMPTY_CLP_TOTALS }
+    { paid: EMPTY_CLP_TOTALS, pending: EMPTY_CLP_TOTALS },
   );
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3">
         <StatCard label="Cobrado" loading={loading} value={<MoneyTotals totals={totals.paid} />} />
-        <StatCard label="Por cobrar" loading={loading} value={<MoneyTotals totals={totals.pending} />} />
+        <StatCard
+          label="Por cobrar"
+          loading={loading}
+          value={<MoneyTotals totals={totals.pending} />}
+        />
       </div>
 
       <div className="flex items-center justify-between">
@@ -205,15 +229,44 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
 
       {adding && (
         <div className="space-y-3 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs">
-          <Input placeholder="Concepto" aria-label="Concepto" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} autoFocus />
+          <Input
+            placeholder="Concepto"
+            aria-label="Concepto"
+            value={draft.description}
+            onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+            autoFocus
+          />
           <div className="flex gap-2">
-            <Input type="number" step={1} min={1} inputMode="numeric" placeholder="Monto en CLP (IVA incluido)" aria-label="Monto en CLP (IVA incluido)" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
-            <span className="flex h-10 shrink-0 items-center rounded-app-sm border border-border-subtle px-3 text-sm text-muted-foreground" aria-label="Moneda: pesos chilenos">CLP</span>
-            <Input type="date" aria-label="Fecha de vencimiento" value={draft.due_date} onChange={(e) => setDraft({ ...draft, due_date: e.target.value })} />
+            <Input
+              type="number"
+              step={1}
+              min={1}
+              inputMode="numeric"
+              placeholder="Monto en CLP (IVA incluido)"
+              aria-label="Monto en CLP (IVA incluido)"
+              value={draft.amount}
+              onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
+            />
+            <span
+              className="flex h-10 shrink-0 items-center rounded-app-sm border border-border-subtle px-3 text-sm text-muted-foreground"
+              aria-label="Moneda: pesos chilenos"
+            >
+              CLP
+            </span>
+            <Input
+              type="date"
+              aria-label="Fecha de vencimiento"
+              value={draft.due_date}
+              onChange={(e) => setDraft({ ...draft, due_date: e.target.value })}
+            />
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>Cancelar</Button>
-            <Button size="sm" onClick={create}>Guardar</Button>
+            <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={create}>
+              Guardar
+            </Button>
           </div>
         </div>
       )}
@@ -223,11 +276,18 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
       ) : loadError ? (
         <ErrorState message={loadError} onRetry={retry} />
       ) : items.length === 0 ? (
-        <EmptyState icon={Receipt} title="Sin movimientos por ahora." description="Registra un cobro para empezar a llevar la cuenta." />
+        <EmptyState
+          icon={Receipt}
+          title="Sin movimientos por ahora."
+          description="Registra un cobro para empezar a llevar la cuenta."
+        />
       ) : (
         <ul className="space-y-2">
           {items.map((p) => (
-            <li key={p.id} className="group flex flex-wrap items-center gap-x-4 gap-y-2 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs">
+            <li
+              key={p.id}
+              className="group flex flex-wrap items-center gap-x-4 gap-y-2 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs"
+            >
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{p.description || "Cobro"}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">
@@ -243,10 +303,20 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
                 hint={manager.isError ? statusHint : null}
                 onChange={(v) => changeStatus(p.id, v)}
               />
-              <button type="button" onClick={() => setEditing(p)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-foreground" aria-label="Editar pago">
+              <button
+                type="button"
+                onClick={() => setEditing(p)}
+                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-foreground"
+                aria-label="Editar pago"
+              >
                 <Pencil aria-hidden className="h-4 w-4" />
               </button>
-              <button type="button" onClick={() => setToDelete(p)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-danger" aria-label="Eliminar pago">
+              <button
+                type="button"
+                onClick={() => setToDelete(p)}
+                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-danger"
+                aria-label="Eliminar pago"
+              >
                 <Trash2 aria-hidden className="h-4 w-4" />
               </button>
             </li>
@@ -256,7 +326,9 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
 
       <ConfirmDialog
         open={toDelete !== null}
-        onOpenChange={(o) => { if (!o) setToDelete(null); }}
+        onOpenChange={(o) => {
+          if (!o) setToDelete(null);
+        }}
         title="¿Eliminar este cobro?"
         description={`Se borra «${toDelete?.description || "Cobro"}» de forma permanente. Si solo no se va a cobrar, es mejor cambiar su estado a Cancelado para conservar el historial.`}
         confirmLabel="Eliminar"
@@ -271,7 +343,10 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
         payment={editing}
         canChangeStatus={canChangeStatus}
         onClose={() => setEditing(null)}
-        onSaved={() => { setEditing(null); reloadAfterWrite(); }}
+        onSaved={() => {
+          setEditing(null);
+          reloadAfterWrite();
+        }}
       />
     </div>
   );
@@ -291,12 +366,17 @@ function StatusSelect({
 }) {
   const select = (
     <Select value={status} onValueChange={(v) => onChange(v as Status)} disabled={disabled}>
-      <SelectTrigger aria-label="Estado del pago" className={`h-8 w-32 rounded-full border-0 text-xs font-medium focus:ring-2 focus:ring-ring focus:ring-offset-1 ${statusCls(status)}`}>
+      <SelectTrigger
+        aria-label="Estado del pago"
+        className={`h-8 w-32 rounded-full border-0 text-xs font-medium focus:ring-2 focus:ring-ring focus:ring-offset-1 ${statusCls(status)}`}
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {STATUSES.map((k) => (
-          <SelectItem key={k} value={k}>{statusLabel(k)}</SelectItem>
+          <SelectItem key={k} value={k}>
+            {statusLabel(k)}
+          </SelectItem>
         ))}
       </SelectContent>
     </Select>
@@ -307,7 +387,12 @@ function StatusSelect({
       <Tooltip>
         {/* El span recibe el foco/hover: un botón deshabilitado no dispara eventos. */}
         <TooltipTrigger asChild>
-          <span tabIndex={0} className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{select}</span>
+          <span
+            tabIndex={0}
+            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {select}
+          </span>
         </TooltipTrigger>
         <TooltipContent>{hint ?? STATUS_LOCKED_HINT}</TooltipContent>
       </Tooltip>
@@ -316,7 +401,10 @@ function StatusSelect({
 }
 
 function EditDialog({
-  payment, canChangeStatus, onClose, onSaved,
+  payment,
+  canChangeStatus,
+  onClose,
+  onSaved,
 }: {
   payment: Payment | null;
   canChangeStatus: boolean;
@@ -326,7 +414,9 @@ function EditDialog({
   const [form, setForm] = useState<Payment | null>(payment);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { setForm(payment); }, [payment]);
+  useEffect(() => {
+    setForm(payment);
+  }, [payment]);
 
   if (!form) return null;
 
@@ -338,7 +428,8 @@ function EditDialog({
 
   const save = async () => {
     const amount = toClpAmount(form.amount);
-    if (!Number.isFinite(amount) || amount <= 0) return toast.error("Ingresa un monto válido en CLP");
+    if (!Number.isFinite(amount) || amount <= 0)
+      return toast.error("Ingresa un monto válido en CLP");
     setSaving(true);
     // Datos del cobro: UPDATE directo (solo columnas permitidas al navegador).
     const patch: Partial<Payment> = {
@@ -347,7 +438,11 @@ function EditDialog({
       ...(linkLocked ? {} : { amount }),
       due_date: form.due_date || null,
     };
-    const { data, error } = await supabase.from("payments").update(patch).eq("id", form.id).select("id");
+    const { data, error } = await supabase
+      .from("payments")
+      .update(patch)
+      .eq("id", form.id)
+      .select("id");
     if (writeDenied(error, data)) {
       setSaving(false);
       return toast.error(error ? `No se pudo actualizar el pago: ${error.message}` : NO_PERMISSION);
@@ -376,7 +471,12 @@ function EditDialog({
   };
 
   return (
-    <Dialog open={!!payment} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog
+      open={!!payment}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Editar pago</DialogTitle>
@@ -384,11 +484,22 @@ function EditDialog({
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Concepto</Label>
-            <Input value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <Input
+              value={form.description ?? ""}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Monto en CLP (IVA incluido)</Label>
-            <Input type="number" step={1} min={1} inputMode="numeric" value={form.amount} disabled={linkLocked} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
+            <Input
+              type="number"
+              step={1}
+              min={1}
+              inputMode="numeric"
+              value={form.amount}
+              disabled={linkLocked}
+              onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })}
+            />
           </div>
           {linkLocked && (
             <p className="text-xs text-muted-foreground">
@@ -401,29 +512,52 @@ function EditDialog({
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Fecha de vencimiento</Label>
-              <Input type="date" value={form.due_date ?? ""} onChange={(e) => setForm({ ...form, due_date: e.target.value || null })} />
+              <Input
+                type="date"
+                value={form.due_date ?? ""}
+                onChange={(e) => setForm({ ...form, due_date: e.target.value || null })}
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Fecha de pago</Label>
-              <Input type="date" value={toDateInput(form.paid_at)} onChange={(e) => setForm({ ...form, paid_at: e.target.value || null })} disabled={form.status !== "paid" || !canChangeStatus} />
+              <Input
+                type="date"
+                value={toDateInput(form.paid_at)}
+                onChange={(e) => setForm({ ...form, paid_at: e.target.value || null })}
+                disabled={form.status !== "paid" || !canChangeStatus}
+              />
             </div>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Estado</Label>
-            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })} disabled={!canChangeStatus}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={form.status}
+              onValueChange={(v) => setForm({ ...form, status: v as Status })}
+              disabled={!canChangeStatus}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {STATUSES.map((k) => (
-                  <SelectItem key={k} value={k}>{statusLabel(k)}</SelectItem>
+                  <SelectItem key={k} value={k}>
+                    {statusLabel(k)}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {!canChangeStatus && <p className="text-xs text-muted-foreground">{STATUS_LOCKED_HINT}</p>}
+            {!canChangeStatus && (
+              <p className="text-xs text-muted-foreground">{STATUS_LOCKED_HINT}</p>
+            )}
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={save} disabled={saving}>{saving ? "Guardando…" : "Guardar"}</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={save} disabled={saving}>
+            {saving ? "Guardando…" : "Guardar"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

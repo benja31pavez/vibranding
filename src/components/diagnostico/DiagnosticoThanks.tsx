@@ -36,14 +36,18 @@ export function DiagnosticoThanks({ negocio }: { negocio: string }) {
         ¡Listo! Recibimos tu solicitud
       </h1>
       <p role="status" className="mx-auto mt-3 max-w-xl text-muted-foreground">
-        Gracias. Ya tenemos los datos de <strong className="text-foreground">{negocio}</strong> para preparar tu diagnóstico.
+        Gracias. Ya tenemos los datos de <strong className="text-foreground">{negocio}</strong> para
+        preparar tu diagnóstico.
       </p>
 
       <h2 className="mt-10 text-left text-lg font-semibold">Próximos pasos</h2>
       <ol className="mt-4 space-y-3 text-left">
         {NEXT_STEPS.map((s, i) => (
           <li key={s.title} className="flex gap-4 rounded-2xl border bg-card p-4">
-            <span className="font-brand text-2xl leading-none text-gradient-brand-strong" aria-hidden>
+            <span
+              className="font-brand text-2xl leading-none text-gradient-brand-strong"
+              aria-hidden
+            >
               {i + 1}
             </span>
             <span>

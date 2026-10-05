@@ -102,7 +102,11 @@ export function BotRulesTab({ clientId }: { clientId: string }) {
       <BotKnowledgeSection clientId={clientId} />
 
       {loadError && (
-        <ErrorState title="No pudimos cargar las reglas" message={loadError} onRetry={() => void load()} />
+        <ErrorState
+          title="No pudimos cargar las reglas"
+          message={loadError}
+          onRetry={() => void load()}
+        />
       )}
 
       <div className="flex items-center justify-between pt-2">
@@ -111,7 +115,6 @@ export function BotRulesTab({ clientId }: { clientId: string }) {
           <Plus className="w-4 h-4 mr-1" /> Nueva regla
         </Button>
       </div>
-
 
       {rules.length === 0 && (
         <Card>
@@ -148,9 +151,7 @@ function RuleEditor({
   const [kwInput, setKwInput] = useState("");
   // New rules (name "Nueva regla" and no actions/keywords) start expanded; the rest collapsed.
   const isFresh =
-    rule.name === "Nueva regla" &&
-    (rule.actions ?? []).length === 0 &&
-    rule.keywords.length === 0;
+    rule.name === "Nueva regla" && (rule.actions ?? []).length === 0 && rule.keywords.length === 0;
   const [collapsed, setCollapsed] = useState(!isFresh);
 
   const addKeyword = () => {
@@ -161,8 +162,7 @@ function RuleEditor({
     setKwInput("");
   };
 
-  const removeKw = (k: string) =>
-    onChange({ keywords: rule.keywords.filter((x) => x !== k) });
+  const removeKw = (k: string) => onChange({ keywords: rule.keywords.filter((x) => x !== k) });
 
   const setActions = (actions: Action[]) => onChange({ actions });
 
@@ -191,7 +191,7 @@ function RuleEditor({
   const effectiveActions: Action[] =
     (rule.actions ?? []).length === 0 && rule.response_text
       ? [{ kind: "text", body: rule.response_text }]
-      : rule.actions ?? [];
+      : (rule.actions ?? []);
 
   const actionsCount = effectiveActions.length;
   const matchLabel: Record<Rule["match_type"], string> = {
@@ -222,14 +222,10 @@ function RuleEditor({
                 </Badge>
               )}
             </div>
-            <Switch
-              checked={rule.is_active}
-              onCheckedChange={(v) => onChange({ is_active: v })}
-            />
+            <Switch checked={rule.is_active} onCheckedChange={(v) => onChange({ is_active: v })} />
             <Button size="icon" variant="ghost" onClick={() => setCollapsed(false)}>
               <Pencil className="w-4 h-4" />
             </Button>
-
           </div>
         </CardContent>
       </Card>
@@ -253,10 +249,7 @@ function RuleEditor({
             className="font-medium"
             placeholder="Nombre de la regla"
           />
-          <Switch
-            checked={rule.is_active}
-            onCheckedChange={(v) => onChange({ is_active: v })}
-          />
+          <Switch checked={rule.is_active} onCheckedChange={(v) => onChange({ is_active: v })} />
           <Button size="icon" variant="ghost" onClick={onDelete}>
             <Trash2 className="w-4 h-4" />
           </Button>

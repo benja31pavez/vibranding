@@ -24,7 +24,9 @@ export function Money({ amount, currency, className }: MoneyProps) {
     return (
       <span className={cn("tabular-nums", className)}>
         {formatPlainAmount(amount)}{" "}
-        <span className="text-xs font-normal text-muted-foreground">{legacyCurrencyLabel(currency)}</span>
+        <span className="text-xs font-normal text-muted-foreground">
+          {legacyCurrencyLabel(currency)}
+        </span>
       </span>
     );
   }

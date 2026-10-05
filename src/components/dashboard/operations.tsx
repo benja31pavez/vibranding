@@ -5,7 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { EmptyState, Panel } from "@/components/app";
 import { BlockState } from "./block-state";
-import { UPCOMING_DAYS, addDays, chileStartOfDayIso, chileToday, dashboardKeys, formatShortDate, useClientIndex } from "./queries";
+import {
+  UPCOMING_DAYS,
+  addDays,
+  chileStartOfDayIso,
+  chileToday,
+  dashboardKeys,
+  formatShortDate,
+  useClientIndex,
+} from "./queries";
 
 const LIST_LIMIT = 8;
 
@@ -64,7 +72,11 @@ export function OperationsPanels() {
 
   return (
     <section className="grid gap-4 lg:grid-cols-2">
-      <Panel icon={CheckSquare} title="Próximas etapas" description={`Vencen en ${UPCOMING_DAYS} días o antes`}>
+      <Panel
+        icon={CheckSquare}
+        title="Próximas etapas"
+        description={`Vencen en ${UPCOMING_DAYS} días o antes`}
+      >
         <BlockState query={deliverables} loadingLabel="Cargando etapas">
           {(rows) =>
             rows.length === 0 ? (
@@ -73,10 +85,17 @@ export function OperationsPanels() {
               <ul className="space-y-2">
                 {rows.map((d) => (
                   <li key={d.id} className="flex items-center justify-between gap-3 text-sm">
-                    <Link to="/clients/$clientId/deliverables" params={{ clientId: d.client_id }} className="min-w-0 truncate hover:underline">
-                      <span className="font-medium">{d.title}</span> <span className="text-muted-foreground">· {nameOf(d.client_id)}</span>
+                    <Link
+                      to="/clients/$clientId/deliverables"
+                      params={{ clientId: d.client_id }}
+                      className="min-w-0 truncate hover:underline"
+                    >
+                      <span className="font-medium">{d.title}</span>{" "}
+                      <span className="text-muted-foreground">· {nameOf(d.client_id)}</span>
                     </Link>
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{formatShortDate(d.due_date)}</span>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                      {formatShortDate(d.due_date)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -94,12 +113,21 @@ export function OperationsPanels() {
               <ul className="space-y-2">
                 {rows.map((p) => (
                   <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
-                    <Link to="/clients/$clientId/instagram" params={{ clientId: p.client_id }} className="min-w-0 truncate hover:underline">
-                      <span className="font-medium">{nameOf(p.client_id)}</span> <span className="text-muted-foreground">· {p.type}</span>
+                    <Link
+                      to="/clients/$clientId/instagram"
+                      params={{ clientId: p.client_id }}
+                      className="min-w-0 truncate hover:underline"
+                    >
+                      <span className="font-medium">{nameOf(p.client_id)}</span>{" "}
+                      <span className="text-muted-foreground">· {p.type}</span>
                     </Link>
                     <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                       {p.scheduled_at
-                        ? new Date(p.scheduled_at).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short", timeZone: "America/Santiago" })
+                        ? new Date(p.scheduled_at).toLocaleString("es-CL", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                            timeZone: "America/Santiago",
+                          })
                         : "—"}
                     </span>
                   </li>

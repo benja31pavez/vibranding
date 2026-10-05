@@ -51,7 +51,8 @@ export const Route = createFileRoute("/api/public/meta/ingest-daily")({
         if ("error" in parsed) return Response.json({ error: parsed.error }, { status: 400 });
 
         const { INGEST_WINDOW_DAYS } = await import("@/lib/meta/insights.server");
-        const { runMetaIngestAll, runMetaIngestBatch } = await import("@/lib/meta/ingestBatch.server");
+        const { runMetaIngestAll, runMetaIngestBatch } =
+          await import("@/lib/meta/ingestBatch.server");
         const date = url.searchParams.get("date") ?? undefined;
         const windowDays = Number(url.searchParams.get("days") ?? INGEST_WINDOW_DAYS);
 

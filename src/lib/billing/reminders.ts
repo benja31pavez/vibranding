@@ -103,7 +103,10 @@ export function isClp(p: { currency: string | null }): boolean {
   return (p.currency ?? "").trim().toUpperCase() === REMINDER_CURRENCY;
 }
 
-export function reminderStage(p: Pick<ReminderPayment, "status" | "due_date">, today: string): ReminderStage {
+export function reminderStage(
+  p: Pick<ReminderPayment, "status" | "due_date">,
+  today: string,
+): ReminderStage {
   const days = daysUntilDue(p.due_date, today);
   if (days === null) return p.status === "overdue" ? "vencido" : "amable";
   if (days > 0) return "amable";
@@ -126,7 +129,10 @@ export function needsReminder(
 }
 
 /** Puntaje de urgencia: más atraso = más alto. Sin fecha va al final. */
-export function urgencyScore(p: Pick<ReminderPayment, "status" | "due_date">, today: string): number {
+export function urgencyScore(
+  p: Pick<ReminderPayment, "status" | "due_date">,
+  today: string,
+): number {
   const days = daysUntilDue(p.due_date, today);
   if (days === null) return p.status === "overdue" ? 0 : Number.NEGATIVE_INFINITY;
   return -days;
@@ -230,7 +236,12 @@ const SUBJECTS: Readonly<Record<ReminderStage, string>> = {
   pausa: "Pago atrasado: aviso de pausa del servicio",
 };
 
-export function buildReminder({ payment, clientName, contactName, today }: ReminderInput): ReminderMessage {
+export function buildReminder({
+  payment,
+  clientName,
+  contactName,
+  today,
+}: ReminderInput): ReminderMessage {
   const stage = reminderStage(payment, today);
   const days = daysUntilDue(payment.due_date, today);
   const contact = firstName(contactName?.trim() ?? "");
@@ -254,7 +265,10 @@ export function buildReminder({ payment, clientName, contactName, today }: Remin
 // ------------------------------------------------------------------ links (no envían nada)
 
 /** wa.me con el texto; null si el teléfono no sirve. */
-export function reminderWhatsappHref(phone: string | null | undefined, text: string): string | null {
+export function reminderWhatsappHref(
+  phone: string | null | undefined,
+  text: string,
+): string | null {
   const digits = whatsappDigits(phone);
   return digits ? `https://wa.me/${digits}?text=${encodeURIComponent(text)}` : null;
 }

@@ -44,7 +44,11 @@ export function ContractPanel({ clientId }: { clientId: string }) {
       ) : query.error ? (
         <ErrorState message={query.error.message} onRetry={() => void query.refetch()} />
       ) : !contract ? (
-        <EmptyState size="compact" title="Sin contrato" description="Genera uno desde Facturación." />
+        <EmptyState
+          size="compact"
+          title="Sin contrato"
+          description="Genera uno desde Facturación."
+        />
       ) : (
         <div className="space-y-1.5 text-sm">
           <div className="flex items-center justify-between gap-2">
@@ -53,16 +57,28 @@ export function ContractPanel({ clientId }: { clientId: string }) {
           </div>
           {contract.total_monthly > 0 && (
             <div className="text-muted-foreground">
-              Mensual: <Money amount={contract.total_monthly} currency={contract.currency} className="text-foreground" />
+              Mensual:{" "}
+              <Money
+                amount={contract.total_monthly}
+                currency={contract.currency}
+                className="text-foreground"
+              />
             </div>
           )}
           {contract.total_one_time > 0 && (
             <div className="text-muted-foreground">
-              Pago único: <Money amount={contract.total_one_time} currency={contract.currency} className="text-foreground" />
+              Pago único:{" "}
+              <Money
+                amount={contract.total_one_time}
+                currency={contract.currency}
+                className="text-foreground"
+              />
             </div>
           )}
           <div className="text-xs text-muted-foreground">
-            {contract.signed_at ? `Firmado el ${formatDate(contract.signed_at)}` : `Vigencia desde ${formatDate(contract.effective_date)}`}
+            {contract.signed_at
+              ? `Firmado el ${formatDate(contract.signed_at)}`
+              : `Vigencia desde ${formatDate(contract.effective_date)}`}
           </div>
         </div>
       )}

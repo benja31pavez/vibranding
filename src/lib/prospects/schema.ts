@@ -4,12 +4,27 @@ import { PLANS, type PlanKey } from "@/lib/pricing/plans";
 
 /** Estados de `prospects.estado` (CHECK prospects_estado_chk). */
 export const PROSPECT_STATES = [
-  "nuevo", "contactado", "respondio", "demo", "propuesta", "ganado", "frio", "perdido", "baja",
+  "nuevo",
+  "contactado",
+  "respondio",
+  "demo",
+  "propuesta",
+  "ganado",
+  "frio",
+  "perdido",
+  "baja",
 ] as const;
 export type ProspectState = (typeof PROSPECT_STATES)[number];
 
 /** Columnas abiertas del kanban, en orden del embudo. */
-export const OPEN_STATES = ["nuevo", "contactado", "respondio", "demo", "propuesta", "ganado"] as const;
+export const OPEN_STATES = [
+  "nuevo",
+  "contactado",
+  "respondio",
+  "demo",
+  "propuesta",
+  "ganado",
+] as const;
 /**
  * "Frío": se guarda, no se insiste automáticamente y no tiene fecha de "no contactar".
  * Retomarlo es manual (moverlo a "nuevo" o "contactado"). Columna propia y visible.
@@ -98,35 +113,62 @@ export function normalizeInstagram(raw: string): string | null {
 }
 
 const optionalText = (max: number) =>
-  z.string().trim().max(max, `Máximo ${max} caracteres`).transform((v) => v || null);
+  z
+    .string()
+    .trim()
+    .max(max, `Máximo ${max} caracteres`)
+    .transform((v) => v || null);
 
 /** Esquema de un prospecto (formulario e importación). Devuelve valores listos para la BD. */
 export const prospectSchema = z.object({
-  nombre: z.string().trim().min(1, "El nombre es obligatorio").max(MAX_NAME, `Máximo ${MAX_NAME} caracteres`),
+  nombre: z
+    .string()
+    .trim()
+    .min(1, "El nombre es obligatorio")
+    .max(MAX_NAME, `Máximo ${MAX_NAME} caracteres`),
   rubro: optionalText(MAX_SHORT),
   comuna: optionalText(MAX_SHORT),
   web: z.string().transform((v, ctx) => {
     if (!v.trim()) return null;
     const url = normalizeWeb(v);
-    if (!url) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Ingresa una URL válida (ej. misitio.cl)" });
+    if (!url)
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Ingresa una URL válida (ej. misitio.cl)",
+      });
     return url;
   }),
   instagram: z.string().transform((v, ctx) => {
     if (!v.trim()) return null;
     const handle = normalizeInstagram(v);
-    if (!handle) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Ingresa @usuario o la URL del perfil" });
+    if (!handle)
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Ingresa @usuario o la URL del perfil",
+      });
     return handle;
   }),
-  email_publico: z.string().trim().transform((v, ctx) => {
-    if (!v) return null;
-    if (!isEmail(v)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Correo con formato inválido" });
-    return v.toLowerCase();
-  }),
-  telefono_publico: z.string().trim().transform((v, ctx) => {
-    if (!v) return null;
-    if (!isPhone(v)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Teléfono inválido (ej. +56 9 1234 5678)" });
-    return v;
-  }),
+  email_publico: z
+    .string()
+    .trim()
+    .transform((v, ctx) => {
+      if (!v) return null;
+      if (!isEmail(v))
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Correo con formato inválido" });
+      return v.toLowerCase();
+    }),
+  telefono_publico: z
+    .string()
+    .trim()
+    .transform((v, ctx) => {
+      if (!v) return null;
+      if (!isPhone(v))
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Teléfono inválido (ej. +56 9 1234 5678)",
+        });
+      return v;
+    }),
   fuente: z
     .string()
     .trim()
@@ -135,22 +177,35 @@ export const prospectSchema = z.object({
   estado: z.enum(PROSPECT_STATES),
   producto_sugerido: z.union([z.enum(PLAN_KEYS), z.literal("")]).transform((v) => v || null),
   notas: optionalText(MAX_NOTES),
-  ultimo_contacto: z.string().trim().transform((v, ctx) => {
-    if (!v) return null;
-    if (!DATE_RE.test(v) || Number.isNaN(new Date(`${v}T12:00:00`).getTime())) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Fecha inválida" });
-      return null;
-    }
-    return new Date(`${v}T12:00:00`).toISOString();
-  }),
+  ultimo_contacto: z
+    .string()
+    .trim()
+    .transform((v, ctx) => {
+      if (!v) return null;
+      if (!DATE_RE.test(v) || Number.isNaN(new Date(`${v}T12:00:00`).getTime())) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Fecha inválida" });
+        return null;
+      }
+      return new Date(`${v}T12:00:00`).toISOString();
+    }),
 });
 
 export type ProspectFormInput = z.input<typeof prospectSchema>;
 export type ProspectValues = z.output<typeof prospectSchema>;
 
 export const EMPTY_FORM: ProspectFormInput = {
-  nombre: "", rubro: "", comuna: "", web: "", instagram: "", email_publico: "",
-  telefono_publico: "", fuente: "", estado: "nuevo", producto_sugerido: "", notas: "", ultimo_contacto: "",
+  nombre: "",
+  rubro: "",
+  comuna: "",
+  web: "",
+  instagram: "",
+  email_publico: "",
+  telefono_publico: "",
+  fuente: "",
+  estado: "nuevo",
+  producto_sugerido: "",
+  notas: "",
+  ultimo_contacto: "",
 };
 
 /** Errores de zod → { campo: mensaje } (primer error por campo). */
@@ -172,7 +227,8 @@ export function dedupeKey(nombre: string, comuna: string | null | undefined): st
  * Marca que dejaba "Convertir en cliente" en las notas del prospecto antes de la v3
  * (ahora el vínculo es prospects.client_id). Se sigue leyendo para prospectos antiguos.
  */
-const CLIENT_MARK_RE = /\[Cliente: ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/i;
+const CLIENT_MARK_RE =
+  /\[Cliente: ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/i;
 
 export function clientMark(clientId: string): string {
   return `[Cliente: ${clientId}]`;
@@ -189,7 +245,15 @@ export function convertedClientId(
 export const REVOKE_MOTIVO_MIN = 5;
 export const REVOKE_MOTIVO_MAX = 300;
 /** Estados a los que puede volver un prospecto que sale de baja (revoke_prospect_baja). */
-export const REVOKE_TARGET_STATES = ["nuevo", "contactado", "respondio", "demo", "propuesta", "perdido", "frio"] as const;
+export const REVOKE_TARGET_STATES = [
+  "nuevo",
+  "contactado",
+  "respondio",
+  "demo",
+  "propuesta",
+  "perdido",
+  "frio",
+] as const;
 export type RevokeTargetState = (typeof REVOKE_TARGET_STATES)[number];
 
 const NO_CONTACT_RE = /No contactar antes de (\d{4}-\d{2}-\d{2})/;
@@ -207,5 +271,10 @@ export function noContactUntil(notas: string | null | undefined, today: string):
 
 /** Normaliza para comparar nombres (sin tildes, mayúsculas ni espacios extra). */
 export function normalizeName(s: string | null | undefined): string {
-  return (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+  return (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 }

@@ -22,7 +22,10 @@ export const Route = createFileRoute("/api/public/onboarding/cleanup")({
           return new Response("Server misconfigured", { status: 500 });
         }
         const provided = request.headers.get("x-dispatch-secret") ?? "";
-        const [a, b] = await Promise.all([hmacSha256Hex(expected, provided), hmacSha256Hex(expected, expected)]);
+        const [a, b] = await Promise.all([
+          hmacSha256Hex(expected, provided),
+          hmacSha256Hex(expected, expected),
+        ]);
         if (!provided || !timingSafeEqualHex(a, b)) {
           return new Response("Forbidden", { status: 403 });
         }

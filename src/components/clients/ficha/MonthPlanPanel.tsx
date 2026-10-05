@@ -4,7 +4,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CalendarRange, Sparkles } from "lucide-react";
 import { Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { findPlan } from "@/lib/pricing/plans";
 import { periodLabel } from "@/lib/billing/dates";
 import { chileToday } from "@/lib/dates/chile";
@@ -47,12 +53,14 @@ export function MonthPlanPanel({ clientId, planKey, canEdit }: MonthPlanPanelPro
     >
       {!plan ? (
         <p className="text-sm text-muted-foreground">
-          Este cliente aún no tiene un plan asignado. Asígnalo en «Plan y facturación» para generar su plan del mes.
+          Este cliente aún no tiene un plan asignado. Asígnalo en «Plan y facturación» para generar
+          su plan del mes.
         </p>
       ) : (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{plan.label}</span> · {items.length} tareas sugeridas
+            <span className="font-medium text-foreground">{plan.label}</span> · {items.length}{" "}
+            tareas sugeridas
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Select value={month} onValueChange={setMonth}>
@@ -75,7 +83,12 @@ export function MonthPlanPanel({ clientId, planKey, canEdit }: MonthPlanPanelPro
       )}
       <p className="mt-3 text-xs text-muted-foreground">
         Las tareas quedan en{" "}
-        <Link to="/clients/$clientId/plan" params={{ clientId }} search={{ tab: "tareas" }} className="text-primary hover:underline">
+        <Link
+          to="/clients/$clientId/plan"
+          params={{ clientId }}
+          search={{ tab: "tareas" }}
+          className="text-primary hover:underline"
+        >
           Plan › Tareas
         </Link>{" "}
         y en la Agenda, como «Por hacer».

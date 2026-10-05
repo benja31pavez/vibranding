@@ -9,18 +9,35 @@ import { Input } from "@/components/ui/input";
 import { Plus, Instagram, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, ErrorState, PageContainer, PageHeader } from "@/components/app";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  HEALTH_LOAD_ERROR, HealthBadge, invalidateClientHealth, useClientsHealth,
+  HEALTH_LOAD_ERROR,
+  HealthBadge,
+  invalidateClientHealth,
+  useClientsHealth,
 } from "@/components/clients/health";
-import { HEALTH_LEVEL_META, compareByRisk, type ClientHealth, type HealthLevel } from "@/lib/health";
+import {
+  HEALTH_LEVEL_META,
+  compareByRisk,
+  type ClientHealth,
+  type HealthLevel,
+} from "@/lib/health";
 
 export const Route = createFileRoute("/_app/clients/")({
   component: ClientsList,
@@ -51,7 +68,9 @@ function arrangeClients(
 ): Client[] {
   // Sin datos de salud (cargando o error) el filtro no aplica.
   const filtered =
-    level === "all" || !health ? [...clients] : clients.filter((c) => health.get(c.id)?.level === level);
+    level === "all" || !health
+      ? [...clients]
+      : clients.filter((c) => health.get(c.id)?.level === level);
   if (sort !== "risk" || !health) return filtered;
   return filtered.sort((a, b) => compareByRisk(health.get(a.id), health.get(b.id)));
 }
@@ -97,7 +116,8 @@ function ClientsList() {
     e.preventDefault();
     if (!name.trim()) return;
     const { data: orgId, error: orgError } = await supabase.rpc("ensure_org");
-    if (orgError || !orgId) return toast.error(orgError?.message ?? "No se pudo obtener la organización");
+    if (orgError || !orgId)
+      return toast.error(orgError?.message ?? "No se pudo obtener la organización");
     const { error } = await supabase.from("clients").insert({
       name: name.trim(),
       instagram_handle: handle.trim() || null,
@@ -105,7 +125,9 @@ function ClientsList() {
       org_id: orgId as string,
     });
     if (error) return toast.error(error.message);
-    setName(""); setHandle(""); setOpen(false);
+    setName("");
+    setHandle("");
+    setOpen(false);
     toast.success("Cliente creado");
     load();
     void invalidateShellClients(queryClient);
@@ -124,18 +146,33 @@ function ClientsList() {
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button><Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo cliente</Button>
+                <Button>
+                  <Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo cliente
+                </Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>Nuevo cliente</DialogTitle></DialogHeader>
+                <DialogHeader>
+                  <DialogTitle>Nuevo cliente</DialogTitle>
+                </DialogHeader>
                 <form onSubmit={create} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="new-client-name">Nombre</Label>
-                    <Input id="new-client-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+                    <Input
+                      id="new-client-name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      autoFocus
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="new-client-handle">Instagram (sin @)</Label>
-                    <Input id="new-client-handle" value={handle} onChange={(e) => setHandle(e.target.value.replace(/^@/, ""))} placeholder="usuario" />
+                    <Input
+                      id="new-client-handle"
+                      value={handle}
+                      onChange={(e) => setHandle(e.target.value.replace(/^@/, ""))}
+                      placeholder="usuario"
+                    />
                   </div>
                   <DialogFooter>
                     <Button type="submit">Crear</Button>
@@ -171,7 +208,9 @@ function ClientsList() {
               </SelectTrigger>
               <SelectContent>
                 {(Object.keys(SORT_LABEL) as SortMode[]).map((k) => (
-                  <SelectItem key={k} value={k}>{SORT_LABEL[k]}</SelectItem>
+                  <SelectItem key={k} value={k}>
+                    {SORT_LABEL[k]}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -186,7 +225,9 @@ function ClientsList() {
               <SelectContent>
                 <SelectItem value="all">Toda la salud</SelectItem>
                 {(Object.keys(HEALTH_LEVEL_META) as HealthLevel[]).map((k) => (
-                  <SelectItem key={k} value={k}>{HEALTH_LEVEL_META[k].label}</SelectItem>
+                  <SelectItem key={k} value={k}>
+                    {HEALTH_LEVEL_META[k].label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -196,7 +237,13 @@ function ClientsList() {
             {health.isError && (
               <span role="alert" className="flex items-center gap-2 text-xs text-danger-strong">
                 {HEALTH_LOAD_ERROR}
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => void health.refetch()} disabled={health.isFetching}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => void health.refetch()}
+                  disabled={health.isFetching}
+                >
                   Reintentar
                 </Button>
               </span>
@@ -207,37 +254,42 @@ function ClientsList() {
               Ningún cliente con salud “{level === "all" ? "" : HEALTH_LEVEL_META[level].label}”.
             </p>
           ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((c) => {
-            const h = health.data?.get(c.id);
-            return (
-            <Link
-              key={c.id}
-              to="/clients/$clientId"
-              params={{ clientId: c.id }}
-              className="group rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs transition-shadow hover:border-border-strong hover:shadow-app-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="truncate text-base font-semibold">{c.name}</h3>
-                  {c.instagram_handle && (
-                    <div className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
-                      <Instagram aria-hidden className="h-3.5 w-3.5" /> @{c.instagram_handle}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {visible.map((c) => {
+                const h = health.data?.get(c.id);
+                return (
+                  <Link
+                    key={c.id}
+                    to="/clients/$clientId"
+                    params={{ clientId: c.id }}
+                    className="group rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs transition-shadow hover:border-border-strong hover:shadow-app-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-semibold">{c.name}</h3>
+                        {c.instagram_handle && (
+                          <div className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
+                            <Instagram aria-hidden className="h-3.5 w-3.5" /> @{c.instagram_handle}
+                          </div>
+                        )}
+                      </div>
+                      <ArrowRight
+                        aria-hidden
+                        className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1"
+                      />
                     </div>
-                  )}
-                </div>
-                <ArrowRight aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" />
-              </div>
-              <div className="mt-3 flex min-h-5 items-center gap-2">
-                <HealthBadge health={h} loading={health.isPending && !health.isError} />
-                {h && h.reasons[0] && (
-                  <span className="truncate text-xs text-muted-foreground">{h.reasons[0].label}</span>
-                )}
-              </div>
-            </Link>
-            );
-          })}
-        </div>
+                    <div className="mt-3 flex min-h-5 items-center gap-2">
+                      <HealthBadge health={h} loading={health.isPending && !health.isError} />
+                      {h && h.reasons[0] && (
+                        <span className="truncate text-xs text-muted-foreground">
+                          {h.reasons[0].label}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
@@ -252,7 +304,10 @@ function CardsSkeleton() {
     <div role="status" aria-busy className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <span className="sr-only">Cargando clientes</span>
       {Array.from({ length: SKELETON_CARDS }, (_, i) => (
-        <div key={i} className="space-y-2 rounded-app-lg border border-border-subtle bg-surface p-5">
+        <div
+          key={i}
+          className="space-y-2 rounded-app-lg border border-border-subtle bg-surface p-5"
+        >
           <Skeleton className="h-4 w-1/2" />
           <Skeleton className="h-3 w-1/3" />
         </div>

@@ -80,7 +80,11 @@ export function OutcomeBackfill({ clientId }: { clientId: string }) {
     const previous = outcomes[convId] ?? null;
     setOutcomes((prev) => ({
       ...prev,
-      [convId]: { conversation_id: convId, status, value_clp: status === "closed" ? valueClp : null },
+      [convId]: {
+        conversation_id: convId,
+        status,
+        value_clp: status === "closed" ? valueClp : null,
+      },
     }));
     const { data: auth } = await supabase.auth.getUser();
     const { error } = await (supabase.from("conversation_outcomes" as any) as any).upsert(

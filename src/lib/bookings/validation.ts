@@ -15,7 +15,8 @@ function issueMessage(issue: z.ZodIssue): string {
   const field = String(issue.path[0] ?? "");
   const label = FIELD_LABELS[field] ?? "Un dato";
   if (field === "email" && issue.code === "invalid_string") return "Ingresa un email válido.";
-  if (field === "scheduledAt" || field === "from" || field === "to") return `${label} no es válido.`;
+  if (field === "scheduledAt" || field === "from" || field === "to")
+    return `${label} no es válido.`;
   switch (issue.code) {
     case "too_small":
       return `${label} es obligatorio.`;

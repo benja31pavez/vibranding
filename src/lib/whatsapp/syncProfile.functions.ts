@@ -71,7 +71,12 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
       descParts.push(`Horario: ${hoursSummary}`);
     }
     if (socials.length) {
-      descParts.push(socials.filter((s) => s?.url?.trim()).map(socialDisplay).join(" · "));
+      descParts.push(
+        socials
+          .filter((s) => s?.url?.trim())
+          .map(socialDisplay)
+          .join(" · "),
+      );
     }
     if (catalog.length) {
       descParts.push(
@@ -107,11 +112,7 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
           "WhatsApp solo acepta fotos de perfil en formato JPG/JPEG. Vuelve a subir la imagen como .jpg.",
         );
       } else {
-        const handle = await uploadProfilePhotoHandle(
-          appId,
-          accessToken,
-          acc.profile_photo_url,
-        );
+        const handle = await uploadProfilePhotoHandle(appId, accessToken, acc.profile_photo_url);
         if (handle) {
           body.profile_picture_handle = handle;
         } else {
@@ -125,17 +126,14 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
       );
     }
 
-    const res = await fetch(
-      `${META}/${acc.phone_number_id}/whatsapp_business_profile`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
+    const res = await fetch(`${META}/${acc.phone_number_id}/whatsapp_business_profile`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify(body),
+    });
     const json: any = await res.json().catch(() => ({}));
     if (!res.ok) {
       const msg = json?.error?.message ?? `HTTP ${res.status}`;
@@ -159,8 +157,11 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
         ? {
             about: typeof row.about === "string" ? row.about : undefined,
             description: typeof row.description === "string" ? row.description : undefined,
-            websites: Array.isArray(row.websites) ? row.websites.filter((x: unknown) => typeof x === "string") : undefined,
-            profile_picture_url: typeof row.profile_picture_url === "string" ? row.profile_picture_url : undefined,
+            websites: Array.isArray(row.websites)
+              ? row.websites.filter((x: unknown) => typeof x === "string")
+              : undefined,
+            profile_picture_url:
+              typeof row.profile_picture_url === "string" ? row.profile_picture_url : undefined,
           }
         : null;
     } catch {

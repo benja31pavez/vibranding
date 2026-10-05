@@ -19,11 +19,7 @@ export async function uniqueSlug(
   const seed = slugify(base) || "pagina";
   let candidate = seed;
   for (let i = 2; i < 100; i++) {
-    const { data } = await supabase
-      .from(table)
-      .select("id")
-      .eq("slug", candidate)
-      .maybeSingle();
+    const { data } = await supabase.from(table).select("id").eq("slug", candidate).maybeSingle();
     if (!data) return candidate;
     candidate = `${seed}-${i}`;
   }

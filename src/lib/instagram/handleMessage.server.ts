@@ -41,8 +41,7 @@ export async function handleIgMessage(igAccountId: string, event: MessagingEvent
     ? new Date(Number(event.timestamp)).toISOString()
     : new Date().toISOString();
   const body =
-    msg.text ??
-    (msg.attachments?.length ? `[${msg.attachments[0]?.type ?? "adjunto"}]` : null);
+    msg.text ?? (msg.attachments?.length ? `[${msg.attachments[0]?.type ?? "adjunto"}]` : null);
 
   // Idempotency: Meta redelivers the same mid when we answered non-200. If it
   // is already stored, skip everything (no second unread bump, no second DM).

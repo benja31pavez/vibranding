@@ -3,13 +3,7 @@
 
 export type FlowActionKind = "text" | "link" | "document" | "image" | "poll" | "catalog";
 
-export type FlowStepKind =
-  | "message"
-  | "question"
-  | "delay"
-  | "tag"
-  | "save_lead"
-  | "handoff";
+export type FlowStepKind = "message" | "question" | "delay" | "tag" | "save_lead" | "handoff";
 
 export type FlowChoice = {
   id: string;

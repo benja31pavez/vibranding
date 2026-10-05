@@ -93,11 +93,14 @@ export async function diagnoseIngest(opts: {
 }
 
 /** Live token check + ad account metadata, cached on meta_accounts. */
-export async function refreshAccountFacts(account: {
-  id: string;
-  ad_account_id: string | null;
-  token_expires_at?: string | null;
-}, token: string) {
+export async function refreshAccountFacts(
+  account: {
+    id: string;
+    ad_account_id: string | null;
+    token_expires_at?: string | null;
+  },
+  token: string,
+) {
   const patch: Record<string, unknown> = { last_validated_at: new Date().toISOString() };
 
   try {
@@ -105,7 +108,9 @@ export async function refreshAccountFacts(account: {
     const info = res?.data ?? {};
     patch.token_valid = info?.is_valid !== false;
     if (Array.isArray(info?.scopes) && info.scopes.length > 0) patch.scopes = info.scopes;
-    patch.token_expires_at = info?.expires_at ? new Date(info.expires_at * 1000).toISOString() : null;
+    patch.token_expires_at = info?.expires_at
+      ? new Date(info.expires_at * 1000).toISOString()
+      : null;
   } catch {
     patch.token_valid = false;
   }

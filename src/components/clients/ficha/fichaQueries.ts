@@ -5,10 +5,18 @@ import type { StatusTone } from "@/components/app";
 import { useAuth } from "@/hooks/use-auth";
 
 /** Etapas comerciales de `clients.status` (CHECK clients_status_chk). */
-export const CLIENT_STATUSES = ["prospecto", "onboarding", "activo", "pausado", "terminado"] as const;
+export const CLIENT_STATUSES = [
+  "prospecto",
+  "onboarding",
+  "activo",
+  "pausado",
+  "terminado",
+] as const;
 export type ClientStatus = (typeof CLIENT_STATUSES)[number];
 
-export const CLIENT_STATUS_META: Readonly<Record<ClientStatus, { label: string; tone: StatusTone }>> = {
+export const CLIENT_STATUS_META: Readonly<
+  Record<ClientStatus, { label: string; tone: StatusTone }>
+> = {
   prospecto: { label: "Prospecto", tone: "info" },
   onboarding: { label: "Onboarding", tone: "warning" },
   activo: { label: "Activo", tone: "success" },
@@ -84,8 +92,14 @@ export function useFichaOverview(clientId: string) {
   });
 }
 
-export type ApprovalItem = Pick<Tables<"approval_queue">, "kind" | "ref_id" | "title" | "created_at" | "url_hint">;
-export type OpenPayment = Pick<Tables<"payments">, "id" | "amount" | "currency" | "status" | "due_date" | "description">;
+export type ApprovalItem = Pick<
+  Tables<"approval_queue">,
+  "kind" | "ref_id" | "title" | "created_at" | "url_hint"
+>;
+export type OpenPayment = Pick<
+  Tables<"payments">,
+  "id" | "amount" | "currency" | "status" | "due_date" | "description"
+>;
 export type OpenAlert = Pick<
   Tables<"campaign_alerts">,
   "id" | "client_id" | "severity" | "message" | "platform" | "created_at" | "data"

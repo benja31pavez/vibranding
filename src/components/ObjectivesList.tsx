@@ -31,7 +31,13 @@ import {
   LayoutTemplate,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
@@ -40,7 +46,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -113,7 +125,8 @@ const PREDEFINED_TEMPLATES: Template[] = [
     name: "Subir engagement promedio",
     data: {
       title: "Subir el engagement promedio al X%",
-      description: "Mejorar la interacción por publicación con contenido más relevante y consistente.",
+      description:
+        "Mejorar la interacción por publicación con contenido más relevante y consistente.",
       priority: "medium",
       category: "engagement",
       target_value: "",
@@ -126,7 +139,8 @@ const PREDEFINED_TEMPLATES: Template[] = [
     name: "Ventas desde redes",
     data: {
       title: "Generar X ventas desde redes sociales",
-      description: "Convertir tráfico social en ventas mediante CTAs claros y promociones puntuales.",
+      description:
+        "Convertir tráfico social en ventas mediante CTAs claros y promociones puntuales.",
       priority: "high",
       category: "sales",
       target_value: "",
@@ -139,7 +153,8 @@ const PREDEFINED_TEMPLATES: Template[] = [
     name: "Identidad visual completa",
     data: {
       title: "Publicar la identidad visual completa de la marca",
-      description: "Definir logo, paleta, tipografías y guía de estilo coherente para todos los canales.",
+      description:
+        "Definir logo, paleta, tipografías y guía de estilo coherente para todos los canales.",
       priority: "high",
       category: "branding",
       target_value: "",
@@ -152,7 +167,8 @@ const PREDEFINED_TEMPLATES: Template[] = [
     name: "Captación de leads",
     data: {
       title: "Captar X leads cualificados este trimestre",
-      description: "Generar una base de contactos cualificados desde campañas y contenido orgánico.",
+      description:
+        "Generar una base de contactos cualificados desde campañas y contenido orgánico.",
       priority: "medium",
       category: "growth",
       target_value: "",
@@ -370,7 +386,8 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
 
   const remove = async (id: string) => {
     const title = items.find((x) => x.id === id)?.title;
-    if (!confirm(`¿Eliminar ${title ? `«${title}»` : "este objetivo"}? No se puede deshacer.`)) return;
+    if (!confirm(`¿Eliminar ${title ? `«${title}»` : "este objetivo"}? No se puede deshacer.`))
+      return;
     const res = await supabase.from("objectives").delete().eq("id", id).select("id");
     if (writeFailed(res, "No se pudo eliminar")) return;
     load();
@@ -390,7 +407,9 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
   const total = items.length;
   const done = items.filter((x) => x.status === "done").length;
   const inProgress = items.filter((x) => x.status === "in_progress").length;
-  const overdueCount = items.filter((x) => x.status !== "done" && x.due_date && x.due_date < today).length;
+  const overdueCount = items.filter(
+    (x) => x.status !== "done" && x.due_date && x.due_date < today,
+  ).length;
   const upcomingCount = items.filter(
     (x) => x.status !== "done" && x.due_date && x.due_date >= today && x.due_date <= in7,
   ).length;
@@ -419,14 +438,18 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
     | "unrealistic"
     | "ambitious"
     | "realistic";
-  const computeRealism = (d: typeof draft): { level: Level; hint: string; reason: RealismReason } => {
+  const computeRealism = (
+    d: typeof draft,
+  ): { level: Level; hint: string; reason: RealismReason } => {
     if (!d.target_value || d.current_value === "" || !d.due_date) {
       return { level: "empty", hint: "Completa valores y fecha", reason: "missing" };
     }
     const target = Number(d.target_value);
     const current = Number(d.current_value);
-    if (!isFinite(target) || target <= 0) return { level: "empty", hint: "Valor objetivo inválido", reason: "invalid" };
-    if (current > target) return { level: "bad", hint: "El valor actual ya supera al objetivo", reason: "over_target" };
+    if (!isFinite(target) || target <= 0)
+      return { level: "empty", hint: "Valor objetivo inválido", reason: "invalid" };
+    if (current > target)
+      return { level: "bad", hint: "El valor actual ya supera al objetivo", reason: "over_target" };
     const days = Math.ceil((new Date(`${d.due_date}T00:00`).getTime() - Date.now()) / 86400000);
     if (days <= 0) return { level: "bad", hint: "La fecha límite ya pasó", reason: "past_due" };
     const delta = target - current;
@@ -436,10 +459,22 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
     if (current > 0) {
       const dailyPct = (perDay / current) * 100;
       if (dailyPct > 3)
-        return { level: "bad", hint: `Requiere +${dailyPct.toFixed(1)}%/día · poco realista`, reason: "unrealistic" };
+        return {
+          level: "bad",
+          hint: `Requiere +${dailyPct.toFixed(1)}%/día · poco realista`,
+          reason: "unrealistic",
+        };
       if (dailyPct > 1)
-        return { level: "warn", hint: `Requiere +${dailyPct.toFixed(1)}%/día · ambicioso`, reason: "ambitious" };
-      return { level: "ok", hint: `Requiere +${dailyPct.toFixed(2)}%/día · realista`, reason: "realistic" };
+        return {
+          level: "warn",
+          hint: `Requiere +${dailyPct.toFixed(1)}%/día · ambicioso`,
+          reason: "ambitious",
+        };
+      return {
+        level: "ok",
+        hint: `Requiere +${dailyPct.toFixed(2)}%/día · realista`,
+        reason: "realistic",
+      };
     }
     // current = 0 → use absolute thresholds (ramp from zero is harder)
     if (delta >= 1000 && days < 90)
@@ -455,9 +490,17 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
         reason: "unrealistic",
       };
     if (delta >= 500 && days < 60)
-      return { level: "warn", hint: `+${Math.round(perDay)}/día desde 0 · ambicioso`, reason: "ambitious" };
+      return {
+        level: "warn",
+        hint: `+${Math.round(perDay)}/día desde 0 · ambicioso`,
+        reason: "ambitious",
+      };
     if (delta >= 50 && days < 14)
-      return { level: "warn", hint: `+${perDay.toFixed(1)}/día desde 0 · ambicioso`, reason: "ambitious" };
+      return {
+        level: "warn",
+        hint: `+${perDay.toFixed(1)}/día desde 0 · ambicioso`,
+        reason: "ambitious",
+      };
     return {
       level: "ok",
       hint: `+${perDay < 1 ? perDay.toFixed(2) : Math.round(perDay)}/día · realista`,
@@ -485,7 +528,10 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
         hint: realism.hint,
         reason: realism.reason,
       },
-      relevant: { ok: d.description.trim().length >= 10, hint: "Descripción con contexto (≥ 10 car.)" },
+      relevant: {
+        ok: d.description.trim().length >= 10,
+        hint: "Descripción con contexto (≥ 10 car.)",
+      },
       timebound: { ok: !!d.due_date && d.due_date >= today, hint: "Fecha límite en el futuro" },
     };
   };
@@ -512,7 +558,9 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
     }
     return nums;
   };
-  const computeTitleConsistency = (d: typeof draft): { ok: boolean; message?: string; titleNum?: number } => {
+  const computeTitleConsistency = (
+    d: typeof draft,
+  ): { ok: boolean; message?: string; titleNum?: number } => {
     if (!d.target_value || !d.title.trim()) return { ok: true };
     const target = Number(d.target_value);
     if (!isFinite(target) || target <= 0) return { ok: true };
@@ -543,7 +591,12 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Objetivos</h3>
         {!adding && (
-          <Button size="sm" variant="outline" className="rounded-full" onClick={() => setAdding(true)}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            onClick={() => setAdding(true)}
+          >
             <Plus className="w-4 h-4 mr-1" /> Agregar
           </Button>
         )}
@@ -553,8 +606,18 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
       {total > 0 && (
         <div className="rounded-2xl border bg-surface p-5 space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Kpi icon={<Target className="w-4 h-4" />} label="Completados" value={`${done}/${total}`} tone="success" />
-            <Kpi icon={<Clock className="w-4 h-4" />} label="En curso" value={String(inProgress)} tone="warning" />
+            <Kpi
+              icon={<Target className="w-4 h-4" />}
+              label="Completados"
+              value={`${done}/${total}`}
+              tone="success"
+            />
+            <Kpi
+              icon={<Clock className="w-4 h-4" />}
+              label="En curso"
+              value={String(inProgress)}
+              tone="warning"
+            />
             <Kpi
               icon={<CalendarClock className="w-4 h-4" />}
               label="Próximos 7d"
@@ -632,7 +695,13 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button type="button" variant="ghost" size="sm" className="rounded-full text-xs" onClick={saveAsTemplate}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="rounded-full text-xs"
+              onClick={saveAsTemplate}
+            >
               <BookmarkPlus className="w-3.5 h-3.5 mr-1.5" /> Guardar como plantilla
             </Button>
           </div>
@@ -649,7 +718,10 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
             rows={2}
           />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <Select value={draft.category} onValueChange={(v) => setDraft({ ...draft, category: v as Category })}>
+            <Select
+              value={draft.category}
+              onValueChange={(v) => setDraft({ ...draft, category: v as Category })}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -661,7 +733,10 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={draft.priority} onValueChange={(v) => setDraft({ ...draft, priority: v as Priority })}>
+            <Select
+              value={draft.priority}
+              onValueChange={(v) => setDraft({ ...draft, priority: v as Priority })}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -754,7 +829,12 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
       )}
 
       {loadError ? (
-        <ErrorState title="No pudimos cargar los objetivos" message={loadError} onRetry={() => void load()} retrying={loading} />
+        <ErrorState
+          title="No pudimos cargar los objetivos"
+          message={loadError}
+          onRetry={() => void load()}
+          retrying={loading}
+        />
       ) : loading ? (
         <div className="text-sm text-muted-foreground">Cargando…</div>
       ) : sorted.length === 0 ? (
@@ -772,7 +852,14 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
               it.target_value && it.target_value > 0
                 ? Math.min(100, Math.round(((it.current_value ?? 0) / it.target_value) * 100))
                 : null;
-            const barColor = pct === null ? "" : pct >= 70 ? "bg-success" : pct >= 30 ? "bg-warning" : "bg-destructive";
+            const barColor =
+              pct === null
+                ? ""
+                : pct >= 70
+                  ? "bg-success"
+                  : pct >= 30
+                    ? "bg-warning"
+                    : "bg-destructive";
 
             return (
               <li
@@ -785,7 +872,12 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                     title={M.label}
                     onClick={() =>
                       update(it.id, {
-                        status: it.status === "done" ? "pending" : it.status === "pending" ? "in_progress" : "done",
+                        status:
+                          it.status === "done"
+                            ? "pending"
+                            : it.status === "pending"
+                              ? "in_progress"
+                              : "done",
                       })
                     }
                   >
@@ -796,9 +888,15 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                       <Input
                         value={it.title}
                         onChange={(e) =>
-                          setItems(items.map((x) => (x.id === it.id ? { ...x, title: e.target.value } : x)))
+                          setItems(
+                            items.map((x) =>
+                              x.id === it.id ? { ...x, title: e.target.value } : x,
+                            ),
+                          )
                         }
-                        onBlur={(e) => e.target.value !== it.title && update(it.id, { title: e.target.value })}
+                        onBlur={(e) =>
+                          e.target.value !== it.title && update(it.id, { title: e.target.value })
+                        }
                         className={`border-0 px-0 h-auto py-0 font-medium text-base shadow-none focus-visible:ring-0 flex-1 min-w-[150px] ${it.status === "done" ? "line-through" : ""}`}
                       />
                       <span
@@ -819,7 +917,11 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                       placeholder="Añadir descripción…"
                       value={it.description ?? ""}
                       onChange={(e) =>
-                        setItems(items.map((x) => (x.id === it.id ? { ...x, description: e.target.value } : x)))
+                        setItems(
+                          items.map((x) =>
+                            x.id === it.id ? { ...x, description: e.target.value } : x,
+                          ),
+                        )
                       }
                       onBlur={(e) =>
                         (e.target.value || null) !== it.description &&
@@ -833,21 +935,33 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                       <div className="mt-3 space-y-1.5">
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">
-                            <span className="font-medium text-foreground">{it.current_value ?? 0}</span>
+                            <span className="font-medium text-foreground">
+                              {it.current_value ?? 0}
+                            </span>
                             <span className="mx-1">/</span>
                             {it.target_value} {it.unit ?? ""}
                           </span>
                           <span className="font-semibold">{pct}%</span>
                         </div>
                         <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                          <div className={`h-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                          <div
+                            className={`h-full transition-all ${barColor}`}
+                            style={{ width: `${pct}%` }}
+                          />
                         </div>
                       </div>
                     )}
 
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
-                      <DatePicker value={it.due_date} onChange={(v) => update(it.id, { due_date: v })} size="sm" />
-                      <Select value={it.priority} onValueChange={(v) => update(it.id, { priority: v as Priority })}>
+                      <DatePicker
+                        value={it.due_date}
+                        onChange={(v) => update(it.id, { due_date: v })}
+                        size="sm"
+                      />
+                      <Select
+                        value={it.priority}
+                        onValueChange={(v) => update(it.id, { priority: v as Priority })}
+                      >
                         <SelectTrigger className="h-7 text-xs w-auto gap-1 rounded-full border-0 bg-secondary px-2.5">
                           <SelectValue />
                         </SelectTrigger>
@@ -859,7 +973,10 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Select value={it.status} onValueChange={(v) => update(it.id, { status: v as Status })}>
+                      <Select
+                        value={it.status}
+                        onValueChange={(v) => update(it.id, { status: v as Status })}
+                      >
                         <SelectTrigger className="h-7 text-xs w-auto gap-1 rounded-full border-0 bg-secondary px-2.5">
                           <SelectValue />
                         </SelectTrigger>
@@ -991,16 +1108,32 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                 </span>
               </div>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
-                <SmartRow ok={editSmart.specific.ok} label="Específico" hint={editSmart.specific.hint} />
-                <SmartRow ok={editSmart.measurable.ok} label="Medible" hint={editSmart.measurable.hint} />
+                <SmartRow
+                  ok={editSmart.specific.ok}
+                  label="Específico"
+                  hint={editSmart.specific.hint}
+                />
+                <SmartRow
+                  ok={editSmart.measurable.ok}
+                  label="Medible"
+                  hint={editSmart.measurable.hint}
+                />
                 <SmartRow
                   ok={editSmart.achievable.ok}
                   level={editSmart.achievable.level}
                   label="Alcanzable"
                   hint={editSmart.achievable.hint}
                 />
-                <SmartRow ok={editSmart.relevant.ok} label="Relevante" hint={editSmart.relevant.hint} />
-                <SmartRow ok={editSmart.timebound.ok} label="Con plazo" hint={editSmart.timebound.hint} />
+                <SmartRow
+                  ok={editSmart.relevant.ok}
+                  label="Relevante"
+                  hint={editSmart.relevant.hint}
+                />
+                <SmartRow
+                  ok={editSmart.timebound.ok}
+                  label="Con plazo"
+                  hint={editSmart.timebound.hint}
+                />
               </ul>
               {!editTitleConsistency.ok && (
                 <div className="text-[11px] text-warning pt-1 flex items-start gap-1.5">
@@ -1014,11 +1147,13 @@ export function ObjectivesList({ clientId }: { clientId: string }) {
                   <span>{getAchievableWarning(editSmart.achievable.reason)}</span>
                 </div>
               )}
-              {editSmartScore < 5 && editSmart.achievable.level !== "bad" && editTitleConsistency.ok && (
-                <div className="text-[11px] text-muted-foreground pt-1">
-                  Puedes guardar igual, pero los objetivos SMART suelen cumplirse más.
-                </div>
-              )}
+              {editSmartScore < 5 &&
+                editSmart.achievable.level !== "bad" &&
+                editTitleConsistency.ok && (
+                  <div className="text-[11px] text-muted-foreground pt-1">
+                    Puedes guardar igual, pero los objetivos SMART suelen cumplirse más.
+                  </div>
+                )}
             </div>
           </div>
           <DialogFooter>
@@ -1076,7 +1211,11 @@ function SmartRow({
 }) {
   const effective: "ok" | "warn" | "bad" | "empty" = level ?? (ok ? "ok" : "empty");
   const styles = {
-    ok: { badge: "bg-success/20 text-success", icon: <Check className="w-2.5 h-2.5" />, label: "text-foreground" },
+    ok: {
+      badge: "bg-success/20 text-success",
+      icon: <Check className="w-2.5 h-2.5" />,
+      label: "text-foreground",
+    },
     warn: {
       badge: "bg-warning/20 text-warning",
       icon: <AlertCircle className="w-2.5 h-2.5" />,
@@ -1095,7 +1234,9 @@ function SmartRow({
   }[effective];
   return (
     <li className="flex items-start gap-2">
-      <span className={`mt-0.5 w-4 h-4 rounded-full grid place-items-center shrink-0 ${styles.badge}`}>
+      <span
+        className={`mt-0.5 w-4 h-4 rounded-full grid place-items-center shrink-0 ${styles.badge}`}
+      >
         {styles.icon}
       </span>
       <span>

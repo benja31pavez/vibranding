@@ -7,15 +7,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { captureInstagramGridVersion } from "@/lib/meta/igSync.functions";
 import {
-  createManualVersion, formatCaptured, monthLabel, updateVersionMeta, type GridVersion,
+  createManualVersion,
+  formatCaptured,
+  monthLabel,
+  updateVersionMeta,
+  type GridVersion,
 } from "@/lib/instagram/gridVersions";
 
 export function GridVersionBar({
@@ -105,7 +118,7 @@ export function GridVersionBar({
               </TooltipTrigger>
               <TooltipContent>
                 Es la versión manual más reciente: puedes subir publicaciones aquí. La
-              sincronización con Instagram no las modifica.
+                sincronización con Instagram no las modifica.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -182,8 +195,8 @@ export function GridVersionBar({
           <DialogHeader>
             <DialogTitle>Nueva versión manual</DialogTitle>
             <DialogDescription>
-              Para cuentas sin conexión a Meta. Podrás subir las publicaciones de esta versión;
-              al crear la siguiente, esta queda como registro histórico. La sincronización con
+              Para cuentas sin conexión a Meta. Podrás subir las publicaciones de esta versión; al
+              crear la siguiente, esta queda como registro histórico. La sincronización con
               Instagram no toca estas publicaciones.
             </DialogDescription>
           </DialogHeader>
@@ -192,7 +205,9 @@ export function GridVersionBar({
             <Input value={manualLabel} onChange={(e) => setManualLabel(e.target.value)} />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setManualOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setManualOpen(false)}>
+              Cancelar
+            </Button>
             <Button onClick={doManual} disabled={busy === "manual"}>
               {busy === "manual" ? "Creando…" : "Crear versión"}
             </Button>
@@ -219,7 +234,9 @@ export function GridVersionBar({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMetaOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setMetaOpen(false)}>
+              Cancelar
+            </Button>
             <Button onClick={saveMeta} disabled={busy === "meta"}>
               {busy === "meta" ? "Guardando…" : "Guardar"}
             </Button>

@@ -3,8 +3,13 @@ import type { User } from "@supabase/supabase-js";
 import { ExternalLink, LogOut, UserCircle2, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
-  DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSettingsNav } from "./useSettingsNav";
 import type { UserProfile } from "./useUserProfile";
@@ -30,7 +35,12 @@ export function UserMenu({ user, profile, onSignOut }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" aria-label={`Cuenta y configuración (${name})`}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-full"
+          aria-label={`Cuenta y configuración (${name})`}
+        >
           {profile?.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />
           ) : (
@@ -45,7 +55,9 @@ export function UserMenu({ user, profile, onSignOut }: UserMenuProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild className="cursor-pointer">
-          <Link to="/profile"><UserCog className="mr-2 h-4 w-4" /> Editar perfil</Link>
+          <Link to="/profile">
+            <UserCog className="mr-2 h-4 w-4" /> Editar perfil
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="cursor-pointer">
           <a href="/" target="_blank" rel="noopener noreferrer">
@@ -55,7 +67,9 @@ export function UserMenu({ user, profile, onSignOut }: UserMenuProps) {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Configuración</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+            Configuración
+          </DropdownMenuLabel>
           {settingsNav.map((item) => (
             <DropdownMenuItem key={item.to} asChild className="cursor-pointer">
               <Link to={item.to}>

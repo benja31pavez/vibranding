@@ -93,9 +93,7 @@ export function DmTriggersPanel({ clientId, kind }: { clientId: string; kind: Ki
   };
 
   const remove = async (id: string) => {
-    const { error } = await (supabase.from("ig_dm_triggers" as any) as any)
-      .delete()
-      .eq("id", id);
+    const { error } = await (supabase.from("ig_dm_triggers" as any) as any).delete().eq("id", id);
     if (error) return toast.error(error.message);
     setRows(rows.filter((r) => r.id !== id));
   };
@@ -212,7 +210,9 @@ export function DmTriggersPanel({ clientId, kind }: { clientId: string; kind: Ki
                 {t.failed_count > 0 && (
                   <Badge variant="destructive">{t.failed_count} fallidos</Badge>
                 )}
-                {t.last_triggered_at && <span>Último: {t.last_triggered_at.slice(0, 16).replace("T", " ")}</span>}
+                {t.last_triggered_at && (
+                  <span>Último: {t.last_triggered_at.slice(0, 16).replace("T", " ")}</span>
+                )}
               </div>
             </li>
           ))}

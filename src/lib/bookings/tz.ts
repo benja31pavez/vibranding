@@ -33,7 +33,14 @@ function tzOffsetMs(timeZone: string, atUTCms: number) {
 }
 
 // Build a UTC Date that represents the wall-clock {y,mo,d,h,mi} in the given tz.
-export function zonedToUTC(y: number, mo: number, d: number, h: number, mi: number, timeZone: string): Date {
+export function zonedToUTC(
+  y: number,
+  mo: number,
+  d: number,
+  h: number,
+  mi: number,
+  timeZone: string,
+): Date {
   let guess = Date.UTC(y, mo, d, h, mi);
   for (let i = 0; i < 2; i++) {
     const off = tzOffsetMs(timeZone, guess);
@@ -43,7 +50,13 @@ export function zonedToUTC(y: number, mo: number, d: number, h: number, mi: numb
 }
 
 const WEEKDAY_MAP: Record<string, number> = {
-  Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6,
+  Mon: 0,
+  Tue: 1,
+  Wed: 2,
+  Thu: 3,
+  Fri: 4,
+  Sat: 5,
+  Sun: 6,
 };
 
 // Returns { dayIdx (0=Mon..6=Sun), minutes (since midnight), y, mo, d } in the given tz.

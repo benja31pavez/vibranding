@@ -1,6 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import {
-  BarChart3, Circle, Flag, Globe, LayoutDashboard, Instagram, Lock, MessageCircle, Receipt, Search, Settings2, UserPlus, Zap,
+  BarChart3,
+  Circle,
+  Flag,
+  Globe,
+  LayoutDashboard,
+  Instagram,
+  Lock,
+  MessageCircle,
+  Receipt,
+  Search,
+  Settings2,
+  UserPlus,
+  Zap,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -68,8 +80,13 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
     <svg width="22" height="22" viewBox="0 0 22 22" className="shrink-0" aria-hidden="true">
       <circle cx="11" cy="11" r={r} className="stroke-border" strokeWidth="2.5" fill="none" />
       <circle
-        cx="11" cy="11" r={r}
-        className="stroke-primary" strokeWidth="2.5" fill="none" strokeLinecap="round"
+        cx="11"
+        cy="11"
+        r={r}
+        className="stroke-primary"
+        strokeWidth="2.5"
+        fill="none"
+        strokeLinecap="round"
         strokeDasharray={`${c * pct} ${c}`}
         transform="rotate(-90 11 11)"
       />
@@ -137,7 +154,12 @@ export function ClientSidebarNav({
   path: string;
   staleOutcomes: number;
 }) {
-  const { caps, error: capsError, reload: reloadCaps, loading: capsLoading } = useClientCapabilities(clientId);
+  const {
+    caps,
+    error: capsError,
+    reload: reloadCaps,
+    loading: capsLoading,
+  } = useClientCapabilities(clientId);
   const { count: reviewCount } = useReviewAlerts(clientId);
   const setupHref = `/clients/${clientId}/setup`;
   const fichaHref = `/clients/${clientId}`;
@@ -176,7 +198,10 @@ export function ClientSidebarNav({
         const headingId = `client-nav-${group.key}`;
         return (
           <div key={group.key} role="group" aria-labelledby={headingId}>
-            <div id={headingId} className="px-3 pb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <div
+              id={headingId}
+              className="px-3 pb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
               {group.label}
             </div>
             <ul className="space-y-0.5">

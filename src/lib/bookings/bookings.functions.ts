@@ -13,13 +13,12 @@ const SlotsInput = z.object({
 });
 
 export const getBookingPage = createServerFn({ method: "POST" })
-  .inputValidator((d: { slug: string; from: string; to: string }) =>
-    parseOrThrow(SlotsInput, d),
-  )
+  .inputValidator((d: { slug: string; from: string; to: string }) => parseOrThrow(SlotsInput, d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: settings, error } = await supabaseAdmin
-      .rpc("get_booking_settings_by_slug", { _slug: data.slug });
+    const { data: settings, error } = await supabaseAdmin.rpc("get_booking_settings_by_slug", {
+      _slug: data.slug,
+    });
     if (error) {
       console.error("[booking] get_booking_settings_by_slug failed", error.message);
       throw new Error("No se pudo cargar la agenda. Intenta de nuevo.");
@@ -51,8 +50,10 @@ export const getBookingPage = createServerFn({ method: "POST" })
   });
 
 /** Control characters (incl. CR/LF), stripped from single-line fields. */
+// eslint-disable-next-line no-control-regex -- intencional: elimina caracteres de control
 const CONTROL_CHARS = /[\u0000-\u001F\u007F]+/g;
 /** Same but keeps \n (notes are multi-line). */
+// eslint-disable-next-line no-control-regex -- intencional: elimina caracteres de control
 const CONTROL_CHARS_EXCEPT_LF = /[\u0000-\u0009\u000B-\u001F\u007F]+/g;
 
 const singleLine = (v: string) => v.replace(CONTROL_CHARS, " ").replace(/\s+/g, " ").trim();
@@ -65,7 +66,12 @@ const BookingInput = z.object({
   phone: z
     .string()
     .transform(singleLine)
-    .pipe(z.string().max(40).regex(/^[0-9+()\-.\s]*$/))
+    .pipe(
+      z
+        .string()
+        .max(40)
+        .regex(/^[0-9+()\-.\s]*$/),
+    )
     .optional(),
   notes: z
     .string()
@@ -77,7 +83,13 @@ const BookingInput = z.object({
 
 function withinHours(
   iso: string,
-  hours: { day: number; enabled: boolean; open: string; close: string; breaks?: { start: string; end: string }[] }[],
+  hours: {
+    day: number;
+    enabled: boolean;
+    open: string;
+    close: string;
+    breaks?: { start: string; end: string }[];
+  }[],
   slotMin: number,
   timeZone: string,
 ): boolean {
@@ -145,7 +157,9 @@ async function clientIpHash(ip: string | null): Promise<string | null> {
 /** Salted hash of a recipient address (the email log never stores addresses). */
 async function emailHash(email: string): Promise<string> {
   const { createHash } = await import("crypto");
-  return createHash("sha256").update(`email:${email.trim().toLowerCase()}:${hashSalt()}`).digest("hex");
+  return createHash("sha256")
+    .update(`email:${email.trim().toLowerCase()}:${hashSalt()}`)
+    .digest("hex");
 }
 
 /** Records an attempt and returns false when the IP is over its limit. */
@@ -189,7 +203,9 @@ export const createBooking = createServerFn({ method: "POST" })
     const { isTurnstileEnabled, verifyTurnstile } = await import("./turnstile.server");
     const turnstileOn = isTurnstileEnabled();
     if (turnstileOn && !(await verifyTurnstile(data.turnstileToken, ip))) {
-      throw new Error("No pudimos verificar que no eres un robot. Recarga la página e inténtalo de nuevo.");
+      throw new Error(
+        "No pudimos verificar que no eres un robot. Recarga la página e inténtalo de nuevo.",
+      );
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -210,7 +226,8 @@ export const createBooking = createServerFn({ method: "POST" })
     const tz = safeTimeZone(s.timezone);
     const { minBookable, maxExclusive } = bookingWindow(tz);
     if (slotDate < minBookable) throw new Error("Solo puedes agendar a partir de mañana");
-    if (slotDate >= maxExclusive) throw new Error("Solo se permite agendar hasta 30 días en adelante");
+    if (slotDate >= maxExclusive)
+      throw new Error("Solo se permite agendar hasta 30 días en adelante");
     if (!withinHours(data.scheduledAt, s.hours as any, s.slot_minutes, tz)) {
       throw new Error("Ese horario no está disponible");
     }
@@ -252,10 +269,13 @@ export const createBooking = createServerFn({ method: "POST" })
         // Customer confirmation only behind Turnstile and a per-recipient cap.
         let sendCustomerConfirmation = false;
         if (turnstileOn) {
-          const { data: allowed, error: cErr } = await supabaseAdmin.rpc("claim_booking_email_slot", {
-            _email_hash: await emailHash(data.email),
-            _max_per_day: MAX_CONFIRMATIONS_PER_EMAIL_DAY,
-          });
+          const { data: allowed, error: cErr } = await supabaseAdmin.rpc(
+            "claim_booking_email_slot",
+            {
+              _email_hash: await emailHash(data.email),
+              _max_per_day: MAX_CONFIRMATIONS_PER_EMAIL_DAY,
+            },
+          );
           if (cErr) console.error("[booking] claim_booking_email_slot failed", cErr.message);
           sendCustomerConfirmation = !cErr && allowed === true;
         }
@@ -270,7 +290,9 @@ export const createBooking = createServerFn({ method: "POST" })
           sendCustomerConfirmation,
         });
       } else {
-        console.warn("[booking] RESEND_API_KEY no configurada: no se envían correos de la reserva.");
+        console.warn(
+          "[booking] RESEND_API_KEY no configurada: no se envían correos de la reserva.",
+        );
       }
     } catch (e) {
       console.error("[booking] notification failed", (e as Error)?.message ?? e);

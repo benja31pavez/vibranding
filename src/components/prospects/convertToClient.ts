@@ -1,6 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { findPlan, type Plan } from "@/lib/pricing/plans";
-import { clientMark, convertedClientId, normalizeInstagram, normalizeName } from "@/lib/prospects/schema";
+import {
+  clientMark,
+  convertedClientId,
+  normalizeInstagram,
+  normalizeName,
+} from "@/lib/prospects/schema";
 import { NO_PERMISSION, isMissingRpc, writeError, type Prospect } from "./prospectsData";
 
 export type ConvertResult =
@@ -28,11 +33,18 @@ function clientNotes(p: Prospect): string {
 
 async function assignPlan(clientId: string, plan: Plan): Promise<string | null> {
   const values = { plan_key: plan.key, mrr: planMrr(plan) };
-  const upd = await supabase.from("client_billing").update(values).eq("client_id", clientId).select("client_id");
+  const upd = await supabase
+    .from("client_billing")
+    .update(values)
+    .eq("client_id", clientId)
+    .select("client_id");
   if (upd.error) return writeError(upd.error);
   if (upd.data && upd.data.length > 0) return null;
   // 0 filas: falta la fila 1:1 (el trigger no corrió) o no hay permisos; el INSERT lo distingue.
-  const ins = await supabase.from("client_billing").insert({ client_id: clientId, ...values }).select("client_id");
+  const ins = await supabase
+    .from("client_billing")
+    .insert({ client_id: clientId, ...values })
+    .select("client_id");
   if (ins.error) return writeError(ins.error);
   return ins.data && ins.data.length > 0 ? null : NO_PERMISSION;
 }
@@ -57,21 +69,31 @@ async function convertWithRpc(prospect: Prospect): Promise<RpcOutcome> {
     _mrr_clp: planMrr(plan),
   });
   if (isMissingRpc(error, "convert_prospect_to_client")) return { kind: "missing" };
-  if (error) return { kind: "done", result: { ok: false, error: `No se pudo crear el cliente: ${writeError(error)}` } };
+  if (error)
+    return {
+      kind: "done",
+      result: { ok: false, error: `No se pudo crear el cliente: ${writeError(error)}` },
+    };
   const res = data as { client_id?: string; created?: boolean } | null;
   const clientId = res?.client_id;
-  if (!clientId) return { kind: "done", result: { ok: false, error: `No se pudo crear el cliente: ${NO_PERMISSION}` } };
+  if (!clientId)
+    return {
+      kind: "done",
+      result: { ok: false, error: `No se pudo crear el cliente: ${NO_PERMISSION}` },
+    };
 
   const warnings: string[] = [];
   if (!res.created) return { kind: "done", result: { ok: true, clientId, warnings } };
-  if (!plan) warnings.push("El prospecto no tenía plan sugerido: asígnalo en la ficha del cliente.");
+  if (!plan)
+    warnings.push("El prospecto no tenía plan sugerido: asígnalo en la ficha del cliente.");
   const upd = await supabase
     .from("clients")
     .update({ business_description: prospect.rubro, notes: clientNotes(prospect) })
     .eq("id", clientId)
     .select("id");
   const err = upd.error ? writeError(upd.error) : !upd.data?.length ? NO_PERMISSION : null;
-  if (err) warnings.push(`El cliente se creó, pero no se pudieron copiar el rubro y las notas: ${err}`);
+  if (err)
+    warnings.push(`El cliente se creó, pero no se pudieron copiar el rubro y las notas: ${err}`);
   return { kind: "done", result: { ok: true, clientId, warnings } };
 }
 
@@ -82,15 +104,21 @@ async function convertWithRpc(prospect: Prospect): Promise<RpcOutcome> {
  * posterior, devuelve ok con avisos.
  */
 export async function convertToClient(prospect: Prospect, userId: string): Promise<ConvertResult> {
-  if (prospect.estado === "baja") return { ok: false, error: "Un prospecto dado de baja no se puede convertir en cliente." };
-  if (prospect.estado !== "ganado") return { ok: false, error: "Solo se convierten prospectos en estado Ganado." };
+  if (prospect.estado === "baja")
+    return { ok: false, error: "Un prospecto dado de baja no se puede convertir en cliente." };
+  if (prospect.estado !== "ganado")
+    return { ok: false, error: "Solo se convierten prospectos en estado Ganado." };
   const already = convertedClientId(prospect);
   if (already) return { ok: false, error: "Este prospecto ya se convirtió en cliente." };
   try {
     const sameName = await findClientsByName(prospect.org_id, prospect.nombre);
-    if (sameName.length > 0) return { ok: false, error: `Ya existe el cliente "${sameName[0].name}".` };
+    if (sameName.length > 0)
+      return { ok: false, error: `Ya existe el cliente "${sameName[0].name}".` };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "No se pudo revisar si el cliente ya existe." };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "No se pudo revisar si el cliente ya existe.",
+    };
   }
 
   const viaRpc = await convertWithRpc(prospect);
@@ -100,7 +128,6 @@ export async function convertToClient(prospect: Prospect, userId: string): Promi
 
 /** Flujo anterior a la v3: inserts desde el navegador y marca "[Cliente: id]" en las notas. */
 async function convertLegacy(prospect: Prospect, userId: string): Promise<ConvertResult> {
-
   const { data, error } = await supabase
     .from("clients")
     .insert({
@@ -122,7 +149,10 @@ async function convertLegacy(prospect: Prospect, userId: string): Promise<Conver
   const plan = suggestedPlan(prospect);
   if (plan) {
     const planError = await assignPlan(clientId, plan);
-    if (planError) warnings.push(`El cliente se creó, pero no se pudo asignar el plan ${plan.label}: ${planError}`);
+    if (planError)
+      warnings.push(
+        `El cliente se creó, pero no se pudo asignar el plan ${plan.label}: ${planError}`,
+      );
   } else {
     warnings.push("El prospecto no tenía plan sugerido: asígnalo en la ficha del cliente.");
   }
@@ -136,13 +166,19 @@ async function convertLegacy(prospect: Prospect, userId: string): Promise<Conver
     .neq("estado", "baja")
     .select("id");
   const err = upd.error ? writeError(upd.error) : !upd.data?.length ? NO_PERMISSION : null;
-  if (err) warnings.push(`El cliente se creó, pero no se pudo enlazar al prospecto: ${err}. No lo conviertas de nuevo.`);
+  if (err)
+    warnings.push(
+      `El cliente se creó, pero no se pudo enlazar al prospecto: ${err}. No lo conviertas de nuevo.`,
+    );
 
   return { ok: true, clientId, warnings };
 }
 
 /** Clientes de la org con el mismo nombre normalizado (sin tildes, mayúsculas ni espacios extra). */
-export async function findClientsByName(orgId: string, name: string): Promise<{ id: string; name: string }[]> {
+export async function findClientsByName(
+  orgId: string,
+  name: string,
+): Promise<{ id: string; name: string }[]> {
   const target = normalizeName(name);
   // Prefiltro en la BD por la primera palabra; la igualdad exacta normalizada se aplica aquí.
   const firstWord = name.trim().split(/\s+/)[0] ?? "";

@@ -11,7 +11,15 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { MAX_FILES, TOKEN_RE, mapDbError, safeFileName, type FieldError, type OnboardingPayload, type UploadRequestData } from "./schema";
+import {
+  MAX_FILES,
+  TOKEN_RE,
+  mapDbError,
+  safeFileName,
+  type FieldError,
+  type OnboardingPayload,
+  type UploadRequestData,
+} from "./schema";
 
 const BUCKET = "onboarding";
 
@@ -86,14 +94,18 @@ const RESERVE_MESSAGES: Readonly<Record<string, string>> = {
 export async function createUploadUrl(req: UploadRequestData): Promise<UploadUrlResult> {
   const db = await admin();
   const suffix = `${crypto.randomUUID()}-${safeFileName(req.filename, req.contentType)}`;
-  const { data, error } = await db.rpc("reserve_onboarding_upload", { _token: req.token, _path_suffix: suffix });
+  const { data, error } = await db.rpc("reserve_onboarding_upload", {
+    _token: req.token,
+    _path_suffix: suffix,
+  });
   if (error) {
     console.error("[onboarding] reserve_onboarding_upload falló", error.code, error.message);
     return { ok: false, message: PREPARE_FAILED };
   }
   const res = data as { ok?: boolean; reason?: string; path?: string } | null;
   if (!res?.ok || typeof res.path !== "string") {
-    if (res?.reason === "duplicate" || !res?.reason) console.error("[onboarding] reserva rechazada", res);
+    if (res?.reason === "duplicate" || !res?.reason)
+      console.error("[onboarding] reserva rechazada", res);
     return { ok: false, message: RESERVE_MESSAGES[res?.reason ?? ""] ?? PREPARE_FAILED };
   }
 
@@ -118,19 +130,31 @@ export type SubmitResult =
 
 const SUBMIT_FAILED = "No pudimos enviar el formulario. Intenta de nuevo en unos minutos.";
 
-export async function submitOnboardingPayload(token: string, payload: OnboardingPayload): Promise<SubmitResult> {
-  const { data, error } = await anonClient().rpc("submit_onboarding", { _token: token, _payload: payload });
+export async function submitOnboardingPayload(
+  token: string,
+  payload: OnboardingPayload,
+): Promise<SubmitResult> {
+  const { data, error } = await anonClient().rpc("submit_onboarding", {
+    _token: token,
+    _payload: payload,
+  });
   if (error) {
     // 22023 se captura dentro de la función; por si alguna versión lo deja escapar:
-    if (error.code === "22023") return { ok: false, reason: "invalid_payload", error: mapDbError(error.message) };
+    if (error.code === "22023")
+      return { ok: false, reason: "invalid_payload", error: mapDbError(error.message) };
     console.error("[onboarding] submit_onboarding falló", error.code, error.message);
     return { ok: false, reason: "error", message: SUBMIT_FAILED };
   }
   const res = data as { ok?: boolean; reason?: string; error?: string } | null;
   if (res?.ok) return { ok: true };
-  if (res?.reason === "invalid_payload") return { ok: false, reason: "invalid_payload", error: mapDbError(res.error) };
+  if (res?.reason === "invalid_payload")
+    return { ok: false, reason: "invalid_payload", error: mapDbError(res.error) };
   if (res?.reason === "invalid") {
-    return { ok: false, reason: "invalid", message: "Este link ya se usó o venció. Si necesitas cambiar algo, escríbenos." };
+    return {
+      ok: false,
+      reason: "invalid",
+      message: "Este link ya se usó o venció. Si necesitas cambiar algo, escríbenos.",
+    };
   }
   console.error("[onboarding] respuesta inesperada de submit_onboarding", res);
   return { ok: false, reason: "error", message: SUBMIT_FAILED };

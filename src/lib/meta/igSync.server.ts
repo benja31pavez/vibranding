@@ -178,11 +178,7 @@ export type CaptureResult =
  * Audit trail: one row per sync attempt, readable from /admin/health. Never
  * throws — logging must not break a sync.
  */
-async function logSyncRun(
-  clientId: string,
-  requestedLabel: string,
-  res: CaptureResult,
-) {
+async function logSyncRun(clientId: string, requestedLabel: string, res: CaptureResult) {
   try {
     await (supabaseAdmin.from("ig_sync_runs" as any) as any).insert(
       res.ok
@@ -209,25 +205,18 @@ async function logSyncRun(
   }
 }
 
-
 /** Staged versions left behind by an interrupted sync are never user content. */
 async function dropStaleStagingVersions(clientId: string) {
   const cutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { data: stale } = await (
-    supabaseAdmin.from("instagram_grid_versions" as any) as any
-  )
+  const { data: stale } = await (supabaseAdmin.from("instagram_grid_versions" as any) as any)
     .select("id")
     .eq("client_id", clientId)
     .lt("captured_at", cutoff)
     .like("label", `%${STAGING_MARKER}%`);
   const ids = ((stale ?? []) as any[]).map((r) => String(r.id));
   if (ids.length === 0) return;
-  await (supabaseAdmin.from("instagram_posts" as any) as any)
-    .delete()
-    .in("version_id", ids);
-  await (supabaseAdmin.from("instagram_grid_versions" as any) as any)
-    .delete()
-    .in("id", ids);
+  await (supabaseAdmin.from("instagram_posts" as any) as any).delete().in("version_id", ids);
+  await (supabaseAdmin.from("instagram_grid_versions" as any) as any).delete().in("id", ids);
 }
 
 /**
@@ -277,9 +266,7 @@ async function runCaptureOrRefresh(
   }
 
   // A baseline exists and is never converted or overwritten.
-  const { data: existing } = await (
-    supabaseAdmin.from("instagram_grid_versions" as any) as any
-  )
+  const { data: existing } = await (supabaseAdmin.from("instagram_grid_versions" as any) as any)
     .select("id")
     .eq("client_id", clientId)
     .eq("label", clean)
@@ -290,13 +277,7 @@ async function runCaptureOrRefresh(
   const stagingLabel = existing?.id
     ? `${clean} ${STAGING_MARKER} ${new Date().toISOString()}`
     : clean;
-  const res = await captureInstagramVersion(
-    clientId,
-    igAccountId,
-    token,
-    stagingLabel,
-    false,
-  );
+  const res = await captureInstagramVersion(clientId, igAccountId, token, stagingLabel, false);
   if (!res.ok) return res;
 
   if (!existing?.id) {
@@ -381,9 +362,7 @@ export async function captureInstagramVersion(
     return { ok: false, reason: vErr.message };
   }
 
-  const ordered = [...media].sort((a, b) =>
-    (b.timestamp ?? "").localeCompare(a.timestamp ?? ""),
-  );
+  const ordered = [...media].sort((a, b) => (b.timestamp ?? "").localeCompare(a.timestamp ?? ""));
   const payload = ordered.map((m, i) => ({
     client_id: clientId,
     type: "current" as const,
@@ -401,9 +380,7 @@ export async function captureInstagramVersion(
   }));
 
   if (payload.length > 0) {
-    const { error } = await (supabaseAdmin.from("instagram_posts" as any) as any).insert(
-      payload,
-    );
+    const { error } = await (supabaseAdmin.from("instagram_posts" as any) as any).insert(payload);
     if (error) {
       await (supabaseAdmin.from("instagram_grid_versions" as any) as any)
         .delete()

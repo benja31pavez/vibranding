@@ -86,7 +86,11 @@ async function deleteReservations(
 async function legacyCleanup(db: Admin): Promise<CleanupSummary> {
   const { data, error } = await db.rpc("cleanup_onboarding_orphans");
   if (error) {
-    console.error("[onboarding cleanup] cleanup_onboarding_orphans falló", error.code, error.message);
+    console.error(
+      "[onboarding cleanup] cleanup_onboarding_orphans falló",
+      error.code,
+      error.message,
+    );
     throw new Error("cleanup_onboarding_orphans falló");
   }
   const rows = parseOrphanRows(data);

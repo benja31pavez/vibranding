@@ -16,15 +16,24 @@ function writeDenied(error: unknown, rows: unknown[] | null): boolean {
 }
 import { FileSignature, Download, Trash2, Plus, FileText } from "lucide-react";
 import {
-  loadPricing, loadServicePricing, SERVICE_CATALOG,
-  type PricingSettings, type ServicePricing, type ServiceKey,
+  loadPricing,
+  loadServicePricing,
+  SERVICE_CATALOG,
+  type PricingSettings,
+  type ServicePricing,
+  type ServiceKey,
 } from "@/components/PricingPanel";
 import { ContractDocument } from "@/components/contracts/ContractDocument";
 import { exportElementToPdf } from "@/lib/exportPdf";
 import {
-  AGENCY_DEFAULTS, DEFAULT_CURRENCY, PLANS, findPlan, formatMoney, planPriceLabel, type PlanKey,
+  AGENCY_DEFAULTS,
+  DEFAULT_CURRENCY,
+  PLANS,
+  findPlan,
+  formatMoney,
+  planPriceLabel,
+  type PlanKey,
 } from "@/lib/pricing/plans";
-
 
 interface ClientContract {
   id: string;
@@ -84,7 +93,11 @@ export function ContractsPage({ clientId }: { clientId: string }) {
     setLoadError(null);
     try {
       const [clientRes, p, sv] = await Promise.all([
-        supabase.from("clients").select("id,name,instagram_handle,notes,business_description").eq("id", clientId).maybeSingle(),
+        supabase
+          .from("clients")
+          .select("id,name,instagram_handle,notes,business_description")
+          .eq("id", clientId)
+          .maybeSingle(),
         loadPricing(user.id),
         loadServicePricing(user.id),
       ]);
@@ -124,7 +137,11 @@ export function ContractsPage({ clientId }: { clientId: string }) {
 
   const reloadContracts = async () => {
     const forClient = clientId;
-    const { data, error } = await supabase.from("client_contracts").select("*").eq("client_id", forClient).order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("client_contracts")
+      .select("*")
+      .eq("client_id", forClient)
+      .order("created_at", { ascending: false });
     if (requestedClientRef.current !== forClient) return;
     if (error) throw new Error(`No se pudieron cargar los contratos: ${error.message}`);
     setContracts((data ?? []) as any);
@@ -132,33 +149,41 @@ export function ContractsPage({ clientId }: { clientId: string }) {
 
   const toggleService = (k: ServiceKey) => {
     const s = new Set(selected);
-    s.has(k) ? s.delete(k) : s.add(k);
+    if (s.has(k)) s.delete(k);
+    else s.add(k);
     setSelected(s);
   };
 
   const buildClauses = (p: PricingSettings) => {
     const list: { title: string; body: string }[] = [];
     if (p.clause_esim) list.push({ title: "eSIM / teléfono dedicado", body: p.clause_esim });
-    if (p.clause_meta_api) list.push({ title: "Uso responsable Meta API / WhatsApp", body: p.clause_meta_api });
-    if (p.clause_late_payment) list.push({ title: "Mora / suspensión por impago", body: p.clause_late_payment });
+    if (p.clause_meta_api)
+      list.push({ title: "Uso responsable Meta API / WhatsApp", body: p.clause_meta_api });
+    if (p.clause_late_payment)
+      list.push({ title: "Mora / suspensión por impago", body: p.clause_late_payment });
     if (p.clause_extra) list.push({ title: "Cláusulas adicionales", body: p.clause_extra });
     return list;
   };
 
   const createContract = async () => {
     if (!pricing || !services || !client) return;
-    if (selected.size === 0 && !selectedPlan) { toast.error("Selecciona un plan o al menos un servicio"); return; }
+    if (selected.size === 0 && !selectedPlan) {
+      toast.error("Selecciona un plan o al menos un servicio");
+      return;
+    }
     const plan = findPlan(selectedPlan);
     setCreating(true);
     const planSnap = plan
-      ? [{
-          service_key: plan.key,
-          label: plan.label,
-          one_time_price: plan.billing === "one_time" ? plan.price : 0,
-          monthly_price: plan.billing === "monthly" ? plan.price : 0,
-          included_text: [plan.description, plan.note].filter(Boolean).join(" "),
-          min_months: plan.minMonths,
-        }]
+      ? [
+          {
+            service_key: plan.key,
+            label: plan.label,
+            one_time_price: plan.billing === "one_time" ? plan.price : 0,
+            monthly_price: plan.billing === "monthly" ? plan.price : 0,
+            included_text: [plan.description, plan.note].filter(Boolean).join(" "),
+            min_months: plan.minMonths,
+          },
+        ]
       : [];
     const addonSnap = Array.from(selected).map((k) => {
       const meta = SERVICE_CATALOG.find((s) => s.key === k)!;
@@ -206,7 +231,10 @@ export function ContractsPage({ clientId }: { clientId: string }) {
       effective_date: chileToday(),
     });
     setCreating(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Contrato creado");
     setSelected(new Set());
     setSelectedPlan(null);
@@ -215,7 +243,11 @@ export function ContractsPage({ clientId }: { clientId: string }) {
 
   const deleteContract = async (id: string) => {
     if (!confirm("¿Eliminar este contrato?")) return;
-    const { data, error } = await supabase.from("client_contracts").delete().eq("id", id).select("id");
+    const { data, error } = await supabase
+      .from("client_contracts")
+      .delete()
+      .eq("id", id)
+      .select("id");
     if (writeDenied(error, data)) return toast.error(NO_PERMISSION);
     void reloadContracts().catch((e) => toast.error(e.message));
   };
@@ -223,7 +255,11 @@ export function ContractsPage({ clientId }: { clientId: string }) {
   const setStatus = async (id: string, status: ClientContract["status"]) => {
     const patch: any = { status };
     if (status === "signed") patch.signed_at = new Date().toISOString();
-    const { data, error } = await supabase.from("client_contracts").update(patch).eq("id", id).select("id");
+    const { data, error } = await supabase
+      .from("client_contracts")
+      .update(patch)
+      .eq("id", id)
+      .select("id");
     if (writeDenied(error, data)) return toast.error(NO_PERMISSION);
     void reloadContracts().catch((e) => toast.error(e.message));
   };
@@ -237,7 +273,10 @@ export function ContractsPage({ clientId }: { clientId: string }) {
       return;
     }
     try {
-      await exportElementToPdf(pdfRef.current, `contrato-${(c.client_snapshot?.name ?? "cliente").toString().toLowerCase().replace(/\s+/g, "-")}.pdf`);
+      await exportElementToPdf(
+        pdfRef.current,
+        `contrato-${(c.client_snapshot?.name ?? "cliente").toString().toLowerCase().replace(/\s+/g, "-")}.pdf`,
+      );
     } catch (e: any) {
       toast.error(e?.message ?? "No se pudo generar el PDF");
     } finally {
@@ -265,7 +304,8 @@ export function ContractsPage({ clientId }: { clientId: string }) {
           Contratos
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Genera contratos para <span className="font-medium text-foreground">{client.name}</span> usando tu plantilla, datos de agencia y precios estándar.
+          Genera contratos para <span className="font-medium text-foreground">{client.name}</span>{" "}
+          usando tu plantilla, datos de agencia y precios estándar.
         </p>
       </div>
 
@@ -277,7 +317,11 @@ export function ContractsPage({ clientId }: { clientId: string }) {
 
         <div>
           <Label className="text-xs text-muted-foreground">Plan (CLP, IVA incluido)</Label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2" role="radiogroup" aria-label="Plan">
+          <div
+            className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2"
+            role="radiogroup"
+            aria-label="Plan"
+          >
             {PLANS.map((plan) => {
               const checked = selectedPlan === plan.key;
               return (
@@ -292,8 +336,12 @@ export function ContractsPage({ clientId }: { clientId: string }) {
                   }`}
                 >
                   <div className="text-sm font-medium">{plan.label}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">{planPriceLabel(plan)}</div>
-                  {plan.note && <div className="text-[11px] text-muted-foreground mt-0.5">{plan.note}</div>}
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {planPriceLabel(plan)}
+                  </div>
+                  {plan.note && (
+                    <div className="text-[11px] text-muted-foreground mt-0.5">{plan.note}</div>
+                  )}
                 </button>
               );
             })}
@@ -313,14 +361,24 @@ export function ContractsPage({ clientId }: { clientId: string }) {
                     checked ? "border-primary/50 bg-primary/5" : "hover:bg-muted/30"
                   }`}
                 >
-                  <Checkbox checked={checked} onCheckedChange={() => toggleService(s.key)} className="mt-0.5" />
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={() => toggleService(s.key)}
+                    className="mt-0.5"
+                  />
                   <div className="min-w-0">
                     <div className="text-sm font-medium">{s.label}</div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {Number(row.one_time_price) > 0 && <>Setup {formatMoney(Number(row.one_time_price))}</>}
+                      {Number(row.one_time_price) > 0 && (
+                        <>Setup {formatMoney(Number(row.one_time_price))}</>
+                      )}
                       {Number(row.one_time_price) > 0 && Number(row.monthly_price) > 0 && " · "}
-                      {Number(row.monthly_price) > 0 && <>{formatMoney(Number(row.monthly_price))}/mes</>}
-                      {Number(row.one_time_price) === 0 && Number(row.monthly_price) === 0 && "Sin precio configurado"}
+                      {Number(row.monthly_price) > 0 && (
+                        <>{formatMoney(Number(row.monthly_price))}/mes</>
+                      )}
+                      {Number(row.one_time_price) === 0 &&
+                        Number(row.monthly_price) === 0 &&
+                        "Sin precio configurado"}
                     </div>
                   </div>
                 </label>
@@ -330,17 +388,42 @@ export function ContractsPage({ clientId }: { clientId: string }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label="Razón social del cliente" value={clientLegalName} onChange={setClientLegalName} placeholder={client.name} />
-          <Field label="RUT del cliente" value={clientTaxId} onChange={setClientTaxId} placeholder="12.345.678-9" />
-          <Field label="Dirección del cliente" value={clientAddress} onChange={setClientAddress} placeholder="Calle, número, comuna, ciudad" />
-          <Field label="Email del cliente" value={clientEmail} onChange={setClientEmail} placeholder="cliente@email.com" type="email" />
+          <Field
+            label="Razón social del cliente"
+            value={clientLegalName}
+            onChange={setClientLegalName}
+            placeholder={client.name}
+          />
+          <Field
+            label="RUT del cliente"
+            value={clientTaxId}
+            onChange={setClientTaxId}
+            placeholder="12.345.678-9"
+          />
+          <Field
+            label="Dirección del cliente"
+            value={clientAddress}
+            onChange={setClientAddress}
+            placeholder="Calle, número, comuna, ciudad"
+          />
+          <Field
+            label="Email del cliente"
+            value={clientEmail}
+            onChange={setClientEmail}
+            placeholder="cliente@email.com"
+            type="email"
+          />
         </div>
 
         <div className="flex items-center justify-between pt-2">
           <div className="text-xs text-muted-foreground">
-            Plazo de pago: <strong>{pricing.payment_due_days} días</strong> · Pagos por etapa, no acumulados.
+            Plazo de pago: <strong>{pricing.payment_due_days} días</strong> · Pagos por etapa, no
+            acumulados.
           </div>
-          <Button onClick={createContract} disabled={creating || (selected.size === 0 && !selectedPlan)}>
+          <Button
+            onClick={createContract}
+            disabled={creating || (selected.size === 0 && !selectedPlan)}
+          >
             <Plus className="w-4 h-4 mr-1" /> Crear contrato
           </Button>
         </div>
@@ -355,13 +438,19 @@ export function ContractsPage({ clientId }: { clientId: string }) {
         ) : (
           <div className="space-y-2">
             {contracts.map((c) => (
-              <div key={c.id} className="rounded-2xl border bg-card p-4 flex flex-wrap items-center gap-3">
+              <div
+                key={c.id}
+                className="rounded-2xl border bg-card p-4 flex flex-wrap items-center gap-3"
+              >
                 <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
                 <div className="min-w-0 flex-1">
                   <div className="font-medium truncate">{c.title}</div>
                   <div className="text-xs text-muted-foreground">
-                    {new Date(c.created_at).toLocaleDateString("es-CL")} · {c.services_snapshot?.length ?? 0} servicios ·{" "}
-                    Pago único <Money amount={Number(c.total_one_time)} currency={c.currency} /> · <Money amount={Number(c.total_monthly)} currency={c.currency} />/mes
+                    {new Date(c.created_at).toLocaleDateString("es-CL")} ·{" "}
+                    {c.services_snapshot?.length ?? 0} servicios · Pago único{" "}
+                    <Money amount={Number(c.total_one_time)} currency={c.currency} /> ·{" "}
+                    <Money amount={Number(c.total_monthly)} currency={c.currency} />
+                    /mes
                   </div>
                 </div>
                 <select
@@ -377,7 +466,12 @@ export function ContractsPage({ clientId }: { clientId: string }) {
                 <Button variant="outline" size="sm" onClick={() => downloadPdf(c)}>
                   <Download className="w-4 h-4 mr-1" /> PDF
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => deleteContract(c.id)} className="text-destructive">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => deleteContract(c.id)}
+                  className="text-destructive"
+                >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
@@ -413,7 +507,10 @@ export function ContractsPage({ clientId }: { clientId: string }) {
             }}
             services={previewing.services_snapshot ?? []}
             clauses={previewing.clauses_snapshot ?? []}
-            totals={{ one_time: Number(previewing.total_one_time), monthly: Number(previewing.total_monthly) }}
+            totals={{
+              one_time: Number(previewing.total_one_time),
+              monthly: Number(previewing.total_monthly),
+            }}
           />
         </div>
       )}
@@ -421,11 +518,28 @@ export function ContractsPage({ clientId }: { clientId: string }) {
   );
 }
 
-function Field({ label, value, onChange, placeholder, type = "text" }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+      <Input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
     </div>
   );
 }

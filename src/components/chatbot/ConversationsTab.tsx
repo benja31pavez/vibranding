@@ -5,7 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, BotOff, User, Star, X, Search, RefreshCw, Clock, AlertTriangle, Check, Megaphone, Instagram, MessageCircle } from "lucide-react";
+import {
+  Bot,
+  BotOff,
+  User,
+  Star,
+  X,
+  Search,
+  RefreshCw,
+  Clock,
+  AlertTriangle,
+  Check,
+  Megaphone,
+  Instagram,
+  MessageCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { writeFailed } from "@/lib/writeCheck";
 import { isStale } from "@/hooks/use-unmarked-outcomes";
@@ -15,7 +29,6 @@ import {
   type Outcome,
   type OutcomeStatus,
 } from "@/components/chatbot/OutcomeSelector";
-
 
 type Conv = {
   id: string;
@@ -62,7 +75,9 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
   const [filterChannel, setFilterChannel] = useState<"all" | "whatsapp" | "instagram">("all");
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
-  const [attributions, setAttributions] = useState<Record<string, { ad_id: string | null; headline: string | null }>>({});
+  const [attributions, setAttributions] = useState<
+    Record<string, { ad_id: string | null; headline: string | null }>
+  >({});
 
   const followupCount = convs.filter((c) => c.needs_human_followup).length;
 
@@ -90,7 +105,8 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
       .eq("client_id", clientId);
     const map: Record<string, { ad_id: string | null; headline: string | null }> = {};
     for (const row of (data ?? []) as any[]) {
-      if (row.conversation_id) map[row.conversation_id] = { ad_id: row.ad_id, headline: row.headline };
+      if (row.conversation_id)
+        map[row.conversation_id] = { ad_id: row.ad_id, headline: row.headline };
     }
     setAttributions(map);
   };
@@ -141,10 +157,7 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
     setMessages((data ?? []) as Msg[]);
 
     // mark as read
-    await supabase
-      .from("whatsapp_conversations")
-      .update({ unread_count: 0 })
-      .eq("id", convId);
+    await supabase.from("whatsapp_conversations").update({ unread_count: 0 }).eq("id", convId);
   };
 
   useEffect(() => {
@@ -152,7 +165,6 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
     loadOutcomes();
     loadAttributions();
   }, [clientId]);
-
 
   useEffect(() => {
     if (active) loadMessages(active.id);
@@ -206,7 +218,12 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
       } as any)
       .eq("id", active.id);
     if (error) return toast.error(error.message);
-    setActive({ ...active, needs_human_followup: false, human_followup_reason: null, human_followup_at: null });
+    setActive({
+      ...active,
+      needs_human_followup: false,
+      human_followup_reason: null,
+      human_followup_at: null,
+    });
     toast.success("Recordatorio resuelto");
     loadConvs();
   };
@@ -216,9 +233,7 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
   const pendingOutcomeCount = convs.filter(needsOutcome).length;
 
   /** Tags come from the bot flows; the inbox lets you slice by any of them. */
-  const allTags = Array.from(
-    new Set(convs.flatMap((c) => c.tags ?? [])),
-  ).sort();
+  const allTags = Array.from(new Set(convs.flatMap((c) => c.tags ?? []))).sort();
 
   const filtered = convs
     .filter((c) => {
@@ -258,11 +273,13 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
             </Button>
           </div>
           <div className="grid grid-cols-3 gap-1">
-            {([
-              { key: "all", label: "Todos" },
-              { key: "whatsapp", label: "WhatsApp" },
-              { key: "instagram", label: "Instagram" },
-            ] as const).map((tab) => (
+            {(
+              [
+                { key: "all", label: "Todos" },
+                { key: "whatsapp", label: "WhatsApp" },
+                { key: "instagram", label: "Instagram" },
+              ] as const
+            ).map((tab) => (
               <button
                 key={tab.key}
                 type="button"
@@ -340,7 +357,10 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
               } ${c.needs_human_followup ? "border-l-4 border-l-destructive" : ""}`}
             >
               <div className="flex items-center gap-2">
-                <span title={c.channel === "instagram" ? "Instagram DM" : "WhatsApp"} className="shrink-0">
+                <span
+                  title={c.channel === "instagram" ? "Instagram DM" : "WhatsApp"}
+                  className="shrink-0"
+                >
                   {c.channel === "instagram" ? (
                     <Instagram className="w-3.5 h-3.5 text-pink-500" />
                   ) : (
@@ -373,7 +393,9 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
                   </span>
                   <span className="w-5 flex justify-center">
                     {c.unread_count > 0 && (
-                      <Badge className="h-5 min-w-5 justify-center px-1 text-[10px]">{c.unread_count}</Badge>
+                      <Badge className="h-5 min-w-5 justify-center px-1 text-[10px]">
+                        {c.unread_count}
+                      </Badge>
                     )}
                   </span>
                 </div>
@@ -407,7 +429,6 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
         </ScrollArea>
       </div>
 
-
       {/* Hilo */}
       <div className="flex flex-col min-h-0">
         {!active ? (
@@ -435,12 +456,20 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
                 title={active.ai_paused ? "Reactivar bot" : "Pausar bot en este chat"}
               >
                 {active.ai_paused ? (
-                  <><Bot className="w-3 h-3 mr-1" /> Reactivar bot</>
+                  <>
+                    <Bot className="w-3 h-3 mr-1" /> Reactivar bot
+                  </>
                 ) : (
-                  <><BotOff className="w-3 h-3 mr-1" /> Pausar bot</>
+                  <>
+                    <BotOff className="w-3 h-3 mr-1" /> Pausar bot
+                  </>
                 )}
               </Button>
-              <Button size="sm" variant={active.is_lead ? "default" : "outline"} onClick={toggleLead}>
+              <Button
+                size="sm"
+                variant={active.is_lead ? "default" : "outline"}
+                onClick={toggleLead}
+              >
                 <Star className="w-3 h-3 mr-1" />
                 {active.is_lead ? "Lead" : "Marcar lead"}
               </Button>
@@ -453,14 +482,11 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
               <div className="px-3 py-2 bg-destructive/10 border-b border-destructive/30 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0 text-xs">
-                  <div className="font-medium text-destructive">
-                    Pendiente de respuesta humana
-                  </div>
+                  <div className="font-medium text-destructive">Pendiente de respuesta humana</div>
                   <div className="text-muted-foreground mt-0.5">
-                    {active.human_followup_reason ?? "La IA prometió que alguien del equipo contactaría al cliente."}
-                    {active.human_followup_at && (
-                      <> · {fmtTime(active.human_followup_at)}</>
-                    )}
+                    {active.human_followup_reason ??
+                      "La IA prometió que alguien del equipo contactaría al cliente."}
+                    {active.human_followup_at && <> · {fmtTime(active.human_followup_at)}</>}
                   </div>
                 </div>
                 <Button size="sm" variant="outline" onClick={resolveFollowup}>
@@ -473,10 +499,7 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
                 {messages.map((m) => {
                   const out = m.direction === "outbound";
                   return (
-                    <div
-                      key={m.id}
-                      className={`flex ${out ? "justify-end" : "justify-start"}`}
-                    >
+                    <div key={m.id} className={`flex ${out ? "justify-end" : "justify-start"}`}>
                       <div
                         className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
                           out
@@ -500,17 +523,13 @@ export function ConversationsTab({ clientId }: { clientId: string }) {
                           )}
                           <span>· {fmtTime(m.timestamp)}</span>
                         </div>
-                        <div className="whitespace-pre-wrap">
-                          {m.body || `[${m.type}]`}
-                        </div>
+                        <div className="whitespace-pre-wrap">{m.body || `[${m.type}]`}</div>
                       </div>
                     </div>
                   );
                 })}
                 {messages.length === 0 && (
-                  <div className="text-center text-sm text-muted-foreground py-8">
-                    Sin mensajes
-                  </div>
+                  <div className="text-center text-sm text-muted-foreground py-8">Sin mensajes</div>
                 )}
               </div>
             </ScrollArea>

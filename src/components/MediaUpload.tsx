@@ -71,9 +71,13 @@ export function MediaUpload({
             onClick={() => inputRef.current?.click()}
           >
             {uploading ? (
-              <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Subiendo…</>
+              <>
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Subiendo…
+              </>
             ) : (
-              <><Upload className="w-3 h-3 mr-1" /> Subir imagen</>
+              <>
+                <Upload className="w-3 h-3 mr-1" /> Subir imagen
+              </>
             )}
           </Button>
           {showUrl && (

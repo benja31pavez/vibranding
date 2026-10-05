@@ -34,7 +34,8 @@ export const getOnboardingFileUrl = createServerFn({ method: "POST" })
       console.error("[onboarding] no se pudo leer client_intake", data.clientId, error.message);
       throw new Error("No pudimos abrir el archivo. Intenta de nuevo.");
     }
-    if (!intake?.archivos.includes(data.path)) throw new Error("Ese archivo no está en el onboarding del cliente");
+    if (!intake?.archivos.includes(data.path))
+      throw new Error("Ese archivo no está en el onboarding del cliente");
 
     // Service role solo para firmar la lectura (bucket privado).
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

@@ -33,7 +33,9 @@ export function HomeHero() {
           {hero.titleLead}{" "}
           <span className="font-brand text-gradient-brand-strong">{hero.titleAccent}</span>
         </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground text-pretty md:text-xl">{hero.subtitle}</p>
+        <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground text-pretty md:text-xl">
+          {hero.subtitle}
+        </p>
         <p className="mt-4 text-sm font-semibold text-foreground md:text-base">{hero.priceLine}</p>
 
         <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
@@ -46,7 +48,11 @@ export function HomeHero() {
           </a>
         </div>
         <p className="mt-4 flex justify-center">
-          <WhatsAppCta variant="outline" size="sm" className="border-transparent hover:border-foreground/15">
+          <WhatsAppCta
+            variant="outline"
+            size="sm"
+            className="border-transparent hover:border-foreground/15"
+          >
             {hero.ctaPrimary}
           </WhatsAppCta>
         </p>

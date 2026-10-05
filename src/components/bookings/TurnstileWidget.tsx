@@ -35,7 +35,8 @@ function loadTurnstile(): Promise<TurnstileApi> {
     const script = document.createElement("script");
     script.src = SCRIPT_SRC;
     script.async = true;
-    script.onload = () => (window.turnstile ? resolve(window.turnstile) : reject(new Error("turnstile")));
+    script.onload = () =>
+      window.turnstile ? resolve(window.turnstile) : reject(new Error("turnstile"));
     script.onerror = () => {
       scriptPromise = null;
       reject(new Error("No se pudo cargar la verificación anti-robots"));

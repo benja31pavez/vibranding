@@ -11,7 +11,6 @@ import { MessageCircle } from "lucide-react";
 import { ErrorState, ListSkeleton } from "@/components/app";
 import { useInvalidateClientCapabilities } from "@/hooks/use-client-capabilities";
 
-
 export type WAAccount = {
   id: string;
   client_id: string;
@@ -33,9 +32,7 @@ export type WAAccount = {
   social_links: { label: string; url: string }[] | null;
   catalog: { name: string; price?: string; url?: string; image_url?: string }[] | null;
   business_name: string | null;
-  business_hours:
-    | { day: number; enabled: boolean; open: string; close: string }[]
-    | null;
+  business_hours: { day: number; enabled: boolean; open: string; close: string }[] | null;
 };
 
 export function ChatbotPage({ clientId }: { clientId: string }) {
@@ -61,7 +58,6 @@ export function ChatbotPage({ clientId }: { clientId: string }) {
     }
     setLoading(false);
   };
-
 
   useEffect(() => {
     load();

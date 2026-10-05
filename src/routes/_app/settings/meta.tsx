@@ -137,59 +137,64 @@ function OrgMetaTokenPage() {
           </CardContent>
         </Card>
       ) : (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Estado</CardTitle>
-          {status?.has_token ? (
-            <Badge className="gap-1">
-              <ShieldCheck className="w-3 h-3" /> Guardado
-            </Badge>
-          ) : (
-            <Badge variant="secondary">Sin token</Badge>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <div className="text-muted-foreground">
-            Organización: <strong>{status?.org_name ?? "—"}</strong>
-          </div>
-          <div className="text-muted-foreground">
-            Expira:{" "}
-            {status?.expires_at
-              ? new Date(status.expires_at).toLocaleString("es-CL")
-              : "sin caducidad"}
-            {" · "}Última validación:{" "}
-            {validatedAt
-              ? new Date(validatedAt).toLocaleString("es-CL")
-              : status?.updated_at
-                ? new Date(status.updated_at).toLocaleString("es-CL")
-                : "nunca"}
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {scopes.length === 0 ? (
-              <span className="text-muted-foreground">
-                Permisos otorgados por Meta: se muestran al validar.
-              </span>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Estado</CardTitle>
+            {status?.has_token ? (
+              <Badge className="gap-1">
+                <ShieldCheck className="w-3 h-3" /> Guardado
+              </Badge>
             ) : (
-              scopes.map((s) => (
-                <Badge key={s} variant="outline" className="font-mono text-[11px]">
-                  {s}
-                </Badge>
-              ))
+              <Badge variant="secondary">Sin token</Badge>
             )}
-          </div>
-          {status?.has_token && (
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={doValidate} disabled={busy}>
-                <RefreshCw className={`w-3 h-3 mr-1 ${busy ? "animate-spin" : ""}`} />
-                Validar token
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setConfirmClear(true)} disabled={busy}>
-                <Trash2 className="w-3 h-3 mr-1" /> Eliminar
-              </Button>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="text-muted-foreground">
+              Organización: <strong>{status?.org_name ?? "—"}</strong>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div className="text-muted-foreground">
+              Expira:{" "}
+              {status?.expires_at
+                ? new Date(status.expires_at).toLocaleString("es-CL")
+                : "sin caducidad"}
+              {" · "}Última validación:{" "}
+              {validatedAt
+                ? new Date(validatedAt).toLocaleString("es-CL")
+                : status?.updated_at
+                  ? new Date(status.updated_at).toLocaleString("es-CL")
+                  : "nunca"}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {scopes.length === 0 ? (
+                <span className="text-muted-foreground">
+                  Permisos otorgados por Meta: se muestran al validar.
+                </span>
+              ) : (
+                scopes.map((s) => (
+                  <Badge key={s} variant="outline" className="font-mono text-[11px]">
+                    {s}
+                  </Badge>
+                ))
+              )}
+            </div>
+            {status?.has_token && (
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={doValidate} disabled={busy}>
+                  <RefreshCw className={`w-3 h-3 mr-1 ${busy ? "animate-spin" : ""}`} />
+                  Validar token
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setConfirmClear(true)}
+                  disabled={busy}
+                >
+                  <Trash2 className="w-3 h-3 mr-1" /> Eliminar
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <ConfirmDialog

@@ -203,8 +203,8 @@ function RateChart({ d }: { d: ContentPerformance }) {
   if (points.length < 2) {
     return (
       <Empty>
-        Solo hay {points.length} día{points.length === 1 ? "" : "s"} con métricas en este periodo: no
-        alcanza para dibujar una evolución.
+        Solo hay {points.length} día{points.length === 1 ? "" : "s"} con métricas en este periodo:
+        no alcanza para dibujar una evolución.
       </Empty>
     );
   }
@@ -223,7 +223,13 @@ function RateChart({ d }: { d: ContentPerformance }) {
   return (
     <div className="space-y-2">
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-32 w-full">
-        <path d={path} fill="none" stroke="hsl(var(--primary))" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
+        <path
+          d={path}
+          fill="none"
+          stroke="hsl(var(--primary))"
+          strokeWidth="1.2"
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
       <div className="flex justify-between text-[10px] text-muted-foreground">
         <span>{points[0]!.date}</span>
@@ -236,15 +242,7 @@ function RateChart({ d }: { d: ContentPerformance }) {
   );
 }
 
-export function WhatWorks({
-  clientId,
-  from,
-  to,
-}: {
-  clientId: string;
-  from: string;
-  to: string;
-}) {
+export function WhatWorks({ clientId, from, to }: { clientId: string; from: string; to: string }) {
   const [open, setOpen] = useState(true);
   const { mediaReason } = useZeroCause(clientId);
 
@@ -372,7 +370,10 @@ export function WhatWorks({
                             label: formatLabel(r.format),
                             value: r.median_engagement,
                             sample: r.sample,
-                            note: r.avg_reach != null ? `alcance ${num(Math.round(r.avg_reach))}` : undefined,
+                            note:
+                              r.avg_reach != null
+                                ? `alcance ${num(Math.round(r.avg_reach))}`
+                                : undefined,
                           }))}
                         />
                       )}
@@ -383,8 +384,8 @@ export function WhatWorks({
                       </div>
                       {data.objective_post_count === 0 ? (
                         <Empty>
-                          Ninguna publicación de este periodo tiene objetivo definido, así que no hay
-                          nada que comparar.
+                          Ninguna publicación de este periodo tiene objetivo definido, así que no
+                          hay nada que comparar.
                         </Empty>
                       ) : (
                         <Bars
@@ -432,7 +433,11 @@ export function WhatWorks({
                 <div className="text-sm font-medium">
                   Tasa de interacción sobre seguidores en el tiempo
                 </div>
-                {blocker(data, false, mediaReason) ? <Empty>{blocker(data, false, mediaReason)}</Empty> : <RateChart d={data} />}
+                {blocker(data, false, mediaReason) ? (
+                  <Empty>{blocker(data, false, mediaReason)}</Empty>
+                ) : (
+                  <RateChart d={data} />
+                )}
               </div>
             </div>
           )}

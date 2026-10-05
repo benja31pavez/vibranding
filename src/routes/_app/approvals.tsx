@@ -2,7 +2,14 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { FilterX, Inbox } from "lucide-react";
 import { useMemo } from "react";
 import { ApprovalRow } from "@/components/approvals/ApprovalRow";
-import { EmptyState, ErrorState, ListSkeleton, PageContainer, PageHeader, Panel } from "@/components/app";
+import {
+  EmptyState,
+  ErrorState,
+  ListSkeleton,
+  PageContainer,
+  PageHeader,
+  Panel,
+} from "@/components/app";
 import { Button } from "@/components/ui/button";
 import {
   Select,

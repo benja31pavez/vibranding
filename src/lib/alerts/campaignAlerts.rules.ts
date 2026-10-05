@@ -150,7 +150,12 @@ interface CampaignTotals {
   results: number;
 }
 
-function totals(days: CampaignDay[], campaignId: string, window: readonly string[], name: string): CampaignTotals {
+function totals(
+  days: CampaignDay[],
+  campaignId: string,
+  window: readonly string[],
+  name: string,
+): CampaignTotals {
   const inWindow = new Set(window);
   return days
     .filter((d) => d.campaignId === campaignId && inWindow.has(d.date))
@@ -169,7 +174,8 @@ function totals(days: CampaignDay[], campaignId: string, window: readonly string
 function campaignNames(days: CampaignDay[], campaigns: CampaignPlan[]): Map<string, string> {
   const names = new Map<string, string>();
   for (const c of campaigns) names.set(c.fbCampaignId, c.name);
-  for (const d of days) if (d.campaignName && !names.has(d.campaignId)) names.set(d.campaignId, d.campaignName);
+  for (const d of days)
+    if (d.campaignName && !names.has(d.campaignId)) names.set(d.campaignId, d.campaignName);
   return names;
 }
 
@@ -196,11 +202,15 @@ function connectionAlert(input: EvaluationInput): AlertCandidate | null {
     return {
       ...base,
       severity: "critical",
-      message: "El permiso de Meta de este cliente venció. Reconecta Meta desde Configurar cliente para volver a recibir datos.",
+      message:
+        "El permiso de Meta de este cliente venció. Reconecta Meta desde Configurar cliente para volver a recibir datos.",
       data: { ...base.data, token_expires_at: account.tokenExpiresAt },
     };
   }
-  if (Number.isFinite(expiresAt) && expiresAt - now.getTime() <= TOKEN_EXPIRY_WARNING_DAYS * DAY_MS) {
+  if (
+    Number.isFinite(expiresAt) &&
+    expiresAt - now.getTime() <= TOKEN_EXPIRY_WARNING_DAYS * DAY_MS
+  ) {
     const daysLeft = Math.max(1, Math.ceil((expiresAt - now.getTime()) / DAY_MS));
     return {
       ...base,
@@ -292,7 +302,8 @@ function spendNoResults(ctx: CampaignContext, campaignIds: string[]): AlertCandi
     if (!expectsResults(ctx.plansById.get(id))) return [];
     const t = totals(input.days, id, window, ctx.names.get(id) ?? id);
     if (t.results > 0 || t.spend < thresholds.noResultsWarning) return [];
-    const severity: AlertSeverity = t.spend >= thresholds.noResultsCritical ? "critical" : "warning";
+    const severity: AlertSeverity =
+      t.spend >= thresholds.noResultsCritical ? "critical" : "warning";
     return [
       {
         kind: "spend_no_results",
@@ -321,7 +332,12 @@ function cpaSpike(ctx: CampaignContext, campaignIds: string[]): AlertCandidate[]
     const name = ctx.names.get(id) ?? id;
     const r = totals(input.days, id, recent, name);
     const b = totals(input.days, id, baseline, name);
-    if (b.results < CPA_MIN_BASELINE_RESULTS || r.results === 0 || r.spend < thresholds.cpaMinRecentSpend) return [];
+    if (
+      b.results < CPA_MIN_BASELINE_RESULTS ||
+      r.results === 0 ||
+      r.spend < thresholds.cpaMinRecentSpend
+    )
+      return [];
     const recentCpa = r.spend / r.results;
     const baseCpa = b.spend / b.results;
     if (baseCpa <= 0) return [];
@@ -368,7 +384,10 @@ function zeroSpendActive(ctx: CampaignContext): AlertCandidate[] {
         message: wasSpending
           ? `«${plan.name}» está activa pero lleva ${ZERO_SPEND_DAYS} días sin gastar. Revisa en Meta el método de pago, el límite de gasto de la cuenta y si algún anuncio fue rechazado.`
           : `«${plan.name}» está activa pero no ha gastado en ${ZERO_SPEND_DAYS} días. Revisa en Meta si los anuncios están en revisión o rechazados y que el método de pago esté al día. Si la pausaste en Meta, sincroniza las campañas.`,
-        data: campaignData(ctx, id, { window_from: window[0], window_to: window[window.length - 1] }),
+        data: campaignData(ctx, id, {
+          window_from: window[0],
+          window_to: window[window.length - 1],
+        }),
       },
     ];
   });
@@ -384,7 +403,12 @@ function overspend(ctx: CampaignContext): AlertCandidate[] {
     const id = plan.fbCampaignId;
     const spend = totals(input.days, id, [day], plan.name).spend;
     const ratio = spend / budget;
-    const data = campaignData(ctx, id, { day, spend, expected_daily_budget: budget, ratio: Math.round(ratio * 100) / 100 });
+    const data = campaignData(ctx, id, {
+      day,
+      spend,
+      expected_daily_budget: budget,
+      ratio: Math.round(ratio * 100) / 100,
+    });
     if (ratio >= BUDGET_MISMATCH_RATIO) {
       return [
         {

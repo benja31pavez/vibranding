@@ -5,7 +5,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ErrorState } from "@/components/app";
-import { listClientUsers, inviteClientUser, revokeClientUser } from "@/lib/clients/clientAccess.functions";
+import {
+  listClientUsers,
+  inviteClientUser,
+  revokeClientUser,
+} from "@/lib/clients/clientAccess.functions";
 
 interface Row {
   id: string;
@@ -62,8 +66,8 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
         <Users className="w-4 h-4" /> Acceso del cliente
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        El cliente invitado solo puede ver su analítica, etapas y objetivos. No ve pagos, contratos, otros clientes ni
-        la bandeja de WhatsApp.
+        El cliente invitado solo puede ver su analítica, etapas y objetivos. No ve pagos, contratos,
+        otros clientes ni la bandeja de WhatsApp.
       </p>
 
       <form onSubmit={send} className="flex flex-wrap gap-2 mb-4">
@@ -80,7 +84,11 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
       </form>
 
       {loadError ? (
-        <ErrorState title="No pudimos cargar los accesos" message={loadError} onRetry={() => void load()} />
+        <ErrorState
+          title="No pudimos cargar los accesos"
+          message={loadError}
+          onRetry={() => void load()}
+        />
       ) : rows.length === 0 ? (
         <div className="text-sm text-muted-foreground">Todavía no has dado acceso a nadie.</div>
       ) : (

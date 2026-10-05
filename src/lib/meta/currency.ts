@@ -18,15 +18,72 @@
 
 /** Offsets copied from the official table (link above). Do not guess new ones. */
 export const META_CURRENCY_OFFSETS: Readonly<Record<string, 1 | 100>> = Object.freeze({
-  DZD: 100, ARS: 100, AUD: 100, BHD: 100, BDT: 100, BOB: 100, BGN: 100, BRL: 100,
-  GBP: 100, CAD: 100, CLP: 1, CNY: 100, COP: 1, CRC: 1, HRK: 100, CZK: 100,
-  DKK: 100, EGP: 100, EUR: 100, GTQ: 100, HNL: 100, HKD: 100, HUF: 1, ISK: 1,
-  INR: 100, IDR: 1, ILS: 100, JPY: 1, JOD: 100, KES: 100, KRW: 1, LVL: 100,
-  LTL: 100, MOP: 100, MYR: 100, MXN: 100, NZD: 100, NIO: 100, NGN: 100, NOK: 100,
-  PKR: 100, PYG: 1, PEN: 100, PHP: 100, PLN: 100, QAR: 100, RON: 100, RUB: 100,
-  SAR: 100, RSD: 100, SGD: 100, SKK: 100, ZAR: 100, SEK: 100, CHF: 100, TWD: 1,
-  THB: 100, TRY: 100, AED: 100, UAH: 100, USD: 100, UYU: 100, VEF: 100, VND: 1,
-  FBZ: 100, VES: 100,
+  DZD: 100,
+  ARS: 100,
+  AUD: 100,
+  BHD: 100,
+  BDT: 100,
+  BOB: 100,
+  BGN: 100,
+  BRL: 100,
+  GBP: 100,
+  CAD: 100,
+  CLP: 1,
+  CNY: 100,
+  COP: 1,
+  CRC: 1,
+  HRK: 100,
+  CZK: 100,
+  DKK: 100,
+  EGP: 100,
+  EUR: 100,
+  GTQ: 100,
+  HNL: 100,
+  HKD: 100,
+  HUF: 1,
+  ISK: 1,
+  INR: 100,
+  IDR: 1,
+  ILS: 100,
+  JPY: 1,
+  JOD: 100,
+  KES: 100,
+  KRW: 1,
+  LVL: 100,
+  LTL: 100,
+  MOP: 100,
+  MYR: 100,
+  MXN: 100,
+  NZD: 100,
+  NIO: 100,
+  NGN: 100,
+  NOK: 100,
+  PKR: 100,
+  PYG: 1,
+  PEN: 100,
+  PHP: 100,
+  PLN: 100,
+  QAR: 100,
+  RON: 100,
+  RUB: 100,
+  SAR: 100,
+  RSD: 100,
+  SGD: 100,
+  SKK: 100,
+  ZAR: 100,
+  SEK: 100,
+  CHF: 100,
+  TWD: 1,
+  THB: 100,
+  TRY: 100,
+  AED: 100,
+  UAH: 100,
+  USD: 100,
+  UYU: 100,
+  VEF: 100,
+  VND: 1,
+  FBZ: 100,
+  VES: 100,
 });
 
 export class MetaCurrencyError extends Error {
@@ -101,7 +158,10 @@ export function toMetaAmount(
 }
 
 /** Converts a Meta minimum-unit value (e.g. "10000" CLP, "1250" USD cents) back to base units. */
-export function fromMetaAmount(value: number | string, currency: string | null | undefined): number {
+export function fromMetaAmount(
+  value: number | string,
+  currency: string | null | undefined,
+): number {
   const offset = getMetaCurrencyOffset(currency);
   const n = Number(value);
   if (!Number.isFinite(n)) {
@@ -125,17 +185,18 @@ export function fromMetaAmountOrNull(
  * kept deliberately round. A currency not listed here always requires
  * explicit confirmation (fail closed) instead of guessing an exchange rate.
  */
-export const MAX_DAILY_BUDGET_WITHOUT_CONFIRMATION: Readonly<Record<string, number>> = Object.freeze({
-  CLP: 500_000,
-  USD: 550,
-  EUR: 500,
-  ARS: 550_000,
-  BRL: 3_000,
-  COP: 2_200_000,
-  MXN: 10_000,
-  PEN: 2_000,
-  UYU: 22_000,
-});
+export const MAX_DAILY_BUDGET_WITHOUT_CONFIRMATION: Readonly<Record<string, number>> =
+  Object.freeze({
+    CLP: 500_000,
+    USD: 550,
+    EUR: 500,
+    ARS: 550_000,
+    BRL: 3_000,
+    COP: 2_200_000,
+    MXN: 10_000,
+    PEN: 2_000,
+    UYU: 22_000,
+  });
 
 /** Lifetime budgets and spend caps may be up to this many times the daily cap without confirmation. */
 export const LIFETIME_CAP_MULTIPLIER = 15;
@@ -153,7 +214,9 @@ const AMOUNT_LABELS: Record<GuardedAmountKey, string> = {
 };
 
 /** Caps per field for a currency, or null when the currency has no defined cap. */
-export function budgetLimitsFor(currency: string | null | undefined): Record<GuardedAmountKey, number> | null {
+export function budgetLimitsFor(
+  currency: string | null | undefined,
+): Record<GuardedAmountKey, number> | null {
   const daily = MAX_DAILY_BUDGET_WITHOUT_CONFIRMATION[normalizeCode(currency)];
   if (daily === undefined) return null;
   const lifetime = daily * LIFETIME_CAP_MULTIPLIER;

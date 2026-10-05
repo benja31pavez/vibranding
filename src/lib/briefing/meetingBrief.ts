@@ -87,7 +87,12 @@ export interface BriefGoogleRow {
 }
 
 export type BriefListKey =
-  "deliverables" | "posts" | "tasks" | "reports" | "approvals" | "payments";
+  | "deliverables"
+  | "posts"
+  | "tasks"
+  | "reports"
+  | "approvals"
+  | "payments";
 
 export interface MeetingBriefInput {
   clientName: string;
@@ -116,7 +121,12 @@ export interface MeetingBriefInput {
 // ------------------------------------------------------------------ salida
 
 export type BriefSectionKey =
-  "estado" | "hicimos" | "resultados" | "pendientes" | "proximos" | "preguntas";
+  | "estado"
+  | "hicimos"
+  | "resultados"
+  | "pendientes"
+  | "proximos"
+  | "preguntas";
 
 export interface BriefSection {
   key: BriefSectionKey;

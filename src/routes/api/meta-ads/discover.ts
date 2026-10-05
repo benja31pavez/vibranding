@@ -22,9 +22,13 @@ export const Route = createFileRoute("/api/meta-ads/discover")({
           const denied = await denyUnlessClientEditor(authHeader, clientId);
           if (denied) return denied;
 
-          const supa = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
-            global: { headers: { Authorization: authHeader } },
-          });
+          const supa = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_PUBLISHABLE_KEY!,
+            {
+              global: { headers: { Authorization: authHeader } },
+            },
+          );
           const { data: visible } = await supa
             .from("meta_accounts")
             .select("id")
@@ -71,5 +75,8 @@ export const Route = createFileRoute("/api/meta-ads/discover")({
 });
 
 function json(obj: unknown, status = 200) {
-  return new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }

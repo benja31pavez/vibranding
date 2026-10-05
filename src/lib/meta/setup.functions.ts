@@ -48,7 +48,8 @@ export const getSetupStatus = createServerFn({ method: "POST" })
       Date.now() - new Date(account.last_validated_at).getTime() > 60 * 60 * 1000;
     // Revalidating calls Meta with the agency token: editors only. Viewers
     // still get the stored status.
-    const { getClientOrgRole, CLIENT_EDITOR_ROLES } = await import("@/lib/auth/clientAccess.server");
+    const { getClientOrgRole, CLIENT_EDITOR_ROLES } =
+      await import("@/lib/auth/clientAccess.server");
     const role = account ? await getClientOrgRole(context.userId, data.clientId) : null;
     const canRevalidate = role !== null && CLIENT_EDITOR_ROLES.includes(role);
     if (account?.connected && canRevalidate && (data.revalidate || stale)) {
@@ -118,7 +119,8 @@ export const runSetupIngest = createServerFn({ method: "POST" })
 
     const days =
       Math.round(
-        (new Date(`${data.to}T00:00:00Z`).getTime() - new Date(`${data.from}T00:00:00Z`).getTime()) /
+        (new Date(`${data.to}T00:00:00Z`).getTime() -
+          new Date(`${data.from}T00:00:00Z`).getTime()) /
           86400000,
       ) + 1;
 

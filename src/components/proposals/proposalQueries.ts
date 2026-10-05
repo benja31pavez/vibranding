@@ -37,10 +37,13 @@ const COLUMNS =
 /** Keys acotadas por usuario: no se comparte caché entre sesiones. */
 export const proposalKeys = {
   all: (userId: string) => ["proposals", userId] as const,
-  byClient: (userId: string, clientId: string) => ["proposals", userId, "client", clientId] as const,
-  byProspect: (userId: string, prospectId: string) => ["proposals", userId, "prospect", prospectId] as const,
+  byClient: (userId: string, clientId: string) =>
+    ["proposals", userId, "client", clientId] as const,
+  byProspect: (userId: string, prospectId: string) =>
+    ["proposals", userId, "prospect", prospectId] as const,
   one: (userId: string, id: string) => ["proposals", userId, "one", id] as const,
-  recipient: (userId: string, kind: string, id: string) => ["proposals", userId, "recipient", kind, id] as const,
+  recipient: (userId: string, kind: string, id: string) =>
+    ["proposals", userId, "recipient", kind, id] as const,
 };
 
 function useUserKey(): string {
@@ -94,7 +97,9 @@ export function useClientProposals(clientId: string) {
 }
 
 /** ¿Puede el usuario editar propuestas de este destinatario? La BD revalida cada escritura (RLS). */
-export function useCanEditRecipient(recipient: Pick<Recipient, "kind" | "id" | "orgId"> | null | undefined) {
+export function useCanEditRecipient(
+  recipient: Pick<Recipient, "kind" | "id" | "orgId"> | null | undefined,
+) {
   const userKey = useUserKey();
   return useQuery({
     queryKey: ["proposals", userKey, "can-edit", recipient?.kind, recipient?.id],
@@ -116,7 +121,11 @@ export function useProposal(id: string) {
   return useQuery({
     queryKey: proposalKeys.one(userKey, id),
     queryFn: async (): Promise<ProposalRow | null> => {
-      const { data, error } = await supabase.from("proposals").select(COLUMNS).eq("id", id).maybeSingle();
+      const { data, error } = await supabase
+        .from("proposals")
+        .select(COLUMNS)
+        .eq("id", id)
+        .maybeSingle();
       if (error) throw new Error(error.message);
       return data;
     },
@@ -152,7 +161,11 @@ export function useRecipient(target: { clientId?: string | null; prospectId?: st
     enabled: Boolean(id),
     queryFn: async (): Promise<Recipient | null> => {
       if (kind === "client") {
-        const { data, error } = await supabase.from("clients").select("id,org_id,name").eq("id", id).maybeSingle();
+        const { data, error } = await supabase
+          .from("clients")
+          .select("id,org_id,name")
+          .eq("id", id)
+          .maybeSingle();
         if (error) throw new Error(error.message);
         return data ? { kind, id: data.id, orgId: data.org_id, name: data.name } : null;
       }
@@ -227,7 +240,11 @@ async function advanceProspectStage(
 
 /** Estado actual del prospecto (no el del caché). Lanza si está de baja: no se le envían propuestas. */
 async function currentProspectEstado(prospectId: string): Promise<string> {
-  const { data, error } = await supabase.from("prospects").select("estado").eq("id", prospectId).maybeSingle();
+  const { data, error } = await supabase
+    .from("prospects")
+    .select("estado")
+    .eq("id", prospectId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("No encontramos el prospecto.");
   if (!canCreateProposalFor(data.estado)) {
@@ -259,7 +276,8 @@ export function useSaveProposal() {
         if (!data) throw new Error("La propuesta ya fue aceptada y no se puede editar.");
         return { id: data.id, prospectStage: "unchanged" };
       }
-      const freshEstado = recipient.kind === "prospect" ? await currentProspectEstado(recipient.id) : null;
+      const freshEstado =
+        recipient.kind === "prospect" ? await currentProspectEstado(recipient.id) : null;
       const { data, error } = await supabase
         .from("proposals")
         .insert({
@@ -277,7 +295,9 @@ export function useSaveProposal() {
     onSuccess: (result) =>
       Promise.all([
         refreshAfterWrite(queryClient, userKey),
-        result.prospectStage === "advanced" ? queryClient.invalidateQueries({ queryKey: ["prospects"] }) : null,
+        result.prospectStage === "advanced"
+          ? queryClient.invalidateQueries({ queryKey: ["prospects"] })
+          : null,
       ]),
   });
 }

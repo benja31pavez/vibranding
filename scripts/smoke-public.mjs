@@ -55,8 +55,22 @@ for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => process.exit(130)
 function startServer() {
   server = spawn(
     "npx",
-    ["wrangler", "dev", "-c", ".output/server/wrangler.json", "--local", "--port", PORT, "--inspector-port", INSPECTOR_PORT],
-    { stdio: ["ignore", "pipe", "pipe"], detached: true, env: { ...process.env, CI: "1", WRANGLER_SEND_METRICS: "false" } },
+    [
+      "wrangler",
+      "dev",
+      "-c",
+      ".output/server/wrangler.json",
+      "--local",
+      "--port",
+      PORT,
+      "--inspector-port",
+      INSPECTOR_PORT,
+    ],
+    {
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: true,
+      env: { ...process.env, CI: "1", WRANGLER_SEND_METRICS: "false" },
+    },
   );
   const collect = (d) => (serverLog = (serverLog + d).slice(-20_000));
   server.stdout.on("data", collect);
@@ -76,7 +90,8 @@ async function get(path, init = {}) {
 async function waitReady() {
   const deadline = Date.now() + READY_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    if (server && server.exitCode !== null) throw new Error(`wrangler terminó antes de estar listo:\n${serverLog}`);
+    if (server && server.exitCode !== null)
+      throw new Error(`wrangler terminó antes de estar listo:\n${serverLog}`);
     try {
       const { res } = await get("/robots.txt");
       if (res.status === 200) return;
@@ -107,7 +122,10 @@ function visibleText(html) {
 function checkPrices(path, text) {
   check(!/\bUSD\b|US\$/.test(text), `${path}: sin "USD"`);
   const bare = text.match(/(?<![$\d.,])\b\d{1,3}(?:\.\d{3})+\s*(?:CLP|pesos)\b/gi);
-  check(!bare, `${path}: precios con "$" (sin montos sueltos ${bare ? JSON.stringify(bare.slice(0, 3)) : ""})`);
+  check(
+    !bare,
+    `${path}: precios con "$" (sin montos sueltos ${bare ? JSON.stringify(bare.slice(0, 3)) : ""})`,
+  );
 }
 
 async function checkContentPages() {
@@ -115,12 +133,22 @@ async function checkContentPages() {
   for (const path of CONTENT_PAGES) {
     const { res, body } = await get(path);
     check(res.status === 200, `${path}: 200 (got ${res.status})`);
-    check(countMatches(body, /<h1[\s>]/gi) === 1, `${path}: exactamente un <h1> (got ${countMatches(body, /<h1[\s>]/gi)})`);
+    check(
+      countMatches(body, /<h1[\s>]/gi) === 1,
+      `${path}: exactamente un <h1> (got ${countMatches(body, /<h1[\s>]/gi)})`,
+    );
     const title = titleOf(body);
     check(title.length > 0, `${path}: <title> no vacío`);
-    check(!titles.has(title), `${path}: <title> único${titles.has(title) ? ` (repetido con ${titles.get(title)})` : ""}`);
+    check(
+      !titles.has(title),
+      `${path}: <title> único${titles.has(title) ? ` (repetido con ${titles.get(title)})` : ""}`,
+    );
     titles.set(title, path);
-    check(/<link[^>]+rel="canonical"/i.test(body) || /<link[^>]+href="[^"]*"[^>]+rel="canonical"/i.test(body), `${path}: canonical presente`);
+    check(
+      /<link[^>]+rel="canonical"/i.test(body) ||
+        /<link[^>]+href="[^"]*"[^>]+rel="canonical"/i.test(body),
+      `${path}: canonical presente`,
+    );
     const text = visibleText(body);
     const promise = FORBIDDEN_PROMISES.find((re) => re.test(text));
     check(!promise, `${path}: sin promesas de devolución${promise ? ` (${promise})` : ""}`);
@@ -145,11 +173,17 @@ async function checkSeoEndpoints() {
 
   const old = await get("/terminos");
   check(old.res.status === 301, `/terminos: 301 (got ${old.res.status})`);
-  check(new URL(old.res.headers.get("location") ?? "", base).pathname === "/terms", `/terminos -> /terms`);
+  check(
+    new URL(old.res.headers.get("location") ?? "", base).pathname === "/terms",
+    `/terminos -> /terms`,
+  );
 
   const p = await get("/p/invalid");
   check(hasNoindex(p.body, p.res), `/p/invalid: noindex (status ${p.res.status})`);
-  check(p.res.headers.get("referrer-policy") === "no-referrer", `/p/invalid: Referrer-Policy no-referrer`);
+  check(
+    p.res.headers.get("referrer-policy") === "no-referrer",
+    `/p/invalid: Referrer-Policy no-referrer`,
+  );
 }
 
 // Cabeceras de seguridad globales (src/lib/security/headers.ts).
@@ -159,9 +193,18 @@ async function checkSecurityHeaders() {
     const { res } = await get(path);
     const h = (name) => res.headers.get(name) ?? "";
     check(h("x-content-type-options") === "nosniff", `${path}: X-Content-Type-Options nosniff`);
-    check(h("x-frame-options") === "DENY", `${path}: X-Frame-Options DENY (got "${h("x-frame-options")}")`);
-    check(/frame-ancestors 'none'/.test(h("content-security-policy")), `${path}: CSP frame-ancestors 'none'`);
-    check(h("referrer-policy") === "strict-origin-when-cross-origin", `${path}: Referrer-Policy strict-origin-when-cross-origin`);
+    check(
+      h("x-frame-options") === "DENY",
+      `${path}: X-Frame-Options DENY (got "${h("x-frame-options")}")`,
+    );
+    check(
+      /frame-ancestors 'none'/.test(h("content-security-policy")),
+      `${path}: CSP frame-ancestors 'none'`,
+    );
+    check(
+      h("referrer-policy") === "strict-origin-when-cross-origin",
+      `${path}: Referrer-Policy strict-origin-when-cross-origin`,
+    );
   }
 }
 
@@ -169,7 +212,10 @@ let exitCode = 0;
 try {
   if (!explicitBase) {
     // Evita validar por error un servidor viejo que ya ocupe el puerto.
-    const busy = await get("/robots.txt").then(() => true, () => false);
+    const busy = await get("/robots.txt").then(
+      () => true,
+      () => false,
+    );
     if (busy) throw new Error(`El puerto ${PORT} ya está en uso; usa SMOKE_PORT o BASE_URL.`);
     startServer();
   }

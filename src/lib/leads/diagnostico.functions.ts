@@ -55,9 +55,13 @@ async function allowGlobal(): Promise<boolean> {
       fn: string,
       args: Record<string, unknown>,
     ) => PromiseLike<{ data: boolean | null; error: { code?: string } | null }>;
-    const { data, error } = await rpc.call(supabaseAdmin, "diagnostico_rate_hit", { _limit: MAX_GLOBAL_PER_HOUR });
+    const { data, error } = await rpc.call(supabaseAdmin, "diagnostico_rate_hit", {
+      _limit: MAX_GLOBAL_PER_HOUR,
+    });
     if (!error) return data !== false;
-    console.error(`[diagnostico] diagnostico_rate_hit falló (code ${error.code ?? "?"}): uso el tope en memoria`);
+    console.error(
+      `[diagnostico] diagnostico_rate_hit falló (code ${error.code ?? "?"}): uso el tope en memoria`,
+    );
   } catch {
     console.error("[diagnostico] tope global en BD no disponible: uso el tope en memoria");
   }

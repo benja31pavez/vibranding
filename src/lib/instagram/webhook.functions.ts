@@ -109,9 +109,7 @@ export const getIgWebhookStatus = createServerFn({ method: "GET" })
           });
           continue;
         }
-        const fields: string[] = (json?.data ?? []).flatMap(
-          (d: any) => d.subscribed_fields ?? [],
-        );
+        const fields: string[] = (json?.data ?? []).flatMap((d: any) => d.subscribed_fields ?? []);
         out.push({
           ...base,
           subscribedFields: fields,

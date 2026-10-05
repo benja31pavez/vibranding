@@ -20,14 +20,15 @@ export function PaymentBox({ token, payment }: { token: string; payment: PublicP
     case "contact":
       return (
         <Notice icon={Mail} title="Te contactaremos para el pago">
-          Recibimos tu aceptación. En las próximas horas hábiles te escribimos para coordinar el pago y el inicio.
+          Recibimos tu aceptación. En las próximas horas hábiles te escribimos para coordinar el
+          pago y el inicio.
         </Notice>
       );
     case "transfer":
       return (
         <Notice icon={Mail} title="Próximo paso: el pago">
-          Te enviaremos los datos para pagar por transferencia a tu correo o WhatsApp. Si ya los tienes, responde con el
-          comprobante.
+          Te enviaremos los datos para pagar por transferencia a tu correo o WhatsApp. Si ya los
+          tienes, responde con el comprobante.
         </Notice>
       );
     case "flow":

@@ -24,7 +24,9 @@ export function parseLandingRef(text: string): string | null {
 }
 
 export function landingWhatsappText(lp: LandingWaConfig): string {
-  const base = (lp.whatsapp_message || "Hola, vengo desde su página web y quiero más información.").trim();
+  const base = (
+    lp.whatsapp_message || "Hola, vengo desde su página web y quiero más información."
+  ).trim();
   return `${base}\n\n(Ref: ${landingRefToken(lp.id)})`;
 }
 

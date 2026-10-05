@@ -20,12 +20,15 @@ export function ProposalLines({ items }: { items: readonly ProposalItem[] }) {
             <div className="min-w-0">
               <p className="font-medium text-foreground">{item.label}</p>
               <p className="text-xs text-muted-foreground">
-                {item.type === "plan" ? "Plan" : item.amount < 0 ? "Descuento" : "Adicional"} · {billingLabel(item)}
+                {item.type === "plan" ? "Plan" : item.amount < 0 ? "Descuento" : "Adicional"} ·{" "}
+                {billingLabel(item)}
               </p>
             </div>
             <p className="shrink-0 text-right tabular-nums">
               {clp(item.amount)}
-              {item.billing === "monthly" && <span className="text-xs text-muted-foreground">/mes</span>}
+              {item.billing === "monthly" && (
+                <span className="text-xs text-muted-foreground">/mes</span>
+              )}
             </p>
           </li>
         ))}

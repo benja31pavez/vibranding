@@ -8,7 +8,8 @@ const GenerateLinkInput = z.object({
 });
 
 export type GeneratePaymentLinkResult =
-  { state: "link"; paymentUrl: string; reused: boolean } | { state: "already_paid" };
+  | { state: "link"; paymentUrl: string; reused: boolean }
+  | { state: "already_paid" };
 
 /**
  * Genera (o reutiliza) el link de pago de Flow de un cobro.

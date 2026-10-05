@@ -44,13 +44,7 @@ function sourceLabel(r: EventRow): string {
  * Landing analytics computed from landing_events: visits, CTA and WhatsApp
  * clicks, form submissions, conversion rate and traffic sources.
  */
-export function LandingAnalytics({
-  clientId,
-  landingId,
-}: {
-  clientId: string;
-  landingId: string;
-}) {
+export function LandingAnalytics({ clientId, landingId }: { clientId: string; landingId: string }) {
   const [rows, setRows] = useState<EventRow[]>([]);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
@@ -107,7 +101,9 @@ export function LandingAnalytics({
       const k = sourceLabel(r);
       m.set(k, (m.get(k) ?? 0) + 1);
     }
-    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    return Array.from(m.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
   }, [rows]);
 
   return (
@@ -118,7 +114,12 @@ export function LandingAnalytics({
         </h3>
         <div className="flex gap-1">
           {RANGES.map((d) => (
-            <Button key={d} size="sm" variant={days === d ? "default" : "outline"} onClick={() => setDays(d)}>
+            <Button
+              key={d}
+              size="sm"
+              variant={days === d ? "default" : "outline"}
+              onClick={() => setDays(d)}
+            >
               {d} días
             </Button>
           ))}
@@ -129,7 +130,8 @@ export function LandingAnalytics({
         <p className="text-sm text-muted-foreground">Cargando…</p>
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Sin eventos en este período. Los datos aparecen cuando alguien visita la landing publicada.
+          Sin eventos en este período. Los datos aparecen cuando alguien visita la landing
+          publicada.
         </p>
       ) : (
         <>
@@ -149,7 +151,12 @@ export function LandingAnalytics({
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={series} margin={{ left: -20, right: 8, top: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="date" tickFormatter={(v: string) => v.slice(5)} fontSize={11} tickLine={false} />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(v: string) => v.slice(5)}
+                  fontSize={11}
+                  tickLine={false}
+                />
                 <YAxis allowDecimals={false} fontSize={11} tickLine={false} />
                 <Tooltip />
                 <Line type="monotone" dataKey="visitas" stroke="hsl(var(--primary))" dot={false} />

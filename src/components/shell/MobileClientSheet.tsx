@@ -1,6 +1,13 @@
 import { PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { ClientAvatar } from "./ClientAvatar";
 import { ClientSidebar } from "./ClientSidebar";
 import type { ClientSummary } from "./useClientList";
@@ -24,7 +31,9 @@ export function MobileClientSheet({ open, onOpenChange, ...sidebar }: MobileClie
           variant="ghost"
           size="icon"
           className="h-9 w-9 md:hidden"
-          aria-label={activeClient ? `Abrir panel de ${activeClient.name}` : "Abrir panel del cliente"}
+          aria-label={
+            activeClient ? `Abrir panel de ${activeClient.name}` : "Abrir panel del cliente"
+          }
         >
           {activeClient ? (
             <ClientAvatar name={activeClient.name} className="h-7 w-7 text-[11px]" />

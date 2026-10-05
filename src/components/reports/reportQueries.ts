@@ -13,7 +13,8 @@ const MAX_MONTHS = 24;
 
 export const reportKeys = {
   client: (userId: string, clientId: string) => ["monthly-reports", userId, clientId] as const,
-  period: (userId: string, period: string) => ["monthly-reports", userId, "period", period] as const,
+  period: (userId: string, period: string) =>
+    ["monthly-reports", userId, "period", period] as const,
 };
 
 function toRow(r: Tables<"monthly_reports">): MonthlyReportRow {
@@ -41,7 +42,10 @@ export function usePeriodReports(userKey: string, period: string) {
   return useQuery({
     queryKey: reportKeys.period(userKey, period),
     queryFn: async (): Promise<MonthlyReportRow[]> => {
-      const { data, error } = await supabase.from("monthly_reports").select(COLUMNS).eq("period", period);
+      const { data, error } = await supabase
+        .from("monthly_reports")
+        .select(COLUMNS)
+        .eq("period", period);
       if (error) throw new Error(error.message);
       return (data ?? []).map((r) => toRow(r as Tables<"monthly_reports">));
     },

@@ -75,9 +75,7 @@ export function BusinessProfileTab({
   const [catalog, setCatalog] = useState<CatalogItem[]>(
     Array.isArray(account.catalog) ? (account.catalog as CatalogItem[]) : [],
   );
-  const [timezone, setTimezone] = useState<string>(
-    (account as any).timezone ?? "America/Santiago",
-  );
+  const [timezone, setTimezone] = useState<string>((account as any).timezone ?? "America/Santiago");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -117,8 +115,19 @@ export function BusinessProfileTab({
     toast.success("Perfil guardado. Sincronizando con WhatsApp…");
     try {
       const res = (await syncFn({ data: { accountId: account.id } })) as {
-        synced: { websites: number; description: boolean; about: boolean; photo: boolean; photoAttempted: boolean };
-        actual: { about?: string; description?: string; websites?: string[]; profile_picture_url?: string } | null;
+        synced: {
+          websites: number;
+          description: boolean;
+          about: boolean;
+          photo: boolean;
+          photoAttempted: boolean;
+        };
+        actual: {
+          about?: string;
+          description?: string;
+          websites?: string[];
+          profile_picture_url?: string;
+        } | null;
         warnings: string[];
       };
       const bits: string[] = [];
@@ -127,9 +136,7 @@ export function BusinessProfileTab({
       if (res.synced.description) bits.push("descripción");
       if (res.synced.photo) bits.push("foto");
       toast.success(
-        bits.length
-          ? `Enviado a WhatsApp: ${bits.join(", ")}.`
-          : "Perfil de WhatsApp actualizado.",
+        bits.length ? `Enviado a WhatsApp: ${bits.join(", ")}.` : "Perfil de WhatsApp actualizado.",
       );
       if (res.actual) {
         const stored: string[] = [];
@@ -176,7 +183,9 @@ export function BusinessProfileTab({
                   placeholder="Ej: Estudio Vibranding"
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Se usa en respuestas del bot y en la descripción/bio del perfil. El nombre grande visible arriba en WhatsApp solo se puede cambiar desde Meta Business Manager y requiere revisión de Meta.
+                  Se usa en respuestas del bot y en la descripción/bio del perfil. El nombre grande
+                  visible arriba en WhatsApp solo se puede cambiar desde Meta Business Manager y
+                  requiere revisión de Meta.
                 </p>
               </div>
               <div>
@@ -254,7 +263,8 @@ export function BusinessProfileTab({
               </Select>
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
-              El bot sabe si está abierto o cerrado según esta zona horaria. También se envía a la descripción del perfil de WhatsApp al guardar.
+              El bot sabe si está abierto o cerrado según esta zona horaria. También se envía a la
+              descripción del perfil de WhatsApp al guardar.
             </p>
           </div>
 

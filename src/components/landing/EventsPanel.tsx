@@ -119,7 +119,9 @@ export function EventsPanel({
       if (!key) continue;
       m.set(key, (m.get(key) ?? 0) + 1);
     }
-    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    return Array.from(m.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
   }, [rows]);
 
   const hasData = rows.length > 0;

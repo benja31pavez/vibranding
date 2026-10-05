@@ -61,7 +61,9 @@ export function ReviewThread({
       <div>
         <div className="font-medium">{deliverable.title}</div>
         {deliverable.description && (
-          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{deliverable.description}</p>
+          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
+            {deliverable.description}
+          </p>
         )}
       </div>
 

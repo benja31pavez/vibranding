@@ -181,7 +181,9 @@ async function sendOne(
       }
       return {
         ...lastRes,
-        preview: clip(`🛍 Catálogo (${items.length} ${items.length === 1 ? "producto" : "productos"})`),
+        preview: clip(
+          `🛍 Catálogo (${items.length} ${items.length === 1 ? "producto" : "productos"})`,
+        ),
         type: "catalog",
       };
     }

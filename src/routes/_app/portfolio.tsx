@@ -8,11 +8,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
-  Plus, Trash2, Upload, ImageIcon, Save, Loader2, ExternalLink, GripVertical,
+  Plus,
+  Trash2,
+  Upload,
+  ImageIcon,
+  Save,
+  Loader2,
+  ExternalLink,
+  GripVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { PortfolioClient, PortfolioWork } from "@/lib/portfolio";
-import { ConfirmDialog, EmptyState, ErrorState, ListSkeleton, PageContainer, PageHeader } from "@/components/app";
+import {
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  ListSkeleton,
+  PageContainer,
+  PageHeader,
+} from "@/components/app";
 
 export const Route = createFileRoute("/_app/portfolio")({
   component: PortfolioAdminPage,
@@ -110,7 +124,11 @@ function PortfolioAdminPage() {
       <PageHeader
         title="Portafolio público"
         description="Clientes y trabajos que se muestran en el landing."
-        actions={<Button onClick={addClient} disabled={loading || Boolean(loadError)}><Plus aria-hidden className="w-4 h-4 mr-1" /> Añadir cliente</Button>}
+        actions={
+          <Button onClick={addClient} disabled={loading || Boolean(loadError)}>
+            <Plus aria-hidden className="w-4 h-4 mr-1" /> Añadir cliente
+          </Button>
+        }
       />
 
       {loading ? (
@@ -147,7 +165,9 @@ function PortfolioAdminPage() {
 
       <ConfirmDialog
         open={toDelete !== null}
-        onOpenChange={(o) => { if (!o) setToDelete(null); }}
+        onOpenChange={(o) => {
+          if (!o) setToDelete(null);
+        }}
         title="¿Eliminar este cliente del portafolio?"
         description={`Se borran «${toDelete?.name ?? ""}» y todos sus trabajos del landing. No se puede deshacer.`}
         confirmLabel="Eliminar"
@@ -162,7 +182,10 @@ function PortfolioAdminPage() {
 }
 
 function ClientCard({
-  userId, client, onDelete, onReload,
+  userId,
+  client,
+  onDelete,
+  onReload,
 }: {
   userId: string;
   client: ClientWithWorks;
@@ -174,9 +197,13 @@ function ClientCard({
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setDraft(client); }, [client]);
+  useEffect(() => {
+    setDraft(client);
+  }, [client]);
 
-  const dirty = JSON.stringify({ ...draft, works: undefined }) !== JSON.stringify({ ...client, works: undefined });
+  const dirty =
+    JSON.stringify({ ...draft, works: undefined }) !==
+    JSON.stringify({ ...client, works: undefined });
 
   const save = async () => {
     setSaving(true);
@@ -251,19 +278,33 @@ function ClientCard({
         <div className="flex-1 min-w-0 grid sm:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Nombre</Label>
-            <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+            <Input
+              value={draft.name}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            />
           </div>
           <div>
             <Label className="text-xs">Sector</Label>
-            <Input value={draft.industry ?? ""} onChange={(e) => setDraft({ ...draft, industry: e.target.value })} placeholder="Restaurante, moda…" />
+            <Input
+              value={draft.industry ?? ""}
+              onChange={(e) => setDraft({ ...draft, industry: e.target.value })}
+              placeholder="Restaurante, moda…"
+            />
           </div>
           <div className="sm:col-span-2">
             <Label className="text-xs">Descripción corta</Label>
-            <Input value={draft.description ?? ""} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+            <Input
+              value={draft.description ?? ""}
+              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+            />
           </div>
           <div className="sm:col-span-2">
             <Label className="text-xs">Sitio web</Label>
-            <Input value={draft.website_url ?? ""} onChange={(e) => setDraft({ ...draft, website_url: e.target.value })} placeholder="https://…" />
+            <Input
+              value={draft.website_url ?? ""}
+              onChange={(e) => setDraft({ ...draft, website_url: e.target.value })}
+              placeholder="https://…"
+            />
           </div>
           <div className="flex items-center gap-3">
             <Label className="text-xs">Orden</Label>
@@ -275,7 +316,9 @@ function ClientCard({
             />
           </div>
           <div className="flex items-center gap-3 justify-end">
-            <Label htmlFor={`vis-${draft.id}`} className="text-xs">Visible en landing</Label>
+            <Label htmlFor={`vis-${draft.id}`} className="text-xs">
+              Visible en landing
+            </Label>
             <Switch
               id={`vis-${draft.id}`}
               checked={draft.is_visible}
@@ -286,23 +329,43 @@ function ClientCard({
 
         <div className="flex flex-col gap-2 shrink-0">
           <Button size="sm" onClick={save} disabled={!dirty || saving}>
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-1" /> Guardar</>}
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-1" /> Guardar
+              </>
+            )}
           </Button>
-          <Button size="sm" variant="ghost" onClick={onDelete} aria-label="Eliminar cliente del portafolio" className="text-destructive hover:text-destructive">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onDelete}
+            aria-label="Eliminar cliente del portafolio"
+            className="text-destructive hover:text-destructive"
+          >
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
       <div className="mt-6 pt-5 border-t">
-        <WorksManager userId={userId} clientId={client.id} works={client.works} onChange={onReload} />
+        <WorksManager
+          userId={userId}
+          clientId={client.id}
+          works={client.works}
+          onChange={onReload}
+        />
       </div>
     </div>
   );
 }
 
 function WorksManager({
-  userId, clientId, works, onChange,
+  userId,
+  clientId,
+  works,
+  onChange,
 }: {
   userId: string;
   clientId: string;
@@ -361,8 +424,19 @@ function WorksManager({
     <div>
       <div className="flex items-center justify-between mb-3">
         <div className="text-sm font-medium">Trabajos ({works.length})</div>
-        <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
-          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Upload className="w-4 h-4 mr-1" /> Subir imágenes</>}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+        >
+          {uploading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <>
+              <Upload className="w-4 h-4 mr-1" /> Subir imágenes
+            </>
+          )}
         </Button>
         <input
           ref={fileRef}
@@ -396,7 +470,9 @@ function WorksManager({
 
       <ConfirmDialog
         open={workToDelete !== null}
-        onOpenChange={(o) => { if (!o) setWorkToDelete(null); }}
+        onOpenChange={(o) => {
+          if (!o) setWorkToDelete(null);
+        }}
         title="¿Eliminar este trabajo?"
         description="La imagen deja de mostrarse en el landing. No se puede deshacer."
         confirmLabel="Eliminar"
@@ -411,15 +487,23 @@ function WorksManager({
 }
 
 function WorkCard({
-  work, onUpdate, onDelete,
+  work,
+  onUpdate,
+  onDelete,
 }: {
   work: PortfolioWork;
   onUpdate: (patch: Partial<PortfolioWork>) => Promise<void>;
   onDelete: () => void;
 }) {
   const [draft, setDraft] = useState(work);
-  useEffect(() => { setDraft(work); }, [work]);
-  const dirty = draft.title !== work.title || draft.description !== work.description || draft.link_url !== work.link_url || draft.is_visible !== work.is_visible;
+  useEffect(() => {
+    setDraft(work);
+  }, [work]);
+  const dirty =
+    draft.title !== work.title ||
+    draft.description !== work.description ||
+    draft.link_url !== work.link_url ||
+    draft.is_visible !== work.is_visible;
 
   return (
     <div className="rounded-xl border bg-background overflow-hidden flex flex-col">
@@ -456,11 +540,18 @@ function WorkCard({
               onCheckedChange={(v) => setDraft({ ...draft, is_visible: v })}
               id={`wv-${work.id}`}
             />
-            <Label htmlFor={`wv-${work.id}`} className="text-[11px] text-muted-foreground">Visible</Label>
+            <Label htmlFor={`wv-${work.id}`} className="text-[11px] text-muted-foreground">
+              Visible
+            </Label>
           </div>
           <div className="flex items-center gap-1">
             {work.link_url && (
-              <a href={work.link_url} target="_blank" rel="noreferrer" className="p-1 text-muted-foreground hover:text-foreground">
+              <a
+                href={work.link_url}
+                target="_blank"
+                rel="noreferrer"
+                className="p-1 text-muted-foreground hover:text-foreground"
+              >
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
@@ -469,16 +560,24 @@ function WorkCard({
               variant="ghost"
               className="h-7 px-2"
               disabled={!dirty}
-              onClick={() => onUpdate({
-                title: draft.title,
-                description: draft.description,
-                link_url: draft.link_url,
-                is_visible: draft.is_visible,
-              })}
+              onClick={() =>
+                onUpdate({
+                  title: draft.title,
+                  description: draft.description,
+                  link_url: draft.link_url,
+                  is_visible: draft.is_visible,
+                })
+              }
             >
               <Save className="w-3.5 h-3.5" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" onClick={onDelete} aria-label="Eliminar trabajo">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-destructive"
+              onClick={onDelete}
+              aria-label="Eliminar trabajo"
+            >
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
           </div>

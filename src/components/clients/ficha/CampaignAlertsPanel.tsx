@@ -19,7 +19,9 @@ interface CampaignAlertsPanelProps {
 export function CampaignAlertsPanel({ alerts, canEdit }: CampaignAlertsPanelProps) {
   if (alerts.length === 0) return null;
   const sorted = [...alerts].sort(
-    (a, b) => (SEVERITY_RANK[a.severity] ?? 3) - (SEVERITY_RANK[b.severity] ?? 3) || b.created_at.localeCompare(a.created_at),
+    (a, b) =>
+      (SEVERITY_RANK[a.severity] ?? 3) - (SEVERITY_RANK[b.severity] ?? 3) ||
+      b.created_at.localeCompare(a.created_at),
   );
   return (
     <Panel
@@ -32,10 +34,17 @@ export function CampaignAlertsPanel({ alerts, canEdit }: CampaignAlertsPanelProp
           const sev = SEVERITY[a.severity] ?? { label: a.severity, tone: "neutral" as const };
           return (
             <li key={a.id} className="flex items-start gap-3 py-2 text-sm">
-              <StatusBadge status={a.severity} label={sev.label} tone={sev.tone} className="mt-0.5 shrink-0" />
+              <StatusBadge
+                status={a.severity}
+                label={sev.label}
+                tone={sev.tone}
+                className="mt-0.5 shrink-0"
+              />
               <div className="min-w-0 flex-1">
                 <p className="break-words">{a.message}</p>
-                <p className="text-xs text-muted-foreground">Detectada el {formatDate(a.created_at)}</p>
+                <p className="text-xs text-muted-foreground">
+                  Detectada el {formatDate(a.created_at)}
+                </p>
                 <AlertActions alert={a} canResolve={canEdit} />
               </div>
             </li>

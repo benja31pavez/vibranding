@@ -26,7 +26,11 @@ function ProposalPage() {
   if (query.error) {
     return (
       <ProposalPageShell>
-        <ErrorState message={query.error.message} onRetry={() => void query.refetch()} retrying={query.isFetching} />
+        <ErrorState
+          message={query.error.message}
+          onRetry={() => void query.refetch()}
+          retrying={query.isFetching}
+        />
       </ProposalPageShell>
     );
   }
@@ -34,7 +38,11 @@ function ProposalPage() {
   if (!proposal) {
     return (
       <ProposalPageShell>
-        <EmptyState icon={FileText} title="Propuesta no encontrada" description="Puede que se haya borrado o que no tengas acceso." />
+        <EmptyState
+          icon={FileText}
+          title="Propuesta no encontrada"
+          description="Puede que se haya borrado o que no tengas acceso."
+        />
       </ProposalPageShell>
     );
   }

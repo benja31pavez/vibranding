@@ -65,7 +65,11 @@ export function LatestReportsTable() {
             const status = !r ? null : r.sent_at ? "sent" : "draft";
             return (
               <li key={c.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                <Link to="/clients/$clientId" params={{ clientId: c.id }} className="truncate font-medium hover:underline">
+                <Link
+                  to="/clients/$clientId"
+                  params={{ clientId: c.id }}
+                  className="truncate font-medium hover:underline"
+                >
                   {c.name}
                 </Link>
                 <span className="flex shrink-0 items-center gap-2">
@@ -75,7 +79,12 @@ export function LatestReportsTable() {
                     <span className="text-xs text-muted-foreground">Sin generar</span>
                   )}
                   {r?.sent_at && (
-                    <Button size="sm" variant="ghost" onClick={() => copy(r.token)} aria-label={`Copiar link de ${c.name}`}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => copy(r.token)}
+                      aria-label={`Copiar link de ${c.name}`}
+                    >
                       <Copy aria-hidden className="h-4 w-4" />
                     </Button>
                   )}

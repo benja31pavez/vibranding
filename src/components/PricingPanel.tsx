@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/button";
 import { ErrorState, ListSkeleton } from "@/components/app";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { MessageCircle, MonitorSmartphone, FileSignature, Building2, ChevronDown } from "lucide-react";
+import {
+  MessageCircle,
+  MonitorSmartphone,
+  FileSignature,
+  Building2,
+  ChevronDown,
+} from "lucide-react";
 import { PlanCatalog, VatLines } from "@/components/pricing/PlanCatalog";
 import { AGENCY_DEFAULTS, DEFAULT_CURRENCY } from "@/lib/pricing/plans";
 
@@ -20,23 +26,28 @@ import { AGENCY_DEFAULTS, DEFAULT_CURRENCY } from "@/lib/pricing/plans";
  */
 export type ServiceKey = "chatbot" | "landing";
 
-export const SERVICE_CATALOG: Array<{ key: ServiceKey; label: string; description: string; icon: any; tone: string }> =
-  [
-    {
-      key: "chatbot",
-      label: "Chatbot WhatsApp",
-      description: "Número de WhatsApp dedicado con chatbot que responde, califica y agenda.",
-      icon: MessageCircle,
-      tone: "var(--brand-3)",
-    },
-    {
-      key: "landing",
-      label: "Landing extra",
-      description: "Página adicional para una campaña, producto o servicio específico.",
-      icon: MonitorSmartphone,
-      tone: "var(--brand-2)",
-    },
-  ];
+export const SERVICE_CATALOG: Array<{
+  key: ServiceKey;
+  label: string;
+  description: string;
+  icon: any;
+  tone: string;
+}> = [
+  {
+    key: "chatbot",
+    label: "Chatbot WhatsApp",
+    description: "Número de WhatsApp dedicado con chatbot que responde, califica y agenda.",
+    icon: MessageCircle,
+    tone: "var(--brand-3)",
+  },
+  {
+    key: "landing",
+    label: "Landing extra",
+    description: "Página adicional para una campaña, producto o servicio específico.",
+    icon: MonitorSmartphone,
+    tone: "var(--brand-2)",
+  },
+];
 
 // ───────── Types ─────────
 
@@ -78,7 +89,11 @@ export interface ServicePricing {
 // ───────── Loaders ─────────
 
 export async function loadPricing(userId: string): Promise<PricingSettings | null> {
-  const { data, error } = await supabase.from("pricing_settings").select("*").eq("user_id", userId).maybeSingle();
+  const { data, error } = await supabase
+    .from("pricing_settings")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
   if (data) return data as PricingSettings;
   const { data: created, error: insertError } = await supabase
@@ -97,7 +112,9 @@ export async function loadPricing(userId: string): Promise<PricingSettings | nul
   return (created as PricingSettings) ?? null;
 }
 
-export async function loadServicePricing(userId: string): Promise<Record<ServiceKey, ServicePricing>> {
+export async function loadServicePricing(
+  userId: string,
+): Promise<Record<ServiceKey, ServicePricing>> {
   const { data, error } = await supabase.from("service_pricing").select("*").eq("user_id", userId);
   if (error) throw new Error(error.message);
   const byKey: Partial<Record<ServiceKey, ServicePricing>> = {};
@@ -140,7 +157,9 @@ function MoneyInput({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{label}</Label>
+      <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+        {label}
+      </Label>
       <Input
         type="number"
         min={0}
@@ -234,7 +253,11 @@ export function PricingPanel() {
   const setP_ = (patch: Partial<PricingSettings>) => setP({ ...p, ...patch });
   const saveP = async (patch: Partial<PricingSettings>) => {
     setSaveState("saving");
-    const { data, error } = await supabase.from("pricing_settings").update(patch).eq("id", p.id).select("id");
+    const { data, error } = await supabase
+      .from("pricing_settings")
+      .update(patch)
+      .eq("id", p.id)
+      .select("id");
     if (error) {
       setSaveState("idle");
       toast.error(error.message);
@@ -254,7 +277,11 @@ export function PricingPanel() {
   };
   const saveService = async (id: string, patch: Partial<ServicePricing>) => {
     setSaveState("saving");
-    const { data, error } = await supabase.from("service_pricing").update(patch).eq("id", id).select("id");
+    const { data, error } = await supabase
+      .from("service_pricing")
+      .update(patch)
+      .eq("id", id)
+      .select("id");
     if (error) {
       setSaveState("idle");
       toast.error(error.message);
@@ -273,13 +300,16 @@ export function PricingPanel() {
       <div>
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            <span className="font-brand text-gradient-brand bg-gradient-brand-animated">Servicios</span>
+            <span className="font-brand text-gradient-brand bg-gradient-brand-animated">
+              Servicios
+            </span>
           </h1>
           <SaveIndicator state={saveState} />
         </div>
         <p className="text-muted-foreground text-sm mt-1">
-          Los 3 planes de VIBRANDING (precios en CLP con IVA incluido) y los servicios adicionales que puedes sumar.
-          Estos valores son los mismos para todos tus clientes y se usan al generar contratos.
+          Los 3 planes de VIBRANDING (precios en CLP con IVA incluido) y los servicios adicionales
+          que puedes sumar. Estos valores son los mismos para todos tus clientes y se usan al
+          generar contratos.
         </p>
       </div>
 
@@ -321,7 +351,9 @@ export function PricingPanel() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold leading-tight">{svc.label}</div>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{svc.description}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                      {svc.description}
+                    </p>
                   </div>
                   <Switch
                     checked={row.is_active}
@@ -348,11 +380,15 @@ export function PricingPanel() {
                   />
                 </div>
                 {(Number(row.one_time_price) > 0 || Number(row.monthly_price) > 0) && (
-                    <div className="space-y-0.5">
-                      {Number(row.one_time_price) > 0 && <VatLines label="Pago único" gross={Number(row.one_time_price)} />}
-                      {Number(row.monthly_price) > 0 && <VatLines label="Mensual" gross={Number(row.monthly_price)} />}
-                    </div>
-                  )}
+                  <div className="space-y-0.5">
+                    {Number(row.one_time_price) > 0 && (
+                      <VatLines label="Pago único" gross={Number(row.one_time_price)} />
+                    )}
+                    {Number(row.monthly_price) > 0 && (
+                      <VatLines label="Mensual" gross={Number(row.monthly_price)} />
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
@@ -529,7 +565,9 @@ function SettingsSection({
           {icon}
           <span className="font-semibold truncate">{title}</span>
           {summary && <span className="text-xs text-muted-foreground truncate">{summary}</span>}
-          <ChevronDown className={`w-4 h-4 shrink-0 ml-auto transition ${open ? "rotate-180" : ""}`} />
+          <ChevronDown
+            className={`w-4 h-4 shrink-0 ml-auto transition ${open ? "rotate-180" : ""}`}
+          />
         </button>
         {action}
       </div>

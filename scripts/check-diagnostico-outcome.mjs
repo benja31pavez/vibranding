@@ -47,13 +47,21 @@ check("error y no_org = not_saved (fallback WhatsApp)", () => {
 });
 check("línea LEAD_PERDIDO estable y sin hash completo", () => {
   const hash = "a".repeat(64);
-  const line = o.leadLostLine({ outcome: "error", step: "insert prospects", code: "23503", emailHash: hash });
+  const line = o.leadLostLine({
+    outcome: "error",
+    step: "insert prospects",
+    code: "23503",
+    emailHash: hash,
+  });
   assert.ok(line.startsWith("[diagnostico][LEAD_PERDIDO] "), line);
   assert.match(line, /outcome=error step=insert prospects code=23503 email_hash=a{12}$/);
   assert.equal(line.includes(hash), false);
 });
 check("línea sin código ni hash", () => {
-  assert.equal(o.leadLostLine({ outcome: "no_org", step: "x" }), "[diagnostico][LEAD_PERDIDO] outcome=no_org step=x code=?");
+  assert.equal(
+    o.leadLostLine({ outcome: "no_org", step: "x" }),
+    "[diagnostico][LEAD_PERDIDO] outcome=no_org step=x code=?",
+  );
 });
 check("snippet oculta correos y se acorta", () => {
   assert.equal(o.safeSnippet("Resend 422 (to: ana.perez@gmail.com)"), "Resend 422 (to: [email])");

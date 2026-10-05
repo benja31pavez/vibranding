@@ -72,9 +72,7 @@ export function OutcomeSelector({
                 else setShowValue(false);
               }}
               className={`flex-1 rounded-md border px-1.5 py-1 text-[10px] font-medium leading-none transition ${
-                active
-                  ? ACTIVE[s.key]
-                  : "border-border text-muted-foreground hover:bg-muted"
+                active ? ACTIVE[s.key] : "border-border text-muted-foreground hover:bg-muted"
               }`}
             >
               {s.short}
