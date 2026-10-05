@@ -241,10 +241,16 @@ function DatePicker({
 export function ObjectivesList({
   clientId,
   initialAdding = false,
+  focusId = null,
+  onDeleted,
 }: {
   clientId: string;
   /** Abre directo el formulario de nuevo objetivo (botón "Nuevo objetivo" del Plan). */
   initialAdding?: boolean;
+  /** Muestra solo este objetivo, para editarlo (clic en una tarjeta del Plan). */
+  focusId?: string | null;
+  /** Se llama tras eliminar un objetivo (el Plan cierra el panel del objetivo). */
+  onDeleted?: () => void;
 }) {
   const [items, setItems] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -398,15 +404,18 @@ export function ObjectivesList({
     const res = await supabase.from("objectives").delete().eq("id", id).select("id");
     if (writeFailed(res, "No se pudo eliminar")) return;
     load();
+    onDeleted?.();
   };
 
   // Order: high priority + nearest due_date first; done at bottom
-  const sorted = [...items].sort((a, b) => {
-    if ((a.status === "done") !== (b.status === "done")) return a.status === "done" ? 1 : -1;
-    const pri = { high: 0, medium: 1, low: 2 };
-    if (pri[a.priority] !== pri[b.priority]) return pri[a.priority] - pri[b.priority];
-    return (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999");
-  });
+  const sorted = [...items]
+    .filter((it) => !focusId || it.id === focusId)
+    .sort((a, b) => {
+      if ((a.status === "done") !== (b.status === "done")) return a.status === "done" ? 1 : -1;
+      const pri = { high: 0, medium: 1, low: 2 };
+      if (pri[a.priority] !== pri[b.priority]) return pri[a.priority] - pri[b.priority];
+      return (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999");
+    });
 
   // KPIs
   const today = chileToday();
@@ -595,22 +604,24 @@ export function ObjectivesList({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Objetivos</h3>
-        {!adding && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => setAdding(true)}
-          >
-            <Plus className="w-4 h-4 mr-1" /> Agregar
-          </Button>
-        )}
-      </div>
+      {!focusId && (
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Objetivos</h3>
+          {!adding && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              onClick={() => setAdding(true)}
+            >
+              <Plus className="w-4 h-4 mr-1" /> Agregar
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* KPI header */}
-      {total > 0 && (
+      {total > 0 && !focusId && (
         <div className="rounded-2xl border bg-surface p-5 space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Kpi
@@ -846,7 +857,9 @@ export function ObjectivesList({
         <div className="text-sm text-muted-foreground">Cargando…</div>
       ) : sorted.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          Aún no hay objetivos. Agrega uno medible para empezar.
+          {focusId
+            ? "Este objetivo ya no existe."
+            : "Aún no hay objetivos. Agrega uno medible para empezar."}
         </div>
       ) : (
         <ul className="space-y-2">

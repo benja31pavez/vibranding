@@ -17,12 +17,14 @@ import {
   hasTaskColumn,
   invalidatePlan,
   planKeys,
+  setStageDueDate,
   updatePlanTask,
   usePlanContracted,
   usePlanStages,
   usePlanTasks,
   type PlanTask,
   type PlanTaskPatch,
+  type StageDueTarget,
 } from "./planQueries";
 
 export interface UsePlanBoardInput {
@@ -113,6 +115,18 @@ export function usePlanBoard({ clientId, userKey, planKey, stage, today }: UsePl
     }
   };
 
+  const setStageDue = async (stage: StageDueTarget, dueDate: string | null): Promise<boolean> => {
+    try {
+      await setStageDueDate(clientId, stage, dueDate);
+      toast.success(dueDate ? `Entrega de ${stage.label} actualizada` : "Fecha de entrega quitada");
+      refresh();
+      return true;
+    } catch (e) {
+      toast.error(`No se pudo guardar la fecha: ${(e as Error).message}`);
+      return false;
+    }
+  };
+
   const deleteTask = async (task: PlanTask) => {
     try {
       await deletePlanTask(task.id);
@@ -140,6 +154,7 @@ export function usePlanBoard({ clientId, userKey, planKey, stage, today }: UsePl
     changeStage,
     createTask,
     deleteTask,
+    setStageDue,
   };
 }
 

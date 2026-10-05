@@ -1,4 +1,4 @@
-import { Target } from "lucide-react";
+import { Plus, Target } from "lucide-react";
 import { FitList, Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,18 +43,19 @@ export interface ObjectivesColumnProps {
   error: Error | null;
   onRetry: () => void;
   today: string;
-  onManage: () => void;
+  /** Abre el objetivo para editarlo (o eliminarlo). */
+  onOpen: (id: string) => void;
   onCreate: () => void;
 }
 
-/** Objetivos en tarjetas compactas: meta vs actual, fecha y si va en camino. */
+/** Objetivos en tarjetas compactas: meta vs actual, fecha y si va en camino. Un clic lo edita. */
 export function ObjectivesColumn({
   objectives,
   loading,
   error,
   onRetry,
   today,
-  onManage,
+  onOpen,
   onCreate,
 }: ObjectivesColumnProps) {
   const rows = [...(objectives ?? [])]
@@ -77,8 +78,8 @@ export function ObjectivesColumn({
           : undefined
       }
       actions={
-        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={onManage}>
-          Gestionar
+        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onCreate}>
+          <Plus aria-hidden className="mr-1 h-3.5 w-3.5" /> Nuevo objetivo
         </Button>
       }
       bodyClassName="pt-2"
@@ -111,7 +112,9 @@ export function ObjectivesColumn({
           label="Objetivos"
           gap={8}
           divided={false}
-          renderItem={({ o, health }) => <ObjectiveCard objective={o} health={health} />}
+          renderItem={({ o, health }) => (
+            <ObjectiveCard objective={o} health={health} onOpen={() => onOpen(o.id)} />
+          )}
         />
       )}
     </Panel>
@@ -121,16 +124,25 @@ export function ObjectivesColumn({
 function ObjectiveCard({
   objective: o,
   health,
+  onOpen,
 }: {
   objective: PlanObjective;
   health: ObjectiveHealth;
+  onOpen: () => void;
 }) {
   const progress = objectiveProgress(o);
   const unit = o.unit ? ` ${o.unit}` : "";
   return (
-    <article className="rounded-app-md border border-border-subtle bg-background/60 px-3 py-2">
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="line-clamp-2 text-sm font-medium leading-snug text-foreground">{o.title}</h3>
+    <button
+      type="button"
+      onClick={onOpen}
+      title="Editar objetivo"
+      className="block w-full rounded-app-md border border-border-subtle bg-background/60 px-3 py-2 text-left transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <span className="flex items-start justify-between gap-2">
+        <span className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
+          {o.title}
+        </span>
         <span
           className={cn(
             "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
@@ -139,8 +151,8 @@ function ObjectiveCard({
         >
           {OBJECTIVE_HEALTH_LABELS[health]}
         </span>
-      </div>
-      <div className="mt-1.5 flex items-center gap-2">
+      </span>
+      <span className="mt-1.5 flex items-center gap-2">
         <span aria-hidden className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
           <span
             className={cn("block h-full rounded-full", BAR_TONE[health])}
@@ -161,10 +173,10 @@ function ObjectiveCard({
             "Sin meta numérica"
           )}
         </span>
-      </div>
-      <p className="mt-1 text-[11px] text-muted-foreground">
+      </span>
+      <span className="mt-1 block text-[11px] text-muted-foreground">
         {o.due_date ? `Fecha límite: ${formatShortDate(o.due_date)}` : "Sin fecha límite"}
-      </p>
-    </article>
+      </span>
+    </button>
   );
 }

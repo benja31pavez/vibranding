@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ListChecks, Plus, Target } from "lucide-react";
+import { ListChecks, Plus } from "lucide-react";
 import { ConfirmDialog, ErrorState, FitPage, PageHeader, Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,15 +13,17 @@ import { useFichaOverview, useUserKey } from "@/components/clients/ficha/fichaQu
 import { DeliverablesList } from "@/components/DeliverablesList";
 import { ObjectivesList } from "@/components/ObjectivesList";
 import { chileToday } from "@/lib/dates/chile";
+import { cn } from "@/lib/utils";
 import { taskColumn, type StageKey } from "@/lib/delivery/planStages";
-import { MonthPlanDialogHost, MonthPlanMenu } from "./MonthPlanMenu";
 import { ObjectivesColumn } from "./ObjectivesColumn";
 import { StageTrack, TeamTrack } from "./StageTrack";
 import { TaskBoard, TaskBoardSkeleton } from "./TaskBoard";
 import { usePlanObjectives, type PlanTask } from "./planQueries";
+import type { StageMenuActions } from "./StageMenu";
 import { usePlanBoard } from "./usePlanBoard";
 
-type SheetKind = "objectives" | "objectives-new" | "stages" | null;
+/** Panel lateral abierto: un objetivo (por id), el formulario de nuevo objetivo o los entregables. */
+type OpenSheet = { kind: "objective"; id: string } | { kind: "objectives-new" | "stages" };
 
 export interface PlanPageProps {
   clientId: string;
@@ -32,7 +34,9 @@ export interface PlanPageProps {
 /**
  * Vista de gestión del plan del cliente, en una pantalla: etapas del plan
  * contratado arriba (con responsable, avance y fecha de entrega), objetivos a
- * la izquierda y tablero de tareas de la etapa elegida a la derecha.
+ * la izquierda y tablero de tareas de la etapa elegida a la derecha. Cada panel
+ * lleva su propio botón de crear; un objetivo se edita con un clic y la fecha de
+ * una etapa desde el "⋯" de su tarjeta.
  */
 export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
   const userKey = useUserKey();
@@ -48,16 +52,23 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
     today,
   });
   const { plan, stages, activeStage, visibleTasks, tasksQ, stagesQ } = board;
-  const [sheet, setSheet] = useState<SheetKind>(null);
+  const [sheet, setSheet] = useState<OpenSheet | null>(null);
   const [focusAdd, setFocusAdd] = useState(0);
   const [pendingDelete, setPendingDelete] = useState<PlanTask | null>(null);
-  const [monthPlanMonth, setMonthPlanMonth] = useState<string | null>(null);
 
   const closeSheet = (open: boolean) => {
     if (open) return;
     setSheet(null);
     board.refresh();
   };
+
+  const stageMenu: StageMenuActions = {
+    canEdit,
+    onSetDue: board.setStageDue,
+    onOpenDeliverables: () => setSheet({ kind: "stages" }),
+  };
+  const objectiveSheet =
+    sheet?.kind === "objective" || sheet?.kind === "objectives-new" ? sheet : null;
 
   const selected = activeStage ? stages.find((s) => s.key === activeStage) : null;
   const doneCount = visibleTasks.filter((t) => taskColumn(t.status) === "done").length;
@@ -71,23 +82,6 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
           description={`${plan.label} · ${
             plan.planKey ? "etapas según el plan contratado" : "se muestran todas las etapas"
           }`}
-          actions={
-            <>
-              <MonthPlanMenu
-                planKey={plan.planKey}
-                planLabel={plan.label}
-                canEdit={canEdit}
-                today={today}
-                onPick={setMonthPlanMonth}
-              />
-              <Button variant="outline" onClick={() => setSheet("objectives-new")}>
-                <Target aria-hidden className="mr-1 h-4 w-4" /> Nuevo objetivo
-              </Button>
-              <Button onClick={() => setFocusAdd((n) => n + 1)} disabled={!canEdit}>
-                <Plus aria-hidden className="mr-1 h-4 w-4" /> Nueva tarea
-              </Button>
-            </>
-          }
         />
       }
       contentClassName="flex flex-col gap-3"
@@ -106,9 +100,15 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
             stages={stages}
             selected={activeStage}
             onSelect={onStageChange}
+            menu={stageMenu}
           />
         ) : (
-          <StageTrack stages={stages} selected={activeStage} onSelect={onStageChange} />
+          <StageTrack
+            stages={stages}
+            selected={activeStage}
+            onSelect={onStageChange}
+            menu={stageMenu}
+          />
         )}
       </div>
 
@@ -120,8 +120,8 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
             error={objectivesQ.error}
             onRetry={() => void objectivesQ.refetch()}
             today={today}
-            onManage={() => setSheet("objectives")}
-            onCreate={() => setSheet("objectives-new")}
+            onOpen={(id) => setSheet({ kind: "objective", id })}
+            onCreate={() => setSheet({ kind: "objectives-new" })}
           />
         </div>
         <div className="flex min-w-0 flex-col md:min-h-0">
@@ -148,11 +148,11 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
                 )}
                 <Button
                   size="sm"
-                  variant="outline"
                   className="h-7 px-2 text-xs"
-                  onClick={() => setSheet("stages")}
+                  onClick={() => setFocusAdd((n) => n + 1)}
+                  disabled={!canEdit}
                 >
-                  Etapas y entregables
+                  <Plus aria-hidden className="mr-1 h-3.5 w-3.5" /> Nueva tarea
                 </Button>
               </>
             }
@@ -188,21 +188,39 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
         </div>
       </div>
 
-      <Sheet open={sheet === "objectives" || sheet === "objectives-new"} onOpenChange={closeSheet}>
-        <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-3xl">
+      <Sheet open={objectiveSheet !== null} onOpenChange={closeSheet}>
+        <SheetContent
+          side="right"
+          className={cn(
+            "flex w-full flex-col gap-0 p-0",
+            objectiveSheet?.kind === "objective" ? "sm:max-w-xl" : "sm:max-w-3xl",
+          )}
+        >
           <SheetHeader className="border-b px-6 pb-3 pt-6 text-left">
-            <SheetTitle>Objetivos</SheetTitle>
-            <SheetDescription>Crea, edita y actualiza el avance de cada objetivo.</SheetDescription>
+            <SheetTitle>
+              {objectiveSheet?.kind === "objective" ? "Objetivo" : "Nuevo objetivo"}
+            </SheetTitle>
+            <SheetDescription>
+              {objectiveSheet?.kind === "objective"
+                ? "Edita el objetivo, actualiza su avance o elimínalo desde el menú ⋯."
+                : "Crea un objetivo medible. Abajo están todos los objetivos del cliente."}
+            </SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-            {sheet && (
-              <ObjectivesList clientId={clientId} initialAdding={sheet === "objectives-new"} />
+            {objectiveSheet && (
+              <ObjectivesList
+                key={objectiveSheet.kind === "objective" ? objectiveSheet.id : "new"}
+                clientId={clientId}
+                initialAdding={objectiveSheet.kind === "objectives-new"}
+                focusId={objectiveSheet.kind === "objective" ? objectiveSheet.id : null}
+                onDeleted={() => closeSheet(false)}
+              />
             )}
           </div>
         </SheetContent>
       </Sheet>
 
-      <Sheet open={sheet === "stages"} onOpenChange={closeSheet}>
+      <Sheet open={sheet?.kind === "stages"} onOpenChange={closeSheet}>
         <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-3xl">
           <SheetHeader className="border-b px-6 pb-3 pt-6 text-left">
             <SheetTitle>Etapas y entregables</SheetTitle>
@@ -211,7 +229,7 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
             </SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-            {sheet === "stages" && <DeliverablesList clientId={clientId} />}
+            {sheet?.kind === "stages" && <DeliverablesList clientId={clientId} />}
           </div>
         </SheetContent>
       </Sheet>
@@ -230,19 +248,6 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
           setPendingDelete(null);
         }}
       />
-
-      {monthPlanMonth && (
-        <MonthPlanDialogHost
-          clientId={clientId}
-          userKey={userKey}
-          planKey={plan.planKey}
-          planLabel={plan.label}
-          month={monthPlanMonth}
-          today={today}
-          onClose={() => setMonthPlanMonth(null)}
-          onCreated={board.refresh}
-        />
-      )}
     </FitPage>
   );
 }
