@@ -48,6 +48,19 @@ export const Route = createFileRoute("/api/meta-ads/publish-full")({
           const { requireClientMetaToken } = await import("@/lib/meta/clientToken.server");
           const { token } = await requireClientMetaToken(clientId);
 
+          // Pago de pauta: solo se publica activo si la cuenta tiene medio de pago y está al día.
+          const activates = [campaign.status, adset.status, ad.status].includes("ACTIVE");
+          if (activates) {
+            const { verifyMetaBillingForActivation } = await import("@/lib/meta/billing.server");
+            const billing = await verifyMetaBillingForActivation({
+              clientId: String(clientId),
+              adAccountId: acc.ad_account_id,
+              token,
+            });
+            if (!billing.ok)
+              return j({ error: billing.message, code: "BILLING_NOT_VERIFIED" }, 409);
+          }
+
           const adAcc = acc.ad_account_id.startsWith("act_")
             ? acc.ad_account_id
             : `act_${acc.ad_account_id}`;

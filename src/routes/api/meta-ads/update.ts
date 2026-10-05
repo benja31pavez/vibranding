@@ -16,6 +16,9 @@ import {
   type MoneyPatchField,
 } from "@/lib/meta-ads/apiSchemas";
 
+/** Estados que detienen el gasto: no necesitan pago verificado. */
+const STOPPING_STATUSES: ReadonlySet<string> = new Set(["PAUSED", "ARCHIVED", "DELETED"]);
+
 export const Route = createFileRoute("/api/meta-ads/update")({
   server: {
     handlers: {
@@ -163,6 +166,24 @@ export const Route = createFileRoute("/api/meta-ads/update")({
           const { requireClientMetaToken } = await import("@/lib/meta/clientToken.server");
           const { token } = await requireClientMetaToken(rowClientId!);
           params.set("access_token", token);
+
+          // Pago de pauta: cualquier estado que no detenga el gasto exige cuenta
+          // con medio de pago y al día (deny-by-default).
+          if (patch.status && !STOPPING_STATUSES.has(patch.status)) {
+            const { data: billingAcc } = await supa
+              .from("meta_accounts")
+              .select("ad_account_id")
+              .eq("client_id", rowClientId!)
+              .maybeSingle();
+            const { verifyMetaBillingForActivation } = await import("@/lib/meta/billing.server");
+            const billing = await verifyMetaBillingForActivation({
+              clientId: rowClientId!,
+              adAccountId: billingAcc?.ad_account_id ?? null,
+              token,
+            });
+            if (!billing.ok)
+              return j({ error: billing.message, code: "BILLING_NOT_VERIFIED" }, 409);
+          }
 
           if (Object.keys(money).length > 0) {
             const { data: acc } = await supa

@@ -3,8 +3,10 @@
  * (las reglas viven en src/lib/onboarding/schema.ts).
  */
 import type { ZodTypeAny } from "zod";
+import { platformsForChoice, type AdsChoice } from "@/lib/ads-billing/guides";
 import {
   AccessStep,
+  AdsStep,
   BillingStep,
   BusinessStep,
   FilesStep,
@@ -49,10 +51,17 @@ export interface FormState {
   colores: string;
   links_redes: Record<LinkKey, string>;
   accesos: AccessRow[];
+  /** Paso Publicidad: dónde va a publicitar ("" = sin responder). */
+  ads_choice: AdsChoice | "";
+  /** "Ya agregué mi tarjeta" por plataforma. */
+  ads_card: { google: boolean; meta: boolean };
   archivos: UploadedFile[];
 }
 
-export type TextField = Exclude<keyof FormState, "links_redes" | "accesos" | "archivos">;
+export type TextField = Exclude<
+  keyof FormState,
+  "links_redes" | "accesos" | "archivos" | "ads_choice" | "ads_card"
+>;
 
 /** Errores por campo: "rut", "links_redes.instagram", "accesos_pendientes.2.nota", … */
 export type FieldErrors = Record<string, string>;
@@ -94,6 +103,8 @@ export function initialState(): FormState {
       estado: "pendiente",
       nota: "",
     })),
+    ads_choice: "",
+    ads_card: { google: false, meta: false },
     archivos: [],
   };
 }
@@ -127,7 +138,20 @@ export function toFormData(s: FormState): OnboardingFormData {
     accesos_pendientes: s.accesos
       .filter((a) => a.servicio.trim() || a.nota.trim())
       .map(({ servicio, estado, nota }) => ({ servicio, estado, nota })),
+    ...adsFormData(s),
     archivos: s.archivos.flatMap((f) => (f.status === "done" && f.path ? [f.path] : [])),
+  };
+}
+
+/** Paso Publicidad → campos del esquema (sin responder = no se envía). */
+function adsFormData(
+  s: FormState,
+): Pick<OnboardingFormData, "ads_platforms" | "ads_billing_self_reported"> {
+  const platforms = platformsForChoice(s.ads_choice);
+  if (platforms === null) return {};
+  return {
+    ads_platforms: platforms,
+    ads_billing_self_reported: Object.fromEntries(platforms.map((p) => [p, s.ads_card[p]])),
   };
 }
 
@@ -136,6 +160,7 @@ export const STEPS: ReadonlyArray<{ title: string; short: string; schema: ZodTyp
   { title: "Tu negocio", short: "Negocio", schema: BusinessStep },
   { title: "Redes sociales", short: "Redes", schema: SocialStep },
   { title: "Accesos", short: "Accesos", schema: AccessStep },
+  { title: "Publicidad: agrega tu tarjeta", short: "Publicidad", schema: AdsStep },
   { title: "Archivos", short: "Archivos", schema: FilesStep },
 ];
 

@@ -2,14 +2,16 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient, type Query } from "@tanstack/react-query";
-import { Check, CreditCard, ExternalLink, Loader2 } from "lucide-react";
+import { Check, CreditCard, ExternalLink, Loader2, MessageSquareText } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Json } from "@/integrations/supabase/types";
 import { resolveCampaignAlert } from "@/lib/alerts/campaignAlerts.functions";
 import { healthKeys } from "@/components/clients/health/healthKeys";
+import { BILLING_META_KIND, parseBillingAlertData } from "@/lib/ads-billing/alert";
 import { BILLING_ALERT_KIND } from "@/lib/google-ads/billing";
 import { CardUpdateDialog } from "@/components/google-ads/CardUpdateDialog";
+import { AdsBillingMessageDialog } from "./AdsBillingMessageDialog";
 
 const ADS_MANAGER_PREFIX = "https://adsmanager.facebook.com/adsmanager/";
 
@@ -44,13 +46,15 @@ interface AlertActionsProps {
 
 /**
  * "Marcar como resuelta" + link a las campañas del cliente. Para "Pago de pauta"
- * (billing_google) agrega el mensaje listo para pedirle al cliente que actualice su tarjeta.
+ * (billing_google / billing_meta) agrega el mensaje listo para pedirle al cliente que revise su tarjeta.
  */
 export function AlertActions({ alert, canResolve = true }: AlertActionsProps) {
   const resolve = useServerFn(resolveCampaignAlert);
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
+  const [messageOpen, setMessageOpen] = useState(false);
+  const billing = alert.kind === BILLING_META_KIND ? parseBillingAlertData(alert.data) : null;
   const external = adsManagerLink(alert.data);
   const isBilling = alert.kind === BILLING_ALERT_KIND;
   const isGoogle = alert.platform === "google";
@@ -83,7 +87,38 @@ export function AlertActions({ alert, canResolve = true }: AlertActionsProps) {
           Avisar al cliente
         </Button>
       )}
-      {isGoogle ? (
+      {billing ? (
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs text-primary"
+            onClick={() => setMessageOpen(true)}
+          >
+            <MessageSquareText aria-hidden className="h-3 w-3" />
+            Mensaje al cliente
+          </Button>
+          <a
+            href={billing.billingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-primary hover:underline"
+          >
+            Pagos en Meta <ExternalLink aria-hidden className="h-3 w-3" />
+          </a>
+          {messageOpen && (
+            <AdsBillingMessageDialog
+              open={messageOpen}
+              onOpenChange={setMessageOpen}
+              clientId={alert.client_id}
+              clientName={billing.clientName ?? "tu negocio"}
+              reason={billing.reason}
+              adAccountId={billing.adAccountId}
+            />
+          )}
+        </>
+      ) : isGoogle ? (
         <Link
           to="/clients/$clientId/google-ads"
           params={{ clientId: alert.client_id }}

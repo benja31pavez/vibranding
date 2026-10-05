@@ -210,16 +210,34 @@ export const FilesStep = z.object({
   archivos: z.array(z.string().min(1).max(300)).max(MAX_FILES, `Máximo ${MAX_FILES} archivos`),
 });
 
+/** Dónde va a publicitar y si ya agregó su tarjeta (paso "Publicidad"). */
+export const ADS_PLATFORM_KEYS = ["google", "meta"] as const;
+export const AdsStep = z.object({
+  ads_platforms: z
+    .array(z.enum(ADS_PLATFORM_KEYS))
+    .max(ADS_PLATFORM_KEYS.length)
+    .refine((v) => new Set(v).size === v.length, "Plataforma repetida")
+    .optional(),
+  ads_billing_self_reported: z
+    .object({ google: z.boolean().optional(), meta: z.boolean().optional() })
+    .strict()
+    .optional(),
+});
+
+/** Claves del paso Publicidad (columnas nuevas de client_intake). */
+export const ADS_PAYLOAD_KEYS = ["ads_platforms", "ads_billing_self_reported"] as const;
+
 export const OnboardingForm = BillingStep.merge(BusinessStep)
   .merge(SocialStep)
   .merge(AccessStep)
+  .merge(AdsStep)
   .merge(FilesStep);
 export type OnboardingFormData = z.input<typeof OnboardingForm>;
 
 /** Payload final para submit_onboarding(): solo claves permitidas, sin vacíos. */
 export type OnboardingPayload = Record<
   string,
-  string | string[] | Record<string, string> | AccessItemData[]
+  string | string[] | Record<string, string> | Record<string, boolean> | AccessItemData[]
 >;
 
 export function buildPayload(form: z.output<typeof OnboardingForm>): OnboardingPayload {
@@ -249,8 +267,27 @@ export function buildPayload(form: z.output<typeof OnboardingForm>): OnboardingP
       a.nota ? a : ({ servicio: a.servicio, estado: a.estado } as AccessItemData),
     );
   }
+  if (form.ads_platforms) {
+    payload.ads_platforms = form.ads_platforms;
+    const reported = Object.fromEntries(
+      form.ads_platforms.map((p) => [p, Boolean(form.ads_billing_self_reported?.[p])]),
+    );
+    if (form.ads_platforms.length) payload.ads_billing_self_reported = reported;
+  }
   if (form.archivos.length) payload.archivos = form.archivos;
   return payload;
+}
+
+/** Payload sin el paso Publicidad (BD sin la migración onboarding_pago_pauta). */
+export function withoutAdsFields(payload: OnboardingPayload): OnboardingPayload {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([k]) => !(ADS_PAYLOAD_KEYS as readonly string[]).includes(k)),
+  );
+}
+
+/** "campo ads_platforms no permitido": la BD todavía no conoce el paso Publicidad. */
+export function isAdsFieldUnsupported(raw: string | null | undefined): boolean {
+  return /campo\s+ads_[a-z_]+\s+no permitido/.test(raw ?? "");
 }
 
 /**
@@ -299,7 +336,9 @@ export const FIELD_STEP: Readonly<Record<string, number>> = {
   colores: 1,
   links_redes: 2,
   accesos_pendientes: 3,
-  archivos: 4,
+  ads_platforms: 4,
+  ads_billing_self_reported: 4,
+  archivos: 5,
 };
 
 const FIELD_MESSAGES: Readonly<Record<string, string>> = {
@@ -318,6 +357,8 @@ const FIELD_MESSAGES: Readonly<Record<string, string>> = {
   colores: "Revisa los colores: hasta 12, de hasta 40 caracteres cada uno.",
   links_redes: "Revisa tus redes: pega el link completo (https://…) o tu @usuario.",
   accesos_pendientes: "Revisa la lista de accesos. Recuerda: nunca escribas contraseñas.",
+  ads_platforms: "Revisa dónde vas a publicitar: elige Google, Meta, ambos o ninguno.",
+  ads_billing_self_reported: "Revisa las casillas de tarjeta agregada.",
   archivos: "Uno de los archivos no se subió bien. Quítalo y vuelve a subirlo.",
 };
 
