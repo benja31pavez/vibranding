@@ -3,18 +3,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InstagramPage } from "@/components/pages/InstagramPage";
 import { ContentCalendar } from "@/components/instagram/ContentCalendar";
 import { PostFeedbackPanel } from "@/components/instagram/PostFeedbackPanel";
-import { EngagementCard } from "@/components/instagram/EngagementCard";
+import { EngagementCard, EngagementChip } from "@/components/instagram/EngagementCard";
+import { PageHeader } from "@/components/app";
+
+type InstagramTab = "grid" | "calendario" | "engagement";
+const TABS: readonly InstagramTab[] = ["grid", "calendario", "engagement"];
 
 export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
-  validateSearch: (s: Record<string, unknown>): { tab?: "grid" | "calendario" } => ({
-    tab:
-      s.tab === "calendario"
-        ? "calendario"
-        : s.tab === "grid"
-          ? "grid"
-          : s.tab === "automatizacion" || s.tab === "automation"
-            ? (s.tab as any)
-            : undefined,
+  validateSearch: (s: Record<string, unknown>): { tab?: InstagramTab } => ({
+    tab: TABS.includes(s.tab as InstagramTab)
+      ? (s.tab as InstagramTab)
+      : s.tab === "automatizacion" || s.tab === "automation"
+        ? (s.tab as any)
+        : undefined,
   }),
   beforeLoad: ({ params, search }) => {
     // Legacy in-page automation tab now lives in its own section.
@@ -49,22 +50,30 @@ function InstagramTabsPage() {
 
   return (
     <div className="space-y-4">
+      <PageHeader
+        size="compact"
+        title="Instagram"
+        actions={<EngagementChip clientId={clientId} />}
+      />
       <PostFeedbackPanel clientId={clientId} />
-      <EngagementCard clientId={clientId} />
       <Tabs
         value={tab}
-        onValueChange={(v) => navigate({ search: { tab: v as "grid" | "calendario" } })}
+        onValueChange={(v) => navigate({ search: { tab: v as InstagramTab } })}
         className="space-y-4"
       >
-        <TabsList>
+        <TabsList aria-label="Secciones de Instagram">
           <TabsTrigger value="grid">Grid</TabsTrigger>
           <TabsTrigger value="calendario">Calendario</TabsTrigger>
+          <TabsTrigger value="engagement">Engagement</TabsTrigger>
         </TabsList>
         <TabsContent value="grid">
           <InstagramPage clientId={clientId} />
         </TabsContent>
         <TabsContent value="calendario">
           <ContentCalendar clientId={clientId} />
+        </TabsContent>
+        <TabsContent value="engagement" className="max-w-3xl">
+          <EngagementCard clientId={clientId} />
         </TabsContent>
       </Tabs>
     </div>

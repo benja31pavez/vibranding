@@ -7,8 +7,7 @@ import { BotRulesTab } from "@/components/chatbot/BotRulesTab";
 import { AIBotTab } from "@/components/chatbot/AIBotTab";
 import { MetricsTab } from "@/components/chatbot/MetricsTab";
 import { BusinessProfileTab } from "@/components/chatbot/BusinessProfileTab";
-import { MessageCircle } from "lucide-react";
-import { ErrorState, ListSkeleton } from "@/components/app";
+import { ErrorState, ListSkeleton, PageHeader } from "@/components/app";
 import { useInvalidateClientCapabilities } from "@/hooks/use-client-capabilities";
 
 export type WAAccount = {
@@ -75,18 +74,8 @@ export function ChatbotPage({ clientId }: { clientId: string }) {
   if (loading && !acc) return <ListSkeleton rows={3} label="Cargando WhatsApp" />;
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-          <MessageCircle className="w-5 h-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">WhatsApp</h1>
-          <p className="text-sm text-muted-foreground">
-            Sigue las conversaciones de tu cliente y configura respuestas automáticas.
-          </p>
-        </div>
-      </header>
+    <div className="space-y-4">
+      <PageHeader size="compact" title="WhatsApp" />
 
       <ConnectWhatsAppCard clientId={clientId} account={acc} onChange={load} />
 

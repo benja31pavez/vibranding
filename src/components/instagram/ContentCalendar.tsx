@@ -442,12 +442,12 @@ export function ContentCalendar({ clientId }: { clientId: string }) {
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-muted-foreground" />
-            <h1 className="text-xl font-semibold capitalize">
+            <CalendarDays aria-hidden className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold capitalize">
               {view === "week"
                 ? `Semana del ${format(days[0]!, "d 'de' MMMM yyyy", { locale: es })}`
                 : format(cursor, "MMMM yyyy", { locale: es })}
-            </h1>
+            </h2>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex rounded-lg border overflow-hidden">
