@@ -22,7 +22,7 @@ import {
   type ClientConnectRow,
 } from "@/lib/meta/bulkConnect.functions";
 import { getOrgMetaTokenStatus, type OrgTokenStatus } from "@/lib/meta/connection.functions";
-import { ErrorState, ListSkeleton, PageContainer } from "@/components/app";
+import { EmptyState, ErrorState, ListSkeleton, PageContainer, PageHeader } from "@/components/app";
 
 export const Route = createFileRoute("/_app/clients/connect")({
   head: () => ({
@@ -222,28 +222,33 @@ function BulkConnectPage() {
 
   return (
     <PageContainer className="max-w-5xl space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <Plug className="w-5 h-5" /> Conectar clientes con Meta
-        </h1>
-        <div className="flex gap-2">
-          <Button asChild size="sm" variant="outline">
-            <Link to="/settings/meta">
-              <KeyRound className="w-3 h-3 mr-1" /> Token de la organización
-            </Link>
-          </Button>
-          <Button size="sm" variant="ghost" onClick={load} disabled={loading}>
-            <RefreshCw className={`w-3 h-3 mr-1 ${loading ? "animate-spin" : ""}`} /> Recargar
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Conectar con Meta"
+        breadcrumb={[{ label: "Clientes", to: "/clients" }, { label: "Conectar con Meta" }]}
+        actions={
+          <>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/settings/meta">
+                <KeyRound aria-hidden className="mr-1 h-3.5 w-3.5" /> Token de la organización
+              </Link>
+            </Button>
+            <Button size="sm" variant="ghost" onClick={load} disabled={loading}>
+              <RefreshCw
+                aria-hidden
+                className={`mr-1 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`}
+              />{" "}
+              Recargar
+            </Button>
+          </>
+        }
+      />
 
       <p className="text-sm text-muted-foreground">
-        La conexión de Meta (token de la organización) se administra en{" "}
+        Asigna a cada cliente su cuenta publicitaria e Instagram. El token se administra en{" "}
         <Link to="/settings/meta" className="underline underline-offset-2 hover:text-foreground">
           Ajustes › Meta
         </Link>
-        . Aquí asignas a cada cliente su cuenta publicitaria e Instagram.
+        .
       </p>
 
       {loadError && (
@@ -441,8 +446,8 @@ function BulkConnectPage() {
         );
       })}
 
-      {!loading && rows.length === 0 && (
-        <p className="text-sm text-muted-foreground">No hay clientes todavía.</p>
+      {!loading && !loadError && rows.length === 0 && (
+        <EmptyState icon={Plug} title="Aún no tienes clientes" size="compact" />
       )}
     </PageContainer>
   );

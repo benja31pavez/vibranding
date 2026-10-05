@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Instagram, Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -16,9 +16,10 @@ import {
   ErrorState,
   FitList,
   FitPage,
+  InfoHint,
   PageHeader,
 } from "@/components/app";
-import { HEALTH_LOAD_ERROR, HealthBadge, useClientsHealth } from "@/components/clients/health";
+import { HEALTH_LOAD_ERROR, useClientsHealth } from "@/components/clients/health";
 import { HEALTH_LEVEL_META, type HealthLevel } from "@/lib/health";
 import {
   disconnectActiveClient,
@@ -27,12 +28,15 @@ import {
 import {
   SORT_LABEL,
   arrangeClients,
+  summarizePortfolio,
   useClientsList,
   type ClientListItem,
   type LevelFilter,
   type SortMode,
+  type StageFilter,
 } from "./clientsListData";
 import { ClientCard } from "./ClientCard";
+import { StageChips } from "./StageChips";
 import { NewClientDialog } from "./NewClientDialog";
 
 /** Ancho mínimo de una tarjeta de cliente en la grilla de escritorio (px). */
@@ -45,15 +49,26 @@ export function ClientsListPage() {
   const health = useClientsHealth();
   const [sort, setSort] = useState<SortMode>("recent");
   const [level, setLevel] = useState<LevelFilter>("all");
+  const [stage, setStage] = useState<StageFilter>("all");
   const [open, setOpen] = useState(false);
   const activeClientId = useStoredActiveClientId();
   const [disconnecting, setDisconnecting] = useState<ClientListItem | null>(null);
   const clients = query.data;
 
   const visible = useMemo(
-    () => arrangeClients(clients ?? [], health.data, sort, level),
-    [clients, health.data, sort, level],
+    () => arrangeClients(clients ?? [], health.data, sort, level, stage),
+    [clients, health.data, sort, level, stage],
   );
+  const summary = useMemo(
+    () => summarizePortfolio(clients ?? [], health.data),
+    [clients, health.data],
+  );
+  const levelCount = (k: HealthLevel): number | null =>
+    k === "en_riesgo" ? summary.enRiesgo : k === "atencion" ? summary.atencion : null;
+  const clearFilters = () => {
+    setStage("all");
+    setLevel("all");
+  };
 
   return (
     <FitPage
@@ -61,7 +76,6 @@ export function ClientsListPage() {
         <PageHeader
           size="compact"
           title="Clientes"
-          description="Gestiona las asesorías de cada uno."
           actions={
             <>
               <Button asChild variant="outline">
@@ -84,9 +98,8 @@ export function ClientsListPage() {
         />
       ) : clients && clients.length === 0 ? (
         <EmptyState
-          icon={Instagram}
+          icon={Users}
           title="Aún no tienes clientes"
-          description="Crea tu primer cliente para empezar."
           action={
             <Button onClick={() => setOpen(true)}>
               <Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo cliente
@@ -96,41 +109,51 @@ export function ClientsListPage() {
       ) : (
         <>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
-              <SelectTrigger className="h-9 w-[180px]" aria-label="Ordenar clientes">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(SORT_LABEL) as SortMode[]).map((k) => (
-                  <SelectItem key={k} value={k}>
-                    {SORT_LABEL[k]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={level}
-              onValueChange={(v) => setLevel(v as LevelFilter)}
-              disabled={!health.data}
-            >
-              <SelectTrigger className="h-9 w-[180px]" aria-label="Filtrar por salud">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toda la salud</SelectItem>
-                {(Object.keys(HEALTH_LEVEL_META) as HealthLevel[]).map((k) => (
-                  <SelectItem key={k} value={k}>
-                    {HEALTH_LEVEL_META[k].label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-xs font-medium tabular-nums text-foreground">
-              {visible.length} {visible.length === 1 ? "cliente" : "clientes"}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              · Los prospectos y terminados no se puntúan.
-            </span>
+            <StageChips
+              value={stage}
+              onChange={setStage}
+              total={clients?.length ?? 0}
+              counts={summary.byStage}
+            />
+            <div className="flex flex-wrap items-center gap-2 md:ml-auto">
+              <Select
+                value={level}
+                onValueChange={(v) => setLevel(v as LevelFilter)}
+                disabled={!health.data}
+              >
+                <SelectTrigger className="h-9 w-[170px]" aria-label="Filtrar por salud">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toda la salud</SelectItem>
+                  {(Object.keys(HEALTH_LEVEL_META) as HealthLevel[]).map((k) => {
+                    const n = levelCount(k);
+                    return (
+                      <SelectItem key={k} value={k}>
+                        {HEALTH_LEVEL_META[k].label}
+                        {n !== null && n > 0 ? ` (${n})` : ""}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
+                <SelectTrigger className="h-9 w-[170px]" aria-label="Ordenar clientes">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(SORT_LABEL) as SortMode[]).map((k) => (
+                    <SelectItem key={k} value={k}>
+                      {SORT_LABEL[k]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <InfoHint label="Cómo se calcula la salud" align="end">
+                La salud se calcula para clientes en onboarding, activos y pausados. Los prospectos
+                y terminados no se puntúan.
+              </InfoHint>
+            </div>
             {health.isError && (
               <span role="alert" className="flex items-center gap-2 text-xs text-danger-strong">
                 {HEALTH_LOAD_ERROR}
@@ -147,9 +170,12 @@ export function ClientsListPage() {
             )}
           </div>
           {visible.length === 0 ? (
-            <p className="rounded-app-lg border border-dashed border-border-subtle p-6 text-center text-sm text-muted-foreground">
-              Ningún cliente con salud “{level === "all" ? "" : HEALTH_LEVEL_META[level].label}”.
-            </p>
+            <div className="flex flex-col items-center gap-3 rounded-app-lg border border-dashed border-border-subtle p-6 text-center text-sm text-muted-foreground">
+              Ningún cliente con estos filtros.
+              <Button size="sm" variant="outline" onClick={clearFilters}>
+                Ver todos
+              </Button>
+            </div>
           ) : (
             <FitList
               variant="grid"

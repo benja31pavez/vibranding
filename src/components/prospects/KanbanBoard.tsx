@@ -106,12 +106,12 @@ function Column({
       ref={setNodeRef}
       aria-label={`${title}: ${count}`}
       className={cn(
-        "flex flex-col rounded-app-lg border border-border-subtle bg-surface-2 p-2 transition-colors",
+        "flex flex-col rounded-app-lg border border-border-subtle bg-surface-2 p-2 transition-colors md:min-h-0",
         isOver && "border-primary bg-primary/5",
         className,
       )}
     >
-      <header className="flex items-center justify-between gap-2 px-1 pb-2">
+      <header className="flex shrink-0 items-center justify-between gap-2 px-1 pb-2">
         <h2 className="text-sm font-semibold text-foreground">
           {title}{" "}
           <span className="ml-1 text-xs font-normal tabular-nums text-muted-foreground">
@@ -120,7 +120,8 @@ function Column({
         </h2>
         {headerAction}
       </header>
-      {children}
+      {/* En escritorio cada columna hace scroll por dentro: la página no crece. */}
+      <div className="-mx-1 px-1 md:min-h-0 md:flex-1 md:overflow-y-auto">{children}</div>
     </section>
   );
 }
@@ -186,7 +187,7 @@ export function KanbanBoard({
         screenReaderInstructions: { draggable: SCREEN_READER_INSTRUCTIONS },
       }}
     >
-      <div className="-mx-2 flex gap-3 overflow-x-auto px-2 pb-3">
+      <div className="-mx-2 flex gap-3 overflow-x-auto px-2 pb-3 md:h-full md:pb-1">
         {OPEN_STATES.map((state) => {
           const items = byState.get(state) ?? [];
           return (
@@ -278,7 +279,7 @@ function ClosedColumn({
   }
 
   return (
-    <div className="flex w-64 shrink-0 flex-col gap-2">
+    <div className="flex w-64 shrink-0 flex-col gap-2 md:min-h-0">
       <div className="flex items-center justify-between px-1">
         <span className="text-sm font-semibold">Cerrados</span>
         {toggle}
@@ -286,7 +287,13 @@ function ClosedColumn({
       {CLOSED_STATES.map((state) => {
         const items = byState.get(state) ?? [];
         return (
-          <Column key={state} state={state} title={STATE_META[state].label} count={items.length}>
+          <Column
+            key={state}
+            state={state}
+            title={STATE_META[state].label}
+            count={items.length}
+            className="md:flex-1"
+          >
             <CardList items={items} actions={actions} />
           </Column>
         );

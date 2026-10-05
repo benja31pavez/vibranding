@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MARKETING_META, MARKETING_ORG_SCRIPT } from "@/lib/marketingSeo";
 import { useState } from "react";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { SiteFooter } from "@/components/SiteFooter";
+import { DiagnosticoAside, DiagnosticoIncludes } from "@/components/diagnostico/DiagnosticoAside";
 import { DiagnosticoForm } from "@/components/diagnostico/DiagnosticoForm";
 import { DiagnosticoThanks } from "@/components/diagnostico/DiagnosticoThanks";
 import { PLAN_INTERESTS, type PlanInterest } from "@/lib/leads/diagnostico.schema";
@@ -12,12 +13,6 @@ const TITLE = "Diagnóstico gratis de tu marca | Vibranding";
 const DESCRIPTION =
   "Cuéntanos de tu pyme en 1 minuto y te enviamos un diagnóstico gratis de tu marca, tus redes y tu presencia en Google, con qué haríamos primero.";
 const URL = `${SITE_URL}/diagnostico`;
-
-const INCLUDES = [
-  "Cómo se ve tu marca hoy frente a tu competencia",
-  "Qué mejorar en tu Instagram, tu web y tu ficha de Google",
-  "Por dónde partir y qué plan te conviene (si alguno te conviene)",
-];
 
 type Search = { plan?: PlanInterest };
 
@@ -67,7 +62,7 @@ function DiagnosticoPage() {
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-background text-foreground">
       <header className="border-b border-border/50">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 md:px-10">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-10">
           <Link to="/" aria-label="Vibranding, inicio">
             <span className="font-brand text-2xl tracking-tight text-gradient-brand-strong md:text-3xl">
               Vibranding
@@ -82,14 +77,14 @@ function DiagnosticoPage() {
         </div>
       </header>
 
-      <main id="contenido" className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 md:px-10 md:py-16">
+      <main id="contenido" className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 md:px-10 md:py-16">
         {doneFor ? (
           <div className="mx-auto max-w-2xl">
             <DiagnosticoThanks negocio={doneFor} />
           </div>
         ) : (
-          <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:gap-14">
-            <div>
+          <div className="grid gap-10 lg:grid-cols-12 lg:grid-rows-[auto_1fr] lg:gap-x-14 lg:gap-y-8">
+            <div className="lg:col-span-5">
               <p className="text-sm font-semibold uppercase tracking-widest text-[color:color-mix(in_oklab,var(--brand-2)_70%,black)] dark:text-[color:var(--brand-2)]">
                 Gratis · sin compromiso
               </p>
@@ -101,22 +96,18 @@ function DiagnosticoPage() {
                 Cuéntanos de tu negocio en 1 minuto. Revisamos cómo te ve hoy un cliente en internet
                 y te escribimos con lo que haríamos primero.
               </p>
-              <h2 className="mt-8 text-base font-semibold">Qué incluye</h2>
-              <ul className="mt-3 space-y-3">
-                {INCLUDES.map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-sm md:text-base">
-                    <Check
-                      aria-hidden
-                      className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--brand-1)]"
-                    />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-8">
+                <DiagnosticoIncludes />
+              </div>
             </div>
-            <div className="relative rounded-3xl border bg-card p-5 shadow-sm md:p-8">
+            <div className="relative rounded-3xl border bg-card p-5 shadow-sm md:p-8 lg:col-span-7 lg:col-start-6 lg:row-span-2 lg:row-start-1">
               <DiagnosticoForm plan={plan} onDone={setDoneFor} />
             </div>
+            <aside className="lg:col-span-5 lg:col-start-1 lg:row-start-2">
+              <div className="lg:[@media(min-height:700px)]:sticky lg:top-8">
+                <DiagnosticoAside />
+              </div>
+            </aside>
           </div>
         )}
       </main>
