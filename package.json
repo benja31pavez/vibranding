@@ -32,6 +32,8 @@
     "check:security-headers": "node scripts/check-security-headers.mjs",
     "check:fit-list": "node scripts/check-fit-list.mjs",
     "check:plan-stages": "node scripts/check-plan-stages.mjs",
+    "check:plan-checklists": "node scripts/check-plan-checklists.mjs",
+    "export:plan-checklists": "node scripts/export-plan-checklists.mjs",
     "check:profile": "node scripts/check-profile.mjs",
     "check:prefs": "node scripts/check-prefs.mjs",
     "check:ads-billing": "node scripts/check-ads-billing.mjs",

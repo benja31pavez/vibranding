@@ -48,6 +48,8 @@ export interface PlanObjective {
   unit: string | null;
   priority: string;
   created_at: string;
+  /** Objetivo estándar del plan; solo existe con la migración de plantillas. */
+  template_key?: string | null;
 }
 
 /** Tope por consulta: un cliente normal tiene decenas de tareas; sobra margen. */
@@ -108,7 +110,8 @@ export function usePlanObjectives(userKey: string, clientId: string) {
     queryFn: async (): Promise<PlanObjective[]> => {
       const { data, error } = await supabase
         .from("objectives")
-        .select("id,title,status,due_date,target_value,current_value,unit,priority,created_at")
+        // "*" para leer template_key cuando la migración de plantillas esté aplicada.
+        .select("*")
         .eq("client_id", clientId)
         .order("sort_order")
         .order("created_at")

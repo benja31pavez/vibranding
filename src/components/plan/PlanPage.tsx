@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { ListChecks, Plus } from "lucide-react";
 import { ConfirmDialog, ErrorState, FitPage, PageHeader, Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
@@ -14,11 +16,14 @@ import { DeliverablesList } from "@/components/DeliverablesList";
 import { ObjectivesList } from "@/components/ObjectivesList";
 import { chileToday } from "@/lib/dates/chile";
 import { cn } from "@/lib/utils";
-import { taskColumn, type StageKey } from "@/lib/delivery/planStages";
+import { taskColumn, toMonthPlanKey, type StageKey } from "@/lib/delivery/planStages";
+import { objectivesForPlan } from "@/lib/delivery/planChecklists";
+import { isTemplateObjective } from "@/lib/delivery/planTemplateSeed";
 import { ObjectivesColumn } from "./ObjectivesColumn";
 import { StageTrack, TeamTrack } from "./StageTrack";
 import { TaskBoard, TaskBoardSkeleton } from "./TaskBoard";
-import { usePlanObjectives, type PlanTask } from "./planQueries";
+import { invalidatePlan, usePlanObjectives, type PlanTask } from "./planQueries";
+import { seedPlanTemplates, usePlanSignals } from "./planTemplates";
 import type { StageMenuActions } from "./StageMenu";
 import { usePlanBoard } from "./usePlanBoard";
 
@@ -44,13 +49,12 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
   const overview = useFichaOverview(clientId);
   const objectivesQ = usePlanObjectives(userKey, clientId);
   const canEdit = overview.data?.canEdit ?? false;
-  const board = usePlanBoard({
-    clientId,
-    userKey,
-    planKey: overview.data?.billing?.plan_key ?? null,
-    stage,
-    today,
-  });
+  const planKey = overview.data?.billing?.plan_key ?? null;
+  const board = usePlanBoard({ clientId, userKey, planKey, stage, today });
+  const signalsQ = usePlanSignals(userKey, clientId, today);
+  const signals = useMemo(() => signalsQ.data ?? new Set<never>(), [signalsQ.data]);
+  const standardObjectives = useMemo(() => objectivesForPlan(toMonthPlanKey(planKey)), [planKey]);
+  usePlanTemplateSeed({ clientId, userKey, planKey, enabled: Boolean(overview.data) && canEdit });
   const { plan, stages, activeStage, visibleTasks, tasksQ, stagesQ } = board;
   const [sheet, setSheet] = useState<OpenSheet | null>(null);
   const [focusAdd, setFocusAdd] = useState(0);
@@ -122,6 +126,7 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
             today={today}
             onOpen={(id) => setSheet({ kind: "objective", id })}
             onCreate={() => setSheet({ kind: "objectives-new" })}
+            isTemplate={(o) => isTemplateObjective(o, standardObjectives)}
           />
         </div>
         <div className="flex min-w-0 flex-col md:min-h-0">
@@ -182,6 +187,7 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
                 onDelete={setPendingDelete}
                 onChangeStage={board.changeStage}
                 onDelivery={board.setDelivery}
+                signals={signals}
               />
             )}
           </Panel>
@@ -250,4 +256,40 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
       />
     </FitPage>
   );
+}
+
+/**
+ * Al abrir el Plan crea (una vez por cliente y plan) las tareas y objetivos
+ * estándar que falten. Idempotente; nunca borra ni edita nada.
+ */
+function usePlanTemplateSeed({
+  clientId,
+  userKey,
+  planKey,
+  enabled,
+}: {
+  clientId: string;
+  userKey: string;
+  planKey: string | null;
+  enabled: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const done = useRef<string | null>(null);
+  useEffect(() => {
+    const id = `${clientId}:${planKey ?? ""}`;
+    if (!enabled || !toMonthPlanKey(planKey) || done.current === id) return;
+    done.current = id;
+    seedPlanTemplates(clientId, planKey)
+      .then(({ tasks, objectives }) => {
+        if (tasks + objectives === 0) return;
+        toast.info(
+          `Se agregaron ${tasks} tareas y ${objectives} objetivos estándar del plan. Revísalos y ajústalos al cliente.`,
+        );
+        void invalidatePlan(queryClient, userKey, clientId);
+      })
+      .catch((e: Error) => {
+        done.current = null;
+        toast.error(`No se pudieron crear las tareas estándar del plan: ${e.message}`);
+      });
+  }, [clientId, userKey, planKey, enabled, queryClient]);
 }

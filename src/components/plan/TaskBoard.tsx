@@ -16,6 +16,7 @@ import {
   Check,
   CheckCheck,
   GripVertical,
+  LayoutTemplate,
   MoreHorizontal,
   Plus,
   User,
@@ -48,6 +49,9 @@ import {
   type PlanStage,
   type StageKey,
 } from "@/lib/delivery/planStages";
+import { SIGNAL_LABELS, type PlanSignal } from "@/lib/delivery/planChecklists";
+import { detectedSignal } from "@/lib/delivery/planSignals";
+import { isTemplateTask } from "@/lib/delivery/planTemplateSeed";
 import type { PlanTask } from "./planQueries";
 import { formatShortDate } from "./planFormat";
 
@@ -80,6 +84,8 @@ export interface TaskBoardProps {
   /** La columna `approved_at` existe: se puede marcar "aprobada por el cliente". */
   canApprove: boolean;
   onDelivery: (task: PlanTask, action: DeliveryAction) => void;
+  /** Señales de la plataforma: tareas estándar que parecen hechas ("Detectado ✓ — revisar"). */
+  signals: ReadonlySet<PlanSignal>;
 }
 
 function stageLabelOf(stages: readonly PlanStage[], key: StageKey | null): string | null {
@@ -291,6 +297,8 @@ function TaskCard({
         stageLabel={
           board.stage ? null : stageLabelOf(board.planStages, stageOfTask(task, board.planStages))
         }
+        detected={detectedSignal(task, board.signals)}
+        onConfirm={board.canEdit ? () => board.onMove(task, "done") : undefined}
         handle={
           draggable ? (
             <button
@@ -317,11 +325,17 @@ function TaskCardBody({
   handle,
   menu,
   overlay,
+  detected = null,
+  onConfirm,
 }: {
   task: PlanTask;
   today: string;
   /** Etiqueta de la etapa (solo en la vista "todas las etapas"). */
   stageLabel: string | null;
+  /** Señal detectada en la plataforma (tarea estándar abierta que parece hecha). */
+  detected?: PlanSignal | null;
+  /** Confirma la tarea detectada (la pasa a Lista). */
+  onConfirm?: () => void;
   handle?: ReactNode;
   menu?: ReactNode;
   overlay?: boolean;
@@ -331,6 +345,7 @@ function TaskCardBody({
     task.due_date && task.due_date < today && taskColumn(task.status) !== "done",
   );
   const delivery = deliveryState(task);
+  const template = isTemplateTask(task);
   return (
     <article
       className={cn(
@@ -346,8 +361,18 @@ function TaskCardBody({
             done && "text-muted-foreground line-through",
           )}
         >
+          {template && (
+            <span title="Plantilla: tarea estándar del plan" className="mr-1 inline-block">
+              <LayoutTemplate
+                aria-hidden
+                className="inline h-3 w-3 -translate-y-px text-muted-foreground/70"
+              />
+              <span className="sr-only">Plantilla: </span>
+            </span>
+          )}
           {task.title}
         </p>
+        {detected && <DetectedBadge signal={detected} />}
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
           <DeliveryMark state={delivery} />
           {stageLabel && (
@@ -373,6 +398,7 @@ function TaskCardBody({
               <span className="truncate">{task.assignee}</span>
             </span>
           )}
+          {detected && onConfirm && <ConfirmButton signal={detected} onConfirm={onConfirm} />}
         </div>
       </div>
       {menu}
@@ -451,6 +477,33 @@ function TaskMenu({ task, board }: { task: PlanTask; board: TaskBoardProps }) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** "Detectado ✓ — revisar": la plataforma indica que ya está hecha; nunca se completa sola. */
+function DetectedBadge({ signal }: { signal: PlanSignal }) {
+  return (
+    <span
+      title={SIGNAL_LABELS[signal]}
+      className="mt-1 inline-block whitespace-nowrap rounded-full bg-success-subtle px-1.5 py-px text-[11px] font-medium text-success-strong"
+    >
+      Detectado ✓ — revisar
+      <span className="sr-only">: {SIGNAL_LABELS[signal]}</span>
+    </span>
+  );
+}
+
+/** Confirma una tarea detectada (la pasa a Lista con un clic). */
+function ConfirmButton({ signal, onConfirm }: { signal: PlanSignal; onConfirm: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onConfirm}
+      title={`${SIGNAL_LABELS[signal]}. Confirmar y marcar lista`}
+      className="ml-auto shrink-0 rounded-app-sm px-0.5 font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      Confirmar
+    </button>
   );
 }
 
