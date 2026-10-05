@@ -1,62 +1,94 @@
-import { AlertTriangle, CalendarDays, CheckCircle2, Circle, Timer } from "lucide-react";
-import type { ComponentType } from "react";
-import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
+import { LayoutList } from "lucide-react";
 import {
-  STAGE_STATUS_LABELS,
+  PLAN_STATUS_LABELS,
+  TRACK_STATUS_LABELS,
+  memberStatus,
+  summarizePlan,
+  trackStatus,
   type MemberSummary,
   type StageKey,
-  type StageStatus,
   type StageSummary,
 } from "@/lib/delivery/planStages";
 import { TEAM } from "@/lib/delivery/team";
 import { formatShortDate } from "./planFormat";
-import { FolderButton, OwnerAvatar } from "./StageFolder";
 import { StageMenu, type StageMenuActions } from "./StageMenu";
-import { MEMBER_HUE, STAGE_HUE } from "./stagePalette";
-import { useEdgeFade } from "./useEdgeFade";
+import { PlanPill, TeamAvatar, TrackItem, TrackMeta, TrackPill } from "./TrackItem";
 
-const STATUS_ICONS: Readonly<Record<StageStatus, ComponentType<{ className?: string }>>> = {
-  pending: Circle,
-  active: Timer,
-  done: CheckCircle2,
-};
-
-const STATUS_TONE: Readonly<Record<StageStatus, string>> = {
-  pending: "text-muted-foreground",
-  active: "text-warning-strong",
-  done: "text-success-strong",
-};
-
-/** "⋯" de la etapa: esquina inferior derecha, en la línea de la fecha de entrega. */
-const MENU_POSITION = "absolute bottom-1.5 right-1.5 z-10";
-/** En la carpeta de una persona el "⋯" va arriba a la derecha del cuerpo. */
-const MEMBER_MENU_POSITION = "absolute right-2 top-[30px] z-10";
-
-function DueLine({
-  dueDate,
-  late,
-  emptyLabel,
-  prefix = "",
-}: {
-  dueDate: string | null;
-  late: boolean;
-  emptyLabel: string;
-  prefix?: string;
-}) {
-  const Icon = late ? AlertTriangle : CalendarDays;
+/**
+ * Lista neutra del recorrido: "General" (todo el plan) y luego un ítem por
+ * etapa o persona. Si no caben, solo esta fila hace scroll horizontal (con snap);
+ * la página no se mueve.
+ */
+function TrackList({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <span
-      className={cn(
-        "flex min-w-0 items-center gap-1 text-[11px] tabular-nums",
-        late ? "font-semibold text-danger-strong" : "text-muted-foreground",
-      )}
+    <nav
+      aria-label={label}
+      className="rounded-app-lg border border-border-subtle bg-surface shadow-app-xs"
     >
-      <Icon aria-hidden className="h-3 w-3 shrink-0" />
-      <span className="truncate">
-        {dueDate ? `${prefix}${formatShortDate(dueDate)}` : emptyLabel}
-        {late && <span className="hidden @[180px]:inline"> · atrasada</span>}
-      </span>
-    </span>
+      <ol className="flex snap-x snap-mandatory scroll-px-1.5 gap-1 overflow-x-auto p-1.5 [scrollbar-width:thin]">
+        {children}
+      </ol>
+    </nav>
+  );
+}
+
+/** "General": avance de todas las etapas, estado del plan y próxima entrega. */
+function GeneralItem({
+  stages,
+  pressed,
+  onClick,
+}: {
+  stages: readonly StageSummary[];
+  pressed: boolean;
+  onClick: () => void;
+}) {
+  const plan = summarizePlan(stages);
+  return (
+    <TrackItem
+      className="after:absolute after:-right-[3px] after:inset-y-2 after:w-px after:bg-border-subtle"
+      media={
+        <span
+          aria-hidden
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground ring-1 ring-border-subtle"
+        >
+          <LayoutList className="h-4 w-4" />
+        </span>
+      }
+      aside={
+        <span
+          aria-hidden
+          className="flex min-w-0 flex-1 flex-col gap-1 @[240px]:max-w-60 @[240px]:flex-row-reverse @[240px]:items-center @[240px]:gap-2"
+        >
+          <span className="text-xs font-semibold leading-none tabular-nums text-foreground">
+            {plan.pct}%
+          </span>
+          <span className="h-1 w-full overflow-hidden rounded-full bg-muted @[240px]:flex-1">
+            <span
+              className="block h-full rounded-full bg-primary"
+              style={{ width: `${plan.pct}%` }}
+            />
+          </span>
+        </span>
+      }
+      title="General"
+      subtitle="Todo el plan"
+      pill={<PlanPill status={plan.status} />}
+      meta={
+        <TrackMeta
+          done={plan.done}
+          total={plan.total}
+          dueDate={plan.nextDue}
+          late={plan.status === "late"}
+          duePrefix="Próx."
+        />
+      }
+      pressed={pressed}
+      onClick={onClick}
+      ariaLabel={`General, todo el plan: ${PLAN_STATUS_LABELS[plan.status]}, ${plan.done} de ${
+        plan.total
+      } tareas listas${plan.nextDue ? `, próxima entrega ${formatShortDate(plan.nextDue)}` : ""}`}
+    />
   );
 }
 
@@ -67,111 +99,43 @@ export interface StageTrackProps {
   menu: StageMenuActions;
 }
 
-/**
- * Recorrido de las etapas del plan como carpetas: responsable con su anillo de
- * avance y pendientes, estado y fecha de entrega. Un clic filtra las tareas; el
- * "⋯" de cada carpeta edita la fecha de entrega de la etapa. Si no caben en una
- * fila, la fila hace scroll horizontal (con snap) sin mover la página.
- */
+/** Etapas del plan: "General" + una por etapa con su responsable, estado y entrega. */
 export function StageTrack({ stages, selected, onSelect, menu }: StageTrackProps) {
-  const { ref, fadeStart, fadeEnd } = useEdgeFade<HTMLOListElement>(stages.length);
   return (
-    <nav aria-label="Etapas del plan">
-      <ol
-        ref={ref}
-        data-fade-start={fadeStart}
-        data-fade-end={fadeEnd}
-        className="plan-folder-row -mx-1 flex snap-x snap-mandatory scroll-px-1 gap-2.5 overflow-x-auto px-1 pb-1.5 pt-1"
-      >
-        {stages.map((stage, i) => (
-          <li
+    <TrackList label="Etapas del plan">
+      <GeneralItem stages={stages} pressed={selected === null} onClick={() => onSelect(null)} />
+      {stages.map((stage, i) => {
+        const owner = TEAM[stage.owner];
+        const status = trackStatus(stage.status, stage.late);
+        const active = selected === stage.key;
+        return (
+          <TrackItem
             key={stage.key}
-            className="plan-folder-item relative min-w-[128px] flex-1 basis-0 snap-start"
-          >
-            <StageFolder
-              stage={stage}
-              index={i}
-              active={selected === stage.key}
-              onClick={() => onSelect(selected === stage.key ? null : stage.key)}
-            />
-            <StageMenu
-              {...menu}
-              stages={[stage]}
-              label={`Fecha de entrega de ${stage.label}`}
-              className={MENU_POSITION}
-            />
-          </li>
-        ))}
-      </ol>
-    </nav>
-  );
-}
-
-function StageFolder({
-  stage,
-  index,
-  active,
-  onClick,
-}: {
-  stage: StageSummary;
-  index: number;
-  active: boolean;
-  onClick: () => void;
-}) {
-  const StatusIcon = STATUS_ICONS[stage.status];
-  const owner = TEAM[stage.owner];
-  const pending = stage.total - stage.done;
-  return (
-    <FolderButton
-      hue={STAGE_HUE[stage.key]}
-      label={stage.label}
-      pressed={active}
-      onClick={onClick}
-      title={`${stage.label} · ${owner.name}\n${stage.detail}`}
-      ariaLabel={`${index + 1}. ${stage.label}, responsable ${owner.name}: ${
-        STAGE_STATUS_LABELS[stage.status]
-      }, ${stage.done} de ${stage.total} tareas listas, ${pending} pendientes${
-        stage.dueDate ? `, entrega ${formatShortDate(stage.dueDate)}` : ""
-      }${stage.late ? ", atrasada" : ""}`}
-      showIcon={false}
-      bodyClassName="@container gap-2 px-2.5 pb-2 pt-2.5"
-    >
-      <span className="flex items-center gap-2.5">
-        <OwnerAvatar
-          member={stage.owner}
-          pct={stage.pct}
-          done={stage.status === "done"}
-          pending={pending}
-          late={stage.late}
-          size={42}
-        />
-        <span className="flex min-w-0 flex-col gap-1">
-          <span className="flex items-center gap-1">
-            <span className="plan-folder__ink text-lg font-bold leading-none tabular-nums">
-              {stage.pct}
-              <span className="text-[11px] font-semibold">%</span>
-            </span>
-            <StatusIcon
-              aria-hidden
-              className={cn("h-3.5 w-3.5 shrink-0", STATUS_TONE[stage.status])}
-            />
-          </span>
-          <span className="truncate text-[11px] leading-none tabular-nums text-muted-foreground">
-            {stage.done}/{stage.total}
-            <span className="hidden @[180px]:inline">
-              {" · "}
-              {STAGE_STATUS_LABELS[stage.status]}
-            </span>
-          </span>
-        </span>
-      </span>
-      <span className="flex min-w-0 items-center gap-2 pr-6">
-        <DueLine dueDate={stage.dueDate} late={stage.late} emptyLabel="Sin fecha" />
-        <span className="ml-auto hidden truncate text-[11px] text-muted-foreground @[210px]:inline">
-          {owner.name}
-        </span>
-      </span>
-    </FolderButton>
+            media={<TeamAvatar member={stage.owner} />}
+            title={stage.label}
+            pill={<TrackPill status={status} />}
+            meta={
+              <TrackMeta
+                done={stage.done}
+                total={stage.total}
+                dueDate={stage.dueDate}
+                late={stage.late}
+              />
+            }
+            pressed={active}
+            onClick={() => onSelect(active ? null : stage.key)}
+            ariaLabel={`${i + 1}. ${stage.label}, responsable ${owner.name}: ${
+              TRACK_STATUS_LABELS[status]
+            }, ${stage.done} de ${stage.total} tareas listas${
+              stage.dueDate ? `, entrega ${formatShortDate(stage.dueDate)}` : ", sin fecha"
+            }`}
+            menu={
+              <StageMenu {...menu} stages={[stage]} label={`Fecha de entrega de ${stage.label}`} />
+            }
+          />
+        );
+      })}
+    </TrackList>
   );
 }
 
@@ -183,69 +147,37 @@ export interface TeamTrackProps {
   menu: StageMenuActions;
 }
 
-/** Vista de Mantención: una carpeta por persona; su "⋯" edita las fechas de sus etapas. */
+/** Vista de Mantención: "General" + una por persona; su "⋯" edita las fechas de sus etapas. */
 export function TeamTrack({ members, stages, selected, onSelect, menu }: TeamTrackProps) {
   return (
-    <nav aria-label="Equipo del plan">
-      <ul className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-2">
-        {members.map((m) => {
-          const member = TEAM[m.owner];
-          const own = stages.filter((s) => m.stages.includes(s.key));
-          const target = own[0]?.key ?? null;
-          const active = own.some((s) => s.key === selected);
-          const pending = m.total - m.done;
-          return (
-            <li key={m.owner} className="plan-folder-item relative min-w-0">
-              <FolderButton
-                hue={MEMBER_HUE[m.owner]}
-                label={member.name}
-                tabExtra={<span className="truncate font-medium opacity-75">· {member.role}</span>}
-                pressed={active}
-                onClick={() => onSelect(active ? null : target)}
-                ariaLabel={`${member.name}, ${member.role}: ${m.done} de ${m.total} tareas listas, ${pending} pendientes${
-                  m.dueDate ? `, próxima entrega ${formatShortDate(m.dueDate)}` : ""
-                }${m.late ? ", con atrasos" : ""}`}
-                bodyClassName="@container flex-row items-center gap-4 px-4 pb-3 pt-3"
-              >
-                <OwnerAvatar
-                  member={m.owner}
-                  pct={m.pct}
-                  done={m.total > 0 && m.pct === 100}
-                  pending={pending}
-                  late={m.late}
-                  size={56}
-                />
-                <span className="flex min-w-0 flex-1 flex-col gap-1 pr-5">
-                  <span className="flex items-baseline gap-2">
-                    <span className="plan-folder__ink text-xl font-bold leading-none tabular-nums">
-                      {m.pct}
-                      <span className="text-xs font-semibold">%</span>
-                    </span>
-                    <span className="text-xs tabular-nums text-muted-foreground">
-                      {m.done}/{m.total} tareas listas
-                    </span>
-                  </span>
-                  <span className="truncate text-xs font-medium text-foreground/80">
-                    {own.map((s) => s.label).join(" · ")}
-                  </span>
-                  <DueLine
-                    dueDate={m.dueDate}
-                    late={m.late}
-                    emptyLabel="Sin fecha de entrega"
-                    prefix="Próxima entrega "
-                  />
-                </span>
-              </FolderButton>
-              <StageMenu
-                {...menu}
-                stages={own}
-                label={`Fechas de entrega de ${member.name}`}
-                className={MEMBER_MENU_POSITION}
-              />
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+    <TrackList label="Equipo del plan">
+      <GeneralItem stages={stages} pressed={selected === null} onClick={() => onSelect(null)} />
+      {members.map((m) => {
+        const member = TEAM[m.owner];
+        const own = stages.filter((s) => m.stages.includes(s.key));
+        const target = own[0]?.key ?? null;
+        const active = own.some((s) => s.key === selected);
+        const status = memberStatus(own);
+        const work = own.map((s) => s.label).join(" · ");
+        return (
+          <TrackItem
+            key={m.owner}
+            media={<TeamAvatar member={m.owner} />}
+            title={member.name}
+            subtitle={work}
+            pill={<TrackPill status={status} />}
+            meta={<TrackMeta done={m.done} total={m.total} dueDate={m.dueDate} late={m.late} />}
+            pressed={active}
+            onClick={() => onSelect(active ? null : target)}
+            ariaLabel={`${member.name}, ${work}: ${TRACK_STATUS_LABELS[status]}, ${m.done} de ${
+              m.total
+            } tareas listas${m.dueDate ? `, próxima entrega ${formatShortDate(m.dueDate)}` : ""}`}
+            menu={
+              <StageMenu {...menu} stages={own} label={`Fechas de entrega de ${member.name}`} />
+            }
+          />
+        );
+      })}
+    </TrackList>
   );
 }
