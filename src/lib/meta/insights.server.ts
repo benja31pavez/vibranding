@@ -258,71 +258,100 @@ async function ingestPostInsights(
   return payload.length;
 }
 
+type MetaAccountForIngest = {
+  id: string;
+  client_id: string;
+  ad_account_id: string | null;
+  ig_account_id: string | null;
+  timezone_name?: string | null;
+};
+
+/** Refresh the ad account's reporting timezone so local dates stay correct. Throws on DB error. */
+async function refreshTimezone(account: MetaAccountForIngest, token: string): Promise<string | null> {
+  const current = account.timezone_name ?? null;
+  if (!account.ad_account_id) return current;
+  const fresh = await fetchAdAccountTimezone(account.ad_account_id, token);
+  if (!fresh || fresh === current) return current;
+  const { error } = await (supabaseAdmin.from("meta_accounts" as any) as any)
+    .update({ timezone_name: fresh })
+    .eq("id", account.id);
+  if (error) throw new Error(`No se pudo guardar la zona horaria: ${error.message}`);
+  return fresh;
+}
+
+/**
+ * Records the outcome on meta_accounts. last_synced_at / last_ingest_* only move
+ * on success; a failure only writes last_sync_error (no last_attempt_at column).
+ * Returns the DB error message, or null.
+ */
+async function recordIngestOutcome(accountId: string, result: IngestResult): Promise<string | null> {
+  const nowIso = new Date().toISOString();
+  const rows = result.adRows + result.postRows;
+  const patch = result.error
+    ? { last_sync_error: result.error }
+    : {
+        last_synced_at: nowIso,
+        last_sync_error: null,
+        last_ingest_at: nowIso,
+        last_ingest_rows: rows,
+      };
+  const { error } = await (supabaseAdmin.from("meta_accounts" as any) as any)
+    .update(patch)
+    .eq("id", accountId);
+  if (!error) return null;
+  console.error("[meta] cannot record ingest outcome", { accountId, message: error.message });
+  return error.message as string;
+}
+
+async function ingestWindowData(
+  account: MetaAccountForIngest,
+  token: string,
+  from: string,
+  until: string,
+): Promise<{ adRows: number; postRows: number }> {
+  const adRows = account.ad_account_id
+    ? await ingestAdInsights(account.client_id, account.ad_account_id, token, from, until)
+    : 0;
+  const postRows = account.ig_account_id
+    ? await ingestPostInsights(account.client_id, account.ig_account_id, token, until)
+    : 0;
+  return { adRows, postRows };
+}
+
+/** Never throws: any failure (timezone, Meta, DB) comes back in `error`. */
 export async function ingestAccountDay(
-  account: {
-    id: string;
-    client_id: string;
-    ad_account_id: string | null;
-    ig_account_id: string | null;
-    timezone_name?: string | null;
-  },
+  account: MetaAccountForIngest,
   token: string,
   /** Last day of the window; defaults to yesterday in the account's timezone. */
   date?: string,
   windowDays: number = INGEST_WINDOW_DAYS,
 ): Promise<IngestResult> {
-  let timezone = account.timezone_name ?? null;
-
-  // Refresh the ad account's reporting timezone so local dates stay correct.
-  if (account.ad_account_id) {
-    const fresh = await fetchAdAccountTimezone(account.ad_account_id, token);
-    if (fresh && fresh !== timezone) {
-      timezone = fresh;
-      await (supabaseAdmin.from("meta_accounts" as any) as any)
-        .update({ timezone_name: fresh })
-        .eq("id", account.id);
-    }
-  }
-
-  const until = date ?? yesterdayISO(timezone);
-  const from = addDays(until, -(Math.max(1, windowDays) - 1));
-
-  const result: IngestResult = {
+  const fallbackUntil = date ?? yesterdayISO(account.timezone_name);
+  let result: IngestResult = {
     accountId: account.id,
     clientId: account.client_id,
-    date: until,
-    from,
-    to: until,
-    timezone,
+    date: fallbackUntil,
+    from: addDays(fallbackUntil, -(Math.max(1, windowDays) - 1)),
+    to: fallbackUntil,
+    timezone: account.timezone_name ?? null,
     adRows: 0,
     postRows: 0,
   };
   try {
-    if (account.ad_account_id) {
-      result.adRows = await ingestAdInsights(
-        account.client_id,
-        account.ad_account_id,
-        token,
-        from,
-        until,
-      );
-    }
-    if (account.ig_account_id) {
-      result.postRows = await ingestPostInsights(
-        account.client_id,
-        account.ig_account_id,
-        token,
-        until,
-      );
-    }
-    await (supabaseAdmin.from("meta_accounts" as any) as any)
-      .update({ last_synced_at: new Date().toISOString(), last_sync_error: null })
-      .eq("id", account.id);
+    const timezone = await refreshTimezone(account, token);
+    const until = date ?? yesterdayISO(timezone);
+    const from = addDays(until, -(Math.max(1, windowDays) - 1));
+    result = { ...result, timezone, date: until, from, to: until };
+    const rows = await ingestWindowData(account, token, from, until);
+    result = { ...result, ...rows };
   } catch (e: any) {
-    result.error = e?.message ?? "Error inesperado";
-    await (supabaseAdmin.from("meta_accounts" as any) as any)
-      .update({ last_synced_at: new Date().toISOString(), last_sync_error: result.error })
-      .eq("id", account.id);
+    result = { ...result, error: e?.message ?? "Error inesperado" };
+  }
+
+  const dbError = await recordIngestOutcome(account.id, result);
+  if (dbError && !result.error) {
+    // Data was written, but the account status was not: surface it so the run isn't "green".
+    return { ...result, error: `Métricas guardadas, pero no se pudo actualizar el estado: ${dbError}` };
   }
   return result;
 }

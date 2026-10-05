@@ -1,10 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
+import {
+  META_MAX_BATCH_LIMIT,
+  batchStatus,
+  missingBatchesError,
+  parseBatchParams,
+} from "@/lib/cron/batch";
 
 /**
- * Daily insights pull for every connected Meta account.
- * Called by the scheduled job; protected by the shared dispatch secret so it
- * cannot be triggered (and rate-limited against Meta) by anyone on the internet.
+ * Ingesta diaria de insights de Meta. La llaman los jobs
+ * 'meta_insights_daily_<offset>' (migración 20261012000600_cron_meta_lotes)
+ * con x-dispatch-secret, para que nadie en internet pueda dispararla.
+ * Cada llamada procesa UN lote de cuentas conectadas (?offset=&limit=, máx. 3,
+ * orden estable por id) y responde next_offset. El último job lleva &last=1:
+ * si aún quedan cuentas responde 500 ("faltan lotes"). ?date= y ?days= siguen
+ * sirviendo para re-ingestas manuales.
  */
 export const Route = createFileRoute("/api/public/meta/ingest-daily")({
   server: {
@@ -25,59 +35,34 @@ export const Route = createFileRoute("/api/public/meta/ingest-daily")({
         }
 
         const url = new URL(request.url);
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { getMetaToken } = await import("@/lib/meta/tokens.server");
-        const { ingestAccountDay, INGEST_WINDOW_DAYS } = await import(
-          "@/lib/meta/insights.server",
-        );
+        const parsed = parseBatchParams(url.searchParams, {
+          defaultLimit: META_MAX_BATCH_LIMIT,
+          maxLimit: META_MAX_BATCH_LIMIT,
+        });
+        if ("error" in parsed) return Response.json({ error: parsed.error }, { status: 400 });
 
+        const { INGEST_WINDOW_DAYS } = await import("@/lib/meta/insights.server");
+        const { runMetaIngestBatch } = await import("@/lib/meta/ingestBatch.server");
         const date = url.searchParams.get("date") ?? undefined;
         const windowDays = Number(url.searchParams.get("days") ?? INGEST_WINDOW_DAYS);
 
-        const { data: accounts, error } = await (
-          supabaseAdmin.from("meta_accounts" as any) as any
-        )
-          .select("id,client_id,ad_account_id,ig_account_id,timezone_name")
-          .eq("connected", true);
-        if (error) {
-          console.error("[meta ingest] cannot list accounts", error.message);
-          return new Response("Error", { status: 500 });
-        }
-
-        const results = [];
-        for (const account of accounts ?? []) {
-          const token = await getMetaToken(account.id);
-          if (!token) {
-            results.push({ accountId: account.id, error: "sin token en el vault" });
-            continue;
+        try {
+          const summary = await runMetaIngestBatch({ ...parsed, date, windowDays });
+          const body = { date: date ?? null, windowDays, ...summary };
+          const missing = missingBatchesError(parsed.last, summary.next_offset);
+          if (missing) {
+            console.error("[meta ingest]", missing);
+            return Response.json({ ...body, error: missing }, { status: 500 });
           }
-          results.push(await ingestAccountDay(account, token, date, windowDays));
+          // Un lote que no escribió nada por errores nunca debe parecer éxito.
+          return Response.json(body, { status: batchStatus(summary.failed, summary.succeeded) });
+        } catch (e) {
+          console.error("[meta ingest] error", (e as Error).message);
+          return Response.json(
+            { error: "No se pudo ejecutar la ingesta de Meta" },
+            { status: 500 },
+          );
         }
-
-        const failed = results.filter((r: any) => r.error).length;
-        const succeeded = results.length - failed;
-        const rowsWritten = results.reduce(
-          (acc: number, r: any) => acc + Number(r.adRows ?? 0) + Number(r.postRows ?? 0),
-          0,
-        );
-
-        // A run that wrote nothing must never look like a success to the cron logger.
-        const status = failed === 0 ? 200 : succeeded > 0 ? 207 : 500;
-
-        return Response.json(
-          {
-            date: date ?? null,
-            windowDays,
-            accounts: results.length,
-            succeeded,
-            failed,
-            rowsWritten,
-            adRows: results.reduce((a: number, r: any) => a + Number(r.adRows ?? 0), 0),
-            postRows: results.reduce((a: number, r: any) => a + Number(r.postRows ?? 0), 0),
-            results,
-          },
-          { status },
-        );
       },
     },
   },

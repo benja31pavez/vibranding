@@ -153,8 +153,8 @@ async function loadInsights(clientId: string, from: string, to: string): Promise
     rows.push(...(data ?? []));
     if (!data || data.length < PAGE_SIZE) return rows;
   }
-  console.warn("[alerts] insights: se alcanzó el tope de filas", { clientId });
-  return rows;
+  // Datos truncados: no se evalúa ni se auto-resuelve nada con ellos; el cliente cuenta como fallido.
+  throw new Error(`[alerts] insights: se alcanzó el tope de ${MAX_INSIGHT_ROWS} filas`);
 }
 
 /** Conversaciones de WhatsApp atribuidas a un anuncio, por campaña y día local. */
@@ -186,8 +186,8 @@ async function loadAttributedResults(
     }
     if (!data || data.length < PAGE_SIZE) return byCampaignDay;
   }
-  console.warn("[alerts] atribuciones: se alcanzó el tope de filas", { clientId });
-  return byCampaignDay;
+  // Datos truncados: no se evalúa ni se auto-resuelve nada con ellos; el cliente cuenta como fallido.
+  throw new Error(`[alerts] atribuciones: se alcanzó el tope de ${MAX_ATTRIBUTION_ROWS} filas`);
 }
 
 /** Suma los anuncios por campaña y día, y agrega las conversaciones atribuidas. */
