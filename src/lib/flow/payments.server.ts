@@ -154,7 +154,7 @@ export async function applyFlowStatus(
     throw new Error("No se pudo registrar el pago");
   }
   if (data && data.length > 0) {
-    if (payment.status === "cancelled" && payment.plan_key) {
+    if (payment.status === "cancelled" && (payment.plan_key || payment.addon_key)) {
       await flagCancelledPlanPayment(payment, status);
     }
     return "paid";

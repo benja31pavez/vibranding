@@ -16,7 +16,6 @@ import { ContractDocument } from "@/components/contracts/ContractDocument";
 import { NewContractForm } from "@/components/contracts/NewContractForm";
 import { ContractHistory } from "@/components/contracts/ContractHistory";
 import {
-  addonHasPrice,
   contractLineFromNet,
   EMPTY_LEGAL_DATA,
   NET_PLUS_IVA_BASIS,
@@ -155,8 +154,6 @@ export function ContractsPage({ clientId }: { clientId: string }) {
   };
 
   const toggleService = (k: ServiceKey) => {
-    // Un adicional sin precio no se puede sumar: se configura primero en Precios.
-    if (!selected.has(k) && !addonHasPrice(services?.[k])) return;
     const s = new Set(selected);
     if (s.has(k)) s.delete(k);
     else s.add(k);
@@ -200,9 +197,10 @@ export function ContractsPage({ clientId }: { clientId: string }) {
       return {
         service_key: k,
         label: meta.label,
-        one_time_price: Number(row.one_time_price),
-        monthly_price: Number(row.monthly_price),
-        included_text: row.included_text,
+        // Precio fijo de addons.ts (nunca a medida).
+        one_time_price: meta.addon.setupNet,
+        monthly_price: meta.addon.monthlyNet,
+        included_text: row?.included_text || meta.addon.description,
         min_months: null,
       };
     });

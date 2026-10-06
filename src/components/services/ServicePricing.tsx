@@ -5,8 +5,53 @@ import { PlanNotIncluded } from "@/components/pricing/PlanNotIncluded";
 import { PLAN_SUMMARY, type ServiceContent } from "@/lib/services/content";
 import { servicePlans } from "@/lib/services/seo";
 import { formatClp } from "@/lib/site";
+import { findAddon, type AddonKey } from "@/lib/pricing/addons";
 import { planPeriod } from "./pricing";
 import { SectionTitle } from "./ServiceSections";
+
+function AddonPrice({
+  addonKey,
+  note,
+  whatsappMessage,
+}: {
+  addonKey: AddonKey;
+  note: string;
+  whatsappMessage: string;
+}) {
+  const addon = findAddon(addonKey);
+  if (!addon) return null;
+  return (
+    <div data-reveal className="max-w-xl rounded-3xl border bg-card p-6 md:p-8">
+      <h3 className="text-lg font-semibold">{addon.label}</h3>
+      <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          <dt className="text-sm text-muted-foreground">{addon.setupLabel}</dt>
+          <dd className="text-3xl font-semibold tracking-tight tabular-nums">
+            {formatClp(addon.setupNet)}
+            <span className="text-base font-medium text-muted-foreground"> + IVA</span>
+          </dd>
+          <dd className="text-sm text-muted-foreground">pago único</dd>
+        </div>
+        {addon.monthlyNet > 0 && (
+          <div>
+            <dt className="text-sm text-muted-foreground">Mensualidad</dt>
+            <dd className="text-3xl font-semibold tracking-tight tabular-nums">
+              {formatClp(addon.monthlyNet)}
+              <span className="text-base font-medium text-muted-foreground"> + IVA</span>
+            </dd>
+            <dd className="text-sm text-muted-foreground">al mes, junto a tu plan</dd>
+          </div>
+        )}
+      </dl>
+      <p className="mt-4 text-base text-muted-foreground">{note}</p>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <WhatsAppCta message={whatsappMessage} className="w-full sm:w-auto">
+          Quiero el chatbot
+        </WhatsAppCta>
+      </div>
+    </div>
+  );
+}
 
 export function ServicePricingSection({ service }: { service: ServiceContent }) {
   const plans = servicePlans(service);
@@ -16,16 +61,12 @@ export function ServicePricingSection({ service }: { service: ServiceContent }) 
         <SectionTitle id="precio-titulo" eyebrow="Precio">
           {plans.length > 1 ? "Planes y precios" : "Cuánto cuesta"}
         </SectionTitle>
-        {service.pricing.kind === "quote" ? (
-          <div data-reveal className="max-w-xl rounded-3xl border bg-card p-6 md:p-8">
-            <p className="text-3xl font-semibold tracking-tight">{service.pricing.label}</p>
-            <p className="mt-3 text-base text-muted-foreground">{service.pricing.note}</p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <WhatsAppCta message={service.whatsappMessage} className="w-full sm:w-auto">
-                Pedir cotización
-              </WhatsAppCta>
-            </div>
-          </div>
+        {service.pricing.kind === "addon" ? (
+          <AddonPrice
+            addonKey={service.pricing.addonKey}
+            note={service.pricing.note}
+            whatsappMessage={service.whatsappMessage}
+          />
         ) : (
           <>
             <ul data-reveal-stagger className="grid gap-4 md:grid-cols-3">

@@ -20,6 +20,7 @@
  * 20261012002500): si cambias una regla aquí, cámbiala también allá.
  */
 import { addDays, addOneMonth } from "./dates";
+import { findAddon, type AddonKey } from "@/lib/pricing/addons";
 import { PLANS, PUBLIC_PLANS, findPlan, type Plan, type PlanKey } from "@/lib/pricing/plans";
 
 /** Días desde el primer pago en que se muestra la insignia "Onboarding". */
@@ -72,6 +73,11 @@ export interface Membership {
   /** Último pago confirmado de un plan de pago único (Marca + Web). */
   oneTimePlanKey: PlanKey | null;
   oneTimePaidAt: string | null;
+  /**
+   * Adicionales con mantención mensual activos (`client_addons`). Su mantención
+   * se suma a cada pago del plan mensual y al MRR mientras el plan esté vigente.
+   */
+  activeAddons: readonly AddonKey[];
 }
 
 const DAY_MS = 86_400_000;
@@ -159,15 +165,21 @@ const EMPTY: Membership = {
   formerClient: false,
   oneTimePlanKey: null,
   oneTimePaidAt: null,
+  activeAddons: [],
 };
 
 /** Estado comercial derivado de los pagos de planes confirmados, a la fecha `today`. */
-export function deriveMembership(payments: readonly PlanPayment[], today: string): Membership {
+export function deriveMembership(
+  payments: readonly PlanPayment[],
+  today: string,
+  activeAddons: readonly AddonKey[] = [],
+): Membership {
   const day = toDay(today);
   const periods = periodsOf(payments);
   const oneTime = lastOneTime(payments);
   const base: Membership = {
     ...EMPTY,
+    activeAddons,
     oneTimePlanKey: oneTime?.key ?? null,
     oneTimePaidAt: oneTime?.paidAt ?? null,
   };
@@ -223,10 +235,21 @@ export function isActiveMembership(m: Pick<Membership, "state">): boolean {
   return m.state === "activo" || m.state === "por_renovar";
 }
 
-/** MRR neto (sin IVA) que aporta el cliente: el precio del plan mensual vigente. */
-export function membershipMrr(m: Pick<Membership, "state" | "planKey">): number {
+/**
+ * MRR neto (sin IVA) que aporta el cliente: el plan mensual vigente más la
+ * mantención de sus adicionales activos (chatbot). Espejo de
+ * `public.sync_client_membership` (client_billing.mrr).
+ */
+export function membershipMrr(
+  m: Pick<Membership, "state" | "planKey"> & { activeAddons?: readonly AddonKey[] },
+): number {
   const plan = findPlan(m.planKey);
-  return isActiveMembership(m) && plan?.billing === "monthly" ? plan.netPrice : 0;
+  if (!isActiveMembership(m) || plan?.billing !== "monthly") return 0;
+  const addons = (m.activeAddons ?? []).reduce(
+    (acc, key) => acc + (findAddon(key)?.monthlyNet ?? 0),
+    0,
+  );
+  return plan.netPrice + addons;
 }
 
 /**

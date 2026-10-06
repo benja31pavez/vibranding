@@ -1,4 +1,5 @@
-import type { ServicePricing, ServiceKey } from "@/components/PricingPanel";
+import type { ServiceKey } from "@/components/PricingPanel";
+import { findAddon } from "@/lib/pricing/addons";
 import type { Plan } from "@/lib/pricing/plans";
 import { withIva } from "@/lib/pricing/iva";
 
@@ -83,28 +84,21 @@ export function contractLineFromNet<T extends { one_time_price: number; monthly_
   };
 }
 
-/** Un adicional solo se puede sumar si tiene algún precio configurado en Precios. */
-export function addonHasPrice(row: ServicePricing | undefined): boolean {
-  if (!row) return false;
-  return Number(row.one_time_price) > 0 || Number(row.monthly_price) > 0;
-}
-
 /**
  * Totales NETOS del contrato en preparación: plan elegido + adicionales marcados.
- * Los precios de los adicionales (Precios) son netos, igual que los planes.
+ * Los precios de los adicionales son fijos y netos (addons.ts), igual que los planes.
  */
 export function computeDraftTotals(
   plan: Plan | null,
   addons: ReadonlySet<ServiceKey>,
-  services: Record<ServiceKey, ServicePricing>,
 ): ContractTotals {
   const planOneTime = plan?.billing === "one_time" ? plan.netPrice : 0;
   const planMonthly = plan?.billing === "monthly" ? plan.netPrice : 0;
   const gross = (net: number) => (net > 0 ? withIva(net) : 0);
   return Array.from(addons).reduce<ContractTotals>(
     (acc, key) => {
-      const oneTime = Number(services[key]?.one_time_price ?? 0);
-      const monthly = Number(services[key]?.monthly_price ?? 0);
+      const oneTime = findAddon(key)?.setupNet ?? 0;
+      const monthly = findAddon(key)?.monthlyNet ?? 0;
       return {
         oneTime: acc.oneTime + oneTime,
         monthly: acc.monthly + monthly,

@@ -8,6 +8,8 @@
  *  - Qué planes se pueden pagar según el estado (Mantención solo ex clientes).
  *  - Correo de seguimiento: 3 días antes del fin y sin renovación.
  *  - La migración SQL usa los mismos precios netos y planes mensuales que plans.ts.
+ *  - Adicionales: desglose plan + chatbot, totales con IVA, chatbot solo con plan
+ *    mensual vigente, MRR con el chatbot y monto calculado en el servidor.
  *  - Guardia: no queda "permanencia mínima" / "mínimo 3 meses" en src/ ni public/.
  */
 import { build } from "esbuild";
@@ -26,6 +28,8 @@ writeFileSync(
   [
     `export * from ${JSON.stringify(join(root, "src/lib/billing/membership.ts"))};`,
     `export * as plans from ${JSON.stringify(join(root, "src/lib/pricing/plans.ts"))};`,
+    `export * as addons from ${JSON.stringify(join(root, "src/lib/pricing/addons.ts"))};`,
+    `export * as billingAddons from ${JSON.stringify(join(root, "src/lib/billing/addons.ts"))};`,
   ].join("\n"),
 );
 await build({
@@ -243,6 +247,124 @@ check("correo de seguimiento: servicio, con link y sin cobro automático", () =>
   assert.match(text, /Hola Ana,/);
   assert.match(text, /https:\/\/vibranding\.pro\/clients\/x\/facturacion/);
   assert.match(text, /No hay cobros automáticos/);
+});
+
+// ── Adicionales (desglose, MRR, reglas) ─────────────────────────────────────
+const ba = () => m.billingAddons;
+const chatbot = () => m.addons.findAddon("chatbot");
+const landing = () => m.addons.findAddon("landing");
+const withChatbot = (payments, today) => m.deriveMembership(payments, today, ["chatbot"]);
+
+check("renovación con chatbot: plan + mensualidad, total con IVA", () => {
+  const items = ba().planChargeItems(m.plans.findPlan("contenido"), ["chatbot"]);
+  assert.deepEqual(
+    items.map((i) => [i.type, i.key, i.net, i.amount, i.billing]),
+    [
+      ["plan", "contenido", 129_990, 154_688, "monthly"],
+      ["addon", "chatbot", 29_990, 35_688, "monthly"],
+    ],
+  );
+  assert.deepEqual(ba().itemsTotal(items), { net: 159_980, iva: 30_396, total: 190_376 });
+});
+check("Crecimiento + chatbot: 249.990 + 29.990 neto → 333.176 con IVA (IVA por línea)", () => {
+  const items = ba().planChargeItems(m.plans.findPlan("crecimiento"), ["chatbot"]);
+  assert.deepEqual(ba().itemsTotal(items), { net: 279_980, iva: 53_196, total: 333_176 });
+});
+check("sin chatbot activo: solo el plan (mismo monto que antes)", () => {
+  const plan = m.plans.findPlan("contenido");
+  const items = ba().planChargeItems(plan, []);
+  assert.equal(items.length, 1);
+  assert.equal(ba().itemsTotal(items).total, m.plans.planTotal(plan));
+});
+check("Marca + Web (pago único) nunca lleva la mensualidad del chatbot", () => {
+  const items = ba().planChargeItems(m.plans.findPlan("marca-web"), ["chatbot"]);
+  assert.deepEqual(
+    items.map((i) => i.key),
+    ["marca-web"],
+  );
+});
+check("pagos únicos de adicionales: configuración del chatbot y landing extra", () => {
+  assert.deepEqual(ba().itemsTotal(ba().addonSetupItems(chatbot())), {
+    net: 99_990,
+    iva: 18_998,
+    total: 118_988,
+  });
+  assert.deepEqual(ba().itemsTotal(ba().addonSetupItems(landing())), {
+    net: 59_990,
+    iva: 11_398,
+    total: 71_388,
+  });
+  assert.equal(ba().addonSetupItems(chatbot())[0].billing, "one_time");
+});
+check("chatbot solo con plan mensual vigente; landing siempre", () => {
+  const none = m.deriveMembership([], "2026-10-06");
+  const web1 = m.deriveMembership([web("2026-10-06")], "2026-10-10");
+  const ended = m.deriveMembership([first], "2026-12-01");
+  const active = m.deriveMembership([first], "2026-10-10");
+  const renewing = m.deriveMembership([first], "2026-11-02");
+  for (const s of [none, web1, ended]) {
+    assert.match(ba().addonBlockedReason(s, chatbot()) ?? "", /plan mensual vigente/);
+    assert.equal(ba().addonBlockedReason(s, landing()), null);
+  }
+  assert.equal(ba().addonBlockedReason(active, chatbot()), null);
+  assert.equal(ba().addonBlockedReason(renewing, chatbot()), null);
+  assert.match(
+    ba().addonBlockedReason(withChatbot([first], "2026-10-10"), chatbot()) ?? "",
+    /ya está activo/,
+  );
+});
+check("MRR neto con chatbot activo = plan + 29.990; finalizado = 0", () => {
+  assert.equal(m.membershipMrr(withChatbot([first], "2026-10-10")), 159_980);
+  assert.equal(m.membershipMrr(withChatbot([first], "2026-12-01")), 0);
+  assert.equal(m.membershipMrr(withChatbot([web("2026-10-06")], "2026-10-10")), 0);
+});
+check("payments.items: se leen solo líneas válidas", () => {
+  const items = ba().planChargeItems(m.plans.findPlan("contenido"), ["chatbot"]);
+  assert.deepEqual(ba().parsePaymentItems(JSON.parse(JSON.stringify(items))), items);
+  assert.deepEqual(ba().parsePaymentItems([{ type: "x" }, null, 3]), []);
+  assert.deepEqual(ba().parsePaymentItems("nope"), []);
+});
+check("el monto lo calcula el servidor: el navegador solo envía qué plan/adicional", () => {
+  const fns = readFileSync(join(root, "src/lib/billing/membership.functions.ts"), "utf8");
+  for (const schema of ["CheckoutInput", "AddonCheckoutInput", "AddonInput"]) {
+    const body = fns.slice(fns.indexOf(`const ${schema} = z.object({`)).split("});")[0];
+    assert.ok(body.includes("clientId"), schema);
+    assert.doesNotMatch(body, /amount|price|total|items/i, `${schema} no acepta montos`);
+  }
+  assert.ok(fns.includes('assertMembershipAccess(context, data.clientId, "pay")'), "acceso");
+  const server = readFileSync(join(root, "src/lib/billing/membership.server.ts"), "utf8");
+  assert.ok(server.includes("const amount = itemsTotal(charge.items).total;"), "monto = líneas");
+  assert.ok(server.includes("planChargeItems(plan, membership.activeAddons)"), "plan + chatbot");
+  assert.ok(server.includes("addonBlockedReason(membership, addon)"), "regla del chatbot");
+});
+
+// ── SQL = addons.ts ─────────────────────────────────────────────────────────
+const ADDONS_MIGRATION = "supabase/migrations/20261012002600_adicionales_precio_fijo.sql";
+check("la migración de adicionales usa los mismos precios y no toca plan_key", () => {
+  const sql = readFileSync(join(root, ADDONS_MIGRATION), "utf8");
+  for (const a of m.addons.ADDONS) {
+    assert.match(sql, new RegExp(`WHEN '${a.key}' THEN ${a.setupNet}\\b`), `${a.key} setup`);
+    if (a.monthlyNet > 0) {
+      assert.match(sql, new RegExp(`WHEN '${a.key}' THEN ${a.monthlyNet}\\b`), `${a.key} mes`);
+    }
+  }
+  const keys = m.addons.ADDON_KEYS.map((k) => `'${k}'`).join(", ");
+  assert.ok(sql.includes(`addon_key IN (${keys})`), "CHECK addon_key");
+  assert.ok(sql.includes("plan_key IS NULL OR addon_key IS NULL"), "plan o adicional");
+  for (const untouched of [
+    "payments_plan_key_check",
+    "FUNCTION public.plan_is_monthly",
+    "FUNCTION public.set_membership_period",
+    "payments_open_plan_checkout_uk",
+  ]) {
+    assert.ok(!sql.includes(untouched), `no debe redefinir ${untouched}`);
+  }
+  assert.ok(
+    sql.includes("public.plan_net_price(m.plan_key) + public.client_addons_mrr(_client_id)"),
+    "MRR con adicionales",
+  );
+  assert.ok(sql.includes("coalesce(NEW.provider, '') <> 'flow'"), "solo Flow activa");
+  assert.ok(sql.includes("SET LOCAL lock_timeout = '5s'"), "lock_timeout");
 });
 
 // ── SQL = plans.ts ──────────────────────────────────────────────────────────

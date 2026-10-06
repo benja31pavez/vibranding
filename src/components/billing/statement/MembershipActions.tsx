@@ -10,7 +10,9 @@ import { startPlanCheckout } from "@/lib/billing/membership.functions";
 import { RENEW_WINDOW_DAYS, purchasablePlans, type Membership } from "@/lib/billing/membership";
 import { formatMoney, type Plan, type PlanKey } from "@/lib/pricing/plans";
 import { addDays } from "@/lib/billing/dates";
+import { planChargeItems } from "@/lib/billing/addons";
 import { cn } from "@/lib/utils";
+import { ChargeBreakdown } from "./ChargeBreakdown";
 import { fmtDay } from "./format";
 import { PAY_UNAVAILABLE, type FlowState } from "./PaymentActions";
 import { errorMessage } from "./paymentWrites";
@@ -83,6 +85,8 @@ export function MembershipActions({
   }
 
   const plan = options.find((p) => p.key === selected) ?? options[0];
+  // Mismo cálculo que el servidor: plan + mantención de los adicionales activos.
+  const items = planChargeItems(plan, m.activeAddons);
   const renewSame = m.state === "por_renovar" && options.length === 1;
   const disabled = flow !== "ready" || busy;
   const label = renewSame
@@ -129,6 +133,10 @@ export function MembershipActions({
             <PlanOption key={p.key} plan={p} id={`plan-${p.key}`} />
           ))}
         </RadioGroup>
+      )}
+
+      {items.length > 1 && (
+        <ChargeBreakdown items={items} title={renewSame ? "Tu renovación" : "Tu próximo pago"} />
       )}
 
       {needEmail && (
