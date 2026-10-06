@@ -19,6 +19,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Switch } from "@/components/ui/switch";
+import { StatusBadge } from "@/components/app";
+import { SECTION_STATUS_UI, type SectionStatus } from "@/lib/site/siteStatus";
 
 export type SectionRow = {
   id: string;
@@ -30,6 +32,8 @@ export type SectionRow = {
   content: React.ReactNode;
   /** Muestra un punto de alerta (p. ej. error de validación). */
   hasError?: boolean;
+  /** Estado visible en la cabecera (completa, falta contenido, texto de ejemplo…). */
+  status?: SectionStatus;
 };
 
 /** Lista vertical reordenable con arrastrar (mouse, táctil y teclado). */
@@ -149,9 +153,9 @@ export function SectionCard({
     <section
       ref={nodeRef}
       style={style}
-      className={`rounded-2xl border bg-surface transition-shadow ${dragging ? "shadow-xl" : ""} ${row.enabled ? "" : "opacity-70"}`}
+      className={`rounded-app-lg border border-border-subtle bg-surface shadow-app-xs transition-shadow ${dragging ? "shadow-xl" : ""} ${row.enabled ? "" : "opacity-70"}`}
     >
-      <div className="flex items-center gap-2 px-4 py-3">
+      <div className="flex items-center gap-2 px-3 py-2.5">
         {handle}
         <button
           type="button"
@@ -160,18 +164,31 @@ export function SectionCard({
           aria-controls={panelId}
           className="flex min-w-0 flex-1 items-center gap-2 text-left"
         >
-          <span
-            className={`h-2 w-2 shrink-0 rounded-full ${row.hasError ? "bg-destructive" : row.enabled ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
-            aria-hidden="true"
-          />
-          <span className="truncate font-medium">{row.title}</span>
-          <span className="truncate text-xs text-muted-foreground">
-            {row.enabled ? row.summary : "Oculta"}
+          {!row.status && (
+            <span
+              className={`h-2 w-2 shrink-0 rounded-full ${row.hasError ? "bg-destructive" : row.enabled ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
+              aria-hidden="true"
+            />
+          )}
+          <span className="min-w-0 truncate font-medium">{row.title}</span>
+          {(row.enabled || !row.status) && (
+            <span className="hidden min-w-0 shrink-[100] truncate text-xs text-muted-foreground sm:inline">
+              {row.enabled ? row.summary : "Oculta"}
+            </span>
+          )}
+          <span className="ml-auto flex shrink-0 items-center gap-2">
+            {row.status && (
+              <StatusBadge
+                status={row.status}
+                label={SECTION_STATUS_UI[row.status].label}
+                tone={SECTION_STATUS_UI[row.status].tone}
+              />
+            )}
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-muted-foreground transition ${open ? "rotate-180" : ""}`}
+              aria-hidden="true"
+            />
           </span>
-          <ChevronDown
-            className={`ml-auto h-4 w-4 shrink-0 transition ${open ? "rotate-180" : ""}`}
-            aria-hidden="true"
-          />
         </button>
         {onMove && (
           <MoveButtons
@@ -190,7 +207,7 @@ export function SectionCard({
         )}
       </div>
       {open && (
-        <div id={panelId} className="border-t px-4 pb-4 pt-3">
+        <div id={panelId} className="border-t border-border-subtle px-4 pb-4 pt-3">
           {row.content}
         </div>
       )}

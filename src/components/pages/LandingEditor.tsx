@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, Globe, LayoutTemplate, Save } from "lucide-react";
+import { Activity, Globe, LayoutTemplate } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
@@ -11,16 +11,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ConfirmDialog, ErrorState, ListSkeleton } from "@/components/app";
+import { Tabs } from "@/components/ui/tabs";
+import { ConfirmDialog, EmptyState, ErrorState, InfoHint, ListSkeleton } from "@/components/app";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { writeError, writeFailed } from "@/lib/writeCheck";
 import { EventsPanel } from "@/components/landing/EventsPanel";
 import { LandingAnalytics } from "@/components/landing/LandingAnalytics";
 import { PublicLandingView } from "@/components/landing/PublicLandingView";
 import { DevicePreview, type PreviewMode } from "@/components/site/DevicePreview";
+import { revealPreviewSection } from "@/lib/site/previewReveal";
 import { PublishBar } from "@/components/site/PublishBar";
-import { SaveStatus, useSaveShortcut } from "@/components/site/SaveStatus";
+import { useSaveShortcut } from "@/components/site/SaveStatus";
+import {
+  EditorSplit,
+  ReadOnlyPreview,
+  SaveBar,
+  ScrollColumn,
+  SiteNav,
+  SitePane,
+  SiteViewTab,
+} from "@/components/site/SiteEditorLayout";
 import { useSaveState } from "@/components/site/useSaveState";
 import {
   moveBy,
@@ -59,6 +69,7 @@ import {
   type LandingDraft,
   type LandingErrors,
 } from "@/lib/site/landingDraft";
+import { heroStatus, landingPublicUrl, landingSectionStatus } from "@/lib/site/siteStatus";
 
 type TabKey = "editar" | "ajustes" | "mensajes" | "metricas";
 
@@ -72,9 +83,15 @@ const SECTION_ERROR_KEYS: Partial<Record<LandingSectionKey | "hero", string[]>> 
 export function LandingEditor({
   clientId,
   onDirtyChange,
+  pageSwitcher,
+  readOnly = false,
 }: {
   clientId: string;
   onDirtyChange?: (dirty: boolean) => void;
+  /** Selector Multienlace / Landing page que va en la misma barra de pestañas. */
+  pageSwitcher?: React.ReactNode;
+  /** Solo lectura (futuro panel del cliente): vista previa grande + link, sin edición. */
+  readOnly?: boolean;
 }) {
   const { client } = useActiveClient();
   const [lp, setLp] = useState<LandingDraft | null>(null);
@@ -234,15 +251,19 @@ export function LandingEditor({
     return setPublished(true);
   };
 
-  const scrollPreviewTo = (key: string) => {
-    const doc = previewDoc.current;
-    const el = doc?.querySelector<HTMLElement>(`[data-section="${key}"]`);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const scrollPreviewTo = (key: string) => revealPreviewSection(previewDoc.current, key);
 
   const toggleOpen = (key: string) => {
     setOpenSection((prev) => (prev === key ? null : key));
-    if (openSection !== key) requestAnimationFrame(() => scrollPreviewTo(key));
+    if (openSection === key) return;
+    requestAnimationFrame(() => {
+      scrollPreviewTo(key);
+      // La sección abierta queda a la vista dentro de la columna del editor.
+      document
+        .getElementById(`section-panel-${key}`)
+        ?.closest("section")
+        ?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
   };
 
   const applyTemplate = (key: RubroKey) => {
@@ -253,42 +274,78 @@ export function LandingEditor({
     toast.success("Plantilla aplicada. Revisa la vista previa y guarda.");
   };
 
+  const shell = (content: React.ReactNode) => (
+    <div ref={rootRef} className="flex flex-col gap-4 md:h-full md:min-h-0">
+      <SiteNav pageSwitcher={pageSwitcher} />
+      <ScrollColumn className="md:flex-1">{content}</ScrollColumn>
+    </div>
+  );
+
   if (loadError) {
-    return (
+    return shell(
       <ErrorState
         title="No pudimos cargar la landing"
         message={loadError}
         onRetry={() => void load()}
         retrying={loading}
-      />
+      />,
     );
   }
-  if (loading) return <ListSkeleton rows={4} label="Cargando landing" />;
+  if (loading) return shell(<ListSkeleton rows={4} label="Cargando landing" />);
 
   if (!lp || !saved) {
-    return (
-      <section className="space-y-5 rounded-3xl border bg-surface p-6 md:p-8">
-        <div className="flex items-start gap-3">
-          <Globe className="mt-1 h-6 w-6 text-muted-foreground" aria-hidden="true" />
-          <div>
-            <h2 className="text-xl font-semibold">Crear la landing de {client?.name}</h2>
-            <p className="text-sm text-muted-foreground">
-              Elige el rubro: la plantilla trae secciones, servicios y preguntas frecuentes listos
-              para adaptar. Los textos de ejemplo quedan marcados para reemplazarlos.
-            </p>
-          </div>
+    if (readOnly) return shell(<EmptyState icon={Globe} title="La landing aún no está lista" />);
+    return shell(
+      <section className="space-y-5 rounded-app-lg border border-border-subtle bg-surface p-6 shadow-app-xs md:p-8">
+        <div className="flex items-center gap-2">
+          <Globe className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+          <h2 className="text-xl font-semibold">Crear la landing de {client?.name}</h2>
+          <InfoHint label="Sobre las plantillas">
+            Cada plantilla trae secciones, servicios y preguntas frecuentes listos para adaptar. Los
+            textos de ejemplo quedan marcados para reemplazarlos.
+          </InfoHint>
         </div>
         <TemplatePicker onPick={(k) => void create(k)} busy={creating} />
-      </section>
+      </section>,
     );
   }
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const publicUrl = `${origin}/@${saved.slug}`;
+  const publicUrl = landingPublicUrl(saved.slug);
+
+  const preview = (draft: LandingDraft) => (
+    <DevicePreview
+      mode={previewMode}
+      onModeChange={setPreviewMode}
+      label="Vista previa de la landing"
+      onDocument={(d) => {
+        previewDoc.current = d;
+      }}
+    >
+      <PublicLandingView lp={landingForView(draft)} preview />
+    </DevicePreview>
+  );
+
+  if (readOnly) {
+    return (
+      <div ref={rootRef} className="flex flex-col gap-4 md:h-full md:min-h-0">
+        <PublishBar
+          nav={<SiteNav pageSwitcher={pageSwitcher} />}
+          published={saved.published}
+          publicUrl={publicUrl}
+          readOnly
+        />
+        <ReadOnlyPreview>{preview(saved)}</ReadOnlyPreview>
+      </div>
+    );
+  }
+
   const sectionHasError = (key: string) =>
     (SECTION_ERROR_KEYS[key as LandingSectionKey] ?? []).some((k) => errors[k]);
   const update = (next: LandingDraft) => setLp(next);
   const props = { lp, onChange: update, errors, clientId };
+  const settingsHaveError = ["slug", "footer."].some((p) =>
+    Object.keys(errors).some((k) => k.startsWith(p)),
+  );
 
   const sectionRows: Record<LandingSectionKey, SectionRow> = {
     servicios: row(
@@ -301,11 +358,7 @@ export function LandingEditor({
       plural(lp.gallery.length, "foto", "fotos"),
       <GalleryEditor {...props} />,
     ),
-    whatsapp: row(
-      "whatsapp",
-      lp.whatsapp_number || "Falta el número",
-      <WhatsappEditor {...props} />,
-    ),
+    whatsapp: row("whatsapp", lp.whatsapp_number ?? "", <WhatsappEditor {...props} />),
     testimonios: row(
       "testimonios",
       plural(lp.testimonials.filter((t) => t.quote.trim()).length, "testimonio", "testimonios"),
@@ -327,6 +380,7 @@ export function LandingEditor({
   };
 
   function row(key: LandingSectionKey, summary: string, content: React.ReactNode): SectionRow {
+    const hasError = sectionHasError(key);
     return {
       id: key,
       title: LANDING_SECTION_LABEL[key],
@@ -334,164 +388,159 @@ export function LandingEditor({
       enabled: isSectionEnabled(lp!, key),
       toggleable: true,
       content,
-      hasError: sectionHasError(key),
+      hasError,
+      status: landingSectionStatus(lp!, key, hasError),
     };
   }
 
-  return (
-    <div ref={rootRef} className="space-y-6">
-      <PublishBar
-        title="Landing page"
-        subtitle="Página de ventas del cliente con WhatsApp, formulario y SEO local."
-        published={lp.published}
-        publicUrl={publicUrl}
-        onTogglePublished={() => void onTogglePublished()}
-        toggling={toggling || save.saving}
+  const saveBar = (
+    <SaveBar
+      state={save.state}
+      detail={save.detail}
+      dirty={dirty}
+      saving={save.saving}
+      onDiscard={() => setLp(saved)}
+      onSave={() => void persist()}
+    />
+  );
+
+  const editor = (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-sm font-medium">Diseño {TEMPLATE_LABEL[lp.template]}</h2>
+          <InfoHint label="Cómo ordenar las secciones">
+            Arrastra las secciones (o usa las flechas) para cambiar el orden; el interruptor las
+            muestra u oculta. Al abrir una sección, la vista previa salta a ella.
+          </InfoHint>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setTemplateOpen(true)}>
+          <LayoutTemplate className="mr-1 h-4 w-4" aria-hidden="true" /> Plantillas por rubro
+        </Button>
+      </div>
+
+      <SectionCard
+        row={{
+          id: "estilo",
+          title: "Colores y estilo",
+          summary: lp.dark_mode ? "Modo oscuro" : "Modo claro",
+          enabled: true,
+          toggleable: false,
+          content: <StyleEditor lp={lp} onChange={update} />,
+        }}
+        open={openSection === "estilo"}
+        onToggleOpen={() => toggleOpen("estilo")}
+      />
+      <SectionCard
+        row={{
+          id: "hero",
+          title: "Portada",
+          summary: lp.hero_title,
+          enabled: true,
+          toggleable: false,
+          content: <HeroEditor {...props} />,
+          hasError: sectionHasError("hero"),
+          status: heroStatus(lp, sectionHasError("hero")),
+        }}
+        open={openSection === "hero"}
+        onToggleOpen={() => toggleOpen("hero")}
       />
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-5">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="editar">Editar</TabsTrigger>
-          <TabsTrigger value="ajustes">
-            Ajustes y SEO
-            {["slug", "footer."].some((p) => Object.keys(errors).some((k) => k.startsWith(p))) && (
-              <span
-                className="ml-1.5 h-2 w-2 rounded-full bg-destructive"
-                aria-label="con errores"
-              />
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="mensajes">
-            Mensajes{inboxCount > 0 ? ` (${inboxCount})` : ""}
-          </TabsTrigger>
-          <TabsTrigger value="metricas">Métricas</TabsTrigger>
-        </TabsList>
+      <h3 className="pt-2 text-xs uppercase tracking-widest text-muted-foreground">
+        Secciones de la página
+      </h3>
+      <SortableList
+        ids={lp.section_order}
+        onReorder={(section_order) => update({ ...lp, section_order })}
+        getLabel={(k) => LANDING_SECTION_LABEL[k]}
+      >
+        <div className="space-y-3">
+          {lp.section_order.map((key, idx) => (
+            <SortableSectionCard
+              key={key}
+              row={sectionRows[key]}
+              open={openSection === key}
+              onToggleOpen={() => toggleOpen(key)}
+              onMove={(dir) => update({ ...lp, section_order: moveBy(lp.section_order, idx, dir) })}
+              canMoveUp={idx > 0}
+              canMoveDown={idx < lp.section_order.length - 1}
+              onToggleEnabled={(on) => {
+                update(setSectionEnabled(lp, key, on));
+                if (on) requestAnimationFrame(() => scrollPreviewTo(key));
+              }}
+            />
+          ))}
+        </div>
+      </SortableList>
+    </div>
+  );
 
-        <TabsContent value="editar">
-          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(340px,520px)]">
-            <div className="min-w-0 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm text-muted-foreground">
-                  Diseño: {TEMPLATE_LABEL[lp.template]} · arrastra las secciones para ordenarlas.
-                </p>
-                <Button variant="outline" size="sm" onClick={() => setTemplateOpen(true)}>
-                  <LayoutTemplate className="mr-1 h-4 w-4" aria-hidden="true" /> Plantillas por
-                  rubro
-                </Button>
-              </div>
+  return (
+    <div ref={rootRef} className="md:h-full md:min-h-0">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v as TabKey)}
+        className="flex flex-col gap-4 md:h-full md:min-h-0"
+      >
+        <PublishBar
+          nav={
+            <SiteNav pageSwitcher={pageSwitcher}>
+              <SiteViewTab value="editar">Editar</SiteViewTab>
+              <SiteViewTab value="ajustes">
+                Ajustes y SEO
+                {settingsHaveError && (
+                  <span className="h-2 w-2 rounded-full bg-destructive" aria-label="con errores" />
+                )}
+              </SiteViewTab>
+              <SiteViewTab value="mensajes">
+                Mensajes
+                {inboxCount > 0 && <span className="tabular-nums">{inboxCount}</span>}
+              </SiteViewTab>
+              <SiteViewTab value="metricas">Métricas</SiteViewTab>
+            </SiteNav>
+          }
+          published={lp.published}
+          publicUrl={publicUrl}
+          onTogglePublished={() => void onTogglePublished()}
+          toggling={toggling || save.saving}
+        />
 
-              <SectionCard
-                row={{
-                  id: "estilo",
-                  title: "Colores y estilo",
-                  summary: lp.dark_mode ? "Modo oscuro" : "Modo claro",
-                  enabled: true,
-                  toggleable: false,
-                  content: <StyleEditor lp={lp} onChange={update} />,
-                }}
-                open={openSection === "estilo"}
-                onToggleOpen={() => toggleOpen("estilo")}
-              />
-              <SectionCard
-                row={{
-                  id: "hero",
-                  title: "Portada (hero)",
-                  summary: lp.hero_title || "Sin título",
-                  enabled: true,
-                  toggleable: false,
-                  content: <HeroEditor {...props} />,
-                  hasError: sectionHasError("hero"),
-                }}
-                open={openSection === "hero"}
-                onToggleOpen={() => toggleOpen("hero")}
-              />
-
-              <h3 className="pt-3 text-xs uppercase tracking-widest text-muted-foreground">
-                Secciones de la página
-              </h3>
-              <SortableList
-                ids={lp.section_order}
-                onReorder={(section_order) => update({ ...lp, section_order })}
-                getLabel={(k) => LANDING_SECTION_LABEL[k]}
-              >
-                <div className="space-y-3">
-                  {lp.section_order.map((key, idx) => (
-                    <SortableSectionCard
-                      key={key}
-                      row={sectionRows[key]}
-                      open={openSection === key}
-                      onToggleOpen={() => toggleOpen(key)}
-                      onMove={(dir) =>
-                        update({ ...lp, section_order: moveBy(lp.section_order, idx, dir) })
-                      }
-                      canMoveUp={idx > 0}
-                      canMoveDown={idx < lp.section_order.length - 1}
-                      onToggleEnabled={(on) => {
-                        update(setSectionEnabled(lp, key, on));
-                        if (on) requestAnimationFrame(() => scrollPreviewTo(key));
-                      }}
-                    />
-                  ))}
-                </div>
-              </SortableList>
-
-              <SaveBar
-                state={save.state}
-                detail={save.detail}
-                dirty={dirty}
-                saving={save.saving}
-                onDiscard={() => setLp(saved)}
-                onSave={() => void persist()}
-              />
-            </div>
-
-            <div className="xl:sticky xl:top-20">
-              <DevicePreview
-                mode={previewMode}
-                onModeChange={setPreviewMode}
-                label="Vista previa de la landing"
-                onDocument={(d) => {
-                  previewDoc.current = d;
-                }}
-              >
-                <PublicLandingView lp={landingForView(lp)} preview />
-              </DevicePreview>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="ajustes" className="space-y-4">
-          <LandingSettings lp={lp} onChange={update} errors={errors} />
-          <SaveBar
-            state={save.state}
-            detail={save.detail}
-            dirty={dirty}
-            saving={save.saving}
-            onDiscard={() => setLp(saved)}
-            onSave={() => void persist()}
+        <SitePane value="editar">
+          <EditorSplit
+            editor={editor}
+            footer={saveBar}
+            preview={preview(lp)}
+            widePreview={previewMode === "desktop"}
           />
-        </TabsContent>
+        </SitePane>
 
-        <TabsContent value="mensajes" forceMount className="data-[state=inactive]:hidden">
-          <ContactInbox clientId={clientId} onCount={setInboxCount} />
-        </TabsContent>
+        <SitePane value="ajustes">
+          <ScrollColumn footer={saveBar} className="max-w-4xl">
+            <LandingSettings lp={lp} onChange={update} errors={errors} />
+          </ScrollColumn>
+        </SitePane>
 
-        <TabsContent value="metricas" className="space-y-6">
-          {!lp.published ? (
-            <div className="space-y-2 rounded-2xl border border-dashed bg-surface p-8 text-center">
-              <Activity className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />
-              <p className="font-medium">Esta landing aún es borrador</p>
-              <p className="text-sm text-muted-foreground">
-                Las visitas y clics se miden desde que la publicas.
-              </p>
-            </div>
-          ) : (
-            <>
-              <LandingAnalytics clientId={clientId} landingId={lp.id} />
-              <EventsPanel clientId={clientId} sourceType="landing" sourceId={lp.id} />
-            </>
-          )}
-        </TabsContent>
+        <SitePane value="mensajes" forceMount>
+          <ScrollColumn className="max-w-4xl">
+            <ContactInbox clientId={clientId} onCount={setInboxCount} />
+          </ScrollColumn>
+        </SitePane>
+
+        <SitePane value="metricas">
+          <ScrollColumn>
+            {!lp.published ? (
+              <EmptyState
+                icon={Activity}
+                title="Las visitas y clics se miden desde que publicas la landing."
+              />
+            ) : (
+              <>
+                <LandingAnalytics clientId={clientId} landingId={lp.id} />
+                <EventsPanel clientId={clientId} sourceType="landing" sourceId={lp.id} />
+              </>
+            )}
+          </ScrollColumn>
+        </SitePane>
       </Tabs>
 
       <Dialog open={templateOpen} onOpenChange={setTemplateOpen}>
@@ -535,37 +584,4 @@ export function LandingEditor({
 
 function plural(n: number, one: string, many: string): string {
   return n === 0 ? `Sin ${many}` : `${n} ${n === 1 ? one : many}`;
-}
-
-function SaveBar({
-  state,
-  detail,
-  dirty,
-  saving,
-  onDiscard,
-  onSave,
-}: {
-  state: React.ComponentProps<typeof SaveStatus>["state"];
-  detail: string | null;
-  dirty: boolean;
-  saving: boolean;
-  onDiscard: () => void;
-  onSave: () => void;
-}) {
-  return (
-    <div className="sticky bottom-3 z-20 mt-4 flex flex-wrap items-center gap-3 rounded-xl border bg-surface/95 px-4 py-3 shadow-sm backdrop-blur">
-      <SaveStatus state={state} detail={detail} />
-      <div className="ml-auto flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={onDiscard} disabled={!dirty || saving}>
-          Descartar
-        </Button>
-        <Button size="sm" onClick={onSave} disabled={!dirty || saving}>
-          <Save className="mr-1 h-4 w-4" aria-hidden="true" /> Guardar
-          <kbd className="ml-2 hidden rounded border border-primary-foreground/30 px-1 text-[10px] sm:inline">
-            ⌘S
-          </kbd>
-        </Button>
-      </div>
-    </div>
-  );
 }

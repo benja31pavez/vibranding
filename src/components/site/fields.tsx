@@ -39,7 +39,7 @@ export function Field({
       {children({ id, "aria-invalid": error ? true : undefined, "aria-describedby": describedBy })}
       {example && !error && <ExampleBadge />}
       {hint && !error && (
-        <p id={hintId} className="text-[11px] text-muted-foreground">
+        <p id={hintId} className="text-xs text-muted-foreground">
           {hint}
         </p>
       )}
@@ -53,12 +53,12 @@ export function Field({
 }
 
 export function ExampleBadge({
-  text = "Texto de ejemplo: reemplázalo con datos reales del cliente",
+  text = "Texto de ejemplo: reemplázalo por uno real",
 }: {
   text?: string;
 }) {
   return (
-    <p className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+    <p className="inline-flex items-center gap-1 rounded-app-sm bg-warning-subtle px-2 py-0.5 text-xs font-medium text-warning-strong">
       <Sparkles className="h-3 w-3" aria-hidden="true" /> {text}
     </p>
   );
