@@ -1,590 +1,272 @@
-import { useEffect, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { invalidateClientHealth } from "@/components/clients/health/healthKeys";
-import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Trash2, Pencil, Receipt } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Plus, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import {
-  DEFAULT_CURRENCY,
-  EMPTY_CLP_TOTALS,
-  addClp,
-  formatMoney,
-  type ClpTotals,
-} from "@/lib/pricing/plans";
-import { IVA_LABEL, breakdownFromNet, withIva } from "@/lib/pricing/iva";
-import {
   ConfirmDialog,
-  EmptyState,
   ErrorState,
+  FitList,
+  ListSkeleton,
   Money,
-  MoneyTotals,
-  StatCard,
-  TableSkeleton,
-  TONE_CLASSES,
-  getStatus,
+  Panel,
+  StatusBadge,
 } from "@/components/app";
-import { PaymentLinkButton } from "@/components/billing/PaymentLinkButton";
+import { Button } from "@/components/ui/button";
+import { PaymentReminderDialog } from "@/components/billing/PaymentReminderDialog";
+import { EditPaymentDialog } from "@/components/billing/statement/EditPaymentDialog";
+import { FlowSetupNote } from "@/components/billing/statement/FlowSetupNote";
+import { NewPaymentDialog } from "@/components/billing/statement/NewPaymentDialog";
+import { PrimaryAction, type FlowState } from "@/components/billing/statement/PaymentActions";
+import { PaymentRowMenu, type RowMenuAction } from "@/components/billing/statement/PaymentRowMenu";
+import { UploadDocumentDialog } from "@/components/billing/statement/UploadDocumentDialog";
+import { fmtDay, fmtMonth } from "@/components/billing/statement/format";
+import { deletePayment, setPaymentStatus } from "@/components/billing/statement/paymentWrites";
+import {
+  displayStatus,
+  relativeDue,
+  type StatementAccess,
+  type StatementPayment,
+} from "@/components/billing/statement/statementData";
+import { periodLabel } from "@/lib/billing/dates";
+import { cn } from "@/lib/utils";
 
-/** RLS hides rows instead of erroring: 0 affected rows means "not allowed". */
-const NO_PERMISSION = "No tienes permisos para esta acción";
-function writeDenied(error: unknown, rows: unknown[] | null): boolean {
-  return Boolean(error) || !rows || rows.length === 0;
+export interface PaymentsPanelProps {
+  clientId: string;
+  clientName: string;
+  payments: readonly StatementPayment[];
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  access: StatementAccess;
+  flow: FlowState;
+  /** Variables faltantes de Flow (solo llegan a administradores de plataforma). */
+  flowMissing: string[] | null;
+  today: string;
+  onChanged: () => void;
 }
 
-type Status = "pending" | "paid" | "overdue" | "cancelled";
+/** Lista "Pagos" del estado de cuenta. Las acciones de la agencia van en el menú ⋯. */
+export function PaymentsPanel({
+  clientId,
+  clientName,
+  payments,
+  loading,
+  error,
+  onRetry,
+  access,
+  flow,
+  flowMissing,
+  today,
+  onChanged,
+}: PaymentsPanelProps) {
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<StatementPayment | null>(null);
+  const [uploading, setUploading] = useState<StatementPayment | null>(null);
+  const [reminding, setReminding] = useState<StatementPayment | null>(null);
+  const [toDelete, setToDelete] = useState<StatementPayment | null>(null);
+  const agency = access.canEdit;
 
-/**
- * El estado (y paid_at/provider) solo se cambia vía la RPC set_payment_status:
- * valida permisos (owner/admin: manages_client) y transiciones en la BD.
- * Devuelve un mensaje de error para mostrar, o null si salió bien.
- */
-async function setPaymentStatus(
-  id: string,
-  status: Status,
-  paidAt?: string | null,
-): Promise<string | null> {
-  const { error } = await supabase.rpc("set_payment_status", {
-    _payment_id: id,
-    _status: status,
-    ...(paidAt ? { _paid_at: paidAt } : {}),
-  });
-  if (!error) return null;
-  if (error.code === "42501") return NO_PERMISSION;
-  return `No se pudo cambiar el estado: ${error.message}`;
-}
-
-interface Payment {
-  id: string;
-  client_id: string;
-  description: string | null;
-  amount: number;
-  currency: string;
-  status: Status;
-  due_date: string | null;
-  paid_at: string | null;
-  payment_url: string | null;
-}
-
-const STATUS_LOCKED_HINT =
-  "Solo un owner o admin de la organización puede cambiar el estado de un cobro.";
-const STATUS_UNVERIFIED_HINT =
-  "No pudimos verificar permisos; si no corresponde, el cambio se rechazará.";
-
-const DATE_FMT = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeZone: "UTC" });
-/** YYYY-MM-DD (o timestamp) → "4 oct 2026" sin corrimiento de zona horaria. */
-const fmtDay = (iso: string) => DATE_FMT.format(new Date(`${iso.slice(0, 10)}T12:00:00Z`));
-/** Valor para <input type="date"> a partir de date o timestamptz. */
-const toDateInput = (iso: string | null) => (iso ? iso.slice(0, 10) : "");
-
-/** ¿Puede cambiar estados? Mismo criterio que la RPC set_payment_status (manages_client). */
-function useManagesClient(clientId: string) {
-  const { user } = useAuth();
-  const userId = user?.id ?? "";
-  return useQuery({
-    queryKey: ["manages-client", userId, clientId],
-    enabled: Boolean(userId),
-    staleTime: 5 * 60_000,
-    queryFn: async (): Promise<boolean> => {
-      const { data, error } = await supabase.rpc("manages_client", { _client_id: clientId });
-      if (error) throw new Error(error.message);
-      return data === true;
-    },
-  });
-}
-
-const STATUSES: readonly Status[] = ["pending", "paid", "overdue", "cancelled"];
-const statusLabel = (s: Status) => getStatus(s).label;
-const statusCls = (s: Status) => TONE_CLASSES[getStatus(s).tone].badge;
-
-/** Montos en CLP: pesos enteros. */
-const toClpAmount = (raw: string | number) => Math.round(Number(raw));
-
-/** "Neto $X + IVA $Y = Total a pagar $Z" mientras se escribe un cobro nuevo. */
-function DraftTotal({ rawNet }: { rawNet: string }) {
-  const net = toClpAmount(rawNet);
-  if (!Number.isFinite(net) || net <= 0) return null;
-  const { iva, total } = breakdownFromNet(net);
-  return (
-    <p className="text-xs tabular-nums text-muted-foreground" aria-live="polite">
-      Neto {formatMoney(net)} + IVA {IVA_LABEL} {formatMoney(iva)} ={" "}
-      <span className="font-medium text-foreground">Total a pagar {formatMoney(total)}</span>
-    </p>
-  );
-}
-
-export function PaymentsPanel({ clientId }: { clientId: string }) {
-  const [items, setItems] = useState<Payment[]>([]);
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState({ description: "", amount: "", due_date: "" });
-  const [toDelete, setToDelete] = useState<Payment | null>(null);
-  const manager = useManagesClient(clientId);
-  // Si no se pudo consultar el rol, se deja habilitado y la RPC decide (muestra su error).
-  const canChangeStatus = manager.data !== false;
-  useEffect(() => {
-    if (manager.isError)
-      console.warn("[payments] no se pudo verificar manages_client", manager.error);
-  }, [manager.isError, manager.error]);
-  const statusHint = manager.isError ? STATUS_UNVERIFIED_HINT : STATUS_LOCKED_HINT;
-  const [editing, setEditing] = useState<Payment | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const queryClient = useQueryClient();
-  /** Recarga la lista y la "Salud del cliente" (cobros vencidos/pagados). */
-  const reloadAfterWrite = () => {
-    load();
-    void invalidateClientHealth(queryClient);
+  const markPaid = async (p: StatementPayment) => {
+    const err = await setPaymentStatus(p.id, "paid");
+    if (err) toast.error(err);
+    else toast.success("Cobro marcado como pagado");
+    onChanged();
   };
 
-  // Contador de solicitudes: ignora respuestas viejas si llega una carga más nueva.
-  const requestId = useRef(0);
-
-  const load = async () => {
-    const id = ++requestId.current;
-    const { data, error } = await supabase
-      .from("payments")
-      .select("*")
-      .eq("client_id", clientId)
-      .order("created_at", { ascending: false });
-    if (id !== requestId.current) return;
-    if (error) {
-      console.error("[payments] error al cargar", error);
-      setLoadError(error.message);
-    } else {
-      setLoadError(null);
-      setItems((data ?? []) as Payment[]);
-    }
-    setLoading(false);
+  const remove = async (p: StatementPayment) => {
+    const err = await deletePayment(p.id);
+    if (err) toast.error(err);
+    else toast.success("Cobro eliminado");
+    onChanged();
   };
 
-  const retry = () => {
-    setLoading(true);
-    load();
+  const onAction = (action: RowMenuAction, p: StatementPayment) => {
+    if (action === "remind") setReminding(p);
+    else if (action === "markPaid") void markPaid(p);
+    else if (action === "upload") setUploading(p);
+    else if (action === "edit") setEditing(p);
+    else setToDelete(p);
   };
 
-  useEffect(() => {
-    setLoading(true);
-    setItems([]);
-    load();
-  }, [clientId]);
-
-  const create = async () => {
-    const net = toClpAmount(draft.amount);
-    if (!Number.isFinite(net) || net <= 0) return toast.error("Ingresa un monto neto en CLP");
-    // Se escribe el neto; el cobro guarda el total a pagar con IVA (lo que cobra Flow).
-    const amount = withIva(net);
-    const { error } = await supabase.from("payments").insert({
-      client_id: clientId,
-      description: draft.description || null,
-      amount,
-      currency: DEFAULT_CURRENCY,
-      due_date: draft.due_date || null,
-    });
-    if (error) return toast.error(error.message);
-    setDraft({ description: "", amount: "", due_date: "" });
-    setAdding(false);
-    reloadAfterWrite();
-  };
-
-  const changeStatus = async (id: string, status: Status) => {
-    const error = await setPaymentStatus(id, status);
-    if (error) toast.error(error);
-    reloadAfterWrite();
-  };
-
-  const remove = async (id: string) => {
-    const { data, error } = await supabase.from("payments").delete().eq("id", id).select("id");
-    if (error) toast.error(`No se pudo eliminar el pago: ${error.message}`);
-    else if (writeDenied(error, data)) toast.error(NO_PERMISSION);
-    reloadAfterWrite();
-  };
-
-  const totals = items.reduce<{ paid: ClpTotals; pending: ClpTotals }>(
-    (acc, p) => {
-      if (p.status === "paid")
-        return { ...acc, paid: addClp(acc.paid, p.currency, Number(p.amount)) };
-      if (p.status === "pending" || p.status === "overdue") {
-        return { ...acc, pending: addClp(acc.pending, p.currency, Number(p.amount)) };
+  const renderRow = (p: StatementPayment, stacked: boolean) => (
+    <PaymentRow
+      payment={p}
+      today={today}
+      stacked={stacked}
+      action={<PrimaryAction payment={p} flow={flow} canEdit={agency} onChanged={onChanged} />}
+      menu={
+        agency ? (
+          <PaymentRowMenu
+            payment={p}
+            flow={flow}
+            canManage={access.canManage}
+            onAction={onAction}
+            onChanged={onChanged}
+          />
+        ) : null
       }
-      return acc;
-    },
-    { paid: EMPTY_CLP_TOTALS, pending: EMPTY_CLP_TOTALS },
+    />
   );
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard label="Cobrado" loading={loading} value={<MoneyTotals totals={totals.paid} />} />
-        <StatCard
-          label="Por cobrar"
-          loading={loading}
-          value={<MoneyTotals totals={totals.pending} />}
+    <Panel
+      title="Pagos"
+      icon={Receipt}
+      fill
+      bodyClassName="md:flex md:min-h-0 md:flex-1 md:flex-col"
+      actions={
+        agency && (
+          <div className="flex items-center gap-1">
+            {flow === "off" && <FlowSetupNote missing={flowMissing} />}
+            <Button size="sm" variant="outline" className="h-8" onClick={() => setCreating(true)}>
+              <Plus aria-hidden className="mr-1 h-4 w-4" />
+              Nuevo cobro
+            </Button>
+          </div>
+        )
+      }
+    >
+      {loading ? (
+        <ListSkeleton rows={4} label="Cargando pagos" />
+      ) : error ? (
+        <ErrorState message={error} onRetry={onRetry} />
+      ) : payments.length === 0 ? (
+        <p className="py-2 text-sm text-muted-foreground">Aún no hay cobros.</p>
+      ) : (
+        <FitList
+          items={payments}
+          getKey={(p) => p.id}
+          label="Pagos"
+          renderItem={(p, ctx) => renderRow(p, ctx.inSheet)}
         />
-      </div>
+      )}
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">Movimientos</h2>
-        {!adding && (
-          <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
-            <Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo cobro
-          </Button>
+      {agency && (
+        <>
+          <NewPaymentDialog
+            clientId={clientId}
+            open={creating}
+            onOpenChange={setCreating}
+            onCreated={onChanged}
+          />
+          <EditPaymentDialog
+            payment={editing}
+            canChangeStatus={access.canManage}
+            onClose={() => setEditing(null)}
+            onSaved={() => {
+              setEditing(null);
+              onChanged();
+            }}
+          />
+          <UploadDocumentDialog
+            payment={uploading}
+            onClose={() => setUploading(null)}
+            onUploaded={onChanged}
+          />
+          {reminding && (
+            <PaymentReminderDialog
+              open
+              onOpenChange={(o) => {
+                if (!o) setReminding(null);
+              }}
+              payment={reminding}
+              clientId={clientId}
+              clientName={clientName}
+              today={today}
+              onReminded={() => undefined}
+            />
+          )}
+          <ConfirmDialog
+            open={toDelete !== null}
+            onOpenChange={(o) => {
+              if (!o) setToDelete(null);
+            }}
+            title="¿Eliminar este cobro?"
+            description={`Se borra «${toDelete?.description || "Cobro"}» de forma permanente. Si solo no se va a cobrar, es mejor cambiar su estado a Cancelado para conservar el historial.`}
+            confirmLabel="Eliminar"
+            destructive
+            onConfirm={() => {
+              if (toDelete) void remove(toDelete);
+              setToDelete(null);
+            }}
+          />
+        </>
+      )}
+    </Panel>
+  );
+}
+
+/** "Plan mensual · oct 2026" (sin repetir el mes si ya está en el concepto). */
+function conceptLabel(p: StatementPayment): string {
+  const base = p.description?.trim() || "Cobro";
+  if (!p.period) return base;
+  const month = periodLabel(p.period).split(" ")[0];
+  return base.toLowerCase().includes(month) ? base : `${base} · ${fmtMonth(p.period)}`;
+}
+
+function dueLine(p: StatementPayment, today: string): { text: string; late: boolean } | null {
+  const relative = relativeDue(p, today);
+  if (relative) return { text: relative, late: relative.startsWith("Venció") };
+  if (p.status === "paid" && p.paid_at) {
+    return { text: `Pagado el ${fmtDay(p.paid_at)}`, late: false };
+  }
+  if (p.due_date) return { text: `Vencimiento ${fmtDay(p.due_date)}`, late: false };
+  return null;
+}
+
+function PaymentRow({
+  payment: p,
+  today,
+  stacked,
+  action,
+  menu,
+}: {
+  payment: StatementPayment;
+  today: string;
+  stacked: boolean;
+  action: ReactNode;
+  menu: ReactNode;
+}) {
+  const due = dueLine(p, today);
+  const label = conceptLabel(p);
+  const cols = !stacked;
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-4 gap-y-2 py-3 text-sm",
+        cols && "lg:flex-nowrap",
+      )}
+    >
+      <div className="min-w-0 flex-1 basis-40">
+        <p className="truncate font-medium" title={label}>
+          {label}
+        </p>
+        {due && (
+          <p
+            className={cn(
+              "truncate text-xs",
+              due.late ? "font-medium text-danger-strong" : "text-muted-foreground",
+            )}
+          >
+            {due.text}
+            {p.due_date && relativeDue(p, today) && (
+              <span className="font-normal text-muted-foreground"> · {fmtDay(p.due_date)}</span>
+            )}
+          </p>
         )}
       </div>
-
-      {adding && (
-        <div className="space-y-3 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs">
-          <Input
-            placeholder="Concepto"
-            aria-label="Concepto"
-            value={draft.description}
-            onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-            autoFocus
-          />
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              step={1}
-              min={1}
-              inputMode="numeric"
-              placeholder="Monto neto en CLP (+ IVA)"
-              aria-label="Monto neto en CLP, sin IVA"
-              value={draft.amount}
-              onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
-            />
-            <span
-              className="flex h-10 shrink-0 items-center rounded-app-sm border border-border-subtle px-3 text-sm text-muted-foreground"
-              aria-label="Moneda: pesos chilenos"
-            >
-              CLP
-            </span>
-            <Input
-              type="date"
-              aria-label="Fecha de vencimiento"
-              value={draft.due_date}
-              onChange={(e) => setDraft({ ...draft, due_date: e.target.value })}
-            />
-          </div>
-          <DraftTotal rawNet={draft.amount} />
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>
-              Cancelar
-            </Button>
-            <Button size="sm" onClick={create}>
-              Guardar
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {loading ? (
-        <TableSkeleton rows={3} columns={3} label="Cargando movimientos" />
-      ) : loadError ? (
-        <ErrorState message={loadError} onRetry={retry} />
-      ) : items.length === 0 ? (
-        <EmptyState icon={Receipt} title="Aún no hay cobros" className="py-8" />
-      ) : (
-        <ul className="space-y-2">
-          {items.map((p) => (
-            <li
-              key={p.id}
-              className="group flex flex-wrap items-center gap-x-4 gap-y-2 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{p.description || "Cobro"}</div>
-                {(p.due_date || p.paid_at) && (
-                  <div className="mt-0.5 text-xs text-muted-foreground">
-                    {[
-                      p.due_date && `Vence ${fmtDay(p.due_date)}`,
-                      p.paid_at && `Pagado ${fmtDay(p.paid_at)}`,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </div>
-                )}
-              </div>
-              <Money amount={Number(p.amount)} currency={p.currency} className="font-semibold" />
-              <PaymentLinkButton payment={p} onChanged={load} />
-              <StatusSelect
-                status={p.status}
-                disabled={!canChangeStatus}
-                hint={manager.isError ? statusHint : null}
-                onChange={(v) => changeStatus(p.id, v)}
-              />
-              <button
-                type="button"
-                onClick={() => setEditing(p)}
-                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-foreground"
-                aria-label="Editar pago"
-              >
-                <Pencil aria-hidden className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setToDelete(p)}
-                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 rounded-app-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:text-danger"
-                aria-label="Eliminar pago"
-              >
-                <Trash2 aria-hidden className="h-4 w-4" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <ConfirmDialog
-        open={toDelete !== null}
-        onOpenChange={(o) => {
-          if (!o) setToDelete(null);
-        }}
-        title="¿Eliminar este cobro?"
-        description={`Se borra «${toDelete?.description || "Cobro"}» de forma permanente. Si solo no se va a cobrar, es mejor cambiar su estado a Cancelado para conservar el historial.`}
-        confirmLabel="Eliminar"
-        destructive
-        onConfirm={() => {
-          if (toDelete) void remove(toDelete.id);
-          setToDelete(null);
-        }}
-      />
-
-      <EditDialog
-        payment={editing}
-        canChangeStatus={canChangeStatus}
-        onClose={() => setEditing(null)}
-        onSaved={() => {
-          setEditing(null);
-          reloadAfterWrite();
-        }}
-      />
-    </div>
-  );
-}
-
-function StatusSelect({
-  status,
-  disabled,
-  hint,
-  onChange,
-}: {
-  status: Status;
-  disabled: boolean;
-  /** Aviso en tooltip aunque esté habilitado (p. ej. permisos sin verificar). */
-  hint?: string | null;
-  onChange: (s: Status) => void;
-}) {
-  const select = (
-    <Select value={status} onValueChange={(v) => onChange(v as Status)} disabled={disabled}>
-      <SelectTrigger
-        aria-label="Estado del pago"
-        className={`h-8 w-32 rounded-full border-0 text-xs font-medium focus:ring-2 focus:ring-ring focus:ring-offset-1 ${statusCls(status)}`}
+      <div
+        className={cn(
+          "flex shrink-0 items-center gap-3",
+          cols && "lg:w-28 lg:flex-col lg:items-end lg:gap-1",
+        )}
       >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {STATUSES.map((k) => (
-          <SelectItem key={k} value={k}>
-            {statusLabel(k)}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-  if (!disabled && !hint) return select;
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        {/* El span recibe el foco/hover: un botón deshabilitado no dispara eventos. */}
-        <TooltipTrigger asChild>
-          <span
-            tabIndex={0}
-            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {select}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>{hint ?? STATUS_LOCKED_HINT}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
-
-function EditDialog({
-  payment,
-  canChangeStatus,
-  onClose,
-  onSaved,
-}: {
-  payment: Payment | null;
-  canChangeStatus: boolean;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [form, setForm] = useState<Payment | null>(payment);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setForm(payment);
-  }, [payment]);
-
-  if (!form) return null;
-
-  // Con un link de Flow vigente, el monto queda fijo: Flow cobraría
-  // el monto original y el pago no podría registrarse contra el cobro editado.
-  // (La BD también lo impide: trigger t_payments_lock_amount.)
-  // Mismo criterio que el trigger t_payments_lock_amount: pagado o con link de Flow.
-  const linkLocked = payment?.status === "paid" || Boolean(payment?.payment_url);
-
-  const save = async () => {
-    const amount = toClpAmount(form.amount);
-    if (!Number.isFinite(amount) || amount <= 0)
-      return toast.error("Ingresa un monto válido en CLP");
-    setSaving(true);
-    // Datos del cobro: UPDATE directo (solo columnas permitidas al navegador).
-    const patch: Partial<Payment> = {
-      description: form.description?.trim() || null,
-      // La moneda no se edita: siempre CLP.
-      ...(linkLocked ? {} : { amount }),
-      due_date: form.due_date || null,
-    };
-    const { data, error } = await supabase
-      .from("payments")
-      .update(patch)
-      .eq("id", form.id)
-      .select("id");
-    if (writeDenied(error, data)) {
-      setSaving(false);
-      return toast.error(error ? `No se pudo actualizar el pago: ${error.message}` : NO_PERMISSION);
-    }
-    // Estado / fecha de pago: vía RPC, solo si cambiaron.
-    const statusChanged = payment !== null && form.status !== payment.status;
-    const paidAtChanged =
-      form.status === "paid" &&
-      payment !== null &&
-      toDateInput(form.paid_at) !== toDateInput(payment.paid_at);
-    if (statusChanged || paidAtChanged) {
-      const statusError = await setPaymentStatus(
-        form.id,
-        form.status,
-        form.status === "paid" ? toDateInput(form.paid_at) || null : null,
-      );
-      if (statusError) {
-        setSaving(false);
-        toast.error(statusError);
-        return onSaved();
-      }
-    }
-    setSaving(false);
-    toast.success("Pago actualizado");
-    onSaved();
-  };
-
-  return (
-    <Dialog
-      open={!!payment}
-      onOpenChange={(o) => {
-        if (!o) onClose();
-      }}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Editar pago</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Concepto</Label>
-            <Input
-              value={form.description ?? ""}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Total a pagar en CLP (con IVA)</Label>
-            <Input
-              type="number"
-              step={1}
-              min={1}
-              inputMode="numeric"
-              value={form.amount}
-              disabled={linkLocked}
-              onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })}
-            />
-          </div>
-          {linkLocked && (
-            <p className="text-xs text-muted-foreground">
-              {payment?.status === "paid"
-                ? "Este cobro ya está pagado: el monto no se puede cambiar."
-                : "Este cobro tiene un link de pago de Flow: el monto no se puede cambiar."}{" "}
-              Si el monto es otro, cancela este cobro y crea uno nuevo.
-            </p>
-          )}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Fecha de vencimiento</Label>
-              <Input
-                type="date"
-                value={form.due_date ?? ""}
-                onChange={(e) => setForm({ ...form, due_date: e.target.value || null })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Fecha de pago</Label>
-              <Input
-                type="date"
-                value={toDateInput(form.paid_at)}
-                onChange={(e) => setForm({ ...form, paid_at: e.target.value || null })}
-                disabled={form.status !== "paid" || !canChangeStatus}
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Estado</Label>
-            <Select
-              value={form.status}
-              onValueChange={(v) => setForm({ ...form, status: v as Status })}
-              disabled={!canChangeStatus}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUSES.map((k) => (
-                  <SelectItem key={k} value={k}>
-                    {statusLabel(k)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {!canChangeStatus && (
-              <p className="text-xs text-muted-foreground">{STATUS_LOCKED_HINT}</p>
-            )}
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button onClick={save} disabled={saving}>
-            {saving ? "Guardando…" : "Guardar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <Money amount={p.amount} currency={p.currency} className="font-semibold" />
+        <StatusBadge status={displayStatus(p, today)} />
+      </div>
+      <div className={cn("flex shrink-0 items-center gap-1", cols ? "w-full sm:w-40" : "w-full")}>
+        <div className="min-w-0 flex-1">{action}</div>
+        {menu}
+      </div>
+    </div>
   );
 }

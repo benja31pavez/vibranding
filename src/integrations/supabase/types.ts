@@ -3175,7 +3175,9 @@ export type Database = {
           created_at: string
           currency: string
           description: string | null
+          document_path: string | null
           document_type: string | null
+          document_uploaded_at: string | null
           due_date: string | null
           flow_token: string | null
           id: string
@@ -3196,7 +3198,9 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          document_path?: string | null
           document_type?: string | null
+          document_uploaded_at?: string | null
           due_date?: string | null
           flow_token?: string | null
           id?: string
@@ -3217,7 +3221,9 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          document_path?: string | null
           document_type?: string | null
+          document_uploaded_at?: string | null
           due_date?: string | null
           flow_token?: string | null
           id?: string
