@@ -68,6 +68,7 @@ import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
 import { Route as ApiMetaAdsUpdateRouteImport } from './routes/api/meta-ads/update'
 import { Route as AppClientsClientIdIndexRouteImport } from './routes/_app/clients/$clientId/index'
 import { Route as AppClientsClientIdAnalyticsRouteImport } from './routes/_app/clients/$clientId/analytics'
+import { Route as AppClientsClientIdArchivosRouteImport } from './routes/_app/clients/$clientId/archivos'
 import { Route as AppClientsClientIdAutomatizacionRouteImport } from './routes/_app/clients/$clientId/automatizacion'
 import { Route as AppClientsClientIdBackfillRouteImport } from './routes/_app/clients/$clientId/backfill'
 import { Route as AppClientsClientIdBandejaRouteImport } from './routes/_app/clients/$clientId/bandeja'
@@ -407,6 +408,12 @@ const AppClientsClientIdAnalyticsRoute =
     path: '/analytics',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdArchivosRoute =
+  AppClientsClientIdArchivosRouteImport.update({
+    id: '/archivos',
+    path: '/archivos',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdAutomatizacionRoute =
   AppClientsClientIdAutomatizacionRouteImport.update({
     id: '/automatizacion',
@@ -690,6 +697,7 @@ export interface FileRoutesByFullPath {
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients/': typeof AppClientsIndexRoute
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
+  '/clients/$clientId/archivos': typeof AppClientsClientIdArchivosRoute
   '/clients/$clientId/automatizacion': typeof AppClientsClientIdAutomatizacionRoute
   '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/clients/$clientId/bandeja': typeof AppClientsClientIdBandejaRoute
@@ -788,6 +796,7 @@ export interface FileRoutesByTo {
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients': typeof AppClientsIndexRoute
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
+  '/clients/$clientId/archivos': typeof AppClientsClientIdArchivosRoute
   '/clients/$clientId/automatizacion': typeof AppClientsClientIdAutomatizacionRoute
   '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/clients/$clientId/bandeja': typeof AppClientsClientIdBandejaRoute
@@ -889,6 +898,7 @@ export interface FileRoutesById {
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
+  '/_app/clients/$clientId/archivos': typeof AppClientsClientIdArchivosRoute
   '/_app/clients/$clientId/automatizacion': typeof AppClientsClientIdAutomatizacionRoute
   '/_app/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/_app/clients/$clientId/bandeja': typeof AppClientsClientIdBandejaRoute
@@ -990,6 +1000,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/update'
     | '/clients/'
     | '/clients/$clientId/analytics'
+    | '/clients/$clientId/archivos'
     | '/clients/$clientId/automatizacion'
     | '/clients/$clientId/backfill'
     | '/clients/$clientId/bandeja'
@@ -1088,6 +1099,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/update'
     | '/clients'
     | '/clients/$clientId/analytics'
+    | '/clients/$clientId/archivos'
     | '/clients/$clientId/automatizacion'
     | '/clients/$clientId/backfill'
     | '/clients/$clientId/bandeja'
@@ -1188,6 +1200,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/update'
     | '/_app/clients/'
     | '/_app/clients/$clientId/analytics'
+    | '/_app/clients/$clientId/archivos'
     | '/_app/clients/$clientId/automatizacion'
     | '/_app/clients/$clientId/backfill'
     | '/_app/clients/$clientId/bandeja'
@@ -1699,6 +1712,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdAnalyticsRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/archivos': {
+      id: '/_app/clients/$clientId/archivos'
+      path: '/archivos'
+      fullPath: '/clients/$clientId/archivos'
+      preLoaderRoute: typeof AppClientsClientIdArchivosRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/automatizacion': {
       id: '/_app/clients/$clientId/automatizacion'
       path: '/automatizacion'
@@ -1988,6 +2008,7 @@ const AtChar123slugChar125RouteWithChildren =
 
 interface AppClientsClientIdRouteChildren {
   AppClientsClientIdAnalyticsRoute: typeof AppClientsClientIdAnalyticsRoute
+  AppClientsClientIdArchivosRoute: typeof AppClientsClientIdArchivosRoute
   AppClientsClientIdAutomatizacionRoute: typeof AppClientsClientIdAutomatizacionRoute
   AppClientsClientIdBackfillRoute: typeof AppClientsClientIdBackfillRoute
   AppClientsClientIdBandejaRoute: typeof AppClientsClientIdBandejaRoute
@@ -2015,6 +2036,7 @@ interface AppClientsClientIdRouteChildren {
 
 const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdAnalyticsRoute: AppClientsClientIdAnalyticsRoute,
+  AppClientsClientIdArchivosRoute: AppClientsClientIdArchivosRoute,
   AppClientsClientIdAutomatizacionRoute: AppClientsClientIdAutomatizacionRoute,
   AppClientsClientIdBackfillRoute: AppClientsClientIdBackfillRoute,
   AppClientsClientIdBandejaRoute: AppClientsClientIdBandejaRoute,

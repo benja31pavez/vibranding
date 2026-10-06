@@ -100,16 +100,6 @@ export function previousMonth(month: string): string {
   return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
 }
 
-/** Color CSS válido para la paleta (hex, rgb, nombre…); null si no se puede pintar. */
-export function paintableColor(value: string): string | null {
-  const v = value.trim();
-  if (!v) return null;
-  if (typeof CSS === "undefined" || typeof CSS.supports !== "function") {
-    return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v) ? v : null;
-  }
-  return CSS.supports("color", v) ? v : null;
-}
-
 /** "2026-09-01" → "septiembre" (con año solo si no es el de `today`, "AAAA-MM-DD"). */
 export function shortPeriod(period: string, today: string): string {
   const name = monthName(period.slice(0, 7));
