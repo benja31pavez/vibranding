@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Check, Lock } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { FitPage, PageHeader, StatusBadge } from "@/components/app";
 import { cn } from "@/lib/utils";
 import { initialStep, type ConnectionInfo, type StepKey } from "./connectionModel";
@@ -57,13 +56,6 @@ export function ConnectionDetail({
     <FitPage
       header={
         <div className="space-y-2">
-          <Link
-            to="/clients/$clientId/setup"
-            params={{ clientId }}
-            className="inline-flex items-center gap-1.5 rounded-app-md text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ArrowLeft aria-hidden className="h-4 w-4" /> Volver a Conexiones
-          </Link>
           <PageHeader
             size="compact"
             title={
