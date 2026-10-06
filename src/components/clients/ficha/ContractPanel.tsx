@@ -35,9 +35,8 @@ export function ContractPanel({ clientId }: { clientId: string }) {
       icon={FileSignature}
       actions={
         <Link
-          to="/clients/$clientId/facturacion"
+          to="/clients/$clientId/legal"
           params={{ clientId }}
-          search={{ tab: "contratos" }}
           className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
         >
           {contract ? "Ver PDF" : "Crear"} <ArrowRight aria-hidden className="h-3 w-3" />

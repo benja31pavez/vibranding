@@ -108,11 +108,7 @@ export function ClientDocsPanel({ clientId, billing }: ClientDocsPanelProps) {
       tone: contractMeta?.tone ?? "neutral",
       action: (
         <Button asChild size="sm" variant="ghost" className={ACTION_CLS}>
-          <Link
-            to="/clients/$clientId/facturacion"
-            params={{ clientId }}
-            search={{ tab: "contratos" }}
-          >
+          <Link to="/clients/$clientId/legal" params={{ clientId }}>
             Ver
           </Link>
         </Button>
