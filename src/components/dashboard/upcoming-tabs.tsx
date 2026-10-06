@@ -28,6 +28,22 @@ interface TabDef {
   content: ReactNode;
 }
 
+/** Qué pestaña pide antes una acción de Benja (las publicaciones son solo informativas). */
+const ACTION_PRIORITY: readonly TabKey[] = ["aprobaciones", "cobros", "etapas", "alertas", "posts"];
+
+/**
+ * Pestaña que se abre sola: la primera urgente (cobros vencidos, alertas críticas);
+ * si no, la de mayor prioridad con pendientes; si todo está vacío, "Cobros".
+ */
+function suggestedTab(tabs: readonly TabDef[]): TabKey {
+  const urgent = tabs.find((t) => t.urgent);
+  if (urgent) return urgent.key;
+  const withItems = ACTION_PRIORITY.find((key) =>
+    tabs.some((t) => t.key === key && (t.count ?? 0) > 0),
+  );
+  return withItems ?? "cobros";
+}
+
 /**
  * Columna "Próximos días" de Inicio: cobros, publicaciones, etapas, alertas de
  * campañas y aprobaciones en pestañas; cada pestaña es una lista a pantalla
@@ -39,7 +55,8 @@ export function UpcomingTabs() {
   const deliverables = useUpcomingDeliverables();
   const alerts = useOpenCampaignAlerts();
   const approvals = useApprovalsSummary();
-  const [tab, setTab] = useState<TabKey>("cobros");
+  // null = el usuario aún no elige: se abre la pestaña que más pide atención.
+  const [picked, setPicked] = useState<TabKey | null>(null);
 
   // Si nunca hubo alertas (el job aún no corre o no hay clientes con Meta) no se muestra la pestaña.
   const showAlerts = !(alerts.data && alerts.data.everCount === 0);
@@ -86,19 +103,13 @@ export function UpcomingTabs() {
       content: <ApprovalsTab />,
     },
   ];
-  const active = tabs.some((t) => t.key === tab) ? tab : "cobros";
+  const active = picked && tabs.some((t) => t.key === picked) ? picked : suggestedTab(tabs);
 
   return (
-    <Panel
-      fill
-      icon={CalendarRange}
-      title="Próximos días"
-      description="Lo que vence o sale en los próximos 7 días."
-      bodyClassName="pb-3"
-    >
+    <Panel fill icon={CalendarRange} title="Próximos días" bodyClassName="pb-3">
       <Tabs
         value={active}
-        onValueChange={(v) => setTab(v as TabKey)}
+        onValueChange={(v) => setPicked(v as TabKey)}
         className="flex min-h-0 flex-1 flex-col"
       >
         <TabsList
@@ -116,7 +127,7 @@ export function UpcomingTabs() {
               <span className="hidden max-w-full truncate 2xl:inline">{t.label}</span>
               <span
                 className={cn(
-                  "text-[11px] font-semibold tabular-nums",
+                  "text-xs font-semibold tabular-nums",
                   t.urgent ? "text-danger-strong" : "text-muted-foreground",
                 )}
               >
