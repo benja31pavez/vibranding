@@ -16,6 +16,7 @@ import { periodLabel } from "@/lib/billing/dates";
 import { chileToday } from "@/lib/dates/chile";
 import {
   buildMonthPlan,
+  cycleTasksOfMonth,
   isDuplicate,
   nextMonth,
   type MonthPlanItem,
@@ -71,6 +72,12 @@ export function MonthPlanPanel({ clientId, planKey, canEdit }: MonthPlanPanelPro
     () => (plan ? buildMonthPlan({ planKey: plan.key, month, today }) : []),
     [plan, month, today],
   );
+  const existing = useExistingMonthTasks(userKey, clientId, month, Boolean(plan) && canEdit);
+  const cycle = useMemo(
+    () => cycleTasksOfMonth(month, existing.data ?? []),
+    [month, existing.data],
+  );
+  const hasCycle = cycle.length > 0;
 
   if (!canEdit) return null;
 
@@ -79,11 +86,17 @@ export function MonthPlanPanel({ clientId, planKey, canEdit }: MonthPlanPanelPro
       title="Plan del mes"
       icon={CalendarRange}
       actions={
-        plan ? (
+        !plan ? undefined : hasCycle ? (
+          <Button asChild size="sm" variant="outline">
+            <Link to="/clients/$clientId/plan" params={{ clientId }}>
+              Ver en Plan
+            </Link>
+          </Button>
+        ) : (
           <Button size="sm" onClick={() => setOpen(true)} disabled={items.length === 0}>
             <Sparkles aria-hidden className="mr-1 h-3.5 w-3.5" /> Generar
           </Button>
-        ) : undefined
+        )
       }
     >
       {!plan ? (
@@ -105,10 +118,14 @@ export function MonthPlanPanel({ clientId, planKey, canEdit }: MonthPlanPanelPro
               ))}
             </SelectContent>
           </Select>
-          <MonthStatus clientId={clientId} month={month} items={items} />
+          {hasCycle ? (
+            <CycleStatus tasks={cycle} />
+          ) : (
+            <MonthStatus clientId={clientId} month={month} items={items} />
+          )}
         </div>
       )}
-      {plan && open && (
+      {plan && open && !hasCycle && (
         <MonthPlanDialog
           clientId={clientId}
           userKey={userKey}
@@ -121,6 +138,16 @@ export function MonthPlanPanel({ clientId, planKey, canEdit }: MonthPlanPanelPro
         />
       )}
     </Panel>
+  );
+}
+
+/** El ciclo mensual del Plan ya creó las tareas de ese mes: resumen de avance. */
+function CycleStatus({ tasks }: { tasks: readonly { status?: string }[] }) {
+  const done = tasks.filter((t) => t.status === "done" || t.status === "in_review").length;
+  return (
+    <p className="min-w-0 truncate text-sm text-muted-foreground">
+      Ciclo del mes creado · {done} de {tasks.length} listas
+    </p>
   );
 }
 

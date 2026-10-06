@@ -436,6 +436,7 @@ export interface ExistingTask {
   readonly title: string;
   readonly due_date: string | null;
   readonly description: string | null;
+  readonly status?: string;
 }
 
 function normalizeTitle(title: string): string {
@@ -477,4 +478,47 @@ export function summarizeExisting(month: string, existing: readonly ExistingTask
     total: inMonth.length,
     fromPlan: inMonth.filter((t) => readMarker(t.description)?.month === month).length,
   };
+}
+
+// ─── Ciclo mensual del Plan ─────────────────────────────────────────────────
+
+/**
+ * Marcador de las tareas del ciclo mensual del Plan (`src/lib/delivery/planCycle.ts`):
+ * `[plantilla:<etapa>:<clave>:<AAAA-MM>]`.
+ */
+const CYCLE_MARKER_RE = /\[plantilla:[a-z]+:[a-z0-9-]+:(\d{4}-\d{2})\]/;
+
+/** Patrón LIKE para buscar en la BD las tareas del ciclo de un mes. */
+export function cycleMarkerLike(month: string): string {
+  return `%[plantilla:%:${month}]%`;
+}
+
+/** Tareas del ciclo mensual del Plan para ese mes (por su marcador). */
+export function cycleTasksOfMonth(
+  month: string,
+  existing: readonly ExistingTask[],
+): ExistingTask[] {
+  return existing.filter((t) => CYCLE_MARKER_RE.exec(t.description ?? "")?.[1] === month);
+}
+
+/**
+ * Lo que el ciclo mensual ya cubre (calendario, piezas, reporte y revisión de
+ * campañas): si el ciclo del mes existe, el plan del mes no lo vuelve a crear.
+ */
+export const CYCLE_COVERED_KINDS: ReadonlySet<MonthPlanKind> = new Set<MonthPlanKind>([
+  "calendario",
+  "post",
+  "reel",
+  "campanas",
+  "reporte",
+]);
+
+/** Quita del plan del mes lo que ya cubre el ciclo de ese mes (si existe). */
+export function withoutCycleOverlap<T extends Pick<MonthPlanItem, "kind">>(
+  items: readonly T[],
+  month: string,
+  existing: readonly ExistingTask[],
+): T[] {
+  if (cycleTasksOfMonth(month, existing).length === 0) return [...items];
+  return items.filter((item) => !CYCLE_COVERED_KINDS.has(item.kind));
 }

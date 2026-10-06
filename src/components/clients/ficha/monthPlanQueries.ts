@@ -8,9 +8,11 @@ import { agendaKeys } from "@/lib/agenda/agenda.queries";
 import { invalidateApprovalQueue } from "@/hooks/use-approval-queue";
 import { dashboardKeys } from "@/components/dashboard/queries";
 import {
+  cycleMarkerLike,
   isDuplicate,
   monthBounds,
   planMarker,
+  withoutCycleOverlap,
   type ExistingTask,
   type MonthPlanItem,
 } from "@/lib/delivery/monthPlan";
@@ -24,12 +26,15 @@ export const monthPlanKeys = {
     ["month-plan", userId, clientId, month] as const,
 };
 
-/** Tareas del mes (por fecha) y las que tienen el marcador del mes (aunque se hayan movido de fecha). */
+/**
+ * Tareas del mes (por fecha), las que tienen el marcador del plan del mes
+ * (aunque se hayan movido de fecha) y las del ciclo mensual del Plan de ese mes.
+ */
 export async function fetchExistingTasks(clientId: string, month: string): Promise<ExistingTask[]> {
   const { first, last } = monthBounds(month);
   const markerPrefix = planMarker(month, "").slice(0, -1); // "[plan-mes:2026-11:"
-  const columns = "id,title,due_date,description";
-  const [byDate, byMarker] = await Promise.all([
+  const columns = "id,title,due_date,description,status";
+  const [byDate, byMarker, byCycle] = await Promise.all([
     supabase
       .from("client_tasks")
       .select(columns)
@@ -43,14 +48,26 @@ export async function fetchExistingTasks(clientId: string, month: string): Promi
       .eq("client_id", clientId)
       .like("description", `%${markerPrefix}%`)
       .limit(EXISTING_LIMIT),
+    supabase
+      .from("client_tasks")
+      .select(columns)
+      .eq("client_id", clientId)
+      .like("description", cycleMarkerLike(month))
+      .limit(EXISTING_LIMIT),
   ]);
-  const error = byDate.error ?? byMarker.error;
+  const error = byDate.error ?? byMarker.error ?? byCycle.error;
   if (error) throw new Error(writeErrorMessage(error));
-  const unique = new Map([...(byDate.data ?? []), ...(byMarker.data ?? [])].map((t) => [t.id, t]));
-  return [...unique.values()].map(({ title, due_date, description }) => ({
+  const unique = new Map(
+    [...(byDate.data ?? []), ...(byMarker.data ?? []), ...(byCycle.data ?? [])].map((t) => [
+      t.id,
+      t,
+    ]),
+  );
+  return [...unique.values()].map(({ title, due_date, description, status }) => ({
     title,
     due_date,
     description,
+    status,
   }));
 }
 
@@ -87,7 +104,10 @@ export async function createMonthTasks(
   items: readonly MonthPlanItem[],
 ): Promise<CreateResult> {
   const existing = await fetchExistingTasks(clientId, month);
-  const fresh = items.filter((item) => !isDuplicate(item, month, existing));
+  // Lo que ya cubre el ciclo mensual del Plan (calendario, piezas, reporte…) no se repite.
+  const fresh = withoutCycleOverlap(items, month, existing).filter(
+    (item) => !isDuplicate(item, month, existing),
+  );
   if (fresh.length === 0) return { created: 0, skipped: items.length };
 
   const { data, error } = await supabase

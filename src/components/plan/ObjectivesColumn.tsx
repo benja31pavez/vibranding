@@ -1,4 +1,5 @@
-import { LayoutTemplate, Plus, Target } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowRight, LayoutTemplate, Plus, Target } from "lucide-react";
 import { FitList, Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,6 +49,8 @@ export interface ObjectivesColumnProps {
   onCreate: () => void;
   /** Objetivo estándar del plan del cliente (se marca con el ícono de plantilla). */
   isTemplate: (objective: PlanObjective) => boolean;
+  /** Cliente sin plan: en vez del vacío se invita a asignarlo (en la ficha). */
+  noPlanClientId?: string | null;
 }
 
 /** Objetivos en tarjetas compactas: meta vs actual, fecha y si va en camino. Un clic lo edita. */
@@ -60,6 +63,7 @@ export function ObjectivesColumn({
   onOpen,
   onCreate,
   isTemplate,
+  noPlanClientId = null,
 }: ObjectivesColumnProps) {
   const rows = [...(objectives ?? [])]
     .map((o) => ({ o, health: objectiveHealth(o, today) }))
@@ -101,6 +105,8 @@ export function ObjectivesColumn({
             <Skeleton key={i} className="h-16 w-full" />
           ))}
         </div>
+      ) : rows.length === 0 && noPlanClientId ? (
+        <AssignPlanCallout clientId={noPlanClientId} />
       ) : rows.length === 0 ? (
         <div className="rounded-app-lg border border-dashed border-border-subtle p-4 text-center text-sm text-muted-foreground">
           <p>Aún no hay objetivos para este cliente.</p>
@@ -123,6 +129,23 @@ export function ObjectivesColumn({
         />
       )}
     </Panel>
+  );
+}
+
+/** Sin plan: el plan se asigna en la ficha («Plan y facturación»); no se duplica ese formulario. */
+function AssignPlanCallout({ clientId }: { clientId: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-app-lg border border-dashed border-border-subtle px-4 py-6 text-center">
+      <p className="text-sm font-medium text-foreground">
+        Asigna un plan para crear objetivos y tareas
+      </p>
+      <Button asChild size="sm" variant="outline" className="h-8 text-xs">
+        <Link to="/clients/$clientId" params={{ clientId }}>
+          Ir a Plan y facturación
+          <ArrowRight aria-hidden className="ml-1 h-3.5 w-3.5" />
+        </Link>
+      </Button>
+    </div>
   );
 }
 

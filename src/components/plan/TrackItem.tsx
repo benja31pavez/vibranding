@@ -52,12 +52,23 @@ export function PlanPill({ status }: { status: PlanStatus }) {
 }
 
 /** Foto redonda del responsable o sus iniciales mientras no haya foto. */
-export function TeamAvatar({ member, className }: { member: TeamMemberKey; className?: string }) {
+export function TeamAvatar({
+  member,
+  className,
+  fallbackClassName,
+}: {
+  member: TeamMemberKey;
+  className?: string;
+  /** Para avatares chicos (p. ej. iniciales en 8 px). */
+  fallbackClassName?: string;
+}) {
   const m = TEAM[member];
   return (
     <Avatar className={cn("h-9 w-9 ring-1 ring-border-subtle", className)}>
       {m.avatarUrl && <AvatarImage src={m.avatarUrl} alt="" className="object-cover" />}
-      <AvatarFallback className="bg-muted text-xs font-semibold text-foreground/80">
+      <AvatarFallback
+        className={cn("bg-muted text-xs font-semibold text-foreground/80", fallbackClassName)}
+      >
         {initials(m.name)}
       </AvatarFallback>
     </Avatar>

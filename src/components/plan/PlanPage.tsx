@@ -127,6 +127,7 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
             onOpen={(id) => setSheet({ kind: "objective", id })}
             onCreate={() => setSheet({ kind: "objectives-new" })}
             isTemplate={(o) => isTemplateObjective(o, standardObjectives)}
+            noPlanClientId={overview.data && !toMonthPlanKey(planKey) ? clientId : null}
           />
         </div>
         <div className="flex min-w-0 flex-col md:min-h-0">
@@ -259,8 +260,9 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
 }
 
 /**
- * Al abrir el Plan crea (una vez por cliente y plan) las tareas y objetivos
- * estándar que falten. Idempotente; nunca borra ni edita nada.
+ * Al abrir el Plan crea (una vez por visita, cliente y plan) lo que falte:
+ * tareas de inicio, ciclo del mes (y del siguiente desde el día 25) y
+ * objetivos estándar. Idempotente; nunca borra ni edita nada.
  */
 function usePlanTemplateSeed({
   clientId,
@@ -283,7 +285,7 @@ function usePlanTemplateSeed({
       .then(({ tasks, objectives }) => {
         if (tasks + objectives === 0) return;
         toast.info(
-          `Se agregaron ${tasks} tareas y ${objectives} objetivos estándar del plan. Revísalos y ajústalos al cliente.`,
+          `Se agregaron ${tasks} tareas y ${objectives} objetivos del plan. Revísalos y ajústalos al cliente.`,
         );
         void invalidatePlan(queryClient, userKey, clientId);
       })
