@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Eye, FileDown, Instagram, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,10 +9,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Money, StatusBadge } from "@/components/app";
-import { findPlan } from "@/lib/pricing/plans";
+import { StatusBadge } from "@/components/app";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
-import { CLIENT_STATUS_META, formatDate, isClientStatus, type FichaOverview } from "./fichaQueries";
+import { CLIENT_STATUS_META, isClientStatus, type FichaOverview } from "./fichaQueries";
 import { usePdfExport } from "./usePdfExport";
 import { MeetingBriefButton } from "./MeetingBriefDialog";
 import { DeleteClientDialog, RenameClientDialog } from "./ClientDialogs";
@@ -23,10 +21,9 @@ import { EngagementChip } from "@/components/instagram/EngagementCard";
 interface ClientHeaderProps {
   clientId: string;
   overview: FichaOverview | undefined;
-  loading: boolean;
 }
 
-export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps) {
+export function ClientHeader({ clientId, overview }: ClientHeaderProps) {
   const { client, ig, reloadClient } = useActiveClient();
   const { renameClient, deleteClient } = useClientActions(clientId, reloadClient);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -65,7 +62,6 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
                 <Instagram aria-hidden className="h-3.5 w-3.5" /> @{client.instagram_handle}
               </a>
             )}
-            <HeaderFacts overview={overview} loading={loading} />
             <EngagementChip clientId={clientId} />
           </div>
         </div>
@@ -135,34 +131,4 @@ export function ClientHeader({ clientId, overview, loading }: ClientHeaderProps)
 export function ClientStatusBadge({ status }: { status: string }) {
   const meta = isClientStatus(status) ? CLIENT_STATUS_META[status] : undefined;
   return <StatusBadge status={status} label={meta?.label} tone={meta?.tone} />;
-}
-
-function HeaderFacts({
-  overview,
-  loading,
-}: {
-  overview: FichaOverview | undefined;
-  loading: boolean;
-}) {
-  if (loading) return <Skeleton className="h-4 w-64" />;
-  if (!overview) return null;
-  const plan = findPlan(overview.billing?.plan_key);
-  return (
-    <dl className="flex flex-wrap gap-x-3 gap-y-0.5">
-      <Fact label="Plan">{plan?.label ?? "Sin plan"}</Fact>
-      <Fact label="MRR neto">
-        <Money amount={overview.billing?.mrr ?? 0} className="text-foreground" />
-      </Fact>
-      <Fact label="Cliente desde">{formatDate(overview.startedAt)}</Fact>
-    </dl>
-  );
-}
-
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-1">
-      <dt>{label}:</dt>
-      <dd className="font-medium text-foreground">{children}</dd>
-    </div>
-  );
 }

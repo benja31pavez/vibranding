@@ -35,6 +35,8 @@ export const fichaKeys = {
   health: (userId: string, clientId: string) => ["ficha", userId, clientId, "health"] as const,
   contract: (userId: string, clientId: string) => ["ficha", userId, clientId, "contract"] as const,
   intake: (userId: string, clientId: string) => ["ficha", userId, clientId, "intake"] as const,
+  timeline: (userId: string, clientId: string) => ["ficha", userId, clientId, "timeline"] as const,
+  account: (userId: string, clientId: string) => ["ficha", userId, clientId, "account"] as const,
   exists: (userId: string, clientId: string) => ["client-exists", userId, clientId] as const,
 };
 
