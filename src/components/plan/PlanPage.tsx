@@ -137,7 +137,7 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
             icon={ListChecks}
             description={
               tasksQ.data
-                ? `${doneCount} de ${visibleTasks.length} listas${selected ? ` · ${selected.detail}` : ""}`
+                ? `${doneCount} de ${visibleTasks.length} entregadas${selected ? ` · ${selected.detail}` : ""}`
                 : undefined
             }
             actions={

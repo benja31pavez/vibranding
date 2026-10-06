@@ -379,43 +379,68 @@ export function taskStageKey(
 
 // ─── Tablero y entrega ──────────────────────────────────────────────────────
 
-export type BoardColumn = "todo" | "doing" | "done";
-export const BOARD_COLUMNS: readonly BoardColumn[] = ["todo", "doing", "done"];
+/** Estado real (guardado) de una tarea, agrupado: Pendiente / En proceso / Entregado. */
+export type TaskState = "todo" | "doing" | "done";
+export const TASK_STATES: readonly TaskState[] = ["todo", "doing", "done"];
+
+/**
+ * Columna del tablero. "late" (Atrasado) es derivado: tarea no entregada cuya
+ * fecha ya pasó (en hora de Chile). Nunca se guarda.
+ */
+export type BoardColumn = TaskState | "late";
+export const BOARD_COLUMNS: readonly BoardColumn[] = ["todo", "doing", "late", "done"];
 
 export const BOARD_COLUMN_LABELS: Readonly<Record<BoardColumn, string>> = {
-  todo: "Por hacer",
-  doing: "En curso",
-  done: "Lista",
+  todo: "Pendiente",
+  doing: "En proceso",
+  late: "Atrasado",
+  done: "Entregado",
 };
 
-/** `task_status` → columna. `in_review` = entregada al cliente: cuenta como lista. */
-export function taskColumn(status: string): BoardColumn {
+/** `task_status` → estado. `in_review` = entregada al cliente: cuenta como entregada. */
+export function taskColumn(status: string): TaskState {
   if (status === "done" || status === "in_review") return "done";
   if (status === "in_progress") return "doing";
   return "todo";
 }
 
-/** Columna → `task_status` que se guarda. */
-export const COLUMN_STATUS: Readonly<Record<BoardColumn, "pending" | "in_progress" | "done">> = {
+export interface LateTaskLike {
+  readonly status: string;
+  readonly due_date: string | null;
+}
+
+/** Atrasada: no entregada y su fecha (YYYY-MM-DD) es anterior a hoy (`today` en hora de Chile). */
+export function isTaskLate(task: LateTaskLike, today: string): boolean {
+  return (
+    Boolean(task.due_date && task.due_date.slice(0, 10) < today) &&
+    taskColumn(task.status) !== "done"
+  );
+}
+
+/** Columna donde se muestra la tarea en el tablero (las atrasadas van a "Atrasado"). */
+export function boardColumn(task: LateTaskLike, today: string): BoardColumn {
+  return isTaskLate(task, today) ? "late" : taskColumn(task.status);
+}
+
+/** Estado → `task_status` que se guarda. */
+export const COLUMN_STATUS: Readonly<Record<TaskState, "pending" | "in_progress" | "done">> = {
   todo: "pending",
   doing: "in_progress",
   done: "done",
 };
 
 /**
- * Estado de entrega (estilo WhatsApp):
- * - "approved": ✓✓ azul, el cliente la aprobó;
- * - "delivered": ✓✓ gris, se entregó al cliente;
- * - "done": ✓, lista internamente;
- * - "open": sin marca.
+ * Estado de entrega. En el Plan "done" y "delivered" se muestran igual
+ * (Entregado, ✓✓ verde, con la fecha de entrega si se guardó);
+ * "approved" agrega que el cliente la aprobó (✓✓ azul); "open" = sin entregar.
  */
 export type DeliveryState = "open" | "done" | "delivered" | "approved";
 
 export const DELIVERY_LABELS: Readonly<Record<DeliveryState, string>> = {
-  open: "Sin terminar",
-  done: "Lista (interna)",
-  delivered: "Entregada al cliente",
-  approved: "Aprobada por el cliente",
+  open: "Sin entregar",
+  done: "Entregado",
+  delivered: "Entregado al cliente",
+  approved: "Aprobado por el cliente",
 };
 
 export interface DeliveryTaskLike {
@@ -436,8 +461,8 @@ export type StageStatus = "pending" | "active" | "done";
 
 export const STAGE_STATUS_LABELS: Readonly<Record<StageStatus, string>> = {
   pending: "Pendiente",
-  active: "En curso",
-  done: "Lista",
+  active: "En proceso",
+  done: "Entregada",
 };
 
 export interface StageRowLike {
@@ -577,7 +602,7 @@ export const TRACK_STATUS_LABELS: Readonly<Record<TrackStatus, string>> = {
   late: "Atrasada",
 };
 
-/** Lo atrasado manda sobre "Pendiente" / "En curso"; una etapa lista nunca está atrasada. */
+/** Lo atrasado manda sobre "Pendiente" / "En proceso"; una etapa entregada nunca está atrasada. */
 export function trackStatus(status: StageStatus, late: boolean): TrackStatus {
   return late && status !== "done" ? "late" : status;
 }
@@ -593,7 +618,7 @@ export type PlanStatus = "not_started" | "active" | "on_track" | "late";
 
 export const PLAN_STATUS_LABELS: Readonly<Record<PlanStatus, string>> = {
   not_started: "Sin empezar",
-  active: "En curso",
+  active: "En proceso",
   on_track: "Al día",
   late: "Atrasado",
 };

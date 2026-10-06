@@ -159,6 +159,36 @@ eq(
 eq("entrega: in_review", s.deliveryState({ status: "in_review" }), "delivered");
 eq("entrega: interna", s.deliveryState({ status: "done" }), "done");
 eq("entrega: abierta", s.deliveryState({ status: "pending" }), "open");
+eq(
+  "etiquetas",
+  s.TASK_STATES.map((k) => s.BOARD_COLUMN_LABELS[k]).join("/"),
+  "Pendiente/En proceso/Entregado",
+);
+eq(
+  "atrasada: vencida",
+  s.boardColumn({ status: "in_progress", due_date: "2026-10-05" }, "2026-10-06"),
+  "late",
+);
+eq(
+  "atrasada: vence hoy",
+  s.boardColumn({ status: "pending", due_date: "2026-10-06" }, "2026-10-06"),
+  "todo",
+);
+eq(
+  "atrasada: entregada",
+  s.boardColumn({ status: "done", due_date: "2026-10-01" }, "2026-10-06"),
+  "done",
+);
+eq(
+  "atrasada: in_review",
+  s.isTaskLate({ status: "in_review", due_date: "2026-10-01" }, "2026-10-06"),
+  false,
+);
+eq(
+  "atrasada: sin fecha",
+  s.boardColumn({ status: "pending", due_date: null }, "2026-10-06"),
+  "todo",
+);
 
 // Resumen
 const plan = s.resolvePlan("contenido", []);

@@ -3,12 +3,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   COLUMN_STATUS,
+  isTaskLate,
   resolvePlan,
   summarizeByOwner,
   summarizeStages,
+  taskColumn,
   taskStageKey,
-  type BoardColumn,
   type StageKey,
+  type TaskState,
 } from "@/lib/delivery/planStages";
 import { isRetiredTask } from "@/lib/delivery/planTemplateSeed";
 import type { DeliveryAction } from "./TaskBoard";
@@ -82,13 +84,20 @@ export function usePlanBoard({ clientId, userKey, planKey, stage, today }: UsePl
     }
   };
 
-  const moveTask = (task: PlanTask, column: BoardColumn) =>
-    void patchTask(task, { status: COLUMN_STATUS[column] }, "No se pudo mover la tarea");
+  /** Cambia el estado real (Pendiente / En proceso / Entregado). "Atrasado" no se guarda: se deriva. */
+  const moveTask = (task: PlanTask, state: TaskState) => {
+    if (taskColumn(task.status) === state) return;
+    const patch = statePatch(task, state, deliveryColumns, new Date().toISOString());
+    if (isTaskLate({ ...task, ...patch }, today)) {
+      toast.info("Sigue en Atrasado: su fecha ya pasó.");
+    }
+    void patchTask(task, patch, "No se pudo cambiar el estado");
+  };
 
   const setDelivery = (task: PlanTask, action: DeliveryAction) =>
     void patchTask(
       task,
-      deliveryPatch(task, action, deliveryColumns, new Date().toISOString()),
+      deliveryPatch(task, action, new Date().toISOString()),
       "No se pudo actualizar la entrega",
     );
 
@@ -161,22 +170,26 @@ export function usePlanBoard({ clientId, userKey, planKey, stage, today }: UsePl
 }
 
 /**
- * Qué se guarda al marcar la entrega. Sin la migración (sin `delivered_at`),
- * "en revisión del cliente" (`in_review`) equivale a entregada.
+ * Qué se guarda al cambiar el estado. Entregado anota la fecha de entrega
+ * (`delivered_at`, si la columna existe); volver a Pendiente o En proceso la
+ * quita junto con la aprobación.
  */
-function deliveryPatch(
+function statePatch(
   task: PlanTask,
-  action: DeliveryAction,
+  state: TaskState,
   hasColumns: boolean,
   now: string,
 ): PlanTaskPatch {
+  const status = COLUMN_STATUS[state];
+  if (!hasColumns) return { status };
+  if (state === "done") return { status, delivered_at: task.delivered_at ?? now };
+  return { status, delivered_at: null, approved_at: null };
+}
+
+/** Aprobación del cliente (requiere la columna `approved_at`). Aprobar también la deja entregada. */
+function deliveryPatch(task: PlanTask, action: DeliveryAction, now: string): PlanTaskPatch {
   if (action === "approve") {
     return { status: "done", delivered_at: task.delivered_at ?? now, approved_at: now };
   }
-  if (action === "undo") {
-    return hasColumns
-      ? { status: "done", delivered_at: null, approved_at: null }
-      : { status: "done" };
-  }
-  return hasColumns ? { status: "done", delivered_at: now } : { status: "in_review" };
+  return { approved_at: null };
 }
