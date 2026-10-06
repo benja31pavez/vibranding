@@ -151,10 +151,7 @@ export function EventsPanel({
       {loading ? (
         <p className="text-sm text-muted-foreground">Cargando…</p>
       ) : !hasData ? (
-        <p className="text-sm text-muted-foreground">
-          Sin eventos registrados en este período. Los datos aparecen cuando alguien visita la
-          página publicada.
-        </p>
+        <p className="text-sm text-muted-foreground">Sin eventos en este período.</p>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

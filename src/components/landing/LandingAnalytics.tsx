@@ -131,10 +131,7 @@ export function LandingAnalytics({ clientId, landingId }: { clientId: string; la
       {loading ? (
         <p className="text-sm text-muted-foreground">Cargando…</p>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Sin eventos en este período. Los datos aparecen cuando alguien visita la landing
-          publicada.
-        </p>
+        <p className="text-sm text-muted-foreground">Sin visitas en este período.</p>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
