@@ -23,7 +23,7 @@ import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { ClientHealthCard, useClientHealth } from "@/components/clients/health";
 import { AdsBillingPanel, ADS_BILLING_TONE, useAdsBillingSources } from "./AdsBillingPanel";
 import { CampaignAlertsPanel } from "./CampaignAlertsPanel";
-import { FichaSheet } from "./FichaSection";
+import { FichaSheet } from "./FichaSheet";
 import type { FichaHealth } from "./fichaQueries";
 
 /** Planes que incluyen gestión de campañas en Meta Ads. */
