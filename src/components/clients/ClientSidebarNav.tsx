@@ -21,7 +21,8 @@ import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { useReviewAlerts } from "@/hooks/use-review-alerts";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/components/app";
-import { CLIENT_SECTIONS, type SectionDef } from "@/lib/clientSections";
+import { CLIENT_SECTIONS, type SectionDef, type SectionKey } from "@/lib/clientSections";
+import type { ConnectionKey } from "@/components/setup/connectionModel";
 
 type IconComponent = ComponentType<{ className?: string }>;
 type GroupKey = "operacion" | "conexiones" | "negocio";
@@ -36,6 +37,16 @@ const GROUPS: readonly { key: GroupKey; label: string; sections: readonly string
   },
   { key: "negocio", label: "Negocio", sections: ["leads", "facturacion", "analytics"] },
 ];
+
+/** Conexión que desbloquea cada sección con candado (abre directo esa conexión en Conexiones). */
+const UNLOCKED_BY: Partial<Record<SectionKey, ConnectionKey>> = {
+  instagram: "instagram",
+  automatizacion: "instagram",
+  bandeja: "whatsapp",
+  "meta-ads": "meta-ads",
+  analytics: "meta-ads",
+  "google-ads": "google-ads",
+};
 
 const GROUPED = new Set(GROUPS.flatMap((g) => g.sections));
 
@@ -89,6 +100,7 @@ function SectionLink({ section, clientId, path, lockedReason, badge }: SectionLi
           <Link
             to="/clients/$clientId/setup"
             params={{ clientId }}
+            search={{ conexion: UNLOCKED_BY[section.key] }}
             className={cn(itemClass(false), "text-muted-foreground/60")}
           >
             <Icon className="h-4 w-4 shrink-0" /> {section.label}
