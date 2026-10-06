@@ -314,7 +314,11 @@ function BulkConnectPage() {
                   Sincronizar ahora
                 </Button>
                 <Button asChild size="sm" variant="ghost">
-                  <Link to="/clients/$clientId/setup" params={{ clientId: row.clientId }}>
+                  <Link
+                    to="/clients/$clientId/setup"
+                    params={{ clientId: row.clientId }}
+                    search={{ conexion: "meta-ads" }}
+                  >
                     Abrir
                   </Link>
                 </Button>
