@@ -13,6 +13,9 @@ import { BILLING_ALERT_KIND } from "@/lib/google-ads/billing";
 import { CardUpdateDialog } from "@/components/google-ads/CardUpdateDialog";
 import { AdsBillingMessageDialog } from "./AdsBillingMessageDialog";
 
+/** Alertas que se resuelven en la configuración de la conexión con Meta (ruta setup). */
+const CONNECTION_KINDS: ReadonlySet<string> = new Set(["meta_connection", "ingest_stale"]);
+
 const ADS_MANAGER_PREFIX = "https://adsmanager.facebook.com/adsmanager/";
 
 /** Link al Administrador de anuncios guardado por el motor; solo se acepta el dominio de Meta. */
@@ -142,6 +145,15 @@ export function AlertActions({ alert, canResolve = true }: AlertActionsProps) {
           className="text-primary hover:underline"
         >
           Ver campañas
+        </Link>
+      )}
+      {alert.kind && CONNECTION_KINDS.has(alert.kind) && (
+        <Link
+          to="/clients/$clientId/setup"
+          params={{ clientId: alert.client_id }}
+          className="text-primary hover:underline"
+        >
+          Revisar conexión
         </Link>
       )}
       {canResolve && (

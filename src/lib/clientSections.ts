@@ -27,8 +27,7 @@ export interface SectionDef {
  *  - "automatizacion": automatización avanzada de Instagram.
  *  - "analytics": embudo/CAC/ROAS basado en outcomes y backfill de conversaciones.
  *
- * Las rutas siguen existiendo (se puede entrar por URL); solo desaparecen del menú
- * y del contador "X de Y secciones activas".
+ * Las rutas siguen existiendo (se puede entrar por URL); solo desaparecen del menú.
  *
  * Para reactivar una sección: quítala de este Set. Para mostrar todas: `new Set()`.
  */
@@ -81,7 +80,3 @@ export const ALL_CLIENT_SECTIONS: SectionDef[] = [
 export const CLIENT_SECTIONS: SectionDef[] = ALL_CLIENT_SECTIONS.filter(
   (s) => !HIDDEN_SECTIONS.has(s.key),
 );
-
-export function activeSectionCount(caps: ClientCapabilities): number {
-  return CLIENT_SECTIONS.filter((s) => s.lockedReason(caps) === null).length;
-}

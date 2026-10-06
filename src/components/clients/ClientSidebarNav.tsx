@@ -10,7 +10,6 @@ import {
   MessageCircle,
   Receipt,
   Search,
-  Settings2,
   UserPlus,
   Zap,
 } from "lucide-react";
@@ -22,30 +21,30 @@ import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { useReviewAlerts } from "@/hooks/use-review-alerts";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/components/app";
-import { CLIENT_SECTIONS, activeSectionCount, type SectionDef } from "@/lib/clientSections";
+import { CLIENT_SECTIONS, type SectionDef } from "@/lib/clientSections";
 
 type IconComponent = ComponentType<{ className?: string }>;
-type GroupKey = "operacion" | "negocio" | "ajustes";
+type GroupKey = "operacion" | "conexiones" | "negocio";
 
-const GROUPS: readonly { key: GroupKey; label: string }[] = [
-  { key: "operacion", label: "Operación" },
-  { key: "negocio", label: "Negocio" },
-  { key: "ajustes", label: "Ajustes" },
+/** Grupos del menú y el orden de sus secciones. */
+const GROUPS: readonly { key: GroupKey; label: string; sections: readonly string[] }[] = [
+  { key: "operacion", label: "Operación", sections: ["plan", "sitio"] },
+  {
+    key: "conexiones",
+    label: "Conexiones",
+    sections: ["instagram", "bandeja", "meta-ads", "google-ads"],
+  },
+  { key: "negocio", label: "Negocio", sections: ["leads", "facturacion", "analytics"] },
 ];
 
-/** Grupo de cada sección; una key que no esté aquí cae en "Operación". */
-const SECTION_GROUP: Partial<Record<string, GroupKey>> = {
-  plan: "operacion",
-  instagram: "operacion",
-  automatizacion: "operacion",
-  bandeja: "operacion",
-  sitio: "operacion",
-  "meta-ads": "negocio",
-  "google-ads": "negocio",
-  leads: "negocio",
-  facturacion: "negocio",
-  analytics: "negocio",
-};
+const GROUPED = new Set(GROUPS.flatMap((g) => g.sections));
+
+/** Secciones visibles de un grupo, en su orden; las sin grupo caen al final de "Operación". */
+function sectionsOf(group: (typeof GROUPS)[number]): SectionDef[] {
+  const listed = group.sections.flatMap((key) => CLIENT_SECTIONS.filter((s) => s.key === key));
+  if (group.key !== "operacion") return listed;
+  return [...listed, ...CLIENT_SECTIONS.filter((s) => !GROUPED.has(s.key))];
+}
 
 /** Un icono distinto por sección (Facturación ≠ Analítica). */
 const ICONS: Partial<Record<string, IconComponent>> = {
@@ -61,8 +60,6 @@ const ICONS: Partial<Record<string, IconComponent>> = {
   analytics: BarChart3,
 };
 
-const groupOf = (key: string): GroupKey => SECTION_GROUP[key] ?? "operacion";
-
 const itemClass = (isActive: boolean) =>
   cn(
     "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
@@ -71,28 +68,6 @@ const itemClass = (isActive: boolean) =>
       ? "bg-sidebar-accent text-sidebar-accent-foreground"
       : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
   );
-
-function ProgressRing({ done, total }: { done: number; total: number }) {
-  const r = 9;
-  const c = 2 * Math.PI * r;
-  const pct = total === 0 ? 0 : done / total;
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" className="shrink-0" aria-hidden="true">
-      <circle cx="11" cy="11" r={r} className="stroke-border" strokeWidth="2.5" fill="none" />
-      <circle
-        cx="11"
-        cy="11"
-        r={r}
-        className="stroke-primary"
-        strokeWidth="2.5"
-        fill="none"
-        strokeLinecap="round"
-        strokeDasharray={`${c * pct} ${c}`}
-        transform="rotate(-90 11 11)"
-      />
-    </svg>
-  );
-}
 
 interface SectionLinkProps {
   section: SectionDef;
@@ -161,10 +136,9 @@ export function ClientSidebarNav({
     loading: capsLoading,
   } = useClientCapabilities(clientId);
   const { count: reviewCount } = useReviewAlerts(clientId);
-  const setupHref = `/clients/${clientId}/setup`;
-  const fichaHref = `/clients/${clientId}`;
+  // "Ficha" es la ficha del cliente; la gestión de la agencia (/clients/<id>) no marca nada aquí.
+  const fichaHref = `/clients/${clientId}/ficha`;
   const onFicha = path === fichaHref || path === `${fichaHref}/`;
-  const active = activeSectionCount(caps);
 
   const badgeFor = (key: string) => {
     if (key === "plan") return reviewCount;
@@ -183,7 +157,7 @@ export function ClientSidebarNav({
         />
       )}
       <Link
-        to="/clients/$clientId"
+        to="/clients/$clientId/ficha"
         params={{ clientId }}
         aria-current={onFicha ? "page" : undefined}
         className={itemClass(onFicha)}
@@ -192,9 +166,8 @@ export function ClientSidebarNav({
         <span className="min-w-0 flex-1 leading-tight">Ficha</span>
       </Link>
       {GROUPS.map((group) => {
-        const sections = CLIENT_SECTIONS.filter((s) => groupOf(s.key) === group.key);
-        const isSettings = group.key === "ajustes";
-        if (sections.length === 0 && !isSettings) return null;
+        const sections = sectionsOf(group);
+        if (sections.length === 0) return null;
         const headingId = `client-nav-${group.key}`;
         return (
           <div key={group.key} role="group" aria-labelledby={headingId}>
@@ -217,25 +190,6 @@ export function ClientSidebarNav({
                   />
                 </li>
               ))}
-              {isSettings && (
-                <li>
-                  <Link
-                    to="/clients/$clientId/setup"
-                    params={{ clientId }}
-                    aria-current={path === setupHref ? "page" : undefined}
-                    className={itemClass(path === setupHref)}
-                  >
-                    <Settings2 className="h-4 w-4 shrink-0" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block leading-tight">Configurar</span>
-                      <span className="block text-xs font-normal leading-tight">
-                        {active} de {CLIENT_SECTIONS.length} secciones activas
-                      </span>
-                    </span>
-                    <ProgressRing done={active} total={CLIENT_SECTIONS.length} />
-                  </Link>
-                </li>
-              )}
             </ul>
           </div>
         );

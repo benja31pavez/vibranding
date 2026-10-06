@@ -72,7 +72,7 @@ function InstagramTabsPage() {
         <TabsContent value="calendario">
           <ContentCalendar clientId={clientId} />
         </TabsContent>
-        <TabsContent value="engagement" className="max-w-3xl">
+        <TabsContent value="engagement">
           <EngagementCard clientId={clientId} />
         </TabsContent>
       </Tabs>

@@ -76,6 +76,7 @@ import { Route as AppClientsClientIdContentRouteImport } from './routes/_app/cli
 import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
 import { Route as AppClientsClientIdDeliverablesRouteImport } from './routes/_app/clients/$clientId/deliverables'
 import { Route as AppClientsClientIdFacturacionRouteImport } from './routes/_app/clients/$clientId/facturacion'
+import { Route as AppClientsClientIdFichaRouteImport } from './routes/_app/clients/$clientId/ficha'
 import { Route as AppClientsClientIdGoogleAdsRouteImport } from './routes/_app/clients/$clientId/google-ads'
 import { Route as AppClientsClientIdInstagramRouteImport } from './routes/_app/clients/$clientId/instagram'
 import { Route as AppClientsClientIdLandingRouteImport } from './routes/_app/clients/$clientId/landing'
@@ -452,6 +453,11 @@ const AppClientsClientIdFacturacionRoute =
     path: '/facturacion',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdFichaRoute = AppClientsClientIdFichaRouteImport.update({
+  id: '/ficha',
+  path: '/ficha',
+  getParentRoute: () => AppClientsClientIdRoute,
+} as any)
 const AppClientsClientIdGoogleAdsRoute =
   AppClientsClientIdGoogleAdsRouteImport.update({
     id: '/google-ads',
@@ -679,6 +685,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/facturacion': typeof AppClientsClientIdFacturacionRoute
+  '/clients/$clientId/ficha': typeof AppClientsClientIdFichaRoute
   '/clients/$clientId/google-ads': typeof AppClientsClientIdGoogleAdsRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
@@ -774,6 +781,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/clients/$clientId/facturacion': typeof AppClientsClientIdFacturacionRoute
+  '/clients/$clientId/ficha': typeof AppClientsClientIdFichaRoute
   '/clients/$clientId/google-ads': typeof AppClientsClientIdGoogleAdsRoute
   '/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
@@ -872,6 +880,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
   '/_app/clients/$clientId/deliverables': typeof AppClientsClientIdDeliverablesRoute
   '/_app/clients/$clientId/facturacion': typeof AppClientsClientIdFacturacionRoute
+  '/_app/clients/$clientId/ficha': typeof AppClientsClientIdFichaRoute
   '/_app/clients/$clientId/google-ads': typeof AppClientsClientIdGoogleAdsRoute
   '/_app/clients/$clientId/instagram': typeof AppClientsClientIdInstagramRoute
   '/_app/clients/$clientId/landing': typeof AppClientsClientIdLandingRoute
@@ -970,6 +979,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/facturacion'
+    | '/clients/$clientId/ficha'
     | '/clients/$clientId/google-ads'
     | '/clients/$clientId/instagram'
     | '/clients/$clientId/landing'
@@ -1065,6 +1075,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/contracts'
     | '/clients/$clientId/deliverables'
     | '/clients/$clientId/facturacion'
+    | '/clients/$clientId/ficha'
     | '/clients/$clientId/google-ads'
     | '/clients/$clientId/instagram'
     | '/clients/$clientId/landing'
@@ -1162,6 +1173,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/contracts'
     | '/_app/clients/$clientId/deliverables'
     | '/_app/clients/$clientId/facturacion'
+    | '/_app/clients/$clientId/ficha'
     | '/_app/clients/$clientId/google-ads'
     | '/_app/clients/$clientId/instagram'
     | '/_app/clients/$clientId/landing'
@@ -1717,6 +1729,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdFacturacionRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/ficha': {
+      id: '/_app/clients/$clientId/ficha'
+      path: '/ficha'
+      fullPath: '/clients/$clientId/ficha'
+      preLoaderRoute: typeof AppClientsClientIdFichaRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/google-ads': {
       id: '/_app/clients/$clientId/google-ads'
       path: '/google-ads'
@@ -1937,6 +1956,7 @@ interface AppClientsClientIdRouteChildren {
   AppClientsClientIdContractsRoute: typeof AppClientsClientIdContractsRoute
   AppClientsClientIdDeliverablesRoute: typeof AppClientsClientIdDeliverablesRoute
   AppClientsClientIdFacturacionRoute: typeof AppClientsClientIdFacturacionRoute
+  AppClientsClientIdFichaRoute: typeof AppClientsClientIdFichaRoute
   AppClientsClientIdGoogleAdsRoute: typeof AppClientsClientIdGoogleAdsRoute
   AppClientsClientIdInstagramRoute: typeof AppClientsClientIdInstagramRoute
   AppClientsClientIdLandingRoute: typeof AppClientsClientIdLandingRoute
@@ -1962,6 +1982,7 @@ const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdContractsRoute: AppClientsClientIdContractsRoute,
   AppClientsClientIdDeliverablesRoute: AppClientsClientIdDeliverablesRoute,
   AppClientsClientIdFacturacionRoute: AppClientsClientIdFacturacionRoute,
+  AppClientsClientIdFichaRoute: AppClientsClientIdFichaRoute,
   AppClientsClientIdGoogleAdsRoute: AppClientsClientIdGoogleAdsRoute,
   AppClientsClientIdInstagramRoute: AppClientsClientIdInstagramRoute,
   AppClientsClientIdLandingRoute: AppClientsClientIdLandingRoute,

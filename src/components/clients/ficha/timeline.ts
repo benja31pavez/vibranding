@@ -19,6 +19,7 @@ export const TIMELINE_KINDS = [
   "onboarding",
   "plan",
   "archivo",
+  "publicacion",
 ] as const;
 export type TimelineKind = (typeof TIMELINE_KINDS)[number];
 
@@ -36,6 +37,7 @@ export const TIMELINE_KIND_META: Readonly<
   onboarding: { label: "Onboarding recibido", tone: "info" },
   plan: { label: "Cambio de plan", tone: "warning" },
   archivo: { label: "Archivo adjunto", tone: "neutral" },
+  publicacion: { label: "Post publicado", tone: "success" },
 };
 
 export interface TimelineEvent {
