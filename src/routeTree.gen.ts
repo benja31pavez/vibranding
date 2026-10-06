@@ -72,6 +72,7 @@ import { Route as AppClientsClientIdArchivosRouteImport } from './routes/_app/cl
 import { Route as AppClientsClientIdAutomatizacionRouteImport } from './routes/_app/clients/$clientId/automatizacion'
 import { Route as AppClientsClientIdBackfillRouteImport } from './routes/_app/clients/$clientId/backfill'
 import { Route as AppClientsClientIdBandejaRouteImport } from './routes/_app/clients/$clientId/bandeja'
+import { Route as AppClientsClientIdCalendarioRouteImport } from './routes/_app/clients/$clientId/calendario'
 import { Route as AppClientsClientIdChatbotRouteImport } from './routes/_app/clients/$clientId/chatbot'
 import { Route as AppClientsClientIdContentRouteImport } from './routes/_app/clients/$clientId/content'
 import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
@@ -433,6 +434,12 @@ const AppClientsClientIdBandejaRoute =
     path: '/bandeja',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdCalendarioRoute =
+  AppClientsClientIdCalendarioRouteImport.update({
+    id: '/calendario',
+    path: '/calendario',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdChatbotRoute =
   AppClientsClientIdChatbotRouteImport.update({
     id: '/chatbot',
@@ -708,6 +715,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/automatizacion': typeof AppClientsClientIdAutomatizacionRoute
   '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/clients/$clientId/bandeja': typeof AppClientsClientIdBandejaRoute
+  '/clients/$clientId/calendario': typeof AppClientsClientIdCalendarioRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
@@ -808,6 +816,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/automatizacion': typeof AppClientsClientIdAutomatizacionRoute
   '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/clients/$clientId/bandeja': typeof AppClientsClientIdBandejaRoute
+  '/clients/$clientId/calendario': typeof AppClientsClientIdCalendarioRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
@@ -911,6 +920,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/automatizacion': typeof AppClientsClientIdAutomatizacionRoute
   '/_app/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/_app/clients/$clientId/bandeja': typeof AppClientsClientIdBandejaRoute
+  '/_app/clients/$clientId/calendario': typeof AppClientsClientIdCalendarioRoute
   '/_app/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/_app/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/_app/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
@@ -1014,6 +1024,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/automatizacion'
     | '/clients/$clientId/backfill'
     | '/clients/$clientId/bandeja'
+    | '/clients/$clientId/calendario'
     | '/clients/$clientId/chatbot'
     | '/clients/$clientId/content'
     | '/clients/$clientId/contracts'
@@ -1114,6 +1125,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/automatizacion'
     | '/clients/$clientId/backfill'
     | '/clients/$clientId/bandeja'
+    | '/clients/$clientId/calendario'
     | '/clients/$clientId/chatbot'
     | '/clients/$clientId/content'
     | '/clients/$clientId/contracts'
@@ -1216,6 +1228,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/automatizacion'
     | '/_app/clients/$clientId/backfill'
     | '/_app/clients/$clientId/bandeja'
+    | '/_app/clients/$clientId/calendario'
     | '/_app/clients/$clientId/chatbot'
     | '/_app/clients/$clientId/content'
     | '/_app/clients/$clientId/contracts'
@@ -1754,6 +1767,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdBandejaRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/calendario': {
+      id: '/_app/clients/$clientId/calendario'
+      path: '/calendario'
+      fullPath: '/clients/$clientId/calendario'
+      preLoaderRoute: typeof AppClientsClientIdCalendarioRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/chatbot': {
       id: '/_app/clients/$clientId/chatbot'
       path: '/chatbot'
@@ -2033,6 +2053,7 @@ interface AppClientsClientIdRouteChildren {
   AppClientsClientIdAutomatizacionRoute: typeof AppClientsClientIdAutomatizacionRoute
   AppClientsClientIdBackfillRoute: typeof AppClientsClientIdBackfillRoute
   AppClientsClientIdBandejaRoute: typeof AppClientsClientIdBandejaRoute
+  AppClientsClientIdCalendarioRoute: typeof AppClientsClientIdCalendarioRoute
   AppClientsClientIdChatbotRoute: typeof AppClientsClientIdChatbotRoute
   AppClientsClientIdContentRoute: typeof AppClientsClientIdContentRoute
   AppClientsClientIdContractsRoute: typeof AppClientsClientIdContractsRoute
@@ -2061,6 +2082,7 @@ const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdAutomatizacionRoute: AppClientsClientIdAutomatizacionRoute,
   AppClientsClientIdBackfillRoute: AppClientsClientIdBackfillRoute,
   AppClientsClientIdBandejaRoute: AppClientsClientIdBandejaRoute,
+  AppClientsClientIdCalendarioRoute: AppClientsClientIdCalendarioRoute,
   AppClientsClientIdChatbotRoute: AppClientsClientIdChatbotRoute,
   AppClientsClientIdContentRoute: AppClientsClientIdContentRoute,
   AppClientsClientIdContractsRoute: AppClientsClientIdContractsRoute,

@@ -22,17 +22,18 @@ export interface ClientOption {
 interface AgendaFiltersProps {
   /** Tipos visibles; `null` = todos. */
   kinds: readonly AgendaKind[] | null;
-  clientId: string | null;
-  clients: readonly ClientOption[];
+  /** Sin `clients`/`onClientChange` no se muestra el selector (calendario de un solo cliente). */
+  clientId?: string | null;
+  clients?: readonly ClientOption[];
   counts: Readonly<Record<AgendaKind, number>>;
   onKindsChange: (kinds: AgendaKind[] | null) => void;
-  onClientChange: (clientId: string | null) => void;
+  onClientChange?: (clientId: string | null) => void;
   onClear: () => void;
 }
 
 export function AgendaFilters({
   kinds,
-  clientId,
+  clientId = null,
   clients,
   counts,
   onKindsChange,
@@ -93,19 +94,24 @@ export function AgendaFilters({
       </ToggleGroup>
 
       <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
-        <Select value={clientId ?? ALL} onValueChange={(v) => onClientChange(v === ALL ? null : v)}>
-          <SelectTrigger className="h-9 w-full sm:w-[240px]" aria-label="Filtrar por cliente">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>Todos los clientes</SelectItem>
-            {clients.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {clients && onClientChange && (
+          <Select
+            value={clientId ?? ALL}
+            onValueChange={(v) => onClientChange(v === ALL ? null : v)}
+          >
+            <SelectTrigger className="h-9 w-full sm:w-[240px]" aria-label="Filtrar por cliente">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Todos los clientes</SelectItem>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={onClear}>
             <FilterX aria-hidden className="mr-1.5 h-4 w-4" />

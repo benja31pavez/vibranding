@@ -2,6 +2,7 @@ import type { ClientCapabilities } from "@/hooks/use-client-capabilities";
 
 export type SectionKey =
   | "plan"
+  | "calendario"
   | "archivos"
   | "instagram"
   | "meta-ads"
@@ -41,6 +42,7 @@ export const HIDDEN_SECTIONS: ReadonlySet<SectionKey> = new Set<SectionKey>([
 /** Todas las secciones definidas, incluidas las ocultas. */
 export const ALL_CLIENT_SECTIONS: SectionDef[] = [
   { key: "plan", label: "Plan", lockedReason: () => null },
+  { key: "calendario", label: "Calendario", lockedReason: () => null },
   { key: "archivos", label: "Archivos", lockedReason: () => null },
   {
     key: "instagram",

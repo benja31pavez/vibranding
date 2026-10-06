@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   Scale,
   BarChart3,
+  CalendarDays,
   Circle,
   Flag,
   Globe,
@@ -31,7 +32,7 @@ type GroupKey = "operacion" | "conexiones" | "negocio";
 
 /** Grupos del menú y el orden de sus secciones. */
 const GROUPS: readonly { key: GroupKey; label: string; sections: readonly string[] }[] = [
-  { key: "operacion", label: "Operación", sections: ["plan", "archivos", "sitio"] },
+  { key: "operacion", label: "Operación", sections: ["plan", "calendario", "archivos", "sitio"] },
   {
     key: "conexiones",
     label: "Conexiones",
@@ -62,6 +63,7 @@ function sectionsOf(group: (typeof GROUPS)[number]): SectionDef[] {
 /** Un icono distinto por sección (Facturación ≠ Analítica). */
 const ICONS: Partial<Record<string, IconComponent>> = {
   plan: Flag,
+  calendario: CalendarDays,
   archivos: Images,
   instagram: Instagram,
   "meta-ads": MetaIcon,
