@@ -10,6 +10,7 @@ export type SectionKey =
   | "bandeja"
   | "leads"
   | "facturacion"
+  | "legal"
   | "analytics";
 
 export interface SectionDef {
@@ -66,6 +67,7 @@ export const ALL_CLIENT_SECTIONS: SectionDef[] = [
   },
   { key: "leads", label: "Leads", lockedReason: () => null },
   { key: "facturacion", label: "Facturación", lockedReason: () => null },
+  { key: "legal", label: "Legal", lockedReason: () => null },
   {
     key: "analytics",
     label: "Analítica",
