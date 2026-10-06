@@ -162,12 +162,7 @@ export function WorkWithUsSection() {
       aria-labelledby="como-title"
       className="scroll-mt-20 mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24"
     >
-      <SectionHeading
-        id="como-title"
-        title="Cómo es trabajar"
-        accent="con nosotros"
-        subtitle="Marca + Web toma entre 2 y 3 semanas desde que recibimos tu información y el pago, con revisiones de por medio."
-      />
+      <SectionHeading id="como-title" title="Cómo es trabajar" accent="con nosotros" />
       <ol data-reveal-stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {PROCESS.map((step, i) => (
           <li key={step.title} className="card-fx rounded-3xl border bg-card p-6">

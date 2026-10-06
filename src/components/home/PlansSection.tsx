@@ -1,4 +1,4 @@
-import { Check, Info } from "lucide-react";
+import { Check } from "lucide-react";
 import { PlanNotIncluded } from "@/components/pricing/PlanNotIncluded";
 import { planNotIncluded } from "@/lib/pricing/plans";
 import { formatClp } from "@/lib/site";
@@ -28,13 +28,6 @@ export function PlansSection() {
             <PlanCard key={plan.id} plan={plan} popularLabel={p.popular} ctaLabel={p.cta} />
           ))}
         </ul>
-        <p
-          data-reveal
-          className="mx-auto mt-8 flex max-w-3xl items-start gap-2 text-sm text-muted-foreground"
-        >
-          <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-          {p.adSpendNote}
-        </p>
       </div>
     </section>
   );
