@@ -8,12 +8,20 @@ interface PortalShellProps {
   clientName?: string;
   /** Para mostrar el logo de la marca junto a su nombre (si tiene). */
   clientId?: string;
+  /** Logo que trae el portal (el usuario cliente no lee la tabla clients). */
+  logoUrl?: string | null;
   onSignOut: () => void;
   children: ReactNode;
 }
 
 /** Marco del portal para el cliente: cabecera con la marca Vibranding y salida. */
-export function PortalShell({ clientName, clientId, onSignOut, children }: PortalShellProps) {
+export function PortalShell({
+  clientName,
+  clientId,
+  logoUrl,
+  onSignOut,
+  children,
+}: PortalShellProps) {
   return (
     <div className="min-h-screen bg-bg">
       <header className="sticky top-0 z-30 border-b border-border-subtle bg-sidebar/95 backdrop-blur">
@@ -26,6 +34,7 @@ export function PortalShell({ clientName, clientId, onSignOut, children }: Porta
               <span className="hidden min-w-0 items-center gap-2 text-sm text-muted-foreground sm:flex">
                 <ClientLogo
                   clientId={clientId}
+                  fallbackSrc={logoUrl}
                   name={clientName}
                   hideFallback
                   className="h-6 w-6"

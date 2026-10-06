@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAgencyMember } from "@/lib/auth/requireAgencyMember";
 import type { MetaValidation } from "@/lib/meta/validate.server";
 
 export type ClientConnectRow = {
@@ -19,7 +20,7 @@ export type ClientConnectRow = {
 
 /** Every client of the org with what is still missing to be fully connected. */
 export const listClientConnections = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAgencyMember])
   .handler(async ({ context }): Promise<ClientConnectRow[]> => {
     const { data: clients } = await context.supabase
       .from("clients")
@@ -66,14 +67,26 @@ export const listClientConnections = createServerFn({ method: "POST" })
     return rows;
   });
 
+/**
+ * Org del usuario y verificación de rol para usar el token de Meta de la org.
+ * Solo owner/admin (is_org_manager): el token es de toda la agencia.
+ */
+async function requireOrgTokenManager(supabase: any): Promise<string> {
+  const { data: status, error } = await (supabase.rpc as any)("org_meta_token_status");
+  if (error) throw new Error(error.message);
+  const orgId = (status as any)?.org_id as string | undefined;
+  if (!orgId) throw new Error("No perteneces a ninguna organización");
+  if (!(status as any)?.can_manage) {
+    throw new Error("Solo el dueño o un administrador puede usar el token de la organización");
+  }
+  return orgId;
+}
+
 /** Assets the org-level token reaches, without needing a client context. */
 export const discoverOrgAssets = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAgencyMember])
   .handler(async ({ context }) => {
-    const { data: status, error } = await (context.supabase.rpc as any)("org_meta_token_status");
-    if (error) throw new Error(error.message);
-    const orgId = (status as any)?.org_id as string | undefined;
-    if (!orgId) throw new Error("No perteneces a ninguna organización");
+    const orgId = await requireOrgTokenManager(context.supabase);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: token, error: tErr } = await (supabaseAdmin.rpc as any)("org_meta_get_secret", {
@@ -89,12 +102,9 @@ export const discoverOrgAssets = createServerFn({ method: "POST" })
 
 /** Re-runs /debug_token against the stored org token and refreshes its metadata. */
 export const validateOrgMetaToken = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAgencyMember])
   .handler(async ({ context }) => {
-    const { data: status, error } = await (context.supabase.rpc as any)("org_meta_token_status");
-    if (error) throw new Error(error.message);
-    const orgId = (status as any)?.org_id as string | undefined;
-    if (!orgId) throw new Error("No perteneces a ninguna organización");
+    const orgId = await requireOrgTokenManager(context.supabase);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: token } = await (supabaseAdmin.rpc as any)("org_meta_get_secret", {
@@ -115,7 +125,9 @@ export const validateOrgMetaToken = createServerFn({ method: "POST" })
         ? new Date(Number(info.expires_at) * 1000).toISOString()
         : null;
 
-    const { error: sErr } = await (supabaseAdmin.rpc as any)("org_meta_set_secret", {
+    // Con la sesión del usuario: org_meta_set_secret exige is_org_manager(auth.uid()).
+    // Con service_role auth.uid() es NULL y la función siempre rechazaba.
+    const { error: sErr } = await (context.supabase.rpc as any)("org_meta_set_secret", {
       _org_id: orgId,
       _secret: value,
       _expires_at: expiresAt,

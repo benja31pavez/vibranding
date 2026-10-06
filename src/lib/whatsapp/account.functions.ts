@@ -10,12 +10,9 @@ export const getWhatsAppVerifyToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { accountId: string }) => input)
   .handler(async ({ data, context }) => {
-    // Ownership check under RLS (row visible only for the user's own clients).
-    const { data: owned } = await (context.supabase.from("whatsapp_accounts_safe" as any) as any)
-      .select("id")
-      .eq("id", data.accountId)
-      .maybeSingle();
-    if (!owned) throw new Error("No tienes acceso a esta cuenta");
+    // Solo editores de la agencia dueña del cliente (no viewers ni el cliente).
+    const { assertCanEditWhatsAppAccount } = await import("./accountAccess.server");
+    await assertCanEditWhatsAppAccount(context.userId, data.accountId);
 
     const { getWaSecret, setWaSecret } = await import("./tokens.server");
     let token = await getWaSecret(data.accountId, "verify_token");
@@ -34,11 +31,9 @@ export const setWhatsAppAccessToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { accountId: string; token: string | null }) => input)
   .handler(async ({ data, context }) => {
-    const { data: owned } = await (context.supabase.from("whatsapp_accounts_safe" as any) as any)
-      .select("id")
-      .eq("id", data.accountId)
-      .maybeSingle();
-    if (!owned) throw new Error("No tienes acceso a esta cuenta");
+    // Solo editores de la agencia dueña del cliente (no viewers ni el cliente).
+    const { assertCanEditWhatsAppAccount } = await import("./accountAccess.server");
+    await assertCanEditWhatsAppAccount(context.userId, data.accountId);
 
     const { setWaSecret } = await import("./tokens.server");
     const value = data.token && data.token.trim().length > 0 ? data.token.trim() : null;

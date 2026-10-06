@@ -4150,6 +4150,18 @@ export type Database = {
         }
         Relationships: []
       }
+      client_self: {
+        Row: {
+          business_description: string | null
+          id: string | null
+          instagram_handle: string | null
+          logo_url: string | null
+          name: string | null
+          started_at: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
       portal_payments: {
         Row: {
           amount: number | null

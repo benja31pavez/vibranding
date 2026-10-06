@@ -18,15 +18,11 @@ export const syncWhatsAppProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { accountId: string }) => input)
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const { userId } = context;
 
-    // Verify the user owns the account (via clients.user_id through RLS)
-    const { data: owned } = await supabase
-      .from("whatsapp_accounts")
-      .select("id")
-      .eq("id", data.accountId)
-      .maybeSingle();
-    if (!owned) throw new Error("No tienes acceso a esta cuenta");
+    // Solo editores de la agencia dueña del cliente (no viewers ni el cliente).
+    const { assertCanEditWhatsAppAccount } = await import("./accountAccess.server");
+    await assertCanEditWhatsAppAccount(userId, data.accountId);
 
     const { data: acc } = await supabaseAdmin
       .from("whatsapp_accounts")

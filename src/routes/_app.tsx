@@ -1,7 +1,15 @@
-import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { forgetUserKind, resolveUserKind } from "@/lib/auth/userKind";
 import { useUnmarkedOutcomes } from "@/hooks/use-unmarked-outcomes";
 import { useSyncLanguagePref } from "@/hooks/use-user-prefs";
 import { AppHeader } from "@/components/shell/AppHeader";
@@ -18,6 +26,16 @@ export const Route = createFileRoute("/_app")({
   // Todo el panel autenticado queda fuera de buscadores; las rutas hijas heredan este meta
   // (si una hija define su propio robots, prevalece la más profunda, siempre con noindex).
   head: () => ({ meta: [NOINDEX_META] }),
+  // Guard de todas las rutas de agencia (hijas de /_app): un usuario cliente va a /portal.
+  // En SSR no hay sesión (vive en el navegador): ahí decide AppLayout al hidratar.
+  // Si la verificación falla, lanza → errorComponent de la raíz (nunca el shell de agencia).
+  beforeLoad: async () => {
+    if (typeof window === "undefined") return;
+    const { data } = await supabase.auth.getSession();
+    const userId = data.session?.user.id;
+    if (!userId) return; // AppLayout redirige a /login.
+    if ((await resolveUserKind(userId)) === "client") throw redirect({ to: "/portal" });
+  },
   component: AppLayout,
 });
 
@@ -35,6 +53,9 @@ function AppLayout() {
   const [clientSheetOpen, setClientSheetOpen] = useState(false);
   // Usuario verificado como agencia (no cliente invitado); hasta entonces se muestra el skeleton.
   const [verifiedUserId, setVerifiedUserId] = useState<string | null>(null);
+  // Falla cerrado: si no se pudo verificar, no se muestra el shell de agencia.
+  const [kindError, setKindError] = useState<string | null>(null);
+  const [kindAttempt, setKindAttempt] = useState(0);
   const toggleSearch = useCallback(() => setSearchOpen((o) => !o), []);
 
   useEffect(() => {
@@ -46,19 +67,25 @@ function AppLayout() {
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    supabase.rpc("user_client_id").then(({ data, error }) => {
-      if (cancelled) return;
-      if (error) console.error("[shell] No se pudo verificar el tipo de usuario", error);
-      if (data) {
-        navigate({ to: "/portal" });
-        return;
-      }
-      setVerifiedUserId(userId);
-    });
+    setKindError(null);
+    resolveUserKind(userId).then(
+      (kind) => {
+        if (cancelled) return;
+        if (kind === "client") {
+          navigate({ to: "/portal" });
+          return;
+        }
+        setVerifiedUserId(userId);
+      },
+      (e: unknown) => {
+        if (cancelled) return;
+        setKindError(e instanceof Error ? e.message : "No pudimos verificar tu cuenta.");
+      },
+    );
     return () => {
       cancelled = true;
     };
-  }, [userId, navigate]);
+  }, [userId, navigate, kindAttempt]);
 
   // Al navegar, cerrar los paneles móviles.
   useEffect(() => {
@@ -66,6 +93,29 @@ function AppLayout() {
     setClientSheetOpen(false);
   }, [path]);
 
+  if (kindError && userId && verifiedUserId !== userId) {
+    return (
+      <div
+        role="alert"
+        className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg p-6 text-center"
+      >
+        <p className="max-w-sm text-sm text-muted-foreground">{kindError}</p>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => {
+              forgetUserKind(userId);
+              setKindAttempt((n) => n + 1);
+            }}
+          >
+            Reintentar
+          </Button>
+          <Button variant="ghost" onClick={() => void signOut()}>
+            Salir
+          </Button>
+        </div>
+      </div>
+    );
+  }
   if (loading || !session || verifiedUserId !== userId) return <ShellSkeleton />;
 
   const sidebarProps = {

@@ -46,7 +46,12 @@ function AuthedPortal({ onSignOut }: { onSignOut: () => void }) {
   const snapshot = usePortalSnapshot(CLIENT_MODE);
   const ok = snapshot.data?.status === "ok" ? snapshot.data.snapshot : undefined;
   return (
-    <PortalShell clientName={ok?.clientName} clientId={ok?.clientId} onSignOut={onSignOut}>
+    <PortalShell
+      clientName={ok?.clientName}
+      clientId={ok?.clientId}
+      logoUrl={ok?.clientLogoUrl}
+      onSignOut={onSignOut}
+    >
       <PortalView mode={CLIENT_MODE} />
     </PortalShell>
   );
