@@ -1,36 +1,32 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { invalidateClientHealth } from "@/components/clients/health/healthKeys";
-import { BellRing, CheckCircle2, Receipt, Repeat, Wallet } from "lucide-react";
+import { Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   EmptyState,
   ErrorState,
-  Money,
-  MoneyTotals,
-  PageContainer,
+  FitList,
+  FitPage,
   PageHeader,
-  StatCard,
-  StatusBadge,
   TableSkeleton,
 } from "@/components/app";
-import { PaymentLinkButton } from "@/components/billing/PaymentLinkButton";
-import { PaymentReminderDialog } from "@/components/billing/PaymentReminderDialog";
+import { BillingRowHeader, BillingRowItem } from "@/components/billing/BillingRowItem";
+import { BillingSummary } from "@/components/billing/BillingSummary";
 import { useAuth } from "@/hooks/use-auth";
 import {
   computeTotals,
   filterRows,
-  isOverdue,
   loadBillingData,
+  summarizeOpen,
   type BillingData,
   type BillingFilter,
   type BillingRow,
 } from "@/components/billing/billingData";
-import { periodLabel, todayInChile } from "@/lib/billing/dates";
-import { useMrr } from "@/lib/billing/mrr";
+import { todayInChile } from "@/lib/billing/dates";
 import { UPCOMING_DAYS } from "@/lib/billing/openPayments";
 import { wasRemindedToday, withReminded, type RemindedMap } from "@/lib/billing/reminders";
 import { readReminded, writeReminded } from "@/lib/billing/remindedStore";
@@ -56,14 +52,19 @@ const NO_PERMISSION = "No tienes permisos para esta acción";
 const FILTERS: ReadonlyArray<{ value: BillingFilter; label: string }> = [
   { value: "por_recordar", label: "Por recordar" },
   { value: "vencidos", label: "Vencidos" },
-  { value: "por_vencer", label: `Por vencer (${UPCOMING_DAYS} días)` },
+  { value: "por_vencer", label: "Por vencer" },
   { value: "mes", label: "Este mes" },
   { value: "todos", label: "Todos" },
 ];
 
-const DATE_FMT = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeZone: "UTC" });
-const fmtDate = (iso: string | null) =>
-  iso ? DATE_FMT.format(new Date(`${iso.slice(0, 10)}T00:00:00Z`)) : "—";
+/** Títulos de lista vacía por filtro (sin texto de relleno). */
+const EMPTY_TITLE: Readonly<Record<BillingFilter, string>> = {
+  por_recordar: "Nada por recordar hoy.",
+  vencidos: "No hay cobros vencidos.",
+  por_vencer: `Nada vence en los próximos ${UPCOMING_DAYS} días.`,
+  mes: "No hay cobros este mes.",
+  todos: "Aún no hay cobros.",
+};
 
 function BillingPage() {
   const [data, setData] = useState<BillingData | null>(null);
@@ -71,7 +72,6 @@ function BillingPage() {
   const [filter, setFilter] = useState<BillingFilter>("por_recordar");
   const requestId = useRef(0);
   const today = todayInChile();
-  const mrr = useMrr();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const userId = user?.id ?? "";
@@ -108,6 +108,13 @@ function BillingPage() {
   }, []);
 
   const totals = useMemo(() => computeTotals(data?.rows ?? [], today), [data, today]);
+  const open = useMemo(() => (data ? summarizeOpen(data.rows, today) : null), [data, today]);
+  const counts = useMemo(() => {
+    const rows = data?.rows ?? [];
+    return Object.fromEntries(
+      FILTERS.map((f) => [f.value, filterRows(rows, f.value, today).length]),
+    ) as Record<BillingFilter, number>;
+  }, [data, today]);
   const visible = useMemo(() => {
     const rows = filterRows(data?.rows ?? [], filter, today);
     if (filter !== "por_recordar") return rows;
@@ -142,242 +149,112 @@ function BillingPage() {
     void invalidateClientHealth(queryClient);
   };
 
-  return (
-    <PageContainer className="space-y-6">
-      <PageHeader title="Cobros" description="Todos los cobros de tus clientes en un solo lugar." />
+  const filterLabel = FILTERS.find((f) => f.value === filter)?.label ?? "Cobros";
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatCard
-          label="Cobrado del mes"
-          icon={CheckCircle2}
+  return (
+    <FitPage
+      header={<PageHeader size="compact" title="Cobros" />}
+      contentClassName="flex flex-col gap-4"
+    >
+      <div className="shrink-0">
+        <BillingSummary
           loading={loading}
-          value={<MoneyTotals totals={totals.collectedThisMonth} />}
-        />
-        <StatCard
-          label="Por cobrar"
-          icon={Wallet}
-          loading={loading}
-          value={<MoneyTotals totals={totals.receivable} />}
-        />
-        <StatCard
-          label="MRR neto"
-          icon={Repeat}
-          loading={mrr.isPending && !mrr.isError}
-          hint="Sin IVA · suscripciones activas + facturación manual de clientes activos"
-          value={
-            mrr.isError ? (
-              <span role="alert" className="text-base text-danger-strong">
-                No disponible{" "}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs"
-                  onClick={() => void mrr.refetch()}
-                >
-                  Reintentar
-                </Button>
-              </span>
-            ) : (
-              <Money amount={mrr.data?.total ?? 0} currency="CLP" />
-            )
-          }
+          open={open}
+          collectedThisMonth={totals.collectedThisMonth}
+          receivable={totals.receivable}
+          filter={filter}
+          onFilter={setFilter}
         />
       </div>
 
-      <div role="group" aria-label="Filtrar cobros" className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <Button
-            key={f.value}
-            size="sm"
-            variant={filter === f.value ? "default" : "outline"}
-            aria-pressed={filter === f.value}
-            onClick={() => setFilter(f.value)}
-          >
-            {f.label}
-          </Button>
-        ))}
-      </div>
-
-      {loading ? (
-        <TableSkeleton rows={5} columns={6} label="Cargando cobros" />
-      ) : error ? (
-        <ErrorState
-          message={error}
-          onRetry={() => {
-            setError(null);
-            setData(null);
-            load();
-          }}
-        />
-      ) : visible.length === 0 ? (
-        <EmptyState
-          icon={Receipt}
-          title={
-            filter === "por_recordar"
-              ? "No hay cobros por recordar."
-              : filter === "vencidos"
-                ? "No hay cobros vencidos."
-                : filter === "por_vencer"
-                  ? `No hay cobros que venzan en los próximos ${UPCOMING_DAYS} días.`
-                  : "Sin cobros para este filtro."
-          }
-          description={
-            filter === "por_recordar"
-              ? `Aquí aparecen los cobros atrasados o que vencen en los próximos ${UPCOMING_DAYS} días. Al día por ahora.`
-              : "Los cobros se registran desde la ficha de cada cliente, en Facturación."
-          }
-        />
-      ) : (
-        <BillingTable
-          rows={visible}
-          today={today}
-          reminded={reminded}
-          onReminded={markReminded}
-          onMarkPaid={markPaid}
-          onChanged={load}
-        />
-      )}
-    </PageContainer>
-  );
-}
-
-function BillingTable({
-  rows,
-  today,
-  reminded,
-  onReminded,
-  onMarkPaid,
-  onChanged,
-}: {
-  rows: readonly BillingRow[];
-  today: string;
-  reminded: RemindedMap;
-  onReminded: (paymentId: string) => void;
-  onMarkPaid: (row: BillingRow) => void;
-  onChanged: () => void;
-}) {
-  return (
-    <div className="overflow-x-auto rounded-app-lg border border-border-subtle bg-surface shadow-app-xs">
-      <table className="w-full min-w-[860px] text-sm">
-        <thead className="border-b border-border-subtle text-left text-xs text-muted-foreground">
-          <tr>
-            <th scope="col" className="px-4 py-2 font-medium">
-              Cliente
-            </th>
-            <th scope="col" className="px-4 py-2 font-medium">
-              Concepto
-            </th>
-            <th scope="col" className="px-4 py-2 font-medium">
-              Período
-            </th>
-            <th scope="col" className="px-4 py-2 text-right font-medium">
-              Monto
-            </th>
-            <th scope="col" className="px-4 py-2 font-medium">
-              Vencimiento
-            </th>
-            <th scope="col" className="px-4 py-2 font-medium">
-              Estado
-            </th>
-            <th scope="col" className="px-4 py-2 font-medium">
-              <span className="sr-only">Acciones</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const late = isOverdue(r, today);
-            const open = r.status === "pending" || r.status === "overdue";
+      <section
+        aria-label="Lista de cobros"
+        className="flex min-w-0 flex-col rounded-app-lg border border-border-subtle bg-surface px-4 pt-3 pb-2 shadow-app-xs md:min-h-0 md:flex-1"
+      >
+        <div
+          role="group"
+          aria-label="Filtrar cobros"
+          className="flex shrink-0 flex-wrap gap-1.5 border-b border-border-subtle pb-3"
+        >
+          {FILTERS.map((f) => {
+            const active = filter === f.value;
+            const count = counts[f.value] ?? 0;
             return (
-              <tr key={r.id} className="border-b border-border-subtle last:border-0">
-                <td className="px-4 py-3 font-medium">
-                  <Link
-                    to="/clients/$clientId/facturacion"
-                    params={{ clientId: r.client_id }}
-                    search={{ tab: "pagos" }}
-                    className="rounded-app-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {r.client_name}
-                  </Link>
-                </td>
-                <td className="max-w-[220px] truncate px-4 py-3">{r.description || "Cobro"}</td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {r.period ? periodLabel(r.period) : "—"}
-                </td>
-                <td className="px-4 py-3 text-right font-semibold">
-                  <Money amount={r.amount} currency={r.currency} />
-                </td>
-                <td
-                  className={cn("px-4 py-3", late ? "text-danger-strong" : "text-muted-foreground")}
-                >
-                  {fmtDate(r.due_date)}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-col items-start gap-1">
-                    <StatusBadge status={late ? "overdue" : r.status} />
-                    {open && wasRemindedToday(reminded, r.id, today) && (
-                      <span className="text-xs text-muted-foreground">Recordado hoy</span>
+              <Button
+                key={f.value}
+                size="sm"
+                variant={active ? "default" : "ghost"}
+                aria-pressed={active}
+                className="h-8 gap-1.5"
+                onClick={() => setFilter(f.value)}
+              >
+                {f.label}
+                {data && count > 0 && (
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 text-xs tabular-nums",
+                      active
+                        ? "bg-primary-foreground/20"
+                        : f.value === "vencidos"
+                          ? "bg-danger-subtle text-danger-strong"
+                          : "bg-surface-2 text-muted-foreground",
                     )}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  {open && (
-                    <div className="flex justify-end gap-2">
-                      <RemindButton row={r} today={today} onReminded={() => onReminded(r.id)} />
-                      <PaymentLinkButton payment={r} onChanged={onChanged} />
-                      <Button size="sm" variant="ghost" onClick={() => onMarkPaid(r)}>
-                        Marcar pagado
-                      </Button>
-                    </div>
-                  )}
-                </td>
-              </tr>
+                  >
+                    {count}
+                  </span>
+                )}
+              </Button>
             );
           })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+        </div>
 
-function RemindButton({
-  row,
-  today,
-  onReminded,
-}: {
-  row: BillingRow;
-  today: string;
-  onReminded: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const remindedWhileOpen = useRef(false);
-  // La marca se aplica al cerrar: la tabla no se reordena con el diálogo abierto.
-  const handleOpenChange = (next: boolean) => {
-    setOpen(next);
-    if (!next && remindedWhileOpen.current) {
-      remindedWhileOpen.current = false;
-      onReminded();
-    }
-  };
-  return (
-    <>
-      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-        <BellRing className="mr-1 h-3.5 w-3.5" aria-hidden />
-        Recordar pago
-      </Button>
-      {open && (
-        <PaymentReminderDialog
-          open={open}
-          onOpenChange={handleOpenChange}
-          payment={row}
-          clientId={row.client_id}
-          clientName={row.client_name}
-          today={today}
-          onReminded={() => {
-            remindedWhileOpen.current = true;
-          }}
-        />
-      )}
-    </>
+        <div className="flex min-w-0 flex-col pt-2 md:min-h-0 md:flex-1">
+          {loading ? (
+            <TableSkeleton rows={5} columns={5} label="Cargando cobros" />
+          ) : error ? (
+            <ErrorState
+              message={error}
+              onRetry={() => {
+                setError(null);
+                setData(null);
+                load();
+              }}
+            />
+          ) : visible.length === 0 ? (
+            <EmptyState
+              icon={Receipt}
+              size="compact"
+              title={EMPTY_TITLE[filter]}
+              description={
+                filter === "todos"
+                  ? "Se registran en la ficha de cada cliente, en Facturación."
+                  : undefined
+              }
+            />
+          ) : (
+            <>
+              <BillingRowHeader />
+              <FitList
+                items={visible}
+                getKey={(r) => r.id}
+                label={filterLabel}
+                mobileShowAll
+                renderItem={(r, ctx) => (
+                  <BillingRowItem
+                    row={r}
+                    today={today}
+                    stacked={ctx.inSheet}
+                    remindedToday={wasRemindedToday(reminded, r.id, today)}
+                    onReminded={() => markReminded(r.id)}
+                    onMarkPaid={() => void markPaid(r)}
+                    onChanged={load}
+                  />
+                )}
+              />
+            </>
+          )}
+        </div>
+      </section>
+    </FitPage>
   );
 }
