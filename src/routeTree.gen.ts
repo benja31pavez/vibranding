@@ -93,6 +93,7 @@ import { Route as AppClientsClientIdSetupRouteImport } from './routes/_app/clien
 import { Route as AppClientsClientIdSitioRouteImport } from './routes/_app/clients/$clientId/sitio'
 import { Route as ApiPublicAlertsRunRouteImport } from './routes/api/public/alerts/run'
 import { Route as ApiPublicBillingChargeMonthlyRouteImport } from './routes/api/public/billing/charge-monthly'
+import { Route as ApiPublicClientsLogoRefreshRouteImport } from './routes/api/public/clients/logo-refresh'
 import { Route as ApiPublicFlowConfirmRouteImport } from './routes/api/public/flow/confirm'
 import { Route as ApiPublicFlowReturnRouteImport } from './routes/api/public/flow/return'
 import { Route as ApiPublicGoogleBillingCheckRouteImport } from './routes/api/public/google/billing-check'
@@ -550,6 +551,12 @@ const ApiPublicBillingChargeMonthlyRoute =
     path: '/api/public/billing/charge-monthly',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicClientsLogoRefreshRoute =
+  ApiPublicClientsLogoRefreshRouteImport.update({
+    id: '/api/public/clients/logo-refresh',
+    path: '/api/public/clients/logo-refresh',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicFlowConfirmRoute = ApiPublicFlowConfirmRouteImport.update({
   id: '/api/public/flow/confirm',
   path: '/api/public/flow/confirm',
@@ -715,6 +722,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/alerts/run': typeof ApiPublicAlertsRunRoute
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
+  '/api/public/clients/logo-refresh': typeof ApiPublicClientsLogoRefreshRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/google/billing-check': typeof ApiPublicGoogleBillingCheckRoute
@@ -813,6 +821,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/alerts/run': typeof ApiPublicAlertsRunRoute
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
+  '/api/public/clients/logo-refresh': typeof ApiPublicClientsLogoRefreshRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/google/billing-check': typeof ApiPublicGoogleBillingCheckRoute
@@ -914,6 +923,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/alerts/run': typeof ApiPublicAlertsRunRoute
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
+  '/api/public/clients/logo-refresh': typeof ApiPublicClientsLogoRefreshRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
   '/api/public/google/billing-check': typeof ApiPublicGoogleBillingCheckRoute
@@ -1015,6 +1025,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/sitio'
     | '/api/public/alerts/run'
     | '/api/public/billing/charge-monthly'
+    | '/api/public/clients/logo-refresh'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
     | '/api/public/google/billing-check'
@@ -1113,6 +1124,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/sitio'
     | '/api/public/alerts/run'
     | '/api/public/billing/charge-monthly'
+    | '/api/public/clients/logo-refresh'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
     | '/api/public/google/billing-check'
@@ -1213,6 +1225,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/sitio'
     | '/api/public/alerts/run'
     | '/api/public/billing/charge-monthly'
+    | '/api/public/clients/logo-refresh'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
     | '/api/public/google/billing-check'
@@ -1267,6 +1280,7 @@ export interface RootRouteChildren {
   ApiMetaAdsUpdateRoute: typeof ApiMetaAdsUpdateRoute
   ApiPublicAlertsRunRoute: typeof ApiPublicAlertsRunRoute
   ApiPublicBillingChargeMonthlyRoute: typeof ApiPublicBillingChargeMonthlyRoute
+  ApiPublicClientsLogoRefreshRoute: typeof ApiPublicClientsLogoRefreshRoute
   ApiPublicFlowConfirmRoute: typeof ApiPublicFlowConfirmRoute
   ApiPublicFlowReturnRoute: typeof ApiPublicFlowReturnRoute
   ApiPublicGoogleBillingCheckRoute: typeof ApiPublicGoogleBillingCheckRoute
@@ -1873,6 +1887,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBillingChargeMonthlyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/clients/logo-refresh': {
+      id: '/api/public/clients/logo-refresh'
+      path: '/api/public/clients/logo-refresh'
+      fullPath: '/api/public/clients/logo-refresh'
+      preLoaderRoute: typeof ApiPublicClientsLogoRefreshRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/flow/confirm': {
       id: '/api/public/flow/confirm'
       path: '/api/public/flow/confirm'
@@ -2133,6 +2154,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMetaAdsUpdateRoute: ApiMetaAdsUpdateRoute,
   ApiPublicAlertsRunRoute: ApiPublicAlertsRunRoute,
   ApiPublicBillingChargeMonthlyRoute: ApiPublicBillingChargeMonthlyRoute,
+  ApiPublicClientsLogoRefreshRoute: ApiPublicClientsLogoRefreshRoute,
   ApiPublicFlowConfirmRoute: ApiPublicFlowConfirmRoute,
   ApiPublicFlowReturnRoute: ApiPublicFlowReturnRoute,
   ApiPublicGoogleBillingCheckRoute: ApiPublicGoogleBillingCheckRoute,

@@ -751,6 +751,9 @@ export type Database = {
           created_at: string
           id: string
           instagram_handle: string | null
+          logo_source: string | null
+          logo_updated_at: string | null
+          logo_url: string | null
           name: string
           notes: string | null
           org_id: string
@@ -764,6 +767,9 @@ export type Database = {
           created_at?: string
           id?: string
           instagram_handle?: string | null
+          logo_source?: string | null
+          logo_updated_at?: string | null
+          logo_url?: string | null
           name: string
           notes?: string | null
           org_id: string
@@ -777,6 +783,9 @@ export type Database = {
           created_at?: string
           id?: string
           instagram_handle?: string | null
+          logo_source?: string | null
+          logo_updated_at?: string | null
+          logo_url?: string | null
           name?: string
           notes?: string | null
           org_id?: string

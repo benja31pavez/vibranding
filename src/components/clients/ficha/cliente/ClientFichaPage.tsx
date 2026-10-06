@@ -2,6 +2,7 @@ import { Instagram } from "lucide-react";
 import { FitPage } from "@/components/app";
 import { usePortalSnapshot } from "@/components/portal/usePortal";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
+import { ClientLogo } from "@/components/clients/logo";
 import { chileToday } from "@/lib/dates/chile";
 import { formatDate, useFichaOverview } from "../fichaQueries";
 import { ClientAgendaPanel } from "./ClientAgendaPanel";
@@ -20,13 +21,13 @@ function ClientFichaHeader({ startedAt }: { startedAt: string | null }) {
   const avatar = ig.profile?.current_avatar_url;
   return (
     <header className="flex min-w-0 items-center gap-3">
-      <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-app-md bg-surface-2 text-lg font-semibold">
-        {avatar ? (
-          <img src={avatar} alt="" className="h-full w-full object-cover" />
-        ) : (
-          client.name[0]?.toUpperCase()
-        )}
-      </div>
+      <ClientLogo
+        clientId={client.id}
+        name={client.name}
+        fallbackSrc={avatar}
+        initials={client.name[0]?.toUpperCase()}
+        className="h-11 w-11 rounded-app-md bg-surface-2 text-lg font-semibold"
+      />
       <div className="min-w-0">
         <h1 className="truncate text-xl font-semibold tracking-tight">{client.name}</h1>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted-foreground">

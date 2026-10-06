@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateShellClients } from "@/components/shell/shellQueries";
+import { fetchLogoAfterHandleChange, invalidateClientLogos } from "@/components/clients/logo";
 import { PERMISSION_DENIED_MSG, fichaKeys, useUserKey, writeErrorMessage } from "./fichaQueries";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -13,8 +14,15 @@ export function normalizeHandle(raw: string): string {
   return raw.trim().replace(/^@+/, "");
 }
 
-/** Renombrar (nombre + @handle) y eliminar un cliente. Detecta 0 filas como falta de permisos. */
-export function useClientActions(clientId: string, reloadClient: () => Promise<void>) {
+/**
+ * Renombrar (nombre + @handle) y eliminar un cliente. Detecta 0 filas como falta de permisos.
+ * Si cambia el @ (`currentHandle` es el guardado), intenta traer el logo desde Instagram.
+ */
+export function useClientActions(
+  clientId: string,
+  reloadClient: () => Promise<void>,
+  currentHandle: string | null = null,
+) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const userKey = useUserKey();
@@ -40,6 +48,9 @@ export function useClientActions(clientId: string, reloadClient: () => Promise<v
     if (!data || data.length === 0) return { ok: false, error: PERMISSION_DENIED_MSG };
     await reloadClient();
     void invalidateShellClients(queryClient);
+    if (cleanHandle && cleanHandle !== normalizeHandle(currentHandle ?? "")) {
+      void fetchLogoAfterHandleChange(clientId, () => invalidateClientLogos(queryClient));
+    }
     return { ok: true };
   };
 

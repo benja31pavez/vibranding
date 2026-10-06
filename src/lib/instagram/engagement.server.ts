@@ -29,7 +29,7 @@ export type SnapshotRead = SnapshotFound | { status: "missing_table" };
 const MEDIA_FIELDS = "like_count,comments_count,timestamp,media_type";
 const GENERIC_GRAPH_ERROR = "Meta no respondió correctamente. Intenta más tarde.";
 
-class GraphError extends Error {
+export class GraphError extends Error {
   constructor(
     message: string,
     readonly code: number | null,
@@ -41,7 +41,7 @@ class GraphError extends Error {
 }
 
 /** Like graph() in oauth.server but keeps the error code/subcode. */
-async function graphGet<T>(path: string, params: Record<string, string>): Promise<T> {
+export async function graphGet<T>(path: string, params: Record<string, string>): Promise<T> {
   const qs = new URLSearchParams(params).toString();
   const res = await fetch(`${graphUrl(path)}?${qs}`);
   const body = (await res.json().catch(() => null)) as any;
@@ -152,7 +152,7 @@ async function measureDiscovery(
  * Any IG business account connected in the client's org (with a vaulted
  * token) to act as the Business Discovery "viewer".
  */
-async function findOrgViewerAccount(
+export async function findOrgViewerAccount(
   orgId: string,
 ): Promise<{ igAccountId: string; token: string } | null> {
   const { data: clients, error: cErr } = await supabaseAdmin
@@ -179,13 +179,13 @@ async function findOrgViewerAccount(
   return null;
 }
 
-type ClientIgContext = {
+export type ClientIgContext = {
   orgId: string;
   handle: string | null;
   own: { igAccountId: string; token: string } | null;
 };
 
-async function loadClientContext(clientId: string): Promise<ClientIgContext> {
+export async function loadClientContext(clientId: string): Promise<ClientIgContext> {
   const { data: client, error } = await supabaseAdmin
     .from("clients")
     .select("org_id,instagram_handle")

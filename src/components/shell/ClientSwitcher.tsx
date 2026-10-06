@@ -58,7 +58,7 @@ export function ClientSwitcher({ activeClient }: ClientSwitcherProps) {
         >
           {activeClient ? (
             <>
-              <ClientAvatar name={activeClient.name} />
+              <ClientAvatar clientId={activeClient.id} name={activeClient.name} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium leading-tight">
                   {activeClient.name}
@@ -107,7 +107,7 @@ export function ClientSwitcher({ activeClient }: ClientSwitcherProps) {
                     value={`${c.name} ${c.instagram_handle ?? ""} ${c.id}`}
                     onSelect={() => goToClient(c.id)}
                   >
-                    <ClientAvatar name={c.name} className="h-6 w-6 text-[11px]" />
+                    <ClientAvatar clientId={c.id} name={c.name} className="h-6 w-6 text-[11px]" />
                     <span className="min-w-0 flex-1 truncate">{c.name}</span>
                     {activeClient?.id === c.id && <Check className="h-4 w-4" aria-label="Activo" />}
                   </CommandItem>
