@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, Link2, Plus, Save } from "lucide-react";
+import { Activity, Link2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ErrorState, ListSkeleton } from "@/components/app";
+import { Tabs } from "@/components/ui/tabs";
+import { EmptyState, ErrorState, ListSkeleton } from "@/components/app";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { EventsPanel } from "@/components/landing/EventsPanel";
 import { MultilinkAnalytics } from "@/components/multilink/MultilinkAnalytics";
@@ -15,10 +15,24 @@ import { LinkListEditor } from "@/components/multilink/editor/LinkListEditor";
 import { ProfileEditor, ThemeEditor } from "@/components/multilink/editor/MultilinkDesign";
 import { DevicePreview, type PreviewMode } from "@/components/site/DevicePreview";
 import { PublishBar } from "@/components/site/PublishBar";
-import { SaveStatus, useSaveShortcut } from "@/components/site/SaveStatus";
+import { useSaveShortcut } from "@/components/site/SaveStatus";
+import {
+  EditorSplit,
+  ReadOnlyPreview,
+  SaveBar,
+  ScrollColumn,
+  SiteNav,
+  SitePane,
+  SiteViewTab,
+} from "@/components/site/SiteEditorLayout";
 import { SectionCard } from "@/components/site/SortableSections";
 import { useSaveState } from "@/components/site/useSaveState";
-import { multilinkPath, type Multilink, type MultilinkItem as Item } from "@/lib/multilink";
+import { type Multilink, type MultilinkItem as Item } from "@/lib/multilink";
+import {
+  landingPublicUrl,
+  multilinkLinksStatus,
+  multilinkPublicUrlFor,
+} from "@/lib/site/siteStatus";
 import { validateItems, validateProfile } from "@/lib/site/multilinkDraft";
 import { fetchMultilinkSnapshot, saveMultilink } from "@/lib/site/multilinkSave";
 import { writeFailed } from "@/lib/writeCheck";
@@ -31,9 +45,15 @@ type Snapshot = { ml: Multilink; items: Item[] };
 export function MultilinkPage({
   clientId,
   onDirtyChange,
+  pageSwitcher,
+  readOnly = false,
 }: {
   clientId: string;
   onDirtyChange?: (dirty: boolean) => void;
+  /** Selector Multienlace / Landing page que va en la misma barra de pestañas. */
+  pageSwitcher?: React.ReactNode;
+  /** Solo lectura (futuro panel del cliente): vista previa grande + link, sin edición. */
+  readOnly?: boolean;
 }) {
   const { client } = useActiveClient();
   const [draft, setDraft] = useState<Snapshot | null>(null);
@@ -190,193 +210,224 @@ export function MultilinkPage({
     toast.success(published ? "Multienlace publicado" : "El multienlace quedó como borrador");
   };
 
+  const shell = (content: React.ReactNode) => (
+    <div ref={rootRef} className="flex flex-col gap-4 md:h-full md:min-h-0">
+      <SiteNav pageSwitcher={pageSwitcher} />
+      <ScrollColumn className="md:flex-1">{content}</ScrollColumn>
+    </div>
+  );
+
   if (loadError) {
-    return (
+    return shell(
       <ErrorState
         title="No pudimos cargar el multienlace"
         message={loadError}
         onRetry={() => void load()}
         retrying={loading}
-      />
+      />,
     );
   }
-  if (loading) return <ListSkeleton rows={4} label="Cargando multienlace" />;
+  if (loading) return shell(<ListSkeleton rows={4} label="Cargando multienlace" />);
 
   if (!draft || !saved) {
-    return (
-      <section className="space-y-4 rounded-3xl border bg-surface p-8 text-center">
-        <Link2 className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden="true" />
-        <h2 className="text-xl font-semibold">Multienlace de {client?.name}</h2>
-        <p className="mx-auto max-w-md text-sm text-muted-foreground">
-          La página de enlaces para la bio de Instagram y TikTok: WhatsApp, redes, ubicación,
-          reseñas y la landing, con QR para imprimir.
-        </p>
-        <Button onClick={() => void create()} disabled={creating}>
-          <Plus className="mr-1 h-4 w-4" aria-hidden="true" />{" "}
-          {creating ? "Creando…" : "Crear multienlace"}
-        </Button>
-      </section>
+    return shell(
+      <EmptyState
+        icon={Link2}
+        title={
+          readOnly
+            ? "El multienlace aún no está listo"
+            : `Multienlace de ${client?.name ?? "este cliente"}`
+        }
+        description={readOnly ? undefined : "Los enlaces de la bio de Instagram y TikTok, con QR."}
+        action={
+          readOnly ? undefined : (
+            <Button onClick={() => void create()} disabled={creating}>
+              <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
+              {creating ? "Creando…" : "Crear multienlace"}
+            </Button>
+          )
+        }
+      />,
     );
   }
 
   const { ml, items } = draft;
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const publicUrl = `${origin}${multilinkPath(saved.ml.slug)}`;
-  const landingUrl = landingSlug ? `${origin}/@${landingSlug}` : null;
+  const publicUrl = multilinkPublicUrlFor(saved.ml);
+  const landingUrl = landingSlug ? landingPublicUrl(landingSlug) : null;
   const setMl = (next: Multilink) => setDraft({ ...draft, ml: next });
   const setItems = (next: Item[]) => setDraft({ ...draft, items: next });
   const profileHasError = !!(errors.title || errors.slug);
   const linksHaveError = errorCount - (errors.title ? 1 : 0) - (errors.slug ? 1 : 0) > 0;
+  const toggle = (key: string) => setOpen(open === key ? null : key);
+
+  const preview = (snap: Snapshot) => (
+    <DevicePreview
+      mode={previewMode}
+      onModeChange={setPreviewMode}
+      label="Vista previa del multienlace"
+    >
+      <PublicMultilinkView
+        ml={{ ...snap.ml, avatar_url: snap.ml.avatar_url ?? avatarFallback }}
+        items={snap.items}
+        preview
+      />
+    </DevicePreview>
+  );
+
+  if (readOnly) {
+    return (
+      <div ref={rootRef} className="flex flex-col gap-4 md:h-full md:min-h-0">
+        <PublishBar
+          nav={<SiteNav pageSwitcher={pageSwitcher} />}
+          published={saved.ml.published}
+          publicUrl={publicUrl}
+          readOnly
+        />
+        <ReadOnlyPreview>{preview(saved)}</ReadOnlyPreview>
+      </div>
+    );
+  }
+
+  const editor = (
+    <div className="space-y-3">
+      <SectionCard
+        row={{
+          id: "enlaces",
+          title: "Enlaces",
+          summary: `${items.filter((i) => i.is_active).length} visibles de ${items.length}`,
+          enabled: true,
+          toggleable: false,
+          hasError: linksHaveError,
+          status: multilinkLinksStatus(items, linksHaveError),
+          content: (
+            <LinkListEditor
+              ml={ml}
+              items={items}
+              onChange={setItems}
+              errors={errors}
+              clientId={clientId}
+              landingUrl={landingUrl}
+            />
+          ),
+        }}
+        open={open === "enlaces"}
+        onToggleOpen={() => toggle("enlaces")}
+      />
+      <SectionCard
+        row={{
+          id: "perfil",
+          title: "Perfil",
+          summary: ml.title,
+          enabled: true,
+          toggleable: false,
+          hasError: profileHasError,
+          status: profileHasError ? "error" : ml.title.trim() ? "complete" : "missing",
+          content: (
+            <ProfileEditor
+              ml={ml}
+              onChange={setMl}
+              errors={errors}
+              clientId={clientId}
+              avatarFallback={avatarFallback}
+            />
+          ),
+        }}
+        open={open === "perfil"}
+        onToggleOpen={() => toggle("perfil")}
+      />
+      <SectionCard
+        row={{
+          id: "tema",
+          title: "Tema y colores",
+          summary: ml.theme_mode === "dark" ? "Oscuro" : "Claro",
+          enabled: true,
+          toggleable: false,
+          content: <ThemeEditor ml={ml} onChange={setMl} />,
+        }}
+        open={open === "tema"}
+        onToggleOpen={() => toggle("tema")}
+      />
+    </div>
+  );
 
   return (
-    <div ref={rootRef} className="space-y-6">
-      <PublishBar
-        title="Multienlace"
-        subtitle="Todos los enlaces del cliente en una página para la bio de Instagram y TikTok."
-        published={ml.published}
-        publicUrl={publicUrl}
-        onTogglePublished={() => void onTogglePublished()}
-        toggling={toggling || save.saving}
-      />
+    <div ref={rootRef} className="md:h-full md:min-h-0">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v as TabKey)}
+        className="flex flex-col gap-4 md:h-full md:min-h-0"
+      >
+        <PublishBar
+          nav={
+            <SiteNav pageSwitcher={pageSwitcher}>
+              <SiteViewTab value="editar">Editar</SiteViewTab>
+              <SiteViewTab value="compartir">Compartir y QR</SiteViewTab>
+              <SiteViewTab value="metricas">Métricas</SiteViewTab>
+            </SiteNav>
+          }
+          published={ml.published}
+          publicUrl={publicUrl}
+          onTogglePublished={() => void onTogglePublished()}
+          toggling={toggling || save.saving}
+        />
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-5">
-        <TabsList>
-          <TabsTrigger value="editar">Editar</TabsTrigger>
-          <TabsTrigger value="compartir">Compartir y QR</TabsTrigger>
-          <TabsTrigger value="metricas">Métricas</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="editar">
-          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(340px,480px)]">
-            <div className="min-w-0 space-y-3">
-              <SectionCard
-                row={{
-                  id: "enlaces",
-                  title: "Enlaces",
-                  summary: `${items.filter((i) => i.is_active).length} visibles de ${items.length}`,
-                  enabled: true,
-                  toggleable: false,
-                  hasError: linksHaveError,
-                  content: (
-                    <LinkListEditor
-                      ml={ml}
-                      items={items}
-                      onChange={setItems}
-                      errors={errors}
-                      clientId={clientId}
-                      landingUrl={landingUrl}
-                    />
-                  ),
-                }}
-                open={open === "enlaces"}
-                onToggleOpen={() => setOpen(open === "enlaces" ? null : "enlaces")}
+        <SitePane value="editar">
+          <EditorSplit
+            editor={editor}
+            footer={
+              <SaveBar
+                state={save.state}
+                detail={save.detail}
+                dirty={dirty}
+                saving={save.saving}
+                onDiscard={() => setDraft(saved)}
+                onSave={() => void persist()}
               />
-              <SectionCard
-                row={{
-                  id: "perfil",
-                  title: "Perfil",
-                  summary: ml.title,
-                  enabled: true,
-                  toggleable: false,
-                  hasError: profileHasError,
-                  content: (
-                    <ProfileEditor
-                      ml={ml}
-                      onChange={setMl}
-                      errors={errors}
-                      clientId={clientId}
-                      avatarFallback={avatarFallback}
-                    />
-                  ),
-                }}
-                open={open === "perfil"}
-                onToggleOpen={() => setOpen(open === "perfil" ? null : "perfil")}
-              />
-              <SectionCard
-                row={{
-                  id: "tema",
-                  title: "Tema y colores",
-                  summary: ml.theme_mode === "dark" ? "Oscuro" : "Claro",
-                  enabled: true,
-                  toggleable: false,
-                  content: <ThemeEditor ml={ml} onChange={setMl} />,
-                }}
-                open={open === "tema"}
-                onToggleOpen={() => setOpen(open === "tema" ? null : "tema")}
-              />
+            }
+            preview={preview(draft)}
+            widePreview={previewMode === "desktop"}
+          />
+        </SitePane>
 
-              <div className="sticky bottom-3 z-20 mt-4 flex flex-wrap items-center gap-3 rounded-xl border bg-surface/95 px-4 py-3 shadow-sm backdrop-blur">
-                <SaveStatus state={save.state} detail={save.detail} />
-                <div className="ml-auto flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDraft(saved)}
-                    disabled={!dirty || save.saving}
-                  >
-                    Descartar
-                  </Button>
-                  <Button size="sm" onClick={() => void persist()} disabled={!dirty || save.saving}>
-                    <Save className="mr-1 h-4 w-4" aria-hidden="true" /> Guardar
-                  </Button>
-                </div>
-              </div>
-            </div>
+        <SitePane value="compartir">
+          <ScrollColumn className="max-w-4xl">
+            <section className="space-y-2 rounded-app-lg border border-border-subtle bg-surface p-5 text-sm shadow-app-xs">
+              <h2 className="font-medium">Dónde usarlo</h2>
+              <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+                <li>En la bio de Instagram y TikTok (Editar perfil → Enlaces).</li>
+                <li>En el estado y el perfil de empresa de WhatsApp Business.</li>
+                <li>El QR va en tarjetas, vitrina, packaging y vehículos.</li>
+              </ul>
+              {!ml.published && (
+                <p className="font-medium text-warning-strong">
+                  Aún es borrador: publícalo para que el link y el QR funcionen.
+                </p>
+              )}
+            </section>
+            <QrCodeCard url={publicUrl} fileBase={`${saved.ml.slug}-multienlace`} />
+          </ScrollColumn>
+        </SitePane>
 
-            <div className="xl:sticky xl:top-20">
-              <DevicePreview
-                mode={previewMode}
-                onModeChange={setPreviewMode}
-                label="Vista previa del multienlace"
-              >
-                <PublicMultilinkView
-                  ml={{ ...ml, avatar_url: ml.avatar_url ?? avatarFallback }}
-                  items={items}
-                  preview
+        <SitePane value="metricas">
+          <ScrollColumn>
+            {!ml.published ? (
+              <EmptyState
+                icon={Activity}
+                title="Las visitas y clics se miden desde que publicas el multienlace."
+              />
+            ) : (
+              <>
+                <MultilinkAnalytics clientId={clientId} multilinkId={ml.id} items={saved.items} />
+                <EventsPanel
+                  clientId={clientId}
+                  sourceType="multilink"
+                  sourceId={ml.id}
+                  itemLabels={Object.fromEntries(saved.items.map((i) => [i.id, i.title]))}
                 />
-              </DevicePreview>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="compartir" className="space-y-6">
-          <section className="space-y-2 rounded-2xl border bg-surface p-5 text-sm">
-            <h2 className="font-medium">Dónde usarlo</h2>
-            <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
-              <li>En la bio de Instagram y TikTok (Editar perfil → Enlaces).</li>
-              <li>En el estado y el perfil de empresa de WhatsApp Business.</li>
-              <li>El QR va en tarjetas, vitrina, packaging y vehículos.</li>
-            </ul>
-            {!ml.published && (
-              <p className="font-medium text-amber-800 dark:text-amber-300">
-                Aún es borrador: publícalo para que el link y el QR funcionen.
-              </p>
+              </>
             )}
-          </section>
-          <QrCodeCard url={publicUrl} fileBase={`${saved.ml.slug}-multienlace`} />
-        </TabsContent>
-
-        <TabsContent value="metricas" className="space-y-6">
-          {!ml.published ? (
-            <div className="space-y-2 rounded-2xl border border-dashed bg-surface p-8 text-center">
-              <Activity className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />
-              <p className="font-medium">Este multienlace aún es borrador</p>
-              <p className="text-sm text-muted-foreground">
-                Las visitas y clics se miden desde que lo publicas.
-              </p>
-            </div>
-          ) : (
-            <>
-              <MultilinkAnalytics clientId={clientId} multilinkId={ml.id} items={saved.items} />
-              <EventsPanel
-                clientId={clientId}
-                sourceType="multilink"
-                sourceId={ml.id}
-                itemLabels={Object.fromEntries(saved.items.map((i) => [i.id, i.title]))}
-              />
-            </>
-          )}
-        </TabsContent>
+          </ScrollColumn>
+        </SitePane>
       </Tabs>
     </div>
   );

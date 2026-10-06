@@ -9,13 +9,49 @@ const VIEWPORT: Record<PreviewMode, { width: number; height: number }> = {
   desktop: { width: 1280, height: 800 },
 };
 
-/** Ancho visible del teléfono en el editor (el contenido se escala desde 375 px). */
+/** Ancho visible del teléfono cuando no hay alto fijo (móvil: la página hace scroll). */
 const PHONE_WIDTH = 300;
+/** Tope del teléfono en escritorio, aunque sobre alto (más grande se ve pixelado). */
+const PHONE_MAX_WIDTH = 400;
+/** Marco negro (p-2) + borde inferior para la leyenda. */
+const FRAME_PAD = 16;
+const CAPTION_SPACE = 28;
+/** Desde `md` el panel no hace scroll de página: la vista previa llena el alto disponible. */
+const FIT_QUERY = "(min-width: 768px)";
+
+function useMatchMedia(query: string): boolean {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    const sync = () => setMatches(mql.matches);
+    sync();
+    mql.addEventListener("change", sync);
+    return () => mql.removeEventListener("change", sync);
+  }, [query]);
+  return matches;
+}
+
+/** Ancho mostrado: cabe en el ancho y, si `fitHeight`, también en el alto disponible. */
+function displayWidthFor(
+  mode: PreviewMode,
+  box: { width: number; height: number },
+  fitHeight: boolean,
+): number {
+  const vp = VIEWPORT[mode];
+  const byWidth =
+    mode === "mobile" ? Math.min(box.width - FRAME_PAD, PHONE_MAX_WIDTH) : box.width - FRAME_PAD;
+  if (!fitHeight || box.height <= 0) {
+    return mode === "mobile" ? PHONE_WIDTH : Math.max(280, box.width - FRAME_PAD);
+  }
+  const byHeight = ((box.height - FRAME_PAD - CAPTION_SPACE) * vp.width) / vp.height;
+  return Math.max(200, Math.min(byWidth, byHeight));
+}
 
 /**
  * Vista previa en vivo dentro de un iframe del mismo origen: los breakpoints de
  * Tailwind responden al ancho real (375 px móvil, 1280 px escritorio), así que
  * lo que se ve es exactamente la página pública, escalada para caber al lado del editor.
+ * Desde `md` llena el alto del contenedor (que debe tener alto definido).
  */
 export function DevicePreview({
   mode,
@@ -33,24 +69,27 @@ export function DevicePreview({
 }) {
   const vp = VIEWPORT[mode];
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const [wrapWidth, setWrapWidth] = useState(560);
+  const [box, setBox] = useState({ width: 560, height: 0 });
+  const fitHeight = useMatchMedia(FIT_QUERY);
 
   useLayoutEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setWrapWidth(entry.contentRect.width));
+    const ro = new ResizeObserver(([entry]) =>
+      setBox({ width: entry.contentRect.width, height: entry.contentRect.height }),
+    );
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  const displayWidth = mode === "mobile" ? PHONE_WIDTH : Math.max(280, wrapWidth);
+  const displayWidth = displayWidthFor(mode, box, fitHeight);
   const scale = displayWidth / vp.width;
   const displayHeight = vp.height * scale;
 
   return (
-    <div className="space-y-3 min-w-0">
+    <div className="flex min-w-0 flex-col gap-3 md:h-full md:min-h-0">
       <div
-        className="flex items-center justify-center gap-2"
+        className="flex shrink-0 items-center justify-center gap-2"
         role="group"
         aria-label="Tamaño de la vista previa"
       >
@@ -70,10 +109,10 @@ export function DevicePreview({
         </ModeButton>
       </div>
 
-      <div ref={wrapRef} className="w-full">
+      <div ref={wrapRef} className="w-full md:min-h-0 md:flex-1">
         <div
           className={`mx-auto bg-black shadow-2xl ${mode === "mobile" ? "rounded-[2.6rem] p-2" : "rounded-xl p-2"}`}
-          style={{ width: displayWidth + 16 }}
+          style={{ width: displayWidth + FRAME_PAD }}
         >
           <div
             className={`relative overflow-hidden bg-white ${mode === "mobile" ? "rounded-[2.1rem]" : "rounded-md"}`}
@@ -91,8 +130,8 @@ export function DevicePreview({
             </FramePortal>
           </div>
         </div>
-        <p className="mt-2 text-center text-[11px] text-muted-foreground">
-          Vista previa en vivo · {vp.width} px · los enlaces no se abren aquí
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          En vivo · {vp.width} px · los enlaces no se abren aquí
         </p>
       </div>
     </div>

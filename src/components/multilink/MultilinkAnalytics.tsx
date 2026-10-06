@@ -160,10 +160,7 @@ export function MultilinkAnalytics({
       {loading ? (
         <p className="text-sm text-muted-foreground">Cargando…</p>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Sin eventos en este período. Los datos aparecen cuando alguien visita el multienlace
-          publicado.
-        </p>
+        <p className="text-sm text-muted-foreground">Sin visitas en este período.</p>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
