@@ -13,7 +13,6 @@ import { useCycleProgress } from "./clientFichaQueries";
 import { monthSummary, type MonthPost } from "./clientView";
 import { MonthSummaryCard } from "./MonthSummaryCard";
 import { PlanCard } from "./PlanCard";
-import { TeamCard } from "./TeamCard";
 
 function ClientFichaHeader({ startedAt }: { startedAt: string | null }) {
   const { client, ig } = useActiveClient();
@@ -75,12 +74,7 @@ export function ClientFichaPage({ clientId }: { clientId: string }) {
 
   return (
     <FitPage
-      header={
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <ClientFichaHeader startedAt={overview.data?.startedAt ?? null} />
-          <TeamCard />
-        </div>
-      }
+      header={<ClientFichaHeader startedAt={overview.data?.startedAt ?? null} />}
       contentClassName="flex flex-col gap-4 md:gap-3"
     >
       <div className="shrink-0">
