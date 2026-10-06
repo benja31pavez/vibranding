@@ -7,33 +7,30 @@ import { invalidateClientHealth } from "@/components/clients/health/healthKeys";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { todayInChile } from "@/lib/billing/dates";
 import { useFlowConfigured } from "@/lib/flow/config.functions";
+import type { Membership } from "@/lib/billing/membership";
+import { useMembership } from "@/lib/billing/membership.functions";
 import { PlanStatementCard } from "./PlanStatementCard";
 import type { FlowState } from "./PaymentActions";
 import {
-  accountStanding,
-  nextCharge,
-  planView,
   sortForStatement,
   summarize,
   usePayments,
-  usePlanData,
   useReloadStatement,
   useStatementAccess,
   type StatementAccess,
   type StatementPayment,
-  type StatementPlanData,
 } from "./statementData";
 
 const READ_ONLY: StatementAccess = { canEdit: false, canManage: false };
 
 /**
- * Facturación = estado de cuenta del cliente: su plan, lo que debe y lo que
- * pagó. Lo ve la agencia y, en el futuro, el propio cliente: sin MRR ni datos
+ * Facturación = estado de cuenta del cliente: su plan (derivado de sus pagos),
+ * lo que debe y lo que pagó. El plan se contrata y renueva aquí, con Flow. Lo ve la agencia y, en el futuro, el propio cliente: sin MRR ni datos
  * internos; las herramientas de la agencia solo aparecen con permiso de edición.
  */
 export function StatementPage({ clientId }: { clientId: string }) {
   const { client } = useActiveClient();
-  const plan = usePlanData(clientId);
+  const membership = useMembership(clientId);
   const payments = usePayments(clientId);
   const access = useStatementAccess(clientId).data ?? READ_ONLY;
   const flowStatus = useFlowConfigured();
@@ -48,6 +45,7 @@ export function StatementPage({ clientId }: { clientId: string }) {
 
   const onChanged = () => {
     void reload();
+    void queryClient.invalidateQueries({ queryKey: ["membership"] });
     // "Salud del cliente" de la gestión usa cobros vencidos/pagados.
     void invalidateClientHealth(queryClient);
   };
@@ -57,11 +55,11 @@ export function StatementPage({ clientId }: { clientId: string }) {
       clientId={clientId}
       clientName={client?.name ?? ""}
       today={todayInChile()}
-      plan={{
-        data: plan.data,
-        loading: plan.isPending,
-        error: plan.error?.message ?? null,
-        retry: () => void plan.refetch(),
+      membership={{
+        data: membership.data,
+        loading: membership.isPending,
+        error: membership.error?.message ?? null,
+        retry: () => void membership.refetch(),
       }}
       payments={{
         data: payments.data,
@@ -88,7 +86,7 @@ export interface StatementViewProps {
   clientId: string;
   clientName: string;
   today: string;
-  plan: Loadable<StatementPlanData>;
+  membership: Loadable<Membership>;
   payments: Loadable<StatementPayment[]>;
   access: StatementAccess;
   flow: FlowState;
@@ -101,7 +99,7 @@ export function StatementView({
   clientId,
   clientName,
   today,
-  plan,
+  membership,
   payments,
   access,
   flow,
@@ -110,9 +108,6 @@ export function StatementView({
 }: StatementViewProps) {
   const rows = useMemo(() => sortForStatement(payments.data ?? []), [payments.data]);
   const summary = useMemo(() => summarize(rows, today), [rows, today]);
-  const view = plan.data ? planView(plan.data, today) : null;
-  const next = plan.data && view ? nextCharge(rows, plan.data, view, today) : null;
-  const standing = payments.data ? accountStanding(summary) : null;
 
   return (
     <FitPage
@@ -150,14 +145,12 @@ export function StatementView({
       <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] md:items-start xl:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
         <PlanStatementCard
           clientId={clientId}
-          view={view}
-          next={next}
-          standing={standing}
-          loading={plan.loading}
-          error={plan.error}
-          onRetry={plan.retry}
-          canEdit={access.canEdit}
-          onPlanSaved={onChanged}
+          membership={membership.data}
+          loading={membership.loading}
+          error={membership.error}
+          onRetry={membership.retry}
+          flow={flow}
+          canPay={access.canEdit}
         />
         <div className="flex min-w-0 flex-col md:h-full md:min-h-0">
           <PaymentsPanel

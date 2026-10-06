@@ -1,339 +1,81 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { CreditCard } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { Panel } from "@/components/app";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  PLANS,
-  findPlan,
-  formatMoney,
-  planNetLabel,
-  planTotal,
-  type PlanKey,
-} from "@/lib/pricing/plans";
-import {
-  PLAN_KEY_PENDING_MIGRATION_MSG,
-  isPlanKeyRejected,
-  needsNewPlanMigration,
-} from "@/lib/pricing/planKeyDb";
-import { invalidateShellClients } from "@/components/shell/shellQueries";
-import {
-  CLIENT_STATUSES,
-  CLIENT_STATUS_META,
-  PERMISSION_DENIED_MSG,
-  fichaKeys,
-  isClientStatus,
-  useUserKey,
-  writeErrorMessage,
-  type ClientStatus,
-  type FichaOverview,
-} from "./fichaQueries";
-import { seedPlanTemplates } from "@/components/plan/planTemplates";
+import { ErrorState, ListSkeleton, Money, Panel, StatusBadge } from "@/components/app";
+import { fmtDay } from "@/components/billing/statement/format";
+import { MEMBERSHIP_STATE_LABEL, membershipMrr, type Membership } from "@/lib/billing/membership";
+import { useMembership } from "@/lib/billing/membership.functions";
+import { findPlan, planNetLabel } from "@/lib/pricing/plans";
 
-const NO_PLAN = "none";
-const MIN_BILLING_DAY = 1;
-const MAX_BILLING_DAY = 28;
-const MAX_MRR = 100_000_000;
-
-interface Draft {
-  planKey: PlanKey | typeof NO_PLAN;
-  mrr: string;
-  billingDay: string;
-  status: ClientStatus;
-  startedAt: string;
-}
-
-function toDraft(o: FichaOverview): Draft {
-  const plan = findPlan(o.billing?.plan_key);
-  return {
-    planKey: plan?.key ?? NO_PLAN,
-    mrr: String(o.billing?.mrr ?? 0),
-    billingDay: o.billing?.billing_day ? String(o.billing.billing_day) : "",
-    status: isClientStatus(o.status) ? o.status : "activo",
-    startedAt: o.startedAt ?? "",
-  };
-}
-
-type Parsed =
-  | { ok: true; mrr: number; billingDay: number | null; planKey: PlanKey | null }
-  | { ok: false; error: string };
-
-function parseDraft(d: Draft): Parsed {
-  const mrr = Number(d.mrr);
-  if (!Number.isInteger(mrr) || mrr < 0 || mrr > MAX_MRR) {
-    return { ok: false, error: "El MRR debe ser un monto entero en CLP, sin puntos ni decimales." };
-  }
-  let billingDay: number | null = null;
-  if (d.billingDay.trim()) {
-    billingDay = Number(d.billingDay);
-    if (
-      !Number.isInteger(billingDay) ||
-      billingDay < MIN_BILLING_DAY ||
-      billingDay > MAX_BILLING_DAY
-    ) {
-      return {
-        ok: false,
-        error: `El día de cobro debe estar entre ${MIN_BILLING_DAY} y ${MAX_BILLING_DAY}.`,
-      };
-    }
-  }
-  if (d.startedAt && !/^\d{4}-\d{2}-\d{2}$/.test(d.startedAt)) {
-    return { ok: false, error: "La fecha de inicio no es válida." };
-  }
-  return { ok: true, mrr, billingDay, planKey: d.planKey === NO_PLAN ? null : d.planKey };
-}
-
-type BillingValues = { plan_key: PlanKey | null; mrr: number; billing_day: number | null };
-type DbError = { code?: string; message: string };
-
-/** Escribe client_billing: actualiza la fila 1:1 y, si no existiera, la crea. */
-async function writeBilling(clientId: string, values: BillingValues): Promise<DbError | null> {
-  const upd = await supabase
-    .from("client_billing")
-    .update(values)
-    .eq("client_id", clientId)
-    .select("client_id");
-  if (upd.error) return upd.error;
-  if (upd.data && upd.data.length > 0) return null;
-  // 0 filas: o falta la fila (cliente antiguo) o no hay permisos; el INSERT lo distingue vía RLS.
-  const ins = await supabase.from("client_billing").insert({ client_id: clientId, ...values });
-  return ins.error;
-}
-
-/**
- * Guarda client_billing. Si la BD aún no acepta el plan (Mantención sin la
- * migración 20261012001100) guarda sin plan y lo avisa en `warning`.
- */
-async function saveBilling(
-  clientId: string,
-  values: BillingValues,
-): Promise<{ error: string | null; warning: string | null }> {
-  const first = await writeBilling(clientId, values);
-  if (!first) return { error: null, warning: null };
-  if (!needsNewPlanMigration(values.plan_key) || !isPlanKeyRejected(first)) {
-    return { error: writeErrorMessage(first), warning: null };
-  }
-  const retry = await writeBilling(clientId, { ...values, plan_key: null });
-  return retry
-    ? { error: writeErrorMessage(retry), warning: null }
-    : { error: null, warning: PLAN_KEY_PENDING_MIGRATION_MSG };
-}
-
-export function BillingCard({ clientId, overview }: { clientId: string; overview: FichaOverview }) {
-  const queryClient = useQueryClient();
-  const [draft, setDraft] = useState<Draft>(() => toDraft(overview));
-  const [saving, setSaving] = useState(false);
-  const [mrrHint, setMrrHint] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
-  const userKey = useUserKey();
-
-  // Un refetch (p. ej. al volver a la pestaña) no pisa cambios sin guardar.
-  useEffect(() => {
-    if (dirty) return;
-    setDraft(toDraft(overview));
-    setMrrHint(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overview]);
-
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
-    setDirty(true);
-    setDraft((d) => ({ ...d, [key]: value }));
-  };
-
-  const onPlanChange = (value: string) => {
-    const plan = findPlan(value);
-    setDirty(true);
-    if (plan?.billing === "monthly") {
-      setDraft((d) => ({ ...d, planKey: plan.key, mrr: String(plan.netPrice) }));
-      setMrrHint(
-        `Sugerido: ${formatMoney(plan.netPrice)} neto al mes según ${plan.label} (el cliente paga ${formatMoney(planTotal(plan))} con IVA).`,
-      );
-      return;
-    }
-    setDraft((d) => ({ ...d, planKey: plan?.key ?? NO_PLAN }));
-    setMrrHint(
-      plan ? `${plan.label} es un pago único (${planNetLabel(plan)}); no suma MRR.` : null,
-    );
-  };
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    const parsed = parseDraft(draft);
-    if (!parsed.ok) {
-      toast.error(parsed.error);
-      return;
-    }
-    setSaving(true);
-    try {
-      const { error: billingError, warning } = await saveBilling(clientId, {
-        plan_key: parsed.planKey,
-        mrr: parsed.mrr,
-        billing_day: parsed.billingDay,
-      });
-      if (warning) toast.warning(warning);
-      if (billingError) {
-        toast.error(`No se guardó nada: ${billingError}`);
-        return;
-      }
-      const cli = await supabase
-        .from("clients")
-        .update({ status: draft.status, started_at: draft.startedAt || null })
-        .eq("id", clientId)
-        .select("id");
-      const clientError = cli.error
-        ? writeErrorMessage(cli.error)
-        : !cli.data || cli.data.length === 0
-          ? PERMISSION_DENIED_MSG
-          : null;
-      if (clientError) {
-        toast.error(
-          `Se guardaron el plan, el MRR y el día de cobro, pero no el estado comercial ni la fecha de inicio: ${clientError}`,
-        );
-        return;
-      }
-      setDirty(false);
-      toast.success("Plan y facturación guardados");
-      // Tareas y objetivos estándar del plan (idempotente; el Plan también lo hace al abrirse).
-      if (parsed.planKey) {
-        seedPlanTemplates(clientId, parsed.planKey).catch((err: Error) =>
-          toast.error(`No se pudieron crear las tareas estándar del plan: ${err.message}`),
-        );
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "No se pudo guardar");
-    } finally {
-      setSaving(false);
-      void queryClient.invalidateQueries({ queryKey: fichaKeys.all(userKey, clientId) });
-      // invalidateShellClients también recalcula el MRR (client_billing / suscripción).
-      void invalidateShellClients(queryClient);
-    }
-  };
-
-  const readOnly = !overview.canEdit;
-
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Panel
-      title="Plan y facturación"
-      icon={CreditCard}
-      description={
-        readOnly ? "Solo lectura: no tienes permisos de edición en este cliente." : undefined
-      }
-    >
-      <form onSubmit={submit} className="space-y-3">
-        <fieldset disabled={readOnly || saving} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Plan" htmlFor="billing-plan" className="sm:col-span-2">
-            <Select
-              value={draft.planKey}
-              onValueChange={onPlanChange}
-              disabled={readOnly || saving}
-            >
-              <SelectTrigger id="billing-plan">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_PLAN}>Sin plan</SelectItem>
-                {PLANS.map((p) => (
-                  <SelectItem key={p.key} value={p.key}>
-                    {p.label} · {planNetLabel(p)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field
-            label="MRR neto (CLP, sin IVA)"
-            htmlFor="billing-mrr"
-            className="sm:col-span-2"
-            hint={mrrHint}
-          >
-            <Input
-              id="billing-mrr"
-              inputMode="numeric"
-              value={draft.mrr}
-              onChange={(e) => {
-                set("mrr", e.target.value.replace(/\D/g, ""));
-                setMrrHint(null);
-              }}
-            />
-          </Field>
-          <Field label="Día de cobro (1-28)" htmlFor="billing-day">
-            <Input
-              id="billing-day"
-              type="number"
-              min={MIN_BILLING_DAY}
-              max={MAX_BILLING_DAY}
-              value={draft.billingDay}
-              onChange={(e) => set("billingDay", e.target.value)}
-            />
-          </Field>
-          <Field label="Cliente desde" htmlFor="billing-started">
-            <Input
-              id="billing-started"
-              type="date"
-              value={draft.startedAt}
-              onChange={(e) => set("startedAt", e.target.value)}
-            />
-          </Field>
-          <Field label="Estado comercial" htmlFor="billing-status" className="sm:col-span-2">
-            <Select
-              value={draft.status}
-              onValueChange={(v) => set("status", v as ClientStatus)}
-              disabled={readOnly || saving}
-            >
-              <SelectTrigger id="billing-status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CLIENT_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {CLIENT_STATUS_META[s].label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </fieldset>
-        {!readOnly && (
-          <div className="flex justify-end">
-            <Button type="submit" size="sm" disabled={saving}>
-              {saving ? "Guardando…" : "Guardar cambios"}
-            </Button>
-          </div>
-        )}
-      </form>
-    </Panel>
+    <div className="flex items-baseline justify-between gap-3 py-1.5">
+      <dt className="shrink-0 text-sm text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-right text-sm font-medium">{children}</dd>
+    </div>
   );
 }
 
-function Field({
-  label,
-  htmlFor,
-  hint,
-  className,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  hint?: string | null;
-  className?: string;
-  children: React.ReactNode;
-}) {
+const STATE_TONE = {
+  sin_plan: "neutral",
+  pago_unico: "info",
+  activo: "success",
+  por_renovar: "warning",
+  finalizado: "neutral",
+} as const;
+
+function Rows({ m }: { m: Membership }) {
+  const plan = m.state !== "sin_plan" ? findPlan(m.planKey) : null;
   return (
-    <div className={`space-y-1.5 ${className ?? ""}`}>
-      <Label htmlFor={htmlFor}>{label}</Label>
-      {children}
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-    </div>
+    <dl className="divide-y divide-border-subtle">
+      <Row label="Estado">
+        <span className="inline-flex flex-wrap justify-end gap-1.5">
+          {m.onboarding && <StatusBadge status="onboarding" label="Onboarding" tone="info" />}
+          <StatusBadge
+            status={m.state}
+            label={MEMBERSHIP_STATE_LABEL[m.state]}
+            tone={STATE_TONE[m.state]}
+          />
+        </span>
+      </Row>
+      <Row label="Plan">{plan ? plan.label : "Sin plan vigente"}</Row>
+      {plan && <Row label="Precio">{planNetLabel(plan)}</Row>}
+      {m.periodStart && m.periodEnd && (
+        <Row label={m.state === "finalizado" ? "Último período" : "Período pagado"}>
+          {fmtDay(m.periodStart)} – {fmtDay(m.periodEnd)}
+        </Row>
+      )}
+      {m.oneTimePaidAt && (
+        <Row label="Proyecto">Pago único · Marca + Web ({fmtDay(m.oneTimePaidAt)})</Row>
+      )}
+      <Row label="MRR neto">
+        <Money amount={membershipMrr(m)} />
+      </Row>
+      <Row label="Cliente desde">{m.clientSince ? fmtDay(m.clientSince) : "—"}</Row>
+    </dl>
+  );
+}
+
+/**
+ * "Plan y facturación" (solo lectura). Todo se deriva de los pagos confirmados
+ * por Flow: el plan lo elige y paga el cliente en Facturación; aquí no se edita
+ * plan, MRR, día de cobro, "cliente desde" ni estado comercial.
+ */
+export function BillingCard({ clientId }: { clientId: string }) {
+  const membership = useMembership(clientId);
+  return (
+    <Panel title="Plan y facturación" icon={CreditCard}>
+      {membership.isPending ? (
+        <ListSkeleton rows={5} label="Cargando plan" />
+      ) : membership.error ? (
+        <ErrorState message={membership.error.message} onRetry={() => void membership.refetch()} />
+      ) : (
+        <>
+          <Rows m={membership.data} />
+          <p className="mt-3 text-xs text-muted-foreground">
+            Se actualiza solo con cada pago confirmado en Facturación.
+          </p>
+        </>
+      )}
+    </Panel>
   );
 }

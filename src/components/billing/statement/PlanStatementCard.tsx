@@ -1,65 +1,64 @@
-import { useState, type ReactNode } from "react";
-import { Pencil } from "lucide-react";
-import { BarePanelProvider, ErrorState, ListSkeleton, Money, StatusBadge } from "@/components/app";
-import { Button } from "@/components/ui/button";
+import type { ReactNode } from "react";
+import { ErrorState, ListSkeleton, Money, StatusBadge, type StatusTone } from "@/components/app";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { BillingCard } from "@/components/clients/ficha/BillingCard";
-import { useFichaOverview } from "@/components/clients/ficha/fichaQueries";
-import { formatMoney } from "@/lib/pricing/plans";
+  MEMBERSHIP_STATE_LABEL,
+  type Membership,
+  type MembershipState,
+} from "@/lib/billing/membership";
+import { findPlan, planNetLabel, planTotal } from "@/lib/pricing/plans";
 import { fmtDay } from "./format";
-import type { AccountStanding, NextCharge, PlanView } from "./statementData";
+import { MembershipActions } from "./MembershipActions";
+import type { FlowState } from "./PaymentActions";
 
-const STANDING: Readonly<
-  Record<AccountStanding, { label: string; tone: "success" | "warning" | "danger" }>
-> = {
-  al_dia: { label: "Al día", tone: "success" },
-  por_pagar: { label: "Por pagar", tone: "warning" },
-  vencido: { label: "Vencido", tone: "danger" },
+const STATE_TONE: Readonly<Record<MembershipState, StatusTone>> = {
+  sin_plan: "neutral",
+  pago_unico: "info",
+  activo: "success",
+  por_renovar: "warning",
+  finalizado: "neutral",
 };
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5">
       <dt className="shrink-0 text-sm text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 whitespace-nowrap text-right text-sm font-medium">{children}</dd>
+      <dd className="min-w-0 text-right text-sm font-medium">{children}</dd>
     </div>
   );
 }
 
+const days = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
+
+function remainingLabel(m: Membership): string | null {
+  if (m.daysLeft === null) return null;
+  return m.daysLeft === 0 ? "Hoy es el último día" : days(m.daysLeft);
+}
+
 export interface PlanStatementCardProps {
   clientId: string;
-  view: PlanView | null;
-  next: NextCharge | null;
-  standing: AccountStanding | null;
+  membership: Membership | undefined;
   loading: boolean;
   error: string | null;
   onRetry: () => void;
-  /** Solo agencia con permiso de edición. */
-  canEdit: boolean;
-  onPlanSaved: () => void;
+  flow: FlowState;
+  /** Puede iniciar el pago (agencia con edición o el propio cliente). */
+  canPay: boolean;
 }
 
-/** "Tu plan": lo que el cliente contrató y cuándo paga. Sin MRR ni datos internos. */
+/** "Tu plan": plan vigente, período pagado y estado, con Contratar/Renovar. Sin MRR. */
 export function PlanStatementCard({
   clientId,
-  view,
-  next,
-  standing,
+  membership: m,
   loading,
   error,
   onRetry,
-  canEdit,
-  onPlanSaved,
+  flow,
+  canPay,
 }: PlanStatementCardProps) {
-  const [editing, setEditing] = useState(false);
-  const status = standing ? STANDING[standing] : null;
+  const plan = findPlan(m?.planKey);
+  const showPlan = Boolean(m && m.state !== "sin_plan" && plan);
+  const remaining = m ? remainingLabel(m) : null;
 
   return (
     <section
@@ -79,114 +78,73 @@ export function PlanStatementCard({
           {loading ? (
             <Skeleton className="mt-1 h-6 w-40" />
           ) : (
-            <h2 className="truncate text-lg font-semibold">{view?.label ?? "Sin plan activo"}</h2>
+            <h2 className="truncate text-lg font-semibold">
+              {showPlan && plan ? plan.label : MEMBERSHIP_STATE_LABEL.sin_plan}
+            </h2>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {status && !loading && (
-            <StatusBadge status={standing ?? ""} label={status.label} tone={status.tone} />
-          )}
-        </div>
+        {m && !loading && m.state !== "sin_plan" && (
+          <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+            {m.onboarding && <StatusBadge status="onboarding" label="Onboarding" tone="info" />}
+            <StatusBadge
+              status={m.state}
+              label={MEMBERSHIP_STATE_LABEL[m.state]}
+              tone={STATE_TONE[m.state]}
+            />
+          </div>
+        )}
       </div>
 
       {loading ? (
         <ListSkeleton rows={4} label="Cargando plan" />
       ) : error ? (
         <ErrorState message={error} onRetry={onRetry} />
-      ) : (
-        <PlanRows view={view} next={next} />
-      )}
-
-      {canEdit && (
-        <div className="-mb-1 flex justify-end">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 px-2 text-xs text-muted-foreground"
-            onClick={() => setEditing(true)}
-          >
-            <Pencil aria-hidden className="mr-1 h-3.5 w-3.5" />
-            Editar plan
-          </Button>
-        </div>
-      )}
-
-      {canEdit && (
-        <Sheet
-          open={editing}
-          onOpenChange={(open) => {
-            setEditing(open);
-            if (!open) onPlanSaved();
-          }}
-        >
-          <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
-            <SheetHeader className="border-b px-6 pb-3 pt-6 text-left">
-              <SheetTitle>Editar plan</SheetTitle>
-              <SheetDescription className="sr-only">
-                Plan, día de cobro, fecha de inicio y estado comercial del cliente.
-              </SheetDescription>
-            </SheetHeader>
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-              {editing && <PlanEditor clientId={clientId} />}
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
+      ) : m ? (
+        <>
+          {showPlan && plan && (
+            <dl className="divide-y divide-border-subtle">
+              <Row label="Precio">
+                <span className="whitespace-nowrap tabular-nums">{planNetLabel(plan)}</span>
+                <span className="block text-xs font-normal text-muted-foreground">
+                  Total con IVA <Money amount={planTotal(plan)} className="text-foreground" />
+                </span>
+              </Row>
+              {m.periodStart && m.periodEnd && (
+                <Row label={m.state === "finalizado" ? "Último período" : "Período pagado"}>
+                  <span className="whitespace-nowrap">
+                    {fmtDay(m.periodStart)} – {fmtDay(m.periodEnd)}
+                  </span>
+                </Row>
+              )}
+              {remaining && (
+                <Row label="Quedan">
+                  <span className={m.state === "por_renovar" ? "text-warning-strong" : undefined}>
+                    {remaining}
+                  </span>
+                  {m.renewed && m.coveredUntil && (
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      Renovado hasta el {fmtDay(m.coveredUntil)}
+                    </span>
+                  )}
+                </Row>
+              )}
+              {m.state === "pago_unico" && m.oneTimePaidAt && (
+                <Row label="Pagado el">{fmtDay(m.oneTimePaidAt)}</Row>
+              )}
+              {m.state !== "pago_unico" && m.oneTimePaidAt && (
+                <Row label="Proyecto">
+                  <span className="whitespace-nowrap">Pago único · Marca + Web</span>
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    Pagado el {fmtDay(m.oneTimePaidAt)}
+                  </span>
+                </Row>
+              )}
+              {m.clientSince && <Row label="Cliente desde">{fmtDay(m.clientSince)}</Row>}
+            </dl>
+          )}
+          <MembershipActions clientId={clientId} membership={m} flow={flow} canPay={canPay} />
+        </>
+      ) : null}
     </section>
-  );
-}
-
-function PlanRows({ view, next }: { view: PlanView | null; next: NextCharge | null }) {
-  if (!view?.label) {
-    return <p className="text-sm text-muted-foreground">Aún no hay un plan contratado.</p>;
-  }
-  const period = view.monthly ? "/mes" : " (pago único)";
-  return (
-    <dl className="divide-y divide-border-subtle">
-      {view.net !== null && view.total !== null && (
-        <Row label="Precio">
-          <span className="tabular-nums">
-            {formatMoney(view.net)} + IVA{period}
-          </span>
-          <span className="block text-xs font-normal text-muted-foreground">
-            Total con IVA <Money amount={view.total} className="text-foreground" />
-          </span>
-        </Row>
-      )}
-      {view.clientSince && <Row label="Cliente desde">{fmtDay(view.clientSince)}</Row>}
-      {view.commitment && (
-        <Row label="Permanencia">
-          {view.commitment.months} meses · hasta el {fmtDay(view.commitment.until)}
-        </Row>
-      )}
-      <Row label="Próximo cobro">
-        {next ? (
-          <>
-            {fmtDay(next.date)} · <Money amount={next.amount} />
-          </>
-        ) : (
-          <span className="font-normal text-muted-foreground">Sin cobros programados</span>
-        )}
-      </Row>
-    </dl>
-  );
-}
-
-/** Formulario de la agencia (el mismo de la gestión del cliente), dentro del panel lateral. */
-function PlanEditor({ clientId }: { clientId: string }) {
-  const overview = useFichaOverview(clientId);
-  if (overview.isPending) return <Skeleton className="h-64 w-full" />;
-  if (overview.error || !overview.data) {
-    return (
-      <ErrorState
-        message={overview.error?.message ?? "No pudimos cargar el plan."}
-        onRetry={() => overview.refetch()}
-      />
-    );
-  }
-  return (
-    <BarePanelProvider>
-      <BillingCard clientId={clientId} overview={overview.data} />
-    </BarePanelProvider>
   );
 }

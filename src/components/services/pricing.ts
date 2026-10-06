@@ -3,10 +3,9 @@ import type { ServiceContent } from "@/lib/services/content";
 import { servicePlans } from "@/lib/services/seo";
 import { formatClp } from "@/lib/site";
 
-/** "pago único" o "al mes · mínimo 3 meses". */
+/** "pago único" o "al mes" (sin permanencia). */
 export function planPeriod(plan: Plan): string {
-  if (plan.billing === "one_time") return "pago único";
-  return plan.minMonths ? `al mes · mínimo ${plan.minMonths} meses` : "al mes";
+  return plan.billing === "one_time" ? "pago único" : "al mes";
 }
 
 /** Frase de precio del hero: "Desde $129.990 + IVA al mes." (precio neto). */

@@ -54,7 +54,7 @@ const empty = {
   alerts: [],
   reports: [],
   activity: [],
-  subscriptions: [],
+  planPayments: [],
   onboarding: { withToken: [], submitted: [] },
   partialClientIds: [],
 };
@@ -186,34 +186,37 @@ expect("sin actividad 45 días → riesgo", idle(T.inactivityRiskDays)?.level, "
 expect("sin ninguna actividad → riesgo", idle(null)?.level, "en_riesgo");
 expect("días desde actividad", idle(10)?.daysSinceActivity, 10);
 
-// --- renovación
-const sub = (startedAt, minMonths, status = "activa") => ({
-  subscriptions: [{ client_id: "s", status, started_at: startedAt, min_months: minMonths }],
+// --- renovación (fin del período pagado, sin cobro automático)
+const period = (endsInDays, status = "paid") => ({
+  client_id: "s",
+  status,
+  plan_key: "contenido",
+  paid_at: addDays(TODAY, endsInDays - 29),
+  period_start: addDays(TODAY, endsInDays - 29),
+  period_end: addDays(TODAY, endsInDays),
 });
-expect(
-  "permanencia termina en 20 días → atención",
-  run("s", sub(h.addMonthsYmd(addDays(TODAY, 20), -3), 3))?.level,
-  "atencion",
-);
-expect(
-  "permanencia termina en 5 días → solo atención",
-  run("s", sub(h.addMonthsYmd(addDays(TODAY, 5), -6), 6))?.level,
-  "atencion",
-);
+const plan = (...rows) => ({ planPayments: rows });
+expect("período termina en 3 días → atención", run("s", plan(period(3)))?.level, "atencion");
+expect("período termina hoy → atención", run("s", plan(period(0)))?.level, "atencion");
 expect(
   "renovación se rotula como próxima",
-  /^Renovación próxima/.test(
-    run("s", sub(h.addMonthsYmd(addDays(TODAY, 5), -6), 6))?.reasons[0].label ?? "",
-  ),
+  /^Renovación próxima: el período pagado/.test(run("s", plan(period(3)))?.reasons[0].label ?? ""),
   true,
 );
-expect("permanencia lejana → bien", run("s", sub("2026-09-01", 12))?.level, "bien");
-expect("permanencia ya cumplida → bien", run("s", sub("2025-01-01", 6))?.level, "bien");
+expect("período termina en 6 días → bien", run("s", plan(period(6)))?.level, "bien");
 expect(
-  "suscripción cancelada se ignora",
-  run("s", sub(h.addMonthsYmd(addDays(TODAY, 5), -6), 6, "cancelada"))?.level,
+  "ya renovado → bien",
+  run(
+    "s",
+    plan(period(3), {
+      ...period(33),
+      paid_at: TODAY,
+      period_start: addDays(TODAY, 4),
+    }),
+  )?.level,
   "bien",
 );
+expect("pago no confirmado se ignora", run("s", plan(period(3, "cancelled")))?.level, "bien");
 expect("addMonths fin de mes", h.addMonthsYmd("2026-01-31", 1), "2026-02-28");
 
 // --- onboarding
@@ -248,22 +251,7 @@ expect("pausado con cobro muy vencido → máximo atención", pausedOverdue?.lev
 expect("pausado solo considera cobro y renovación", codes(pausedOverdue), "cobro_vencido");
 expect(
   "pausado con renovación → atención",
-  codes(
-    run(
-      "z",
-      {
-        subscriptions: [
-          {
-            client_id: "z",
-            status: "activa",
-            started_at: h.addMonthsYmd(addDays(TODAY, 10), -3),
-            min_months: 3,
-          },
-        ],
-      },
-      { status: "pausado" },
-    ),
-  ),
+  codes(run("z", { planPayments: [{ ...period(2), client_id: "z" }] }, { status: "pausado" })),
   "renovacion_cercana",
 );
 expect("pausado no aparece en riesgo", h.countByLevel([pausedOverdue]).en_riesgo, 0);

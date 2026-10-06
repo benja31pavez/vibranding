@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Plus, Receipt } from "lucide-react";
+import { Receipt } from "lucide-react";
 import { toast } from "sonner";
 import {
   ConfirmDialog,
@@ -10,16 +10,14 @@ import {
   Panel,
   StatusBadge,
 } from "@/components/app";
-import { Button } from "@/components/ui/button";
 import { PaymentReminderDialog } from "@/components/billing/PaymentReminderDialog";
 import { EditPaymentDialog } from "@/components/billing/statement/EditPaymentDialog";
 import { FlowSetupNote } from "@/components/billing/statement/FlowSetupNote";
-import { NewPaymentDialog } from "@/components/billing/statement/NewPaymentDialog";
 import { PrimaryAction, type FlowState } from "@/components/billing/statement/PaymentActions";
 import { PaymentRowMenu, type RowMenuAction } from "@/components/billing/statement/PaymentRowMenu";
 import { UploadDocumentDialog } from "@/components/billing/statement/UploadDocumentDialog";
 import { fmtDay, fmtMonth } from "@/components/billing/statement/format";
-import { deletePayment, setPaymentStatus } from "@/components/billing/statement/paymentWrites";
+import { deletePayment } from "@/components/billing/statement/paymentWrites";
 import {
   displayStatus,
   relativeDue,
@@ -27,6 +25,7 @@ import {
   type StatementPayment,
 } from "@/components/billing/statement/statementData";
 import { periodLabel } from "@/lib/billing/dates";
+import { findPlan } from "@/lib/pricing/plans";
 import { cn } from "@/lib/utils";
 
 export interface PaymentsPanelProps {
@@ -44,7 +43,11 @@ export interface PaymentsPanelProps {
   onChanged: () => void;
 }
 
-/** Lista "Pagos" del estado de cuenta. Las acciones de la agencia van en el menú ⋯. */
+/**
+ * Lista "Pagos" del estado de cuenta. Todo pago entra por la plataforma (Flow):
+ * la agencia no crea cobros ni los marca pagados a mano. Sus acciones (recordar,
+ * boleta, editar, eliminar) van en el menú ⋯.
+ */
 export function PaymentsPanel({
   clientId,
   clientName,
@@ -58,19 +61,11 @@ export function PaymentsPanel({
   today,
   onChanged,
 }: PaymentsPanelProps) {
-  const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<StatementPayment | null>(null);
   const [uploading, setUploading] = useState<StatementPayment | null>(null);
   const [reminding, setReminding] = useState<StatementPayment | null>(null);
   const [toDelete, setToDelete] = useState<StatementPayment | null>(null);
   const agency = access.canEdit;
-
-  const markPaid = async (p: StatementPayment) => {
-    const err = await setPaymentStatus(p.id, "paid");
-    if (err) toast.error(err);
-    else toast.success("Cobro marcado como pagado");
-    onChanged();
-  };
 
   const remove = async (p: StatementPayment) => {
     const err = await deletePayment(p.id);
@@ -81,7 +76,6 @@ export function PaymentsPanel({
 
   const onAction = (action: RowMenuAction, p: StatementPayment) => {
     if (action === "remind") setReminding(p);
-    else if (action === "markPaid") void markPaid(p);
     else if (action === "upload") setUploading(p);
     else if (action === "edit") setEditing(p);
     else setToDelete(p);
@@ -95,13 +89,7 @@ export function PaymentsPanel({
       action={<PrimaryAction payment={p} flow={flow} canEdit={agency} onChanged={onChanged} />}
       menu={
         agency ? (
-          <PaymentRowMenu
-            payment={p}
-            flow={flow}
-            canManage={access.canManage}
-            onAction={onAction}
-            onChanged={onChanged}
-          />
+          <PaymentRowMenu payment={p} flow={flow} onAction={onAction} onChanged={onChanged} />
         ) : null
       }
     />
@@ -113,17 +101,7 @@ export function PaymentsPanel({
       icon={Receipt}
       fill
       bodyClassName="md:flex md:min-h-0 md:flex-1 md:flex-col"
-      actions={
-        agency && (
-          <div className="flex items-center gap-1">
-            {flow === "off" && <FlowSetupNote missing={flowMissing} />}
-            <Button size="sm" variant="outline" className="h-8" onClick={() => setCreating(true)}>
-              <Plus aria-hidden className="mr-1 h-4 w-4" />
-              Nuevo cobro
-            </Button>
-          </div>
-        )
-      }
+      actions={agency && flow === "off" && <FlowSetupNote missing={flowMissing} />}
     >
       {loading ? (
         <ListSkeleton rows={4} label="Cargando pagos" />
@@ -142,12 +120,6 @@ export function PaymentsPanel({
 
       {agency && (
         <>
-          <NewPaymentDialog
-            clientId={clientId}
-            open={creating}
-            onOpenChange={setCreating}
-            onCreated={onChanged}
-          />
           <EditPaymentDialog
             payment={editing}
             canChangeStatus={access.canManage}
@@ -195,8 +167,15 @@ export function PaymentsPanel({
   );
 }
 
-/** "Plan mensual · oct 2026" (sin repetir el mes si ya está en el concepto). */
+/**
+ * "Plan Contenido · 6 oct 2026 – 6 nov 2026" para pagos de plan con período;
+ * si no, "Plan mensual · oct 2026" (sin repetir el mes si ya está en el concepto).
+ */
 function conceptLabel(p: StatementPayment): string {
+  const plan = findPlan(p.plan_key);
+  if (plan && p.period_start && p.period_end) {
+    return `${plan.label} · ${fmtDay(p.period_start)} – ${fmtDay(p.period_end)}`;
+  }
   const base = p.description?.trim() || "Cobro";
   if (!p.period) return base;
   const month = periodLabel(p.period).split(" ")[0];

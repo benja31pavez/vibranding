@@ -5,6 +5,7 @@
  */
 import type { Database } from "@/integrations/supabase/types";
 import { firstDayOfMonth, todayInChile } from "@/lib/billing/dates";
+import { isPlanKey } from "@/lib/pricing/plans";
 import {
   chargeKind,
   computeTotals,
@@ -240,10 +241,12 @@ async function createProposalPayment(
     description: `Propuesta "${noteSafe(row.title ?? "Vibranding", 80)}" (${what}) · ${paymentRef(row.id)}`,
   };
   const db = await admin();
-  // Servidor (service role): proposal_id no está en los GRANT del navegador (v3b).
+  // Servidor (service role): proposal_id y plan_key no están en los GRANT del navegador.
+  // plan_key hace que, al confirmarse el pago, cuente como período de la membresía.
+  const planKey = isPlanKey(row.plan_key) ? row.plan_key : null;
   let { data, error } = await db
     .from("payments")
-    .insert({ ...values, proposal_id: row.id })
+    .insert({ ...values, proposal_id: row.id, plan_key: planKey })
     .select("*")
     .single();
   if (isMissingColumn(error)) {

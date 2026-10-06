@@ -1,5 +1,5 @@
 import { useServerFn } from "@tanstack/react-start";
-import { BellRing, CheckCircle2, Copy, FileUp, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { BellRing, Copy, FileUp, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,19 +14,17 @@ import { copyToClipboard, errorMessage } from "./paymentWrites";
 import { isOpen, type StatementPayment } from "./statementData";
 import type { FlowState } from "./PaymentActions";
 
-export type RowMenuAction = "remind" | "markPaid" | "upload" | "edit" | "delete";
+export type RowMenuAction = "remind" | "upload" | "edit" | "delete";
 
-/** Acciones de la agencia sobre un cobro (nunca se muestra al cliente). */
+/** Acciones de la agencia sobre un cobro (nunca se muestra al cliente). El pago lo confirma Flow. */
 export function PaymentRowMenu({
   payment,
   flow,
-  canManage,
   onAction,
   onChanged,
 }: {
   payment: StatementPayment;
   flow: FlowState;
-  canManage: boolean;
   onAction: (action: RowMenuAction, payment: StatementPayment) => void;
   onChanged: () => void;
 }) {
@@ -73,10 +71,6 @@ export function PaymentRowMenu({
             <DropdownMenuItem disabled={flow !== "ready"} onSelect={() => void copyLink()}>
               <Copy aria-hidden className="mr-2 h-4 w-4" />
               Copiar link de pago
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={!canManage} onSelect={() => onAction("markPaid", payment)}>
-              <CheckCircle2 aria-hidden className="mr-2 h-4 w-4" />
-              Marcar pagado
             </DropdownMenuItem>
           </>
         )}

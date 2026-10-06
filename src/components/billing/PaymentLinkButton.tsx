@@ -162,9 +162,9 @@ export function FlowNotConnectedNote({ missing }: { missing: string[] | null }) 
       <PopoverContent className="w-72 space-y-2 text-sm">
         <p className="font-medium">Cobro online desactivado</p>
         <p className="text-muted-foreground">
-          Flow no está conectado, así que no se pueden generar links de pago. Puedes registrar el
-          cobro, cobrarlo por transferencia y marcarlo como pagado. Un administrador de la
-          plataforma puede conectar Flow desde la configuración del servidor.
+          Flow no está conectado, así que no se pueden generar links de pago y los clientes no
+          pueden pagar ni renovar su plan. Todo pago entra por Flow; un administrador de la
+          plataforma lo conecta desde la configuración del servidor.
         </p>
         {missing && missing.length > 0 && (
           <p className="text-xs text-muted-foreground">

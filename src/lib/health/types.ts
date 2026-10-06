@@ -84,11 +84,14 @@ export interface HealthActivityInput {
   at: string | null;
 }
 
-export interface HealthSubscriptionInput {
+/** Pago de plan confirmado con su período (membresía; ver lib/billing/membership). */
+export interface HealthPlanPaymentInput {
   client_id: string;
   status: string;
-  started_at: string | null;
-  min_months: number;
+  plan_key: string | null;
+  paid_at: string | null;
+  period_start: string | null;
+  period_end: string | null;
 }
 
 export interface HealthOnboardingInput {
@@ -106,7 +109,7 @@ export interface HealthSources {
   alerts: readonly HealthAlertInput[];
   reports: readonly HealthReportInput[];
   activity: readonly HealthActivityInput[];
-  subscriptions: readonly HealthSubscriptionInput[];
+  planPayments: readonly HealthPlanPaymentInput[];
   onboarding: HealthOnboardingInput;
   /** Clientes cuyos datos quedaron incompletos (tope de filas): no se puntúan. */
   partialClientIds: readonly string[];

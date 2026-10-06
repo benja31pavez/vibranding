@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { fmtDay } from "./format";
 import type { PaymentStatus, StatementPayment } from "./statementData";
 import {
   NO_PERMISSION,
@@ -29,9 +30,10 @@ import {
   writeDenied,
 } from "./paymentWrites";
 
-const STATUSES: readonly PaymentStatus[] = ["pending", "paid", "overdue", "cancelled"];
+/** "Pagado" no se elige a mano: solo lo marca la confirmación de Flow. */
+const MANUAL_STATUSES: readonly PaymentStatus[] = ["pending", "overdue", "cancelled"];
 
-/** Editar concepto, monto, vencimiento y (owner/admin) estado y fecha de pago. */
+/** Editar concepto, monto, vencimiento y (owner/admin) estado. El pago lo confirma Flow. */
 export function EditPaymentDialog({
   payment,
   canChangeStatus,
@@ -52,6 +54,7 @@ export function EditPaymentDialog({
 
   if (!form) return null;
 
+  const paid = payment?.status === "paid";
   // Mismo criterio que el trigger t_payments_lock_amount: pagado o con link de Flow.
   const linkLocked = payment?.status === "paid" || Boolean(payment?.payment_url);
 
@@ -77,18 +80,11 @@ export function EditPaymentDialog({
         error ? `No se pudo actualizar el cobro: ${error.message}` : NO_PERMISSION,
       );
     }
-    // Estado / fecha de pago: vía RPC, solo si cambiaron.
-    const statusChanged = payment !== null && form.status !== payment.status;
-    const paidAtChanged =
-      form.status === "paid" &&
-      payment !== null &&
-      toDateInput(form.paid_at) !== toDateInput(payment.paid_at);
-    if (statusChanged || paidAtChanged) {
-      const statusError = await setPaymentStatus(
-        form.id,
-        form.status,
-        form.status === "paid" ? toDateInput(form.paid_at) || null : null,
-      );
+    // Estado: vía RPC, solo si cambió (nunca a "pagado": eso lo hace Flow).
+    const statusChanged =
+      payment !== null && form.status !== payment.status && form.status !== "paid";
+    if (statusChanged) {
+      const statusError = await setPaymentStatus(form.id, form.status);
       if (statusError) {
         setSaving(false);
         toast.error(statusError);
@@ -145,51 +141,44 @@ export function EditPaymentDialog({
               Si el monto es otro, cancela este cobro y crea uno nuevo.
             </p>
           )}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-due" className="text-xs text-muted-foreground">
-                Fecha de vencimiento
-              </Label>
-              <Input
-                id="edit-due"
-                type="date"
-                value={toDateInput(form.due_date)}
-                onChange={(e) => setForm({ ...form, due_date: e.target.value || null })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-paid" className="text-xs text-muted-foreground">
-                Fecha de pago
-              </Label>
-              <Input
-                id="edit-paid"
-                type="date"
-                value={toDateInput(form.paid_at)}
-                onChange={(e) => setForm({ ...form, paid_at: e.target.value || null })}
-                disabled={form.status !== "paid" || !canChangeStatus}
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-due" className="text-xs text-muted-foreground">
+              Fecha de vencimiento
+            </Label>
+            <Input
+              id="edit-due"
+              type="date"
+              value={toDateInput(form.due_date)}
+              onChange={(e) => setForm({ ...form, due_date: e.target.value || null })}
+            />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Estado</Label>
             <Select
               value={form.status}
               onValueChange={(v) => setForm({ ...form, status: v as PaymentStatus })}
-              disabled={!canChangeStatus}
+              disabled={!canChangeStatus || paid}
             >
               <SelectTrigger aria-label="Estado del cobro">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STATUSES.map((k) => (
+                {(paid ? (["paid"] as const) : MANUAL_STATUSES).map((k) => (
                   <SelectItem key={k} value={k}>
                     {getStatus(k).label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {!canChangeStatus && (
-              <p className="text-xs text-muted-foreground">{STATUS_LOCKED_HINT}</p>
+            {paid ? (
+              <p className="text-xs text-muted-foreground">
+                {form.paid_at ? `Pagado el ${fmtDay(form.paid_at)}. ` : ""}Un pago confirmado no se
+                cambia a mano.
+              </p>
+            ) : (
+              !canChangeStatus && (
+                <p className="text-xs text-muted-foreground">{STATUS_LOCKED_HINT}</p>
+              )
             )}
           </div>
         </div>

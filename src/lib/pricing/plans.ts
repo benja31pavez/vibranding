@@ -42,9 +42,12 @@ export interface Plan {
   label: string;
   /** Precio NETO en CLP (sin IVA). El cliente paga `withIva(netPrice)`. */
   netPrice: number;
+  /**
+   * monthly: cada pago cubre UN mes de servicio desde la fecha de pago, sin cobro
+   * automático (para seguir, el cliente renueva). one_time: pago único.
+   * No hay permanencia mínima, pausas ni devoluciones.
+   */
   billing: Billing;
-  /** Meses mínimos de permanencia (solo planes mensuales). */
-  minMonths: number | null;
   description: string;
   note: string | null;
   /**
@@ -68,7 +71,6 @@ export const PLANS: readonly Plan[] = [
     label: "Marca + Web",
     netPrice: 149_990,
     billing: "one_time",
-    minMonths: null,
     description: "Identidad de marca y sitio web listo para recibir clientes.",
     note: null,
     isPublic: true,
@@ -84,7 +86,6 @@ export const PLANS: readonly Plan[] = [
     label: "Plan Contenido",
     netPrice: 129_990,
     billing: "monthly",
-    minMonths: 3,
     description: "Calendario, diseño y publicación de contenido para Instagram.",
     note: null,
     isPublic: true,
@@ -101,7 +102,6 @@ export const PLANS: readonly Plan[] = [
     label: "Plan Crecimiento",
     netPrice: 249_990,
     billing: "monthly",
-    minMonths: 3,
     description: "Contenido + campañas en Meta Ads + seguimiento de leads.",
     note: "La inversión en pauta (Meta Ads) la paga directamente el cliente.",
     isPublic: true,
@@ -117,7 +117,6 @@ export const PLANS: readonly Plan[] = [
     label: "Plan Mantención",
     netPrice: 69_990,
     billing: "monthly",
-    minMonths: 3,
     description:
       "8 piezas al mes con calendario, aprobación en el portal y reporte mensual. Sin pauta ni campañas.",
     note: "Solo para clientes que ya trabajaron con Vibranding.",
@@ -131,6 +130,13 @@ export const PLANS: readonly Plan[] = [
     ],
   },
 ];
+
+/**
+ * Condiciones de los planes mensuales (única fuente para propuestas, contratos y
+ * Facturación). Decisión 2026-10-06: sin permanencia ni cobro automático.
+ */
+export const MONTHLY_PLAN_TERMS =
+  "Cada pago cubre un mes de servicio desde el día de pago. Sin permanencia ni cobros automáticos: para seguir, renuevas al terminar el mes. No hay devoluciones, pausas ni cambios de plan durante el mes pagado.";
 
 export type PublicPlan = Plan & { key: PublicPlanKey };
 
@@ -206,11 +212,9 @@ export function planNetLabel(plan: Pick<Plan, "netPrice" | "billing">): string {
   return plan.billing === "one_time" ? `${base} + IVA (pago único)` : `${base} + IVA/mes`;
 }
 
-/** "$129.990 + IVA/mes · mínimo 3 meses". */
+/** "$129.990 + IVA/mes" (sin permanencia: cada pago cubre un mes). */
 export function planPriceLabel(plan: Plan): string {
-  const base = planNetLabel(plan);
-  if (plan.billing === "one_time") return base;
-  return plan.minMonths ? `${base} · mínimo ${plan.minMonths} meses` : base;
+  return planNetLabel(plan);
 }
 
 /**

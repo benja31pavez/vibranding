@@ -225,11 +225,13 @@ function loadSignals(ids: readonly string[], today: string) {
       ids,
       (part) => (from, to) =>
         supabase
-          .from("subscriptions")
-          .select("id,client_id,status,started_at,min_months")
+          .from("payments")
+          .select("id,client_id,status,plan_key,paid_at,period_start,period_end")
           .in("client_id", part)
-          .eq("status", "activa")
-          .order("started_at", { ascending: false })
+          .eq("status", "paid")
+          .not("period_end", "is", null)
+          .gte("period_end", today)
+          .order("period_end", { ascending: false })
           .order("id")
           .range(from, to),
     ),
@@ -268,8 +270,17 @@ export async function loadHealthSources(
     loadSignals(ids, today),
     loadActivity(ids, since),
   ]);
-  const [payments, approvals, igChanges, commentChanges, alerts, reports, subs, billing, intakes] =
-    signals;
+  const [
+    payments,
+    approvals,
+    igChanges,
+    commentChanges,
+    alerts,
+    reports,
+    planPayments,
+    billing,
+    intakes,
+  ] = signals;
   const [comments, approved, paid, sent] = activity;
   const partialIds = [...signals, ...activity].flatMap((s: Capped<unknown>) => s.partialIds);
 
@@ -289,7 +300,7 @@ export async function loadHealthSources(
       ...paid.rows.map((r) => ({ client_id: r.client_id, at: r.paid_at })),
       ...sent.rows.map((r) => ({ client_id: r.client_id, at: r.sent_at })),
     ],
-    subscriptions: subs.rows.map((s) => ({ ...s, min_months: Number(s.min_months) })),
+    planPayments: planPayments.rows,
     onboarding: {
       withToken: billing.rows.map((b) => b.client_id),
       submitted: intakes.rows.map((i) => i.client_id),

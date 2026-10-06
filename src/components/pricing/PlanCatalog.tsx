@@ -58,9 +58,9 @@ function PlanCard({ plan }: { plan: Plan }) {
         </div>
         <VatLines net={plan.netPrice} />
       </div>
-      {(plan.minMonths || plan.note || !plan.isPublic) && (
+      {(plan.billing === "monthly" || plan.note || !plan.isPublic) && (
         <ul className="text-[11px] text-muted-foreground space-y-0.5 border-t pt-2">
-          {plan.minMonths && <li>Permanencia mínima: {plan.minMonths} meses</li>}
+          {plan.billing === "monthly" && <li>Cada pago cubre un mes · sin permanencia</li>}
           {plan.note && <li>{plan.note}</li>}
           {!plan.isPublic && <li>No se muestra en el sitio público.</li>}
         </ul>

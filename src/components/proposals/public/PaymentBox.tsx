@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { startProposalPayment } from "@/lib/proposals/public.functions";
 import type { PublicPaymentState } from "@/lib/proposals/public.server";
 
-/** Siguiente paso tras aceptar: pagar con Flow, transferencia o contacto. */
+/** Siguiente paso tras aceptar: pagar con Flow o, si aún no está listo, te contactamos. */
 export function PaymentBox({ token, payment }: { token: string; payment: PublicPaymentState }) {
   switch (payment.state) {
     case "none":
@@ -27,8 +27,7 @@ export function PaymentBox({ token, payment }: { token: string; payment: PublicP
     case "transfer":
       return (
         <Notice icon={Mail} title="Próximo paso: el pago">
-          Te enviaremos los datos para pagar por transferencia a tu correo o WhatsApp. Si ya los
-          tienes, responde con el comprobante.
+          Te contactaremos para coordinar el pago.
         </Notice>
       );
     case "flow":
@@ -71,7 +70,7 @@ function FlowPay({ token, initialUrl }: { token: string; initialUrl: string | nu
 
   return (
     <Notice icon={CreditCard} title="Paga en línea con Flow">
-      <p>Puedes pagar ahora con tarjeta o transferencia a través de Flow.</p>
+      <p>Puedes pagar ahora con tarjeta o transferencia a través de Flow. No hay devoluciones.</p>
       {!initialUrl && (
         <div className="mt-3 space-y-1.5">
           <Label htmlFor="pay-email">Email para el comprobante</Label>

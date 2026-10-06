@@ -190,7 +190,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
             one_time_price: plan.billing === "one_time" ? plan.netPrice : 0,
             monthly_price: plan.billing === "monthly" ? plan.netPrice : 0,
             included_text: [plan.description, plan.note].filter(Boolean).join(" "),
-            min_months: plan.minMonths,
+            min_months: null,
           },
         ]
       : [];

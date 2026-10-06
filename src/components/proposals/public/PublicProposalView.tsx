@@ -141,7 +141,7 @@ export function PublicProposalView({ token, proposal, payment }: Props) {
       </Card>
 
       <Card title="Preguntas frecuentes">
-        <Faq items={proposalFaq(planKey, hasMonthly, plan?.minMonths ?? 3)} />
+        <Faq items={proposalFaq(planKey, hasMonthly)} />
       </Card>
 
       {open && (

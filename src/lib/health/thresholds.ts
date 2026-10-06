@@ -23,8 +23,11 @@ export const HEALTH_THRESHOLDS = {
   inactivityRiskDays: 45,
   /** Ventana de búsqueda de actividad (más atrás no se consulta). */
   activityLookbackDays: 60,
-  /** Fin de permanencia mínima dentro de N días → Atención (nunca En riesgo: es una oportunidad). */
-  renewalWarnDays: 30,
+  /**
+   * Fin del período pagado dentro de N días y sin renovación → Atención (nunca En
+   * riesgo: es una oportunidad). Igual a RENEW_WINDOW_DAYS de la membresía.
+   */
+  renewalWarnDays: 5,
   /** Onboarding sin completar: desde N días desde el alta → Atención. */
   onboardingWarnDays: 7,
   /** Onboarding sin completar: desde N días desde el alta → En riesgo. */

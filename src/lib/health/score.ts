@@ -9,6 +9,7 @@
  * - Si alguna consulta llegó a su tope para un cliente → "Sin datos suficientes".
  */
 import { addDaysYmd, chileDate } from "@/lib/dates/chile";
+import { deriveMembership } from "@/lib/billing/membership";
 import {
   HEALTH_MAX_SCORE,
   HEALTH_THRESHOLDS as T,
@@ -247,23 +248,19 @@ function inactivityReason(ctx: ClientContext, inactiveDays: number): HealthReaso
   };
 }
 
+/** Fin del período pagado en los últimos días y sin renovación (sin cobro automático). */
 function renewalReason(ctx: ClientContext, g: Grouped): HealthReason | null {
-  const ends = (g.subscriptions.get(ctx.client.id) ?? []).flatMap((s) => {
-    const start = toYmd(s.started_at);
-    if (s.status !== "activa" || !start || s.min_months <= 0) return [];
-    const left = daysBetween(ctx.today, addMonthsYmd(start, s.min_months));
-    return left >= 0 ? [left] : [];
-  });
-  if (!ends.length) return null;
-  const left = Math.min(...ends);
-  if (left > T.renewalWarnDays) return null;
+  const m = deriveMembership(g.planPayments.get(ctx.client.id) ?? [], ctx.today);
+  if (m.state !== "por_renovar" || m.renewed || m.daysLeft === null) return null;
+  if (m.daysLeft > T.renewalWarnDays) return null;
+  const left = m.daysLeft;
   return {
     code: "renovacion_cercana",
     severity: "warning",
     label:
       left === 0
-        ? "Renovación próxima: la permanencia mínima termina hoy"
-        : `Renovación próxima: la permanencia mínima termina en ${days(left)}`,
+        ? "Renovación próxima: el período pagado termina hoy"
+        : `Renovación próxima: el período pagado termina en ${days(left)}`,
     action: "Agendar una reunión de resultados y proponer la renovación (o un plan mejor).",
   };
 }
@@ -352,7 +349,7 @@ export function computeClientHealth(sources: HealthSources, now: Date): Map<stri
     alerts: groupBy(sources.alerts, (r) => r.client_id),
     reports: groupBy(sources.reports, (r) => r.client_id),
     activity: groupBy(sources.activity, (r) => r.client_id),
-    subscriptions: groupBy(sources.subscriptions, (r) => r.client_id),
+    planPayments: groupBy(sources.planPayments, (r) => r.client_id),
   };
   const partial = new Set(sources.partialClientIds);
   return new Map(
