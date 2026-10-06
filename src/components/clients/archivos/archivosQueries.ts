@@ -1,29 +1,46 @@
 /**
  * Datos de "Archivos": solo fuentes que ya guardan una URL de archivo
- * (entregables, publicaciones, anuncios y reportes enviados) y los archivos
- * que el cliente subió en el onboarding (bucket privado, URL firmada a pedido).
+ * (entregables, publicaciones, anuncios y reportes enviados), los archivos
+ * subidos en la plataforma (client_files, con autoría) y los que el cliente
+ * subió en el onboarding (bucket privado, URL firmada a pedido).
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  CLIENT_FILES_BUCKET,
+  clientFileMime,
+  clientFileProblem,
+} from "@/lib/clientFiles/clientFiles";
+import {
+  confirmClientFileUpload,
+  createClientFileUpload,
+  deleteClientFile,
+  listClientFiles,
+} from "@/lib/clientFiles/clientFiles.functions";
 import { useClientReports } from "@/components/reports/reportQueries";
 import { chileToday } from "@/lib/dates/chile";
 import { fichaKeys, useUserKey } from "../ficha/fichaQueries";
 import { useClientIntake } from "../ficha/OnboardingIntakePanel";
 import {
   byDateDesc,
+  clientUploads,
   fromAd,
   fromDeliverable,
   fromOnboardingPath,
   fromPost,
   fromReport,
+  splitStored,
   type ClientFile,
-  type UploadedFile,
+  type ClientUpload,
 } from "./archivosModel";
 
 /** Topes por consulta: de sobra para el historial de un cliente. */
 const DELIVERABLES_LIMIT = 500;
 const POSTS_LIMIT = 500;
 const ADS_LIMIT = 200;
+/** Las URLs firmadas duran 1 hora: se renuevan antes. */
+const STORED_STALE_MS = 30 * 60 * 1000;
 
 interface GeneratedFiles {
   files: ClientFile[];
@@ -69,6 +86,25 @@ async function fetchGenerated(clientId: string): Promise<GeneratedFiles> {
   return { files: [...postFiles, ...deliverableFiles, ...adFiles] };
 }
 
+function storedKey(userKey: string, clientId: string) {
+  return [...fichaKeys.all(userKey, clientId), "stored-files"] as const;
+}
+
+/**
+ * Archivos subidos en "Archivos" (client_files), con URL firmada, permisos del
+ * usuario (subir / eliminar) y espacio usado. El servidor decide todo.
+ */
+export function useStoredFiles(clientId: string) {
+  const userKey = useUserKey();
+  const list = useServerFn(listClientFiles);
+  return useQuery({
+    queryKey: storedKey(userKey, clientId),
+    queryFn: () => list({ data: { clientId } }),
+    staleTime: STORED_STALE_MS,
+    refetchInterval: STORED_STALE_MS,
+  });
+}
+
 /** Archivos generados por Vibranding (piezas gráficas y documentos), del más nuevo al más antiguo. */
 export function useGeneratedFiles(clientId: string) {
   const userKey = useUserKey();
@@ -76,34 +112,109 @@ export function useGeneratedFiles(clientId: string) {
     queryKey: [...fichaKeys.all(userKey, clientId), "files"] as const,
     queryFn: () => fetchGenerated(clientId),
   });
+  const stored = useStoredFiles(clientId);
   const reports = useClientReports(userKey, clientId);
   const today = chileToday();
   const reportFiles = (reports.data ?? []).flatMap((r) => fromReport(r, today) ?? []);
-  const files = base.data ? [...base.data.files, ...reportFiles].sort(byDateDesc) : undefined;
+  // Lo que subió la agencia va junto a lo generado por Vibranding.
+  const agencyFiles = splitStored(stored.data?.files ?? []).agency;
+  const files = base.data
+    ? [...base.data.files, ...agencyFiles, ...reportFiles].sort(byDateDesc)
+    : undefined;
   return {
     files,
-    isLoading: base.isLoading || reports.isLoading,
-    error: base.error ?? reports.error,
+    isLoading: base.isLoading || reports.isLoading || stored.isLoading,
+    error: base.error ?? reports.error ?? stored.error,
     refetch: () => {
       void base.refetch();
       void reports.refetch();
+      void stored.refetch();
     },
   };
 }
 
 /**
- * Archivos que el cliente subió en el onboarding. Solo editores: el RLS de
- * `client_intake` y la firma en el servidor exigen poder editar al cliente.
+ * Lo que subió el cliente: en la plataforma (client_files) y en el onboarding.
+ * El onboarding es solo para editores: el RLS de `client_intake` y la firma en
+ * el servidor exigen poder editar al cliente.
  */
 export function useUploadedFiles(clientId: string, canEdit: boolean) {
   const intake = useClientIntake(clientId, canEdit);
-  const files: UploadedFile[] = (intake.data?.archivos ?? [])
-    .map((path) => fromOnboardingPath(path, intake.data?.submitted_at ?? null))
-    .sort(byDateDesc);
+  const stored = useStoredFiles(clientId);
+  const onboarding = (intake.data?.archivos ?? []).map((path) =>
+    fromOnboardingPath(path, intake.data?.submitted_at ?? null),
+  );
+  const files: ClientUpload[] = clientUploads(
+    splitStored(stored.data?.files ?? []).client,
+    onboarding,
+  );
   return {
     files,
-    isLoading: canEdit && intake.isLoading,
-    error: intake.error,
-    refetch: () => void intake.refetch(),
+    isLoading: (canEdit && intake.isLoading) || stored.isLoading,
+    error: intake.error ?? stored.error,
+    refetch: () => {
+      void intake.refetch();
+      void stored.refetch();
+    },
   };
+}
+
+export interface UploadOutcome {
+  uploaded: number;
+  errors: { name: string; message: string }[];
+}
+
+/**
+ * Sube archivos uno a uno: el servidor firma la subida (permiso, tipo, tamaño
+ * y cuota), el navegador sube directo a Storage y el servidor la registra
+ * (vuelve a validar tamaño real, tipo y cuota con el objeto ya subido).
+ */
+export function useUploadClientFiles(clientId: string) {
+  const userKey = useUserKey();
+  const qc = useQueryClient();
+  const createSlot = useServerFn(createClientFileUpload);
+  const confirm = useServerFn(confirmClientFileUpload);
+
+  const uploadOne = async (file: File): Promise<void> => {
+    const mime = clientFileMime(file.name, file.type);
+    const problem = clientFileProblem(mime, file.size);
+    if (problem || !mime) throw new Error(problem ?? "Formato no permitido");
+    const slot = await createSlot({ data: { clientId, mime, size: file.size } });
+    const { error } = await supabase.storage
+      .from(CLIENT_FILES_BUCKET)
+      .uploadToSignedUrl(slot.path, slot.token, file, { contentType: mime });
+    if (error) {
+      console.error("[archivos] subida falló", error.message);
+      throw new Error("No se pudo subir. Revisa tu conexión e intenta de nuevo.");
+    }
+    await confirm({ data: { clientId, path: slot.path, name: file.name } });
+  };
+
+  return useMutation({
+    mutationFn: async (files: readonly File[]): Promise<UploadOutcome> => {
+      let uploaded = 0;
+      const errors: UploadOutcome["errors"] = [];
+      for (const file of files) {
+        try {
+          await uploadOne(file);
+          uploaded += 1;
+        } catch (e) {
+          errors.push({ name: file.name, message: (e as Error).message || "No se pudo subir" });
+        }
+      }
+      return { uploaded, errors };
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: storedKey(userKey, clientId) }),
+  });
+}
+
+/** Elimina un archivo propio (el servidor y la BD verifican quién lo subió). */
+export function useDeleteClientFile(clientId: string) {
+  const userKey = useUserKey();
+  const qc = useQueryClient();
+  const remove = useServerFn(deleteClientFile);
+  return useMutation({
+    mutationFn: (fileId: string) => remove({ data: { clientId, fileId } }),
+    onSettled: () => qc.invalidateQueries({ queryKey: storedKey(userKey, clientId) }),
+  });
 }

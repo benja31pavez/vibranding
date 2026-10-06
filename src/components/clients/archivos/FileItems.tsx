@@ -11,6 +11,7 @@ import {
   Loader2,
   Paperclip,
   Play,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/app";
@@ -37,6 +38,25 @@ const MEDIA_ICON: Readonly<Record<FileMedia, IconComponent>> = {
 };
 
 const ICON_BUTTON = "h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground";
+const DELETE_BUTTON = "h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive";
+
+/** Eliminar: solo en archivos subidos en "Archivos" que el usuario puede borrar. */
+function DeleteButton({ file, onDelete }: { file: ClientFile; onDelete?: () => void }) {
+  if (!onDelete || !file.stored?.canDelete) return null;
+  return (
+    <Button
+      type="button"
+      size="icon"
+      variant="ghost"
+      className={DELETE_BUTTON}
+      onClick={onDelete}
+      aria-label={`Eliminar ${file.name}`}
+      title="Eliminar"
+    >
+      <Trash2 aria-hidden className="h-4 w-4" />
+    </Button>
+  );
+}
 
 /** Miniatura: imagen, primer cuadro del video o ícono del tipo de archivo. */
 export function FileThumb({ file }: { file: ClientFile }) {
@@ -109,8 +129,15 @@ function metaLine(file: ClientFile): string {
   return date ? `${KIND_LABEL[file.kind]} · ${date}` : KIND_LABEL[file.kind];
 }
 
+interface FileItemProps {
+  file: ClientFile;
+  onView: () => void;
+  /** Solo se muestra si el archivo es propio (file.stored.canDelete). */
+  onDelete?: () => void;
+}
+
 /** Tarjeta de la galería: miniatura (abre el visor), nombre, tipo, fecha, estado y descarga. */
-export function GalleryCard({ file, onView }: { file: ClientFile; onView: () => void }) {
+export function GalleryCard({ file, onView, onDelete }: FileItemProps) {
   const status = file.status ? STATUS_META[file.status] : null;
   const slides = file.urls.length;
   return (
@@ -153,13 +180,14 @@ export function GalleryCard({ file, onView }: { file: ClientFile; onView: () => 
           <p className="truncate text-xs text-muted-foreground">{metaLine(file)}</p>
         </div>
         <DownloadButton file={file} />
+        <DeleteButton file={file} onDelete={onDelete} />
       </div>
     </article>
   );
 }
 
-/** Fila de la vista "Documentos": reportes y PDF. */
-export function DocumentRow({ file, onView }: { file: ClientFile; onView: () => void }) {
+/** Fila de la vista "Documentos": reportes, PDF y documentos subidos. */
+export function DocumentRow({ file, onView, onDelete }: FileItemProps) {
   const Icon = MEDIA_ICON[file.media];
   const status = file.status ? STATUS_META[file.status] : null;
   return (
@@ -188,7 +216,7 @@ export function DocumentRow({ file, onView }: { file: ClientFile; onView: () => 
             <span className="sr-only"> {file.name} (se abre en otra pestaña)</span>
           </a>
         </Button>
-      ) : (
+      ) : file.media === "file" ? null : (
         <Button
           type="button"
           size="sm"
@@ -200,6 +228,7 @@ export function DocumentRow({ file, onView }: { file: ClientFile; onView: () => 
         </Button>
       )}
       <DownloadButton file={file} />
+      <DeleteButton file={file} onDelete={onDelete} />
     </div>
   );
 }

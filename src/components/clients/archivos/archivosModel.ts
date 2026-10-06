@@ -1,10 +1,12 @@
 /**
  * Lógica pura de "Archivos" del cliente: convierte entregables, publicaciones,
- * anuncios, reportes y archivos del onboarding en una lista común, y la filtra.
+ * anuncios, reportes, archivos subidos en la plataforma y archivos del
+ * onboarding en una lista común, y la filtra.
  * Sin E/S ni React.
  */
 import type { StatusTone } from "@/components/app";
 import type { Tables } from "@/integrations/supabase/types";
+import type { StoredClientFile } from "@/lib/clientFiles/clientFiles.server";
 import { monthName } from "@/lib/delivery/planCycle";
 import { displayFileName } from "@/lib/onboarding/schema";
 import { chileMonthOf, shortPeriod } from "../ficha/cliente/clientView";
@@ -13,7 +15,7 @@ import { chileMonthOf, shortPeriod } from "../ficha/cliente/clientView";
 export type FileKind = GalleryKind | "report" | "document";
 
 /** Tipos de pieza gráfica. */
-type GalleryKind = "post" | "carousel" | "story" | "reel" | "ad" | "brand" | "other";
+type GalleryKind = "post" | "carousel" | "story" | "reel" | "ad" | "brand" | "upload" | "other";
 
 /** Cómo se muestra el archivo: imagen, video, PDF, página web o archivo genérico. */
 export type FileMedia = "image" | "video" | "pdf" | "page" | "file";
@@ -32,6 +34,8 @@ export interface ClientFile {
   /** Archivos que se ven en grande (varias láminas en un carrusel). */
   urls: string[];
   status: FileStatus | null;
+  /** Archivo subido en "Archivos" (client_files): el único que se puede eliminar aquí. */
+  stored?: { id: string; canDelete: boolean };
 }
 
 export const KIND_LABEL: Readonly<Record<FileKind, string>> = {
@@ -41,6 +45,7 @@ export const KIND_LABEL: Readonly<Record<FileKind, string>> = {
   reel: "Reel",
   ad: "Anuncio",
   brand: "Marca",
+  upload: "Subido",
   other: "Otro",
   report: "Reporte",
   document: "Documento",
@@ -54,6 +59,7 @@ export const GALLERY_KINDS: readonly FileKind[] = [
   "reel",
   "ad",
   "brand",
+  "upload",
   "other",
 ];
 
@@ -253,6 +259,35 @@ export function fromReport(r: ReportFileRow, today: string): ClientFile | null {
   };
 }
 
+// ── Subidos en "Archivos" (client_files, bucket privado, URL firmada) ────────
+
+/** Archivo subido en la plataforma → ClientFile (null si no se pudo firmar su URL). */
+export function fromStoredFile(f: StoredClientFile): ClientFile | null {
+  if (!f.url) return null;
+  const media = mediaOf(f.mime, f.name);
+  return {
+    id: `stored-${f.id}`,
+    name: f.name,
+    date: f.createdAt,
+    kind: media === "image" || media === "video" ? "upload" : "document",
+    media,
+    thumbUrl: media === "image" ? f.url : null,
+    urls: [f.url],
+    status: null,
+    stored: { id: f.id, canDelete: f.canDelete },
+  };
+}
+
+/** Separa los subidos por la agencia (van con lo generado) de los del cliente. */
+export function splitStored(files: readonly StoredClientFile[]): {
+  agency: ClientFile[];
+  client: ClientFile[];
+} {
+  const pick = (kind: StoredClientFile["uploaderKind"]) =>
+    files.filter((f) => f.uploaderKind === kind).flatMap((f) => fromStoredFile(f) ?? []);
+  return { agency: pick("agency"), client: pick("client") };
+}
+
 // ── Subidos por el cliente (onboarding, bucket privado) ──────────────────────
 
 export interface UploadedFile {
@@ -265,6 +300,31 @@ export interface UploadedFile {
 export function fromOnboardingPath(path: string, submittedAt: string | null): UploadedFile {
   const name = displayFileName(path);
   return { path, name, media: mediaOf(null, name), date: submittedAt };
+}
+
+/** Fila de "Subidos por el cliente": onboarding o subido en la plataforma. */
+export type ClientUpload =
+  | { source: "onboarding"; key: string; date: string | null; file: UploadedFile }
+  | { source: "archivos"; key: string; date: string | null; file: ClientFile };
+
+/** Une lo subido en la plataforma y en el onboarding, del más nuevo al más antiguo. */
+export function clientUploads(
+  stored: readonly ClientFile[],
+  onboarding: readonly UploadedFile[],
+): ClientUpload[] {
+  const fromStored = stored.map<ClientUpload>((file) => ({
+    source: "archivos",
+    key: file.id,
+    date: file.date,
+    file,
+  }));
+  const fromOnboarding = onboarding.map<ClientUpload>((file) => ({
+    source: "onboarding",
+    key: `onboarding-${file.path}`,
+    date: file.date,
+    file,
+  }));
+  return [...fromStored, ...fromOnboarding].sort(byDateDesc);
 }
 
 // ── Filtros ─────────────────────────────────────────────────────────────────
@@ -313,13 +373,15 @@ export function kindsOf(files: readonly ClientFile[]): FileKind[] {
 }
 
 const STORAGE_PUBLIC = "/storage/v1/object/public/";
+const STORAGE_SIGNED = "/storage/v1/object/sign/";
 
 /**
- * Enlace de descarga. En el storage público de Supabase `?download=` fuerza la
- * descarga con el nombre dado; en otros orígenes se abre el archivo.
+ * Enlace de descarga. En el storage de Supabase (público o URL firmada)
+ * `download=` fuerza la descarga con el nombre dado; en otros orígenes se abre
+ * el archivo.
  */
 export function downloadHref(url: string, name: string): string {
-  if (!url.includes(STORAGE_PUBLIC)) return url;
+  if (!url.includes(STORAGE_PUBLIC) && !url.includes(STORAGE_SIGNED)) return url;
   const ext = /\.([a-z0-9]{2,5})(?:[?#]|$)/i.exec(url)?.[1];
   const fileName =
     ext && !name.toLowerCase().endsWith(`.${ext.toLowerCase()}`) ? `${name}.${ext}` : name;
