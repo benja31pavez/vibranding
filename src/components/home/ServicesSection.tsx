@@ -4,8 +4,15 @@ import { translations } from "@/i18n/translations";
 import { SectionHeading } from "./shared";
 import { SERVICE_TILE_MOCKUPS } from "./mockups/ServiceTileMockups";
 
-const SERVICE_ICONS = [Palette, Camera, Megaphone, Search];
-const TONES = ["var(--brand-1)", "var(--brand-2)", "var(--brand-3)", "var(--brand-1)"];
+const SERVICE_ICONS = [Palette, Camera, Megaphone, Search, MonitorSmartphone, Bot];
+const TONES = [
+  "var(--brand-1)",
+  "var(--brand-2)",
+  "var(--brand-3)",
+  "var(--brand-1)",
+  "var(--brand-2)",
+  "var(--brand-3)",
+];
 
 /**
  * "Lo que hacemos por ti": service tiles with a mini mockup each. With a mouse the tile tilts
@@ -28,7 +35,7 @@ export function ServicesSection() {
           accent={s.titleAccent}
           subtitle={s.subtitle}
         />
-        <ul data-reveal-stagger className="svc-grid grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <ul data-reveal-stagger className="svc-grid grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {s.items.map((item, i) => {
             const Icon = SERVICE_ICONS[i] ?? Sparkles;
             const Mockup = SERVICE_TILE_MOCKUPS[i];
@@ -62,16 +69,6 @@ export function ServicesSection() {
             );
           })}
         </ul>
-        <p
-          data-reveal
-          className="mx-auto mt-8 flex max-w-3xl items-start gap-3 rounded-2xl border border-dashed bg-background/70 p-4 text-sm text-foreground/80"
-        >
-          <span className="flex shrink-0 gap-1 pt-0.5" aria-hidden>
-            <MonitorSmartphone className="h-4 w-4 text-[color:var(--brand-1)]" />
-            <Bot className="h-4 w-4 text-[color:var(--brand-2)]" />
-          </span>
-          {s.extras}
-        </p>
       </div>
     </section>
   );

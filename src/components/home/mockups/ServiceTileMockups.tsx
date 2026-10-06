@@ -132,4 +132,65 @@ function GoogleTile() {
   );
 }
 
-export const SERVICE_TILE_MOCKUPS = [BrandingTile, ContentTile, MetaTile, GoogleTile] as const;
+function LandingTile() {
+  return (
+    <div className={PANEL}>
+      <div className="flex items-center justify-between">
+        <span className="font-brand text-sm text-gradient-brand-strong">Tu marca</span>
+        <span
+          className="bx-pop inline-flex items-center gap-1 rounded-full bg-[#25D366] px-2 py-0.5 text-[0.5rem] font-semibold text-white"
+          style={at(0.45)}
+        >
+          <WhatsAppGlyph className="h-2.5 w-2.5" />
+          Escríbenos
+        </span>
+      </div>
+      <div className="bx-in mt-2 space-y-1" style={at(0.1)}>
+        <p className="text-xs font-semibold leading-tight">Tu servicio, sin vueltas</p>
+        <Bar w="85%" />
+        <Bar w="60%" />
+      </div>
+      <div className="bx-in mt-2 grid grid-cols-[1fr_auto] gap-1.5" style={at(0.25)}>
+        <span className="rounded-md border px-2 py-1 text-[0.5rem] text-muted-foreground">
+          Tu correo
+        </span>
+        <span className="rounded-md bg-gradient-brand-strong px-2 py-1 text-[0.5rem] font-semibold text-white">
+          Enviar
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ChatbotTile() {
+  return (
+    <div className={`${PANEL} space-y-1.5 bg-[#efeae2] dark:bg-card`}>
+      <p
+        className="bx-in ml-auto w-fit max-w-[80%] rounded-lg rounded-tr-none bg-[#d9fdd3] px-2 py-1 text-[0.6rem] text-foreground dark:bg-[#005c4b] dark:text-white"
+        style={at(0.05)}
+      >
+        ¿Atienden los sábados?
+      </p>
+      <p
+        className="bx-in w-fit max-w-[85%] rounded-lg rounded-tl-none bg-card px-2 py-1 text-[0.6rem] shadow-sm"
+        style={at(0.35)}
+      >
+        ¡Sí! De 10 a 14 h. ¿Te agendo una hora?
+      </p>
+      <span className="bx-pop flex gap-1 pl-1" style={at(0.6)} aria-hidden>
+        {[0, 1, 2].map((i) => (
+          <span key={i} className="h-1.5 w-1.5 rounded-full bg-foreground/30" />
+        ))}
+      </span>
+    </div>
+  );
+}
+
+export const SERVICE_TILE_MOCKUPS = [
+  BrandingTile,
+  ContentTile,
+  MetaTile,
+  GoogleTile,
+  LandingTile,
+  ChatbotTile,
+] as const;
