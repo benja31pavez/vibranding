@@ -42,11 +42,11 @@ function ClientPortal() {
 }
 
 function AuthedPortal({ onSignOut }: { onSignOut: () => void }) {
-  // Misma query que PortalView (se comparte la caché): solo para el nombre en la cabecera.
+  // Misma query que PortalView (se comparte la caché): para el nombre y el logo de la cabecera.
   const snapshot = usePortalSnapshot(CLIENT_MODE);
-  const clientName = snapshot.data?.status === "ok" ? snapshot.data.snapshot.clientName : undefined;
+  const ok = snapshot.data?.status === "ok" ? snapshot.data.snapshot : undefined;
   return (
-    <PortalShell clientName={clientName} onSignOut={onSignOut}>
+    <PortalShell clientName={ok?.clientName} clientId={ok?.clientId} onSignOut={onSignOut}>
       <PortalView mode={CLIENT_MODE} />
     </PortalShell>
   );

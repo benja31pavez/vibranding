@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Eye, FileDown, Instagram, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,13 @@ import { MeetingBriefButton } from "./MeetingBriefDialog";
 import { DeleteClientDialog, RenameClientDialog } from "./ClientDialogs";
 import { useClientActions } from "./useClientActions";
 import { EngagementChip } from "@/components/instagram/EngagementCard";
+import {
+  ClientLogo,
+  ClientLogoMenuItems,
+  LogoFileInput,
+  useClientLogo,
+  useClientLogoActions,
+} from "@/components/clients/logo";
 
 interface ClientHeaderProps {
   clientId: string;
@@ -25,10 +32,17 @@ interface ClientHeaderProps {
 
 export function ClientHeader({ clientId, overview }: ClientHeaderProps) {
   const { client, ig, reloadClient } = useActiveClient();
-  const { renameClient, deleteClient } = useClientActions(clientId, reloadClient);
+  const { renameClient, deleteClient } = useClientActions(
+    clientId,
+    reloadClient,
+    client?.instagram_handle ?? null,
+  );
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const pdf = usePdfExport();
+  const logo = useClientLogo(clientId);
+  const logoActions = useClientLogoActions(clientId);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Mientras se verifica el permiso, las acciones destructivas quedan deshabilitadas.
   const canEdit = overview?.canEdit ?? false;
@@ -39,13 +53,13 @@ export function ClientHeader({ clientId, overview }: ClientHeaderProps) {
   return (
     <header className="flex flex-col gap-3 md:flex-row md:items-center">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-app-md bg-surface-2 text-lg font-semibold">
-          {avatar ? (
-            <img src={avatar} alt="" className="h-full w-full object-cover" />
-          ) : (
-            client.name[0]?.toUpperCase()
-          )}
-        </div>
+        <ClientLogo
+          clientId={clientId}
+          name={client.name}
+          fallbackSrc={avatar}
+          initials={client.name[0]?.toUpperCase()}
+          className="h-11 w-11 rounded-app-md bg-surface-2 text-lg font-semibold"
+        />
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
             <h1 className="truncate text-xl font-semibold tracking-tight">{client.name}</h1>
@@ -98,6 +112,14 @@ export function ClientHeader({ clientId, overview }: ClientHeaderProps) {
             <DropdownMenuItem disabled={!canEdit} onSelect={() => setRenameOpen(true)}>
               <Pencil aria-hidden className="mr-2 h-4 w-4" /> Renombrar
             </DropdownMenuItem>
+            <ClientLogoMenuItems
+              manual={logo?.source === "manual"}
+              disabled={!canEdit}
+              busy={logoActions.busy}
+              onRefresh={() => void logoActions.refresh("button")}
+              onReset={() => void logoActions.refresh("reset")}
+              onUploadClick={() => logoInputRef.current?.click()}
+            />
             <DropdownMenuSeparator />
             <DropdownMenuItem
               disabled={!canEdit}
@@ -110,6 +132,7 @@ export function ClientHeader({ clientId, overview }: ClientHeaderProps) {
         </DropdownMenu>
       </div>
       {pdf.node}
+      <LogoFileInput inputRef={logoInputRef} onFile={(f) => void logoActions.upload(f)} />
 
       <RenameClientDialog
         open={renameOpen}

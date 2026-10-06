@@ -32,6 +32,7 @@ function ClientResult({ client }: { client: ClientSearchEntry }) {
   return (
     <>
       <ClientAvatar
+        clientId={client.id}
         name={client.brand}
         className="h-7 w-7 text-[11px] group-data-[selected=true]:bg-background group-data-[selected=true]:ring-1 group-data-[selected=true]:ring-primary/20"
       />

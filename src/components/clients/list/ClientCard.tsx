@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/app";
+import { ClientAvatar } from "@/components/shell/ClientAvatar";
 import { HealthBadge } from "@/components/clients/health";
 import { CLIENT_STATUS_META, isClientStatus } from "@/components/clients/ficha/fichaQueries";
 import type { ClientHealth } from "@/lib/health";
@@ -39,23 +40,30 @@ export function ClientCard({
   return (
     <div className="relative h-full rounded-app-lg border border-border-subtle bg-surface px-4 py-3 shadow-app-xs transition-shadow hover:border-border-strong hover:shadow-app-md has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h3 className="min-w-0 text-base font-semibold leading-snug">
-            <Link
-              to="/clients/$clientId"
-              params={{ clientId: c.id }}
-              title={c.name}
-              className="line-clamp-2 break-words after:absolute after:inset-0 after:rounded-app-lg focus-visible:outline-none"
-            >
-              {c.name}
-            </Link>
-          </h3>
-          <div className="mt-0.5 flex h-5 items-center gap-1 text-sm text-muted-foreground">
-            {c.instagram_handle && (
-              <>
-                <Instagram aria-hidden className="h-3.5 w-3.5" /> @{c.instagram_handle}
-              </>
-            )}
+        <div className="flex min-w-0 items-start gap-3">
+          <ClientAvatar
+            clientId={c.id}
+            name={c.name}
+            className="mt-0.5 h-10 w-10 rounded-app-md text-sm"
+          />
+          <div className="min-w-0">
+            <h3 className="min-w-0 text-base font-semibold leading-snug">
+              <Link
+                to="/clients/$clientId"
+                params={{ clientId: c.id }}
+                title={c.name}
+                className="line-clamp-2 break-words after:absolute after:inset-0 after:rounded-app-lg focus-visible:outline-none"
+              >
+                {c.name}
+              </Link>
+            </h3>
+            <div className="mt-0.5 flex h-5 items-center gap-1 text-sm text-muted-foreground">
+              {c.instagram_handle && (
+                <>
+                  <Instagram aria-hidden className="h-3.5 w-3.5" /> @{c.instagram_handle}
+                </>
+              )}
+            </div>
           </div>
         </div>
         <DropdownMenu>

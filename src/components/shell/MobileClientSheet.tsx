@@ -35,7 +35,11 @@ export function MobileClientSheet({ open, onOpenChange, ...sidebar }: MobileClie
           }
         >
           {activeClient ? (
-            <ClientAvatar name={activeClient.name} className="h-7 w-7 text-[11px]" />
+            <ClientAvatar
+              clientId={activeClient.id}
+              name={activeClient.name}
+              className="h-7 w-7 text-[11px]"
+            />
           ) : (
             <PanelLeft className="h-5 w-5" />
           )}
