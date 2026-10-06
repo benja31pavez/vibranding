@@ -1,13 +1,15 @@
 /**
- * Plantillas del plan: tareas estándar por etapa y objetivos estándar por plan.
+ * Plantillas del plan: tareas de inicio por etapa y objetivos estándar por plan.
+ * (Las tareas que se repiten cada mes están en `./planCycle`.)
  *
- * Fuente única. Para cambiar un título, un responsable, una meta o qué señal de
- * la plataforma marca una tarea como "Detectado ✓ — revisar", edita solo
- * `STAGE_CHECKLISTS` y `PLAN_OBJECTIVES`. Las claves (`key`) son estables: si
- * cambias una clave, para los clientes existentes es una tarea nueva.
+ * Fuente única. Para cambiar un título, un responsable, el día, una meta o qué
+ * señal de la plataforma marca una tarea como "Detectado ✓ — revisar", edita
+ * solo `STAGE_CHECKLISTS` y `PLAN_OBJECTIVES`. Las claves (`key`) son estables:
+ * si cambias una clave, para los clientes existentes es una tarea nueva (en
+ * los objetivos, deja la anterior en `legacyKeys`).
  *
- * Al abrir el Plan (o al guardar el plan del cliente) se crean las que falten
- * (ver `./planTemplateSeed`). Cada tarea creada lleva el marcador
+ * Al asignar el plan (o al abrir el Plan) se crean las que falten (ver
+ * `./planTemplateSeed`). Cada tarea creada lleva el marcador
  * `[plantilla:<etapa>:<clave>]` en la descripción; cada objetivo, su
  * `template_key` (o, sin la migración, se reconoce por el título).
  *
@@ -61,16 +63,29 @@ export const SIGNAL_LABELS: Readonly<Record<PlanSignal, string>> = {
   report_sent: "Reporte del mes enviado",
 };
 
-// ─── Tareas estándar por etapa ──────────────────────────────────────────────
+// ─── Tareas de inicio por etapa ─────────────────────────────────────────────
+
+/** Ajustes de una tarea solo en un plan (título o día distinto). */
+export interface ChecklistPlanOverride {
+  readonly title?: string;
+  readonly day?: number;
+  readonly owner?: TeamMemberKey;
+}
 
 export interface ChecklistTask {
   /** Clave estable dentro de la etapa (minúsculas, números y guiones). */
   readonly key: string;
   readonly title: string;
-  /** Título distinto según el plan (p. ej. cantidad de piezas). */
-  readonly titleByPlan?: Partial<Readonly<Record<PlanKey, string>>>;
   /** Responsable; sin valor, el de la etapa en el plan del cliente. */
   readonly owner?: TeamMemberKey;
+  /**
+   * Día relativo al inicio del cliente (1 = el día de inicio). La fecha cae en
+   * el siguiente día hábil si ese día es fin de semana o feriado. Sin valor:
+   * la tarea se crea sin fecha.
+   */
+  readonly day?: number;
+  /** Título o día distinto según el plan. */
+  readonly byPlan?: Partial<Readonly<Record<PlanKey, ChecklistPlanOverride>>>;
   /** Señal de la plataforma que la marca como "Detectado ✓ — revisar". */
   readonly signal?: PlanSignal;
   /** Solo en estos planes (sin valor: en todos los que tengan la etapa). */
@@ -79,103 +94,195 @@ export interface ChecklistTask {
   readonly adsPlatform?: AdsPlatform;
 }
 
-/** Piezas al mes por plan (deben coincidir con `./monthPlan`). */
+/** Piezas al mes por plan (deben coincidir con `./monthPlan` y `./planCycle`). */
 export const PIECES_PER_MONTH = { contenido: 12, crecimiento: 12, mantencion: 8 } as const;
 
-/** Tareas estándar de cada etapa. Edita aquí. */
+/** Planes mensuales con etapa de Estrategia. */
+const MONTHLY: readonly PlanKey[] = ["contenido", "crecimiento"];
+
+/**
+ * Tareas de INICIO de cada etapa: se crean una sola vez, al asignar el plan,
+ * con responsable y fecha relativa al día de inicio del cliente. Lo que se
+ * repite cada mes (calendario, piezas, aprobación, reporte…) vive en
+ * `./planCycle` (`CYCLE_TASKS`). Antonia = diseño; Benjamín = estrategia,
+ * copys, campañas, accesos, aprobaciones y reportes. Edita aquí.
+ */
 export const STAGE_CHECKLISTS: Readonly<Record<StageKey, readonly ChecklistTask[]>> = {
   estrategia: [
     {
       key: "brief",
-      title: "Reunión de inicio y brief completo",
+      title: "Reunión de inicio y brief",
+      owner: "benjamin",
+      day: 1,
       signal: "intake_submitted",
+      plans: MONTHLY,
     },
     {
       key: "publico",
-      title: "Definir público objetivo y propuesta de valor",
+      title: "Público objetivo y propuesta de valor",
+      owner: "benjamin",
+      day: 3,
       signal: "audience_defined",
+      plans: MONTHLY,
     },
-    { key: "competencia", title: "Análisis de 3 competidores" },
-    { key: "tono", title: "Definir tono de comunicación" },
+    {
+      key: "accesos",
+      title: "Accesos de Instagram, Meta y Google",
+      owner: "benjamin",
+      day: 3,
+      plans: MONTHLY,
+    },
+    {
+      key: "google-business",
+      title: "Ficha de Google Business revisada",
+      owner: "benjamin",
+      day: 7,
+      plans: ["contenido"],
+    },
   ],
   branding: [
     {
+      key: "brief",
+      title: "Reunión de inicio y brief",
+      owner: "benjamin",
+      day: 1,
+      signal: "intake_submitted",
+      plans: ["marca-web"],
+    },
+    {
       key: "logo",
-      title: "Logo en PNG (fondo transparente) y formatos (SVG/PDF, horizontal y cuadrado)",
+      title: "Logo en PNG y SVG",
       owner: "antonia",
+      day: 5,
       signal: "logo_file",
+      plans: ["crecimiento"],
+    },
+    {
+      key: "propuesta-logo",
+      title: "Propuesta de logo con 2 opciones",
+      owner: "antonia",
+      day: 5,
+      plans: ["marca-web"],
     },
     {
       key: "paleta",
-      title: "Paleta de colores y tipografías",
+      title: "Paleta y tipografías",
       owner: "antonia",
+      day: 5,
       signal: "brand_colors",
-    },
-    { key: "kit", title: "Kit de marca entregado", owner: "antonia" },
-    {
-      key: "plantillas",
-      title: "Plantillas de posts e historias",
-      owner: "antonia",
       plans: ["crecimiento"],
+    },
+    {
+      key: "ajustes-logo",
+      title: "Ajustes de logo",
+      owner: "antonia",
+      day: 8,
+      plans: ["marca-web"],
+    },
+    {
+      key: "kit",
+      title: "Kit de marca entregado",
+      owner: "antonia",
+      day: 10,
+      plans: ["marca-web"],
     },
   ],
   diseno: [
     {
-      key: "piezas",
-      title: `${PIECES_PER_MONTH.contenido} piezas del mes diseñadas`,
-      titleByPlan: { mantencion: `${PIECES_PER_MONTH.mantencion} piezas del mes diseñadas` },
+      key: "logo",
+      title: "Logo en PNG y SVG",
+      owner: "antonia",
+      day: 5,
+      signal: "logo_file",
+      plans: ["contenido"],
     },
-    { key: "plantillas", title: "Plantillas de posts e historias al día" },
+    {
+      key: "paleta",
+      title: "Paleta y tipografías",
+      owner: "antonia",
+      day: 5,
+      signal: "brand_colors",
+      plans: ["contenido"],
+    },
+    {
+      key: "instagram",
+      title: "Bio, destacadas y link de Instagram",
+      owner: "antonia",
+      day: 7,
+      plans: ["contenido"],
+    },
   ],
   planificacion: [
-    { key: "calendario", title: "Calendario del mes aprobado" },
-    { key: "copys", title: "Copys revisados" },
-    { key: "aprobacion", title: "Aprobación del cliente en el portal" },
     {
-      key: "reporte",
-      title: "Reporte del mes",
+      key: "accesos",
+      title: "Accesos de Instagram vigentes",
+      owner: "benjamin",
+      day: 1,
       plans: ["mantencion"],
-      signal: "report_generated",
     },
   ],
-  contenido: [
-    { key: "calendario", title: "Calendario del mes aprobado", owner: "benjamin" },
-    { key: "piezas", title: `${PIECES_PER_MONTH.crecimiento} piezas del mes` },
-    { key: "copys", title: "Copys revisados", owner: "benjamin" },
-    { key: "aprobacion", title: "Aprobación del cliente en el portal", owner: "benjamin" },
-  ],
+  // El trabajo de Contenido es mensual: ver `CYCLE_TASKS` en ./planCycle.
+  contenido: [],
   ads: [
     {
-      key: "cuenta-meta",
-      title: "Cuenta publicitaria de Meta vinculada",
-      signal: "meta_linked",
-      adsPlatform: "meta",
-    },
-    {
-      key: "cuenta-google",
-      title: "Cuenta de Google Ads vinculada",
-      signal: "google_linked",
-      adsPlatform: "google",
-    },
-    {
       key: "pago",
-      title: "Medio de pago del cliente verificado",
+      title: "Medio de pago de la pauta verificado",
+      owner: "benjamin",
+      day: 5,
       signal: "ads_billing_verified",
     },
-    { key: "pixel", title: "Píxel y conversiones configurados" },
-    { key: "publico-presupuesto", title: "Público y presupuesto aprobados" },
-    { key: "primera-campana", title: "Primera campaña publicada" },
+    { key: "pixel", title: "Píxel y conversiones configurados", owner: "benjamin", day: 7 },
+    {
+      key: "publico-presupuesto",
+      title: "Público y presupuesto aprobados",
+      owner: "benjamin",
+      day: 7,
+    },
   ],
   landing: [
-    { key: "insumos", title: "Textos y fotos recibidos", signal: "client_files" },
-    { key: "url", title: "Dominio o URL definida", signal: "landing_url" },
-    { key: "publicada", title: "Landing publicada", signal: "landing_published" },
+    {
+      key: "borrador",
+      title: "Borrador de landing",
+      owner: "benjamin",
+      day: 12,
+      plans: ["marca-web"],
+    },
+    {
+      key: "revision",
+      title: "Revisión del cliente",
+      owner: "benjamin",
+      day: 14,
+      plans: ["marca-web"],
+    },
+    // Landing en otros planes (Crecimiento o adicional): sin fecha fija.
+    {
+      key: "insumos",
+      title: "Textos y fotos recibidos",
+      signal: "client_files",
+      plans: ["contenido", "crecimiento", "mantencion"],
+    },
+    {
+      key: "url",
+      title: "Dominio o URL definida",
+      signal: "landing_url",
+      plans: ["contenido", "crecimiento", "mantencion"],
+    },
+    {
+      key: "publicada",
+      title: "Landing publicada",
+      signal: "landing_published",
+      byPlan: {
+        "marca-web": { title: "Landing publicada y probada", day: 16, owner: "benjamin" },
+      },
+    },
     {
       key: "pruebas",
       title: "Botón de WhatsApp y formulario probados",
       signal: "landing_contact",
+      plans: ["contenido", "crecimiento", "mantencion"],
     },
   ],
+  // Adicional: sin fecha fija.
   chatbot: [
     { key: "faq", title: "Preguntas frecuentes recopiladas" },
     { key: "flujo", title: "Flujo aprobado" },
@@ -183,21 +290,36 @@ export const STAGE_CHECKLISTS: Readonly<Record<StageKey, readonly ChecklistTask[
     { key: "prueba", title: "Prueba completa" },
   ],
   optimizacion: [
-    { key: "google-business", title: "Ficha de Google Business revisada" },
     {
       key: "instagram",
-      title: "Perfil de Instagram optimizado (bio, destacadas y link)",
+      title: "Bio, destacadas y link de Instagram",
+      owner: "antonia",
+      day: 7,
       signal: "multilink_published",
     },
-    { key: "revision-semanal", title: "Revisión semanal de campañas" },
+    {
+      key: "google-business",
+      title: "Ficha de Google Business revisada",
+      owner: "benjamin",
+      day: 7,
+    },
   ],
-  reporte: [
-    { key: "generado", title: "Reporte mensual generado", signal: "report_generated" },
-    { key: "enviado", title: "Reporte revisado y enviado", signal: "report_sent" },
-  ],
+  // El reporte es mensual: ver `CYCLE_TASKS` en ./planCycle.
+  reporte: [],
   entrega: [
-    { key: "archivos", title: "Entrega de archivos finales" },
-    { key: "confirmacion", title: "Confirmación del cliente" },
+    {
+      key: "google-business",
+      title: "Ficha de Google Business",
+      owner: "benjamin",
+      day: 18,
+      plans: ["marca-web"],
+    },
+    {
+      key: "confirmacion",
+      title: "Entrega final y confirmación",
+      owner: "benjamin",
+      day: 21,
+    },
   ],
 };
 
@@ -205,6 +327,10 @@ export const STAGE_CHECKLISTS: Readonly<Record<StageKey, readonly ChecklistTask[
 
 export type ObjectiveCategory = "growth" | "engagement" | "sales" | "branding" | "other";
 
+/**
+ * Objetivo estándar. Solo entregables del equipo (nada de % de crecimiento,
+ * seguidores, interacción, CTR, leads ni costo por lead: eso depende del rubro).
+ */
 export interface ChecklistObjective {
   /** Clave estable dentro del plan. */
   readonly key: string;
@@ -212,14 +338,23 @@ export interface ChecklistObjective {
   /** Unidad de la métrica (se guarda en `objectives.unit`). */
   readonly metric: string;
   readonly category: ObjectiveCategory;
-  /** Meta por defecto; null = el equipo la define con el cliente. */
+  /** Meta por defecto; null = sin meta numérica (se cumple o no). */
   readonly target: number | null;
+  /**
+   * Claves anteriores del mismo objetivo: si el cliente ya lo tiene (o lo
+   * borró) con una de estas, no se vuelve a crear.
+   */
+  readonly legacyKeys?: readonly string[];
 }
 
-/** Horas máximas para que el cliente apruebe (objetivo de Contenido). */
+/** Horas máximas para que el cliente apruebe. */
 export const APPROVAL_MAX_HOURS = 48;
 /** Plazo de entrega del kit + landing (Marca + Web). */
 export const MARCA_WEB_DELIVERY_LABEL = "2 a 3 semanas";
+/** El reporte del mes se envía antes de este día del mes siguiente. */
+export const REPORT_SENT_BEFORE_DAY = 5;
+/** Anuncios nuevos al mes (Crecimiento). */
+export const NEW_ADS_PER_MONTH = 4;
 
 const PIECES_OBJECTIVE = (pieces: number): ChecklistObjective => ({
   key: "piezas-mes",
@@ -229,10 +364,25 @@ const PIECES_OBJECTIVE = (pieces: number): ChecklistObjective => ({
   target: pieces,
 });
 
+const REPORT_OBJECTIVE: ChecklistObjective = {
+  key: "reporte-dia-5",
+  title: `Reporte del mes enviado antes del día ${REPORT_SENT_BEFORE_DAY}`,
+  metric: "reporte",
+  category: "other",
+  target: 1,
+};
+
 /** Objetivos estándar de cada plan. Edita aquí. */
 export const PLAN_OBJECTIVES: Readonly<Record<PlanKey, readonly ChecklistObjective[]>> = {
   contenido: [
     PIECES_OBJECTIVE(PIECES_PER_MONTH.contenido),
+    {
+      key: "calendario-aprobado",
+      title: "Calendario del mes aprobado",
+      metric: "calendario",
+      category: "other",
+      target: 1,
+    },
     {
       key: "aprobacion-48h",
       title: `Aprobación del cliente en ≤${APPROVAL_MAX_HOURS} h`,
@@ -240,34 +390,52 @@ export const PLAN_OBJECTIVES: Readonly<Record<PlanKey, readonly ChecklistObjecti
       category: "other",
       target: null,
     },
+    REPORT_OBJECTIVE,
   ],
   crecimiento: [
-    {
-      key: "leads-whatsapp",
-      title: "Leads por WhatsApp al mes",
-      metric: "leads",
-      category: "sales",
-      target: null,
-    },
-    {
-      key: "costo-por-lead",
-      title: "Costo por lead",
-      metric: "CLP",
-      category: "sales",
-      target: null,
-    },
     PIECES_OBJECTIVE(PIECES_PER_MONTH.crecimiento),
+    {
+      key: "anuncios-mes",
+      title: "Anuncios nuevos al mes",
+      metric: "anuncios",
+      category: "growth",
+      target: NEW_ADS_PER_MONTH,
+    },
+    {
+      key: "campanas-activas",
+      title: "Campañas activas todo el mes",
+      metric: "campañas",
+      category: "growth",
+      target: null,
+    },
+    REPORT_OBJECTIVE,
   ],
   "marca-web": [
     {
-      key: "entrega-72h",
+      key: "entrega-kit-landing",
       title: `Entregar kit de marca y landing en ${MARCA_WEB_DELIVERY_LABEL}`,
-      metric: "horas hábiles",
+      metric: "semanas",
       category: "branding",
       target: null,
+      // Clave anterior (el plazo nunca fue 72 h; el título ya decía 2 a 3 semanas).
+      legacyKeys: ["entrega-72h"],
+    },
+    {
+      key: "google-business",
+      title: "Ficha de Google Business completa",
+      metric: "ficha",
+      category: "branding",
+      target: 1,
+    },
+    {
+      key: "landing-contacto",
+      title: "Landing con WhatsApp y formulario funcionando",
+      metric: "landing",
+      category: "sales",
+      target: 1,
     },
   ],
-  mantencion: [PIECES_OBJECTIVE(PIECES_PER_MONTH.mantencion)],
+  mantencion: [PIECES_OBJECTIVE(PIECES_PER_MONTH.mantencion), REPORT_OBJECTIVE],
 };
 
 // ─── Selección según el cliente ─────────────────────────────────────────────
@@ -290,11 +458,15 @@ export interface PlannedTask {
   readonly title: string;
   readonly owner: TeamMemberKey;
   readonly signal: PlanSignal | null;
+  /** Día relativo al inicio del cliente (1 = día de inicio); null = sin fecha. */
+  readonly day: number | null;
 }
 
 export interface PlannedObjective extends ChecklistObjective {
   /** "objetivo:<plan>:<clave>". */
   readonly itemKey: string;
+  /** "objetivo:<plan>:<clave anterior>" (ver `legacyKeys`). */
+  readonly legacyItemKeys: readonly string[];
 }
 
 function includesTask(task: ChecklistTask, ctx: ChecklistContext): boolean {
@@ -314,21 +486,25 @@ export function objectiveItemKey(planKey: PlanKey, key: string): string {
   return `objetivo:${planKey}:${key}`;
 }
 
-/** Tareas estándar del cliente, en el orden de sus etapas. */
+/** Tareas de inicio del cliente, en el orden de sus etapas. */
 export function checklistForPlan(ctx: ChecklistContext): PlannedTask[] {
   const planKey = ctx.planKey;
   if (!planKey) return [];
   return ctx.stages.flatMap((stage) =>
     STAGE_CHECKLISTS[stage.key]
       .filter((t) => includesTask(t, ctx))
-      .map((t) => ({
-        itemKey: taskItemKey(stage.key, t.key),
-        stage: stage.key,
-        key: t.key,
-        title: t.titleByPlan?.[planKey] ?? t.title,
-        owner: t.owner ?? stage.owner,
-        signal: t.signal ?? null,
-      })),
+      .map((t) => {
+        const override = t.byPlan?.[planKey];
+        return {
+          itemKey: taskItemKey(stage.key, t.key),
+          stage: stage.key,
+          key: t.key,
+          title: override?.title ?? t.title,
+          owner: override?.owner ?? t.owner ?? stage.owner,
+          signal: t.signal ?? null,
+          day: override?.day ?? t.day ?? null,
+        };
+      }),
   );
 }
 
@@ -338,27 +514,37 @@ export function objectivesForPlan(planKey: PlanKey | null): PlannedObjective[] {
   return PLAN_OBJECTIVES[planKey].map((o) => ({
     ...o,
     itemKey: objectiveItemKey(planKey, o.key),
+    legacyItemKeys: (o.legacyKeys ?? []).map((k) => objectiveItemKey(planKey, k)),
   }));
 }
 
 // ─── Marcador en la descripción de la tarea ─────────────────────────────────
 
-const TEMPLATE_MARKER_RE = /\[plantilla:([a-z]+):([a-z0-9-]+)\]/;
+/**
+ * `[plantilla:<etapa>:<clave>]` (tarea de inicio) o
+ * `[plantilla:<etapa>:<clave>:<AAAA-MM>]` (tarea del ciclo mensual).
+ */
+const TEMPLATE_MARKER_RE = /\[plantilla:([a-z]+):([a-z0-9-]+)(?::(\d{4}-\d{2}))?\]/;
 
 /** `[plantilla:branding:logo]`. */
 export function templateMarker(stage: StageKey, key: string): string {
   return `[plantilla:${stage}:${key}]`;
 }
 
-/** Etapa y clave del marcador (null si la descripción no lo trae). */
-export function readTemplateMarker(
-  description: string | null | undefined,
-): { stage: string; key: string } | null {
+export interface TemplateMarker {
+  readonly stage: string;
+  readonly key: string;
+  /** Mes del ciclo ("AAAA-MM"); null en las tareas de inicio. */
+  readonly month: string | null;
+}
+
+/** Etapa, clave y mes del marcador (null si la descripción no lo trae). */
+export function readTemplateMarker(description: string | null | undefined): TemplateMarker | null {
   const m = TEMPLATE_MARKER_RE.exec(description ?? "");
-  return m ? { stage: m[1], key: m[2] } : null;
+  return m ? { stage: m[1], key: m[2], month: m[3] ?? null } : null;
 }
 
 /** Nota visible + marcador, para la descripción de la tarea creada. */
 export function templateDescription(stage: StageKey, key: string): string {
-  return `Tarea estándar del plan.\n\n${templateMarker(stage, key)}`;
+  return `Tarea de inicio del plan.\n\n${templateMarker(stage, key)}`;
 }

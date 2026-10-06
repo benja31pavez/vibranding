@@ -98,6 +98,7 @@ import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/publ
 import { Route as ApiPublicMetaBillingCheckRouteImport } from './routes/api/public/meta/billing-check'
 import { Route as ApiPublicMetaIngestDailyRouteImport } from './routes/api/public/meta/ingest-daily'
 import { Route as ApiPublicOnboardingCleanupRouteImport } from './routes/api/public/onboarding/cleanup'
+import { Route as ApiPublicPlanMonthlyCycleRouteImport } from './routes/api/public/plan/monthly-cycle'
 import { Route as ApiPublicReportsMonthlyRouteImport } from './routes/api/public/reports/monthly'
 import { Route as ApiPublicWhatsappDispatchRouteImport } from './routes/api/public/whatsapp/dispatch'
 import { Route as ApiPublicGoogleOauthCallbackRouteImport } from './routes/api/public/google/oauth/callback'
@@ -576,6 +577,12 @@ const ApiPublicOnboardingCleanupRoute =
     path: '/api/public/onboarding/cleanup',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPlanMonthlyCycleRoute =
+  ApiPublicPlanMonthlyCycleRouteImport.update({
+    id: '/api/public/plan/monthly-cycle',
+    path: '/api/public/plan/monthly-cycle',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicReportsMonthlyRoute = ApiPublicReportsMonthlyRouteImport.update({
   id: '/api/public/reports/monthly',
   path: '/api/public/reports/monthly',
@@ -694,6 +701,7 @@ export interface FileRoutesByFullPath {
   '/api/public/meta/billing-check': typeof ApiPublicMetaBillingCheckRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
+  '/api/public/plan/monthly-cycle': typeof ApiPublicPlanMonthlyCycleRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/clients/$clientId/': typeof AppClientsClientIdIndexRoute
@@ -788,6 +796,7 @@ export interface FileRoutesByTo {
   '/api/public/meta/billing-check': typeof ApiPublicMetaBillingCheckRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
+  '/api/public/plan/monthly-cycle': typeof ApiPublicPlanMonthlyCycleRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/clients/$clientId': typeof AppClientsClientIdIndexRoute
@@ -885,6 +894,7 @@ export interface FileRoutesById {
   '/api/public/meta/billing-check': typeof ApiPublicMetaBillingCheckRoute
   '/api/public/meta/ingest-daily': typeof ApiPublicMetaIngestDailyRoute
   '/api/public/onboarding/cleanup': typeof ApiPublicOnboardingCleanupRoute
+  '/api/public/plan/monthly-cycle': typeof ApiPublicPlanMonthlyCycleRoute
   '/api/public/reports/monthly': typeof ApiPublicReportsMonthlyRoute
   '/api/public/whatsapp/dispatch': typeof ApiPublicWhatsappDispatchRoute
   '/_app/clients/$clientId/': typeof AppClientsClientIdIndexRoute
@@ -982,6 +992,7 @@ export interface FileRouteTypes {
     | '/api/public/meta/billing-check'
     | '/api/public/meta/ingest-daily'
     | '/api/public/onboarding/cleanup'
+    | '/api/public/plan/monthly-cycle'
     | '/api/public/reports/monthly'
     | '/api/public/whatsapp/dispatch'
     | '/clients/$clientId/'
@@ -1076,6 +1087,7 @@ export interface FileRouteTypes {
     | '/api/public/meta/billing-check'
     | '/api/public/meta/ingest-daily'
     | '/api/public/onboarding/cleanup'
+    | '/api/public/plan/monthly-cycle'
     | '/api/public/reports/monthly'
     | '/api/public/whatsapp/dispatch'
     | '/clients/$clientId'
@@ -1172,6 +1184,7 @@ export interface FileRouteTypes {
     | '/api/public/meta/billing-check'
     | '/api/public/meta/ingest-daily'
     | '/api/public/onboarding/cleanup'
+    | '/api/public/plan/monthly-cycle'
     | '/api/public/reports/monthly'
     | '/api/public/whatsapp/dispatch'
     | '/_app/clients/$clientId/'
@@ -1225,6 +1238,7 @@ export interface RootRouteChildren {
   ApiPublicMetaBillingCheckRoute: typeof ApiPublicMetaBillingCheckRoute
   ApiPublicMetaIngestDailyRoute: typeof ApiPublicMetaIngestDailyRoute
   ApiPublicOnboardingCleanupRoute: typeof ApiPublicOnboardingCleanupRoute
+  ApiPublicPlanMonthlyCycleRoute: typeof ApiPublicPlanMonthlyCycleRoute
   ApiPublicReportsMonthlyRoute: typeof ApiPublicReportsMonthlyRoute
   ApiPublicWhatsappDispatchRoute: typeof ApiPublicWhatsappDispatchRoute
   ApiPublicGoogleOauthCallbackRoute: typeof ApiPublicGoogleOauthCallbackRoute
@@ -1857,6 +1871,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicOnboardingCleanupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/plan/monthly-cycle': {
+      id: '/api/public/plan/monthly-cycle'
+      path: '/api/public/plan/monthly-cycle'
+      fullPath: '/api/public/plan/monthly-cycle'
+      preLoaderRoute: typeof ApiPublicPlanMonthlyCycleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/reports/monthly': {
       id: '/api/public/reports/monthly'
       path: '/api/public/reports/monthly'
@@ -2056,6 +2077,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMetaBillingCheckRoute: ApiPublicMetaBillingCheckRoute,
   ApiPublicMetaIngestDailyRoute: ApiPublicMetaIngestDailyRoute,
   ApiPublicOnboardingCleanupRoute: ApiPublicOnboardingCleanupRoute,
+  ApiPublicPlanMonthlyCycleRoute: ApiPublicPlanMonthlyCycleRoute,
   ApiPublicReportsMonthlyRoute: ApiPublicReportsMonthlyRoute,
   ApiPublicWhatsappDispatchRoute: ApiPublicWhatsappDispatchRoute,
   ApiPublicGoogleOauthCallbackRoute: ApiPublicGoogleOauthCallbackRoute,

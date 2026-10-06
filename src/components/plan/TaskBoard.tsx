@@ -50,10 +50,12 @@ import {
   type StageKey,
 } from "@/lib/delivery/planStages";
 import { SIGNAL_LABELS, type PlanSignal } from "@/lib/delivery/planChecklists";
-import { detectedSignal } from "@/lib/delivery/planSignals";
+import { detectedSignal, type SignalSet } from "@/lib/delivery/planSignals";
 import { isTemplateTask } from "@/lib/delivery/planTemplateSeed";
+import { teamMemberByName } from "@/lib/delivery/team";
 import type { PlanTask } from "./planQueries";
 import { formatShortDate } from "./planFormat";
+import { TeamAvatar } from "./TrackItem";
 
 const TITLE_MAX = 200;
 
@@ -85,7 +87,7 @@ export interface TaskBoardProps {
   canApprove: boolean;
   onDelivery: (task: PlanTask, action: DeliveryAction) => void;
   /** Señales de la plataforma: tareas estándar que parecen hechas ("Detectado ✓ — revisar"). */
-  signals: ReadonlySet<PlanSignal>;
+  signals: SignalSet;
 }
 
 function stageLabelOf(stages: readonly PlanStage[], key: StageKey | null): string | null {
@@ -392,17 +394,31 @@ function TaskCardBody({
               {late && <span className="sr-only"> (atrasada)</span>}
             </span>
           )}
-          {task.assignee && (
-            <span className="flex min-w-0 items-center gap-0.5">
-              <User aria-hidden className="h-3 w-3 shrink-0" />
-              <span className="truncate">{task.assignee}</span>
-            </span>
-          )}
+          {task.assignee && <Assignee name={task.assignee} />}
           {detected && onConfirm && <ConfirmButton signal={detected} onConfirm={onConfirm} />}
         </div>
       </div>
       {menu}
     </article>
+  );
+}
+
+/** Responsable: foto (o iniciales) del equipo; un nombre que no es del equipo, con ícono. */
+function Assignee({ name }: { name: string }) {
+  const member = teamMemberByName(name);
+  return (
+    <span className="flex min-w-0 items-center gap-1" title={`Responsable: ${name}`}>
+      {member ? (
+        <TeamAvatar
+          member={member}
+          className="h-4 w-4 ring-0"
+          fallbackClassName="text-[8px] font-semibold"
+        />
+      ) : (
+        <User aria-hidden className="h-3 w-3 shrink-0" />
+      )}
+      <span className="truncate">{name}</span>
+    </span>
   );
 }
 

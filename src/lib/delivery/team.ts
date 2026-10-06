@@ -35,3 +35,13 @@ export function initials(name: string): string {
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
 }
+
+/** Integrante del equipo por su nombre ("benjamin", "Benjamín" → "benjamin"); null si no es del equipo. */
+export function teamMemberByName(name: string | null | undefined): TeamMemberKey | null {
+  const clean = (name ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+  return TEAM_ORDER.find((key) => key === clean) ?? null;
+}

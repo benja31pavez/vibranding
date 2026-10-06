@@ -6,7 +6,19 @@
  */
 import type { AdsBillingState } from "@/lib/ads-billing/combined";
 import { readTemplateMarker, STAGE_CHECKLISTS, type PlanSignal } from "./planChecklists";
+import { findCycleTask, MONTH_SCOPED_SIGNALS } from "./planCycle";
 import { isStageKey } from "./planStages";
+
+/**
+ * Señales detectadas: `PlanSignal` (estado actual) y, para el reporte,
+ * `"<señal>@<AAAA-MM>"` (el reporte de ese mes), que usan las tareas del ciclo.
+ */
+export type SignalSet = ReadonlySet<string>;
+
+/** "report_generated@2026-10". */
+export function monthSignal(signal: PlanSignal, month: string): string {
+  return `${signal}@${month}`;
+}
 
 export interface SignalSnapshot {
   /** Onboarding del cliente (null si no lo ha enviado). */
@@ -57,7 +69,7 @@ export function previousMonthStart(today: string): string {
 const filled = (text: string | null | undefined) => Boolean(text && text.trim());
 
 /** Señales que se cumplen con los datos actuales del cliente. */
-export function detectSignals(s: SignalSnapshot): ReadonlySet<PlanSignal> {
+export function detectSignals(s: SignalSnapshot): SignalSet {
   const recentFrom = previousMonthStart(s.today);
   const recent = s.reports.filter((r) => r.period >= recentFrom);
   const published = s.landings.filter((l) => l.published);
@@ -77,13 +89,21 @@ export function detectSignals(s: SignalSnapshot): ReadonlySet<PlanSignal> {
     report_generated: recent.length > 0,
     report_sent: recent.some((r) => filled(r.sentAt)),
   };
-  return new Set((Object.keys(checks) as PlanSignal[]).filter((k) => checks[k]));
+  const current = (Object.keys(checks) as PlanSignal[]).filter((k) => checks[k]);
+  const byMonth = s.reports.flatMap((r) => {
+    const month = r.period.slice(0, 7);
+    const generated = monthSignal("report_generated", month);
+    return filled(r.sentAt) ? [generated, monthSignal("report_sent", month)] : [generated];
+  });
+  return new Set<string>([...current, ...byMonth]);
 }
 
 /** Señal de una tarea estándar según su marcador (null si no es de plantilla o no tiene). */
 export function taskSignal(description: string | null | undefined): PlanSignal | null {
   const marker = readTemplateMarker(description);
-  if (!marker || !isStageKey(marker.stage)) return null;
+  if (!marker) return null;
+  if (marker.month) return findCycleTask(marker.key)?.signal ?? null;
+  if (!isStageKey(marker.stage)) return null;
   return STAGE_CHECKLISTS[marker.stage].find((t) => t.key === marker.key)?.signal ?? null;
 }
 
@@ -94,13 +114,14 @@ export interface DetectableTask {
 
 /**
  * Señal detectada para una tarea abierta (null si ya está lista, si no es de
- * plantilla o si la señal no se cumple).
+ * plantilla o si la señal no se cumple). En las tareas del ciclo, el reporte
+ * se mira en el mes de la tarea.
  */
-export function detectedSignal(
-  task: DetectableTask,
-  signals: ReadonlySet<PlanSignal>,
-): PlanSignal | null {
+export function detectedSignal(task: DetectableTask, signals: SignalSet): PlanSignal | null {
   if (task.status === "done" || task.status === "in_review") return null;
   const signal = taskSignal(task.description);
-  return signal && signals.has(signal) ? signal : null;
+  if (!signal) return null;
+  const month = readTemplateMarker(task.description)?.month;
+  const needed = month && MONTH_SCOPED_SIGNALS.has(signal) ? monthSignal(signal, month) : signal;
+  return signals.has(needed) ? signal : null;
 }
