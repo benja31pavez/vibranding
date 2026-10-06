@@ -151,6 +151,7 @@ export function AlertActions({ alert, canResolve = true }: AlertActionsProps) {
         <Link
           to="/clients/$clientId/setup"
           params={{ clientId: alert.client_id }}
+          search={{ conexion: "meta-ads" }}
           className="text-primary hover:underline"
         >
           Revisar conexión
