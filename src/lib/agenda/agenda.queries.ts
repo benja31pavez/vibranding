@@ -306,7 +306,7 @@ export async function fetchContractItems(range: AgendaRange): Promise<AgendaItem
             clientName: names.get(c.client_id) ?? NO_CLIENT,
             title: truncate(`Inicio de contrato: ${c.title}`),
             status: c.status,
-            href: clientHref(c.client_id, "facturacion", "contratos"),
+            href: clientHref(c.client_id, "legal"),
           },
         ]
       : [],

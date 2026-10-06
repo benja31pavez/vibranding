@@ -4,9 +4,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/_app/clients/$clientId/contracts")({
   beforeLoad: ({ params }) => {
     throw redirect({
-      to: "/clients/$clientId/facturacion",
+      to: "/clients/$clientId/legal",
       params,
-      search: { tab: "contratos" } as any,
     });
   },
 });

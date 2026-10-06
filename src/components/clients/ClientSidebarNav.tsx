@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
+  Scale,
   BarChart3,
   Circle,
   Flag,
@@ -35,7 +36,7 @@ const GROUPS: readonly { key: GroupKey; label: string; sections: readonly string
     label: "Conexiones",
     sections: ["instagram", "bandeja", "meta-ads", "google-ads"],
   },
-  { key: "negocio", label: "Negocio", sections: ["leads", "facturacion", "analytics"] },
+  { key: "negocio", label: "Negocio", sections: ["leads", "facturacion", "legal", "analytics"] },
 ];
 
 /** Conexión que desbloquea cada sección con candado (abre directo esa conexión en Conexiones). */
@@ -68,6 +69,7 @@ const ICONS: Partial<Record<string, IconComponent>> = {
   bandeja: MessageCircle,
   leads: UserPlus,
   facturacion: Receipt,
+  legal: Scale,
   analytics: BarChart3,
 };
 

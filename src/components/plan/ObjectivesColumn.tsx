@@ -127,7 +127,7 @@ export function ObjectivesColumn({
   );
 }
 
-/** Sin plan: el plan se asigna en la ficha («Plan y facturación»); no se duplica ese formulario. */
+/** Sin plan: el plan se asigna en Facturación (entorno del cliente); nunca enlaza a la gestión de la agencia. */
 function AssignPlanCallout({ clientId }: { clientId: string }) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-app-lg border border-dashed border-border-subtle px-4 py-6 text-center">
@@ -135,8 +135,8 @@ function AssignPlanCallout({ clientId }: { clientId: string }) {
         Asigna un plan para crear objetivos y tareas
       </p>
       <Button asChild size="sm" variant="outline" className="h-8 text-xs">
-        <Link to="/clients/$clientId" params={{ clientId }}>
-          Ir a Plan y facturación
+        <Link to="/clients/$clientId/facturacion" params={{ clientId }}>
+          Ir a Facturación
           <ArrowRight aria-hidden className="ml-1 h-3.5 w-3.5" />
         </Link>
       </Button>
