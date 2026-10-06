@@ -3,7 +3,7 @@ import { Check, Lock } from "lucide-react";
 import { FitPage, PageHeader, StatusBadge } from "@/components/app";
 import { cn } from "@/lib/utils";
 import { initialStep, type ConnectionInfo, type StepKey } from "./connectionModel";
-import { CONNECTION_ICON, CONNECTION_STATUS, STEP_STATE } from "./setupConstants";
+import { CONNECTION_STATUS, STEP_STATE } from "./setupConstants";
 import { StepBody } from "./StepBody";
 import type { ConnectionsState } from "./useConnections";
 
@@ -48,7 +48,6 @@ export function ConnectionDetail({
   );
   const step = info.steps[index];
   const blocker = step.blockedBy ? info.steps.find((s) => s.key === step.blockedBy) : undefined;
-  const Icon = CONNECTION_ICON[info.key];
   const status = CONNECTION_STATUS[info.status];
   const doneCount = info.steps.filter((s) => s.state === "done").length;
 
@@ -58,12 +57,7 @@ export function ConnectionDetail({
         <div className="space-y-2">
           <PageHeader
             size="compact"
-            title={
-              <span className="flex items-center gap-2.5">
-                <Icon className="h-6 w-6 text-muted-foreground" />
-                {info.label}
-              </span>
-            }
+            title={info.label}
             actions={
               <>
                 {info.account && (
