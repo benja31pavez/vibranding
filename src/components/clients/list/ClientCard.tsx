@@ -40,13 +40,13 @@ export function ClientCard({
   return (
     <div className="relative h-full rounded-app-lg border border-border-subtle bg-surface px-4 py-3 shadow-app-xs transition-shadow hover:border-border-strong hover:shadow-app-md has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring">
       <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           <ClientAvatar
             clientId={c.id}
             name={c.name}
             className="mt-0.5 h-10 w-10 rounded-app-md text-sm"
           />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h3 className="min-w-0 text-base font-semibold leading-snug">
               <Link
                 to="/clients/$clientId"
@@ -57,10 +57,13 @@ export function ClientCard({
                 {c.name}
               </Link>
             </h3>
-            <div className="mt-0.5 flex h-5 items-center gap-1 text-sm text-muted-foreground">
+            <div className="mt-0.5 flex h-5 min-w-0 items-center gap-1 text-sm text-muted-foreground">
               {c.instagram_handle && (
                 <>
-                  <Instagram aria-hidden className="h-3.5 w-3.5" /> @{c.instagram_handle}
+                  <Instagram aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate" title={`@${c.instagram_handle}`}>
+                    @{c.instagram_handle}
+                  </span>
                 </>
               )}
             </div>

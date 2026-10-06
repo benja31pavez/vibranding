@@ -104,9 +104,15 @@ const homeEs = {
         title: "Google Ads",
         desc: "Aparece cuando alguien busca tu servicio en Google. Medimos cada consulta y ajustamos la inversión.",
       },
+      {
+        title: "Landing page",
+        desc: "Una página para tu servicio con botón de WhatsApp y formulario, pensada para convertir visitas en consultas.",
+      },
+      {
+        title: "Chatbot WhatsApp",
+        desc: "Responde al instante las preguntas frecuentes de tus clientes y te deja las conversaciones listas para cerrar.",
+      },
     ],
-    extras:
-      "Además: landing pages con botón de WhatsApp y formulario, y chatbot de WhatsApp para responder las preguntas frecuentes de tus clientes.",
   },
   plans: {
     title: "Planes y",
@@ -114,8 +120,6 @@ const homeEs = {
     subtitle: "Precios netos en pesos chilenos, más IVA. Sin costos escondidos.",
     popular: "Más completo",
     cta: "Lo quiero",
-    adSpendNote:
-      "Para la pauta sugerimos partir desde $150.000 al mes, pagados directo a Meta y Google con tu tarjeta.",
     items: [
       {
         id: "marca-web",
