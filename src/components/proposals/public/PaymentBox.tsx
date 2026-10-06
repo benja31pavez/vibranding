@@ -71,7 +71,7 @@ function FlowPay({ token, initialUrl }: { token: string; initialUrl: string | nu
 
   return (
     <Notice icon={CreditCard} title="Paga en línea con Flow">
-      <p>Puedes pagar ahora con tarjeta o transferencia a través de Flow.</p>
+      <p>Puedes pagar ahora con tarjeta o transferencia a través de Flow. No hay devoluciones.</p>
       {!initialUrl && (
         <div className="mt-3 space-y-1.5">
           <Label htmlFor="pay-email">Email para el comprobante</Label>

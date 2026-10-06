@@ -18,8 +18,8 @@ export function FlowSetupNote({ missing }: { missing: string[] | null }) {
       <PopoverContent align="end" className="w-72 space-y-2 text-sm">
         <p className="font-medium">Pago en línea desactivado</p>
         <p className="text-muted-foreground">
-          Mientras Flow no esté configurado, el botón Pagar queda deshabilitado. Puedes cobrar por
-          transferencia y marcar el cobro como pagado. Flow lo conecta un administrador de la
+          Mientras Flow no esté configurado, nadie puede pagar ni renovar su plan: los botones
+          quedan deshabilitados. Todo pago entra por Flow; lo conecta un administrador de la
           plataforma en la configuración del servidor.
         </p>
         {missing && missing.length > 0 && (

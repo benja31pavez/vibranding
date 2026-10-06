@@ -225,23 +225,19 @@ export function first30Days(planKey: PlanKey | null): readonly WeekStep[] {
 export const PROCESS_STEPS: readonly { title: string; desc: string }[] = [
   { title: "Aceptas en línea", desc: "Toma menos de 2 minutos, aquí mismo." },
   {
-    title: "Pagas el primer cobro",
-    desc: "Con link de pago o transferencia. Recibes factura o boleta.",
+    title: "Pagas en línea",
+    desc: "Con el link de pago de la plataforma. Recibes factura o boleta.",
   },
   { title: "Reunión de inicio", desc: "Te contactamos para agendarla y pedirte lo necesario." },
   { title: "Producimos, apruebas, publicamos", desc: "Nada sale sin tu visto bueno." },
 ];
 
-export function proposalFaq(
-  planKey: PlanKey | null,
-  hasMonthly: boolean,
-  minMonths: number,
-): readonly FaqItem[] {
+export function proposalFaq(planKey: PlanKey | null, hasMonthly: boolean): readonly FaqItem[] {
   const faq: FaqItem[] = [];
   if (hasMonthly) {
     faq.push({
-      q: "¿Hay permanencia mínima?",
-      a: `Sí, ${minMonths} meses: es el tiempo que se necesita para construir y medir de verdad. Después sigue mes a mes y puedes cancelar avisando con 30 días de anticipación.`,
+      q: "¿Hay permanencia?",
+      a: "No. Cada pago cubre un mes de servicio desde el día de pago y no hay cobros automáticos: para seguir, renuevas tu plan en la plataforma al terminar el mes. No hay devoluciones ni pausas, y el plan no se cambia durante el mes pagado.",
     });
   }
   if (planKey === "mantencion") {

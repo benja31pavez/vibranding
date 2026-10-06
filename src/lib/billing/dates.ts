@@ -54,3 +54,10 @@ export function periodLabel(period: string): string {
   const { y, m } = parseIsoDate(period);
   return MONTH_LABEL.format(new Date(Date.UTC(y, m - 1, 1)));
 }
+
+/** Suma (o resta) días a una fecha YYYY-MM-DD. */
+export function addDays(iso: string, days: number): string {
+  const { y, m, d } = parseIsoDate(iso);
+  const date = new Date(Date.UTC(y, m - 1, d + days));
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
+}

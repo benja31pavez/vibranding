@@ -38,12 +38,12 @@ const COL = {
 } as const;
 
 /**
- * Acciones en 3 columnas fijas (desde lg): "Recordar pago", link de pago
- * (Generar / Copiar / cargando, de ancho variable) y "Marcar pagado" quedan
- * alineados entre filas. Los botones llenan su columna.
+ * Acciones en 2 columnas fijas (desde lg): "Recordar pago" y link de pago
+ * (Generar / Copiar / cargando, de ancho variable) quedan alineados entre filas.
+ * No hay "Marcar pagado": el pago lo confirma Flow. Los botones llenan su columna.
  */
-const ACTIONS_W = "lg:block lg:w-[28.5rem]";
-const ACTIONS_GRID = "lg:grid lg:w-[28.5rem] lg:grid-cols-[8.5rem_11.5rem_7.5rem] lg:flex-nowrap";
+const ACTIONS_W = "lg:block lg:w-[20.5rem]";
+const ACTIONS_GRID = "lg:grid lg:w-[20.5rem] lg:grid-cols-[8.5rem_11.5rem] lg:flex-nowrap";
 const ACTION_CELL = "lg:min-w-0 lg:[&_button]:w-full";
 
 export interface BillingRowItemProps {
@@ -53,7 +53,6 @@ export interface BillingRowItemProps {
   /** Panel "Ver todos": filas apiladas, sin columnas. */
   stacked?: boolean;
   onReminded: () => void;
-  onMarkPaid: () => void;
   onChanged: () => void;
 }
 
@@ -63,7 +62,6 @@ export function BillingRowItem({
   remindedToday,
   stacked = false,
   onReminded,
-  onMarkPaid,
   onChanged,
 }: BillingRowItemProps) {
   const late = isOverdue(r, today);
@@ -134,11 +132,6 @@ export function BillingRowItem({
           </div>
           <div className={ACTION_CELL}>
             <PaymentLinkButton payment={r} onChanged={onChanged} />
-          </div>
-          <div className={ACTION_CELL}>
-            <Button size="sm" variant="ghost" onClick={onMarkPaid}>
-              Marcar pagado
-            </Button>
           </div>
         </div>
       ) : (

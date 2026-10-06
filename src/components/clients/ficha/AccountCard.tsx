@@ -1,14 +1,14 @@
 import { useState, type ReactNode } from "react";
-import { Eye, Pencil } from "lucide-react";
+import { Eye } from "lucide-react";
 import { ErrorState, ListSkeleton, Money } from "@/components/app";
 import { Button } from "@/components/ui/button";
-import { chileToday } from "@/lib/dates/chile";
+import { membershipMrr, type Membership } from "@/lib/billing/membership";
+import { useMembership } from "@/lib/billing/membership.functions";
 import { findPlan } from "@/lib/pricing/plans";
-import { useFichaAccount, type FichaAccount } from "./agencyQueries";
 import { BillingCard } from "./BillingCard";
 import { useLatestContract } from "./ContractPanel";
 import { FichaSheet } from "./FichaSheet";
-import { formatDate, type FichaOverview, type useFichaOverview } from "./fichaQueries";
+import { formatDate, type useFichaOverview } from "./fichaQueries";
 
 type Contract = ReturnType<typeof useLatestContract>["data"];
 
@@ -19,28 +19,18 @@ const CONTRACT_LABEL: Readonly<Record<string, string>> = {
   cancelled: "Cancelado",
 };
 
-/** Próximo día de cobro (YYYY-MM-DD) a partir de hoy, según el día del mes acordado. */
-function nextBillingDate(billingDay: number, today: string): string {
-  const [y, m, d] = today.split("-").map(Number);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  if (d <= billingDay) return `${y}-${pad(m)}-${pad(billingDay)}`;
-  const next = m === 12 ? { y: y + 1, m: 1 } : { y, m: m + 1 };
-  return `${next.y}-${pad(next.m)}-${pad(billingDay)}`;
+/** Hasta cuándo está pagado (sin cobros automáticos: el cliente renueva). */
+function paidUntil(m: Membership | undefined): string {
+  if (!m) return "…";
+  if (m.state === "sin_plan") return "Sin plan vigente";
+  if (m.state === "finalizado") return "Finalizado";
+  return formatDate(m.coveredUntil);
 }
 
-function nextCharge(overview: FichaOverview, account: FichaAccount | undefined): string {
-  const fromSubscription = account?.subscription?.next_charge_date;
-  if (fromSubscription) return formatDate(fromSubscription);
-  const day = overview.billing?.billing_day;
-  return day ? formatDate(nextBillingDate(day, chileToday())) : "No definido";
-}
-
-function contractLabel(contract: Contract, account: FichaAccount | undefined): string {
+function contractLabel(contract: Contract): string {
   if (contract === undefined) return "…";
   if (!contract) return "Sin contrato";
-  const label = CONTRACT_LABEL[contract.status] ?? contract.status;
-  const months = account?.subscription?.min_months ?? 0;
-  return contract.status === "signed" && months > 0 ? `${label} · ${months} meses` : label;
+  return CONTRACT_LABEL[contract.status] ?? contract.status;
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -52,7 +42,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** "Cuenta": plan, MRR, próximo cobro, contrato y antigüedad; se edita en "Plan y facturación". */
+/** "Cuenta": plan, MRR, vigencia, contrato y antigüedad, derivados de los pagos (solo lectura). */
 export function AccountCard({
   clientId,
   overview,
@@ -60,11 +50,10 @@ export function AccountCard({
   clientId: string;
   overview: ReturnType<typeof useFichaOverview>;
 }) {
-  const [editOpen, setEditOpen] = useState(false);
-  const account = useFichaAccount(clientId);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const membership = useMembership(clientId).data;
   const contract = useLatestContract(clientId);
   const data = overview.data;
-  const canEdit = Boolean(data?.canEdit);
 
   return (
     <section
@@ -89,14 +78,10 @@ export function AccountCard({
             variant="ghost"
             className="h-7 px-2 text-xs"
             aria-haspopup="dialog"
-            onClick={() => setEditOpen(true)}
+            onClick={() => setDetailOpen(true)}
           >
-            {canEdit ? (
-              <Pencil aria-hidden className="mr-1 h-3.5 w-3.5" />
-            ) : (
-              <Eye aria-hidden className="mr-1 h-3.5 w-3.5" />
-            )}
-            {canEdit ? "Editar" : "Ver"}
+            <Eye aria-hidden className="mr-1 h-3.5 w-3.5" />
+            Ver
           </Button>
         )}
       </div>
@@ -111,19 +96,23 @@ export function AccountCard({
         />
       ) : data ? (
         <dl className="mt-2 flex flex-col">
-          <Row label="Plan actual">{findPlan(data.billing?.plan_key)?.label ?? "Sin plan"}</Row>
-          <Row label="MRR neto">
-            <Money amount={data.billing?.mrr ?? 0} />
+          <Row label="Plan actual">
+            {membership && membership.state !== "sin_plan"
+              ? (findPlan(membership.planKey)?.label ?? "Sin plan")
+              : "Sin plan"}
           </Row>
-          <Row label="Próximo cobro">{nextCharge(data, account.data)}</Row>
-          <Row label="Contrato">{contractLabel(contract.data, account.data)}</Row>
-          <Row label="Cliente desde">{formatDate(data.startedAt)}</Row>
+          <Row label="MRR neto">
+            <Money amount={membership ? membershipMrr(membership) : 0} />
+          </Row>
+          <Row label="Pagado hasta">{paidUntil(membership)}</Row>
+          <Row label="Contrato">{contractLabel(contract.data)}</Row>
+          <Row label="Cliente desde">{formatDate(membership?.clientSince ?? null)}</Row>
         </dl>
       ) : null}
 
       {data && (
-        <FichaSheet open={editOpen} onOpenChange={setEditOpen} title="Plan y facturación">
-          <BillingCard clientId={clientId} overview={data} />
+        <FichaSheet open={detailOpen} onOpenChange={setDetailOpen} title="Plan y facturación">
+          <BillingCard clientId={clientId} />
         </FichaSheet>
       )}
     </section>

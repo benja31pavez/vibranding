@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { formatMoney } from "@/lib/pricing/plans";
+import { MONTHLY_PLAN_TERMS, formatMoney } from "@/lib/pricing/plans";
 import { IVA_LABEL, breakdownFromTotal, netOfTotal } from "@/lib/pricing/iva";
 
 export interface ContractDocProps {
@@ -168,11 +168,6 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(
                         {s.included_text}
                       </div>
                     )}
-                    {s.min_months ? (
-                      <div style={{ fontSize: 11.5, color: C.sub, marginTop: 2 }}>
-                        Permanencia mínima: {s.min_months} meses
-                      </div>
-                    ) : null}
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
                     {Number(s.one_time_price) > 0
@@ -244,7 +239,7 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(
           <li>
             Los montos <strong>no se acumulan</strong>: cada etapa se factura al momento de su
             entrega u ofrecimiento, y se paga de forma <strong>independiente</strong>. Los servicios
-            con mensualidad se facturan cada mes durante su vigencia.
+            con mensualidad se pagan por adelantado en la plataforma, un mes a la vez.
           </li>
           <li>
             El plazo máximo de pago es de <strong>{payment_due_days} días</strong> desde la fecha de
@@ -254,9 +249,7 @@ export const ContractDocument = forwardRef<HTMLDivElement, ContractDocProps>(
             Cada pago se respalda con factura o boleta electrónica emitida por el prestador según
             corresponda.
           </li>
-          <li>
-            Los planes mensuales tienen la permanencia mínima indicada en la tabla de servicios.
-          </li>
+          <li>{MONTHLY_PLAN_TERMS}</li>
           <li>
             Pagos vencidos podrán suspender automáticamente el servicio hasta su regularización, sin
             que ello exima al cliente del monto adeudado.

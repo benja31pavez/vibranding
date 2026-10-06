@@ -4,7 +4,8 @@
  * Uso: node scripts/check-proposal-copy.mjs
  *
  * Reglas:
- *  - Nada de garantías ni reembolsos.
+ *  - Nada de garantías ni reembolsos (sí se puede decir que NO hay devoluciones:
+ *    decisión 2026-10-06, membresía sin devoluciones).
  *  - El chatbot de WhatsApp solo aparece como adicional con costo aparte.
  *  - Precios netos + IVA: nunca "IVA incluido"; la FAQ de pago explica que se suma IVA.
  *  - Mantención: sin pauta ni campañas incluidas.
@@ -40,6 +41,8 @@ rmSync(outDir, { recursive: true, force: true });
 const PLAN_KEYS = ["marca-web", "contenido", "crecimiento", "mantencion", null];
 const VAT_INCLUDED = /iva incluido|incluyen iva|incluye iva/i;
 const FORBIDDEN = /garant|reembols|devoluci/i;
+/** Negar devoluciones es obligatorio (no es una promesa): se quita antes de revisar. */
+const NO_REFUND = /no hay devoluciones|sin devoluciones|no son reembolsables/gi;
 const CHATBOT = /chatbot/i;
 const ADDON = /adicional|costo aparte/i;
 
@@ -64,16 +67,17 @@ for (const key of PLAN_KEYS) {
     ...content.planFeatures(key),
     ...content.first30Days(key).flatMap((w) => [w.week, w.title, ...w.items]),
     ...[true, false].flatMap((monthly) =>
-      content.proposalFaq(key, monthly, 3).flatMap((f) => [f.q, f.a]),
+      content.proposalFaq(key, monthly).flatMap((f) => [f.q, f.a]),
     ),
     ...content.PROCESS_STEPS.flatMap((s) => [s.title, s.desc]),
     content.TIMELINE_NOTE,
   ];
   for (const text of texts) {
-    if (FORBIDDEN.test(text)) failures.push(`[${key}] garantía/reembolso: "${text}"`);
+    if (FORBIDDEN.test(text.replace(NO_REFUND, "")))
+      failures.push(`[${key}] garantía/reembolso: "${text}"`);
     if (VAT_INCLUDED.test(text)) failures.push(`[${key}] dice "IVA incluido": "${text}"`);
   }
-  const pago = content.proposalFaq(key, true, 3).find((f) => /cómo pago/i.test(f.q));
+  const pago = content.proposalFaq(key, true).find((f) => /cómo pago/i.test(f.q));
   if (!pago || !/netos/i.test(pago.a) || !/IVA/.test(pago.a)) {
     failures.push(`[${key}] la FAQ de pago no explica que los precios son netos + IVA`);
   }
@@ -94,7 +98,7 @@ for (const key of PLAN_KEYS) {
   for (const text of outsideFaq) {
     if (CHATBOT.test(text)) failures.push(`[${key}] chatbot presentado como incluido: "${text}"`);
   }
-  for (const f of content.proposalFaq(key, true, 3)) {
+  for (const f of content.proposalFaq(key, true)) {
     if (CHATBOT.test(f.q + f.a) && !ADDON.test(f.a)) {
       failures.push(`[${key}] chatbot sin aclarar que es adicional: "${f.a}"`);
     }

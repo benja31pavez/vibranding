@@ -219,7 +219,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     pricing: {
       kind: "plans",
       planKeys: ["marca-web", "contenido", "crecimiento"],
-      note: "Los planes mensuales tienen un mínimo de 3 meses. " + AD_SPEND_NOTE,
+      note: "Los planes mensuales no tienen permanencia: cada pago cubre un mes. " + AD_SPEND_NOTE,
     },
     steps: [
       {
@@ -242,7 +242,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     faqs: [
       {
         q: "¿Cuánto cobra una agencia de marketing digital en Santiago?",
-        a: `Varía mucho entre agencias. En Vibranding los planes mensuales parten en ${CONTENIDO_PRICE}/mes (Plan Contenido) y el Plan Crecimiento, con anuncios, cuesta ${CRECIMIENTO_PRICE}/mes, ambos con mínimo 3 meses. Marca + Web es un pago único de ${MARCA_WEB_PRICE}.`,
+        a: `Varía mucho entre agencias. En Vibranding los planes mensuales parten en ${CONTENIDO_PRICE}/mes (Plan Contenido) y el Plan Crecimiento, con anuncios, cuesta ${CRECIMIENTO_PRICE}/mes, sin permanencia. Marca + Web es un pago único de ${MARCA_WEB_PRICE}.`,
       },
       {
         q: "¿Atienden solo en Santiago?",
@@ -250,7 +250,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
       },
       {
         q: "¿Hay permanencia mínima?",
-        a: "Los planes mensuales tienen un mínimo de 3 meses, porque el contenido y los anuncios necesitan tiempo para medirse y ajustarse. Marca + Web es un pago único.",
+        a: "No. Cada pago de un plan mensual cubre un mes de servicio y no hay cobros automáticos: para seguir, renuevas al terminar el mes. Marca + Web es un pago único. No hay devoluciones.",
       },
       {
         q: "¿Garantizan resultados?",
@@ -305,7 +305,11 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
       "Todo el Plan Contenido: 12 piezas al mes para tus redes",
       "Reporte mensual con lo que se invirtió y lo que se obtuvo",
     ],
-    pricing: { kind: "plans", planKeys: ["crecimiento"], note: "Mínimo 3 meses. " + AD_SPEND_NOTE },
+    pricing: {
+      kind: "plans",
+      planKeys: ["crecimiento"],
+      note: "Sin permanencia: cada pago cubre un mes. " + AD_SPEND_NOTE,
+    },
     steps: [
       {
         title: "Diagnóstico",
@@ -335,7 +339,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
       },
       {
         q: "¿Cuándo veo resultados?",
-        a: "Las primeras semanas sirven para aprender qué público y qué anuncios responden mejor. Por eso el plan tiene un mínimo de 3 meses. No prometemos un número de clientes, pero sí un reporte claro de lo que pasa con tu inversión.",
+        a: "Las primeras semanas sirven para aprender qué público y qué anuncios responden mejor. Por eso recomendamos darle al menos un par de meses. No prometemos un número de clientes, pero sí un reporte claro de lo que pasa con tu inversión.",
       },
       {
         q: "¿Las campañas quedan a mi nombre?",
@@ -391,7 +395,11 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
       "Optimización continua: términos de búsqueda, pujas y presupuesto",
       "También incluye Meta Ads, contenido mensual y reporte (Plan Crecimiento)",
     ],
-    pricing: { kind: "plans", planKeys: ["crecimiento"], note: "Mínimo 3 meses. " + AD_SPEND_NOTE },
+    pricing: {
+      kind: "plans",
+      planKeys: ["crecimiento"],
+      note: "Sin permanencia: cada pago cubre un mes. " + AD_SPEND_NOTE,
+    },
     steps: [
       {
         title: "Diagnóstico",

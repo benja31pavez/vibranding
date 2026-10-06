@@ -14,7 +14,14 @@
  * lo mensual. Es lo que se cobra (payments.amount → Flow).
  */
 import { z } from "zod";
-import { PLAN_KEYS, findPlan, planTotal, type Billing, type PlanKey } from "@/lib/pricing/plans";
+import {
+  MONTHLY_PLAN_TERMS,
+  PLAN_KEYS,
+  findPlan,
+  planTotal,
+  type Billing,
+  type PlanKey,
+} from "@/lib/pricing/plans";
 import { IVA_LABEL, netOfTotal, withIva } from "@/lib/pricing/iva";
 import type { StatusTone } from "@/components/app/status-badge";
 
@@ -173,13 +180,8 @@ export function proposalConditions(
 ): string[] {
   const plan = findPlan(planKey);
   const hasMonthly = hasMonthlyBilling(planKey, items);
-  const minMonths = plan?.minMonths ?? 3;
   const conditions: string[] = [];
-  if (hasMonthly) {
-    conditions.push(
-      `Los planes mensuales tienen una permanencia mínima de ${minMonths} meses. Después continúan mes a mes y se cancelan avisando con 30 días de anticipación.`,
-    );
-  }
+  if (hasMonthly) conditions.push(MONTHLY_PLAN_TERMS);
   if (plan?.key === "mantencion") {
     conditions.push(
       "El Plan Mantención es para clientes que ya trabajaron con VIBRANDING: incluye 8 piezas al mes, calendario, aprobación en el portal y reporte mensual, sin pauta ni campañas.",

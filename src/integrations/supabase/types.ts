@@ -3180,11 +3180,15 @@ export type Database = {
           document_uploaded_at: string | null
           due_date: string | null
           flow_token: string | null
+          followup_sent_at: string | null
           id: string
           kind: string | null
           paid_at: string | null
           payment_url: string | null
           period: string | null
+          period_end: string | null
+          period_start: string | null
+          plan_key: string | null
           proposal_id: string | null
           provider: string | null
           provider_ref: string | null
@@ -3203,11 +3207,15 @@ export type Database = {
           document_uploaded_at?: string | null
           due_date?: string | null
           flow_token?: string | null
+          followup_sent_at?: string | null
           id?: string
           kind?: string | null
           paid_at?: string | null
           payment_url?: string | null
           period?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          plan_key?: string | null
           proposal_id?: string | null
           provider?: string | null
           provider_ref?: string | null
@@ -3226,11 +3234,15 @@ export type Database = {
           document_uploaded_at?: string | null
           due_date?: string | null
           flow_token?: string | null
+          followup_sent_at?: string | null
           id?: string
           kind?: string | null
           paid_at?: string | null
           payment_url?: string | null
           period?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          plan_key?: string | null
           proposal_id?: string | null
           provider?: string | null
           provider_ref?: string | null

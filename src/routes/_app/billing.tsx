@@ -1,10 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { invalidateClientHealth } from "@/components/clients/health/healthKeys";
 import { Receipt } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   EmptyState,
@@ -24,7 +20,6 @@ import {
   summarizeOpen,
   type BillingData,
   type BillingFilter,
-  type BillingRow,
 } from "@/components/billing/billingData";
 import { todayInChile } from "@/lib/billing/dates";
 import { UPCOMING_DAYS } from "@/lib/billing/openPayments";
@@ -45,9 +40,6 @@ export const Route = createFileRoute("/_app/billing")({
     ],
   }),
 });
-
-/** RLS oculta filas en vez de fallar: 0 filas afectadas = sin permiso. */
-const NO_PERMISSION = "No tienes permisos para esta acción";
 
 const FILTERS: ReadonlyArray<{ value: BillingFilter; label: string }> = [
   { value: "por_recordar", label: "Por recordar" },
@@ -72,7 +64,6 @@ function BillingPage() {
   const [filter, setFilter] = useState<BillingFilter>("por_recordar");
   const requestId = useRef(0);
   const today = todayInChile();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
   const userId = user?.id ?? "";
   const [reminded, setReminded] = useState<RemindedMap>({});
@@ -134,20 +125,6 @@ function BillingPage() {
       setFilter("todos");
     }
   }, [data, filter, today]);
-
-  const markPaid = async (row: BillingRow) => {
-    // set_payment_status valida permisos y transición, y registra provider='manual'.
-    const { error: err } = await supabase.rpc("set_payment_status", {
-      _payment_id: row.id,
-      _status: "paid",
-      _paid_at: today,
-    });
-    if (err?.code === "42501") toast.error(NO_PERMISSION);
-    else if (err) toast.error(`No se pudo actualizar el pago: ${err.message}`);
-    else toast.success("Cobro marcado como pagado");
-    load();
-    void invalidateClientHealth(queryClient);
-  };
 
   const filterLabel = FILTERS.find((f) => f.value === filter)?.label ?? "Cobros";
 
@@ -221,16 +198,7 @@ function BillingPage() {
               }}
             />
           ) : visible.length === 0 ? (
-            <EmptyState
-              icon={Receipt}
-              size="compact"
-              title={EMPTY_TITLE[filter]}
-              description={
-                filter === "todos"
-                  ? "Se registran en la ficha de cada cliente, en Facturación."
-                  : undefined
-              }
-            />
+            <EmptyState icon={Receipt} size="compact" title={EMPTY_TITLE[filter]} />
           ) : (
             <>
               <BillingRowHeader />
@@ -246,7 +214,6 @@ function BillingPage() {
                     stacked={ctx.inSheet}
                     remindedToday={wasRemindedToday(reminded, r.id, today)}
                     onReminded={() => markReminded(r.id)}
-                    onMarkPaid={() => void markPaid(r)}
                     onChanged={load}
                   />
                 )}

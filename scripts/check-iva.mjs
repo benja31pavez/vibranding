@@ -93,10 +93,9 @@ check("precios netos de lista (decisión 2026-10-05)", () => {
   }
   assert.equal(m.plans.PLANS.length, Object.keys(NET).length);
 });
-check("Mantención: mensual, mínimo 3 meses, solo ex clientes y no pública", () => {
+check("Mantención: mensual, solo ex clientes y no pública", () => {
   const plan = m.plans.findPlan("mantencion");
   assert.equal(plan.billing, "monthly");
-  assert.equal(plan.minMonths, 3);
   assert.equal(plan.isPublic, false);
   assert.equal(plan.returningClientsOnly, true);
   assert.deepEqual(
@@ -107,10 +106,7 @@ check("Mantención: mensual, mínimo 3 meses, solo ex clientes y no pública", (
 check('etiquetas "+ IVA"', () => {
   assert.equal(m.plans.planNetLabel(m.plans.findPlan("contenido")), "$129.990 + IVA/mes");
   assert.equal(m.plans.planNetLabel(m.plans.findPlan("marca-web")), "$149.990 + IVA (pago único)");
-  assert.equal(
-    m.plans.planPriceLabel(m.plans.findPlan("mantencion")),
-    "$69.990 + IVA/mes · mínimo 3 meses",
-  );
+  assert.equal(m.plans.planPriceLabel(m.plans.findPlan("mantencion")), "$69.990 + IVA/mes");
 });
 
 // ── Propuestas ──────────────────────────────────────────────────────────────

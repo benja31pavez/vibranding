@@ -138,7 +138,7 @@ const homeEs = {
         name: "Plan Contenido",
         price: 129990,
         period: "al mes",
-        terms: "Mínimo 3 meses",
+        terms: "Sin permanencia",
         desc: "Para mantener tus redes activas y profesionales todo el mes.",
         features: [
           "12 piezas al mes: posts, carruseles y reels",
@@ -155,7 +155,7 @@ const homeEs = {
         name: "Plan Crecimiento",
         price: 249990,
         period: "al mes",
-        terms: "Mínimo 3 meses",
+        terms: "Sin permanencia",
         desc: "Para conseguir clientes nuevos con anuncios, además del contenido.",
         features: [
           "Todo lo del Plan Contenido",
@@ -284,11 +284,11 @@ const es: Dict = {
   legal: { back: "Volver al inicio", updatedLabel: "Última actualización:" },
   faq: {
     title: "Preguntas Frecuentes",
-    updated: "5 de octubre de 2026",
+    updated: "6 de octubre de 2026",
     items: [
       {
         q: "¿Hay permanencia mínima?",
-        a: "Marca + Web es un pago único. Los planes Contenido y Crecimiento tienen un mínimo de 3 meses, porque es el tiempo razonable para ver cómo responde tu público. Después siguen mes a mes y puedes cancelar avisando con 30 días de anticipación.",
+        a: "No. Marca + Web es un pago único. En los planes Contenido y Crecimiento cada pago cubre un mes de servicio y no hay cobros automáticos: para seguir, renuevas tu plan en la plataforma al terminar el mes. No hay devoluciones ni pausas.",
       },
       {
         q: "¿La pauta publicitaria está incluida?",
@@ -314,7 +314,7 @@ const es: Dict = {
   },
   terms: {
     title: "Términos de Servicio",
-    updated: "5 de octubre de 2026",
+    updated: "6 de octubre de 2026",
     intro:
       "Estos términos regulan los servicios que presta VIBRANDING SpA, RUT 78.505.344-3, con domicilio en Santiago de Chile (en adelante, “Vibranding”). Al contratar nuestros servicios o usar esta plataforma aceptas lo siguiente.",
     blocks: [
@@ -333,10 +333,10 @@ const es: Dict = {
         type: "p",
         html: "La inversión en anuncios (pauta) no está incluida en nuestros precios. El cliente la paga directamente a Meta, Google u otras plataformas, con su propio medio de pago.",
       },
-      { type: "h2", text: "4. Permanencia y cancelación" },
+      { type: "h2", text: "4. Pagos, renovación y término" },
       {
         type: "p",
-        html: "Los planes mensuales tienen una permanencia mínima de 3 meses. Cumplido ese plazo continúan mes a mes y pueden cancelarse avisando con 30 días de anticipación. Los servicios de pago único no son reembolsables una vez iniciados, sin perjuicio de los derechos que la ley otorgue al cliente.",
+        html: "Los planes mensuales no tienen permanencia mínima. Cada pago se realiza por adelantado en la plataforma y cubre un mes de servicio desde la fecha de pago. No hay cobros automáticos: para continuar, el cliente renueva al terminar el período; si no renueva, el servicio termina al cumplirse el mes pagado. Durante un período pagado no se puede cambiar de plan ni pausar el servicio. Los pagos no son reembolsables, sin perjuicio de los derechos que la ley otorgue al cliente.",
       },
       { type: "h2", text: "5. Resultados" },
       {

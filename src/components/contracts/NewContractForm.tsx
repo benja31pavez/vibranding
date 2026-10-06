@@ -150,12 +150,7 @@ function PlanOption({
   checked: boolean;
   onSelect: () => void;
 }) {
-  const cadence =
-    plan.billing === "one_time"
-      ? "pago único"
-      : plan.minMonths
-        ? `al mes · mín. ${plan.minMonths} meses`
-        : "al mes";
+  const cadence = plan.billing === "one_time" ? "pago único" : "al mes";
   return (
     <button
       type="button"
@@ -330,7 +325,7 @@ function ContractSummary({
 }) {
   const terms = [
     `Plazo de pago ${paymentDueDays} días`,
-    plan?.minMonths ? `mínimo ${plan.minMonths} meses` : null,
+    plan?.billing === "monthly" ? "sin permanencia" : null,
     plan?.note ?? null,
   ].filter(Boolean);
   return (

@@ -93,6 +93,7 @@ import { Route as AppClientsClientIdSetupRouteImport } from './routes/_app/clien
 import { Route as AppClientsClientIdSitioRouteImport } from './routes/_app/clients/$clientId/sitio'
 import { Route as ApiPublicAlertsRunRouteImport } from './routes/api/public/alerts/run'
 import { Route as ApiPublicBillingChargeMonthlyRouteImport } from './routes/api/public/billing/charge-monthly'
+import { Route as ApiPublicBillingMembershipFollowupRouteImport } from './routes/api/public/billing/membership-followup'
 import { Route as ApiPublicClientsLogoRefreshRouteImport } from './routes/api/public/clients/logo-refresh'
 import { Route as ApiPublicFlowConfirmRouteImport } from './routes/api/public/flow/confirm'
 import { Route as ApiPublicFlowReturnRouteImport } from './routes/api/public/flow/return'
@@ -551,6 +552,12 @@ const ApiPublicBillingChargeMonthlyRoute =
     path: '/api/public/billing/charge-monthly',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicBillingMembershipFollowupRoute =
+  ApiPublicBillingMembershipFollowupRouteImport.update({
+    id: '/api/public/billing/membership-followup',
+    path: '/api/public/billing/membership-followup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicClientsLogoRefreshRoute =
   ApiPublicClientsLogoRefreshRouteImport.update({
     id: '/api/public/clients/logo-refresh',
@@ -722,6 +729,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/alerts/run': typeof ApiPublicAlertsRunRoute
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
+  '/api/public/billing/membership-followup': typeof ApiPublicBillingMembershipFollowupRoute
   '/api/public/clients/logo-refresh': typeof ApiPublicClientsLogoRefreshRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
@@ -821,6 +829,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/alerts/run': typeof ApiPublicAlertsRunRoute
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
+  '/api/public/billing/membership-followup': typeof ApiPublicBillingMembershipFollowupRoute
   '/api/public/clients/logo-refresh': typeof ApiPublicClientsLogoRefreshRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
@@ -923,6 +932,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/sitio': typeof AppClientsClientIdSitioRoute
   '/api/public/alerts/run': typeof ApiPublicAlertsRunRoute
   '/api/public/billing/charge-monthly': typeof ApiPublicBillingChargeMonthlyRoute
+  '/api/public/billing/membership-followup': typeof ApiPublicBillingMembershipFollowupRoute
   '/api/public/clients/logo-refresh': typeof ApiPublicClientsLogoRefreshRoute
   '/api/public/flow/confirm': typeof ApiPublicFlowConfirmRoute
   '/api/public/flow/return': typeof ApiPublicFlowReturnRoute
@@ -1025,6 +1035,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/sitio'
     | '/api/public/alerts/run'
     | '/api/public/billing/charge-monthly'
+    | '/api/public/billing/membership-followup'
     | '/api/public/clients/logo-refresh'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
@@ -1124,6 +1135,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/sitio'
     | '/api/public/alerts/run'
     | '/api/public/billing/charge-monthly'
+    | '/api/public/billing/membership-followup'
     | '/api/public/clients/logo-refresh'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
@@ -1225,6 +1237,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/sitio'
     | '/api/public/alerts/run'
     | '/api/public/billing/charge-monthly'
+    | '/api/public/billing/membership-followup'
     | '/api/public/clients/logo-refresh'
     | '/api/public/flow/confirm'
     | '/api/public/flow/return'
@@ -1280,6 +1293,7 @@ export interface RootRouteChildren {
   ApiMetaAdsUpdateRoute: typeof ApiMetaAdsUpdateRoute
   ApiPublicAlertsRunRoute: typeof ApiPublicAlertsRunRoute
   ApiPublicBillingChargeMonthlyRoute: typeof ApiPublicBillingChargeMonthlyRoute
+  ApiPublicBillingMembershipFollowupRoute: typeof ApiPublicBillingMembershipFollowupRoute
   ApiPublicClientsLogoRefreshRoute: typeof ApiPublicClientsLogoRefreshRoute
   ApiPublicFlowConfirmRoute: typeof ApiPublicFlowConfirmRoute
   ApiPublicFlowReturnRoute: typeof ApiPublicFlowReturnRoute
@@ -1887,6 +1901,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBillingChargeMonthlyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/billing/membership-followup': {
+      id: '/api/public/billing/membership-followup'
+      path: '/api/public/billing/membership-followup'
+      fullPath: '/api/public/billing/membership-followup'
+      preLoaderRoute: typeof ApiPublicBillingMembershipFollowupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/clients/logo-refresh': {
       id: '/api/public/clients/logo-refresh'
       path: '/api/public/clients/logo-refresh'
@@ -2154,6 +2175,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMetaAdsUpdateRoute: ApiMetaAdsUpdateRoute,
   ApiPublicAlertsRunRoute: ApiPublicAlertsRunRoute,
   ApiPublicBillingChargeMonthlyRoute: ApiPublicBillingChargeMonthlyRoute,
+  ApiPublicBillingMembershipFollowupRoute:
+    ApiPublicBillingMembershipFollowupRoute,
   ApiPublicClientsLogoRefreshRoute: ApiPublicClientsLogoRefreshRoute,
   ApiPublicFlowConfirmRoute: ApiPublicFlowConfirmRoute,
   ApiPublicFlowReturnRoute: ApiPublicFlowReturnRoute,
