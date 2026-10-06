@@ -216,7 +216,11 @@ for (const objetivo of goals) {
     );
     check(`intro con nombre [${objetivo}/${planKey}]`, () => assert.match(intro, /Café Luna/));
     check(`chatbot solo como adicional [${objetivo}/${planKey}]`, () => {
-      if (/chatbot/i.test(intro)) assert.match(intro, /adicional, con costo aparte/);
+      if (/chatbot/i.test(intro))
+        assert.match(
+          intro,
+          /servicio adicional \(\$99\.990 \+ IVA de configuración y \$29\.990 \+ IVA al mes\)/,
+        );
     });
     check(`intro sin otras monedas [${objetivo}/${planKey}]`, () =>
       assert.doesNotMatch(intro, /USD|US\$|€/),

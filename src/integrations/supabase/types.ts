@@ -431,6 +431,54 @@ export type Database = {
           },
         ]
       }
+      client_addons: {
+        Row: {
+          activated_at: string
+          active: boolean
+          addon_key: string
+          client_id: string
+          created_at: string
+          deactivated_at: string | null
+          setup_payment_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          activated_at: string
+          active?: boolean
+          addon_key: string
+          client_id: string
+          created_at?: string
+          deactivated_at?: string | null
+          setup_payment_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string
+          active?: boolean
+          addon_key?: string
+          client_id?: string
+          created_at?: string
+          deactivated_at?: string | null
+          setup_payment_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_addons_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_addons_setup_payment_id_fkey"
+            columns: ["setup_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_billing: {
         Row: {
           billing_day: number | null
@@ -3177,6 +3225,8 @@ export type Database = {
       payments: {
         Row: {
           amount: number
+          addon_key: string | null
+          items: Json | null
           client_id: string
           created_at: string
           currency: string
@@ -3205,6 +3255,8 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          addon_key?: string | null
+          items?: Json | null
           client_id: string
           created_at?: string
           currency?: string
@@ -3233,6 +3285,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          addon_key?: string | null
+          items?: Json | null
           client_id?: string
           created_at?: string
           currency?: string

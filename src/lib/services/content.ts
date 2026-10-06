@@ -5,6 +5,7 @@
  * Reglas del contenido: no prometer resultados, no inventar cifras, clientes
  * ni testimonios. Los precios salen de `src/lib/pricing/plans.ts`.
  */
+import { CHATBOT_ADDON, LANDING_ADDON, type AddonKey } from "@/lib/pricing/addons";
 import { findPlan, type PublicPlanKey } from "@/lib/pricing/plans";
 import { formatClp } from "@/lib/site";
 
@@ -36,10 +37,14 @@ export interface ServiceFaq {
   readonly a: string;
 }
 
-/** Precio de la página: planes fijos de plans.ts o servicio a cotizar. */
+/** Precio de la página: planes fijos de plans.ts o un adicional de precio fijo (addons.ts). */
 export type ServicePricing =
   | { readonly kind: "plans"; readonly planKeys: readonly PublicPlanKey[]; readonly note: string }
-  | { readonly kind: "quote"; readonly label: string; readonly note: string };
+  | { readonly kind: "addon"; readonly addonKey: AddonKey; readonly note: string };
+
+const LANDING_PRICE = `${formatClp(LANDING_ADDON.setupNet)} + IVA`;
+const CHATBOT_SETUP = `${formatClp(CHATBOT_ADDON.setupNet)} + IVA`;
+const CHATBOT_MONTHLY = `${formatClp(CHATBOT_ADDON.monthlyNet)} + IVA`;
 
 export interface ServiceContent {
   readonly slug: ServiceSlug;
@@ -129,7 +134,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     pricing: {
       kind: "plans",
       planKeys: ["marca-web"],
-      note: "Si necesitas más páginas o funciones extra, te las cotizamos aparte y por escrito antes de empezar.",
+      note: `¿Necesitas otra página para una campaña o servicio? Cada landing extra cuesta ${LANDING_PRICE} (pago único). Otras funciones (tienda, pagos) se conversan aparte antes de empezar.`,
     },
     steps: [
       {
@@ -152,7 +157,7 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     faqs: [
       {
         q: "¿Cuánto cuesta una página web para una pyme en Chile?",
-        a: `Depende del alcance. Nuestro plan Marca + Web cuesta ${MARCA_WEB_PRICE} (pago único) e incluye kit de marca básico, landing con WhatsApp y formulario, y ficha de Google Business optimizada. Si necesitas más páginas o funciones, te cotizamos aparte antes de empezar.`,
+        a: `Depende del alcance. Nuestro plan Marca + Web cuesta ${MARCA_WEB_PRICE} (pago único) e incluye kit de marca básico, landing con WhatsApp y formulario, y ficha de Google Business optimizada. Cada landing extra cuesta ${LANDING_PRICE} (pago único).`,
       },
       {
         q: "¿En cuánto tiempo está lista?",
@@ -451,11 +456,10 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     path: "/chatbot-whatsapp",
     navLabel: "Chatbot de WhatsApp",
     title: "Chatbot de WhatsApp para negocios en Chile | Vibranding",
-    description:
-      "Chatbot de WhatsApp para pymes chilenas: responde preguntas frecuentes, horarios y precios, y te pasa los contactos listos. Servicio adicional, precio a cotizar.",
+    description: `Chatbot de WhatsApp para tu negocio: responde preguntas frecuentes, horarios y precios, y te pasa los contactos. ${CHATBOT_SETUP} y ${CHATBOT_MONTHLY}/mes.`,
     serviceName: "Chatbot de WhatsApp para negocios",
     serviceType: "Chatbot de WhatsApp",
-    eyebrow: "Servicio adicional · a cotizar",
+    eyebrow: "Servicio adicional · precio fijo",
     h1Lead: "Chatbot de WhatsApp para",
     h1Accent: "responder sin estar pegado al celular",
     intro:
@@ -486,16 +490,19 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
       "Pruebas antes de activarlo y ajustes durante el primer mes",
     ],
     pricing: {
-      kind: "quote",
-      label: "Precio a cotizar",
-      note: "Es un servicio adicional a cualquiera de nuestros planes. El precio depende de cuántas preguntas y flujos necesites y de cómo atiendes hoy tu WhatsApp; te lo cotizamos por escrito antes de empezar.",
+      kind: "addon",
+      addonKey: "chatbot",
+      note: "Se contrata junto a un plan mensual. La configuración se paga una vez y la mensualidad se paga junto con cada mes de tu plan mientras el chatbot esté activo. Sin permanencia: puedes darlo de baja cuando quieras.",
     },
     steps: [
       {
         title: "Diagnóstico",
         desc: "Nos cuentas qué te preguntan tus clientes y cómo atiendes hoy tu WhatsApp.",
       },
-      { title: "Cotización", desc: "Te enviamos alcance, plazo y precio por escrito." },
+      {
+        title: "Contratación",
+        desc: "Lo contratas desde tu panel, junto a tu plan mensual, a precio fijo.",
+      },
       {
         title: "Flujo y textos",
         desc: "Escribimos las respuestas y el flujo; tú las revisas y apruebas.",
@@ -508,11 +515,11 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
     faqs: [
       {
         q: "¿Cuánto cuesta un chatbot de WhatsApp?",
-        a: "Lo cotizamos según tu caso: cuántas preguntas y flujos necesitas y qué herramientas usas hoy. Te enviamos el precio por escrito antes de empezar, sin compromiso.",
+        a: `${CHATBOT_SETUP} de configuración (pago único) y ${CHATBOT_MONTHLY} al mes, que se paga junto con cada mes de tu plan. Precio fijo, sin cotizaciones a medida.`,
       },
       {
         q: "¿Necesito WhatsApp Business?",
-        a: "En el diagnóstico revisamos cómo atiendes hoy y te explicamos qué se necesita para conectar el chatbot a tu número antes de cotizar, para que no haya sorpresas.",
+        a: "En el diagnóstico revisamos cómo atiendes hoy y te explicamos qué se necesita para conectar el chatbot a tu número antes de contratar, para que no haya sorpresas.",
       },
       {
         q: "¿El chatbot reemplaza a una persona?",
@@ -524,11 +531,11 @@ export const SERVICES: Readonly<Record<ServiceSlug, ServiceContent>> = {
       },
       {
         q: "¿Lo puedo contratar sin un plan mensual?",
-        a: "Es un servicio adicional pensado para complementar nuestros planes. Cuéntanos tu caso en el diagnóstico y vemos la mejor forma de hacerlo.",
+        a: "No. Es un servicio adicional que se contrata con un plan mensual vigente (Contenido o Crecimiento); su mensualidad se paga junto con cada mes del plan.",
       },
     ],
     whatsappMessage:
-      "Hola Vibranding, quiero cotizar un chatbot de WhatsApp para mi negocio. Mi negocio es: ",
+      "Hola Vibranding, me interesa el chatbot de WhatsApp para mi negocio. Mi negocio es: ",
     related: ["publicidad-meta-ads", "pagina-web-para-pymes", "agencia-marketing-digital-santiago"],
   },
 };

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { useAuth } from "@/hooks/use-auth";
+import { ADDON_KEYS } from "@/lib/pricing/addons";
 import { PLAN_KEYS } from "@/lib/pricing/plans";
 import type { Membership } from "./membership";
 import type { CheckoutResult } from "./membership.server";
@@ -15,6 +16,13 @@ const CheckoutInput = z.object({
   planKey: z.enum(PLAN_KEYS),
   email: z.string().trim().email().max(200).optional().or(z.literal("")),
 });
+
+const AddonCheckoutInput = z.object({
+  clientId: z.string().uuid(),
+  addonKey: z.enum(ADDON_KEYS),
+  email: z.string().trim().email().max(200).optional().or(z.literal("")),
+});
+const AddonInput = z.object({ clientId: z.string().uuid(), addonKey: z.enum(ADDON_KEYS) });
 
 type AuthContext = {
   userId: string;
@@ -83,6 +91,44 @@ export const startPlanCheckout = createServerFn({ method: "POST" })
       console.error("[membresía] Flow sin configuración:", e.adminDetail);
       throw new Error("Pago en línea aún no disponible");
     }
+  });
+
+/**
+ * "Contratar" un adicional (pago único de la landing extra o de la configuración
+ * del chatbot). El navegador solo dice cuál; el monto sale de addons.ts. Mismas
+ * verificaciones que el plan: cliente vía user_client_id(), agencia vía can_edit_client.
+ */
+export const startAddonCheckout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { clientId: string; addonKey: string; email?: string }) =>
+    AddonCheckoutInput.parse(d),
+  )
+  .handler(async ({ data, context }): Promise<CheckoutResult> => {
+    await assertMembershipAccess(context, data.clientId, "pay");
+    const server = await import("./membership.server");
+    try {
+      return await server.startAddonCheckout({
+        clientId: data.clientId,
+        addonKey: data.addonKey,
+        email: data.email || null,
+      });
+    } catch (e) {
+      const { FlowNotConfiguredError } = await import("@/lib/flow/flow.server");
+      if (!(e instanceof FlowNotConfiguredError)) throw e;
+      console.error("[membresía] Flow sin configuración:", e.adminDetail);
+      throw new Error("Pago en línea aún no disponible");
+    }
+  });
+
+/** Baja del chatbot: deja de sumarse a las renovaciones. Mismo permiso que pagar. */
+export const deactivateAddon = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { clientId: string; addonKey: string }) => AddonInput.parse(d))
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    await assertMembershipAccess(context, data.clientId, "pay");
+    const { deactivateClientAddon } = await import("./membership.server");
+    await deactivateClientAddon(data.clientId, data.addonKey);
+    return { ok: true };
   });
 
 export const membershipKey = (userId: string, clientId: string) =>

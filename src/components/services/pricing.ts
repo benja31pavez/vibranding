@@ -1,3 +1,4 @@
+import { addonPriceText, findAddon } from "@/lib/pricing/addons";
 import type { Plan } from "@/lib/pricing/plans";
 import type { ServiceContent } from "@/lib/services/content";
 import { servicePlans } from "@/lib/services/seo";
@@ -10,7 +11,10 @@ export function planPeriod(plan: Plan): string {
 
 /** Frase de precio del hero: "Desde $129.990 + IVA al mes." (precio neto). */
 export function priceHeadline(service: ServiceContent): string {
-  if (service.pricing.kind === "quote") return `${service.pricing.label} · servicio adicional`;
+  if (service.pricing.kind === "addon") {
+    const addon = findAddon(service.pricing.addonKey);
+    return addon ? `${addonPriceText(addon)} · servicio adicional.` : "";
+  }
   const plans = servicePlans(service);
   if (plans.length === 0) return "";
   const cheapest = plans.reduce((min, p) => (p.netPrice < min.netPrice ? p : min));

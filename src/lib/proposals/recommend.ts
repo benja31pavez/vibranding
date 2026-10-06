@@ -18,6 +18,7 @@
  * Revisión: `npm run check:recommend`.
  */
 import { BUDGETS, GOALS, INFO_NOTE_MARK, PLAN_INTERESTS } from "@/lib/leads/diagnostico.schema";
+import { CHATBOT_PRICE } from "@/lib/pricing/addons";
 import { PLANS, findPlan, planPriceLabel, type Plan, type PlanKey } from "@/lib/pricing/plans";
 
 export type GoalValue = (typeof GOALS)[number]["value"];
@@ -236,7 +237,7 @@ export function buildProposalIntro(input: IntroInput): string {
       ? `Para partir les proponemos el ${plan.label} (${planPriceLabel(plan)}): ${lowerFirst(plan.description)}`
       : "Les preparamos una propuesta a la medida de lo que conversamos.",
     input.objetivo && CHATBOT_HINT_GOALS.includes(input.objetivo)
-      ? "Si más adelante quieren responder consultas de forma automática, el chatbot de WhatsApp se puede sumar como servicio adicional, con costo aparte."
+      ? `Si más adelante quieren responder consultas de forma automática, el chatbot de WhatsApp se puede sumar como servicio adicional (${CHATBOT_PRICE}).`
       : null,
     "En el link está el detalle, las condiciones y cómo aceptar. Cualquier duda, nos escriben.",
   ];

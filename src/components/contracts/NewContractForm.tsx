@@ -1,19 +1,13 @@
 import { useId, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
-import { Check, Plus, Settings2 } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SERVICE_CATALOG, type ServiceKey, type ServicePricing } from "@/components/PricingPanel";
+import type { Addon } from "@/lib/pricing/addons";
 import { PLANS, findPlan, formatMoney, type Plan, type PlanKey } from "@/lib/pricing/plans";
 import { cn } from "@/lib/utils";
-import {
-  addonHasPrice,
-  computeDraftTotals,
-  type ClientLegalData,
-  type ContractTotals,
-} from "./contractModel";
+import { computeDraftTotals, type ClientLegalData, type ContractTotals } from "./contractModel";
 
 export interface NewContractFormProps {
   clientName: string;
@@ -31,7 +25,7 @@ export interface NewContractFormProps {
 
 /** Formulario "Nuevo contrato" en tres pasos (plan, extras, datos) con resumen y total. */
 export function NewContractForm(props: NewContractFormProps) {
-  const { selectedPlan, selectedAddons, services } = props;
+  const { selectedPlan, selectedAddons } = props;
   const plan = findPlan(selectedPlan);
   const hasSelection = Boolean(plan) || selectedAddons.size > 0;
 
@@ -69,19 +63,17 @@ export function NewContractForm(props: NewContractFormProps) {
         </Step>
 
         <Step number={2} title="Extras" hint="Opcional" done={selectedAddons.size > 0}>
-          <TooltipProvider delayDuration={150}>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {SERVICE_CATALOG.map((s) => (
-                <AddonOption
-                  key={s.key}
-                  label={s.label}
-                  row={services[s.key]}
-                  checked={selectedAddons.has(s.key)}
-                  onToggle={() => props.onToggleAddon(s.key)}
-                />
-              ))}
-            </div>
-          </TooltipProvider>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {SERVICE_CATALOG.map((s) => (
+              <AddonOption
+                key={s.key}
+                label={s.label}
+                addon={s.addon}
+                checked={selectedAddons.has(s.key)}
+                onToggle={() => props.onToggleAddon(s.key)}
+              />
+            ))}
+          </div>
         </Step>
 
         <Step number={3} title="Datos del cliente" done={Boolean(props.legal.legalName.trim())}>
@@ -96,7 +88,7 @@ export function NewContractForm(props: NewContractFormProps) {
       <ContractSummary
         plan={plan}
         hasSelection={hasSelection}
-        totals={computeDraftTotals(plan, selectedAddons, services)}
+        totals={computeDraftTotals(plan, selectedAddons)}
         paymentDueDays={props.paymentDueDays}
         creating={props.creating}
         onCreate={props.onCreate}
@@ -186,50 +178,22 @@ function PlanOption({
   );
 }
 
-function addonPriceLabel(row: ServicePricing): string {
-  const oneTime = Number(row.one_time_price);
-  const monthly = Number(row.monthly_price);
-  const parts = [
-    oneTime > 0 ? `Setup ${formatMoney(oneTime)} + IVA` : null,
-    monthly > 0 ? `${formatMoney(monthly)} + IVA/mes` : null,
-  ].filter(Boolean);
-  return parts.join(" · ");
+function addonPriceLabel(addon: Addon): string {
+  const setup = `${formatMoney(addon.setupNet)} + IVA`;
+  return addon.monthlyNet > 0 ? `${setup} · ${formatMoney(addon.monthlyNet)} + IVA/mes` : setup;
 }
 
 function AddonOption({
   label,
-  row,
+  addon,
   checked,
   onToggle,
 }: {
   label: string;
-  row: ServicePricing | undefined;
+  addon: Addon;
   checked: boolean;
   onToggle: () => void;
 }) {
-  if (!row || !addonHasPrice(row)) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
-            to="/settings/pricing"
-            aria-label={`${label}: precio a cotizar. Configura su precio en Precios`}
-            className="flex items-center gap-3 rounded-app-md border border-dashed border-border-subtle px-3 py-2 text-left transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <span aria-hidden className="h-4 w-4 shrink-0 rounded-[4px] border border-dashed" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-muted-foreground">
-                {label}
-              </span>
-              <span className="block text-[11px] text-muted-foreground">Precio a cotizar</span>
-            </span>
-            <Settings2 aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent>Configura su precio en Precios</TooltipContent>
-      </Tooltip>
-    );
-  }
   return (
     <button
       type="button"
@@ -255,7 +219,7 @@ function AddonOption({
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium text-foreground">{label}</span>
         <span className="block text-[11px] tabular-nums text-muted-foreground">
-          {addonPriceLabel(row)}
+          {addonPriceLabel(addon)}
         </span>
       </span>
     </button>

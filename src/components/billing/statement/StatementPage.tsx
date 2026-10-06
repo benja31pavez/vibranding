@@ -9,6 +9,7 @@ import { todayInChile } from "@/lib/billing/dates";
 import { useFlowConfigured } from "@/lib/flow/config.functions";
 import type { Membership } from "@/lib/billing/membership";
 import { useMembership } from "@/lib/billing/membership.functions";
+import { AddonsCard } from "./AddonsCard";
 import { PlanStatementCard } from "./PlanStatementCard";
 import type { FlowState } from "./PaymentActions";
 import {
@@ -94,7 +95,7 @@ export interface StatementViewProps {
   onChanged: () => void;
 }
 
-/** Vista del estado de cuenta (sin consultas): resumen, "Tu plan" y "Pagos". */
+/** Vista del estado de cuenta (sin consultas): resumen, "Tu plan", "Adicionales" y "Pagos". */
 export function StatementView({
   clientId,
   clientName,
@@ -152,7 +153,17 @@ export function StatementView({
           flow={flow}
           canPay={access.canEdit}
         />
-        <div className="flex min-w-0 flex-col md:h-full md:min-h-0">
+        <div className="flex min-w-0 flex-col gap-4 md:h-full md:min-h-0">
+          {!membership.error && (
+            <AddonsCard
+              clientId={clientId}
+              membership={membership.data}
+              loading={membership.loading}
+              flow={flow}
+              canPay={access.canEdit}
+              onChanged={onChanged}
+            />
+          )}
           <PaymentsPanel
             clientId={clientId}
             clientName={clientName}

@@ -1,3 +1,4 @@
+import { findAddon } from "@/lib/pricing/addons";
 import { findPlan, isPublicPlan, type PublicPlan } from "@/lib/pricing/plans";
 import { ORGANIZATION_ID, SITE_URL } from "@/lib/site";
 import { MARKETING_META, MARKETING_ORG_SCRIPT } from "@/lib/marketingSeo";
@@ -13,7 +14,38 @@ export function servicePlans(service: ServiceContent): PublicPlan[] {
   return service.pricing.planKeys.map((key) => findPlan(key)).filter(isPublicPlan);
 }
 
+/** Oferta de un adicional de precio fijo: pago único (configuración) neto, + IVA aparte. */
+function addonOffers(service: ServiceContent, url: string) {
+  if (service.pricing.kind !== "addon") return [];
+  const addon = findAddon(service.pricing.addonKey);
+  if (!addon) return [];
+  const spec = (price: number, monthly: boolean) => ({
+    "@type": monthly ? "UnitPriceSpecification" : "PriceSpecification",
+    price,
+    priceCurrency: "CLP",
+    valueAddedTaxIncluded: false,
+    ...(monthly ? { unitCode: "MON" } : {}),
+  });
+  return [
+    {
+      "@type": "Offer",
+      name: addon.label,
+      description: addon.description,
+      url,
+      price: addon.setupNet,
+      priceCurrency: "CLP",
+      priceSpecification: [
+        spec(addon.setupNet, false),
+        ...(addon.monthlyNet > 0 ? [spec(addon.monthlyNet, true)] : []),
+      ],
+      areaServed: { "@type": "Country", name: "Chile" },
+      seller: { "@id": ORGANIZATION_ID },
+    },
+  ];
+}
+
 function buildOffers(service: ServiceContent, url: string) {
+  if (service.pricing.kind === "addon") return addonOffers(service, url);
   return servicePlans(service).map((plan) => {
     const monthly = plan.billing === "monthly";
     return {

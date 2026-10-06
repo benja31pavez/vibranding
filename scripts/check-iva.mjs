@@ -7,7 +7,9 @@
  *  - Precios de lista netos (decisión 2026-10-05) y Plan Mantención oculto.
  *  - Propuestas: la línea del plan cobra neto × 1,19.
  *  - La home (translations) y llms.txt usan los mismos netos y no muestran Mantención.
+ *  - Adicionales con precio fijo: chatbot $99.990 + $29.990/mes, landing extra $59.990.
  *  - Guardia: no queda "IVA incluido" en src/ ni en public/ (salvo comentarios).
+ *  - Guardia: los adicionales no vuelven a "a cotizar" (catálogo, páginas, llms.txt).
  */
 import { build } from "esbuild";
 import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -25,6 +27,8 @@ writeFileSync(
   [
     `export * from ${JSON.stringify(join(root, "src/lib/pricing/iva.ts"))};`,
     `export * as plans from ${JSON.stringify(join(root, "src/lib/pricing/plans.ts"))};`,
+    `export * as addons from ${JSON.stringify(join(root, "src/lib/pricing/addons.ts"))};`,
+    `export { SERVICES } from ${JSON.stringify(join(root, "src/lib/services/content.ts"))};`,
     `export * as proposals from ${JSON.stringify(join(root, "src/lib/proposals/model.ts"))};`,
     `export { translations } from ${JSON.stringify(join(root, "src/i18n/translations.ts"))};`,
   ].join("\n"),
@@ -169,6 +173,38 @@ check("llms.txt: precios + IVA y sin Mantención", () => {
   assert.doesNotMatch(llms, /manten/i);
 });
 
+// ── Adicionales: precio fijo (decisión 2026-10-06) ──────────────────────────
+check("adicionales: netos fijos y totales con IVA", () => {
+  const chatbot = m.addons.findAddon("chatbot");
+  const landing = m.addons.findAddon("landing");
+  assert.deepEqual([chatbot.setupNet, chatbot.monthlyNet], [99_990, 29_990]);
+  assert.deepEqual([landing.setupNet, landing.monthlyNet], [59_990, 0]);
+  assert.equal(m.addons.addonSetupTotal(chatbot), 118_988);
+  assert.equal(m.addons.addonMonthlyTotal(chatbot), 35_688);
+  assert.equal(m.addons.addonSetupTotal(landing), 71_388);
+  assert.equal(m.addons.addonMonthlyTotal(landing), 0);
+  assert.equal(chatbot.requiresMonthlyPlan, true);
+  for (const a of m.addons.ADDONS) {
+    assert.ok(Number.isInteger(a.setupNet) && a.setupNet > 0, `${a.key}: sin precio`);
+  }
+});
+check("página del chatbot: precio fijo de addons.ts (no a cotizar)", () => {
+  const page = m.SERVICES["chatbot-whatsapp"];
+  assert.equal(page.pricing.kind, "addon");
+  assert.equal(page.pricing.addonKey, "chatbot");
+  const text = JSON.stringify(page);
+  assert.ok(text.includes("$99.990 + IVA"), "falta $99.990 + IVA");
+  assert.ok(text.includes("$29.990 + IVA"), "falta $29.990 + IVA");
+});
+check("llms.txt: precios fijos de los adicionales", () => {
+  const llms = readFileSync(join(root, "public/llms.txt"), "utf8");
+  for (const a of m.addons.ADDONS) {
+    const price = m.plans.formatMoney(a.setupNet);
+    assert.ok(llms.includes(`${price} + IVA`), `${a.key}: falta "${price} + IVA"`);
+  }
+  assert.ok(llms.includes(`${m.plans.formatMoney(29_990)} + IVA/mes`), "chatbot mensual");
+});
+
 // ── Guardia: "IVA incluido" ─────────────────────────────────────────────────
 const VAT_INCLUDED = /iva incluido|incluyen iva|incluye iva|valueAddedTaxIncluded:\s*true/i;
 const SCAN_EXT = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".txt", ".html", ".json", ".md"]);
@@ -200,6 +236,22 @@ check('sin "IVA incluido" en src/ ni public/ (salvo comentarios)', () => {
           if (VAT_INCLUDED.test(line) && !isComment(line)) {
             hits.push(`${relative(root, file)}:${idx + 1}`);
           }
+        });
+    }
+  }
+  assert.deepEqual(hits, []);
+});
+
+// ── Guardia: adicionales "a cotizar" ───────────────────────────────────────
+const QUOTE = /\ba cotizar\b|kind:\s*"quote"|pedir cotizaci[oó]n/i;
+check('sin "precio a cotizar" para los adicionales en src/ ni public/', () => {
+  const hits = [];
+  for (const base of ["src", "public"]) {
+    for (const file of walk(join(root, base))) {
+      readFileSync(file, "utf8")
+        .split("\n")
+        .forEach((line, idx) => {
+          if (QUOTE.test(line) && !isComment(line)) hits.push(`${relative(root, file)}:${idx + 1}`);
         });
     }
   }

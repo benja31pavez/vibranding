@@ -8,6 +8,7 @@
  *  - Montos siempre en CLP con `formatMoney` (aquí no hay montos).
  */
 import { translations } from "@/i18n/translations";
+import { CHATBOT_PRICE } from "@/lib/pricing/addons";
 import { planNotIncluded as planNotIncludedFromPlans, type PlanKey } from "@/lib/pricing/plans";
 
 export const TIMELINE_NOTE =
@@ -267,7 +268,7 @@ export function proposalFaq(planKey: PlanKey | null, hasMonthly: boolean): reado
     },
     {
       q: "¿Incluye chatbot de WhatsApp?",
-      a: "No viene incluido en los planes. Es un servicio adicional con costo aparte; si te interesa, lo sumamos a la propuesta.",
+      a: `No viene incluido en los planes. Es un servicio adicional: ${CHATBOT_PRICE}. Se contrata con un plan mensual y su mensualidad se paga junto con cada mes del plan.`,
     },
   );
   return faq;

@@ -18,17 +18,18 @@ import {
   Loader2,
 } from "lucide-react";
 import { PlanCatalog, VatLines } from "@/components/pricing/PlanCatalog";
-import { AGENCY_DEFAULTS, DEFAULT_CURRENCY } from "@/lib/pricing/plans";
+import {
+  CHATBOT_ADDON as CHATBOT,
+  LANDING_ADDON as LANDING,
+  type Addon,
+} from "@/lib/pricing/addons";
+import { AGENCY_DEFAULTS, DEFAULT_CURRENCY, formatMoney } from "@/lib/pricing/plans";
 
 /**
- * Servicios adicionales (sueltos) que se pueden sumar a un plan, con precio editable.
- * Usan la tabla `service_pricing`, cuyo CHECK solo admite las claves antiguas
- * ('branding','optimization','content','ads','landing','chatbot'); por eso los
- * adicionales reutilizan 'chatbot' y 'landing'. Los planes viven en `@/lib/pricing/plans`.
- *
- * Desde 2026-10 los precios de `service_pricing` se leen como NETOS (+ IVA 19 %),
- * igual que los planes. Valores ingresados antes con IVA incluido deben revisarse
- * a mano en esta pantalla (no se convierten automáticamente).
+ * Servicios adicionales que se suman a un plan. Desde 2026-10-06 su precio es
+ * FIJO y vive en `@/lib/pricing/addons` (netos + IVA, igual que los planes).
+ * La tabla `service_pricing` solo guarda si se ofrecen (`is_active`) y el texto
+ * "Qué incluye"; sus columnas de precio ya no se usan.
  */
 export type ServiceKey = "chatbot" | "landing";
 
@@ -38,20 +39,24 @@ export const SERVICE_CATALOG: Array<{
   description: string;
   icon: any;
   tone: string;
+  /** Precio fijo (addons.ts): nunca a medida. */
+  addon: Addon;
 }> = [
   {
     key: "chatbot",
-    label: "Chatbot WhatsApp",
+    label: CHATBOT.label,
     description: "Número de WhatsApp dedicado con chatbot que responde, califica y agenda.",
     icon: MessageCircle,
     tone: "var(--brand-3)",
+    addon: CHATBOT,
   },
   {
     key: "landing",
-    label: "Landing extra",
-    description: "Página adicional para una campaña, producto o servicio específico.",
+    label: LANDING.label,
+    description: LANDING.description,
     icon: MonitorSmartphone,
     tone: "var(--brand-2)",
+    addon: LANDING,
   },
 ];
 
@@ -146,37 +151,6 @@ export async function loadServicePricing(
 }
 
 // ───────── UI helpers ─────────
-
-/** Monto en CLP: pesos enteros, sin decimales. */
-function MoneyInput({
-  label,
-  value,
-  onChange,
-  onBlur,
-  placeholder,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  onBlur: (v: number) => void;
-  placeholder?: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
-      <Input
-        type="number"
-        min={0}
-        step={1}
-        inputMode="numeric"
-        value={Number.isFinite(value) ? String(value) : ""}
-        placeholder={placeholder ?? "0"}
-        onChange={(e) => onChange(Math.max(0, Number(e.target.value || 0)))}
-        onBlur={(e) => onBlur(Math.max(0, Number(e.target.value || 0)))}
-      />
-    </div>
-  );
-}
 
 function TextLine({
   label,
@@ -303,7 +277,7 @@ export function PricingPanel() {
     <div className="space-y-8">
       <PageHeader
         title="Precios"
-        description="Netos en CLP + IVA (19 %). Se usan al generar contratos."
+        description="Precios fijos, netos en CLP + IVA (19 %)."
         actions={<SaveIndicator state={saveState} />}
       />
 
@@ -321,12 +295,13 @@ export function PricingPanel() {
         <div className="flex items-baseline justify-between gap-3 flex-wrap">
           <h2 className="text-lg font-semibold">Servicios adicionales</h2>
           <span className="text-xs text-muted-foreground">
-            Precio neto (+ IVA 19%) · Setup = pago único · Mensualidad = recurrente
+            Precio fijo neto + IVA (19%) · La mantención mensual se cobra junto al plan
           </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {SERVICE_CATALOG.map((svc) => {
             const row = services[svc.key];
+            const addon = svc.addon;
             const Icon = svc.icon;
             return (
               <div
@@ -359,30 +334,27 @@ export function PricingPanel() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <MoneyInput
-                    label="Setup neto (CLP)"
-                    value={Number(row.one_time_price)}
-                    onChange={(v) => updateService(svc.key, { one_time_price: v })}
-                    onBlur={(v) => saveService(row.id, { one_time_price: v })}
-                  />
-                  <MoneyInput
-                    label="Mensual neto (CLP)"
-                    value={Number(row.monthly_price)}
-                    onChange={(v) => updateService(svc.key, { monthly_price: v })}
-                    onBlur={(v) => saveService(row.id, { monthly_price: v })}
-                  />
+                <div className="space-y-1 rounded-app-md bg-surface-2/60 px-3 py-2">
+                  <p className="text-sm font-semibold tabular-nums">
+                    {formatMoney(addon.setupNet)}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {" "}
+                      + IVA pago único
+                    </span>
+                    {addon.monthlyNet > 0 && (
+                      <>
+                        {" · "}
+                        {formatMoney(addon.monthlyNet)}
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {" "}
+                          + IVA/mes
+                        </span>
+                      </>
+                    )}
+                  </p>
+                  <VatLines label="Pago único" net={addon.setupNet} />
+                  {addon.monthlyNet > 0 && <VatLines label="Mensual" net={addon.monthlyNet} />}
                 </div>
-                {(Number(row.one_time_price) > 0 || Number(row.monthly_price) > 0) && (
-                  <div className="space-y-0.5">
-                    {Number(row.one_time_price) > 0 && (
-                      <VatLines label="Pago único" net={Number(row.one_time_price)} />
-                    )}
-                    {Number(row.monthly_price) > 0 && (
-                      <VatLines label="Mensual" net={Number(row.monthly_price)} />
-                    )}
-                  </div>
-                )}
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Qué incluye</Label>
