@@ -118,10 +118,6 @@ export function StatusStrip({
   const adsRows = ads.data ? adsBillingRows(ads.data) : [];
   const sortedAds = [...adsRows].sort((a, b) => ADS_STATE_RANK[a.state] - ADS_STATE_RANK[b.state]);
   const worstAds = sortedAds[0];
-  // Las plataformas sin cuenta solo se nombran si ninguna tiene cuenta.
-  const shownAds = sortedAds.some((r) => r.state !== "sin_cuenta")
-    ? sortedAds.filter((r) => r.state !== "sin_cuenta")
-    : sortedAds;
   const scored = clientHealth.isPending || Boolean(clientHealth.health);
   const close = (open: boolean) => !open && setSheet(null);
 
@@ -143,7 +139,7 @@ export function StatusStrip({
           title="Entregas"
           loading={loading}
           tone={approvals > 0 ? "warning" : "success"}
-          summary={approvals > 0 ? `${approvals} por aprobar` : "Nada pendiente de aprobación"}
+          summary={approvals > 0 ? `${approvals} por aprobar` : "Sin pendientes"}
           target={(p) => <Link to="/clients/$clientId/deliverables" params={{ clientId }} {...p} />}
           actionLabel="Ver entregas"
         />
@@ -220,15 +216,15 @@ export function StatusStrip({
           title="Pago de pauta"
           loading={ads.isLoading}
           tone={ads.error ? "danger" : worstAds ? ADS_BILLING_TONE[worstAds.state] : "neutral"}
+          hideDot={!ads.error && sortedAds.length > 0}
           summary={
-            ads.error
-              ? "No pudimos cargarlo"
-              : shownAds
-                  .map(
-                    (r) =>
-                      `${ADS_PLATFORM_LABEL[r.platform].replace(" Ads", "")}: ${ADS_BILLING_STATE_LABEL[r.state]}`,
-                  )
-                  .join(" · ") || "—"
+            ads.error ? (
+              "No pudimos cargarlo"
+            ) : sortedAds.length === 0 ? (
+              "—"
+            ) : (
+              <AdsBillingLines rows={sortedAds} />
+            )
           }
           target={sheetButton(() => setSheet("ads"))}
           actionLabel="Ver pago de pauta"
@@ -274,6 +270,31 @@ export function StatusStrip({
 export const HEALTH_INFO =
   "Señales de retención: cobros, aprobaciones, alertas, reportes, actividad y renovación.";
 
+/** Pago de pauta: una línea por plataforma, cada una con su propio estado. */
+function AdsBillingLines({ rows }: { rows: ReturnType<typeof adsBillingRows> }) {
+  return (
+    <span className="mt-0.5 flex flex-col gap-0.5">
+      {rows.map((r) => (
+        <span key={r.platform} className="flex min-w-0 items-center gap-1.5">
+          <span
+            aria-hidden
+            className={cn(
+              "h-2 w-2 shrink-0 rounded-full",
+              TONE_CLASSES[ADS_BILLING_TONE[r.state]].dot,
+            )}
+          />
+          <span className="truncate">
+            <span className="text-muted-foreground">
+              {ADS_PLATFORM_LABEL[r.platform].replace(" Ads", "")}:
+            </span>{" "}
+            {ADS_BILLING_STATE_LABEL[r.state]}
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 interface ChipTargetProps {
   className: string;
   title: string;
@@ -295,12 +316,23 @@ interface ChipProps {
   target: ChipTarget;
   /** Nombre de la acción (antes era el link de la tarjeta). */
   actionLabel: string;
+  /** Sin el punto de estado general (el resumen trae uno por línea). */
+  hideDot?: boolean;
 }
 
 const CHIP_CLS =
-  "flex h-full w-full min-w-0 items-center gap-2.5 rounded-app-lg border border-border-subtle bg-surface px-3 py-2 text-left shadow-app-xs transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "flex h-full w-full min-w-0 items-center gap-2.5 rounded-app-lg border border-border-subtle bg-surface px-4 py-2.5 text-left shadow-app-xs transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-function Chip({ icon: Icon, title, summary, tone, loading, target, actionLabel }: ChipProps) {
+function Chip({
+  icon: Icon,
+  title,
+  summary,
+  tone,
+  loading,
+  target,
+  actionLabel,
+  hideDot = false,
+}: ChipProps) {
   return (
     <li className="min-w-0">
       {target({
@@ -308,13 +340,15 @@ function Chip({ icon: Icon, title, summary, tone, loading, target, actionLabel }
         title: actionLabel,
         children: (
           <>
-            <span
-              aria-hidden
-              className={cn(
-                "h-2.5 w-2.5 shrink-0 rounded-full",
-                loading ? "bg-muted" : TONE_CLASSES[tone].dot,
-              )}
-            />
+            {!hideDot && (
+              <span
+                aria-hidden
+                className={cn(
+                  "h-2.5 w-2.5 shrink-0 rounded-full",
+                  loading ? "bg-muted" : TONE_CLASSES[tone].dot,
+                )}
+              />
+            )}
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <Icon aria-hidden className="h-3.5 w-3.5" /> {title}

@@ -58,7 +58,6 @@ export function ProposalEditorPage({ target, existing }: Props) {
     <ProposalPageShell>
       <PageHeader
         title={existing?.title || (existing ? "Propuesta" : "Nueva propuesta")}
-        description="Plan, adicionales, vencimiento y link público para aceptar y pagar."
         breadcrumb={breadcrumb}
       />
       {recipient.isLoading || canEdit.isLoading ? (

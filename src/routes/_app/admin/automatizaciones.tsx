@@ -65,7 +65,7 @@ function AutomationsContent() {
       <PageHeader
         breadcrumb={BREADCRUMB}
         title="Automatizaciones"
-        description="Lo que la plataforma hace sola cada día: cuándo corrió por última vez y si salió bien. Horarios en hora de Chile."
+        description="Última ejecución de cada tarea diaria, en hora de Chile."
         actions={
           <Button
             variant="outline"

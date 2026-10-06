@@ -1,11 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, Info, Loader2, Lock } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getSetupStatus, runSetupIngest, type SetupIngestResult } from "@/lib/meta/setup.functions";
@@ -16,7 +15,13 @@ import { monthLabel } from "@/lib/instagram/gridVersions";
 import { chileDate } from "@/lib/dates/chile";
 import { HIDDEN_SECTIONS } from "@/lib/clientSections";
 import { supabase } from "@/integrations/supabase/client";
-import { ErrorState, ListSkeleton } from "@/components/app";
+import {
+  ErrorState,
+  ListSkeleton,
+  PageHeader,
+  StatusBadge,
+  type StatusTone,
+} from "@/components/app";
 
 /** Planes que incluyen Meta Ads (cuenta publicitaria e ingesta de anuncios). */
 const PLANS_WITH_ADS: readonly string[] = ["crecimiento"];
@@ -24,9 +29,9 @@ const PLANS_WITH_ADS: readonly string[] = ["crecimiento"];
 export const Route = createFileRoute("/_app/clients/$clientId/setup")({
   head: () => ({
     meta: [
-      { title: "Configurar cliente | Vibranding" },
+      { title: "Configurar | Vibranding" },
       { name: "description", content: "Pasos ordenados para activar cada sección del cliente." },
-      { property: "og:title", content: "Configurar cliente | Vibranding" },
+      { property: "og:title", content: "Configurar | Vibranding" },
       {
         property: "og:description",
         content: "Pasos ordenados para activar cada sección del cliente.",
@@ -39,6 +44,12 @@ export const Route = createFileRoute("/_app/clients/$clientId/setup")({
 });
 
 type StepState = "done" | "available" | "blocked";
+
+const STEP_LABEL: Record<StepState, { label: string; tone: StatusTone }> = {
+  done: { label: "Listo", tone: "success" },
+  available: { label: "Pendiente", tone: "info" },
+  blocked: { label: "Bloqueado", tone: "neutral" },
+};
 
 const fmtDate = (iso: string | null | undefined) =>
   iso
@@ -57,13 +68,18 @@ const iso = (d: Date) => chileDate(d);
 function HowTo({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-lg border bg-muted/30">
+    <div className="rounded-app-md border border-border-subtle bg-surface-2">
       <button
+        type="button"
+        aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium"
+        className="flex w-full items-center justify-between rounded-app-md px-3 py-2 text-left text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         ¿Cómo se hace?
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          aria-hidden
+          className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
       {open && <div className="space-y-3 px-3 pb-3 text-sm text-muted-foreground">{children}</div>}
     </div>
@@ -148,7 +164,9 @@ function SetupPage() {
   const account = status?.account ?? null;
   const ig = status?.instagram ?? null;
 
-  const [open, setOpen] = useState<number | null>(1);
+  // `undefined` = aún sin decidir; se fija UNA vez al primer paso pendiente (o ninguno) y
+  // desde ahí solo cambia por interacción, para no saltar de paso cuando uno pasa a «Listo».
+  const [open, setOpen] = useState<number | null | undefined>(undefined);
   const [ingesting, setIngesting] = useState(false);
   const [result, setResult] = useState<SetupIngestResult | null>(null);
   const [ingestError, setIngestError] = useState<string | null>(null);
@@ -484,6 +502,12 @@ function SetupPage() {
     return true;
   });
 
+  const ready = !statusLoading && !capsLoading && !plan.isLoading;
+  const firstPending = steps.find((s) => s.state === "available")?.n ?? null;
+  useEffect(() => {
+    if (ready && open === undefined) setOpen(firstPending);
+  }, [ready, open, firstPending]);
+
   const loadError = statusError ?? capsError ?? plan.error;
   if (loadError) {
     return (
@@ -505,71 +529,91 @@ function SetupPage() {
     );
   }
 
+  const doneCount = steps.filter((s) => s.state === "done").length;
+  const openStep = open === undefined ? firstPending : open;
+
   return (
     <div className="max-w-3xl space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Configurar cliente</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Cada paso indica qué secciones del panel desbloquea. El estado se calcula siempre desde la
-          base de datos, igual que el panel lateral.
-        </p>
-        <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <ScopesInfo />
-          Permisos que Meta debe autorizar
-        </p>
-      </div>
+      <PageHeader
+        size="compact"
+        title="Configurar"
+        actions={
+          <>
+            <StatusBadge
+              status={doneCount === steps.length ? "setup_done" : "setup_pending"}
+              label={`${doneCount} de ${steps.length} listos`}
+              tone={doneCount === steps.length ? "success" : "neutral"}
+            />
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <ScopesInfo />
+              Permisos de Meta
+            </span>
+          </>
+        }
+      />
 
-      <div className="space-y-2">
-        {steps.map((s, index) => (
-          <div key={s.n} className="rounded-xl border bg-card">
-            <button
-              onClick={() => setOpen(open === s.n ? null : s.n)}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left"
+      <ol className="space-y-2">
+        {steps.map((s, index) => {
+          const expanded = openStep === s.n;
+          const bodyId = `setup-step-${s.n}`;
+          return (
+            <li
+              key={s.n}
+              className={`rounded-app-lg border bg-surface shadow-app-xs ${
+                expanded ? "border-border-strong" : "border-border-subtle"
+              }`}
             >
-              <span
-                className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold ${
-                  s.state === "done"
-                    ? "bg-primary text-primary-foreground"
-                    : s.state === "blocked"
-                      ? "bg-muted text-muted-foreground"
-                      : "border border-primary text-primary"
-                }`}
+              <button
+                type="button"
+                aria-expanded={expanded}
+                aria-controls={bodyId}
+                onClick={() => setOpen(expanded ? null : s.n)}
+                className="flex w-full items-center gap-3 rounded-app-lg px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {s.state === "done" ? (
-                  <Check className="h-4 w-4" />
-                ) : s.state === "blocked" ? (
-                  <Lock className="h-3 w-3" />
-                ) : (
-                  index + 1
-                )}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{s.title}</span>
-                <span className="block truncate text-xs text-muted-foreground">{s.unlocks}</span>
-              </span>
-              <Badge
-                variant={
-                  s.state === "done" ? "default" : s.state === "blocked" ? "outline" : "secondary"
-                }
-              >
-                {s.state === "done" ? "Listo" : s.state === "blocked" ? "Bloqueado" : "Disponible"}
-              </Badge>
-              <ChevronDown
-                className={`h-4 w-4 shrink-0 transition-transform ${open === s.n ? "rotate-180" : ""}`}
-              />
-            </button>
-            {open === s.n && (
-              <div className="px-4 pb-4 pl-14">
-                {s.state === "blocked" ? (
-                  <p className="text-sm text-muted-foreground">{s.blockedBy}</p>
-                ) : (
-                  s.body
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+                <span
+                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold ${
+                    s.state === "done"
+                      ? "bg-primary text-primary-foreground"
+                      : s.state === "blocked"
+                        ? "bg-surface-2 text-muted-foreground"
+                        : "border border-primary text-primary"
+                  }`}
+                >
+                  {s.state === "done" ? (
+                    <Check aria-hidden className="h-4 w-4" />
+                  ) : s.state === "blocked" ? (
+                    <Lock aria-hidden className="h-3 w-3" />
+                  ) : (
+                    index + 1
+                  )}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">{s.title}</span>
+                  <span className="block text-xs text-muted-foreground">{s.unlocks}</span>
+                </span>
+                <StatusBadge
+                  status={`setup_${s.state}`}
+                  label={STEP_LABEL[s.state].label}
+                  tone={STEP_LABEL[s.state].tone}
+                />
+                <ChevronDown
+                  aria-hidden
+                  className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
+                />
+              </button>
+              {expanded && (
+                <div id={bodyId} className="px-4 pb-4 sm:pl-14">
+                  {s.state === "blocked" ? (
+                    <p className="text-sm text-muted-foreground">{s.blockedBy}</p>
+                  ) : (
+                    s.body
+                  )}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }

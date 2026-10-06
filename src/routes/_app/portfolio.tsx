@@ -540,7 +540,7 @@ function WorkCard({
               onCheckedChange={(v) => setDraft({ ...draft, is_visible: v })}
               id={`wv-${work.id}`}
             />
-            <Label htmlFor={`wv-${work.id}`} className="text-[11px] text-muted-foreground">
+            <Label htmlFor={`wv-${work.id}`} className="text-xs text-muted-foreground">
               Visible
             </Label>
           </div>

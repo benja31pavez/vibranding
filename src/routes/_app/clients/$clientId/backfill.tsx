@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import { PageHeader } from "@/components/app";
+import { Button } from "@/components/ui/button";
 import { OutcomeBackfill } from "@/components/chatbot/OutcomeBackfill";
 
 const DESC =
@@ -23,19 +25,17 @@ function BackfillPage() {
   const { clientId } = Route.useParams();
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Resultados de conversaciones</h1>
-          <p className="text-sm text-muted-foreground">{DESC}</p>
-        </div>
-        <Link
-          to="/clients/$clientId/analytics"
-          params={{ clientId }}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Analítica
-        </Link>
-      </div>
+      <PageHeader
+        size="compact"
+        title="Resultados de conversaciones"
+        actions={
+          <Button asChild size="sm" variant="ghost">
+            <Link to="/clients/$clientId/analytics" params={{ clientId }}>
+              <ArrowLeft aria-hidden className="mr-1.5 h-4 w-4" /> Analítica
+            </Link>
+          </Button>
+        }
+      />
       <OutcomeBackfill clientId={clientId} />
     </div>
   );

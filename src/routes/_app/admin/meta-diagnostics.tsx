@@ -295,7 +295,7 @@ function MetaDiagnosticsPage() {
                         : "Probar conexión completa"}
                     </Button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     “Probar conexión completa” devuelve la respuesta cruda de Meta: report_run_id,
                     cada async_status y el objeto de error completo.
                   </p>

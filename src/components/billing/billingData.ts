@@ -96,3 +96,31 @@ export function computeTotals(rows: readonly BillingRow[], today: string): Billi
     { collectedThisMonth: EMPTY_CLP_TOTALS, receivable: EMPTY_CLP_TOTALS },
   );
 }
+
+export interface OpenBucket {
+  count: number;
+  totals: ClpTotals;
+}
+
+export interface OpenSummary {
+  overdue: OpenBucket;
+  dueSoon: OpenBucket;
+}
+
+const EMPTY_BUCKET: OpenBucket = { count: 0, totals: EMPTY_CLP_TOTALS };
+
+function addToBucket(bucket: OpenBucket, row: BillingRow): OpenBucket {
+  return { count: bucket.count + 1, totals: addClp(bucket.totals, row.currency, row.amount) };
+}
+
+/** Vencidos y por vencer (mismas reglas que los filtros), con cantidad y total en CLP. */
+export function summarizeOpen(rows: readonly BillingRow[], today: string): OpenSummary {
+  return rows.reduce<OpenSummary>(
+    (acc, r) => {
+      if (isOverdue(r, today)) return { ...acc, overdue: addToBucket(acc.overdue, r) };
+      if (isDueSoon(r, today)) return { ...acc, dueSoon: addToBucket(acc.dueSoon, r) };
+      return acc;
+    },
+    { overdue: EMPTY_BUCKET, dueSoon: EMPTY_BUCKET },
+  );
+}

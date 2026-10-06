@@ -23,6 +23,13 @@ import {
   PageHeader,
 } from "@/components/app";
 
+const DATE_TIME = new Intl.DateTimeFormat("es-CL", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "America/Santiago",
+});
+const fmtDateTime = (iso: string) => DATE_TIME.format(new Date(iso));
+
 export const Route = createFileRoute("/_app/settings/meta")({
   head: () => ({
     meta: [
@@ -150,45 +157,46 @@ function OrgMetaTokenPage() {
               <CardTitle className="text-base">Estado</CardTitle>
               {status?.has_token ? (
                 <Badge className="gap-1">
-                  <ShieldCheck className="w-3 h-3" /> Guardado
+                  <ShieldCheck aria-hidden className="h-3 w-3" /> Guardado
                 </Badge>
               ) : (
                 <Badge variant="secondary">Sin token</Badge>
               )}
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="text-muted-foreground">
-                Organización: <strong>{status?.org_name ?? "—"}</strong>
-              </div>
-              <div className="text-muted-foreground">
-                Expira:{" "}
-                {status?.expires_at
-                  ? new Date(status.expires_at).toLocaleString("es-CL")
-                  : "sin caducidad"}
-                {" · "}Última validación:{" "}
-                {validatedAt
-                  ? new Date(validatedAt).toLocaleString("es-CL")
-                  : status?.updated_at
-                    ? new Date(status.updated_at).toLocaleString("es-CL")
-                    : "nunca"}
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {scopes.length === 0 ? (
-                  <span className="text-muted-foreground">
-                    Permisos otorgados por Meta: se muestran al validar.
-                  </span>
-                ) : (
-                  scopes.map((s) => (
-                    <Badge key={s} variant="outline" className="font-mono text-[11px]">
-                      {s}
-                    </Badge>
-                  ))
-                )}
-              </div>
+            <CardContent className="space-y-4 text-sm">
+              <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2">
+                <dt className="text-muted-foreground">Organización</dt>
+                <dd className="truncate font-medium">{status?.org_name ?? "—"}</dd>
+                <dt className="text-muted-foreground">Expira</dt>
+                <dd>{status?.expires_at ? fmtDateTime(status.expires_at) : "No caduca"}</dd>
+                <dt className="text-muted-foreground">Última validación</dt>
+                <dd>
+                  {validatedAt
+                    ? fmtDateTime(validatedAt)
+                    : status?.updated_at
+                      ? fmtDateTime(status.updated_at)
+                      : "Nunca"}
+                </dd>
+                <dt className="text-muted-foreground">Permisos</dt>
+                <dd className="flex flex-wrap gap-1">
+                  {scopes.length === 0 ? (
+                    <span className="text-muted-foreground">Se muestran al validar</span>
+                  ) : (
+                    scopes.map((s) => (
+                      <Badge key={s} variant="outline" className="font-mono text-xs font-normal">
+                        {s}
+                      </Badge>
+                    ))
+                  )}
+                </dd>
+              </dl>
               {status?.has_token && (
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={doValidate} disabled={busy}>
-                    <RefreshCw className={`w-3 h-3 mr-1 ${busy ? "animate-spin" : ""}`} />
+                    <RefreshCw
+                      aria-hidden
+                      className={`mr-1 h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`}
+                    />
                     Validar token
                   </Button>
                   <Button
@@ -197,7 +205,7 @@ function OrgMetaTokenPage() {
                     onClick={() => setConfirmClear(true)}
                     disabled={busy}
                   >
-                    <Trash2 className="w-3 h-3 mr-1" /> Eliminar
+                    <Trash2 aria-hidden className="mr-1 h-3.5 w-3.5" /> Eliminar
                   </Button>
                 </div>
               )}

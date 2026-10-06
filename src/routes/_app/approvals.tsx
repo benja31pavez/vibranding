@@ -5,8 +5,9 @@ import { ApprovalRow } from "@/components/approvals/ApprovalRow";
 import {
   EmptyState,
   ErrorState,
+  FitList,
+  FitPage,
   ListSkeleton,
-  PageContainer,
   PageHeader,
   Panel,
 } from "@/components/app";
@@ -20,15 +21,22 @@ import {
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useApprovalAction, useApprovalQueue } from "@/hooks/use-approval-queue";
+import {
+  useApprovalAction,
+  useApprovalQueue,
+  type ApprovalAction,
+} from "@/hooks/use-approval-queue";
+import { cn } from "@/lib/utils";
 import {
   APPROVAL_KINDS,
-  APPROVAL_KIND_LABEL_PLURAL,
   clientOptions,
   filterApprovals,
   groupApprovals,
   isApprovalKind,
+  itemKey,
   type ApprovalFilters,
+  type ApprovalGroup,
+  type ApprovalItem,
   type ApprovalKind,
   type GroupBy,
 } from "@/lib/approvals";
@@ -60,6 +68,22 @@ export const Route = createFileRoute("/_app/approvals")({
 
 const ALL = "all";
 
+/** Columnas por tipo en escritorio (una por tipo con pendientes). */
+const KIND_COLS: Readonly<Record<number, string>> = {
+  1: "md:grid-cols-1",
+  2: "md:grid-cols-2",
+  3: "md:grid-cols-3",
+};
+
+/** Etiquetas cortas para los chips de tipo (los títulos de columna usan las largas). */
+const KIND_CHIP_LABEL: Readonly<Record<ApprovalKind, string>> = {
+  entregable: "Entregables",
+  post_instagram: "Posts",
+  propuesta: "Propuestas",
+};
+
+const plural = (n: number) => `${n} ${n === 1 ? "pendiente" : "pendientes"}`;
+
 function ApprovalsPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/approvals" });
@@ -77,6 +101,17 @@ function ApprovalsPage() {
   );
   const hasFilters = filters.kind !== ALL || filters.clientId !== ALL;
 
+  // Conteo por tipo respetando el filtro de cliente (para los chips de tipo).
+  const kindCounts = useMemo(() => {
+    const byClient = filterApprovals(items, { kind: ALL, clientId });
+    return {
+      all: byClient.length,
+      ...Object.fromEntries(
+        APPROVAL_KINDS.map((k) => [k, byClient.filter((i) => i.kind === k).length]),
+      ),
+    } as Record<ApprovalKind | typeof ALL, number>;
+  }, [items, clientId]);
+
   const groups = useMemo(
     () => groupApprovals(filterApprovals(items, filters), groupBy),
     [items, filters, groupBy],
@@ -85,78 +120,89 @@ function ApprovalsPage() {
   const setSearch = (patch: Partial<ApprovalsSearch>) =>
     navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
   const clearFilters = () => setSearch({ tipo: undefined, cliente: undefined });
+  const onAction = (a: ApprovalAction) => action.mutate(a);
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <ToggleGroup
+        type="single"
+        size="sm"
+        variant="outline"
+        value={filters.kind}
+        onValueChange={(v) => v && setSearch({ tipo: isApprovalKind(v) ? v : undefined })}
+        aria-label="Filtrar por tipo"
+        className="flex-wrap justify-start"
+      >
+        <ToggleGroupItem value={ALL} className="h-9 gap-1.5 px-3 text-xs">
+          Todos
+          <span className="tabular-nums opacity-70">{kindCounts.all}</span>
+        </ToggleGroupItem>
+        {APPROVAL_KINDS.map((k) => (
+          <ToggleGroupItem key={k} value={k} className="h-9 gap-1.5 px-3 text-xs">
+            {KIND_CHIP_LABEL[k]}
+            <span className="tabular-nums opacity-70">{kindCounts[k]}</span>
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+
+      <Select
+        value={filters.clientId}
+        onValueChange={(v) => setSearch({ cliente: v === ALL ? undefined : v })}
+      >
+        <SelectTrigger className="h-9 w-full sm:w-[220px]" aria-label="Filtrar por cliente">
+          <SelectValue placeholder="Todos los clientes" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>Todos los clientes</SelectItem>
+          {clients.map((c) => (
+            <SelectItem key={c.id} value={c.id}>
+              {c.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {hasFilters && (
+        <Button size="sm" variant="ghost" onClick={clearFilters}>
+          <FilterX aria-hidden className="mr-1.5 h-3.5 w-3.5" /> Limpiar filtros
+        </Button>
+      )}
+
+      <ToggleGroup
+        type="single"
+        size="sm"
+        variant="outline"
+        value={groupBy}
+        onValueChange={(v) => v && setSearch({ agrupar: v === "kind" ? "tipo" : undefined })}
+        aria-label="Agrupar por"
+        className="md:ml-auto"
+      >
+        <ToggleGroupItem value="client" className="h-9 px-3 text-xs">
+          Por cliente
+        </ToggleGroupItem>
+        <ToggleGroupItem value="kind" className="h-9 px-3 text-xs">
+          Por tipo
+        </ToggleGroupItem>
+      </ToggleGroup>
+    </div>
+  );
 
   return (
     <TooltipProvider delayDuration={150}>
-      <PageContainer className="space-y-6">
-        <PageHeader
-          title="Aprobaciones"
-          description={
-            isPending
-              ? "Todo lo que espera tu visto bueno, en un solo lugar."
-              : count === 0
-                ? "No hay nada esperando tu visto bueno."
-                : `${count} ${count === 1 ? "pendiente" : "pendientes"} de revisión.`
-          }
-        />
-
-        <div className="flex flex-wrap items-center gap-2">
-          <ToggleGroup
-            type="single"
-            size="sm"
-            variant="outline"
-            value={groupBy}
-            onValueChange={(v) => v && setSearch({ agrupar: v === "kind" ? "tipo" : undefined })}
-            aria-label="Agrupar por"
-          >
-            <ToggleGroupItem value="client">Por cliente</ToggleGroupItem>
-            <ToggleGroupItem value="kind">Por tipo</ToggleGroupItem>
-          </ToggleGroup>
-
-          <Select
-            value={filters.kind}
-            onValueChange={(v) => setSearch({ tipo: isApprovalKind(v) ? v : undefined })}
-          >
-            <SelectTrigger className="h-9 w-[200px]" aria-label="Filtrar por tipo">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>Todos los tipos</SelectItem>
-              {APPROVAL_KINDS.map((k) => (
-                <SelectItem key={k} value={k}>
-                  {APPROVAL_KIND_LABEL_PLURAL[k]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={filters.clientId}
-            onValueChange={(v) => setSearch({ cliente: v === ALL ? undefined : v })}
-          >
-            <SelectTrigger className="h-9 w-[200px]" aria-label="Filtrar por cliente">
-              <SelectValue placeholder="Todos los clientes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>Todos los clientes</SelectItem>
-              {clients.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {hasFilters && (
-            <Button size="sm" variant="ghost" onClick={clearFilters}>
-              <FilterX aria-hidden className="mr-1.5 h-3.5 w-3.5" /> Limpiar filtros
-            </Button>
-          )}
-        </div>
-
+      <FitPage
+        header={
+          <PageHeader
+            size="compact"
+            title="Aprobaciones"
+            description={!isPending && count > 0 ? plural(count) : undefined}
+          />
+        }
+        contentClassName="flex flex-col gap-4"
+      >
+        <div className="shrink-0">{toolbar}</div>
         {isPending ? (
-          <Panel>
-            <ListSkeleton rows={6} label="Cargando aprobaciones…" />
+          <Panel fill>
+            <ListSkeleton rows={6} label="Cargando aprobaciones" />
           </Panel>
         ) : isError ? (
           <ErrorState
@@ -169,11 +215,6 @@ function ApprovalsPage() {
           <EmptyState
             icon={Inbox}
             title={hasFilters ? "Nada con estos filtros" : "Bandeja al día"}
-            description={
-              hasFilters
-                ? "Prueba con otro tipo o cliente."
-                : "Cuando haya entregables en revisión, posts propuestos o propuestas en borrador, aparecerán aquí."
-            }
             action={
               hasFilters ? (
                 <Button size="sm" variant="outline" onClick={clearFilters}>
@@ -182,35 +223,86 @@ function ApprovalsPage() {
               ) : undefined
             }
           />
-        ) : (
-          <div className="space-y-4">
+        ) : groupBy === "kind" ? (
+          <div
+            className={cn("grid gap-4 md:min-h-0 md:flex-1", KIND_COLS[Math.min(groups.length, 3)])}
+          >
             {groups.map((group) => (
-              <Panel
+              <GroupPanel
                 key={group.key}
-                title={
-                  <span className="flex items-center gap-2">
-                    {group.label}
-                    <span className="text-sm font-normal tabular-nums text-muted-foreground">
-                      {group.items.length}
-                    </span>
-                  </span>
-                }
-              >
-                <ul className="divide-y divide-border-subtle">
-                  {group.items.map((item) => (
-                    <ApprovalRow
-                      key={`${item.kind}:${item.refId}`}
-                      item={item}
-                      showClient={groupBy === "kind"}
-                      onAction={(a) => action.mutate(a)}
-                    />
-                  ))}
-                </ul>
-              </Panel>
+                group={group}
+                showClient={filters.clientId === ALL}
+                showKind={false}
+                onAction={onAction}
+              />
             ))}
           </div>
+        ) : (
+          <ClientList
+            groups={groups}
+            showClient={filters.clientId === ALL}
+            showKind={filters.kind === ALL}
+            onAction={onAction}
+          />
         )}
-      </PageContainer>
+      </FitPage>
     </TooltipProvider>
+  );
+}
+
+interface ListProps {
+  showClient: boolean;
+  showKind: boolean;
+  onAction: (a: ApprovalAction) => void;
+}
+
+function rowRenderer({ showClient, showKind, onAction }: ListProps) {
+  return function renderApproval(item: ApprovalItem) {
+    return (
+      <ApprovalRow item={item} showClient={showClient} showKind={showKind} onAction={onAction} />
+    );
+  };
+}
+
+/** Por tipo: una columna por tipo, cada una con su lista a pantalla. */
+function GroupPanel({ group, ...props }: ListProps & { group: ApprovalGroup }) {
+  return (
+    <Panel
+      fill
+      title={
+        <span className="flex items-center gap-2">
+          {group.label}
+          <span className="text-xs font-normal tabular-nums text-muted-foreground">
+            {group.items.length}
+          </span>
+        </span>
+      }
+      bodyClassName="pb-3"
+    >
+      <FitList
+        items={group.items}
+        getKey={itemKey}
+        label={group.label}
+        mobileShowAll
+        renderItem={rowRenderer(props)}
+      />
+    </Panel>
+  );
+}
+
+/** Por cliente: una sola lista ordenada por cliente (alfabético) y, dentro, de más antiguo a más nuevo. */
+function ClientList({ groups, ...props }: ListProps & { groups: readonly ApprovalGroup[] }) {
+  const items = groups.flatMap((g) => g.items);
+  return (
+    <Panel fill bodyClassName="pb-3">
+      <FitList
+        items={items}
+        getKey={itemKey}
+        label="Por aprobar"
+        sheetDescription="Ordenadas por cliente y, dentro de cada uno, de la más antigua a la más nueva."
+        mobileShowAll
+        renderItem={rowRenderer(props)}
+      />
+    </Panel>
   );
 }

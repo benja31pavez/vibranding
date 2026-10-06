@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Lock, Save } from "lucide-react";
+import { Lock, Save, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
@@ -130,8 +130,8 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
   const set = <K extends keyof typeof state>(key: K, value: (typeof state)[K]) =>
     setState((prev) => ({ ...prev, [key]: value }));
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
+  /** Guarda la propuesta; `statusOverride` permite crear y dejarla "Enviada" de una vez. */
+  const persist = (statusOverride?: ProposalStatus) => {
     if (locked || save.isPending || save.isSuccess) return;
     if (errors.length > 0) {
       toast.error(errors[0]);
@@ -150,13 +150,19 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
       items,
       amountClp: totals.firstCharge,
       expiresAt,
-      status: state.status,
+      status: statusOverride ?? state.status,
     };
     save.mutate(
       { recipient, draft, existing },
       {
         onSuccess: ({ id, prospectStage }) => {
-          toast.success(existing ? "Propuesta guardada" : "Propuesta creada");
+          toast.success(
+            existing
+              ? "Propuesta guardada"
+              : draft.status === "enviada"
+                ? "Propuesta creada y marcada como enviada. Copia el link para mandarla."
+                : "Propuesta creada",
+          );
           if (prospectStage === "advanced")
             toast.success(`${recipient.name} pasó a la etapa Propuesta`);
           if (prospectStage === "failed")
@@ -172,6 +178,12 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
       },
     );
   };
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    persist();
+  };
+  const canCreateAndSend = !existing && !locked && state.status === "borrador";
 
   const selectedPlan = findPlan(state.planKey);
   const intro = insights
@@ -246,7 +258,7 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
 
         <Panel
           title="Plan"
-          description="Precios netos + IVA 19% (src/lib/pricing/plans.ts). El cliente paga el total con IVA."
+          description="Precios netos + IVA 19%. El cliente paga el total con IVA."
         >
           <Select
             value={state.planKey}
@@ -261,6 +273,7 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
               {PLANS.map((p) => (
                 <SelectItem key={p.key} value={p.key}>
                   {p.label} · {planPriceLabel(p)}
+                  {p.returningClientsOnly ? " · solo ex clientes" : ""}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -313,16 +326,6 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
             disabled={locked}
           />
         </Panel>
-
-        {!locked && (
-          <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" disabled={save.isPending || errors.length > 0}>
-              <Save aria-hidden className="mr-1.5 h-4 w-4" />{" "}
-              {existing ? "Guardar cambios" : "Crear propuesta"}
-            </Button>
-            {errors.length > 0 && <p className="text-sm text-muted-foreground">{errors[0]}</p>}
-          </div>
-        )}
       </div>
 
       <aside className="space-y-6 lg:col-span-2" aria-label="Resumen de la propuesta">
@@ -353,6 +356,35 @@ export function ProposalEditor({ recipient, existing, canEdit }: Props) {
             <ProposalLines items={items} />
           ) : (
             <p className="text-sm text-muted-foreground">Elige un plan o agrega ítems.</p>
+          )}
+          {!locked && (
+            <div className="mt-4 space-y-2 border-t border-border-subtle pt-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="submit" disabled={save.isPending || errors.length > 0}>
+                  <Save aria-hidden className="mr-1.5 h-4 w-4" />
+                  {existing
+                    ? "Guardar cambios"
+                    : state.status === "borrador"
+                      ? "Crear borrador"
+                      : "Crear propuesta"}
+                </Button>
+                {canCreateAndSend && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={save.isPending || errors.length > 0}
+                    onClick={() => persist("enviada")}
+                  >
+                    <Send aria-hidden className="mr-1.5 h-4 w-4" /> Crear y marcar enviada
+                  </Button>
+                )}
+              </div>
+              {errors.length > 0 && (
+                <p className="text-xs text-muted-foreground" role="status">
+                  {errors[0]}
+                </p>
+              )}
+            </div>
           )}
           {existing && (
             <div className="mt-4 space-y-2 border-t border-border-subtle pt-4">
