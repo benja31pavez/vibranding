@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { NavBadge } from "./NavBadge";
-import { PRIMARY_NAV, isPathActive, type NavItem } from "./navConfig";
+import { PRIMARY_NAV, isPrimaryNavActive, type NavItem } from "./navConfig";
 
 const linkClass = (active: boolean) =>
   cn(
@@ -35,7 +35,7 @@ export function HeaderNav({ path }: { path: string }) {
       <ul className="flex items-center gap-0.5">
         {PRIMARY_NAV.map((item) => (
           <li key={item.to}>
-            <HeaderNavItem item={item} active={isPathActive(path, item.to)} />
+            <HeaderNavItem item={item} active={isPrimaryNavActive(path, item.to)} />
           </li>
         ))}
       </ul>
@@ -57,7 +57,7 @@ export function VerticalNavList({
     <nav aria-label={label}>
       <ul className="space-y-0.5">
         {items.map((item) => {
-          const active = isPathActive(path, item.to);
+          const active = isPrimaryNavActive(path, item.to);
           return (
             <li key={item.to}>
               <Link

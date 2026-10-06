@@ -25,17 +25,7 @@ import { AdsBillingPanel, ADS_BILLING_TONE, useAdsBillingSources } from "./AdsBi
 import { CampaignAlertsPanel } from "./CampaignAlertsPanel";
 import { FichaSheet } from "./FichaSheet";
 import type { FichaHealth } from "./fichaQueries";
-
-/** Planes que incluyen gestión de campañas en Meta Ads. */
-const PLANS_WITH_ADS: readonly string[] = ["crecimiento"];
-
-/** Del peor al mejor estado de pago de pauta. */
-const ADS_STATE_RANK: Readonly<Record<AdsBillingState, number>> = {
-  rechazado: 0,
-  pendiente: 1,
-  verificado: 2,
-  sin_cuenta: 3,
-};
+import { ADS_STATE_RANK, PLANS_WITH_ADS } from "./statusShared";
 
 function clpTotals(rows: FichaHealth["payments"]): ClpTotals {
   return rows.reduce<ClpTotals>(
@@ -271,7 +261,7 @@ export const HEALTH_INFO =
   "Señales de retención: cobros, aprobaciones, alertas, reportes, actividad y renovación.";
 
 /** Pago de pauta: una línea por plataforma, cada una con su propio estado. */
-function AdsBillingLines({ rows }: { rows: ReturnType<typeof adsBillingRows> }) {
+export function AdsBillingLines({ rows }: { rows: ReturnType<typeof adsBillingRows> }) {
   return (
     <span className="mt-0.5 flex flex-col gap-0.5">
       {rows.map((r) => (
@@ -300,7 +290,7 @@ interface ChipTargetProps {
   title: string;
   children: ReactNode;
 }
-type ChipTarget = (props: ChipTargetProps) => ReactNode;
+export type ChipTarget = (props: ChipTargetProps) => ReactNode;
 
 /** La tarjeta abre un panel lateral. */
 function sheetButton(onClick: () => void): ChipTarget {
@@ -323,7 +313,7 @@ interface ChipProps {
 const CHIP_CLS =
   "flex h-full w-full min-w-0 items-center gap-2.5 rounded-app-lg border border-border-subtle bg-surface px-4 py-2.5 text-left shadow-app-xs transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-function Chip({
+export function Chip({
   icon: Icon,
   title,
   summary,

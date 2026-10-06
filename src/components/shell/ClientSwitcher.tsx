@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Check, ChevronsUpDown, Users } from "lucide-react";
 import {
   Command,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ClientAvatar } from "./ClientAvatar";
+import { isClientManagementPath } from "./navConfig";
 import { useClientList, type ClientSummary } from "./useClientList";
 
 interface ClientSwitcherProps {
@@ -25,11 +26,17 @@ interface ClientSwitcherProps {
 export function ClientSwitcher({ activeClient }: ClientSwitcherProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const path = useRouterState({ select: (s) => s.location.pathname });
   const { data: clients, isLoading, isError } = useClientList(open);
 
+  // Desde la gestión de la agencia se sigue en la gestión; si no, a la ficha del cliente.
   const goToClient = (clientId: string) => {
     setOpen(false);
-    navigate({ to: "/clients/$clientId", params: { clientId } });
+    navigate(
+      isClientManagementPath(path)
+        ? { to: "/clients/$clientId", params: { clientId } }
+        : { to: "/clients/$clientId/ficha", params: { clientId } },
+    );
   };
 
   const goToList = () => {
