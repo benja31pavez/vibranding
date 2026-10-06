@@ -72,20 +72,7 @@ export function ClientsListPage() {
 
   return (
     <FitPage
-      header={
-        <PageHeader
-          size="compact"
-          title="Clientes"
-          actions={
-            <>
-              <Button asChild variant="outline">
-                <Link to="/clients/connect">Conectar con Meta</Link>
-              </Button>
-              <NewClientDialog open={open} onOpenChange={setOpen} />
-            </>
-          }
-        />
-      }
+      header={<PageHeader size="compact" title="Clientes" />}
       contentClassName="flex flex-col gap-3"
     >
       {clients === undefined && !query.isError ? (
@@ -100,11 +87,7 @@ export function ClientsListPage() {
         <EmptyState
           icon={Users}
           title="Aún no tienes clientes"
-          action={
-            <Button onClick={() => setOpen(true)}>
-              <Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo cliente
-            </Button>
-          }
+          description="Aparecen aquí al contratar y pagar su plan."
         />
       ) : (
         <>
