@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { getStatus, type StatusTone } from "@/components/app";
 import { formatTime } from "@/lib/agenda/dates";
+import { BOARD_COLUMN_LABELS, taskColumn, type TaskState } from "@/lib/delivery/planStages";
 import {
   AGENDA_KIND_LABEL,
   POST_APPROVAL_LABEL,
@@ -106,6 +107,13 @@ const EXTRA_STATUS: Readonly<Record<string, { label: string; tone: StatusTone }>
   confirmada: { label: "Confirmada", tone: "success" },
 };
 
+/** Tareas del Plan: mismos nombres que su tablero (Pendiente / En proceso / Entregado). */
+const TASK_STATE_TONE: Readonly<Record<TaskState, StatusTone>> = {
+  todo: "neutral",
+  doing: "warning",
+  done: "success",
+};
+
 /** Etiqueta y tono del estado de un evento (siempre con texto). */
 export function itemStatus(item: AgendaItem): { label: string; tone: StatusTone } | null {
   if (item.kind === "publicacion") {
@@ -120,6 +128,10 @@ export function itemStatus(item: AgendaItem): { label: string; tone: StatusTone 
     return { label: POST_APPROVAL_LABEL[key], tone: tone[key] };
   }
   if (!item.status) return null;
+  if (item.kind === "tarea") {
+    const state = taskColumn(item.status);
+    return { label: BOARD_COLUMN_LABELS[state], tone: TASK_STATE_TONE[state] };
+  }
   return EXTRA_STATUS[item.status] ?? getStatus(item.status);
 }
 

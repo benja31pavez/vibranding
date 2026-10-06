@@ -87,7 +87,7 @@ function GeneralItem({
       onClick={onClick}
       ariaLabel={`General, todo el plan: ${PLAN_STATUS_LABELS[plan.status]}, ${plan.done} de ${
         plan.total
-      } tareas listas${plan.nextDue ? `, próxima entrega ${formatShortDate(plan.nextDue)}` : ""}`}
+      } tareas entregadas${plan.nextDue ? `, próxima entrega ${formatShortDate(plan.nextDue)}` : ""}`}
     />
   );
 }
@@ -126,7 +126,7 @@ export function StageTrack({ stages, selected, onSelect, menu }: StageTrackProps
             onClick={() => onSelect(active ? null : stage.key)}
             ariaLabel={`${i + 1}. ${stage.label}, responsable ${owner.name}: ${
               TRACK_STATUS_LABELS[status]
-            }, ${stage.done} de ${stage.total} tareas listas${
+            }, ${stage.done} de ${stage.total} tareas entregadas${
               stage.dueDate ? `, entrega ${formatShortDate(stage.dueDate)}` : ", sin fecha"
             }`}
             menu={
@@ -171,7 +171,7 @@ export function TeamTrack({ members, stages, selected, onSelect, menu }: TeamTra
             onClick={() => onSelect(active ? null : target)}
             ariaLabel={`${member.name}, ${work}: ${TRACK_STATUS_LABELS[status]}, ${m.done} de ${
               m.total
-            } tareas listas${m.dueDate ? `, próxima entrega ${formatShortDate(m.dueDate)}` : ""}`}
+            } tareas entregadas${m.dueDate ? `, próxima entrega ${formatShortDate(m.dueDate)}` : ""}`}
             menu={
               <StageMenu {...menu} stages={own} label={`Fechas de entrega de ${member.name}`} />
             }

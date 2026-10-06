@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, LayoutTemplate, Plus, Target } from "lucide-react";
+import { ArrowRight, CheckCheck, LayoutTemplate, Plus, Target } from "lucide-react";
 import { FitList, Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,14 +19,6 @@ const HEALTH_TONE: Readonly<Record<ObjectiveHealth, string>> = {
   at_risk: "bg-warning-subtle text-warning-strong",
   late: "bg-danger-subtle text-danger-strong",
   no_target: "bg-muted text-muted-foreground",
-};
-
-const BAR_TONE: Readonly<Record<ObjectiveHealth, string>> = {
-  done: "bg-success",
-  on_track: "bg-info",
-  at_risk: "bg-warning",
-  late: "bg-danger",
-  no_target: "bg-muted-foreground/40",
 };
 
 /** Orden: primero lo que necesita atención, después lo que va bien y al final lo logrado. */
@@ -53,7 +45,10 @@ export interface ObjectivesColumnProps {
   noPlanClientId?: string | null;
 }
 
-/** Objetivos en tarjetas compactas: meta vs actual, fecha y si va en camino. Un clic lo edita. */
+/**
+ * Objetivos en tarjetas compactas: barra de avance (actual de meta y %), sí/no
+ * (Pendiente / Entregado) o "Meta por definir", con su fecha. Un clic lo edita.
+ */
 export function ObjectivesColumn({
   objectives,
   loading,
@@ -149,6 +144,32 @@ function AssignPlanCallout({ clientId }: { clientId: string }) {
   );
 }
 
+/** Cómo se mide: barra (meta numérica), sí/no (meta 1) o sin meta todavía. */
+type ObjectiveKind = "progress" | "yes_no" | "no_target";
+
+function objectiveKind(o: PlanObjective): ObjectiveKind {
+  if (o.target_value == null || o.target_value === 0) return "no_target";
+  return o.target_value === 1 ? "yes_no" : "progress";
+}
+
+interface Chip {
+  label: string;
+  tone: string;
+  delivered?: boolean;
+}
+
+/** Chip del objetivo: sí/no usa los estados de las tareas; el resto, la salud del objetivo. */
+function objectiveChip(kind: ObjectiveKind, health: ObjectiveHealth): Chip | null {
+  if (kind === "yes_no") {
+    if (health === "done") return { label: "Entregado", tone: HEALTH_TONE.done, delivered: true };
+    if (health === "late") return { label: "Atrasado", tone: HEALTH_TONE.late };
+    return { label: "Pendiente", tone: HEALTH_TONE.no_target };
+  }
+  // "Meta por definir" ya lo dice abajo: sin chip "Sin meta" duplicado.
+  if (health === "no_target") return null;
+  return { label: OBJECTIVE_HEALTH_LABELS[health], tone: HEALTH_TONE[health] };
+}
+
 function ObjectiveCard({
   objective: o,
   health,
@@ -160,8 +181,10 @@ function ObjectiveCard({
   template: boolean;
   onOpen: () => void;
 }) {
-  const progress = objectiveProgress(o);
-  const unit = o.unit ? ` ${o.unit}` : "";
+  const kind = objectiveKind(o);
+  const chip = objectiveChip(kind, health);
+  const percent = Math.round((objectiveProgress(o) ?? 0) * 100);
+  const due = o.due_date ? `Fecha límite ${formatShortDate(o.due_date)}` : null;
   return (
     <button
       type="button"
@@ -182,40 +205,49 @@ function ObjectiveCard({
           )}
           {o.title}
         </span>
-        <span
-          className={cn(
-            "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
-            HEALTH_TONE[health],
-          )}
-        >
-          {OBJECTIVE_HEALTH_LABELS[health]}
-        </span>
-      </span>
-      <span className="mt-1.5 flex items-center gap-2">
-        <span aria-hidden className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+        {chip && (
           <span
-            className={cn("block h-full rounded-full", BAR_TONE[health])}
-            style={{ width: `${Math.round((progress ?? 0) * 100)}%` }}
-          />
+            className={cn(
+              "flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium",
+              chip.tone,
+            )}
+          >
+            {chip.delivered && <CheckCheck aria-hidden className="h-3 w-3" />}
+            {chip.label}
+          </span>
+        )}
+      </span>
+      {kind === "progress" && o.target_value != null && (
+        <span className="mt-1.5 flex items-center gap-2">
+          <span aria-hidden className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+            <span
+              className="block h-full rounded-full bg-gradient-brand"
+              style={{ width: `${percent}%` }}
+            />
+          </span>
+          <span className="w-9 shrink-0 text-right text-xs font-medium tabular-nums text-foreground">
+            {percent}%
+          </span>
         </span>
-        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-          {o.target_value != null ? (
-            <>
+      )}
+      {(kind !== "yes_no" || due) && (
+        <span className="mt-1 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+          {kind === "progress" && o.target_value != null ? (
+            <span className="tabular-nums">
               <span className="font-medium text-foreground">
                 {formatNumber(o.current_value ?? 0)}
-              </span>
-              {" / "}
-              {formatNumber(o.target_value)}
-              {unit}
-            </>
+              </span>{" "}
+              de {formatNumber(o.target_value)}
+              {o.unit ? ` ${o.unit}` : ""}
+            </span>
+          ) : kind === "no_target" ? (
+            <span>Meta por definir</span>
           ) : (
-            "Sin meta numérica"
+            <span />
           )}
+          {due && <span className="shrink-0 tabular-nums">{due}</span>}
         </span>
-      </span>
-      <span className="mt-1 block text-[11px] text-muted-foreground">
-        {o.due_date ? `Fecha límite: ${formatShortDate(o.due_date)}` : "Sin fecha límite"}
-      </span>
+      )}
     </button>
   );
 }
