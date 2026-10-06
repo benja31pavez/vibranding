@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MultilinkPage } from "@/components/pages/MultilinkPage";
 import { LandingEditor } from "@/components/pages/LandingEditor";
 import { UnsavedChangesGuard } from "@/components/site/SaveStatus";
-import { FitPage } from "@/components/app";
+import { FitPage, PageHeader } from "@/components/app";
 import { cn } from "@/lib/utils";
 
 type SitioTab = "multienlace" | "landing";
@@ -82,8 +82,7 @@ function SitioPage() {
   );
 
   return (
-    <FitPage>
-      <h1 className="sr-only">Sitio del cliente</h1>
+    <FitPage header={<PageHeader size="compact" title="Sitio" />}>
       <UnsavedChangesGuard dirty={dirtyMultilink || dirtyLanding} />
       {/* Ambos editores quedan montados: cambiar de página no pierde cambios sin guardar. */}
       <div className={cn("md:h-full md:min-h-0", tab !== "multienlace" && "hidden")}>
