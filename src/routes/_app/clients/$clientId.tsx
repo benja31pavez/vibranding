@@ -35,6 +35,7 @@ function ClientShell() {
     matchRoute({ to: "/clients/$clientId/plan", params: { clientId } }) ||
     matchRoute({ to: "/clients/$clientId/ficha", params: { clientId } }) ||
     matchRoute({ to: "/clients/$clientId/archivos", params: { clientId } }) ||
+    matchRoute({ to: "/clients/$clientId/setup", params: { clientId } }) ||
     matchRoute({ to: "/clients/$clientId", params: { clientId } }),
   );
   const existence = useQuery({
