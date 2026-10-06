@@ -25,7 +25,7 @@ export function useZeroCause(clientId: string) {
       return "La conexión de Meta no tiene una cuenta publicitaria asignada, así que no hay inversión que traer.";
     }
     if (!a.last_ingest_at) {
-      return "La ingesta de anuncios nunca se ha ejecutado para este cliente. Ejecútala desde Configurar cliente.";
+      return "La ingesta de anuncios nunca se ha ejecutado para este cliente. Ejecútala desde Conexiones en el panel del cliente.";
     }
     if (a.last_ingest_reason) return a.last_ingest_reason;
     if (a.last_sync_error)
