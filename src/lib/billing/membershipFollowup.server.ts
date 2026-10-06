@@ -10,7 +10,9 @@ import { addDays, todayInChile } from "./dates";
 import { FOLLOWUP_DAYS_BEFORE_END, buildFollowupEmail, followupDue } from "./membership";
 import { clientPayerEmail, loadMembership } from "./membership.server";
 import { splitBatch, type BatchParams } from "@/lib/cron/batch";
-import { findPlan } from "@/lib/pricing/plans";
+import { PLANS, findPlan } from "@/lib/pricing/plans";
+
+const MONTHLY_PLAN_KEYS = PLANS.filter((p) => p.billing === "monthly").map((p) => p.key);
 
 export interface FollowupSummary {
   today: string;
@@ -41,7 +43,8 @@ async function loadCandidates(today: string, offset: number, limit: number) {
     .from("payments")
     .select("id,client_id,plan_key,period_end,followup_sent_at")
     .eq("status", "paid")
-    .not("plan_key", "is", null)
+    // Solo planes mensuales: Marca + Web es pago único y no se renueva.
+    .in("plan_key", MONTHLY_PLAN_KEYS)
     .gte("period_end", today)
     .lte("period_end", addDays(today, FOLLOWUP_DAYS_BEFORE_END))
     .order("id")
@@ -79,7 +82,7 @@ type Outcome = "sent" | "skipped" | "failed";
 
 async function processCandidate(c: Candidate, today: string, apiKey: string): Promise<Outcome> {
   const plan = findPlan(c.plan_key);
-  if (!plan || !c.period_end) return "skipped";
+  if (plan?.billing !== "monthly" || !c.period_end) return "skipped";
   const membership = await loadMembership(c.client_id, today);
   // Solo el último período cubierto (si ya renovó, coveredUntil es posterior).
   if (membership.coveredUntil !== c.period_end) return "skipped";
@@ -100,7 +103,6 @@ async function processCandidate(c: Candidate, today: string, apiKey: string): Pr
     planLabel: plan.label,
     periodEnd: c.period_end,
     renewUrl: `${publicOrigin()}/clients/${c.client_id}/facturacion`,
-    oneTime: plan.billing === "one_time",
   });
   try {
     await sendViaResend(apiKey, process.env["RESEND_FROM"]?.trim() || DEFAULT_FROM, {

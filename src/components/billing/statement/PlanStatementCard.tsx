@@ -13,6 +13,7 @@ import type { FlowState } from "./PaymentActions";
 
 const STATE_TONE: Readonly<Record<MembershipState, StatusTone>> = {
   sin_plan: "neutral",
+  pago_unico: "info",
   activo: "success",
   por_renovar: "warning",
   finalizado: "neutral",
@@ -125,6 +126,17 @@ export function PlanStatementCard({
                       Renovado hasta el {fmtDay(m.coveredUntil)}
                     </span>
                   )}
+                </Row>
+              )}
+              {m.state === "pago_unico" && m.oneTimePaidAt && (
+                <Row label="Pagado el">{fmtDay(m.oneTimePaidAt)}</Row>
+              )}
+              {m.state !== "pago_unico" && m.oneTimePaidAt && (
+                <Row label="Proyecto">
+                  <span className="whitespace-nowrap">Pago único · Marca + Web</span>
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    Pagado el {fmtDay(m.oneTimePaidAt)}
+                  </span>
                 </Row>
               )}
               {m.clientSince && <Row label="Cliente desde">{fmtDay(m.clientSince)}</Row>}

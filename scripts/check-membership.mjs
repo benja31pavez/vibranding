@@ -49,36 +49,70 @@ function check(name, fn) {
   }
 }
 
-/** Pago confirmado con el período que le asignaría el trigger. */
-function paid(planKey, paidAt, previousEnd = null) {
-  const { start, end } = m.nextPeriod(paidAt, previousEnd);
+/** Pago confirmado con el período que le asignaría el trigger (encadena con `prev`). */
+function paid(planKey, paidAt, prev = null) {
+  const spec = m.nextPeriod(
+    paidAt,
+    prev ? { end: prev.period_end, anchorDay: prev.period_anchor_day } : null,
+  );
   return {
     status: "paid",
     plan_key: planKey,
     paid_at: paidAt,
-    period_start: start,
-    period_end: end,
+    period_start: spec.start,
+    period_end: spec.end,
+    period_anchor_day: spec.anchorDay,
   };
 }
+/** Marca + Web: pago único, sin período. */
+const web = (paidAt) => ({
+  status: "paid",
+  plan_key: "marca-web",
+  paid_at: paidAt,
+  period_start: null,
+  period_end: null,
+});
 
-const first = paid("contenido", "2026-10-06"); // período 6-oct → 6-nov
+const first = paid("contenido", "2026-10-06"); // 6-oct → 5-nov (incluido)
 
 // ── Períodos ────────────────────────────────────────────────────────────────
-check("período: del día de pago al mismo día del mes siguiente", () => {
-  assert.deepEqual(m.nextPeriod("2026-10-06", null), { start: "2026-10-06", end: "2026-11-06" });
-  assert.deepEqual(m.nextPeriod("2026-01-31", null), { start: "2026-01-31", end: "2026-02-28" });
-  assert.deepEqual(m.nextPeriod("2026-12-15", null), { start: "2026-12-15", end: "2027-01-15" });
+check("período: [inicio, inicio + 1 mes - 1 día], inclusivo", () => {
+  assert.deepEqual(m.nextPeriod("2026-10-06", null), {
+    start: "2026-10-06",
+    end: "2026-11-05",
+    anchorDay: 6,
+  });
+  assert.deepEqual(m.nextPeriod("2026-12-15", null), {
+    start: "2026-12-15",
+    end: "2027-01-14",
+    anchorDay: 15,
+  });
 });
-check("renovación anticipada encadena desde el fin del período vigente", () => {
-  assert.deepEqual(m.nextPeriod("2026-11-03", "2026-11-06"), {
-    start: "2026-11-06",
-    end: "2026-12-06",
-  });
-  // Renovación después de terminado: parte el día del pago.
-  assert.deepEqual(m.nextPeriod("2026-11-20", "2026-11-06"), {
-    start: "2026-11-20",
-    end: "2026-12-20",
-  });
+check("31-ene encadenado: ancla 31, sin solape ni deriva", () => {
+  const p1 = paid("contenido", "2026-01-31");
+  assert.equal(p1.period_end, "2026-02-27");
+  const p2 = paid("contenido", "2026-02-25", p1);
+  assert.deepEqual([p2.period_start, p2.period_end], ["2026-02-28", "2026-03-30"]);
+  const p3 = paid("contenido", "2026-03-28", p2);
+  assert.deepEqual([p3.period_start, p3.period_end], ["2026-03-31", "2026-04-29"]);
+  const p4 = paid("contenido", "2026-04-29", p3);
+  assert.deepEqual([p4.period_start, p4.period_end], ["2026-04-30", "2026-05-30"]);
+  assert.equal(p4.period_anchor_day, 31);
+});
+check("renovar antes de vencer: parte el día siguiente al fin", () => {
+  const r = paid("contenido", "2026-11-02", first);
+  assert.deepEqual([r.period_start, r.period_end], ["2026-11-06", "2026-12-05"]);
+});
+check("renovar el mismo día del fin: también encadena", () => {
+  const r = paid("contenido", "2026-11-05", first);
+  assert.deepEqual([r.period_start, r.period_end], ["2026-11-06", "2026-12-05"]);
+});
+check("renovar después de vencer: parte el día del pago con ancla nueva", () => {
+  const r = paid("contenido", "2026-11-20", first);
+  assert.deepEqual(
+    [r.period_start, r.period_end, r.period_anchor_day],
+    ["2026-11-20", "2026-12-19", 20],
+  );
 });
 
 // ── Estado derivado ─────────────────────────────────────────────────────────
@@ -95,8 +129,8 @@ check("primer pago, día 0 → Activo + Onboarding; cliente desde = fecha de pag
   assert.equal(s.onboarding, true);
   assert.equal(s.clientSince, "2026-10-06");
   assert.equal(s.periodStart, "2026-10-06");
-  assert.equal(s.periodEnd, "2026-11-06");
-  assert.equal(s.daysLeft, 31);
+  assert.equal(s.periodEnd, "2026-11-05");
+  assert.equal(s.daysLeft, 30);
 });
 check("día 6 sigue en Onboarding; día 8 → Activo sin Onboarding", () => {
   assert.equal(m.deriveMembership([first], "2026-10-12").onboarding, true);
@@ -105,30 +139,30 @@ check("día 6 sigue en Onboarding; día 8 → Activo sin Onboarding", () => {
   assert.equal(s.onboarding, false);
 });
 check("3 días antes del fin → Por renovar", () => {
-  const s = m.deriveMembership([first], "2026-11-03");
+  const s = m.deriveMembership([first], "2026-11-02");
   assert.equal(s.state, "por_renovar");
   assert.equal(s.daysLeft, 3);
-  assert.equal(m.deriveMembership([first], "2026-10-31").state, "activo"); // 6 días
-  assert.equal(m.deriveMembership([first], "2026-11-01").state, "por_renovar"); // 5 días
+  assert.equal(m.deriveMembership([first], "2026-10-30").state, "activo"); // 6 días
+  assert.equal(m.deriveMembership([first], "2026-10-31").state, "por_renovar"); // 5 días
 });
 check("el último día sigue cubierto; el día siguiente al fin → Finalizado (ex cliente)", () => {
-  const last = m.deriveMembership([first], "2026-11-06");
+  const last = m.deriveMembership([first], "2026-11-05");
   assert.equal(last.state, "por_renovar");
   assert.equal(last.daysLeft, 0);
-  const s = m.deriveMembership([first], "2026-11-07");
+  const s = m.deriveMembership([first], "2026-11-06");
   assert.equal(s.state, "finalizado");
   assert.equal(s.formerClient, true);
   assert.equal(s.planKey, "contenido");
   assert.equal(s.clientSince, "2026-10-06");
   assert.equal(m.isActiveMembership(s), false);
 });
-check("renovación encadena: vuelve a Activo y cubre hasta el mes siguiente", () => {
-  const renewal = paid("contenido", "2026-11-03", first.period_end);
-  const s = m.deriveMembership([first, renewal], "2026-11-04");
+check("renovación encadena: vuelve a Activo y cubre el mes siguiente", () => {
+  const renewal = paid("contenido", "2026-11-02", first);
+  const s = m.deriveMembership([first, renewal], "2026-11-03");
   assert.equal(s.state, "activo");
   assert.equal(s.renewed, true);
-  assert.equal(s.coveredUntil, "2026-12-06");
-  assert.equal(s.periodEnd, "2026-11-06");
+  assert.equal(s.coveredUntil, "2026-12-05");
+  assert.equal(s.periodEnd, "2026-11-05");
   assert.equal(s.onboarding, false);
   const later = m.deriveMembership([first, renewal], "2026-11-10");
   assert.equal(later.periodStart, "2026-11-06");
@@ -137,6 +171,21 @@ check("renovación encadena: vuelve a Activo y cubre hasta el mes siguiente", ()
 check("pagos cancelados o pendientes no cuentan", () => {
   const cancelled = { ...first, status: "cancelled" };
   assert.equal(m.deriveMembership([cancelled], "2026-10-10").state, "sin_plan");
+});
+check("Marca + Web: pago único sin vencimiento (nunca Por renovar ni Finalizado)", () => {
+  for (const day of ["2026-10-06", "2026-11-03", "2027-06-01"]) {
+    const s = m.deriveMembership([web("2026-10-06")], day);
+    assert.equal(s.state, "pago_unico", day);
+    assert.equal(s.oneTimePaidAt, "2026-10-06");
+    assert.equal(s.coveredUntil, null);
+    assert.equal(m.followupDue(s, false), false);
+  }
+  assert.equal(m.deriveMembership([web("2026-10-06")], "2026-10-08").onboarding, true);
+  // Marca + Web y luego un plan mensual: manda el plan mensual.
+  const s = m.deriveMembership([web("2026-10-06"), paid("contenido", "2026-10-20")], "2026-10-25");
+  assert.equal(s.state, "activo");
+  assert.equal(s.clientSince, "2026-10-06");
+  assert.equal(s.oneTimePaidAt, "2026-10-06");
 });
 
 // ── Qué se puede pagar ──────────────────────────────────────────────────────
@@ -148,15 +197,19 @@ check("sin plan: solo planes públicos (nunca Mantención)", () => {
     "crecimiento",
   ]);
 });
+check("pago único: un plan mensual público para continuar", () => {
+  assert.deepEqual(keys(m.deriveMembership([web("2026-10-06")], "2026-11-03")), [
+    "contenido",
+    "crecimiento",
+  ]);
+});
 check("activo: no se cambia de plan durante el período pagado", () => {
   const s = m.deriveMembership([first], "2026-10-20");
   assert.deepEqual(keys(s), []);
   assert.ok(m.purchaseBlockedReason(s, "crecimiento"));
 });
-check("por renovar: el mismo plan; desde Marca + Web, un plan mensual público", () => {
-  assert.deepEqual(keys(m.deriveMembership([first], "2026-11-03")), ["contenido"]);
-  const web = paid("marca-web", "2026-10-06");
-  assert.deepEqual(keys(m.deriveMembership([web], "2026-11-03")), ["contenido", "crecimiento"]);
+check("por renovar: el mismo plan", () => {
+  assert.deepEqual(keys(m.deriveMembership([first], "2026-11-02")), ["contenido"]);
 });
 check("finalizado (ex cliente): puede elegir Mantención u otro", () => {
   const s = m.deriveMembership([first], "2026-12-01");
@@ -168,27 +221,25 @@ check("finalizado (ex cliente): puede elegir Mantención u otro", () => {
 check("MRR neto = precio del plan mensual vigente; Marca + Web y finalizado = 0", () => {
   assert.equal(m.membershipMrr(m.deriveMembership([first], "2026-10-10")), 129_990);
   assert.equal(m.membershipMrr(m.deriveMembership([first], "2026-12-01")), 0);
-  const web = paid("marca-web", "2026-10-06");
-  assert.equal(m.membershipMrr(m.deriveMembership([web], "2026-10-10")), 0);
+  assert.equal(m.membershipMrr(m.deriveMembership([web("2026-10-06")], "2026-10-10")), 0);
 });
 check("seguimiento: 3 días antes del fin, una vez y solo sin renovación", () => {
-  assert.equal(m.followupDue(m.deriveMembership([first], "2026-11-02"), false), false);
-  assert.equal(m.followupDue(m.deriveMembership([first], "2026-11-03"), false), true);
-  assert.equal(m.followupDue(m.deriveMembership([first], "2026-11-03"), true), false);
-  const renewal = paid("contenido", "2026-11-03", first.period_end);
-  assert.equal(m.followupDue(m.deriveMembership([first, renewal], "2026-11-04"), false), false);
+  assert.equal(m.followupDue(m.deriveMembership([first], "2026-11-01"), false), false);
+  assert.equal(m.followupDue(m.deriveMembership([first], "2026-11-02"), false), true);
+  assert.equal(m.followupDue(m.deriveMembership([first], "2026-11-02"), true), false);
+  const renewal = paid("contenido", "2026-11-02", first);
+  assert.equal(m.followupDue(m.deriveMembership([first, renewal], "2026-11-03"), false), false);
 });
 check("correo de seguimiento: servicio, con link y sin cobro automático", () => {
   const mail = m.buildFollowupEmail({
     clientName: "Panadería Sol",
     contactName: "Ana",
     planLabel: "Plan Contenido",
-    periodEnd: "2026-11-06",
+    periodEnd: "2026-11-05",
     renewUrl: "https://vibranding.pro/clients/x/facturacion",
-    oneTime: false,
   });
   const text = mail.lines.join("\n");
-  assert.match(mail.subject, /6 nov 2026/);
+  assert.match(mail.subject, /5 nov 2026/);
   assert.match(text, /Hola Ana,/);
   assert.match(text, /https:\/\/vibranding\.pro\/clients\/x\/facturacion/);
   assert.match(text, /No hay cobros automáticos/);
@@ -205,6 +256,13 @@ check("la migración usa los mismos precios netos y planes mensuales", () => {
   assert.ok(sql.includes(`_plan_key IN (${monthly.join(", ")})`), "plan_is_monthly");
   assert.ok(sql.includes(`- _today <= ${m.RENEW_WINDOW_DAYS} THEN 'por_renovar'`), "ventana");
   assert.ok(sql.includes(`_today - (SELECT since FROM agg) < ${m.ONBOARDING_DAYS}`), "onboarding");
+  assert.ok(
+    sql.includes("NEW.period_start := prev_end + 1;"),
+    "renovación encadena al día siguiente",
+  );
+  assert.ok(sql.includes("paid <= prev_end"), "renovar el mismo día del fin encadena");
+  assert.ok(sql.includes("coalesce(NEW.provider, '') <> 'flow'"), "solo Flow activa un plan");
+  assert.ok(sql.includes("SET LOCAL lock_timeout = '5s'"), "lock_timeout");
 });
 
 // ── Guardia de permanencia ──────────────────────────────────────────────────

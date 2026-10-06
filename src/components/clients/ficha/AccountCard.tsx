@@ -24,6 +24,7 @@ function paidUntil(m: Membership | undefined): string {
   if (!m) return "…";
   if (m.state === "sin_plan") return "Sin plan vigente";
   if (m.state === "finalizado") return "Finalizado";
+  if (m.state === "pago_unico") return "Pago único (sin vencimiento)";
   return formatDate(m.coveredUntil);
 }
 

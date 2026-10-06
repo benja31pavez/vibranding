@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { startProposalPayment } from "@/lib/proposals/public.functions";
 import type { PublicPaymentState } from "@/lib/proposals/public.server";
 
-/** Siguiente paso tras aceptar: pagar con Flow, transferencia o contacto. */
+/** Siguiente paso tras aceptar: pagar con Flow o, si aún no está listo, te contactamos. */
 export function PaymentBox({ token, payment }: { token: string; payment: PublicPaymentState }) {
   switch (payment.state) {
     case "none":
@@ -27,8 +27,7 @@ export function PaymentBox({ token, payment }: { token: string; payment: PublicP
     case "transfer":
       return (
         <Notice icon={Mail} title="Próximo paso: el pago">
-          Te enviaremos los datos para pagar por transferencia a tu correo o WhatsApp. Si ya los
-          tienes, responde con el comprobante.
+          Te contactaremos para coordinar el pago.
         </Notice>
       );
     case "flow":

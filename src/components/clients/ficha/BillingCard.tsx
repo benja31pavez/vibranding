@@ -17,6 +17,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 const STATE_TONE = {
   sin_plan: "neutral",
+  pago_unico: "info",
   activo: "success",
   por_renovar: "warning",
   finalizado: "neutral",
@@ -42,6 +43,9 @@ function Rows({ m }: { m: Membership }) {
         <Row label={m.state === "finalizado" ? "Último período" : "Período pagado"}>
           {fmtDay(m.periodStart)} – {fmtDay(m.periodEnd)}
         </Row>
+      )}
+      {m.oneTimePaidAt && (
+        <Row label="Proyecto">Pago único · Marca + Web ({fmtDay(m.oneTimePaidAt)})</Row>
       )}
       <Row label="MRR neto">
         <Money amount={membershipMrr(m)} />

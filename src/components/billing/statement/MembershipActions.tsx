@@ -85,7 +85,11 @@ export function MembershipActions({
   const plan = options.find((p) => p.key === selected) ?? options[0];
   const renewSame = m.state === "por_renovar" && options.length === 1;
   const disabled = flow !== "ready" || busy;
-  const label = renewSame ? `Renovar ${plan.label}` : "Contratar y pagar";
+  const label = renewSame
+    ? `Renovar ${plan.label}`
+    : m.state === "pago_unico"
+      ? "Contratar plan mensual"
+      : "Contratar y pagar";
 
   const pay = async (e?: FormEvent) => {
     e?.preventDefault();

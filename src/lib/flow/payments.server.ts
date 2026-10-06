@@ -153,12 +153,55 @@ export async function applyFlowStatus(
     console.error("[flow] no se pudo marcar pagado", payment.id, error.message);
     throw new Error("No se pudo registrar el pago");
   }
-  if (data && data.length > 0) return "paid";
+  if (data && data.length > 0) {
+    if (payment.status === "cancelled" && payment.plan_key) {
+      await flagCancelledPlanPayment(payment, status);
+    }
+    return "paid";
+  }
 
   // 0 filas: otra petición lo marcó pagado entre medio. ¿Con esta misma orden?
   const latest = await loadPayment(payment.id);
   if (!latest) throw new Error("El cobro desapareció mientras se registraba el pago");
   return resolveAlreadyPaid(latest, status);
+}
+
+/**
+ * Pago de un cobro de PLAN que ya estaba cancelado (p. ej. pestaña vieja de Flow
+ * después de elegir otro plan). Queda pagado; el trigger
+ * t_payments_membership_period no le da período si ya hay uno vigente o un pago
+ * de plan posterior. Se deja una anomalía para que la agencia lo revise.
+ */
+async function flagCancelledPlanPayment(
+  payment: PaymentRow,
+  status: FlowPaymentStatus,
+): Promise<void> {
+  const db = await admin();
+  const latest = await loadPayment(payment.id).catch(() => null);
+  const periodCreated = Boolean(latest?.period_start);
+  console.error("[flow][ALERTA] pago duplicado de plan, revisar", {
+    paymentId: payment.id,
+    planKey: payment.plan_key,
+    flowOrder: status.flowOrder,
+    periodCreated,
+  });
+  const { error } = await db.from("payment_anomalies").insert({
+    payment_id: payment.id,
+    kind: "cancelled_paid",
+    provider: "flow",
+    flow_order: String(status.flowOrder),
+    commerce_order: String(status.commerceOrder ?? ""),
+    amount: Number(status.amount),
+    currency: String(status.currency ?? "CLP"),
+    detail: {
+      message: "Pago duplicado de plan, revisar",
+      plan_key: payment.plan_key,
+      period_created: periodCreated,
+    },
+  });
+  if (error && error.code !== "23505") {
+    console.error("[flow][ALERTA] no se pudo registrar la anomalía", payment.id, error.message);
+  }
 }
 
 const DUPLICATE_MARK = "[PAGO DUPLICADO";

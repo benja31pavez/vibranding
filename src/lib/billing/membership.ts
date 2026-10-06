@@ -4,10 +4,14 @@
  *
  *  - El cliente elige y paga su plan en la plataforma (Flow). Precio fijo de
  *    `plans.ts`; nunca a medida.
- *  - Cada pago de un plan mensual cubre UN mes, del día de pago al mismo día del
- *    mes siguiente (ambos incluidos). No hay cobro automático: para seguir, el
- *    cliente renueva. Marca + Web es pago único (su período cubre el mes del
- *    proyecto).
+ *  - Cada pago de un plan mensual cubre UN mes: [inicio, inicio + 1 mes - 1 día],
+ *    ambos incluidos, anclado al día del primer período (31-ene → 27-feb, luego
+ *    28-feb → 30-mar, 31-mar → 29-abr…): sin solape ni deriva. No hay cobro
+ *    automático: para seguir, el cliente renueva. Si renueva antes de vencer (o el
+ *    mismo día del fin), el período nuevo parte el día siguiente al fin anterior;
+ *    si renueva después, parte el día del pago con un ancla nueva.
+ *  - Marca + Web es pago único: no genera período, no vence, no pasa a
+ *    "Finalizado" ni recibe correo de renovación.
  *  - Sin permanencia, sin cambio de plan durante el período pagado, sin pausas
  *    y sin devoluciones.
  *  - El estado comercial se DERIVA de los pagos confirmados (no se edita).
@@ -15,7 +19,7 @@
  * El mismo cálculo vive en SQL (`public.client_membership`, migración
  * 20261012002500): si cambias una regla aquí, cámbiala también allá.
  */
-import { addOneMonth } from "./dates";
+import { addDays, addOneMonth } from "./dates";
 import { PLANS, PUBLIC_PLANS, findPlan, type Plan, type PlanKey } from "@/lib/pricing/plans";
 
 /** Días desde el primer pago en que se muestra la insignia "Onboarding". */
@@ -25,10 +29,11 @@ export const RENEW_WINDOW_DAYS = 5;
 /** Días antes del fin del período en que sale el correo de seguimiento. */
 export const FOLLOWUP_DAYS_BEFORE_END = 3;
 
-export type MembershipState = "sin_plan" | "activo" | "por_renovar" | "finalizado";
+export type MembershipState = "sin_plan" | "pago_unico" | "activo" | "por_renovar" | "finalizado";
 
 export const MEMBERSHIP_STATE_LABEL: Readonly<Record<MembershipState, string>> = {
   sin_plan: "Sin plan vigente",
+  pago_unico: "Pago único",
   activo: "Activo",
   por_renovar: "Por renovar",
   finalizado: "Finalizado",
@@ -41,6 +46,8 @@ export interface PlanPayment {
   paid_at: string | null;
   period_start: string | null;
   period_end: string | null;
+  /** Día del mes al que se anclan los períodos de la cadena (1-31). */
+  period_anchor_day?: number | null;
 }
 
 export interface Membership {
@@ -62,6 +69,9 @@ export interface Membership {
   clientSince: string | null;
   /** Ya trabajó con nosotros y su período terminó: puede elegir Mantención. */
   formerClient: boolean;
+  /** Último pago confirmado de un plan de pago único (Marca + Web). */
+  oneTimePlanKey: PlanKey | null;
+  oneTimePaidAt: string | null;
 }
 
 const DAY_MS = 86_400_000;
@@ -77,18 +87,34 @@ export function daysBetween(from: string, to: string): number {
   );
 }
 
+export interface PeriodSpec {
+  start: string;
+  end: string;
+  anchorDay: number;
+}
+
+/** Fin inclusivo de un período que parte en `start`: siguiente fecha anclada - 1 día. */
+export function periodEnd(start: string, anchorDay: number): string {
+  return addDays(addOneMonth(toDay(start), anchorDay), -1);
+}
+
 /**
- * Período que cubre un pago confirmado: parte el día de pago o, si aún hay un
- * período vigente, encadena desde su fin (renovación anticipada). Dura un mes:
- * 6-oct → 6-nov; 31-ene → 28/29-feb (igual que `date + interval '1 month'`).
+ * Período que cubre un pago confirmado de un plan mensual. Si se paga antes de
+ * vencer el anterior (o el mismo día del fin), encadena desde el día siguiente y
+ * conserva el ancla; si ya venció, parte el día del pago con ancla nueva.
+ * Espejo de `public.set_membership_period()`.
  */
 export function nextPeriod(
   paidAt: string,
-  previousEnd: string | null,
-): { start: string; end: string } {
+  previous: { end: string; anchorDay: number } | null,
+): PeriodSpec {
   const paid = toDay(paidAt);
-  const start = previousEnd && toDay(previousEnd) > paid ? toDay(previousEnd) : paid;
-  return { start, end: addOneMonth(start) };
+  if (previous && paid <= toDay(previous.end)) {
+    const start = addDays(toDay(previous.end), 1);
+    return { start, end: periodEnd(start, previous.anchorDay), anchorDay: previous.anchorDay };
+  }
+  const anchorDay = Number(paid.slice(8, 10));
+  return { start: paid, end: periodEnd(paid, anchorDay), anchorDay };
 }
 
 interface Period {
@@ -101,17 +127,23 @@ interface Period {
 function periodsOf(payments: readonly PlanPayment[]): Period[] {
   return payments.flatMap((p) => {
     const plan = findPlan(p.plan_key);
-    if (p.status !== "paid" || !plan || !p.period_start || !p.period_end) return [];
+    if (p.status !== "paid" || plan?.billing !== "monthly" || !p.period_start || !p.period_end) {
+      return [];
+    }
     const start = toDay(p.period_start);
     return [
-      {
-        planKey: plan.key,
-        start,
-        end: toDay(p.period_end),
-        paidAt: toDay(p.paid_at ?? start),
-      },
+      { planKey: plan.key, start, end: toDay(p.period_end), paidAt: toDay(p.paid_at ?? start) },
     ];
   });
+}
+
+function lastOneTime(payments: readonly PlanPayment[]): { key: PlanKey; paidAt: string } | null {
+  const rows = payments.flatMap((p) => {
+    const plan = findPlan(p.plan_key);
+    if (p.status !== "paid" || plan?.billing !== "one_time" || !p.paid_at) return [];
+    return [{ key: plan.key, paidAt: toDay(p.paid_at) }];
+  });
+  return rows.sort((a, b) => b.paidAt.localeCompare(a.paidAt))[0] ?? null;
 }
 
 const EMPTY: Membership = {
@@ -125,22 +157,41 @@ const EMPTY: Membership = {
   renewed: false,
   clientSince: null,
   formerClient: false,
+  oneTimePlanKey: null,
+  oneTimePaidAt: null,
 };
 
 /** Estado comercial derivado de los pagos de planes confirmados, a la fecha `today`. */
 export function deriveMembership(payments: readonly PlanPayment[], today: string): Membership {
   const day = toDay(today);
   const periods = periodsOf(payments);
-  if (periods.length === 0) return EMPTY;
+  const oneTime = lastOneTime(payments);
+  const base: Membership = {
+    ...EMPTY,
+    oneTimePlanKey: oneTime?.key ?? null,
+    oneTimePaidAt: oneTime?.paidAt ?? null,
+  };
+  const firstPaid = [...periods.map((p) => p.paidAt), ...(oneTime ? [oneTime.paidAt] : [])].sort();
+  const clientSince = firstPaid[0] ?? null;
+  if (periods.length === 0) {
+    if (!oneTime || !clientSince) return base;
+    // Solo Marca + Web: pago único, sin vencimiento.
+    return {
+      ...base,
+      state: "pago_unico",
+      onboarding: daysBetween(clientSince, day) < ONBOARDING_DAYS,
+      planKey: oneTime.key,
+      clientSince,
+    };
+  }
 
-  const clientSince = periods.map((p) => p.paidAt).sort()[0];
   const byEnd = [...periods].sort((a, b) => b.end.localeCompare(a.end));
   const current = byEnd.find((p) => p.start <= day && day <= p.end) ?? null;
 
   if (!current) {
     // Ex cliente: se informa el último período pagado (ya terminado).
     return {
-      ...EMPTY,
+      ...base,
       state: "finalizado",
       planKey: byEnd[0].planKey,
       periodStart: byEnd[0].start,
@@ -153,6 +204,7 @@ export function deriveMembership(payments: readonly PlanPayment[], today: string
   const coveredUntil = byEnd[0].end;
   const daysLeft = daysBetween(day, coveredUntil);
   return {
+    ...base,
     state: daysLeft <= RENEW_WINDOW_DAYS ? "por_renovar" : "activo",
     onboarding: daysBetween(clientSince, day) < ONBOARDING_DAYS,
     planKey: current.planKey,
@@ -180,17 +232,18 @@ export function membershipMrr(m: Pick<Membership, "state" | "planKey">): number 
 /**
  * Planes que el cliente puede pagar hoy:
  *  - Sin plan: los públicos (Mantención nunca).
+ *  - Pago único (Marca + Web): un plan mensual público para continuar.
  *  - Activo: ninguno (no se cambia de plan durante el período pagado).
- *  - Por renovar: el mismo plan mensual; si viene de Marca + Web, un plan mensual público.
+ *  - Por renovar: el mismo plan mensual.
  *  - Finalizado (ex cliente): cualquiera, incluida Mantención.
  */
 export function purchasablePlans(m: Membership): readonly Plan[] {
   if (m.state === "sin_plan") return PUBLIC_PLANS;
+  if (m.state === "pago_unico") return PUBLIC_PLANS.filter((p) => p.billing === "monthly");
   if (m.state === "activo") return [];
   if (m.state === "finalizado") return PLANS;
   const current = findPlan(m.planKey);
-  if (current?.billing === "monthly") return [current];
-  return PUBLIC_PLANS.filter((p) => p.billing === "monthly");
+  return current ? [current] : [];
 }
 
 export function canPurchase(m: Membership, planKey: string): boolean {
@@ -232,10 +285,8 @@ export interface FollowupEmailInput {
   contactName: string | null;
   planLabel: string;
   periodEnd: string;
-  /** Link a Facturación para renovar o elegir cómo seguir. */
+  /** Link a Facturación para renovar. */
   renewUrl: string;
-  /** Marca + Web: no se "renueva", se elige cómo continuar. */
-  oneTime: boolean;
 }
 
 /** Correo de servicio (no marketing) antes del fin del período. Solo texto plano. */
@@ -245,9 +296,7 @@ export function buildFollowupEmail(input: FollowupEmailInput): {
 } {
   const hello = input.contactName?.trim() ? `Hola ${input.contactName.trim()},` : "Hola,";
   const until = formatPeriodDay(input.periodEnd);
-  const next = input.oneTime
-    ? "Si quieres seguir con contenido o campañas, puedes elegir tu plan mensual en tu panel:"
-    : `Si quieres continuar, renueva tu plan en tu panel antes del ${until}:`;
+  const next = `Si quieres continuar, renueva tu plan en tu panel antes del ${until}:`;
   return {
     subject: `¿Cómo vas con ${input.planLabel}? Tu período termina el ${until}`,
     lines: [

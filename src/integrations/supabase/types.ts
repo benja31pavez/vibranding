@@ -440,6 +440,8 @@ export type Database = {
           onboarding_token: string | null
           onboarding_token_expires_at: string | null
           plan_key: string | null
+          plan_source: string | null
+          status_before_membership: string | null
           updated_at: string
         }
         Insert: {
@@ -450,6 +452,8 @@ export type Database = {
           onboarding_token?: string | null
           onboarding_token_expires_at?: string | null
           plan_key?: string | null
+          plan_source?: string | null
+          status_before_membership?: string | null
           updated_at?: string
         }
         Update: {
@@ -460,6 +464,8 @@ export type Database = {
           onboarding_token?: string | null
           onboarding_token_expires_at?: string | null
           plan_key?: string | null
+          plan_source?: string | null
+          status_before_membership?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -3186,6 +3192,7 @@ export type Database = {
           paid_at: string | null
           payment_url: string | null
           period: string | null
+          period_anchor_day: number | null
           period_end: string | null
           period_start: string | null
           plan_key: string | null
@@ -3213,6 +3220,7 @@ export type Database = {
           paid_at?: string | null
           payment_url?: string | null
           period?: string | null
+          period_anchor_day?: number | null
           period_end?: string | null
           period_start?: string | null
           plan_key?: string | null
@@ -3240,6 +3248,7 @@ export type Database = {
           paid_at?: string | null
           payment_url?: string | null
           period?: string | null
+          period_anchor_day?: number | null
           period_end?: string | null
           period_start?: string | null
           plan_key?: string | null
