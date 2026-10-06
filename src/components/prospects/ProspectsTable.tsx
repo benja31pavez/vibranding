@@ -1,9 +1,17 @@
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Search } from "lucide-react";
-import { EmptyState } from "@/components/app";
+import { EmptyState, FitPager } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { paginate } from "@/lib/layout/fitList";
 import { PROSPECT_STATES, STATE_META } from "@/lib/prospects/schema";
 import { cn } from "@/lib/utils";
 import {
@@ -19,6 +27,8 @@ import { formatShortDate } from "./format";
 import type { Prospect } from "./prospectsData";
 
 const ALL = "";
+/** Filas por página; la tabla además hace scroll interno con la cabecera fija. */
+const PAGE_SIZE = 25;
 type SortDir = "asc" | "desc";
 
 interface Filters {
@@ -134,8 +144,18 @@ export function ProspectsTable({
     () => sortByLastContact(filterProspects(prospects, filters), sortDir),
     [prospects, filters, sortDir],
   );
-  const set = (key: keyof Filters) => (value: string) =>
+  const [page, setPage] = useState(0);
+  const [showAll, setShowAll] = useState(false);
+  const slice = paginate(rows.length, PAGE_SIZE, page);
+  // Cambiar filtros u orden vuelve a la primera página.
+  const set = (key: keyof Filters) => (value: string) => {
     setFilters((f) => ({ ...f, [key]: value }));
+    setPage(0);
+  };
+  const toggleSort = () => {
+    setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    setPage(0);
+  };
   const hasFilters = JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS);
 
   return (
@@ -187,7 +207,14 @@ export function ProspectsTable({
           options={options.fuente}
           onChange={set("fuente")}
         />
-        <Button variant="ghost" disabled={!hasFilters} onClick={() => setFilters(EMPTY_FILTERS)}>
+        <Button
+          variant="ghost"
+          disabled={!hasFilters}
+          onClick={() => {
+            setFilters(EMPTY_FILTERS);
+            setPage(0);
+          }}
+        >
           Limpiar
         </Button>
       </div>
@@ -199,100 +226,163 @@ export function ProspectsTable({
       {rows.length === 0 ? (
         <EmptyState size="compact" title="Sin resultados" description="Prueba con otros filtros." />
       ) : (
-        <div className="overflow-x-auto rounded-app-lg border border-border-subtle bg-surface md:min-h-0 md:flex-1 md:overflow-y-auto">
-          <table className="w-full min-w-[760px] text-sm">
-            <thead className="sticky top-0 z-10 bg-surface-2 text-left text-xs text-muted-foreground">
-              <tr>
-                <th scope="col" className="px-3 py-2 font-medium">
-                  Negocio
-                </th>
-                <th scope="col" className="px-3 py-2 font-medium">
-                  Rubro · Comuna
-                </th>
-                <th scope="col" className="px-3 py-2 font-medium">
-                  Fuente
-                </th>
-                <th
-                  scope="col"
-                  className="px-3 py-2 font-medium"
-                  aria-sort={sortDir === "asc" ? "ascending" : "descending"}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-                    className="inline-flex items-center gap-1 rounded-app-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    Último contacto
-                    {sortDir === "asc" ? (
-                      <ArrowUp aria-hidden className="h-3.5 w-3.5" />
-                    ) : (
-                      <ArrowDown aria-hidden className="h-3.5 w-3.5" />
-                    )}
-                    <span className="sr-only">
-                      {sortDir === "asc" ? "(más antiguo primero)" : "(más reciente primero)"}
-                    </span>
-                  </button>
-                </th>
-                <th scope="col" className="px-3 py-2 font-medium">
-                  Estado
-                </th>
-                <th scope="col" className="px-3 py-2">
-                  <span className="sr-only">Acciones</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((p) => (
-                <tr
-                  key={p.id}
-                  className={cn(
-                    "border-t border-border-subtle",
-                    p.estado === "baja" && "bg-danger-subtle/40",
-                  )}
-                >
-                  <td className="px-3 py-2">
-                    <button
-                      type="button"
-                      onClick={() => actions.onOpen(p)}
-                      className="text-left font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {p.nombre}
-                    </button>
-                    <span className="ml-2 inline-flex gap-1 align-middle">
-                      <NoContactBadge prospect={p} />
-                      <MarketingBadge prospect={p} />
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {[p.rubro, p.comuna].filter(Boolean).join(" · ") || "—"}
-                  </td>
-                  <td
-                    className="max-w-[220px] truncate px-3 py-2 text-muted-foreground"
-                    title={p.fuente}
-                  >
-                    {p.fuente}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums">{formatShortDate(p.ultimo_contacto)}</td>
-                  <td className="px-3 py-2">
-                    <StageSelect prospect={p} onMove={actions.onMove} />
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex justify-end gap-2">
-                      <ConvertAction
-                        prospect={p}
-                        onConvert={actions.onConvert}
-                        label="Convertir en cliente"
-                      />
-                      <ResumeAction prospect={p} onMove={actions.onMove} />
-                      <CreateProposalAction prospect={p} className="h-11 w-11" />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <ProspectsGrid
+            rows={rows.slice(slice.start, slice.end)}
+            sortDir={sortDir}
+            onToggleSort={toggleSort}
+            actions={actions}
+            className="md:min-h-0 md:flex-1 md:overflow-y-auto"
+          />
+          {rows.length > PAGE_SIZE && (
+            <div className="flex shrink-0 items-center justify-between gap-3">
+              <FitPager
+                page={slice.page}
+                pageCount={slice.pageCount}
+                onPageChange={setPage}
+                label="Prospectos"
+              />
+              <Button size="sm" variant="ghost" onClick={() => setShowAll(true)}>
+                Ver todos ({rows.length})
+              </Button>
+            </div>
+          )}
+          <Sheet open={showAll} onOpenChange={setShowAll}>
+            <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-5xl">
+              <SheetHeader className="border-b px-6 pb-3 pt-6 text-left">
+                <SheetTitle>Prospectos ({rows.length})</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Lista completa con los filtros actuales
+                </SheetDescription>
+              </SheetHeader>
+              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                <ProspectsGrid
+                  rows={rows}
+                  sortDir={sortDir}
+                  onToggleSort={toggleSort}
+                  actions={actions}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </>
       )}
+    </div>
+  );
+}
+
+/** Tabla de prospectos (cabecera fija); se usa en la página y en "Ver todos". */
+function ProspectsGrid({
+  rows,
+  sortDir,
+  onToggleSort,
+  actions,
+  className,
+}: {
+  rows: Prospect[];
+  sortDir: SortDir;
+  onToggleSort: () => void;
+  actions: CardActions;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "overflow-x-auto rounded-app-lg border border-border-subtle bg-surface",
+        className,
+      )}
+    >
+      <table className="w-full min-w-[760px] text-sm">
+        <thead className="sticky top-0 z-10 bg-surface-2 text-left text-xs text-muted-foreground">
+          <tr>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Negocio
+            </th>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Rubro · Comuna
+            </th>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Fuente
+            </th>
+            <th
+              scope="col"
+              className="px-3 py-2 font-medium"
+              aria-sort={sortDir === "asc" ? "ascending" : "descending"}
+            >
+              <button
+                type="button"
+                onClick={onToggleSort}
+                className="inline-flex items-center gap-1 rounded-app-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Último contacto
+                {sortDir === "asc" ? (
+                  <ArrowUp aria-hidden className="h-3.5 w-3.5" />
+                ) : (
+                  <ArrowDown aria-hidden className="h-3.5 w-3.5" />
+                )}
+                <span className="sr-only">
+                  {sortDir === "asc" ? "(más antiguo primero)" : "(más reciente primero)"}
+                </span>
+              </button>
+            </th>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Estado
+            </th>
+            <th scope="col" className="px-3 py-2">
+              <span className="sr-only">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((p) => (
+            <tr
+              key={p.id}
+              className={cn(
+                "border-t border-border-subtle",
+                p.estado === "baja" && "bg-danger-subtle/40",
+              )}
+            >
+              <td className="px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => actions.onOpen(p)}
+                  className="text-left font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {p.nombre}
+                </button>
+                <span className="ml-2 inline-flex gap-1 align-middle">
+                  <NoContactBadge prospect={p} />
+                  <MarketingBadge prospect={p} />
+                </span>
+              </td>
+              <td className="px-3 py-2 text-muted-foreground">
+                {[p.rubro, p.comuna].filter(Boolean).join(" · ") || "—"}
+              </td>
+              <td
+                className="max-w-[220px] truncate px-3 py-2 text-muted-foreground"
+                title={p.fuente}
+              >
+                {p.fuente}
+              </td>
+              <td className="px-3 py-2 tabular-nums">{formatShortDate(p.ultimo_contacto)}</td>
+              <td className="px-3 py-2">
+                <StageSelect prospect={p} onMove={actions.onMove} />
+              </td>
+              <td className="px-3 py-2">
+                <div className="flex justify-end gap-2">
+                  <ConvertAction
+                    prospect={p}
+                    onConvert={actions.onConvert}
+                    label="Convertir en cliente"
+                  />
+                  <ResumeAction prospect={p} onMove={actions.onMove} />
+                  <CreateProposalAction prospect={p} className="h-11 w-11" />
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
