@@ -17,6 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { fetchLogoAfterHandleChange, invalidateClientLogos } from "@/components/clients/logo";
 import { invalidateClientsList } from "./clientsListData";
 
 interface NewClientDialogProps {
@@ -37,12 +38,17 @@ export function NewClientDialog({ open, onOpenChange }: NewClientDialogProps) {
     const { data: orgId, error: orgError } = await supabase.rpc("ensure_org");
     if (orgError || !orgId)
       return toast.error(orgError?.message ?? "No se pudo obtener la organización");
-    const { error } = await supabase.from("clients").insert({
-      name: name.trim(),
-      instagram_handle: handle.trim() || null,
-      user_id: user.id,
-      org_id: orgId as string,
-    });
+    const cleanHandle = handle.trim().replace(/^@+/, "") || null;
+    const { data: created, error } = await supabase
+      .from("clients")
+      .insert({
+        name: name.trim(),
+        instagram_handle: cleanHandle,
+        user_id: user.id,
+        org_id: orgId as string,
+      })
+      .select("id")
+      .single();
     if (error) return toast.error(error.message);
     setName("");
     setHandle("");
@@ -51,6 +57,9 @@ export function NewClientDialog({ open, onOpenChange }: NewClientDialogProps) {
     void invalidateClientsList(queryClient);
     void invalidateShellClients(queryClient);
     void invalidateClientHealth(queryClient);
+    if (cleanHandle && created) {
+      void fetchLogoAfterHandleChange(created.id, () => invalidateClientLogos(queryClient));
+    }
   };
 
   return (

@@ -1,16 +1,24 @@
+import { ClientLogo } from "@/components/clients/logo";
 import { cn } from "@/lib/utils";
-import { initialsOf } from "./navConfig";
 
-export function ClientAvatar({ name, className }: { name: string; className?: string }) {
+/** Logo del cliente (redondo) o, si no tiene, sus iniciales. */
+export function ClientAvatar({
+  clientId,
+  name,
+  className,
+}: {
+  clientId: string;
+  name: string;
+  className?: string;
+}) {
   return (
-    <span
-      aria-hidden="true"
+    <ClientLogo
+      clientId={clientId}
+      name={name}
       className={cn(
-        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-semibold text-primary",
+        "h-8 w-8 rounded-md bg-primary/10 text-xs font-semibold text-primary",
         className,
       )}
-    >
-      {initialsOf(name)}
-    </span>
+    />
   );
 }

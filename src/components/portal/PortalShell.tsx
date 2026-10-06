@@ -2,15 +2,18 @@ import type { ReactNode } from "react";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TeamContact } from "@/components/proposals/public/TeamContact";
+import { ClientLogo } from "@/components/clients/logo";
 
 interface PortalShellProps {
   clientName?: string;
+  /** Para mostrar el logo de la marca junto a su nombre (si tiene). */
+  clientId?: string;
   onSignOut: () => void;
   children: ReactNode;
 }
 
 /** Marco del portal para el cliente: cabecera con la marca Vibranding y salida. */
-export function PortalShell({ clientName, onSignOut, children }: PortalShellProps) {
+export function PortalShell({ clientName, clientId, onSignOut, children }: PortalShellProps) {
   return (
     <div className="min-h-screen bg-bg">
       <header className="sticky top-0 z-30 border-b border-border-subtle bg-sidebar/95 backdrop-blur">
@@ -20,8 +23,14 @@ export function PortalShell({ clientName, onSignOut, children }: PortalShellProp
           </span>
           <div className="ml-auto flex min-w-0 items-center gap-2">
             {clientName && (
-              <span className="hidden truncate text-sm text-muted-foreground sm:inline">
-                {clientName}
+              <span className="hidden min-w-0 items-center gap-2 text-sm text-muted-foreground sm:flex">
+                <ClientLogo
+                  clientId={clientId}
+                  name={clientName}
+                  hideFallback
+                  className="h-6 w-6"
+                />
+                <span className="truncate">{clientName}</span>
               </span>
             )}
             <Button variant="ghost" size="sm" onClick={onSignOut}>

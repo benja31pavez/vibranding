@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { ExternalLink, Globe, LayoutTemplate, Palette } from "lucide-react";
 import { ErrorState, ListSkeleton } from "@/components/app";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
+import { ClientLogo, useClientLogo } from "@/components/clients/logo";
 import { safeExternalHref } from "@/lib/onboarding/links";
 import { FichaCard } from "../FichaCard";
 import { useClientIntake } from "../OnboardingIntakePanel";
@@ -34,7 +35,15 @@ export function BrandPanel({ clientId, canEdit }: { clientId: string; canEdit: b
   const { client, ig } = useActiveClient();
   const intake = useClientIntake(clientId, canEdit);
   const landing = useClientLanding(clientId);
-  const logo = ig.profile?.current_avatar_url ?? null;
+  const savedLogo = useClientLogo(clientId);
+  const igAvatar = ig.profile?.current_avatar_url ?? null;
+  const logoNote = savedLogo
+    ? savedLogo.source === "manual"
+      ? "Logo subido por tu equipo"
+      : "Logo desde Instagram"
+    : igAvatar
+      ? "Logo desde Instagram"
+      : "Sin logo cargado";
   const name = client?.name ?? "";
 
   const colors = [
@@ -76,17 +85,18 @@ export function BrandPanel({ clientId, canEdit }: { clientId: string; canEdit: b
       ) : (
         <div className="flex min-w-0 flex-col gap-3 md:min-h-0 md:overflow-hidden">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-app-md border border-border-subtle bg-surface-2 text-xl font-semibold">
-              {logo ? (
-                <img src={logo} alt={`Logo de ${name}`} className="h-full w-full object-cover" />
-              ) : (
-                name[0]?.toUpperCase()
-              )}
-            </span>
+            <ClientLogo
+              clientId={clientId}
+              name={name}
+              fallbackSrc={igAvatar}
+              initials={name[0]?.toUpperCase()}
+              alt={`Logo de ${name}`}
+              className="h-12 w-12 rounded-app-md border border-border-subtle bg-surface-2 text-xl font-semibold"
+            />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{name}</p>
               <p className="line-clamp-2 text-xs text-muted-foreground" title={style ?? undefined}>
-                {style ?? (logo ? "Logo desde Instagram" : "Sin logo cargado")}
+                {style ?? logoNote}
               </p>
             </div>
           </div>
