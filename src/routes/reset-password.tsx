@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { NOINDEX_META } from "@/lib/site/robots";
+import { authErrorMessage } from "@/lib/auth/authErrors";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
@@ -22,6 +23,9 @@ export const Route = createFileRoute("/reset-password")({
 function ResetPasswordPage() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
+  // Evita mostrar "abre el enlace del correo" antes de saber si hay sesión.
+  const [checked, setChecked] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
@@ -31,26 +35,34 @@ function ResetPasswordPage() {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       if (s) setReady(true);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (data.session) setReady(true);
+      })
+      .catch((err) => console.error("[reset-password] getSession falló", err))
+      .finally(() => setChecked(true));
     return () => sub.subscription.unsubscribe();
   }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirm) {
-      toast.error("Las contraseñas no coinciden");
+      setError("Las contraseñas no coinciden. Escríbelas de nuevo.");
       return;
     }
     setBusy(true);
+    setError(null);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-      toast.success("Contraseña actualizada");
-      navigate({ to: "/clients" });
-    } catch (err: any) {
-      toast.error(err.message ?? "Error");
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) throw updateError;
+      toast.success("Listo, guardamos tu nueva contraseña");
+      // Clientes van a su portal; el equipo, al panel (igual que en /login).
+      const { data: clientId } = await supabase.rpc("user_client_id");
+      navigate({ to: clientId ? "/portal" : "/clients" });
+    } catch (err) {
+      console.error("[reset-password] no se pudo guardar", err);
+      setError(authErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -60,12 +72,12 @@ function ResetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center p-6">
       <form onSubmit={submit} className="w-full max-w-sm space-y-5">
         <Link to="/" className="inline-block">
-          <span className="text-3xl font-bold italic tracking-tight text-gradient-brand bg-gradient-brand-animated">
+          <span className="font-brand text-3xl tracking-tight text-gradient-brand bg-gradient-brand-animated">
             Vibranding
           </span>
         </Link>
         <h1 className="text-2xl font-semibold">Crear nueva contraseña</h1>
-        {!ready && (
+        {checked && !ready && (
           <p className="text-sm text-muted-foreground">
             Abre esta página desde el enlace del correo de recuperación. Si el enlace expiró,{" "}
             <Link to="/login" className="underline">
@@ -80,6 +92,7 @@ function ResetPasswordPage() {
             <Input
               id="password"
               type={show ? "text" : "password"}
+              autoComplete="new-password"
               required
               minLength={6}
               value={password}
@@ -101,14 +114,25 @@ function ResetPasswordPage() {
           <Input
             id="confirm"
             type={show ? "text" : "password"}
+            autoComplete="new-password"
             required
             minLength={6}
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
           />
         </div>
+        <p className="text-xs text-muted-foreground">Usa al menos 6 caracteres.</p>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-app-md bg-danger-subtle px-3 py-2 text-sm text-danger-strong"
+          >
+            {error}
+          </p>
+        )}
         <Button type="submit" disabled={busy || !ready} className="w-full rounded-full h-11">
-          {busy ? "..." : "Guardar contraseña"}
+          {busy && <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />}
+          {busy ? "Guardando…" : "Guardar contraseña"}
         </Button>
       </form>
     </div>

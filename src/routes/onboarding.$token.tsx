@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PublicShell } from "@/components/proposals/public/PublicProposalView";
+import { TeamIntro } from "@/components/proposals/public/TeamContact";
 import { OnboardingDone } from "@/components/onboarding/OnboardingDone";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { STEPS } from "@/components/onboarding/formState";
@@ -73,9 +74,9 @@ function OnboardingRoute() {
 
   return (
     <PublicShell>
-      <header className="space-y-2">
+      <header className="space-y-3">
         <p className="text-sm font-medium text-primary">
-          ¡Bienvenido a {data.agencyName ?? "Vibranding"}!
+          ¡Te damos la bienvenida a {data.agencyName ?? "Vibranding"}!
         </p>
         <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
           Hola, {data.clientName}. Cuéntanos de tu negocio
@@ -84,6 +85,7 @@ function OnboardingRoute() {
           Son {STEPS.length} pasos cortos (unos 10 minutos). Solo la razón social es obligatoria:
           completa lo que tengas a mano y lo demás lo vemos juntos.
         </p>
+        <TeamIntro className="pt-1" />
         {data.expiresAt && (
           <p className="text-xs text-muted-foreground">
             Este link vence el {formatChileDate(data.expiresAt)}.

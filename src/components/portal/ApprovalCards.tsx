@@ -70,12 +70,12 @@ export function PostApprovalCard({ post, ...actions }: { post: PortalPostReview 
         </span>
       </div>
       <div className="flex flex-1 flex-col gap-3 p-4">
-        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <CalendarClock aria-hidden className="h-3.5 w-3.5 shrink-0" />
-          {post.scheduledAt
-            ? `Se publicaría el ${formatDateTime(post.scheduledAt)}`
-            : "Sin fecha de publicación aún"}
-        </p>
+        {post.scheduledAt && (
+          <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <CalendarClock aria-hidden className="h-3.5 w-3.5 shrink-0" />
+            Se publicaría el {formatDateTime(post.scheduledAt)}
+          </p>
+        )}
         {caption ? (
           <div className="text-sm leading-relaxed">
             <p className="whitespace-pre-line break-words">{shown}</p>

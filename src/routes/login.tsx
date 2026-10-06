@@ -6,9 +6,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { NOINDEX_META } from "@/lib/site/robots";
+import { authErrorMessage } from "@/lib/auth/authErrors";
+import { whatsappUrl } from "@/lib/site";
+
+const ACCESS_MESSAGE = "Hola, soy cliente de Vibranding y necesito acceso a mi portal.";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -33,6 +37,7 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot">("login");
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!session) return;
@@ -45,6 +50,7 @@ function LoginPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
+    setError(null);
     try {
       if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -57,8 +63,9 @@ function LoginPage() {
       }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-    } catch (err: any) {
-      toast.error(err.message ?? "Error");
+    } catch (err) {
+      console.error("[login] auth falló", err);
+      setError(authErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -71,8 +78,9 @@ function LoginPage() {
         redirect_uri: window.location.origin,
       });
       if (result?.error) throw result.error;
-    } catch (err: any) {
-      toast.error(err.message ?? "No se pudo iniciar con Google");
+    } catch (err) {
+      console.error("[login] Google falló", err);
+      setError("No pudimos iniciar sesión con Google. Intenta de nuevo.");
     } finally {
       setBusy(false);
     }
@@ -119,6 +127,8 @@ function LoginPage() {
             <Input
               id="email"
               type="email"
+              autoComplete="email"
+              inputMode="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -131,6 +141,7 @@ function LoginPage() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   required
                   minLength={6}
                   value={password}
@@ -148,8 +159,23 @@ function LoginPage() {
               </div>
             </div>
           )}
+          {error && (
+            <p
+              role="alert"
+              className="rounded-app-md bg-danger-subtle px-3 py-2 text-sm text-danger-strong"
+            >
+              {error}
+            </p>
+          )}
           <Button type="submit" disabled={busy} className="w-full rounded-full h-11">
-            {busy ? "..." : mode === "forgot" ? "Enviar enlace" : "Entrar"}
+            {busy && <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />}
+            {mode === "forgot"
+              ? busy
+                ? "Enviando…"
+                : "Enviar enlace"
+              : busy
+                ? "Entrando…"
+                : "Entrar"}
           </Button>
           {sent && mode === "forgot" && (
             <p className="text-center text-sm text-muted-foreground">
@@ -161,6 +187,7 @@ function LoginPage() {
             onClick={() => {
               setMode(mode === "forgot" ? "login" : "forgot");
               setSent(false);
+              setError(null);
             }}
             className="w-full text-center text-sm text-muted-foreground underline hover:text-foreground"
           >
@@ -203,7 +230,15 @@ function LoginPage() {
             </>
           )}
           <p className="text-center text-sm text-muted-foreground">
-            ¿Necesitas acceso? Contacta al administrador.
+            ¿Eres cliente y aún no tienes acceso?{" "}
+            <a
+              href={whatsappUrl(ACCESS_MESSAGE)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+            >
+              Escríbenos por WhatsApp
+            </a>
           </p>
         </form>
       </div>

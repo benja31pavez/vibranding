@@ -56,7 +56,6 @@ export function CalendarSection({ mode, enabled }: { mode: PortalMode; enabled: 
       id="calendario"
       title="Calendario del mes"
       icon={CalendarDays}
-      description="Lo que se publica y lo que te entregamos."
       actions={
         <div className="flex w-full items-center justify-between gap-1 rounded-full border border-border-subtle bg-bg p-0.5 sm:w-auto">
           <Button
