@@ -155,7 +155,7 @@ export async function applyFlowStatus(
   }
   if (data && data.length > 0) {
     if (payment.status === "cancelled" && (payment.plan_key || payment.addon_key)) {
-      await flagCancelledPlanPayment(payment, status);
+      await flagCancelledCheckoutPayment(payment, status);
     }
     return "paid";
   }
@@ -167,21 +167,27 @@ export async function applyFlowStatus(
 }
 
 /**
- * Pago de un cobro de PLAN que ya estaba cancelado (p. ej. pestaña vieja de Flow
- * después de elegir otro plan). Queda pagado; el trigger
- * t_payments_membership_period no le da período si ya hay uno vigente o un pago
- * de plan posterior. Se deja una anomalía para que la agencia lo revise.
+ * Pago de un cobro de PLAN o de ADICIONAL que ya estaba cancelado (p. ej. pestaña
+ * vieja de Flow después de elegir otro plan o de dar de baja el chatbot). Queda
+ * pagado, pero: el trigger t_payments_membership_period no le da período si ya hay
+ * uno vigente o un pago de plan posterior, y t_payments_addon_sync no activa el
+ * chatbot. Se deja una anomalía para que la agencia lo revise.
  */
-async function flagCancelledPlanPayment(
+async function flagCancelledCheckoutPayment(
   payment: PaymentRow,
   status: FlowPaymentStatus,
 ): Promise<void> {
   const db = await admin();
   const latest = await loadPayment(payment.id).catch(() => null);
   const periodCreated = Boolean(latest?.period_start);
-  console.error("[flow][ALERTA] pago duplicado de plan, revisar", {
+  const isAddon = Boolean(payment.addon_key);
+  const message = isAddon
+    ? "Pago de adicional duplicado/tardío, revisar"
+    : "Pago duplicado de plan, revisar";
+  console.error(`[flow][ALERTA] ${message.toLowerCase()}`, {
     paymentId: payment.id,
     planKey: payment.plan_key,
+    addonKey: payment.addon_key,
     flowOrder: status.flowOrder,
     periodCreated,
   });
@@ -193,11 +199,9 @@ async function flagCancelledPlanPayment(
     commerce_order: String(status.commerceOrder ?? ""),
     amount: Number(status.amount),
     currency: String(status.currency ?? "CLP"),
-    detail: {
-      message: "Pago duplicado de plan, revisar",
-      plan_key: payment.plan_key,
-      period_created: periodCreated,
-    },
+    detail: isAddon
+      ? { message, addon_key: payment.addon_key }
+      : { message, plan_key: payment.plan_key, period_created: periodCreated },
   });
   if (error && error.code !== "23505") {
     console.error("[flow][ALERTA] no se pudo registrar la anomalía", payment.id, error.message);

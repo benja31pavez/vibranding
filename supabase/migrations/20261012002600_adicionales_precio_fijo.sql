@@ -9,8 +9,10 @@
 -- El servidor calcula el monto (src/lib/pricing/addons.ts) y guarda el desglose
 -- en payments.items. Los cobros de adicionales llevan addon_key (plan_key NULL),
 -- así que NO generan período de membresía ni pasan por set_membership_period.
--- El chatbot queda activo en client_addons al confirmarse su pago por Flow, y su
--- mantención se suma al MRR neto (client_billing.mrr) en sync_client_membership.
+-- El chatbot queda contratado en client_addons al confirmarse su pago por Flow, y
+-- su mensualidad se suma al MRR neto (client_billing.mrr) en sync_client_membership
+-- mientras haya plan mensual vigente. Sin plan vigente queda "Suspendido" (no se
+-- cobra ni opera); al renovar vuelve a Activo sin pagar de nuevo la configuración.
 --
 -- APLICAR ANTES de publicar el código (el código nuevo lee/escribe estas columnas).
 -- Es aditiva: el código actual sigue funcionando con ella aplicada.
@@ -49,9 +51,10 @@ COMMENT ON COLUMN public.payments.items IS
 REVOKE INSERT (addon_key, items), UPDATE (addon_key, items)
   ON public.payments FROM anon, authenticated;
 
--- Un solo cobro de adicional abierto por cliente (evita duplicados por doble clic).
+-- Un solo cobro abierto por cliente y adicional (evita duplicados por doble clic;
+-- un cobro abandonado de la landing no bloquea el del chatbot).
 CREATE UNIQUE INDEX IF NOT EXISTS payments_open_addon_checkout_uk
-  ON public.payments (client_id)
+  ON public.payments (client_id, addon_key)
   WHERE addon_key IS NOT NULL AND proposal_id IS NULL AND status IN ('pending', 'overdue');
 
 -- 2) Precios (NETOS, CLP). Deben coincidir con src/lib/pricing/addons.ts ------------
@@ -93,12 +96,13 @@ CREATE TABLE IF NOT EXISTS public.client_addons (
 );
 
 COMMENT ON TABLE public.client_addons IS
-  'Adicionales con mantención mensual (chatbot). Se activan al confirmarse su pago por Flow; la baja la hace el servidor.';
+  'Adicionales con mensualidad (chatbot). active = contratado (se activa al confirmarse su pago por Flow; la baja la hace el servidor). Estado derivado: Activo con plan mensual vigente; Suspendido sin él (no se cobra ni opera) hasta que el cliente renueve, sin volver a pagar la configuración.';
 
 ALTER TABLE public.client_addons ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "client_addons select" ON public.client_addons;
 CREATE POLICY "client_addons select" ON public.client_addons
-  FOR SELECT TO authenticated USING (public.owns_client(client_id));
+  FOR SELECT TO authenticated
+  USING (public.owns_client(client_id) OR client_id = public.user_client_id());
 -- Solo triggers y service_role escriben.
 REVOKE ALL ON public.client_addons FROM anon, authenticated;
 GRANT SELECT ON public.client_addons TO authenticated;
@@ -148,6 +152,37 @@ CREATE TRIGGER t_payments_addon_guard
   BEFORE INSERT OR UPDATE OF status ON public.payments
   FOR EACH ROW EXECUTE FUNCTION public.guard_addon_payment();
 
+-- 4b) Monto de cobros de plan/adicional: = suma de items y no editable por usuarios.
+-- (Los editores de la agencia tienen UPDATE(amount) en payments.)
+CREATE OR REPLACE FUNCTION public.guard_checkout_amount()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO ''
+AS $$
+BEGIN
+  IF NEW.plan_key IS NULL AND NEW.addon_key IS NULL THEN
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'UPDATE'
+     AND current_user IN ('anon', 'authenticated')
+     AND NEW.amount IS DISTINCT FROM OLD.amount THEN
+    RAISE EXCEPTION 'El monto de un cobro de plan o adicional lo fija el servidor'
+      USING ERRCODE = '42501';
+  END IF;
+  IF NEW.items IS NOT NULL AND NEW.amount IS DISTINCT FROM (
+    SELECT coalesce(sum((i ->> 'amount')::numeric), 0) FROM jsonb_array_elements(NEW.items) i
+  ) THEN
+    RAISE EXCEPTION 'El monto del cobro no coincide con su desglose'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS t_payments_checkout_amount ON public.payments;
+CREATE TRIGGER t_payments_checkout_amount
+  BEFORE INSERT OR UPDATE OF amount, items ON public.payments
+  FOR EACH ROW EXECUTE FUNCTION public.guard_checkout_amount();
+
 -- 5) Activa/desactiva el chatbot según su pago (AFTER) ----------------------------
 CREATE OR REPLACE FUNCTION public.sync_addon_after_payment()
 RETURNS trigger
@@ -155,12 +190,30 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO ''
 AS $$
+DECLARE
+  becomes_paid boolean;
+  leaves_paid boolean;
 BEGIN
   IF NEW.addon_key IS NULL OR public.addon_monthly_net_price(NEW.addon_key) = 0 THEN
     RETURN NULL;
   END IF;
 
-  IF NEW.status = 'paid' AND (TG_OP = 'INSERT' OR OLD.status <> 'paid') THEN
+  becomes_paid := NEW.status = 'paid' AND (TG_OP = 'INSERT' OR OLD.status <> 'paid');
+  leaves_paid := TG_OP = 'UPDATE' AND OLD.status = 'paid' AND NEW.status <> 'paid';
+  IF NOT (becomes_paid OR leaves_paid) THEN
+    RETURN NULL;
+  END IF;
+  -- Pago tardío de un cobro ya cancelado (pestaña vieja de Flow): NO activa el
+  -- chatbot. El servidor registra la anomalía (payment_anomalies, 'cancelled_paid').
+  IF becomes_paid AND TG_OP = 'UPDATE' AND OLD.status = 'cancelled' THEN
+    RETURN NULL;
+  END IF;
+
+  -- Mismo orden de bloqueos que sync_client_membership (evita deadlocks).
+  PERFORM 1 FROM public.client_billing WHERE client_id = NEW.client_id FOR UPDATE;
+  PERFORM 1 FROM public.clients WHERE id = NEW.client_id FOR UPDATE;
+
+  IF becomes_paid THEN
     INSERT INTO public.client_addons (client_id, addon_key, active, activated_at, setup_payment_id)
     VALUES (
       NEW.client_id,
@@ -169,12 +222,19 @@ BEGIN
       coalesce(NEW.paid_at, (now() AT TIME ZONE 'America/Santiago')::date),
       NEW.id
     )
+    -- Si ya estaba contratado, conserva su alta y el pago que lo activó.
     ON CONFLICT (client_id, addon_key) DO UPDATE
       SET active = true,
-          activated_at = EXCLUDED.activated_at,
+          activated_at = CASE
+            WHEN client_addons.active THEN client_addons.activated_at
+            ELSE EXCLUDED.activated_at
+          END,
           deactivated_at = NULL,
-          setup_payment_id = EXCLUDED.setup_payment_id;
-  ELSIF TG_OP = 'UPDATE' AND OLD.status = 'paid' AND NEW.status <> 'paid' THEN
+          setup_payment_id = CASE
+            WHEN client_addons.active THEN client_addons.setup_payment_id
+            ELSE EXCLUDED.setup_payment_id
+          END;
+  ELSE
     -- Se revirtió el pago que lo activó: se da de baja.
     UPDATE public.client_addons
        SET active = false,
@@ -279,6 +339,7 @@ BEGIN
 END $$;
 
 -- Permisos ------------------------------------------------------------------------
+REVOKE ALL ON FUNCTION public.guard_checkout_amount() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.guard_addon_payment() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sync_addon_after_payment() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sync_membership_after_addon() FROM PUBLIC, anon, authenticated;

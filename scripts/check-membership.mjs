@@ -313,6 +313,23 @@ check("chatbot solo con plan mensual vigente; landing siempre", () => {
     /ya está activo/,
   );
 });
+check("chatbot sin plan vigente: Suspendido; al renovar vuelve sin pagar la configuración", () => {
+  const ended = withChatbot([first], "2026-12-01");
+  assert.equal(ba().addonStatus(ended, "chatbot"), "suspendido");
+  assert.equal(ba().addonStatus(withChatbot([first], "2026-10-10"), "chatbot"), "activo");
+  assert.equal(ba().addonStatus(m.deriveMembership([first], "2026-10-10"), "chatbot"), "inactivo");
+  assert.match(ba().addonBlockedReason(ended, chatbot()) ?? "", /suspendido/);
+  assert.equal(m.membershipMrr(ended), 0);
+  // Renovar (finalizado → cualquier plan mensual): plan + mensualidad, sin configuración.
+  const items = ba().planChargeItems(m.plans.findPlan("contenido"), ended.activeAddons);
+  assert.deepEqual(
+    items.map((i) => [i.key, i.billing]),
+    [
+      ["contenido", "monthly"],
+      ["chatbot", "monthly"],
+    ],
+  );
+});
 check("MRR neto con chatbot activo = plan + 29.990; finalizado = 0", () => {
   assert.equal(m.membershipMrr(withChatbot([first], "2026-10-10")), 159_980);
   assert.equal(m.membershipMrr(withChatbot([first], "2026-12-01")), 0);
@@ -365,6 +382,40 @@ check("la migración de adicionales usa los mismos precios y no toca plan_key", 
   );
   assert.ok(sql.includes("coalesce(NEW.provider, '') <> 'flow'"), "solo Flow activa");
   assert.ok(sql.includes("SET LOCAL lock_timeout = '5s'"), "lock_timeout");
+  assert.ok(
+    sql.includes("ON public.payments (client_id, addon_key)"),
+    "cobro abierto por adicional",
+  );
+  assert.ok(
+    sql.includes("public.owns_client(client_id) OR client_id = public.user_client_id()"),
+    "RLS client_addons",
+  );
+  assert.ok(
+    sql.includes("IF becomes_paid AND TG_OP = 'UPDATE' AND OLD.status = 'cancelled' THEN"),
+    "pago tardío de cobro cancelado no activa el chatbot",
+  );
+  assert.ok(
+    sql.includes("WHEN client_addons.active THEN client_addons.setup_payment_id"),
+    "ON CONFLICT",
+  );
+  const locks = sql.indexOf(
+    "PERFORM 1 FROM public.client_billing WHERE client_id = NEW.client_id FOR UPDATE",
+  );
+  assert.ok(
+    locks > 0 && locks < sql.indexOf("INSERT INTO public.client_addons"),
+    "orden de bloqueos",
+  );
+  assert.ok(sql.includes("FUNCTION public.guard_checkout_amount()"), "monto = desglose");
+});
+check("anomalía de pago tardío distingue plan y adicional", () => {
+  const flow = readFileSync(join(root, "src/lib/flow/payments.server.ts"), "utf8");
+  assert.ok(flow.includes("Pago de adicional duplicado/tardío, revisar"));
+  assert.ok(flow.includes("Pago duplicado de plan, revisar"));
+  const server = readFileSync(join(root, "src/lib/billing/membership.server.ts"), "utf8");
+  assert.ok(
+    server.includes("await cancelOpenPlanCheckoutsWith(clientId, addonKey);"),
+    "baja cancela",
+  );
 });
 
 // ── SQL = plans.ts ──────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@ import { ConfirmDialog, ListSkeleton, StatusBadge } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { addonBlockedReason } from "@/lib/billing/addons";
+import { addonBlockedReason, addonStatus } from "@/lib/billing/addons";
 import type { Membership } from "@/lib/billing/membership";
 import { deactivateAddon, startAddonCheckout } from "@/lib/billing/membership.functions";
 import {
@@ -129,15 +129,18 @@ export function AddonsCard({
         <ul className="grid gap-3 xl:grid-cols-2">
           {ADDONS.map((addon) => {
             const Icon = ICONS[addon.key];
-            const active = m.activeAddons.includes(addon.key);
+            // "Contratado" = activo o suspendido (sin plan mensual vigente).
+            const status = addonStatus(m, addon.key);
+            const active = status !== "inactivo";
             const blocked = addonBlockedReason(m, addon);
-            const note = active
-              ? addon.monthlyNet > 0
+            const note =
+              status === "activo"
                 ? "Su mensualidad se suma a cada renovación de tu plan."
-                : null
-              : canPay
-                ? blocked
-                : null;
+                : status === "suspendido"
+                  ? "Se reactiva al renovar tu plan, sin volver a pagar la configuración."
+                  : canPay
+                    ? blocked
+                    : null;
             return (
               <li
                 key={addon.key}
@@ -153,7 +156,12 @@ export function AddonsCard({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <p className="text-sm font-medium">{addon.label}</p>
-                      {active && <StatusBadge status="activo" label="Activo" tone="success" />}
+                      {status === "activo" && (
+                        <StatusBadge status="activo" label="Activo" tone="success" />
+                      )}
+                      {status === "suspendido" && (
+                        <StatusBadge status="suspendido" label="Suspendido" tone="warning" />
+                      )}
                     </div>
                     <PriceLine addon={addon} />
                   </div>

@@ -63,7 +63,7 @@ export function PlanStatementCard({
   return (
     <section
       aria-labelledby="tu-plan"
-      className="flex min-w-0 flex-col gap-3 rounded-app-lg border border-l-4 border-border-subtle bg-surface p-5 shadow-app-xs"
+      className="flex min-w-0 flex-col gap-3 rounded-app-lg border border-l-4 border-border-subtle bg-surface p-5 shadow-app-xs md:max-h-full md:overflow-y-auto"
       style={{ borderLeftColor: "var(--brand-2)" }}
     >
       <div className="flex items-start justify-between gap-2">
@@ -111,9 +111,9 @@ export function PlanStatementCard({
               </Row>
               {m.periodStart && m.periodEnd && (
                 <Row label={m.state === "finalizado" ? "Último período" : "Período pagado"}>
-                  <span className="whitespace-nowrap">
-                    {fmtDay(m.periodStart)} – {fmtDay(m.periodEnd)}
-                  </span>
+                  {/* Cada fecha queda entera; el rango salta de línea si no cabe. */}
+                  <span className="whitespace-nowrap">{fmtDay(m.periodStart)} –</span>{" "}
+                  <span className="whitespace-nowrap">{fmtDay(m.periodEnd)}</span>
                 </Row>
               )}
               {remaining && (

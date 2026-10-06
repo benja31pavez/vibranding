@@ -12,6 +12,7 @@ import {
   addonBlockedReason,
   addonSetupItems,
   itemsTotal,
+  parsePaymentItems,
   planChargeItems,
   type PaymentItem,
 } from "./addons";
@@ -128,16 +129,20 @@ function checkoutValues(clientId: string, charge: Charge): PaymentInsert {
   };
 }
 
+/** Cobro abierto del mismo tipo: uno por plan (cualquiera) y uno por cada adicional. */
 async function openCheckout(clientId: string, charge: Charge): Promise<PaymentRow | null> {
   const db = await admin();
-  const { data, error } = await db
+  const base = db
     .from("payments")
     .select("*")
     .eq("client_id", clientId)
-    .not(chargeColumn(charge), "is", null)
     .is("proposal_id", null)
-    .in("status", [...OPEN_STATUSES])
-    .limit(1);
+    .in("status", [...OPEN_STATUSES]);
+  const { data, error } = await (
+    charge.kind === "addon"
+      ? base.eq("addon_key", charge.addon.key)
+      : base.not("plan_key", "is", null)
+  ).limit(1);
   if (error) {
     console.error("[membresía] no se pudo leer el cobro abierto", clientId, error.message);
     throw new Error("No pudimos preparar el pago. Intenta de nuevo.");
@@ -259,5 +264,45 @@ export async function deactivateClientAddon(clientId: string, addonKey: AddonKey
   if (error) {
     console.error("[membresía] no se pudo dar de baja el adicional", clientId, error.message);
     throw new Error("No pudimos dar de baja el adicional. Intenta de nuevo.");
+  }
+  await cancelOpenPlanCheckoutsWith(clientId, addonKey);
+}
+
+/**
+ * Cancela los cobros de plan abiertos que incluían la mensualidad de `addonKey`,
+ * para que no se pague un link viejo con el monto anterior. El próximo
+ * "Renovar" crea uno nuevo sin esa línea.
+ */
+async function cancelOpenPlanCheckoutsWith(clientId: string, addonKey: AddonKey): Promise<void> {
+  const db = await admin();
+  const { data, error } = await db
+    .from("payments")
+    .select("id,items")
+    .eq("client_id", clientId)
+    .not("plan_key", "is", null)
+    .is("proposal_id", null)
+    .in("status", [...OPEN_STATUSES]);
+  if (error) {
+    console.error("[membresía] no se pudieron leer los cobros abiertos", clientId, error.message);
+    throw new Error("Dimos de baja el adicional, pero no pudimos actualizar tu próximo pago.");
+  }
+  const ids = (data ?? [])
+    .filter((row) =>
+      parsePaymentItems(row.items).some((i) => i.type === "addon" && i.key === addonKey),
+    )
+    .map((row) => row.id);
+  if (ids.length === 0) return;
+  const { error: cancelError } = await db
+    .from("payments")
+    .update({ status: "cancelled" })
+    .in("id", ids)
+    .in("status", [...OPEN_STATUSES]);
+  if (cancelError) {
+    console.error(
+      "[membresía] no se pudo cancelar el cobro con el adicional",
+      ids,
+      cancelError.message,
+    );
+    throw new Error("Dimos de baja el adicional, pero no pudimos actualizar tu próximo pago.");
   }
 }

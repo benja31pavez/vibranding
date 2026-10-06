@@ -113,16 +113,35 @@ export function hasMonthlyPlan(m: Pick<Membership, "state" | "planKey">): boolea
   return isActiveMembership(m) && findPlan(m.planKey)?.billing === "monthly";
 }
 
+export type AddonStatus = "activo" | "suspendido" | "inactivo";
+
+/**
+ * Estado de un adicional con mensualidad (derivado):
+ *  - activo: contratado y con plan mensual vigente (se cobra con cada renovación).
+ *  - suspendido: contratado, pero el plan mensual terminó: no se cobra ni opera.
+ *    Vuelve a activo al renovar el plan, sin pagar de nuevo la configuración.
+ *  - inactivo: no contratado (o dado de baja).
+ */
+export function addonStatus(
+  m: Pick<Membership, "state" | "planKey" | "activeAddons">,
+  key: AddonKey,
+): AddonStatus {
+  if (!m.activeAddons.includes(key)) return "inactivo";
+  return hasMonthlyPlan(m) ? "activo" : "suspendido";
+}
+
 /** Motivo (para el usuario) por el que no puede contratar `addon` hoy; null si puede. */
 export function addonBlockedReason(
   m: Pick<Membership, "state" | "planKey" | "activeAddons">,
   addon: Addon,
 ): string | null {
+  if (addon.monthlyNet > 0 && m.activeAddons.includes(addon.key)) {
+    return hasMonthlyPlan(m)
+      ? `Tu ${addon.label} ya está activo.`
+      : `Tu ${addon.label} está suspendido: se reactiva al renovar tu plan, sin volver a pagar la configuración.`;
+  }
   if (addon.requiresMonthlyPlan && !hasMonthlyPlan(m)) {
     return "El chatbot se contrata con un plan mensual vigente. Contrata o renueva tu plan primero.";
-  }
-  if (addon.monthlyNet > 0 && m.activeAddons.includes(addon.key)) {
-    return `Tu ${addon.label} ya está activo.`;
   }
   return null;
 }
