@@ -29,7 +29,7 @@ function fullDate(at: string): string {
     : new Date(at).toLocaleString("es-CL", { timeZone: "America/Santiago" });
 }
 
-function EventRow({ event, now }: { event: TimelineEvent; now: Date }) {
+export function EventRow({ event, now }: { event: TimelineEvent; now: Date }) {
   const meta = TIMELINE_KIND_META[event.kind];
   return (
     <div className="grid grid-cols-[4.75rem_auto_minmax(0,1fr)] gap-x-2.5 py-2">

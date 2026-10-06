@@ -69,9 +69,31 @@ export const SETTINGS_NAV: readonly NavItem[] = [
   { to: "/admin/health", label: "Salud", icon: HeartPulse },
 ];
 
-/** Activo si la ruta coincide o es una subruta (Clientes activo dentro de /clients/...). */
+/** Activo si la ruta coincide o es una subruta. */
 export function isPathActive(path: string, to: string): boolean {
   return path === to || path.startsWith(`${to}/`);
+}
+
+const CLIENTS_PATH = "/clients";
+const CLIENT_MANAGEMENT_RE = /^\/clients\/([^/]+)\/?$/;
+/** Pantallas de /clients/<algo> que no son un cliente. */
+const CLIENTS_STATIC = new Set(["connect"]);
+
+/** Vista de gestión de la agencia de un cliente: `/clients/<id>` (sin sección). */
+export function isClientManagementPath(path: string): boolean {
+  const id = CLIENT_MANAGEMENT_RE.exec(path)?.[1];
+  return Boolean(id && !CLIENTS_STATIC.has(id));
+}
+
+/**
+ * Activo del header. "Clientes" solo en la lista, Conectar y la gestión de un
+ * cliente: dentro de sus secciones (Ficha, Plan, Instagram…) manda el panel izquierdo.
+ */
+export function isPrimaryNavActive(path: string, to: string): boolean {
+  if (to !== CLIENTS_PATH) return isPathActive(path, to);
+  const clean = path.length > 1 ? path.replace(/\/$/, "") : path;
+  const staticPage = [...CLIENTS_STATIC].some((page) => clean === `${CLIENTS_PATH}/${page}`);
+  return clean === CLIENTS_PATH || staticPage || isClientManagementPath(clean);
 }
 
 export function initialsOf(name: string): string {

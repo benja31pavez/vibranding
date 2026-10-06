@@ -195,7 +195,7 @@ function connectionAlert(input: EvaluationInput): AlertCandidate | null {
       ...base,
       severity: "critical",
       message:
-        "La conexión con Meta dejó de funcionar (el permiso ya no es válido). Reconecta Meta desde Configurar cliente: mientras tanto no llegan datos de las campañas.",
+        "La conexión con Meta dejó de funcionar (el permiso ya no es válido). Reconecta Meta desde Conexiones en el panel del cliente: mientras tanto no llegan datos de las campañas.",
     };
   }
   if (Number.isFinite(expiresAt) && expiresAt <= now.getTime()) {
@@ -203,7 +203,7 @@ function connectionAlert(input: EvaluationInput): AlertCandidate | null {
       ...base,
       severity: "critical",
       message:
-        "El permiso de Meta de este cliente venció. Reconecta Meta desde Configurar cliente para volver a recibir datos.",
+        "El permiso de Meta de este cliente venció. Reconecta Meta desde Conexiones en el panel del cliente para volver a recibir datos.",
       data: { ...base.data, token_expires_at: account.tokenExpiresAt },
     };
   }
@@ -215,7 +215,7 @@ function connectionAlert(input: EvaluationInput): AlertCandidate | null {
     return {
       ...base,
       severity: "warning",
-      message: `El permiso de Meta vence en ${daysLeft} día${daysLeft === 1 ? "" : "s"}. Reconecta Meta desde Configurar cliente antes de que se corte la sincronización.`,
+      message: `El permiso de Meta vence en ${daysLeft} día${daysLeft === 1 ? "" : "s"}. Reconecta Meta desde Conexiones en el panel del cliente antes de que se corte la sincronización.`,
       data: { ...base.data, token_expires_at: account.tokenExpiresAt },
     };
   }
@@ -223,7 +223,7 @@ function connectionAlert(input: EvaluationInput): AlertCandidate | null {
     return {
       ...base,
       severity: "warning",
-      message: `La última sincronización con Meta falló: «${account.lastSyncError.slice(0, 160)}». Revisa la conexión en Configurar cliente; si el error menciona permisos o pago, resuélvelo en Meta.`,
+      message: `La última sincronización con Meta falló: «${account.lastSyncError.slice(0, 160)}». Revisa la conexión desde Conexiones en el panel del cliente; si el error menciona permisos o pago, resuélvelo en Meta.`,
       data: { ...base.data, last_sync_error: account.lastSyncError.slice(0, 500) },
     };
   }
@@ -249,8 +249,8 @@ function staleAlert(input: EvaluationInput): AlertCandidate | null {
     severity: "warning",
     dedupeKey: "ingest_stale",
     message: Number.isFinite(last)
-      ? `No llegan datos de Meta hace más de ${INGEST_STALE_HOURS} horas. Revisa la conexión en Configurar cliente y ejecuta la ingesta manual; las demás alertas de campañas quedan en pausa hasta que vuelvan los datos.`
-      : "La ingesta de Meta nunca se ha ejecutado para este cliente. Ejecútala desde Configurar cliente para empezar a vigilar las campañas.",
+      ? `No llegan datos de Meta hace más de ${INGEST_STALE_HOURS} horas. Revisa la conexión desde Conexiones en el panel del cliente y ejecuta la ingesta manual; las demás alertas de campañas quedan en pausa hasta que vuelvan los datos.`
+      : "La ingesta de Meta nunca se ha ejecutado para este cliente. Ejecútala desde Conexiones en el panel del cliente para empezar a vigilar las campañas.",
     data: {
       meta_account_id: account.id,
       last_synced_at: account.lastSyncedAt,
