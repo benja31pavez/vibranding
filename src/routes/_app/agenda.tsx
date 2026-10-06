@@ -1,18 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import {
-  AlertTriangle,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Link2,
-  RotateCw,
-} from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Link2 } from "lucide-react";
 import { useMemo } from "react";
 import { ErrorState, FitPage, PageHeader, Panel } from "@/components/app";
 import { AgendaCalendar, AgendaCalendarSkeleton } from "@/components/agenda/AgendaCalendar";
 import { AgendaFilters } from "@/components/agenda/AgendaFilters";
 import { AgendaLegend } from "@/components/agenda/AgendaLegend";
 import { DayPanel } from "@/components/agenda/DayPanel";
+import { PartialErrorNotice } from "@/components/agenda/PartialErrorNotice";
 import { BookingsPanel } from "@/components/bookings/BookingsPanel";
 import { UpcomingBookings } from "@/components/bookings/UpcomingBookings";
 import { useClientList } from "@/components/shell/useClientList";
@@ -20,16 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAgendaData, usePrefetchAgendaRange } from "@/lib/agenda/agenda.queries";
-import {
-  addDays,
-  addMonths,
-  dayKeyOf,
-  formatMonth,
-  formatShortDay,
-  isDayKey,
-  monthRange,
-  rangeForView,
-} from "@/lib/agenda/dates";
+import { isDayKey } from "@/lib/agenda/dates";
+import { groupByDay, periodLabel, queryRange, step } from "@/lib/agenda/view";
 import { useChileToday } from "@/lib/agenda/useChileToday";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -37,9 +23,7 @@ import {
   AGENDA_KINDS,
   AGENDA_KIND_LABEL_PLURAL,
   isAgendaKind,
-  type AgendaItem,
   type AgendaKind,
-  type AgendaRange,
   type AgendaView,
 } from "@/lib/agenda/types";
 
@@ -137,19 +121,6 @@ function AgendaPage() {
 interface CalendarTabProps {
   search: AgendaSearch;
   setSearch: (patch: Partial<AgendaSearch>) => void;
-}
-
-function queryRange(view: AgendaView, anchor: string): AgendaRange {
-  return view === "lista" ? monthRange(anchor) : rangeForView(view, anchor);
-}
-
-function step(view: AgendaView, anchor: string, dir: 1 | -1): string {
-  return view === "semana" ? addDays(anchor, 7 * dir) : addMonths(anchor, dir);
-}
-
-function periodLabel(view: AgendaView, range: AgendaRange, anchor: string): string {
-  if (view !== "semana") return formatMonth(anchor);
-  return `${formatShortDay(range.from)} – ${formatShortDay(addDays(range.to, -1))}`;
 }
 
 function CalendarTab({ search, setSearch }: CalendarTabProps) {
@@ -316,45 +287,6 @@ function CalendarTab({ search, setSearch }: CalendarTabProps) {
           </Panel>
         )}
       </div>
-    </div>
-  );
-}
-
-function groupByDay(items: readonly AgendaItem[]): Map<string, AgendaItem[]> {
-  return items.reduce((map, it) => {
-    const key = dayKeyOf(it.date, it.allDay);
-    return map.set(key, [...(map.get(key) ?? []), it]);
-  }, new Map<string, AgendaItem[]>());
-}
-
-function PartialErrorNotice({
-  labels,
-  retrying,
-  onRetry,
-}: {
-  labels: string[];
-  retrying: boolean;
-  onRetry: () => void;
-}) {
-  return (
-    <div
-      role="status"
-      className="flex flex-wrap items-center gap-2 rounded-app-md border border-warning/40 bg-warning-subtle px-3 py-2 text-xs text-warning-strong"
-    >
-      <AlertTriangle aria-hidden className="h-3.5 w-3.5 shrink-0" />
-      <span className="min-w-0 flex-1">
-        No pudimos cargar: {labels.join(", ")}. El resto de la agenda está al día.
-      </span>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-7 px-2 text-xs"
-        onClick={onRetry}
-        disabled={retrying}
-      >
-        <RotateCw aria-hidden className={`mr-1 h-3 w-3 ${retrying ? "animate-spin" : ""}`} />
-        Reintentar
-      </Button>
     </div>
   );
 }

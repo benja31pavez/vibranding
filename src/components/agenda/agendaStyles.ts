@@ -101,6 +101,9 @@ export function itemStyle(item: AgendaItem): { chip: string; dot: string } {
   return KIND_STYLE[item.kind];
 }
 
+/** Estado derivado (no se guarda): tarea del Plan atrasada. */
+export const TASK_LATE_STATUS = "late";
+
 const EXTRA_STATUS: Readonly<Record<string, { label: string; tone: StatusTone }>> = {
   activa: { label: "Activa", tone: "success" },
   confirmed: { label: "Confirmada", tone: "success" },
@@ -129,6 +132,9 @@ export function itemStatus(item: AgendaItem): { label: string; tone: StatusTone 
   }
   if (!item.status) return null;
   if (item.kind === "tarea") {
+    // "late" lo marca el calendario del cliente (tarea no entregada con fecha vencida).
+    if (item.status === TASK_LATE_STATUS)
+      return { label: BOARD_COLUMN_LABELS.late, tone: "danger" };
     const state = taskColumn(item.status);
     return { label: BOARD_COLUMN_LABELS[state], tone: TASK_STATE_TONE[state] };
   }

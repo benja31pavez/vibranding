@@ -27,23 +27,23 @@ export const agendaKeys = {
     ["agenda", kind, userId, range.from, range.to] as const,
 };
 
-const STALE_MS = 60_000;
+export const STALE_MS = 60_000;
 /** Ids por consulta `.in()` para no exceder el largo de URL. */
 const IN_CHUNK = 200;
 const TITLE_MAX = 80;
 const NO_CLIENT = "Sin cliente";
-const CANCELLED_BOOKING_STATUSES = "(cancelled,canceled,cancelado)";
+export const CANCELLED_BOOKING_STATUSES = "(cancelled,canceled,cancelado)";
 
 type ClientRef = { name: string } | null;
 
 /** Montos en CLP; un registro antiguo en otra moneda se marca, no se hace pasar por pesos. */
-function money(amount: number, currency: string | null | undefined): string {
+export function money(amount: number, currency: string | null | undefined): string {
   if (isLegacyCurrency(currency))
     return `${formatPlainAmount(amount)} (${legacyCurrencyLabel(currency)})`;
   return formatMoney(amount);
 }
 
-function truncate(text: string): string {
+export function truncate(text: string): string {
   const clean = text.replace(/\s+/g, " ").trim();
   return clean.length > TITLE_MAX ? `${clean.slice(0, TITLE_MAX - 1)}…` : clean;
 }
@@ -76,7 +76,7 @@ interface PageResult<T> {
 }
 
 /** Trae todas las filas en lotes de PAGE_SIZE (la consulta debe tener orden estable). */
-async function fetchAllPages<T>(
+export async function fetchAllPages<T>(
   source: string,
   page: (from: number, to: number) => PromiseLike<PageResult<T>>,
 ): Promise<T[]> {
@@ -463,6 +463,13 @@ export function useAgendaData(range: AgendaRange): AgendaData {
     ["contrato", useContractsAgenda(range)],
     ["reserva", useBookingsAgenda(range)],
   ];
+  return combineAgendaSources(results);
+}
+
+/** Une los resultados de cada fuente en una lista ordenada con el estado de cada una. */
+export function combineAgendaSources(
+  results: ReadonlyArray<readonly [AgendaKind, UseQueryResult<AgendaItem[]>]>,
+): AgendaData {
   const sources = results.map(([kind, q]) => toState(kind, q));
   const items = results.flatMap(([, q]) => q.data ?? []).sort(byDate);
   const failed = sources.filter((s) => s.isError);
