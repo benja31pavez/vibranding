@@ -105,6 +105,8 @@ export interface PortalProposal {
 export interface PortalSnapshot {
   clientId: string;
   clientName: string;
+  /** Logo de la marca (URL pública) o null. */
+  clientLogoUrl: string | null;
   approvals: SectionResult<PortalApprovals>;
   report: SectionResult<PortalReport | null>;
   billing: SectionResult<PortalBilling>;

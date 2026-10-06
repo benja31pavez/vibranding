@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireOrgMember } from "@/lib/auth/requireOrgMember";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import { bookingWindow, safeTimeZone, zonedParts } from "./tz";
 import { parseOrThrow } from "./validation";
@@ -331,12 +331,18 @@ function slugify(text: string): string {
 }
 
 export const ensureBookingSettings = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireOrgMember])
   .inputValidator((d: { clientId?: string | null }) => ({
     clientId: parseOrThrow(z.string().uuid().nullable(), d.clientId ?? null),
   }))
   .handler(async ({ context, data }) => {
     const { supabase, userId, claims } = context;
+    // La RLS de booking_settings solo mira owner_user_id: el cliente debe ser de
+    // la org del usuario (editor) para no colgar una agenda de un cliente ajeno.
+    if (data.clientId) {
+      const { assertCanEditClient } = await import("@/lib/auth/clientAccess.server");
+      await assertCanEditClient(userId, data.clientId);
+    }
     // Never create when the read failed (findBookingSettings throws on error).
     const existing = await findBookingSettings(supabase, userId, data.clientId);
     if (existing) return existing;

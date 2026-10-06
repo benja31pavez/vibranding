@@ -265,9 +265,20 @@ async function loadProposals({ db, clientId }: PortalAccess): Promise<PortalProp
   }));
 }
 
+/**
+ * Nombre y logo del cliente. El usuario invitado ya no lee la tabla clients
+ * (tiene notas internas, org_id…): usa la vista client_self, que solo trae
+ * columnas seguras de SU cliente. La agencia (preview) lee clients por RLS.
+ */
+async function loadClientHeader({ db, clientId, mode }: PortalAccess) {
+  return mode === "client"
+    ? db.from("client_self").select("name,logo_url").eq("id", clientId).maybeSingle()
+    : db.from("clients").select("name,logo_url").eq("id", clientId).maybeSingle();
+}
+
 export async function loadPortalSnapshot(access: PortalAccess): Promise<PortalSnapshot> {
-  const { db, clientId } = access;
-  const clientRes = await db.from("clients").select("name").eq("id", clientId).maybeSingle();
+  const { clientId } = access;
+  const clientRes = await loadClientHeader(access);
   if (clientRes.error) {
     console.error("[portal] no se pudo leer el cliente", {
       clientId,
@@ -285,6 +296,7 @@ export async function loadPortalSnapshot(access: PortalAccess): Promise<PortalSn
   return {
     clientId,
     clientName: clientRes.data?.name ?? "",
+    clientLogoUrl: clientRes.data?.logo_url ?? null,
     approvals,
     report,
     billing,

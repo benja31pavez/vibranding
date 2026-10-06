@@ -38,7 +38,8 @@
     "check:prefs": "node scripts/check-prefs.mjs",
     "check:ads-billing": "node scripts/check-ads-billing.mjs",
     "check:google-ads-billing": "node scripts/check-google-ads-billing.mjs",
-    "check:client-logo": "node scripts/check-client-logo.mjs"
+    "check:client-logo": "node scripts/check-client-logo.mjs",
+    "check:aislamiento": "node scripts/check-aislamiento.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

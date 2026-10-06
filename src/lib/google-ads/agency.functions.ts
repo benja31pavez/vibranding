@@ -1,7 +1,7 @@
 // Server functions de la conexión única de la agencia (MCC) en Configuración → Google Ads.
 // Leer: cualquier miembro de la org. Conectar/cambiar/desconectar: owner o admin.
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireOrgMember } from "@/lib/auth/requireOrgMember";
 
 export type AgencyGoogleAdsStatus = {
   configured: boolean;
@@ -32,7 +32,7 @@ async function requireOrg(userId: string, manage: boolean) {
 }
 
 export const getAgencyGoogleAdsStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireOrgMember])
   .handler(async ({ context }): Promise<AgencyGoogleAdsStatus> => {
     const org = await requireOrg(context.userId, false);
     const { missingGoogleAdsVars } = await import("@/lib/google-ads/config.server");
@@ -71,7 +71,7 @@ export const getAgencyGoogleAdsStatus = createServerFn({ method: "POST" })
 
 /** URL de consentimiento de Google para la MCC de la agencia (state firmado + nonce). */
 export const startAgencyGoogleAdsOAuth = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireOrgMember])
   .handler(async ({ context }) => {
     const org = await requireOrg(context.userId, true);
     const { requireGoogleAdsConfig, googleRedirectUri, GOOGLE_ADS_SCOPE, GOOGLE_AUTH_URL } =
@@ -97,7 +97,7 @@ export const startAgencyGoogleAdsOAuth = createServerFn({ method: "POST" })
 
 /** MCC accesibles con el token guardado (cuando hay varias y falta elegir). */
 export const listAgencyManagers = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireOrgMember])
   .handler(async ({ context }) => {
     const org = await requireOrg(context.userId, true);
     const { requireGoogleAdsConfig } = await import("@/lib/google-ads/config.server");
@@ -127,7 +127,7 @@ export const listAgencyManagers = createServerFn({ method: "POST" })
 
 /** Elige cuál MCC es la de la agencia (debe ser accesible con el token guardado). */
 export const setAgencyManager = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireOrgMember])
   .inputValidator((input: unknown) => {
     const raw = (input as { customerId?: unknown } | null)?.customerId;
     const customerId = typeof raw === "string" ? raw.replace(/-/g, "").trim() : "";
@@ -158,7 +158,7 @@ export const setAgencyManager = createServerFn({ method: "POST" })
 
 /** Borra el token de la agencia; las cuentas vinculadas vía MCC quedan sin acceso. */
 export const disconnectAgencyGoogleAds = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireOrgMember])
   .handler(async ({ context }) => {
     const org = await requireOrg(context.userId, true);
     const { deleteAgencyConnection } = await import("@/lib/google-ads/agency.server");
