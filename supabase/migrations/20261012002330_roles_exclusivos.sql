@@ -18,7 +18,8 @@
 --   1. ensure_org() rechaza a usuarios cliente (user_client_id() no nulo).
 --      Para el owner actual no cambia nada: ya es miembro y la función
 --      devuelve su org en la primera consulta.
---   2. Triggers de exclusión mutua: no se puede insertar en org_members un
+--   2. Policy "orgs insert": además exige que el usuario no sea cliente.
+--   3. Triggers de exclusión mutua: no se puede insertar en org_members un
 --      user_id que esté en client_users, ni al revés. (inviteClientUser ya
 --      lo valida en el servidor; esto lo garantiza en la base.)
 --
@@ -87,5 +88,16 @@ DROP TRIGGER IF EXISTS t_client_users_user_kind ON public.client_users;
 CREATE TRIGGER t_client_users_user_kind
   BEFORE INSERT OR UPDATE OF user_id ON public.client_users
   FOR EACH ROW EXECUTE FUNCTION public.enforce_user_kind_exclusive();
+
+-- ---------------------------------------------------------------------
+-- orgs insert: un usuario cliente tampoco puede crear una org a mano por la
+-- API (sin pasar por ensure_org). user_client_id() es SECURITY DEFINER.
+-- (Aunque la insertara, el trigger de org_members le impediría ser miembro;
+-- esto evita además orgs huérfanas.)
+-- ---------------------------------------------------------------------
+DROP POLICY IF EXISTS "orgs insert" ON public.orgs;
+CREATE POLICY "orgs insert" ON public.orgs
+  FOR INSERT TO authenticated
+  WITH CHECK (owner_user_id = auth.uid() AND public.user_client_id() IS NULL);
 
 NOTIFY pgrst, 'reload schema';

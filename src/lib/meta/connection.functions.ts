@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireOrgMember } from "@/lib/auth/requireOrgMember";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type MetaConnection = {
@@ -35,7 +36,7 @@ export const discoverSystemUserToken = createServerFn({ method: "POST" })
 
 /** Warns when an ad account is already assigned to a different client. */
 export const checkAdAccountConflict = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireOrgMember])
   .inputValidator((input: { clientId: string; adAccountId: string }) => input)
   .handler(async ({ data, context }) => {
     const { normalizeAdAccountId } = await import("@/lib/meta/systemUser.server");
@@ -56,7 +57,7 @@ export const checkAdAccountConflict = createServerFn({ method: "POST" })
 
 /** Ad accounts already linked to another client (id → client name). */
 export const listTakenAdAccounts = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireOrgMember])
   .inputValidator((input: { clientId: string }) => input)
   .handler(
     async ({ data, context }): Promise<{ adAccountId: string; clientName: string | null }[]> => {
@@ -274,7 +275,7 @@ export type OrgTokenStatus = {
 
 /** Status of the org-level Meta token for the current user's organization. */
 export const getOrgMetaTokenStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireOrgMember])
   .handler(async ({ context }): Promise<OrgTokenStatus> => {
     const { data, error } = await (context.supabase.rpc as any)("org_meta_token_status");
     if (error) throw new Error(error.message);
@@ -283,7 +284,7 @@ export const getOrgMetaTokenStatus = createServerFn({ method: "POST" })
 
 /** Validates a pasted token and stores it once for the whole organization. */
 export const saveOrgMetaToken = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireOrgMember])
   .inputValidator((input: { token: string }) => input)
   .handler(async ({ data, context }) => {
     const token = data.token.trim();
@@ -314,7 +315,7 @@ export const saveOrgMetaToken = createServerFn({ method: "POST" })
 
 /** Removes the org-level token. Per-client tokens keep working. */
 export const clearOrgMetaToken = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireOrgMember])
   .handler(async ({ context }) => {
     const { data: status } = await (context.supabase.rpc as any)("org_meta_token_status");
     const orgId = (status as any)?.org_id as string | undefined;

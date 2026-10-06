@@ -102,6 +102,12 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
   BEGIN
+    INSERT INTO public.orgs (name, owner_user_id)
+    VALUES ('TEST org de cliente', '00000000-0000-4000-a000-0000000000c1');
+    RAISE EXCEPTION 'FALLO (cliente A): insertó una org directo';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
     INSERT INTO public.deliverables (client_id, title)
     VALUES ('00000000-0000-4000-a000-0000000000ca', 'TEST intruso');
     RAISE EXCEPTION 'FALLO (cliente A): pudo crear un entregable';

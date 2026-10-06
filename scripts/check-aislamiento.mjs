@@ -244,6 +244,21 @@ for (const fn of ["review_link_get", "review_link_comment"]) {
   }
 }
 
+// H11: un usuario cliente no puede insertar orgs directo por la API.
+{
+  let last = null;
+  for (const sql of sqlByFile.values()) {
+    for (const m of sql.matchAll(
+      /CREATE\s+POLICY\s+"orgs insert"\s+ON\s+public\.orgs([\s\S]*?);/gi,
+    )) {
+      last = m[1];
+    }
+  }
+  if (!last || !/user_client_id\(\)\s+IS\s+NULL/i.test(last)) {
+    failures.push('orgs: "orgs insert" no excluye a usuarios cliente');
+  }
+}
+
 // H10: desde la migración de editores, ninguna policy de escritura nueva usa owns_client.
 const EDITORS_MIGRATION = "20261012002320";
 for (const [f, sql] of sqlByFile) {

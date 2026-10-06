@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireAgencyMember } from "@/lib/auth/requireAgencyMember";
+import { requireOrgMember } from "@/lib/auth/requireOrgMember";
 import type { MetaValidation } from "@/lib/meta/validate.server";
 
 export type ClientConnectRow = {
@@ -20,7 +20,7 @@ export type ClientConnectRow = {
 
 /** Every client of the org with what is still missing to be fully connected. */
 export const listClientConnections = createServerFn({ method: "POST" })
-  .middleware([requireAgencyMember])
+  .middleware([requireOrgMember])
   .handler(async ({ context }): Promise<ClientConnectRow[]> => {
     const { data: clients } = await context.supabase
       .from("clients")
@@ -84,7 +84,7 @@ async function requireOrgTokenManager(supabase: any): Promise<string> {
 
 /** Assets the org-level token reaches, without needing a client context. */
 export const discoverOrgAssets = createServerFn({ method: "POST" })
-  .middleware([requireAgencyMember])
+  .middleware([requireOrgMember])
   .handler(async ({ context }) => {
     const orgId = await requireOrgTokenManager(context.supabase);
 
@@ -102,7 +102,7 @@ export const discoverOrgAssets = createServerFn({ method: "POST" })
 
 /** Re-runs /debug_token against the stored org token and refreshes its metadata. */
 export const validateOrgMetaToken = createServerFn({ method: "POST" })
-  .middleware([requireAgencyMember])
+  .middleware([requireOrgMember])
   .handler(async ({ context }) => {
     const orgId = await requireOrgTokenManager(context.supabase);
 

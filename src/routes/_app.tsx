@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { forgetUserKind, resolveUserKind } from "@/lib/auth/userKind";
+import { forgetUserKind, resolveUserKind, UserKindError, type UserKind } from "@/lib/auth/userKind";
 import { useUnmarkedOutcomes } from "@/hooks/use-unmarked-outcomes";
 import { useSyncLanguagePref } from "@/hooks/use-user-prefs";
 import { AppHeader } from "@/components/shell/AppHeader";
@@ -28,13 +28,21 @@ export const Route = createFileRoute("/_app")({
   head: () => ({ meta: [NOINDEX_META] }),
   // Guard de todas las rutas de agencia (hijas de /_app): un usuario cliente va a /portal.
   // En SSR no hay sesión (vive en el navegador): ahí decide AppLayout al hidratar.
-  // Si la verificación falla, lanza → errorComponent de la raíz (nunca el shell de agencia).
+  // Solo redirige cuando CONFIRMA que es cliente. Si la verificación falla (red/RPC),
+  // deja pasar a AppLayout, que falla cerrado (skeleton + Reintentar/Salir, nunca el shell).
   beforeLoad: async () => {
     if (typeof window === "undefined") return;
     const { data } = await supabase.auth.getSession();
     const userId = data.session?.user.id;
     if (!userId) return; // AppLayout redirige a /login.
-    if ((await resolveUserKind(userId)) === "client") throw redirect({ to: "/portal" });
+    let kind: UserKind;
+    try {
+      kind = await resolveUserKind(userId);
+    } catch (e) {
+      if (e instanceof UserKindError) return;
+      throw e;
+    }
+    if (kind === "client") throw redirect({ to: "/portal" });
   },
   component: AppLayout,
 });

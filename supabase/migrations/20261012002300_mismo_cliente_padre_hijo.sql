@@ -15,8 +15,9 @@
 --   1. Crea public.enforce_parent_same_client(): trigger genérico
 --      (SECURITY DEFINER, para ver el padre aunque la RLS lo oculte) que
 --      rechaza INSERT/UPDATE si el padre existe y su client_id es distinto
---      al de la fila. Padres inexistentes o con client_id nulo se dejan
---      pasar (la FK, si existe, ya responde por la existencia).
+--      al de la fila. Se deja pasar si la fila no tiene client_id, si el
+--      padre no existe (la FK, si existe, responde por eso) o si el padre
+--      tiene client_id nulo.
 --   2. Lo engancha a cada par hijo→padre que escribe un usuario o el
 --      servidor con ids que vienen del navegador.
 --   3. deliverable_review_links: INSERT/UPDATE exigen can_edit_client y que
@@ -48,6 +49,10 @@ DECLARE
   _parent_id    uuid;
   _mismatch     boolean;
 BEGIN
+  -- Sin client_id no hay nada que cruzar (la RLS y los NOT NULL responden por eso).
+  IF NEW.client_id IS NULL THEN
+    RETURN NEW;
+  END IF;
   _parent_id := nullif(to_jsonb(NEW) ->> _fk_col, '')::uuid;
   IF _parent_id IS NULL THEN
     RETURN NEW;
@@ -71,12 +76,13 @@ END $$;
 -- Función de trigger: nadie la llama directo.
 REVOKE ALL ON FUNCTION public.enforce_parent_same_client() FROM PUBLIC, anon, authenticated;
 
--- Engancha el trigger a un par (hijo.fk → padre). Solo se dispara cuando
--- cambia la FK o el client_id del hijo.
+-- Engancha dos triggers por par (hijo.fk → padre): uno en INSERT y otro en
+-- UPDATE que solo se dispara cuando de verdad cambia la FK o el client_id
+-- (WHEN … IS DISTINCT FROM), para no pagar la consulta en updates normales.
 DO $$
 DECLARE
   r record;
-  _trg text;
+  _base text;
 BEGIN
   FOR r IN
     SELECT * FROM (VALUES
@@ -104,12 +110,21 @@ BEGIN
       ('payments',                    'proposal_id',     'proposals')
     ) AS v(child, fk_col, parent)
   LOOP
-    _trg := format('t_%s_%s_same_client', r.child, r.fk_col);
-    EXECUTE format('DROP TRIGGER IF EXISTS %I ON public.%I', _trg, r.child);
+    _base := format('t_%s_%s_same_client', r.child, r.fk_col);
+    EXECUTE format('DROP TRIGGER IF EXISTS %I ON public.%I', _base, r.child);  -- versión previa
+    EXECUTE format('DROP TRIGGER IF EXISTS %I ON public.%I', _base || '_ins', r.child);
+    EXECUTE format('DROP TRIGGER IF EXISTS %I ON public.%I', _base || '_upd', r.child);
     EXECUTE format(
-      'CREATE TRIGGER %I BEFORE INSERT OR UPDATE OF %I, client_id ON public.%I
+      'CREATE TRIGGER %I BEFORE INSERT ON public.%I
          FOR EACH ROW EXECUTE FUNCTION public.enforce_parent_same_client(%L, %L)',
-      _trg, r.fk_col, r.child, r.parent, r.fk_col
+      _base || '_ins', r.child, r.parent, r.fk_col
+    );
+    EXECUTE format(
+      'CREATE TRIGGER %I BEFORE UPDATE OF %I, client_id ON public.%I
+         FOR EACH ROW
+         WHEN (OLD.%I IS DISTINCT FROM NEW.%I OR OLD.client_id IS DISTINCT FROM NEW.client_id)
+         EXECUTE FUNCTION public.enforce_parent_same_client(%L, %L)',
+      _base || '_upd', r.fk_col, r.child, r.fk_col, r.fk_col, r.parent, r.fk_col
     );
   END LOOP;
 END $$;

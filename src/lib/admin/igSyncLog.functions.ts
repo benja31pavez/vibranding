@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireOrgMember } from "@/lib/auth/requireOrgMember";
 
 export type IgSyncRun = {
   id: string;
@@ -18,7 +18,7 @@ export type IgSyncRun = {
 
 /** Audit trail of Instagram sync runs, scoped by RLS to the user's clients. */
 export const listIgSyncRuns = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireOrgMember])
   .handler(async ({ context }): Promise<IgSyncRun[]> => {
     const { data, error } = await (context.supabase.from("ig_sync_runs" as any) as any)
       .select(

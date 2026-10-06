@@ -1,6 +1,10 @@
 /**
- * "¿Este usuario trabaja en una agencia?" para server functions que no reciben
- * un clientId (configuración de la org, token de Meta de la org, listados).
+ * "¿Este usuario es miembro de una org (y no cliente)?" para server functions
+ * de nivel org que no reciben un clientId (configuración de la org, token de
+ * Meta de la org, listados por RLS).
+ *
+ * NO sirve para datos globales de la plataforma (todos los tenants, jobs,
+ * crons): esos usan assertPlatformAdmin (platformAdmin.server.ts).
  *
  * Ojo: tener org NO es ser Vibranding (cualquier cuenta nueva queda owner de
  * su propia org vacía vía ensure_org()). Esto solo garantiza que el usuario es
@@ -12,7 +16,7 @@
  */
 import { ClientAccessError, type OrgRole } from "./clientAccess.server";
 
-export interface AgencyMembership {
+export interface OrgMembership {
   orgId: string;
   role: OrgRole;
 }
@@ -20,7 +24,7 @@ export interface AgencyMembership {
 const NOT_AGENCY = "Esta función es solo para el equipo de la agencia";
 const CHECK_FAILED = "No se pudo verificar tu acceso";
 
-export async function getAgencyMembership(userId: string): Promise<AgencyMembership | null> {
+export async function getOrgMembership(userId: string): Promise<OrgMembership | null> {
   if (!userId) return null;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const db = supabaseAdmin as any;
@@ -35,7 +39,7 @@ export async function getAgencyMembership(userId: string): Promise<AgencyMembers
       .limit(1),
   ]);
   if (clientRes.error || memberRes.error) {
-    console.error("[agencyAccess] membership lookup failed", {
+    console.error("[orgAccess] membership lookup failed", {
       clientUsers: clientRes.error?.message,
       orgMembers: memberRes.error?.message,
     });
@@ -49,8 +53,8 @@ export async function getAgencyMembership(userId: string): Promise<AgencyMembers
 }
 
 /** Lanza ClientAccessError (403) salvo que el usuario sea miembro de una org y no cliente. */
-export async function assertAgencyMember(userId: string): Promise<AgencyMembership> {
-  const membership = await getAgencyMembership(userId);
+export async function assertOrgMember(userId: string): Promise<OrgMembership> {
+  const membership = await getOrgMembership(userId);
   if (!membership) throw new ClientAccessError(NOT_AGENCY);
   return membership;
 }
