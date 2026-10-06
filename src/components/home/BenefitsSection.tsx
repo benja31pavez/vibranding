@@ -1,4 +1,5 @@
 import { Search, ShoppingBag, Sparkles, ThumbsUp } from "lucide-react";
+import { useTilt } from "@/hooks/use-tilt";
 import { translations } from "@/i18n/translations";
 import { SectionHeading } from "./shared";
 import { BENEFIT_MOCKUPS } from "./mockups/BenefitMockups";
@@ -11,10 +12,13 @@ const TONES = ["var(--brand-1)", "var(--brand-2)", "var(--brand-3)"];
  * (stacked on mobile), each with its mockup. When a card scrolls into view (useScrollReveal
  * marks it `data-revealed`) it rises in and its mockup assembles; on desktop the three reveal
  * together, staggered, while the connector draws 1 → 2 → 3 (sections.css).
+ * On hover a card behaves like the service tiles: tilt, gradient border, and its mockup comes
+ * forward and assembles again.
  * Without JS, above the fold or with reduced motion everything is complete and static.
  */
 export function BenefitsSection() {
   const b = translations.es.home.benefits; // The public home is Spanish-only (Chile).
+  const tilt = useTilt();
 
   return (
     <section
@@ -35,14 +39,20 @@ export function BenefitsSection() {
                 >
                   {i + 1}
                 </span>
-                <div className="mt-4 flex flex-1 flex-col rounded-3xl border bg-card p-5 md:p-6">
+                <div
+                  {...tilt}
+                  className="svc bx-glow relative mt-4 flex flex-1 flex-col rounded-3xl border bg-card p-5 md:p-6"
+                >
                   <h3 className="flex items-center gap-2.5 text-xl font-semibold">
                     <Icon aria-hidden className="h-5 w-5" style={{ color: TONES[i] }} />
                     {item.title}
                   </h3>
                   <p className="mt-3 text-muted-foreground leading-relaxed">{item.desc}</p>
                   {Mockup && (
-                    <div aria-hidden className="mt-6 flex flex-1 items-center justify-center">
+                    <div
+                      aria-hidden
+                      className="svc-mock mt-6 flex flex-1 items-center justify-center"
+                    >
                       <Mockup />
                     </div>
                   )}

@@ -143,3 +143,32 @@
     animation: bx-pop 0.7s var(--ease-out-expo) calc(var(--d, 0s) + 0.4s) both;
   }
 }
+
+/* "Tres pilares" cards reuse the service-tile hover (.svc). Their pieces already ran bx-in/bx-pop
+   on reveal, and re-applying the same animation name would not restart it, so hover uses copies. */
+@keyframes bx-in-again {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.96);
+  }
+}
+
+@keyframes bx-pop-again {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-18deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .bx-card[data-revealed] .svc:hover .bx-in {
+    animation: bx-in-again 0.6s var(--ease-out-expo) var(--d, 0s) both;
+  }
+  .bx-card[data-revealed] .svc:hover .bx-pop {
+    animation: bx-pop-again 0.6s var(--ease-out-expo) var(--d, 0s) both;
+  }
+}
