@@ -15,7 +15,7 @@ import {
   type DbError,
   type SeedDb,
 } from "./planSeedStore";
-import { presentCycleKeys, type SeedTask } from "./planTemplateSeed";
+import { legacyToRetire, presentCycleKeys, type SeedTask } from "./planTemplateSeed";
 
 /** Cada cliente son ~4 consultas: 10 por lote caben en los 15 s del cron. */
 export const PLAN_CYCLE_MAX_BATCH_LIMIT = 10;
@@ -61,10 +61,11 @@ async function seedClient(row: ClientRow, months: readonly string[]): Promise<Cy
       loadTemplateTasks(db, row.client_id, fail),
       loadLedger(db, row.client_id, fail),
     ]);
+    const present = presentCycleKeys(tasks);
     const plan = cycleSeed({
       planKey: isCyclePlan(row.plan_key) ? row.plan_key : null,
       months,
-      present: presentCycleKeys(tasks),
+      present,
       ledger: ledger ?? new Set(),
       clientStart: clientStart(row),
     });
@@ -82,7 +83,12 @@ async function seedClient(row: ClientRow, months: readonly string[]): Promise<Cy
     const result = await applySeed(
       db,
       row.client_id,
-      { tasks: seedTasks, objectives: [], ledgerAdd: plan.ledgerAdd },
+      {
+        tasks: seedTasks,
+        objectives: [],
+        ledgerAdd: plan.ledgerAdd,
+        retire: legacyToRetire(tasks, [...present, ...plan.tasks.map((t) => t.itemKey)]),
+      },
       ledger !== null,
       fail,
     );

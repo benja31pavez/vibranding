@@ -37,6 +37,9 @@ export interface SeedDb {
   from: (t: string) => {
     select: (c: string) => Query;
     insert: (rows: Row[]) => { select: (c: string) => PromiseLike<Result> };
+    update: (values: Row) => {
+      eq: (k: string, v: string) => PromiseLike<{ error: DbError | null }>;
+    };
     upsert: (
       rows: Row[],
       opts: { onConflict: string; ignoreDuplicates: boolean },
@@ -48,20 +51,24 @@ export const isMissing = (e: DbError | null) => Boolean(e && MISSING_CODES.has(e
 
 export type FailFn = (error: DbError) => never;
 
-/** Descripción de las tareas con marcador de plantilla del cliente. */
+/** Tareas con marcador de plantilla del cliente (id, estado y descripción). */
 export async function loadTemplateTasks(
   db: SeedDb,
   clientId: string,
   fail: FailFn,
-): Promise<{ description: string | null }[]> {
+): Promise<{ id: string; status: string; description: string | null }[]> {
   const { data, error } = await db
     .from("client_tasks")
-    .select("description")
+    .select("id,status,description")
     .eq("client_id", clientId)
     .like("description", TEMPLATE_LIKE)
     .limit(ROW_LIMIT);
   if (error) fail(error);
-  return (data ?? []).map((r) => ({ description: (r.description as string | null) ?? null }));
+  return (data ?? []).map((r) => ({
+    id: String(r.id),
+    status: String(r.status ?? ""),
+    description: (r.description as string | null) ?? null,
+  }));
 }
 
 /** Registro de plantillas sembradas; null si la tabla aún no existe. */
@@ -188,5 +195,13 @@ export async function applySeed(
     fail,
   );
   if (hasLedger) await saveLedger(db, clientId, plan.ledgerAdd, fail);
+  // Tareas viejas que ahora cubre el ciclo: solo se cambia el marcador (no se borra nada).
+  for (const old of plan.retire) {
+    const { error } = await db
+      .from("client_tasks")
+      .update({ description: old.description })
+      .eq("id", old.id);
+    if (error) fail(error);
+  }
   return { tasks, objectives };
 }

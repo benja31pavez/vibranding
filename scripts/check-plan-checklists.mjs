@@ -17,7 +17,7 @@ const entry = join(outDir, "entry.ts");
 const outFile = join(outDir, "planChecklists.mjs");
 writeFileSync(
   entry,
-  ["planChecklists", "planCycle", "planSignals", "planTemplateSeed", "planStages"]
+  ["planChecklists", "planCycle", "planSignals", "planTemplateSeed", "planStages", "monthPlan"]
     .map((m) => `export * from ${JSON.stringify(join(root, `src/lib/delivery/${m}.ts`))};`)
     .join("\n"),
 );
@@ -132,7 +132,7 @@ const sortRows = (rows) => [...rows].sort((a, b) => a[2] - b[2] || a[0].localeCo
 eq("inicio de contenido", asRows(cont), sortRows(COMMON));
 eq(
   "inicio de crecimiento",
-  asRows(crec),
+  asRows(crec.filter((t) => t.stage !== "landing")),
   sortRows([
     ...COMMON,
     ["Medio de pago de la pauta verificado", "benjamin", 5],
@@ -156,6 +156,29 @@ eq(
   ]),
 );
 eq("marca-web: todas con fecha", mw.length, dated(mw).length);
+eq("crecimiento: todas con fecha", crec.length, dated(crec).length);
+const withChat = s.checklistForPlan(ctx("crecimiento", ["chatbot"]));
+eq("crecimiento + chatbot: todas con fecha", withChat.length, dated(withChat).length);
+eq(
+  "landing en crecimiento",
+  crec.filter((t) => t.stage === "landing").map((t) => [t.title, t.owner, t.day]),
+  [
+    ["Textos y fotos recibidos", "benjamin", 7],
+    ["Dominio o URL definida", "benjamin", 10],
+    ["Landing publicada", "benjamin", 14],
+    ["Botón de WhatsApp y formulario probados", "benjamin", 15],
+  ],
+);
+eq(
+  "chatbot (adicional)",
+  withChat.filter((t) => t.stage === "chatbot").map((t) => [t.title, t.owner, t.day]),
+  [
+    ["Preguntas frecuentes recopiladas", "benjamin", 7],
+    ["Flujo aprobado", "benjamin", 10],
+    ["Número de WhatsApp conectado", "benjamin", 12],
+    ["Prueba completa", "benjamin", 14],
+  ],
+);
 eq("inicio de mantención", asRows(mant), [["Accesos de Instagram vigentes", "benjamin", 1]]);
 eq("mantención: solo accesos", mant.length, 1);
 ok("señal del brief", byKey(crec, "tarea:estrategia:brief").signal === "intake_submitted");
@@ -523,6 +546,71 @@ ok(
 ok(
   "registro antiguo",
   s.isLegacyLedgerKey("tarea:ads:pago") && !s.isLegacyLedgerKey("ciclo:x:2026-10"),
+);
+
+// ─── Plantilla anterior reemplazada por el ciclo ────────────────────────────
+const oldTasks = [
+  {
+    id: "a",
+    status: "pending",
+    description: "Tarea estándar del plan.\n\n[plantilla:diseno:piezas]",
+  },
+  { id: "b", status: "done", description: "[plantilla:planificacion:calendario]" },
+  { id: "c", status: "in_progress", description: "[plantilla:reporte:generado]" },
+  { id: "d", status: "pending", description: "[plantilla:estrategia:brief]" },
+  { id: "e", status: "pending", description: "[plantilla:optimizacion:revision-semanal]" },
+  { id: "f", status: "pending", description: "[plantilla:reporte:enviado]" },
+];
+const retired = s.legacyToRetire(oldTasks, [
+  "ciclo:piezas:2026-10",
+  "ciclo:calendario:2026-10",
+  "ciclo:reporte:2026-10",
+  "ciclo:revision-campanas-2:2026-10",
+]);
+eq(
+  "reemplaza solo abiertas con equivalente en el ciclo",
+  retired.map((r) => r.id),
+  ["a", "c", "e"],
+);
+eq(
+  "marcador antiguo",
+  retired[0].description,
+  "Tarea estándar del plan.\n\n[plantilla-antigua:diseno:piezas]",
+);
+ok("reemplazada ya no es plantilla", !s.isTemplateTask({ description: retired[0].description }));
+ok("reemplazada se oculta", s.isRetiredTask({ description: retired[0].description }));
+eq("sin ciclo no reemplaza", s.legacyToRetire(oldTasks, []).length, 0);
+eq(
+  "siembra con ciclo reemplaza la vieja",
+  seed({ ctx: ctx("contenido"), tasks: [oldTasks[0]], cycleActive: true }).retire.map((r) => r.id),
+  ["a"],
+);
+eq(
+  "cliente no activo: no reemplaza",
+  seed({ ctx: ctx("contenido"), tasks: [oldTasks[0]], cycleActive: false }).retire.length,
+  0,
+);
+
+// ─── Plan del mes (ficha) vs. ciclo ─────────────────────────────────────────
+const monthItems = s.buildMonthPlan({ planKey: "contenido", month: "2026-11" });
+const cycleRow = [
+  {
+    title: "x",
+    due_date: "2026-11-03",
+    description: "[plantilla:planificacion:calendario:2026-11]",
+  },
+];
+eq("ciclo del mes detectado", s.cycleTasksOfMonth("2026-11", cycleRow).length, 1);
+eq("ciclo de otro mes no cuenta", s.cycleTasksOfMonth("2026-12", cycleRow).length, 0);
+eq(
+  "sin ciclo: plan del mes completo",
+  s.withoutCycleOverlap(monthItems, "2026-11", []).length,
+  monthItems.length,
+);
+eq(
+  "con ciclo: sin calendario, piezas ni reporte",
+  [...new Set(s.withoutCycleOverlap(monthItems, "2026-11", cycleRow).map((i) => i.kind))].sort(),
+  ["google", "reunion"],
 );
 
 // ─── Señales ────────────────────────────────────────────────────────────────

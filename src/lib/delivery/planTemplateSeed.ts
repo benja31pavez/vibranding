@@ -38,6 +38,7 @@ import {
   cycleItemKey,
   cycleMonths,
   cycleSeed,
+  findCycleTask,
   nextBusinessDay,
 } from "./planCycle";
 import type { TeamMemberKey } from "./team";
@@ -47,6 +48,9 @@ export const ONBOARDING_WINDOW_DAYS = 30;
 
 export interface SeedTaskLike {
   readonly description: string | null;
+  /** Para reemplazar tareas de la plantilla anterior (ver `legacyToRetire`). */
+  readonly id?: string;
+  readonly status?: string;
 }
 
 export interface SeedObjectiveLike {
@@ -80,11 +84,74 @@ export interface SeedTask {
   readonly description: string;
 }
 
+/** Tarea de la plantilla anterior que se marca como reemplazada (nueva descripción). */
+export interface RetireTask {
+  readonly id: string;
+  readonly description: string;
+}
+
 export interface SeedPlan {
   readonly tasks: readonly SeedTask[];
   readonly objectives: readonly PlannedObjective[];
   /** Claves a registrar: las que se crean y las que ya existían sin registro. */
   readonly ledgerAdd: readonly string[];
+  /** Tareas viejas sin mes que ahora cubre el ciclo (se les cambia el marcador). */
+  readonly retire: readonly RetireTask[];
+}
+
+// ─── Plantilla anterior reemplazada por el ciclo ────────────────────────────
+
+/**
+ * Tareas de la plantilla anterior (sin fecha ni mes, `<etapa>:<clave>`) que
+ * ahora son tareas del ciclo mensual (clave del ciclo).
+ */
+export const LEGACY_CYCLE_KEYS: Readonly<Record<string, string>> = {
+  "planificacion:calendario": "calendario",
+  "contenido:calendario": "calendario",
+  "planificacion:copys": "copys",
+  "contenido:copys": "copys",
+  "diseno:piezas": "piezas",
+  "contenido:piezas": "piezas",
+  "planificacion:aprobacion": "aprobacion",
+  "contenido:aprobacion": "aprobacion",
+  "planificacion:reporte": "reporte",
+  "reporte:generado": "reporte",
+  "reporte:enviado": "reporte-enviado",
+  "optimizacion:revision-semanal": "revision-campanas",
+};
+
+/** Marcador de una tarea vieja ya reemplazada por el ciclo (no cuenta como plantilla). */
+export const RETIRED_MARKER = "[plantilla-antigua:";
+
+/** ¿Tarea vieja reemplazada por el ciclo? (se oculta en el Plan; la fila no se borra). */
+export function isRetiredTask(task: { readonly description?: string | null }): boolean {
+  return (task.description ?? "").includes(RETIRED_MARKER);
+}
+
+const isOpen = (status: string | undefined) => status !== "done" && status !== "in_review";
+
+/**
+ * Tareas viejas abiertas cuyo equivalente del ciclo ya existe (o se crea
+ * ahora). `cycleItemKeys`: claves `ciclo:<clave>:<AAAA-MM>`. Las listas no se tocan.
+ */
+export function legacyToRetire(
+  tasks: readonly SeedTaskLike[],
+  cycleItemKeys: Iterable<string>,
+): RetireTask[] {
+  const covered = new Set(
+    [...cycleItemKeys].flatMap((k) => {
+      const def = findCycleTask(k.split(":")[1] ?? "");
+      return def ? [def.key] : [];
+    }),
+  );
+  return tasks.flatMap((t) => {
+    const m = readTemplateMarker(t.description);
+    if (!t.id || !m || m.month || !isOpen(t.status)) return [];
+    const cycleKey = LEGACY_CYCLE_KEYS[`${m.stage}:${m.key}`];
+    if (!cycleKey || !covered.has(cycleKey)) return [];
+    const description = (t.description ?? "").replace("[plantilla:", RETIRED_MARKER);
+    return [{ id: t.id, description }];
+  });
 }
 
 /** "tarea:branding:logo" → "tarea:branding". */
@@ -187,11 +254,14 @@ function onboardingTask(t: PlannedTask, base: string): SeedTask {
 
 /** Tareas del ciclo mensual que faltan (solo clientes activos con plan mensual). */
 function cyclePart(input: SeedInput) {
-  if (!input.cycleActive) return { tasks: [] as SeedTask[], ledgerAdd: [] as string[] };
+  if (!input.cycleActive) {
+    return { tasks: [] as SeedTask[], ledgerAdd: [] as string[], retire: [] as RetireTask[] };
+  }
+  const present = presentCycleKeys(input.tasks);
   const plan = cycleSeed({
     planKey: input.ctx.planKey,
     months: cycleMonths(input.today),
-    present: presentCycleKeys(input.tasks),
+    present,
     ledger: input.ledger,
     clientStart: input.clientStart,
   });
@@ -206,7 +276,8 @@ function cyclePart(input: SeedInput) {
       description: cycleDescription(t.stage, t.key, t.month),
     }),
   );
-  return { tasks, ledgerAdd: [...plan.ledgerAdd] };
+  const retire = legacyToRetire(input.tasks, [...present, ...plan.tasks.map((t) => t.itemKey)]);
+  return { tasks, ledgerAdd: [...plan.ledgerAdd], retire };
 }
 
 /** Lo que falta crear y registrar para el cliente. */
@@ -243,7 +314,12 @@ export function planSeed(input: SeedInput): SeedPlan {
       ...cycle.ledgerAdd,
     ]),
   ].filter((k) => !ledger.has(k));
-  return { tasks: [...newTasks, ...cycle.tasks], objectives: newObjectives, ledgerAdd };
+  return {
+    tasks: [...newTasks, ...cycle.tasks],
+    objectives: newObjectives,
+    ledgerAdd,
+    retire: cycle.retire,
+  };
 }
 
 /** ¿La tarea es estándar del plan (de inicio o del ciclo)? */

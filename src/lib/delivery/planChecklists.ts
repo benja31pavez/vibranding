@@ -254,40 +254,48 @@ export const STAGE_CHECKLISTS: Readonly<Record<StageKey, readonly ChecklistTask[
       day: 14,
       plans: ["marca-web"],
     },
-    // Landing en otros planes (Crecimiento o adicional): sin fecha fija.
+    // Landing en otros planes (Crecimiento o adicional).
     {
       key: "insumos",
       title: "Textos y fotos recibidos",
+      owner: "benjamin",
+      day: 7,
       signal: "client_files",
       plans: ["contenido", "crecimiento", "mantencion"],
     },
     {
       key: "url",
       title: "Dominio o URL definida",
+      owner: "benjamin",
+      day: 10,
       signal: "landing_url",
       plans: ["contenido", "crecimiento", "mantencion"],
     },
     {
       key: "publicada",
       title: "Landing publicada",
+      owner: "benjamin",
+      day: 14,
       signal: "landing_published",
       byPlan: {
-        "marca-web": { title: "Landing publicada y probada", day: 16, owner: "benjamin" },
+        "marca-web": { title: "Landing publicada y probada", day: 16 },
       },
     },
     {
       key: "pruebas",
       title: "Botón de WhatsApp y formulario probados",
+      owner: "benjamin",
+      day: 15,
       signal: "landing_contact",
       plans: ["contenido", "crecimiento", "mantencion"],
     },
   ],
-  // Adicional: sin fecha fija.
+  // Adicional.
   chatbot: [
-    { key: "faq", title: "Preguntas frecuentes recopiladas" },
-    { key: "flujo", title: "Flujo aprobado" },
-    { key: "whatsapp", title: "Número de WhatsApp conectado" },
-    { key: "prueba", title: "Prueba completa" },
+    { key: "faq", title: "Preguntas frecuentes recopiladas", owner: "benjamin", day: 7 },
+    { key: "flujo", title: "Flujo aprobado", owner: "benjamin", day: 10 },
+    { key: "whatsapp", title: "Número de WhatsApp conectado", owner: "benjamin", day: 12 },
+    { key: "prueba", title: "Prueba completa", owner: "benjamin", day: 14 },
   ],
   optimizacion: [
     {

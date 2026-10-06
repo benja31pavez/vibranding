@@ -10,6 +10,7 @@ import {
   type BoardColumn,
   type StageKey,
 } from "@/lib/delivery/planStages";
+import { isRetiredTask } from "@/lib/delivery/planTemplateSeed";
 import type { DeliveryAction } from "./TaskBoard";
 import {
   createPlanTask,
@@ -42,7 +43,8 @@ export function usePlanBoard({ clientId, userKey, planKey, stage, today }: UsePl
   const tasksQ = usePlanTasks(userKey, clientId);
   const contractedQ = usePlanContracted(userKey, clientId);
 
-  const tasks = useMemo(() => tasksQ.data ?? [], [tasksQ.data]);
+  // Las tareas de la plantilla anterior que reemplazó el ciclo mensual no se muestran (siguen en la BD).
+  const tasks = useMemo(() => (tasksQ.data ?? []).filter((t) => !isRetiredTask(t)), [tasksQ.data]);
   const rows = useMemo(() => stagesQ.data ?? [], [stagesQ.data]);
   const plan = useMemo(
     () => resolvePlan(planKey, contractedQ.data ?? []),
