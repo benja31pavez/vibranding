@@ -30,9 +30,14 @@
 --      (20261012002400, con la exclusión de payments.document_path) + no barre
 --      'archivos/...' referenciados por client_files. Un objeto subido pero
 --      nunca registrado (o cuyo registro se eliminó) sí se barre a las 48 h.
---   7. Bucket 'onboarding': file_size_limit 10 MB → 200 MB (el bucket ya
---      existe; no se crean buckets). El onboarding público sigue validando
---      10 MB en la app y en su server function (ver riesgos en el PR).
+--   7. Onboarding público: private.parse_onboarding_payload() (la usa
+--      submit_onboarding) valida el tamaño REAL de cada archivo (máx. 10 MB) y
+--      que la ruta sea del onboarding ('<client_id>/…', nunca 'archivos/' ni
+--      'documentos/'). Si excede, el envío se rechaza con mensaje claro y el
+--      objeto, sin referencia, lo barre la limpieza diaria.
+--   8. Bucket 'onboarding': file_size_limit 10 MB → 200 MB (el bucket ya
+--      existe; no se crean buckets). El tope de 10 MB del onboarding queda en
+--      la app, su server function y la BD (punto 7).
 --
 -- Idempotente.
 -- =====================================================================
@@ -283,6 +288,193 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.list_onboarding_orphans(integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.list_onboarding_orphans(integer) TO service_role;
+
+-- ---------------------------------------------------------------- onboarding público
+
+-- Misma función que 20261010000000_platform_v3 (vigente en producción) + tope
+-- de 10 MB por archivo con el tamaño REAL (storage.objects.metadata->>'size')
+-- y rechazo explícito de rutas 'archivos/' y 'documentos/'. submit_onboarding()
+-- no cambia: atrapa el error (22023) y responde invalid_payload con el mensaje.
+CREATE OR REPLACE FUNCTION private.parse_onboarding_payload(_client_id uuid, _payload jsonb)
+RETURNS public.client_intake
+LANGUAGE plpgsql STABLE SET search_path = ''
+AS $$
+DECLARE
+  r public.client_intake%ROWTYPE;
+  k text;
+  v jsonb;
+  item jsonb;
+  t text;
+  obj_size bigint;
+  -- Onboarding público: 10 MB por archivo (el bucket admite 200 MB por "Archivos").
+  max_onboarding_file constant bigint := 10485760;
+  allowed_keys constant text[] := ARRAY[
+    'razon_social', 'rut', 'giro', 'direccion', 'contacto_nombre', 'contacto_telefono',
+    'contacto_email', 'email_facturacion', 'descripcion', 'publico_objetivo', 'competencia',
+    'colores', 'estilo', 'links_redes', 'accesos_pendientes', 'archivos'];
+  link_keys constant text[] := ARRAY['instagram', 'facebook', 'tiktok', 'linkedin', 'youtube', 'x', 'web', 'otro'];
+  email_re constant text := '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$';
+  path_prefix text := _client_id::text || '/';
+BEGIN
+  IF _payload IS NULL OR jsonb_typeof(_payload) <> 'object' THEN
+    RAISE EXCEPTION 'payload debe ser un objeto' USING ERRCODE = '22023';
+  END IF;
+  IF octet_length(_payload::text) > 65536 THEN
+    RAISE EXCEPTION 'payload supera 64 KB' USING ERRCODE = '22023';
+  END IF;
+  FOR k IN SELECT jsonb_object_keys(_payload) LOOP
+    IF NOT k = ANY (allowed_keys) THEN
+      RAISE EXCEPTION 'campo % no permitido', k USING ERRCODE = '22023';
+    END IF;
+  END LOOP;
+
+  r.client_id := _client_id;
+  r.razon_social := private.intake_text(_payload, 'razon_social', 200);
+  IF r.razon_social IS NULL THEN
+    RAISE EXCEPTION 'campo razon_social es obligatorio' USING ERRCODE = '22023';
+  END IF;
+
+  r.rut := private.intake_text(_payload, 'rut', 12);
+  IF r.rut IS NOT NULL AND NOT private.rut_is_valid(r.rut) THEN
+    RAISE EXCEPTION 'campo rut inválido' USING ERRCODE = '22023';
+  END IF;
+
+  r.giro := private.intake_text(_payload, 'giro', 200);
+  r.direccion := private.intake_text(_payload, 'direccion', 300);
+  r.contacto_nombre := private.intake_text(_payload, 'contacto_nombre', 120);
+
+  r.contacto_telefono := private.intake_text(_payload, 'contacto_telefono', 30);
+  IF r.contacto_telefono IS NOT NULL AND r.contacto_telefono !~ '^\+?[0-9 ()-]{6,30}$' THEN
+    RAISE EXCEPTION 'campo contacto_telefono inválido' USING ERRCODE = '22023';
+  END IF;
+
+  r.contacto_email := lower(private.intake_text(_payload, 'contacto_email', 254));
+  IF r.contacto_email IS NOT NULL AND r.contacto_email !~ email_re THEN
+    RAISE EXCEPTION 'campo contacto_email inválido' USING ERRCODE = '22023';
+  END IF;
+  r.email_facturacion := lower(private.intake_text(_payload, 'email_facturacion', 254));
+  IF r.email_facturacion IS NOT NULL AND r.email_facturacion !~ email_re THEN
+    RAISE EXCEPTION 'campo email_facturacion inválido' USING ERRCODE = '22023';
+  END IF;
+
+  r.descripcion := private.intake_text(_payload, 'descripcion', 4000);
+  r.publico_objetivo := private.intake_text(_payload, 'publico_objetivo', 2000);
+  r.competencia := private.intake_text(_payload, 'competencia', 2000);
+  r.estilo := private.intake_text(_payload, 'estilo', 2000);
+
+  -- colores: array de hasta 12 textos cortos (#hex o nombre)
+  r.colores := '{}';
+  v := _payload -> 'colores';
+  IF v IS NOT NULL AND jsonb_typeof(v) <> 'null' THEN
+    IF jsonb_typeof(v) <> 'array' OR jsonb_array_length(v) > 12 THEN
+      RAISE EXCEPTION 'campo colores debe ser una lista de hasta 12' USING ERRCODE = '22023';
+    END IF;
+    FOR item IN SELECT * FROM jsonb_array_elements(v) LOOP
+      IF jsonb_typeof(item) <> 'string' OR length(item #>> '{}') > 40 OR btrim(item #>> '{}') = '' THEN
+        RAISE EXCEPTION 'campo colores: cada color es un texto de hasta 40 caracteres' USING ERRCODE = '22023';
+      END IF;
+      r.colores := r.colores || btrim(item #>> '{}');
+    END LOOP;
+  END IF;
+
+  -- links_redes: objeto {red: url/usuario}
+  r.links_redes := '{}'::jsonb;
+  v := _payload -> 'links_redes';
+  IF v IS NOT NULL AND jsonb_typeof(v) <> 'null' THEN
+    IF jsonb_typeof(v) <> 'object' THEN
+      RAISE EXCEPTION 'campo links_redes debe ser un objeto' USING ERRCODE = '22023';
+    END IF;
+    FOR k IN SELECT jsonb_object_keys(v) LOOP
+      IF NOT k = ANY (link_keys) THEN
+        RAISE EXCEPTION 'links_redes: red % no permitida', k USING ERRCODE = '22023';
+      END IF;
+      t := private.intake_text(v, k, 300);
+      IF t IS NOT NULL THEN
+        IF t !~ '^(https?://[^\s<>"]+|@?[A-Za-z0-9._-]{1,100})$' THEN
+          RAISE EXCEPTION 'links_redes.% inválido', k USING ERRCODE = '22023';
+        END IF;
+        r.links_redes := r.links_redes || jsonb_build_object(k, t);
+      END IF;
+    END LOOP;
+  END IF;
+
+  -- accesos_pendientes: checklist, sin contraseñas
+  r.accesos_pendientes := '[]'::jsonb;
+  v := _payload -> 'accesos_pendientes';
+  IF v IS NOT NULL AND jsonb_typeof(v) <> 'null' THEN
+    IF jsonb_typeof(v) <> 'array' OR jsonb_array_length(v) > 30 THEN
+      RAISE EXCEPTION 'campo accesos_pendientes debe ser una lista de hasta 30' USING ERRCODE = '22023';
+    END IF;
+    FOR item IN SELECT * FROM jsonb_array_elements(v) LOOP
+      IF jsonb_typeof(item) <> 'object' THEN
+        RAISE EXCEPTION 'accesos_pendientes: cada ítem es un objeto' USING ERRCODE = '22023';
+      END IF;
+      FOR k IN SELECT jsonb_object_keys(item) LOOP
+        IF NOT k = ANY (ARRAY['servicio', 'estado', 'nota']) THEN
+          RAISE EXCEPTION 'accesos_pendientes: campo % no permitido (no se aceptan contraseñas)', k USING ERRCODE = '22023';
+        END IF;
+      END LOOP;
+      t := private.intake_text(item, 'servicio', 80);
+      IF t IS NULL THEN
+        RAISE EXCEPTION 'accesos_pendientes: servicio es obligatorio' USING ERRCODE = '22023';
+      END IF;
+      IF coalesce(private.intake_text(item, 'estado', 20), 'pendiente') NOT IN ('pendiente', 'compartido', 'no_aplica') THEN
+        RAISE EXCEPTION 'accesos_pendientes: estado inválido' USING ERRCODE = '22023';
+      END IF;
+      IF private.looks_like_secret(private.intake_text(item, 'nota', 300))
+         OR private.looks_like_secret(t) THEN
+        RAISE EXCEPTION 'accesos_pendientes: no envíes contraseñas, solo indica el estado del acceso' USING ERRCODE = '22023';
+      END IF;
+      r.accesos_pendientes := r.accesos_pendientes || jsonb_build_array(jsonb_strip_nulls(jsonb_build_object(
+        'servicio', t,
+        'estado', coalesce(private.intake_text(item, 'estado', 20), 'pendiente'),
+        'nota', private.intake_text(item, 'nota', 300))));
+    END LOOP;
+  END IF;
+
+  -- archivos: paths del bucket 'onboarding' bajo "<client_id>/", que existan
+  r.archivos := '{}';
+  v := _payload -> 'archivos';
+  IF v IS NOT NULL AND jsonb_typeof(v) <> 'null' THEN
+    IF jsonb_typeof(v) <> 'array' OR jsonb_array_length(v) > 20 THEN
+      RAISE EXCEPTION 'campo archivos debe ser una lista de hasta 20' USING ERRCODE = '22023';
+    END IF;
+    FOR item IN SELECT * FROM jsonb_array_elements(v) LOOP
+      t := CASE WHEN jsonb_typeof(item) = 'string' THEN item #>> '{}' END;
+      IF t IS NULL OR length(t) > 300 OR left(t, length(path_prefix)) <> path_prefix
+         OR substr(t, length(path_prefix) + 1) !~ '^[A-Za-z0-9][A-Za-z0-9._ -]{0,250}$'
+         OR position('..' IN t) > 0 THEN
+        RAISE EXCEPTION 'archivos: path inválido' USING ERRCODE = '22023';
+      END IF;
+      -- Nunca rutas de "Archivos" ni de documentos tributarios (defensa extra al prefijo).
+      IF t LIKE 'archivos/%' OR t LIKE 'documentos/%' THEN
+        RAISE EXCEPTION 'archivos: path inválido' USING ERRCODE = '22023';
+      END IF;
+      SELECT COALESCE((o.metadata->>'size')::bigint, 0) INTO obj_size
+        FROM storage.objects o WHERE o.bucket_id = 'onboarding' AND o.name = t;
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'archivos: % no existe en el bucket', t USING ERRCODE = '22023';
+      END IF;
+      -- Tamaño REAL del objeto: una subida manipulada no puede superar 10 MB.
+      -- El objeto rechazado queda sin referencia y la limpieza diaria lo borra.
+      IF obj_size > max_onboarding_file THEN
+        RAISE EXCEPTION 'archivos: un archivo supera 10 MB; súbelo de nuevo más liviano' USING ERRCODE = '22023';
+      END IF;
+      -- Debe venir de reserve_onboarding_upload() para este cliente (A4).
+      IF NOT EXISTS (SELECT 1 FROM public.onboarding_upload_reservations ur
+                     WHERE ur.path = t AND ur.client_id = _client_id) THEN
+        RAISE EXCEPTION 'archivos: % no fue reservado para este onboarding', t USING ERRCODE = '22023';
+      END IF;
+      IF NOT t = ANY (r.archivos) THEN
+        r.archivos := r.archivos || t;
+      END IF;
+    END LOOP;
+  END IF;
+
+  RETURN r;
+END $$;
+
+REVOKE ALL ON FUNCTION private.parse_onboarding_payload(uuid, jsonb) FROM PUBLIC, anon, authenticated;
 
 -- ---------------------------------------------------------------- bucket
 

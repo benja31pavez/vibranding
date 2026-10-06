@@ -216,10 +216,10 @@ const sqlOf = (f) =>
 const cfMigration = migrations.filter((f) => /client_files/i.test(sqlOf(f))).at(-1);
 
 /** Cuerpo ($$ … $$) de la última definición de una función en todas las migraciones. */
-function lastBody(fn) {
+function lastBody(fn, schema = "public") {
   let body = null;
   const re = new RegExp(
-    `CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.${fn}\\s*\\([\\s\\S]*?\\$\\$([\\s\\S]*?)\\$\\$`,
+    `CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+${schema}\\.${fn}\\s*\\([\\s\\S]*?\\$\\$([\\s\\S]*?)\\$\\$`,
     "gi",
   );
   for (const f of migrations) {
@@ -303,6 +303,33 @@ check("limpieza del onboarding conserva lo referenciado", () => {
   assert.match(body, /payments p WHERE p\.document_path = o\.name/);
   assert.match(body, /client_files cf WHERE cf\.path = o\.name/);
   assert.match(body, /interval '48 hours'/);
+});
+
+check("onboarding público: 10 MB reales por archivo y solo rutas del onboarding", () => {
+  const body = lastBody("parse_onboarding_payload", "private");
+  assert.ok(body, "sin definición");
+  assert.match(sql, /FUNCTION private\.parse_onboarding_payload/, "debe estar en esta migración");
+  assert.match(body, /max_onboarding_file constant bigint := 10485760/);
+  assert.match(body, /metadata->>'size'/);
+  assert.match(body, /obj_size > max_onboarding_file/);
+  assert.match(body, /t LIKE 'archivos\/%' OR t LIKE 'documentos\/%'/);
+  // Conserva TODAS las validaciones vigentes (23 RAISE de platform_v3 + 2 nuevos).
+  assert.equal((body.match(/RAISE EXCEPTION/g) ?? []).length, 25);
+  for (const kept of [
+    "payload supera 64 KB",
+    "campo razon_social es obligatorio",
+    "campo rut inválido",
+    "no envíes contraseñas",
+    "campo archivos debe ser una lista de hasta 20",
+    "no existe en el bucket",
+    "no fue reservado para este onboarding",
+  ]) {
+    assert.ok(body.includes(kept), kept);
+  }
+  assert.match(
+    sql,
+    /REVOKE ALL ON FUNCTION private\.parse_onboarding_payload\(uuid, jsonb\) FROM PUBLIC, anon, authenticated/,
+  );
 });
 
 check("no se crean buckets", () => {
