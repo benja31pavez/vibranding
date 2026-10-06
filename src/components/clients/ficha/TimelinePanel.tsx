@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useClientTimeline } from "./agencyQueries";
 import { FichaCard } from "./FichaCard";
+import { formatDate } from "./fichaQueries";
 import {
   TIMELINE_KIND_META,
   relativeStamp,
@@ -21,6 +22,13 @@ import {
 const ALL = "all";
 const MOBILE_PAGE_SIZE = 6;
 
+/** Fecha completa para el tooltip (las solo-fecha, sin hora). */
+function fullDate(at: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(at)
+    ? formatDate(at)
+    : new Date(at).toLocaleString("es-CL", { timeZone: "America/Santiago" });
+}
+
 function EventRow({ event, now }: { event: TimelineEvent; now: Date }) {
   const meta = TIMELINE_KIND_META[event.kind];
   return (
@@ -28,7 +36,7 @@ function EventRow({ event, now }: { event: TimelineEvent; now: Date }) {
       <time
         dateTime={event.at}
         className="pt-px text-xs leading-5 text-muted-foreground tabular-nums"
-        title={new Date(event.at).toLocaleString("es-CL")}
+        title={fullDate(event.at)}
       >
         {relativeStamp(event.at, now)}
       </time>

@@ -225,51 +225,69 @@ export function buildTimeline(src: TimelineSources): TimelineEvent[] {
       simple("archivo", `file-${f.id}`, f.created_at, f.title || f.file_name),
     ),
   ];
-  return events
-    .filter((e) => !Number.isNaN(new Date(e.at).getTime()))
-    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  const keyed = events.flatMap((e) => {
+    const stamp = chileStamp(e.at);
+    return stamp ? [{ e, key: stamp.key }] : [];
+  });
+  return keyed
+    .sort((a, b) => (a.key === b.key ? a.e.id.localeCompare(b.e.id) : a.key < b.key ? 1 : -1))
+    .map(({ e }) => e);
 }
 
 const WEEK_DAYS = 6;
 const DAY_MS = 86_400_000;
 const TIME_ZONE = "America/Santiago";
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
-function chileParts(date: Date) {
+interface ChileStamp {
+  /** Fecha de calendario en Chile (YYYY-MM-DD). */
+  ymd: string;
+  /** "HH:MM" en Chile; null si el valor es solo una fecha. */
+  time: string | null;
+  /** Clave ordenable: los eventos solo-fecha cuentan como el inicio de ese día. */
+  key: string;
+}
+
+/** Fecha y hora en Chile de un ISO o de una columna `date`; null si no es válida. */
+export function chileStamp(value: string): ChileStamp | null {
+  if (DATE_ONLY.test(value)) {
+    return Number.isNaN(Date.parse(`${value}T00:00:00Z`))
+      ? null
+      : { ymd: value, time: null, key: `${value}T00:00:00` };
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
   const ymd = date.toLocaleDateString("en-CA", { timeZone: TIME_ZONE });
-  const time = date.toLocaleTimeString("es-CL", {
-    timeZone: TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  return { ymd, time };
+  const hms = date.toLocaleTimeString("en-GB", { timeZone: TIME_ZONE, hour12: false });
+  return { ymd, time: hms.slice(0, 5), key: `${ymd}T${hms}` };
 }
 
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-/** "Hoy, 11:24" · "Ayer, 16:40" · "Lun, 14:22" (última semana) · "4 sept" · "4 sept 2025". */
+const withTime = (label: string, time: string | null) => (time ? `${label}, ${time}` : label);
+
+/**
+ * "Hoy, 11:24" · "Ayer, 16:40" · "Lun, 14:22" (últimos 6 días) · "4 sept" · "4 sept 2025".
+ * Los eventos solo-fecha van sin hora ("Hoy", "Ayer", "Lun").
+ */
 export function relativeStamp(value: string, now: Date = new Date()): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const { ymd, time } = chileParts(date);
-  const today = chileParts(now).ymd;
-  const days = Math.round(
-    (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${ymd}T00:00:00Z`)) / DAY_MS,
-  );
-  if (days === 0) return `Hoy, ${time}`;
-  if (days === 1) return `Ayer, ${time}`;
+  const stamp = chileStamp(value);
+  if (!stamp) return "";
+  const today = now.toLocaleDateString("en-CA", { timeZone: TIME_ZONE });
+  const day = new Date(`${stamp.ymd}T12:00:00Z`);
+  const days = Math.round((Date.parse(`${today}T12:00:00Z`) - day.getTime()) / DAY_MS);
+  if (days === 0) return withTime("Hoy", stamp.time);
+  if (days === 1) return withTime("Ayer", stamp.time);
   if (days > 1 && days <= WEEK_DAYS) {
-    const weekday = date
-      .toLocaleDateString("es-CL", { timeZone: TIME_ZONE, weekday: "short" })
-      .replace(".", "");
-    return `${capitalize(weekday)}, ${time}`;
+    const weekday = day.toLocaleDateString("es-CL", { timeZone: "UTC", weekday: "short" });
+    return withTime(capitalize(weekday.replace(".", "")), stamp.time);
   }
-  const sameYear = ymd.slice(0, 4) === today.slice(0, 4);
-  return date
+  const sameYear = stamp.ymd.slice(0, 4) === today.slice(0, 4);
+  return day
     .toLocaleDateString("es-CL", {
-      timeZone: TIME_ZONE,
+      timeZone: "UTC",
       day: "numeric",
       month: "short",
       ...(sameYear ? {} : { year: "numeric" }),
