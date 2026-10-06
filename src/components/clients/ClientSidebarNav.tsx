@@ -5,6 +5,7 @@ import {
   Circle,
   Flag,
   Globe,
+  Images,
   LayoutDashboard,
   Instagram,
   Lock,
@@ -29,7 +30,7 @@ type GroupKey = "operacion" | "conexiones" | "negocio";
 
 /** Grupos del menú y el orden de sus secciones. */
 const GROUPS: readonly { key: GroupKey; label: string; sections: readonly string[] }[] = [
-  { key: "operacion", label: "Operación", sections: ["plan", "sitio"] },
+  { key: "operacion", label: "Operación", sections: ["plan", "archivos", "sitio"] },
   {
     key: "conexiones",
     label: "Conexiones",
@@ -50,6 +51,7 @@ function sectionsOf(group: (typeof GROUPS)[number]): SectionDef[] {
 /** Un icono distinto por sección (Facturación ≠ Analítica). */
 const ICONS: Partial<Record<string, IconComponent>> = {
   plan: Flag,
+  archivos: Images,
   instagram: Instagram,
   "meta-ads": MetaIcon,
   "google-ads": Search,
@@ -138,9 +140,9 @@ export function ClientSidebarNav({
     loading: capsLoading,
   } = useClientCapabilities(clientId);
   const { count: reviewCount } = useReviewAlerts(clientId);
-  // "Ficha" es la ficha del cliente; la gestión de la agencia (/clients/<id>) no marca nada aquí.
-  const fichaHref = `/clients/${clientId}/ficha`;
-  const onFicha = path === fichaHref || path === `${fichaHref}/`;
+  // "Resumen" vive en /clients/<id>/ficha; la gestión de la agencia (/clients/<id>) no marca nada aquí.
+  const summaryHref = `/clients/${clientId}/ficha`;
+  const onSummary = path === summaryHref || path === `${summaryHref}/`;
 
   const badgeFor = (key: string) => {
     if (key === "plan") return reviewCount;
@@ -161,11 +163,11 @@ export function ClientSidebarNav({
       <Link
         to="/clients/$clientId/ficha"
         params={{ clientId }}
-        aria-current={onFicha ? "page" : undefined}
-        className={itemClass(onFicha)}
+        aria-current={onSummary ? "page" : undefined}
+        className={itemClass(onSummary)}
       >
         <LayoutDashboard className="h-4 w-4 shrink-0" />
-        <span className="min-w-0 flex-1 leading-tight">Ficha</span>
+        <span className="min-w-0 flex-1 leading-tight">Resumen</span>
       </Link>
       {GROUPS.map((group) => {
         const sections = sectionsOf(group);

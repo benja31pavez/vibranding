@@ -4,7 +4,7 @@ import { usePortalSnapshot } from "@/components/portal/usePortal";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { chileToday } from "@/lib/dates/chile";
 import { formatDate, useFichaOverview } from "../fichaQueries";
-import { BrandPanel } from "./BrandPanel";
+import { ClientAgendaPanel } from "./ClientAgendaPanel";
 import { ClientDocsPanel } from "./ClientDocsPanel";
 import { ClientStatusRow } from "./ClientStatusRow";
 import { ClientTimelinePanel } from "./ClientTimelinePanel";
@@ -12,6 +12,7 @@ import { useCycleProgress } from "./clientFichaQueries";
 import { monthSummary, type MonthPost } from "./clientView";
 import { MonthSummaryCard } from "./MonthSummaryCard";
 import { PlanCard } from "./PlanCard";
+import { TeamCard } from "./TeamCard";
 
 function ClientFichaHeader({ startedAt }: { startedAt: string | null }) {
   const { client, ig } = useActiveClient();
@@ -47,7 +48,7 @@ function ClientFichaHeader({ startedAt }: { startedAt: string | null }) {
 }
 
 /**
- * Ficha del cliente (ítem "Ficha" del panel izquierdo): lo que el cliente
+ * Resumen del cliente (ítem "Resumen" del panel izquierdo): lo que el cliente
  * también puede ver, en una pantalla desde `md`. Misma estructura que la
  * gestión de la agencia, sin salud, MRR, notas ni mensajes internos.
  */
@@ -73,7 +74,12 @@ export function ClientFichaPage({ clientId }: { clientId: string }) {
 
   return (
     <FitPage
-      header={<ClientFichaHeader startedAt={overview.data?.startedAt ?? null} />}
+      header={
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <ClientFichaHeader startedAt={overview.data?.startedAt ?? null} />
+          <TeamCard />
+        </div>
+      }
       contentClassName="flex flex-col gap-4 md:gap-3"
     >
       <div className="shrink-0">
@@ -113,9 +119,16 @@ export function ClientFichaPage({ clientId }: { clientId: string }) {
 
       <div className="grid grid-cols-1 gap-4 md:min-h-0 md:flex-1 md:grid-cols-2 md:grid-rows-[minmax(0,1fr)] md:gap-3 xl:grid-cols-3">
         <ClientTimelinePanel clientId={clientId} />
-        {/* Bajo xl, Marca y Documentos comparten la segunda columna. */}
+        {/* Bajo xl, "Próximos pasos" y Documentos comparten la segunda columna. */}
         <div className="flex min-w-0 flex-col gap-4 md:min-h-0 md:gap-3 xl:contents">
-          <BrandPanel clientId={clientId} canEdit={Boolean(overview.data?.canEdit)} />
+          <ClientAgendaPanel
+            clientId={clientId}
+            overview={overview.data}
+            approvals={approvals}
+            billing={billing}
+            loading={loading || overview.isLoading}
+            onRetry={() => void snapshot.refetch()}
+          />
           <ClientDocsPanel clientId={clientId} billing={billing} />
         </div>
       </div>

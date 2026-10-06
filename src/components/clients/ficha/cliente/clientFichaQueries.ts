@@ -1,6 +1,6 @@
 /**
  * Datos de la ficha del cliente (vista que el cliente también puede ver):
- * avance del ciclo mensual del Plan, campañas activas y su landing. Nada de
+ * avance del ciclo mensual del Plan y campañas activas. Nada de
  * MRR, salud ni notas internas.
  */
 import { useQuery } from "@tanstack/react-query";
@@ -61,31 +61,6 @@ export function useActiveCampaignCount(clientId: string) {
         .eq("status", "ACTIVE");
       if (error) throw new Error(error.message);
       return count ?? 0;
-    },
-  });
-}
-
-export interface ClientLanding {
-  slug: string;
-  published: boolean;
-  themeColor: string | null;
-}
-
-/** Landing del cliente (null si no tiene). */
-export function useClientLanding(clientId: string) {
-  const userKey = useUserKey();
-  return useQuery({
-    queryKey: [...fichaKeys.all(userKey, clientId), "landing"] as const,
-    queryFn: async (): Promise<ClientLanding | null> => {
-      const { data, error } = await supabase
-        .from("landing_pages")
-        .select("slug,published,theme_color")
-        .eq("client_id", clientId)
-        .maybeSingle();
-      if (error) throw new Error(error.message);
-      return data
-        ? { slug: data.slug, published: data.published, themeColor: data.theme_color }
-        : null;
     },
   });
 }
