@@ -26,12 +26,17 @@ export function FollowupsToday() {
     <Panel
       fill
       icon={Send}
-      title="Para hacer hoy"
-      description={
-        visible.length > 0
-          ? `${visible.length} seguimientos sugeridos: qué contactar para que nada se enfríe.`
-          : "Seguimientos sugeridos: qué contactar para que nada se enfríe."
+      title={
+        <span className="flex items-center gap-2">
+          Para hacer hoy
+          {visible.length > 0 && (
+            <span className="text-xs font-normal tabular-nums text-muted-foreground">
+              {visible.length}
+            </span>
+          )}
+        </span>
       }
+      info="Seguimientos sugeridos de clientes y prospectos, de mayor a menor prioridad: a quién contactar para que nada se enfríe."
       bodyClassName="flex flex-col gap-3 pb-3"
     >
       <ClientNotesNotice />
@@ -44,12 +49,7 @@ export function FollowupsToday() {
       ) : query.data === undefined ? (
         <ListSkeleton rows={3} label="Cargando seguimientos" />
       ) : visible.length === 0 ? (
-        <EmptyState
-          size="compact"
-          icon={Send}
-          title="Todo al día."
-          description="No hay seguimientos pendientes por ahora."
-        />
+        <EmptyState size="compact" icon={Send} title="Todo al día." />
       ) : (
         <FitList
           items={visible}

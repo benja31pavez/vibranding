@@ -54,7 +54,7 @@ const ACTIONS_CLS =
   "flex shrink-0 items-center gap-1.5 [&_a]:text-xs [&_button]:h-7 [&_button]:px-2 [&_button]:text-xs";
 
 const HEAD_BUTTON_CLS =
-  "flex w-full min-w-0 items-center gap-2 rounded-app-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "flex w-full min-w-0 items-center gap-2.5 rounded-app-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /** Panel lateral con el detalle o el formulario completo de una sección. */
 export interface FichaSectionSheet {
@@ -115,7 +115,7 @@ export function FichaSection({
           open && grow ? "md:min-h-36 md:flex-1 md:basis-0" : "shrink-0",
         )}
       >
-        <div className="flex min-h-9 shrink-0 items-center gap-1.5 px-3 py-1">
+        <div className="flex min-h-11 shrink-0 items-center gap-2 px-4 py-2">
           <h2 className="min-w-0 flex-1">
             <CollapsibleTrigger asChild>
               <button type="button" className={HEAD_BUTTON_CLS}>
@@ -161,7 +161,10 @@ export function FichaSection({
           )}
         </div>
         <CollapsibleContent
-          className={cn("min-w-0 px-3 pb-2.5", grow && "md:flex md:min-h-0 md:flex-1 md:flex-col")}
+          className={cn(
+            "min-w-0 px-4 pb-4 pt-0.5",
+            grow && "md:flex md:min-h-0 md:flex-1 md:flex-col",
+          )}
         >
           <BarePanelProvider actionsSlot={actionsSlot} fill={grow}>
             {children}
@@ -258,7 +261,7 @@ export function FichaSheetSection({
       aria-label={title}
       className={cn("shrink-0 rounded-app-lg border shadow-app-xs", TONE_CLS[tone])}
     >
-      <div className="flex min-h-9 items-center gap-1.5 px-3 py-1">
+      <div className="flex min-h-11 items-center gap-2 px-4 py-2">
         <h2 className="min-w-0 flex-1">
           <button
             type="button"

@@ -241,7 +241,7 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
       </div>
 
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold">Movimientos</h3>
+        <h2 className="text-base font-semibold">Movimientos</h2>
         {!adding && (
           <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
             <Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo cobro
@@ -299,11 +299,7 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
       ) : loadError ? (
         <ErrorState message={loadError} onRetry={retry} />
       ) : items.length === 0 ? (
-        <EmptyState
-          icon={Receipt}
-          title="Sin movimientos por ahora."
-          description="Registra un cobro para empezar a llevar la cuenta."
-        />
+        <EmptyState icon={Receipt} title="Aún no hay cobros" className="py-8" />
       ) : (
         <ul className="space-y-2">
           {items.map((p) => (
@@ -313,10 +309,16 @@ export function PaymentsPanel({ clientId }: { clientId: string }) {
             >
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{p.description || "Cobro"}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  {p.due_date ? `Vence ${fmtDay(p.due_date)}` : "Sin fecha"}
-                  {p.paid_at && ` · Pagado ${fmtDay(p.paid_at)}`}
-                </div>
+                {(p.due_date || p.paid_at) && (
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {[
+                      p.due_date && `Vence ${fmtDay(p.due_date)}`,
+                      p.paid_at && `Pagado ${fmtDay(p.paid_at)}`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </div>
+                )}
               </div>
               <Money amount={Number(p.amount)} currency={p.currency} className="font-semibold" />
               <PaymentLinkButton payment={p} onChanged={load} />

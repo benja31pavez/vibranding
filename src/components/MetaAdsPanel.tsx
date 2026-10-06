@@ -38,7 +38,6 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "@tanstack/react-router";
 import { EmptyState, ErrorState } from "@/components/app";
 import { DEFAULT_CURRENCY, normalizeCurrency } from "@/lib/pricing/plans";
 import { useClientCapabilities } from "@/hooks/use-client-capabilities";
@@ -581,21 +580,10 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
     );
   }
 
+  // Sin conexión no se dibuja nada a propósito: MetaConnectCard (arriba en la misma página)
+  // ya muestra «Conecta Meta» como único llamado a la acción, o su error con «Reintentar».
   if (!capsLoading && !caps.meta_connected && !account?.ad_account_id && campaigns.length === 0) {
-    return (
-      <EmptyState
-        icon={Megaphone}
-        title="Conecta Meta para gestionar campañas"
-        description="Usa el botón «Conectar con Meta» de arriba o sigue la configuración guiada del cliente."
-        action={
-          <Button asChild size="sm" variant="outline">
-            <Link to="/clients/$clientId/setup" params={{ clientId }}>
-              Ir a la configuración
-            </Link>
-          </Button>
-        }
-      />
-    );
+    return null;
   }
 
   const metaCurrency = account?.currency ? normalizeCurrency(account.currency) : null;
@@ -603,7 +591,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   return (
     <div className="space-y-6">
       {/* Account config */}
-      <div className="rounded-2xl border bg-surface p-5 space-y-4">
+      <div className="space-y-4 rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Megaphone className="w-4 h-4 text-primary" />
@@ -685,9 +673,7 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
           </div>
         )}
         {campaigns.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center border-2 border-dashed rounded-xl">
-            Aún no hay campañas. Crea una para empezar.
-          </p>
+          <EmptyState icon={Megaphone} title="Aún no hay campañas" className="py-8" />
         ) : (
           <Accordion type="multiple" className="space-y-2">
             {campaigns.map((c) => {

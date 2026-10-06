@@ -8,7 +8,7 @@ import {
   RotateCw,
 } from "lucide-react";
 import { useMemo } from "react";
-import { ErrorState, PageContainer, PageHeader, Panel } from "@/components/app";
+import { ErrorState, FitPage, PageHeader, Panel } from "@/components/app";
 import { AgendaCalendar, AgendaCalendarSkeleton } from "@/components/agenda/AgendaCalendar";
 import { AgendaFilters } from "@/components/agenda/AgendaFilters";
 import { AgendaLegend } from "@/components/agenda/AgendaLegend";
@@ -32,6 +32,7 @@ import {
 } from "@/lib/agenda/dates";
 import { useChileToday } from "@/lib/agenda/useChileToday";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import {
   AGENDA_KINDS,
   AGENDA_KIND_LABEL_PLURAL,
@@ -85,38 +86,51 @@ function AgendaPage() {
   const navigate = useNavigate({ from: "/agenda" });
   const setSearch = (patch: Partial<AgendaSearch>) =>
     navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
+  const tab = search.tab ?? "calendario";
 
   return (
-    <PageContainer className="space-y-6">
-      <PageHeader
-        title="Agenda"
-        description="Todo lo que tiene fecha: publicaciones, entregas, cobros, contratos y reservas."
-      />
-      <Tabs
-        value={search.tab ?? "calendario"}
-        onValueChange={(v) => setSearch({ tab: v === "reservas" ? "reservas" : undefined })}
+    <Tabs
+      value={tab}
+      onValueChange={(v) => setSearch({ tab: v === "reservas" ? "reservas" : undefined })}
+      className="contents"
+    >
+      {/* La configuración del link de reservas es un formulario largo: esa pestaña hace scroll. */}
+      <FitPage
+        scroll={tab === "reservas"}
+        header={
+          <PageHeader
+            size="compact"
+            title="Agenda"
+            actions={
+              <TabsList>
+                <TabsTrigger value="calendario" className="gap-1.5">
+                  <CalendarDays aria-hidden className="h-4 w-4" />
+                  Calendario
+                </TabsTrigger>
+                <TabsTrigger value="reservas" className="gap-1.5">
+                  <Link2 aria-hidden className="h-4 w-4" />
+                  Mi link de reservas
+                </TabsTrigger>
+              </TabsList>
+            }
+          />
+        }
+        contentClassName="flex flex-col"
       >
-        <TabsList>
-          <TabsTrigger value="calendario" className="gap-1.5">
-            <CalendarDays aria-hidden className="h-4 w-4" />
-            Calendario
-          </TabsTrigger>
-          <TabsTrigger value="reservas" className="gap-1.5">
-            <Link2 aria-hidden className="h-4 w-4" />
-            Mi link de reservas
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="calendario" className="mt-4">
+        <TabsContent
+          value="calendario"
+          className="mt-0 flex-col data-[state=active]:flex md:min-h-0 md:flex-1"
+        >
           <CalendarTab search={search} setSearch={setSearch} />
         </TabsContent>
-        <TabsContent value="reservas" className="mt-4 space-y-6">
+        <TabsContent value="reservas" className="mt-0 space-y-6">
           <Panel title="Próximas reservas">
             <UpcomingBookings />
           </Panel>
           <BookingsPanel />
         </TabsContent>
-      </Tabs>
-    </PageContainer>
+      </FitPage>
+    </Tabs>
   );
 }
 
@@ -184,7 +198,7 @@ function CalendarTab({ search, setSearch }: CalendarTabProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4 md:min-h-0 md:flex-1">
       <AgendaFilters
         kinds={kinds}
         clientId={clientId}
@@ -203,10 +217,16 @@ function CalendarTab({ search, setSearch }: CalendarTabProps) {
         />
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-rows-[minmax(0,1fr)_minmax(0,12rem)] lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)]">
         <Panel
+          fill
           bodyClassName="px-2 pb-3 sm:px-4 sm:pb-4"
-          title={<span className="capitalize">{periodLabel(view, range, selected)}</span>}
+          title={
+            <span className="inline-block first-letter:uppercase">
+              {periodLabel(view, range, selected)}
+            </span>
+          }
+          info={<AgendaLegend />}
           actions={
             <div className="flex items-center gap-1">
               <Button
@@ -240,7 +260,7 @@ function CalendarTab({ search, setSearch }: CalendarTabProps) {
             value={view}
             onValueChange={setView}
             aria-label="Vista del calendario"
-            className="mb-3 justify-start"
+            className="mb-3 shrink-0 justify-start"
           >
             <ToggleGroupItem value="mes" className="h-8 px-3 text-xs">
               Mes
@@ -268,9 +288,10 @@ function CalendarTab({ search, setSearch }: CalendarTabProps) {
           ) : (
             <div
               aria-busy={agenda.isRefreshing}
-              className={
-                agenda.isRefreshing ? "opacity-70 transition-opacity" : "transition-opacity"
-              }
+              className={cn(
+                "transition-opacity md:min-h-0 md:flex-1 md:overflow-y-auto",
+                agenda.isRefreshing && "opacity-70",
+              )}
             >
               <AgendaCalendar
                 view={view}
@@ -284,20 +305,16 @@ function CalendarTab({ search, setSearch }: CalendarTabProps) {
           )}
         </Panel>
 
-        <div className="space-y-6">
-          {view !== "lista" && (
-            <Panel>
-              <DayPanel
-                day={selected}
-                isToday={selected === today}
-                items={itemsByDay.get(selected) ?? []}
-              />
-            </Panel>
-          )}
-          <Panel title="Leyenda">
-            <AgendaLegend />
+        {view !== "lista" && (
+          <Panel fill bodyClassName="pt-4 pb-3">
+            <DayPanel
+              day={selected}
+              isToday={selected === today}
+              items={itemsByDay.get(selected) ?? []}
+              className="md:flex md:min-h-0 md:flex-1 md:flex-col"
+            />
           </Panel>
-        </div>
+        )}
       </div>
     </div>
   );

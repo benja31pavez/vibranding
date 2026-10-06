@@ -36,7 +36,7 @@ export function DashboardHoy() {
         <PageHeader
           size="compact"
           title="Hoy"
-          description={`${todayLabel()} · seguimientos, cobros, aprobaciones y alertas del día.`}
+          description={todayLabel()}
           actions={<AutomationsStatusBadge />}
         />
       }

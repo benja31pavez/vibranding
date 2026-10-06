@@ -27,11 +27,8 @@ function FacturacionPage() {
   const navigate = Route.useNavigate();
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Facturación"
-        description="Contratos y pagos del cliente en una sola vista."
-      />
+    <div className="space-y-4">
+      <PageHeader size="compact" title="Facturación" />
       <Tabs
         value={tab}
         onValueChange={(v) => navigate({ search: { tab: v as "contratos" | "pagos" } })}

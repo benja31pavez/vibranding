@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { RotateCw, Target, TrendingUp } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { UseQueryResult } from "@tanstack/react-query";
-import { CompactStats, Money, Panel } from "@/components/app";
+import { CompactStats, InfoHint, Money, Panel } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -106,9 +106,16 @@ function MrrBlock({ query }: { query: UseQueryResult<MrrSummary> }) {
           style={{ width: `${width}%` }}
         />
       </span>
-      <p className="text-xs text-muted-foreground md:max-lg:hidden">
-        Suscripciones <Money amount={data.fromSubscriptions} /> ({plural(data.subscriptionClients)})
-        · Manual <Money amount={data.fromBilling} /> ({plural(data.billingClients)})
+      <p className="flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground md:max-lg:hidden">
+        <span className="truncate">
+          Suscripciones <Money amount={data.fromSubscriptions} /> · Manual{" "}
+          <Money amount={data.fromBilling} />
+        </span>
+        <InfoHint label="Detalle del MRR">
+          Suscripciones: <Money amount={data.fromSubscriptions} /> de{" "}
+          {plural(data.subscriptionClients)}. Cobro manual: <Money amount={data.fromBilling} /> de{" "}
+          {plural(data.billingClients)}.
+        </InfoHint>
       </p>
     </div>
   );

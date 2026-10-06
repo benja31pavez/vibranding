@@ -33,7 +33,7 @@ export function AlertsTab() {
             size="compact"
             icon={BellOff}
             title="Sin alertas abiertas."
-            description="Las campañas se revisan cada mañana: gasto sin resultados, costo por resultado al alza, campañas detenidas, problemas con la conexión de Meta y el medio de pago de Google Ads."
+            description="Las campañas se revisan cada mañana."
           />
         ) : (
           <FitList
