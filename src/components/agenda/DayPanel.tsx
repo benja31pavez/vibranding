@@ -11,11 +11,13 @@ interface DayPanelProps {
   day: string;
   isToday: boolean;
   items: readonly AgendaItem[];
+  /** Oculta el nombre del cliente en cada evento (calendario de un solo cliente). */
+  hideClient?: boolean;
   className?: string;
 }
 
 /** Detalle del día seleccionado con enlace a la pantalla de origen de cada evento. */
-export function DayPanel({ day, isToday, items, className }: DayPanelProps) {
+export function DayPanel({ day, isToday, items, hideClient = false, className }: DayPanelProps) {
   const { timeZone, isChileTime } = useUserPrefs();
   return (
     <section aria-labelledby="agenda-day-title" aria-live="polite" className={className}>
@@ -48,14 +50,20 @@ export function DayPanel({ day, isToday, items, className }: DayPanelProps) {
           gap={8}
           divided={false}
           mobileShowAll
-          renderItem={(item) => <DayItem item={item} timeZone={timeZone} />}
+          renderItem={(item) => <DayItem item={item} timeZone={timeZone} hideClient={hideClient} />}
         />
       )}
     </section>
   );
 }
 
-function DayItem({ item, timeZone }: { item: AgendaItem; timeZone: string }) {
+interface DayItemProps {
+  item: AgendaItem;
+  timeZone: string;
+  hideClient: boolean;
+}
+
+function DayItem({ item, timeZone, hideClient }: DayItemProps) {
   const Icon = KIND_STYLE[item.kind].icon;
   const status = itemStatus(item);
   return (
@@ -79,12 +87,16 @@ function DayItem({ item, timeZone }: { item: AgendaItem; timeZone: string }) {
           <span>{item.allDay ? "Todo el día" : formatTime(item.date, timeZone)}</span>
         </span>
         <span className="mt-0.5 block break-words text-sm">{item.title}</span>
-        <span className="mt-1 flex flex-wrap items-center gap-2">
-          <span className="truncate text-xs text-muted-foreground">{item.clientName}</span>
-          {status && (
-            <StatusBadge status={item.status ?? ""} label={status.label} tone={status.tone} />
-          )}
-        </span>
+        {(!hideClient || status) && (
+          <span className="mt-1 flex flex-wrap items-center gap-2">
+            {!hideClient && (
+              <span className="truncate text-xs text-muted-foreground">{item.clientName}</span>
+            )}
+            {status && (
+              <StatusBadge status={item.status ?? ""} label={status.label} tone={status.tone} />
+            )}
+          </span>
+        )}
       </span>
       <ChevronRight
         aria-hidden

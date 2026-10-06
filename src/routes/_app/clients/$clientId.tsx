@@ -33,6 +33,7 @@ function ClientShell() {
   const matchRoute = useMatchRoute();
   const fitsScreen = Boolean(
     matchRoute({ to: "/clients/$clientId/plan", params: { clientId } }) ||
+    matchRoute({ to: "/clients/$clientId/calendario", params: { clientId } }) ||
     matchRoute({ to: "/clients/$clientId/ficha", params: { clientId } }) ||
     matchRoute({ to: "/clients/$clientId/archivos", params: { clientId } }) ||
     matchRoute({ to: "/clients/$clientId/setup", params: { clientId } }) ||
