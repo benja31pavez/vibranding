@@ -41,7 +41,7 @@ export function FitPager({ page, pageCount, onPageChange, label, className }: Fi
             key={item}
             size="sm"
             variant={item - 1 === page ? "secondary" : "ghost"}
-            className={BTN}
+            className={cn(BTN, item - 1 === page && "bg-brand-soft text-sidebar-accent-foreground")}
             aria-label={`Página ${item}`}
             aria-current={item - 1 === page ? "page" : undefined}
             onClick={() => onPageChange(item - 1)}

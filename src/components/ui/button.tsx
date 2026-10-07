@@ -4,8 +4,8 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+const baseButtonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,background-color,border-color,box-shadow,filter] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -31,17 +31,35 @@ const buttonVariants = cva(
   },
 );
 
+type ButtonVariantProps = VariantProps<typeof baseButtonVariants>;
+
+/** Clase de color de fondo propia (`bg-…`, `hover:bg-…`): el botón respeta ese color. */
+const OWN_BACKGROUND = /(^|[\s:])bg-/;
+
+/**
+ * Clases del botón. En la plataforma interna (bajo `.app-brand`) el primario sin color propio
+ * lleva el degradado de marca del landing (`.btn-brand`, ver `components/app/identity.css`) y
+ * los secundarios un hover con tinte de marca.
+ */
+function buttonVariants({
+  className,
+  ...props
+}: ButtonVariantProps & { className?: string } = {}): string {
+  const variant = props.variant ?? "default";
+  const brand = variant === "default" && !OWN_BACKGROUND.test(className ?? "");
+  // `btn-<variante>`: gancho para el hover de marca de outline/ghost/secondary (identity.css).
+  return cn(baseButtonVariants(props), brand ? "btn-brand" : `btn-${variant}`, className);
+}
+
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, ButtonVariantProps {
   asChild?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    return (
-      <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
-    );
+    return <Comp className={buttonVariants({ variant, size, className })} ref={ref} {...props} />;
   },
 );
 Button.displayName = "Button";

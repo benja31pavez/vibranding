@@ -82,10 +82,7 @@ export function MonthSummaryCard({
       className={`${CLIENT_CARD_CLS} flex h-full flex-col gap-3`}
     >
       <div className="min-w-0">
-        <p
-          className="text-[11px] font-semibold uppercase tracking-[0.12em]"
-          style={{ color: "var(--brand-1)" }}
-        >
+        <p className="eyebrow-brand text-[11px] font-semibold uppercase tracking-[0.12em]">
           Resumen del mes
         </p>
         <h2 className="text-base font-semibold">{monthTitle(`${month}-01`)}</h2>

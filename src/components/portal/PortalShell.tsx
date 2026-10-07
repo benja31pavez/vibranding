@@ -23,7 +23,7 @@ export function PortalShell({
   children,
 }: PortalShellProps) {
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="app-brand min-h-screen bg-bg">
       <header className="sticky top-0 z-30 border-b border-border-subtle bg-sidebar/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4 md:h-16 md:max-w-5xl md:px-6">
           <span className="font-brand text-2xl tracking-tight text-gradient-brand bg-gradient-brand-animated">

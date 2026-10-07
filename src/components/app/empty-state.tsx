@@ -49,7 +49,7 @@ export function EmptyState({
       {Icon && (
         <div
           className={cn(
-            "grid place-items-center rounded-app-md bg-surface-2 text-muted-foreground",
+            "grid place-items-center rounded-app-md bg-surface-2 bg-brand-soft text-brand-1",
             compact ? "h-8 w-8" : "mb-1 h-11 w-11",
           )}
         >

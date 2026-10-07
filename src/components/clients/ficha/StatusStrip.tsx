@@ -9,7 +9,13 @@ import {
   Wallet,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorState, MoneyTotals, TONE_CLASSES, type StatusTone } from "@/components/app";
+import {
+  ErrorState,
+  MoneyTotals,
+  TONE_CLASSES,
+  brandTone,
+  type StatusTone,
+} from "@/components/app";
 import { EMPTY_CLP_TOTALS, addClp, type ClpTotals } from "@/lib/pricing/plans";
 import { HEALTH_LEVEL_META } from "@/lib/health";
 import {
@@ -311,7 +317,7 @@ interface ChipProps {
 }
 
 const CHIP_CLS =
-  "flex h-full w-full min-w-0 items-center gap-2.5 rounded-app-lg border border-border-subtle bg-surface px-4 py-2.5 text-left shadow-app-xs transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "brand-top card-brand flex h-full w-full min-w-0 items-center gap-2.5 rounded-app-lg border border-border-subtle bg-surface px-4 py-2.5 text-left shadow-app-xs transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function Chip({
   icon: Icon,
@@ -341,7 +347,11 @@ export function Chip({
             )}
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <Icon aria-hidden className="h-3.5 w-3.5" /> {title}
+                <Icon
+                  aria-hidden
+                  className={cn("h-3.5 w-3.5 text-(--tone-ink)", brandTone(title))}
+                />{" "}
+                {title}
               </span>
               {loading ? (
                 <Skeleton className="mt-1 h-4 w-24" />

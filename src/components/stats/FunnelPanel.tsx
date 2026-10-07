@@ -24,7 +24,7 @@ export function FunnelPanel({ stages }: { stages: readonly FunnelStage[] }) {
             </div>
             <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
               <div
-                className="h-full rounded-full bg-primary"
+                className="h-full rounded-full bg-primary bg-gradient-brand"
                 style={{ width: `${Math.min(100, (s.value / top) * 100)}%` }}
               />
             </div>

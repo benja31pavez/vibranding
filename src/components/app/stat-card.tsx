@@ -40,13 +40,13 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs",
+        "card-brand rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs",
         className,
       )}
       aria-busy={loading || undefined}
     >
       <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        {Icon && <Icon aria-hidden className="h-3.5 w-3.5" />}
+        {Icon && <Icon aria-hidden className="h-3.5 w-3.5 text-brand-1" />}
         <span>{label}</span>
       </div>
       {loading ? (

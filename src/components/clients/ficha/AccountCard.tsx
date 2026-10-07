@@ -64,10 +64,7 @@ export function AccountCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p
-            className="text-[11px] font-semibold uppercase tracking-[0.12em]"
-            style={{ color: "var(--brand-3)" }}
-          >
+          <p className="eyebrow-brand text-[11px] font-semibold uppercase tracking-[0.12em]">
             Cuenta
           </p>
           <h2 className="text-base font-semibold">Estado de la cuenta</h2>

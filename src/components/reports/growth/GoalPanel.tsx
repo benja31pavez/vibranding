@@ -138,7 +138,10 @@ function ProgressBar({ pct }: { pct: number }) {
       aria-valuenow={pct}
       className="h-2 w-full overflow-hidden rounded-full bg-muted"
     >
-      <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+      <div
+        className="h-full rounded-full bg-primary bg-gradient-brand"
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
