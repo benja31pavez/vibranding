@@ -9,8 +9,8 @@
 --   (o) psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/aislamiento.sql
 --
 -- Requiere las migraciones 20261012002300 … 20261012002340, 20261012002800 y
--- 20261012002900 (RPC client_* del panel: Plan, Archivos, Legal) y 20261012002920
--- (panel: sitio y publicidad) aplicadas.
+-- 20261012002900 (RPC client_* del panel: Plan, Archivos, Legal), 20261012002910
+-- (Leads, WhatsApp, Instagram) y 20261012002920 (panel: sitio y publicidad) aplicadas.
 -- Cada fallo lanza una excepción "FALLO …" y aborta (ON_ERROR_STOP).
 -- Los usuarios son UUID inventados: no hace falta crear cuentas en auth.users
 -- porque auth.uid() se lee de request.jwt.claims.
@@ -476,6 +476,153 @@ BEGIN
   END IF;
 END $$;
 RESET ROLE;
+
+-- ---------------------------------------------------------------------
+-- 6) Fase 2 · Leads, WhatsApp e Instagram del panel del cliente
+--    (migración 20261012002910). RPC client_* fijan el cliente con
+--    client_panel_target(_preview): A ve solo lo suyo, sin columnas internas;
+--    el extraño y anon no ven nada; la agencia solo con vista previa de SU cliente.
+-- ---------------------------------------------------------------------
+INSERT INTO public.whatsapp_accounts (id, client_id, connected, display_phone_number, ai_system_prompt) VALUES
+  ('00000000-0000-4000-a000-0000000001a0', '00000000-0000-4000-a000-0000000000ca', true, '+56 9 1111 1111', 'PROMPT SECRETO A'),
+  ('00000000-0000-4000-a000-0000000001b0', '00000000-0000-4000-a000-0000000000cb', true, '+56 9 2222 2222', 'PROMPT SECRETO B');
+INSERT INTO public.whatsapp_conversations (id, client_id, account_id, contact_wa_id, contact_name, is_lead, last_message_at) VALUES
+  ('00000000-0000-4000-a000-0000000001a1', '00000000-0000-4000-a000-0000000000ca', '00000000-0000-4000-a000-0000000001a0', '56911110000', 'Lead A', true, now()),
+  ('00000000-0000-4000-a000-0000000001b1', '00000000-0000-4000-a000-0000000000cb', '00000000-0000-4000-a000-0000000001b0', '56922220000', 'Lead B', true, now());
+INSERT INTO public.whatsapp_messages (conversation_id, client_id, direction, body) VALUES
+  ('00000000-0000-4000-a000-0000000001a1', '00000000-0000-4000-a000-0000000000ca', 'inbound', 'hola A'),
+  ('00000000-0000-4000-a000-0000000001b1', '00000000-0000-4000-a000-0000000000cb', 'inbound', 'hola B');
+INSERT INTO public.client_leads (client_id, source, name, contact, metadata) VALUES
+  ('00000000-0000-4000-a000-0000000000ca', 'meta_ads', 'TEST lead A', 'a@example.invalid', '{"interno":"A"}'),
+  ('00000000-0000-4000-a000-0000000000cb', 'meta_ads', 'TEST lead B', 'b@example.invalid', '{"interno":"B"}');
+INSERT INTO public.lead_meta (client_id, source, source_id, status, notes) VALUES
+  ('00000000-0000-4000-a000-0000000000ca', 'whatsapp', '00000000-0000-4000-a000-0000000001a1', 'contacted', 'NOTA INTERNA LEAD A');
+INSERT INTO public.instagram_posts (client_id, type, position, caption, approval_status, approval_note) VALUES
+  ('00000000-0000-4000-a000-0000000000ca', 'proposed', 0, 'TEST post A', 'pendiente', 'NOTA APROBACION A'),
+  ('00000000-0000-4000-a000-0000000000ca', 'proposed', 1, 'TEST borrador A', NULL, NULL),
+  ('00000000-0000-4000-a000-0000000000cb', 'proposed', 0, 'TEST post B', 'pendiente', NULL);
+-- Un client_lead que repite la conversación de WhatsApp de A no se cuenta dos veces.
+INSERT INTO public.client_leads (client_id, source, name, contact, conversation_id) VALUES
+  ('00000000-0000-4000-a000-0000000000ca', 'whatsapp', 'Lead A', '56911110000', '00000000-0000-4000-a000-0000000001a1');
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-4000-a000-0000000000c1","role":"authenticated"}', true);
+DO $$
+DECLARE n bigint; j jsonb; t text;
+BEGIN
+  -- Leads: los 2 de A (WhatsApp + Meta Ads), con estado y sin notas internas.
+  SELECT count(*) INTO n FROM public.client_leads_page(50, 0);
+  IF n <> 2 THEN RAISE EXCEPTION 'FALLO (fase 2, cliente A): client_leads_page → % filas', n; END IF;
+  SELECT count(*) INTO n FROM public.client_leads_page(50, 0)
+   WHERE name LIKE '%B' OR contact LIKE '%2222%' OR contact LIKE 'b@%';
+  IF n <> 0 THEN RAISE EXCEPTION 'FALLO (fase 2, cliente A): ve leads de B'; END IF;
+  SELECT status INTO t FROM public.client_leads_page(50, 0) WHERE source = 'whatsapp';
+  IF t IS DISTINCT FROM 'contacted' THEN RAISE EXCEPTION 'FALLO (fase 2, cliente A): estado del lead = %', t; END IF;
+  SELECT string_agg(r::text, ' ') INTO t FROM public.client_leads_page(50, 0) r;
+  IF t LIKE '%NOTA INTERNA%' OR t LIKE '%interno%' THEN
+    RAISE EXCEPTION 'FALLO (fase 2, cliente A): client_leads_page expone notas/metadatos';
+  END IF;
+  SELECT count(*) INTO n FROM public.client_leads_page(1, 0);
+  IF n <> 1 THEN RAISE EXCEPTION 'FALLO (fase 2): client_leads_page no pagina'; END IF;
+
+  -- WhatsApp: su línea, su conversación y sus mensajes; nunca el prompt.
+  SELECT count(*) INTO n FROM public.client_whatsapp_status() WHERE connected;
+  IF n <> 1 THEN RAISE EXCEPTION 'FALLO (fase 2, cliente A): client_whatsapp_status → %', n; END IF;
+  SELECT string_agg(r::text, ' ') INTO t FROM public.client_whatsapp_status() r;
+  IF t LIKE '%PROMPT%' OR t LIKE '%2222%' THEN
+    RAISE EXCEPTION 'FALLO (fase 2, cliente A): client_whatsapp_status expone datos ajenos/internos';
+  END IF;
+  SELECT count(*) INTO n FROM public.client_whatsapp_conversations(50, 0);
+  IF n <> 1 THEN RAISE EXCEPTION 'FALLO (fase 2, cliente A): ve % conversaciones', n; END IF;
+  SELECT count(*) INTO n FROM public.client_whatsapp_messages('00000000-0000-4000-a000-0000000001a1');
+  IF n <> 1 THEN RAISE EXCEPTION 'FALLO (fase 2, cliente A): no ve sus mensajes (%)', n; END IF;
+  SELECT count(*) INTO n FROM public.client_whatsapp_messages('00000000-0000-4000-a000-0000000001b1');
+  IF n <> 0 THEN RAISE EXCEPTION 'FALLO (fase 2, cliente A): lee mensajes de B por id'; END IF;
+
+  -- Con _preview de otro cliente sigue viendo SOLO lo suyo.
+  SELECT count(*) INTO n FROM public.client_leads_page(50, 0, '00000000-0000-4000-a000-0000000000cb');
+  IF n <> 2 THEN RAISE EXCEPTION 'FALLO (fase 2, cliente A): _preview cambió el cliente (% leads)', n; END IF;
+  SELECT count(*) INTO n FROM public.client_whatsapp_messages('00000000-0000-4000-a000-0000000001b1', 40, NULL, NULL, '00000000-0000-4000-a000-0000000000cb');
+  IF n <> 0 THEN RAISE EXCEPTION 'FALLO (fase 2, cliente A): leyó mensajes de B con _preview'; END IF;
+
+  -- Instagram: su grilla propuesta enviada a aprobación, sin borradores ni notas.
+  j := public.client_instagram_overview();
+  IF jsonb_array_length(j -> 'posts') <> 1 OR j::text LIKE '%TEST post B%' OR j::text LIKE '%borrador%' THEN
+    RAISE EXCEPTION 'FALLO (fase 2, cliente A): client_instagram_overview posts = %', j -> 'posts';
+  END IF;
+  IF j::text LIKE '%NOTA APROBACION%' OR j::text LIKE '%approval_note%' THEN
+    RAISE EXCEPTION 'FALLO (fase 2, cliente A): client_instagram_overview expone notas';
+  END IF;
+
+  -- Las tablas base siguen cerradas al cliente.
+  FOREACH t IN ARRAY ARRAY[
+    'SELECT count(*) FROM public.whatsapp_conversations',
+    'SELECT count(*) FROM public.whatsapp_messages',
+    'SELECT count(*) FROM public.whatsapp_accounts',
+    'SELECT count(*) FROM public.client_leads',
+    'SELECT count(*) FROM public.instagram_posts'
+  ] LOOP
+    BEGIN
+      EXECUTE t INTO n;
+    EXCEPTION WHEN insufficient_privilege THEN n := 0;
+    END;
+    IF n <> 0 THEN RAISE EXCEPTION 'FALLO (fase 2, cliente A): % → % filas', t, n; END IF;
+  END LOOP;
+END $$;
+RESET ROLE;
+
+-- Extraño (otra org) y owner de la agencia sin vista previa: nada. El extraño
+-- tampoco con _preview = cliente A (no es miembro de esa org).
+DO $$
+DECLARE who text; pv uuid; n bigint;
+BEGIN
+  FOREACH who IN ARRAY ARRAY['00000000-0000-4000-a000-0000000000e1', '00000000-0000-4000-a000-0000000000a1'] LOOP
+    pv := CASE WHEN who LIKE '%e1' THEN '00000000-0000-4000-a000-0000000000ca'::uuid ELSE NULL END;
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub', who, 'role', 'authenticated')::text, true);
+    SET LOCAL ROLE authenticated;
+    SELECT (SELECT count(*) FROM public.client_leads_page(50, 0, pv))
+         + (SELECT count(*) FROM public.client_whatsapp_status(pv))
+         + (SELECT count(*) FROM public.client_whatsapp_conversations(50, 0, pv))
+         + (SELECT count(*) FROM public.client_whatsapp_messages('00000000-0000-4000-a000-0000000001a1', 40, NULL, NULL, pv))
+         + (CASE WHEN public.client_instagram_overview(pv) IS NULL THEN 0 ELSE 1 END)
+      INTO n;
+    RESET ROLE;
+    IF n <> 0 THEN RAISE EXCEPTION 'FALLO (fase 2, %): RPC client_* devolvieron % filas', who, n; END IF;
+  END LOOP;
+END $$;
+
+-- Owner de la agencia con vista previa: ve SU cliente A, nunca el cliente de otra org.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-4000-a000-0000000000a1","role":"authenticated"}', true);
+DO $$
+DECLARE n bigint;
+BEGIN
+  SELECT count(*) INTO n FROM public.client_leads_page(50, 0, '00000000-0000-4000-a000-0000000000ca');
+  IF n <> 2 THEN RAISE EXCEPTION 'FALLO (fase 2, agencia): vista previa de A → % leads', n; END IF;
+  SELECT count(*) INTO n FROM public.client_whatsapp_messages('00000000-0000-4000-a000-0000000001a1', 40, NULL, NULL, '00000000-0000-4000-a000-0000000000ca');
+  IF n <> 1 THEN RAISE EXCEPTION 'FALLO (fase 2, agencia): vista previa de A → % mensajes', n; END IF;
+  SELECT count(*) INTO n FROM public.client_leads_page(50, 0, '00000000-0000-4000-a000-0000000000cc');
+  IF n <> 0 THEN RAISE EXCEPTION 'FALLO (fase 2, agencia): vista previa de un cliente ajeno'; END IF;
+  IF public.client_instagram_overview('00000000-0000-4000-a000-0000000000cc') IS NOT NULL THEN
+    RAISE EXCEPTION 'FALLO (fase 2, agencia): Instagram de un cliente ajeno';
+  END IF;
+END $$;
+RESET ROLE;
+
+-- anon: sin EXECUTE.
+DO $$
+BEGIN
+  IF has_function_privilege('anon', 'public.client_leads_page(integer, integer, uuid)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.client_whatsapp_status(uuid)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.client_whatsapp_conversations(integer, integer, uuid)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.client_whatsapp_messages(uuid, integer, timestamptz, uuid, uuid)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.client_instagram_overview(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'FALLO (fase 2, anon): puede ejecutar RPC client_*';
+  END IF;
+END $$;
 
 SELECT 'aislamiento: OK' AS resultado;
 ROLLBACK;

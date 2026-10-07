@@ -1,0 +1,322 @@
+import { useEffect, useRef, useState } from "react";
+import {
+  Bot,
+  Check,
+  CheckCheck,
+  CircleAlert,
+  MessageCircle,
+  SendHorizontal,
+  Star,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  ErrorState,
+  FitPage,
+  FitPager,
+  ListSkeleton,
+  PageHeader,
+  Panel,
+  StatusBadge,
+} from "@/components/app";
+import { cn } from "@/lib/utils";
+import {
+  CONVERSATIONS_PAGE_SIZE,
+  type WhatsAppConversation,
+  type WhatsAppLine,
+  type WhatsAppMessage,
+} from "@/lib/client-panel/channelsModel";
+import { OneLineState } from "./OneLineState";
+import { chileDateKey, formatChatTime, formatDay, formatTime } from "./format";
+import { PanelSectionState } from "./PanelSectionState";
+import { usePanelMessages, usePanelWhatsApp } from "./useChannelData";
+
+const UNSUPPORTED = "Mensaje no compatible";
+
+/** Texto visible de un mensaje o vista previa (los no-texto no traen cuerpo). */
+function messageText(body: string | null, type = "text"): string {
+  if (!body || body === "[unsupported]") {
+    if (type === "image") return "Imagen";
+    if (type === "audio") return "Audio";
+    if (type === "video") return "Video";
+    if (type === "document") return "Documento";
+    return UNSUPPORTED;
+  }
+  return body;
+}
+
+/** Bandeja de WhatsApp del cliente: lectura de todas sus conversaciones. Responder = fase 3. */
+export function WhatsAppPage() {
+  const [page, setPage] = useState(0);
+  const query = usePanelWhatsApp(page);
+  const line = query.data?.status === "ok" ? query.data.data.line : null;
+  const header = (
+    <PageHeader
+      size="compact"
+      title="WhatsApp"
+      actions={line ? <LineBadge line={line} /> : undefined}
+    />
+  );
+  return (
+    <FitPage header={header} contentClassName="md:flex md:flex-col">
+      <PanelSectionState query={query} title="No pudimos cargar tus conversaciones">
+        {({ line: current, conversations }) =>
+          conversations.total === 0 ? (
+            <OneLineState
+              icon={MessageCircle}
+              text={
+                current?.connected
+                  ? "Aún no hay conversaciones."
+                  : "Tu WhatsApp aún no está conectado: tu equipo VIBRANDING lo está configurando."
+              }
+            />
+          ) : (
+            <Inbox
+              items={conversations.items}
+              total={conversations.total}
+              page={page}
+              onPage={setPage}
+              busy={query.isFetching}
+            />
+          )
+        }
+      </PanelSectionState>
+    </FitPage>
+  );
+}
+
+function Inbox({
+  items,
+  total,
+  page,
+  onPage,
+  busy,
+}: {
+  items: WhatsAppConversation[];
+  total: number;
+  page: number;
+  onPage: (page: number) => void;
+  busy: boolean;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const active = items.find((c) => c.id === selectedId) ?? items[0] ?? null;
+  return (
+    <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
+      <Panel
+        fill
+        title={`${total} ${total === 1 ? "conversación" : "conversaciones"}`}
+        actions={
+          <FitPager
+            page={page}
+            pageCount={Math.ceil(total / CONVERSATIONS_PAGE_SIZE)}
+            onPageChange={(p) => {
+              onPage(p);
+              setSelectedId(null);
+            }}
+            label="Conversaciones"
+          />
+        }
+        bodyClassName="px-2 pb-2 md:overflow-y-auto"
+      >
+        <ul className="space-y-0.5" aria-busy={busy}>
+          {items.map((c) => (
+            <li key={c.id}>
+              <ConversationButton
+                conversation={c}
+                selected={c.id === active?.id}
+                onSelect={() => setSelectedId(c.id)}
+              />
+            </li>
+          ))}
+        </ul>
+      </Panel>
+      {active && <Thread key={active.id} conversation={active} />}
+    </div>
+  );
+}
+
+function LineBadge({ line }: { line: WhatsAppLine }) {
+  return (
+    <span className="flex items-center gap-2 text-sm text-muted-foreground">
+      {line.phone && <span className="tabular-nums">{line.phone}</span>}
+      <StatusBadge
+        status={line.connected ? "wa_connected" : "wa_disconnected"}
+        label={line.connected ? "Conectado" : "Desconectado"}
+        tone={line.connected ? "success" : "neutral"}
+      />
+    </span>
+  );
+}
+
+function ConversationButton({
+  conversation: c,
+  selected,
+  onSelect,
+}: {
+  conversation: WhatsAppConversation;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-current={selected ? "true" : undefined}
+      className={cn(
+        "w-full rounded-app-md px-3 py-2 text-left transition-colors hover:bg-surface-2",
+        selected && "bg-brand-soft hover:bg-brand-soft",
+      )}
+    >
+      <span className="flex items-center gap-2">
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+          {c.name}
+        </span>
+        {c.isLead && (
+          <Star aria-label="Lead" className="h-3.5 w-3.5 shrink-0 fill-warning text-warning" />
+        )}
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+          {c.lastMessageAt ? formatChatTime(c.lastMessageAt) : ""}
+        </span>
+      </span>
+      <span className="mt-0.5 flex items-center gap-2">
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+          {messageText(c.preview)}
+        </span>
+        {c.unread > 0 && (
+          <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-brand-1 px-1 text-[10px] font-semibold text-white tabular-nums">
+            {c.unread}
+          </span>
+        )}
+      </span>
+    </button>
+  );
+}
+
+function Thread({ conversation }: { conversation: WhatsAppConversation }) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const messages = usePanelMessages(conversation.id);
+  const firstLoaded = messages.isSuccess;
+
+  useEffect(() => {
+    if (firstLoaded) bottomRef.current?.scrollIntoView({ block: "end" });
+  }, [firstLoaded]);
+
+  // Páginas: más nuevos primero → se muestran del más antiguo al más nuevo.
+  const ordered = (messages.data?.pages ?? []).flat().reverse();
+
+  return (
+    <section className="flex min-h-[28rem] min-w-0 flex-col overflow-hidden rounded-app-lg border border-border-subtle bg-surface shadow-app-xs md:min-h-0">
+      <header className="flex shrink-0 items-center gap-3 border-b border-border-subtle px-5 py-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-sm font-semibold text-foreground">{conversation.name}</h2>
+          {conversation.phone && (
+            <p className="text-xs text-muted-foreground tabular-nums">+{conversation.phone}</p>
+          )}
+        </div>
+        {conversation.isLead && <StatusBadge status="wa_lead" label="Lead" tone="warning" />}
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-y-auto bg-surface-2/40 px-5 py-4">
+        {messages.isPending ? (
+          <ListSkeleton rows={4} label="Cargando mensajes…" />
+        ) : messages.isError ? (
+          <ErrorState
+            message={messages.error.message}
+            onRetry={() => void messages.refetch()}
+            retrying={messages.isFetching}
+          />
+        ) : ordered.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">Sin mensajes.</p>
+        ) : (
+          <ol className="space-y-2">
+            {messages.hasNextPage && (
+              <li className="flex justify-center pb-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={messages.isFetchingNextPage}
+                  onClick={() => void messages.fetchNextPage()}
+                >
+                  {messages.isFetchingNextPage ? "Cargando…" : "Ver mensajes anteriores"}
+                </Button>
+              </li>
+            )}
+            {ordered.map((m, i) => (
+              <MessageItem key={m.id} message={m} previous={ordered[i - 1]} />
+            ))}
+          </ol>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      <footer className="shrink-0 border-t border-border-subtle px-5 py-3">
+        <div className="flex items-center gap-2">
+          <textarea
+            disabled
+            rows={1}
+            aria-label="Responder (disponible pronto)"
+            placeholder="Pronto podrás responder desde aquí"
+            className="min-h-9 flex-1 resize-none rounded-app-md border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-muted-foreground placeholder:text-muted-foreground disabled:cursor-not-allowed"
+          />
+          <Button size="icon" disabled aria-label="Enviar (disponible pronto)">
+            <SendHorizontal aria-hidden className="h-4 w-4" />
+          </Button>
+        </div>
+      </footer>
+    </section>
+  );
+}
+
+function MessageItem({
+  message: m,
+  previous,
+}: {
+  message: WhatsAppMessage;
+  previous: WhatsAppMessage | undefined;
+}) {
+  const day = m.sentAt ? chileDateKey(m.sentAt) : "";
+  const showDay = Boolean(day) && (!previous?.sentAt || chileDateKey(previous.sentAt) !== day);
+  return (
+    <li>
+      {showDay && m.sentAt && (
+        <p className="py-2 text-center text-xs text-muted-foreground">{formatDay(m.sentAt)}</p>
+      )}
+      <div className={cn("flex", m.outbound ? "justify-end" : "justify-start")}>
+        <div
+          className={cn(
+            "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-app-xs",
+            m.outbound
+              ? "rounded-br-sm bg-brand-soft text-foreground"
+              : "rounded-bl-sm border border-border-subtle bg-surface text-foreground",
+          )}
+        >
+          <p
+            className={cn(
+              "whitespace-pre-wrap break-words",
+              !m.body && "italic text-muted-foreground",
+            )}
+          >
+            {messageText(m.body, m.type)}
+          </p>
+          <p className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-muted-foreground tabular-nums">
+            {m.outbound && m.fromBot && (
+              <span className="mr-1 inline-flex items-center gap-0.5">
+                <Bot aria-hidden className="h-3 w-3" /> Bot
+              </span>
+            )}
+            {m.sentAt && <time dateTime={m.sentAt}>{formatTime(m.sentAt)}</time>}
+            {m.outbound && <DeliveryIcon status={m.status} />}
+          </p>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function DeliveryIcon({ status }: { status: string | null }) {
+  if (status === "failed") {
+    return <CircleAlert aria-label="No enviado" className="h-3 w-3 text-danger-strong" />;
+  }
+  if (status === "read") return <CheckCheck aria-label="Leído" className="h-3 w-3 text-info" />;
+  if (status === "delivered") return <CheckCheck aria-label="Entregado" className="h-3 w-3" />;
+  return <Check aria-label="Enviado" className="h-3 w-3" />;
+}

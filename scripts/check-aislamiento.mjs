@@ -357,6 +357,8 @@ const PANEL_ALLOWED_IMPORTS = [
   /^@\/components\/client-panel\/[\w-]+$/,
   /^@\/components\/portal\/(CalendarSection|BillingSection|usePortal)$/,
   /^@\/components\/profile\/SecuritySection$/,
+  // Solo presentación (recibe datos por props; sus imports de InstagramEditor son de tipos).
+  /^@\/components\/IphonePreview$/,
   /^@\/components\/contracts\/(ContractDocument|contractModel)$/,
   /^@\/hooks\/use-auth$/,
   /^@\/integrations\/supabase\/client$/,
@@ -364,7 +366,7 @@ const PANEL_ALLOWED_IMPORTS = [
   /^@\/lib\/(portal\/model|billing\/dates|utils|site\/robots|dates\/chile|exportPdf)$/,
   /^@\/lib\/delivery\/(planStages|team)$/,
   // Fase 2: lecturas por server functions sobre RPC client_* (ver panel.server.ts).
-  /^@\/lib\/client-panel\/(model|panel\.functions)$/,
+  /^@\/lib\/client-panel\/(model|panel\.functions|channelsModel|channels\.functions)$/,
   // Fase 2 · Sitio: vista previa con los MISMOS loaders y vistas de las páginas
   // públicas (solo filas publicadas y columnas públicas) + QR y copiar link.
   /^@\/lib\/site\/(publicLanding|publicMultilink|landingSeo)$/,
@@ -477,7 +479,7 @@ export function panelFileProblems(file, rawSrc) {
       problems.push(`${file}: ${m[1]} solo se puede leer con .select`);
     }
   }
-  if (/\.rpc\(/.test(src)) problems.push(`${file}: llama un RPC directo`);
+  if (/\.rpc\b/.test(src)) problems.push(`${file}: llama un RPC directo`);
   if (/\.storage\b/.test(src)) problems.push(`${file}: usa supabase.storage`);
   if (/\.functions\.invoke\b|supabase\.functions\b/.test(src)) {
     problems.push(`${file}: usa supabase.functions`);
@@ -517,6 +519,9 @@ export function panelFileProblems(file, rawSrc) {
     1,
   );
   assert.equal(panelFileProblems("x.tsx", `supabase.storage.listBuckets()`).length, 1);
+  assert.equal(panelFileProblems("x.tsx", `supabase.rpc("client_leads_page")`).length, 1);
+  assert.equal(panelFileProblems("x.tsx", `const r = supabase.rpc.bind(supabase)`).length, 1);
+  assert.equal(panelFileProblems("x.tsx", `supabase.rpc(fn, args)`).length, 1);
   assert.equal(panelFileProblems("x.tsx", `supabase.functions.invoke("x")`).length, 1);
   assert.equal(panelFileProblems("x.tsx", `await fetch("/api/x")`).length, 1);
   // URL: solo `preview`, y solo por panelMode.tsx / la ruta /mi.
@@ -720,21 +725,28 @@ function listFiles(dir) {
     failures.push("panel.server.ts: la vista previa no se valida con getClientOrgRole");
   }
   if (
-    !/if \(preview\) await assertPreviewAccess\(userId, preview\);\s*const \{ data, error \} = await db\.rpc\(/.test(
-      serverSrc,
-    )
-  ) {
-    failures.push("panel.server.ts: las RPC del panel no validan la vista previa antes de leer");
-  }
-  if (
     !/export async function loadPreviewBrand[\s\S]*?\{\s*await assertPreviewAccess\(/.test(
       serverSrc,
     )
   ) {
     failures.push("panel.server.ts: loadPreviewBrand no valida la vista previa primero");
   }
-  if (/supabaseAdmin[\s\S]{0,80}\.rpc\(/.test(serverSrc)) {
-    failures.push("panel.server.ts: llama RPC con service_role (deben ir con la sesión)");
+  // panel.server.ts (Plan, Archivos, Legal) y channels.server.ts (Leads, WhatsApp,
+  // Instagram): cada db.rpc va justo después de validar la vista previa, y nunca
+  // con service_role.
+  for (const name of ["panel.server.ts", "channels.server.ts"]) {
+    const src = stripJsComments(readFileSync(join(root, "src/lib/client-panel", name), "utf8"));
+    const rpcCalls = src.match(/\.rpc\(/g)?.length ?? 0;
+    const guarded =
+      src.match(
+        /if \(preview\) await assertPreviewAccess\(userId, preview\);\s*const \{ data, error \} = await db\.rpc\(/g,
+      )?.length ?? 0;
+    if (rpcCalls === 0 || guarded !== rpcCalls) {
+      failures.push(`${name}: las RPC del panel no validan la vista previa antes de leer`);
+    }
+    if (/supabaseAdmin[\s\S]{0,80}\.rpc\(/.test(src)) {
+      failures.push(`${name}: llama RPC con service_role (deben ir con la sesión)`);
+    }
   }
 
   // BD: las RPC del panel fijan el cliente con client_panel_target y no son de anon.
@@ -743,11 +755,19 @@ function listFiles(dir) {
     "client_meta_ads_summary",
     "client_google_ads_summary",
   ];
+  const CHANNEL_RPCS = [
+    "client_leads_page",
+    "client_whatsapp_status",
+    "client_whatsapp_conversations",
+    "client_whatsapp_messages",
+    "client_instagram_overview",
+  ];
   const PANEL_RPCS = [
     "client_plan_board",
     "client_files_catalog",
     "client_contracts_list",
     ...SITE_ADS_RPCS,
+    ...CHANNEL_RPCS,
   ];
   const target = lastFunctionSql("client_panel_target");
   if (
@@ -793,6 +813,29 @@ function listFiles(dir) {
       failures.push(`${fn}: devuelve el id de la cuenta publicitaria`);
     }
   }
+
+  // Leads, WhatsApp e Instagram: nunca prompt del bot, secretos, notas internas
+  // ni borradores de Instagram; engagement solo de la cuenta propia.
+  for (const fn of CHANNEL_RPCS) {
+    const def = lastFunctionSql(fn) ?? "";
+    if (
+      /ai_system_prompt|ai_business_context|_secret_id|\bm\.notes\b|approval_note|metadata/i.test(
+        def,
+      )
+    ) {
+      failures.push(`${fn}: lee columnas internas (prompt, secretos, notas o metadatos)`);
+    }
+  }
+  const ig = lastFunctionSql("client_instagram_overview") ?? "";
+  if (!/AND\s+ip\.approval_status\s+IS\s+NOT\s+NULL/i.test(ig)) {
+    failures.push("client_instagram_overview: la propuesta debe excluir borradores");
+  }
+  if (!/e\.source\s*=\s*'own'/i.test(ig)) {
+    failures.push(
+      "client_instagram_overview: engagement solo de la cuenta propia (source = 'own')",
+    );
+  }
+
   const contracts = lastFunctionSql("client_contracts_list") ?? "";
   if (!/status\s+IN\s+\('sent',\s*'signed'\)/i.test(contracts)) {
     failures.push("client_contracts_list: debe devolver solo contratos enviados o firmados");

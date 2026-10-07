@@ -41,9 +41,9 @@ import {
 type Db = SupabaseClient;
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
-const CLIENT_MEDIA_BUCKET = "client-media";
+export const CLIENT_MEDIA_BUCKET = "client-media";
 /** PostgREST / Postgres: función aún no creada (migración sin aplicar). */
-const MISSING_FN_CODES = new Set(["PGRST202", "42883"]);
+export const MISSING_FN_CODES = new Set(["PGRST202", "42883"]);
 
 export const PREVIEW_DENIED =
   "No tienes acceso a la vista previa de este cliente. Pídele acceso a un administrador de tu equipo.";
@@ -197,7 +197,7 @@ interface RawCatalog {
   truncated?: boolean | null;
 }
 
-async function signPaths(bucket: string, paths: string[]): Promise<Map<string, string>> {
+export async function signPaths(bucket: string, paths: string[]): Promise<Map<string, string>> {
   const unique = [...new Set(paths)];
   if (unique.length === 0) return new Map();
   const db = await adminDb();
@@ -218,7 +218,7 @@ async function signPaths(bucket: string, paths: string[]): Promise<Map<string, s
  * ESTE cliente; cualquier otra URL de Storage se descarta; las externas
  * (p. ej. el CDN de Instagram) se dejan como están.
  */
-function makeResolver(client: string, signed: Map<string, string>) {
+export function makeResolver(client: string, signed: Map<string, string>) {
   return (url: string | null | undefined): string | null => {
     if (!url) return null;
     const path = clientMediaPath(url, client);
