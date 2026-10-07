@@ -11,9 +11,13 @@
 --     client_leads, lead_meta, landing_contact_submissions, whatsapp_*,
 --     instagram_*, ig_engagement_snapshots NO cambian (siguen solo agencia).
 --   * Cada lectura es un RPC SECURITY DEFINER `client_*` que fija el cliente
---     con public.user_client_id() (nunca un parámetro), devuelve columnas
---     mínimas y pagina en el servidor (leads, conversaciones, mensajes).
---     Para un miembro de la agencia user_client_id() es NULL: 0 filas.
+--     con public.client_panel_target(_preview) (migración 20261012002900):
+--     usuario cliente → user_client_id() (ignora _preview); agencia → _preview
+--     solo si owns_client(_preview) ("Ver como cliente"); otro → NULL (0 filas).
+--     Devuelve columnas mínimas y pagina en el servidor (leads,
+--     conversaciones, mensajes). El navegador no las llama directo: pasan por
+--     server functions (src/lib/client-panel/channels.*) que validan la vista
+--     previa con getClientOrgRole antes de llamar con la sesión del usuario.
 --   * search_path = '' y nombres calificados. EXECUTE solo para
 --     authenticated (REVOKE de PUBLIC y anon).
 --
@@ -25,8 +29,22 @@
 -- / media_url, instagram_posts.approval_note* / approved_by / version_id /
 -- ig_media_id / objective, instagram_grid_versions.notes, errores de medición.
 --
--- No se aplica sola: correr en el SQL Editor (re-ejecutable).
+-- No se aplica sola: correr en el SQL Editor (re-ejecutable). Requiere
+-- 20261012002900 (client_panel_target).
 -- =====================================================================
+
+-- Firmas anteriores (borrador de este PR, nunca aplicado): se reemplazan por
+-- las que aceptan _preview.
+DROP FUNCTION IF EXISTS public.client_leads_page(integer, integer);
+DROP FUNCTION IF EXISTS public.client_leads_page(integer, integer, text);
+DROP FUNCTION IF EXISTS public.client_whatsapp_status();
+DROP FUNCTION IF EXISTS public.client_whatsapp_conversations(integer, integer);
+DROP FUNCTION IF EXISTS public.client_whatsapp_messages(uuid, integer, timestamptz);
+DROP FUNCTION IF EXISTS public.client_instagram_overview();
+
+-- Leads de la landing por cliente y fecha (client_leads ya tiene su índice).
+CREATE INDEX IF NOT EXISTS landing_contact_submissions_client_created_idx
+  ON public.landing_contact_submissions (client_id, created_at DESC);
 
 -- ---------------------------------------------------------------------
 -- 1) Leads del cliente (paginado en servidor)
@@ -34,10 +52,12 @@
 -- Mismas fuentes que la página de Leads de la agencia: conversaciones de
 -- WhatsApp marcadas como lead (o derivadas al equipo), contactos de la
 -- landing y client_leads (Meta Ads, multilink…). El estado sale de
--- lead_meta.status (sin notas ni tags); sin fila = 'new'.
+-- lead_meta.status (sin notas ni tags); sin fila = 'new'. Un client_lead que
+-- ya viene por su conversación de WhatsApp no se repite. _offset con tope.
 CREATE OR REPLACE FUNCTION public.client_leads_page(
   _limit integer DEFAULT 10,
-  _offset integer DEFAULT 0
+  _offset integer DEFAULT 0,
+  _preview uuid DEFAULT NULL
 )
 RETURNS TABLE (
   source text,
@@ -55,7 +75,7 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
   WITH me AS (
-    SELECT public.user_client_id() AS client_id
+    SELECT public.client_panel_target(_preview) AS client_id
   ),
   leads AS (
     SELECT 'whatsapp'::text AS source,
@@ -79,6 +99,14 @@ AS $$
            l.message, l.created_at
       FROM public.client_leads l, me
      WHERE l.client_id = me.client_id
+       AND NOT EXISTS (
+         SELECT 1
+           FROM public.whatsapp_conversations c
+          WHERE c.id = l.conversation_id
+            AND c.client_id = me.client_id
+            AND coalesce(c.channel, 'whatsapp') = 'whatsapp'
+            AND (c.is_lead OR c.needs_human_followup)
+       )
   )
   SELECT l.source,
          l.lead_id,
@@ -95,17 +123,17 @@ AS $$
      AND m.source_id = l.lead_id
    ORDER BY l.created_at DESC NULLS LAST, l.lead_id
    LIMIT least(greatest(coalesce(_limit, 10), 1), 50)
-  OFFSET greatest(coalesce(_offset, 0), 0);
+  OFFSET least(greatest(coalesce(_offset, 0), 0), 10000);
 $$;
 
-COMMENT ON FUNCTION public.client_leads_page(integer, integer) IS
-  'Panel del cliente: leads de SU cliente (user_client_id()), paginados. Sin notas, tags ni metadatos internos.';
+COMMENT ON FUNCTION public.client_leads_page(integer, integer, uuid) IS
+  'Panel del cliente: leads del cliente (client_panel_target), paginados. Sin notas, tags ni metadatos internos.';
 
 -- ---------------------------------------------------------------------
 -- 2) WhatsApp: estado de la línea (sin ids, tokens ni configuración del bot)
 -- ---------------------------------------------------------------------
 -- 0 filas = el cliente no tiene WhatsApp configurado.
-CREATE OR REPLACE FUNCTION public.client_whatsapp_status()
+CREATE OR REPLACE FUNCTION public.client_whatsapp_status(_preview uuid DEFAULT NULL)
 RETURNS TABLE (
   connected boolean,
   display_phone_number text,
@@ -118,12 +146,12 @@ SET search_path = ''
 AS $$
   SELECT a.connected, a.display_phone_number, a.business_name
     FROM public.whatsapp_accounts a
-   WHERE a.client_id = public.user_client_id()
+   WHERE a.client_id = public.client_panel_target(_preview)
    ORDER BY a.connected DESC, a.updated_at DESC
    LIMIT 1;
 $$;
 
-COMMENT ON FUNCTION public.client_whatsapp_status() IS
+COMMENT ON FUNCTION public.client_whatsapp_status(uuid) IS
   'Panel del cliente: ¿su WhatsApp está conectado? Solo booleano, número visible y nombre. Nunca prompt, tokens ni ids.';
 
 -- ---------------------------------------------------------------------
@@ -131,7 +159,8 @@ COMMENT ON FUNCTION public.client_whatsapp_status() IS
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.client_whatsapp_conversations(
   _limit integer DEFAULT 20,
-  _offset integer DEFAULT 0
+  _offset integer DEFAULT 0,
+  _preview uuid DEFAULT NULL
 )
 RETURNS TABLE (
   id uuid,
@@ -159,25 +188,28 @@ AS $$
          c.status,
          count(*) OVER ()
     FROM public.whatsapp_conversations c
-   WHERE c.client_id = public.user_client_id()
+   WHERE c.client_id = public.client_panel_target(_preview)
      AND coalesce(c.channel, 'whatsapp') = 'whatsapp'
    ORDER BY coalesce(c.last_message_at, c.created_at) DESC NULLS LAST, c.id
    LIMIT least(greatest(coalesce(_limit, 20), 1), 50)
-  OFFSET greatest(coalesce(_offset, 0), 0);
+  OFFSET least(greatest(coalesce(_offset, 0), 0), 10000);
 $$;
 
-COMMENT ON FUNCTION public.client_whatsapp_conversations(integer, integer) IS
+COMMENT ON FUNCTION public.client_whatsapp_conversations(integer, integer, uuid) IS
   'Panel del cliente: sus conversaciones de WhatsApp, paginadas. Sin estado del bot, seguimientos internos, atribución ni tags.';
 
 -- ---------------------------------------------------------------------
--- 4) WhatsApp: mensajes de UNA conversación del cliente (keyset, más nuevos
---    primero). _before = fecha del mensaje más antiguo ya cargado.
+-- 4) WhatsApp: mensajes de UNA conversación del cliente, más nuevos primero.
+--    Cursor keyset (timestamp, id) del mensaje más antiguo ya cargado; usa
+--    idx_wa_msg_conv (conversation_id, timestamp). timestamp es NOT NULL.
 --    Si la conversación no es del cliente, 0 filas (no revela si existe).
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.client_whatsapp_messages(
   _conversation_id uuid,
   _limit integer DEFAULT 40,
-  _before timestamptz DEFAULT NULL
+  _before timestamptz DEFAULT NULL,
+  _before_id uuid DEFAULT NULL,
+  _preview uuid DEFAULT NULL
 )
 RETURNS TABLE (
   id uuid,
@@ -199,33 +231,42 @@ AS $$
          m.type,
          m.body,
          m.status,
-         coalesce(m.timestamp, m.created_at)
+         m.timestamp
     FROM public.whatsapp_messages m
     JOIN public.whatsapp_conversations c
       ON c.id = m.conversation_id
      AND c.client_id = m.client_id
    WHERE m.conversation_id = _conversation_id
-     AND c.client_id = public.user_client_id()
+     AND c.client_id = public.client_panel_target(_preview)
      AND coalesce(c.channel, 'whatsapp') = 'whatsapp'
-     AND (_before IS NULL OR coalesce(m.timestamp, m.created_at) < _before)
-   ORDER BY coalesce(m.timestamp, m.created_at) DESC, m.id DESC
+     AND (
+       _before IS NULL
+       OR m.timestamp < _before
+       OR (_before_id IS NOT NULL AND m.timestamp = _before AND m.id < _before_id)
+     )
+   ORDER BY m.timestamp DESC, m.id DESC
    LIMIT least(greatest(coalesce(_limit, 40), 1), 100);
 $$;
 
-COMMENT ON FUNCTION public.client_whatsapp_messages(uuid, integer, timestamptz) IS
-  'Panel del cliente: mensajes de una conversación SUYA (cruza conversation.client_id con user_client_id()). Sin ids de Meta ni media_url.';
+COMMENT ON FUNCTION public.client_whatsapp_messages(uuid, integer, timestamptz, uuid, uuid) IS
+  'Panel del cliente: mensajes de una conversación SUYA (cruza conversation.client_id con client_panel_target). Sin ids de Meta ni media_url.';
 
 -- ---------------------------------------------------------------------
 -- 5) Instagram (solo lectura): perfil actual/propuesto, publicaciones,
 --    destacadas y la última medición de engagement, en un solo jsonb.
 --    Publicaciones:
---      * "proposed": la propuesta vigente (version_id NULL, sin archivar).
+--      * "proposed": la propuesta vigente (version_id NULL, sin archivar) SOLO
+--        si ya se envió a aprobación (approval_status no nulo): nunca
+--        borradores.
 --      * "current": la versión Actual más reciente (o la base si no hay
 --        otra), excluyendo versiones temporales "· sincronizando".
 --    Máximo 60 por lado (es una grilla, no un historial).
---    Devuelve NULL si el usuario no es un cliente.
+--    Engagement: solo mediciones de la cuenta conectada del cliente
+--    (source = 'own'), nunca de un perfil ajeno vía Business Discovery.
+--    client_id va en la respuesta para que el servidor firme solo rutas de
+--    client-media de ESE cliente. NULL si no hay cliente legible.
 -- ---------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.client_instagram_overview()
+CREATE OR REPLACE FUNCTION public.client_instagram_overview(_preview uuid DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql
 STABLE
@@ -233,7 +274,7 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  _client uuid := public.user_client_id();
+  _client uuid := public.client_panel_target(_preview);
   _version uuid;
   _version_label text;
   _version_at timestamptz;
@@ -251,6 +292,7 @@ BEGIN
    LIMIT 1;
 
   RETURN jsonb_build_object(
+    'client_id', _client,
     'profile', (
       SELECT jsonb_build_object(
         'current_username', p.current_username,
@@ -326,6 +368,7 @@ BEGIN
                   AND ip.type = 'proposed'
                   AND ip.version_id IS NULL
                   AND ip.archived_at IS NULL
+                  AND ip.approval_status IS NOT NULL
                 ORDER BY ip.position
                 LIMIT 60)
               UNION ALL
@@ -363,6 +406,7 @@ BEGIN
              )
         FROM public.ig_engagement_snapshots e
        WHERE e.client_id = _client
+         AND e.source = 'own'
          AND e.error IS NULL
          AND e.engagement_rate IS NOT NULL
        ORDER BY e.measured_at DESC
@@ -372,23 +416,23 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public.client_instagram_overview() IS
+COMMENT ON FUNCTION public.client_instagram_overview(uuid) IS
   'Panel del cliente: su Instagram en solo lectura (perfil actual/propuesto, grilla, destacadas, último engagement). Sin notas de aprobación, versiones internas ni ids de Meta.';
 
 -- ---------------------------------------------------------------------
--- Permisos: solo authenticated (el filtro por user_client_id() hace que la
--- agencia reciba 0 filas / NULL). anon y PUBLIC sin EXECUTE.
+-- Permisos: solo authenticated (client_panel_target devuelve NULL a quien no
+-- es el cliente ni su agencia: 0 filas / NULL). anon y PUBLIC sin EXECUTE.
 -- ---------------------------------------------------------------------
-REVOKE ALL ON FUNCTION public.client_leads_page(integer, integer) FROM PUBLIC, anon;
-REVOKE ALL ON FUNCTION public.client_whatsapp_status() FROM PUBLIC, anon;
-REVOKE ALL ON FUNCTION public.client_whatsapp_conversations(integer, integer) FROM PUBLIC, anon;
-REVOKE ALL ON FUNCTION public.client_whatsapp_messages(uuid, integer, timestamptz) FROM PUBLIC, anon;
-REVOKE ALL ON FUNCTION public.client_instagram_overview() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.client_leads_page(integer, integer, uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.client_whatsapp_status(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.client_whatsapp_conversations(integer, integer, uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.client_whatsapp_messages(uuid, integer, timestamptz, uuid, uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.client_instagram_overview(uuid) FROM PUBLIC, anon;
 
-GRANT EXECUTE ON FUNCTION public.client_leads_page(integer, integer) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.client_whatsapp_status() TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.client_whatsapp_conversations(integer, integer) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.client_whatsapp_messages(uuid, integer, timestamptz) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.client_instagram_overview() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.client_leads_page(integer, integer, uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.client_whatsapp_status(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.client_whatsapp_conversations(integer, integer, uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.client_whatsapp_messages(uuid, integer, timestamptz, uuid, uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.client_instagram_overview(uuid) TO authenticated, service_role;
 
 NOTIFY pgrst, 'reload schema';

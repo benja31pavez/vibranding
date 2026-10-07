@@ -76,19 +76,32 @@ export async function clientHomeFor(userId: string): Promise<ClientHome> {
 }
 
 /** Resultado del guard del panel del cliente. */
-type ShellRedirect = typeof AGENCY_HOME | typeof CLIENT_PORTAL_HOME;
-export type ClientShellAccess = { kind: "allowed" } | { kind: "redirect"; to: ShellRedirect };
+type ShellRedirect = typeof AGENCY_HOME | typeof CLIENT_PORTAL_HOME | typeof CLIENT_PANEL_HOME;
+export type ClientShellAccess =
+  | { kind: "allowed" }
+  /** Agencia con `?preview=`: el servidor valida el cliente antes de leer nada. */
+  | { kind: "preview" }
+  | { kind: "redirect"; to: ShellRedirect };
 
 /**
  * Guard del panel del cliente. Falla CERRADO: si algo no se puede verificar,
  * lanza (UserKindError / ClientPanelError) y el layout muestra "Reintentar".
- *  - agencia → /dashboard (la agencia usa "Vista previa del portal").
+ *  - agencia con `preview` → vista previa (solo lectura; el servidor exige
+ *    rol en la org del cliente con getClientOrgRole).
+ *  - agencia sin `preview` → /dashboard.
  *  - cliente sin el panel activado → /portal.
+ *  - cliente con `preview` → /mi sin el parámetro (siempre ve SU cliente).
  *  - cliente con el panel activado → permitido.
  */
-export async function resolveClientShellAccess(userId: string): Promise<ClientShellAccess> {
+export async function resolveClientShellAccess(
+  userId: string,
+  preview?: string,
+): Promise<ClientShellAccess> {
   const kind = await resolveUserKind(userId);
-  if (kind !== "client") return { kind: "redirect", to: AGENCY_HOME };
+  if (kind !== "client") {
+    return preview ? { kind: "preview" } : { kind: "redirect", to: AGENCY_HOME };
+  }
   const enabled = await resolveClientPanelEnabled(userId);
-  return enabled ? { kind: "allowed" } : { kind: "redirect", to: CLIENT_PORTAL_HOME };
+  if (!enabled) return { kind: "redirect", to: CLIENT_PORTAL_HOME };
+  return preview ? { kind: "redirect", to: CLIENT_PANEL_HOME } : { kind: "allowed" };
 }

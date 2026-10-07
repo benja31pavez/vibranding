@@ -11,12 +11,13 @@
  *    CREATE OR REPLACE conserva los permisos que ya tenía.
  *    Además revisa que no vuelvan patrones ya corregidos (review links sin
  *    cruzar client_id, escrituras con owns_client, listado público del bucket).
- *    Panel del cliente (/mi, Fase 1): sus archivos no usan clientId ni
- *    parámetros de URL, solo importan módulos de una lista permitida, solo
- *    leen client_self/client_users, no enlazan a rutas de agencia, y todas sus
- *    rutas cuelgan del layout /mi con guard. Fase 2: solo llaman los RPC
- *    client_* de PANEL_ALLOWED_RPCS, y esos RPC fijan el cliente con
- *    user_client_id(), no reciben un id de cliente ni son ejecutables por anon.
+ *    Panel del cliente (/mi, Fases 1 y 2): sus archivos no usan clientId; el
+ *    único parámetro de URL es `preview` (vista previa de la agencia, filtrado
+ *    por parsePanelSearch y validado en servidor con getClientOrgRole); solo
+ *    importan módulos de una lista permitida, solo leen client_self/client_users
+ *    (el resto, por server functions sobre RPC client_* que fijan el cliente con
+ *    user_client_id()), no enlazan a rutas de agencia, y todas sus rutas
+ *    cuelgan del layout /mi con guard.
  *
  * 2) Base de datos (solo si hay DATABASE_URL y psql): ejecuta
  *    supabase/tests/aislamiento.sql (BEGIN … ROLLBACK). SOLO STAGING: se
@@ -38,18 +39,6 @@ const PROD_PROJECT_REF = "nigdjcocbwbphzzxayqg";
 const AUTHENTICATED_ALLOWED = new Set([
   "public.org_meta_set_secret",
   "public.org_meta_token_status",
-]);
-/**
- * RPC que el panel puede llamar directo (Fase 2): SECURITY DEFINER que fijan el
- * cliente con user_client_id(), sin parámetro de cliente y sin EXECUTE para anon
- * (se verifica abajo contra las migraciones).
- */
-export const PANEL_ALLOWED_RPCS = new Set([
-  "client_leads_page",
-  "client_whatsapp_status",
-  "client_whatsapp_conversations",
-  "client_whatsapp_messages",
-  "client_instagram_overview",
 ]);
 const EXPOSED_ROLES = ["public", "anon", "authenticated"];
 const DEFAULT_GRANTEES = ["public", "anon", "authenticated", "service_role"];
@@ -350,35 +339,6 @@ for (const [f, sql] of sqlByFile) {
   }
 }
 
-// Panel del cliente (Fase 2): cada RPC permitido al panel fija el cliente con
-// user_client_id(), es SECURITY DEFINER con search_path vacío, no recibe un id
-// de cliente y no es ejecutable por anon/PUBLIC.
-for (const name of PANEL_ALLOWED_RPCS) {
-  const def = lastFunctionSql(name);
-  const fn = state.functions.get(`public.${name}`);
-  if (!def || !fn) {
-    failures.push(`${name}: no se encontró en las migraciones`);
-    continue;
-  }
-  if (!/SECURITY\s+DEFINER/i.test(def) || !/SET\s+search_path\s*=\s*''/i.test(def)) {
-    failures.push(`${name}: debe ser SECURITY DEFINER con search_path = ''`);
-  }
-  if (!/public\.user_client_id\(\)/i.test(def)) {
-    failures.push(`${name}: no fija el cliente con user_client_id()`);
-  }
-  const params = /FUNCTION\s+(?:public\.)?\w+\s*\(([^)]*)\)/i.exec(def)?.[1] ?? "";
-  if (/client/i.test(params)) failures.push(`${name}: recibe un parámetro de cliente`);
-  if (
-    /ai_system_prompt|ai_business_context|_secret_id|lead_meta\.notes|m\.notes|approval_note\b/i.test(
-      def,
-    )
-  ) {
-    failures.push(`${name}: lee columnas internas (prompt, secretos o notas)`);
-  }
-  const exposed = ["public", "anon"].filter((r) => fn.grants.has(r));
-  if (exposed.length > 0) failures.push(`${name}: EXECUTE para ${exposed.join(", ")}`);
-}
-
 /* ───────────── Panel del cliente (/mi, Fase 1): estático ───────────── */
 
 /**
@@ -388,7 +348,7 @@ for (const name of PANEL_ALLOWED_RPCS) {
  */
 const PANEL_ALLOWED_IMPORTS = [
   /^react$/,
-  /^@tanstack\/react-(router|query)$/,
+  /^@tanstack\/react-(router|query|start)$/,
   /^lucide-react$/,
   /^sonner$/,
   /^@\/components\/ui\/[\w-]+$/,
@@ -399,10 +359,14 @@ const PANEL_ALLOWED_IMPORTS = [
   /^@\/components\/profile\/SecuritySection$/,
   // Solo presentación (recibe datos por props; sus imports de InstagramEditor son de tipos).
   /^@\/components\/IphonePreview$/,
+  /^@\/components\/contracts\/(ContractDocument|contractModel)$/,
   /^@\/hooks\/use-auth$/,
   /^@\/integrations\/supabase\/client$/,
-  /^@\/lib\/auth\/(clientPanel|userKind)$/,
-  /^@\/lib\/(portal\/model|billing\/dates|utils|site\/robots)$/,
+  /^@\/lib\/auth\/(clientPanel|userKind|panelSearch)$/,
+  /^@\/lib\/(portal\/model|billing\/dates|utils|site\/robots|dates\/chile|exportPdf)$/,
+  /^@\/lib\/delivery\/(planStages|team)$/,
+  // Fase 2: lecturas por server functions sobre RPC client_* (ver panel.server.ts).
+  /^@\/lib\/client-panel\/(model|panel\.functions|channelsModel|channels\.functions)$/,
   /^\.\/[\w-]+$/,
 ];
 /** Prohibidos explícitos (leen tablas internas o son de la agencia): mensaje claro. */
@@ -420,6 +384,57 @@ const AGENCY_PATHS =
 
 function stripJsComments(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
+
+/**
+ * Parámetros de URL. Solo se aceptan:
+ *  - routes/mi/$seccion.tsx: el parámetro de ruta `seccion` (nombre de sección).
+ *  - routes/mi.tsx: `validateSearch: parsePanelSearch` (filtra todo salvo `preview`).
+ *  - client-panel/panelMode.ts: useSearch de /mi que selecciona SOLO `preview`.
+ * Nadie más lee la URL (ni useParams/useSearch, ni location.search/URLSearchParams).
+ */
+function urlParamProblems(file, src) {
+  const problems = [];
+  const isSectionParam = file.endsWith("routes/mi/$seccion.tsx");
+  const isLayoutRoute = file.endsWith("routes/mi.tsx");
+  const isModeHook = file.endsWith("client-panel/panelMode.ts");
+  if (/\blocation\.search\b|\bsearchStr\b|\bURLSearchParams\b|\blocation\.href\b/.test(src)) {
+    problems.push(`${file}: lee la URL a mano (solo panelMode.ts lee \`preview\`)`);
+  }
+  if (/\buseParams\b/.test(src) && !isSectionParam)
+    problems.push(`${file}: lee parámetros de la URL`);
+  if (isSectionParam) {
+    for (const m of src.matchAll(/\bparams\.(\w+)|\{\s*(\w+)\s*\}\s*=\s*Route\.useParams/g)) {
+      const name = m[1] ?? m[2];
+      if (name !== "seccion") problems.push(`${file}: lee el parámetro ${name}`);
+    }
+  }
+  if (/\bvalidateSearch\b/.test(src)) {
+    if (!isLayoutRoute || !/validateSearch:\s*parsePanelSearch\s*,/.test(src)) {
+      problems.push(`${file}: validateSearch solo en /mi y con parsePanelSearch`);
+    }
+  }
+  if (isLayoutRoute) {
+    for (const m of src.matchAll(/\bsearch\.(\w+)/g)) {
+      if (m[1] !== "preview") problems.push(`${file}: lee search.${m[1]} (solo preview)`);
+    }
+  }
+  const searchCalls = [...src.matchAll(/\buseSearch\b(\s*\()?/g)];
+  if (searchCalls.length > 0) {
+    if (!isModeHook) problems.push(`${file}: lee parámetros de la URL (solo panelMode.ts)`);
+    else {
+      const calls = [...src.matchAll(/useSearch\(([^;]*?)\);/g)];
+      const ok =
+        calls.length > 0 &&
+        calls.every((c) =>
+          /^\s*\{\s*from:\s*["']\/mi["'],\s*select:\s*\(\s*(\w+)\s*\)\s*=>\s*\1\.preview(\s*\?\?\s*null)?\s*,?\s*\}\s*$/.test(
+            c[1],
+          ),
+        );
+      if (!ok) problems.push(`${file}: useSearch debe seleccionar solo \`preview\` de /mi`);
+    }
+  }
+  return problems;
 }
 
 /** Problemas de un archivo del panel (ruta relativa + código fuente). */
@@ -440,15 +455,9 @@ export function panelFileProblems(file, rawSrc) {
   if (/\$?clientId\b/.test(src)) {
     problems.push(`${file}: usa clientId (el cliente sale de la sesión, nunca de la URL)`);
   }
-  const isSectionParam = file.endsWith("routes/mi/$seccion.tsx");
-  if (/\buse(Params|Search)\b|\bvalidateSearch\b/.test(src) && !isSectionParam) {
-    problems.push(`${file}: lee parámetros de la URL`);
-  }
-  if (isSectionParam) {
-    for (const m of src.matchAll(/\bparams\.(\w+)|\{\s*(\w+)\s*\}\s*=\s*Route\.useParams/g)) {
-      const name = m[1] ?? m[2];
-      if (name !== "seccion") problems.push(`${file}: lee el parámetro ${name}`);
-    }
+  for (const p of urlParamProblems(file, src)) problems.push(p);
+  if (/\bcreateServerFn\b/.test(src)) {
+    problems.push(`${file}: define una server function (van en src/lib, con su propio control)`);
   }
   for (const m of src.matchAll(/\.from\(\s*["'`]([\w.]+)["'`]\s*\)/g)) {
     if (!PANEL_ALLOWED_TABLES.has(m[1])) {
@@ -461,13 +470,7 @@ export function panelFileProblems(file, rawSrc) {
       problems.push(`${file}: ${m[1]} solo se puede leer con .select`);
     }
   }
-  for (const m of src.matchAll(/\.rpc\b/g)) {
-    const call = /^\(\s*["'`]([\w.]+)["'`]/.exec(src.slice(m.index + m[0].length));
-    if (!call) problems.push(`${file}: llama un RPC sin nombre literal`);
-    else if (!PANEL_ALLOWED_RPCS.has(call[1])) {
-      problems.push(`${file}: llama el RPC ${call[1]} (no está en la lista permitida del panel)`);
-    }
-  }
+  if (/\.rpc\b/.test(src)) problems.push(`${file}: llama un RPC directo`);
   if (/\.storage\b/.test(src)) problems.push(`${file}: usa supabase.storage`);
   if (/\.functions\.invoke\b|supabase\.functions\b/.test(src)) {
     problems.push(`${file}: usa supabase.functions`);
@@ -507,12 +510,56 @@ export function panelFileProblems(file, rawSrc) {
     1,
   );
   assert.equal(panelFileProblems("x.tsx", `supabase.storage.listBuckets()`).length, 1);
-  assert.deepEqual(panelFileProblems("x.tsx", `supabase.rpc("client_leads_page" as never)`), []);
-  assert.equal(panelFileProblems("x.tsx", `supabase.rpc("user_client_id")`).length, 1);
+  assert.equal(panelFileProblems("x.tsx", `supabase.rpc("client_leads_page")`).length, 1);
   assert.equal(panelFileProblems("x.tsx", `const r = supabase.rpc.bind(supabase)`).length, 1);
   assert.equal(panelFileProblems("x.tsx", `supabase.rpc(fn, args)`).length, 1);
   assert.equal(panelFileProblems("x.tsx", `supabase.functions.invoke("x")`).length, 1);
   assert.equal(panelFileProblems("x.tsx", `await fetch("/api/x")`).length, 1);
+  // URL: solo `preview`, y solo por panelMode.tsx / la ruta /mi.
+  const mode = `useSearch({ from: "/mi", select: (s) => s.preview ?? null });`;
+  assert.deepEqual(panelFileProblems("src/components/client-panel/panelMode.ts", mode), []);
+  assert.equal(panelFileProblems("src/components/client-panel/Other.tsx", mode).length, 1);
+  assert.equal(
+    panelFileProblems(
+      "src/components/client-panel/panelMode.ts",
+      `useSearch({ from: "/mi", select: (s) => s.client });`,
+    ).length,
+    1,
+  );
+  assert.equal(
+    panelFileProblems(
+      "src/components/client-panel/panelMode.ts",
+      `useSearch({ from: "/mi", select: (s) => s.preview + s.other });`,
+    ).length,
+    1,
+  );
+  assert.equal(
+    panelFileProblems("src/components/client-panel/panelMode.ts", `useSearch({ strict: false });`)
+      .length,
+    1,
+  );
+  assert.equal(
+    panelFileProblems(
+      "src/components/client-panel/panelMode.ts",
+      `useSearch({ from: "/mi", select: (s) => s.preview ?? (s as any).x });`,
+    ).length,
+    1,
+  );
+  assert.deepEqual(
+    panelFileProblems(
+      "src/routes/mi.tsx",
+      `validateSearch: parsePanelSearch,\n beforeLoad: async ({ search }) => f(search.preview)`,
+    ),
+    [],
+  );
+  assert.equal(panelFileProblems("src/routes/mi.tsx", `validateSearch: (s) => s,`).length, 1);
+  assert.equal(
+    panelFileProblems("src/routes/mi.tsx", `validateSearch: parsePanelSearch, x(search.client)`)
+      .length,
+    1,
+  );
+  assert.equal(panelFileProblems("x.tsx", `new URLSearchParams(location.search)`).length, 1);
+  assert.equal(panelFileProblems("x.tsx", `export const f = createServerFn()`).length, 1);
 }
 
 /* Imports transitivos: los módulos permitidos tampoco pueden arrastrar código prohibido. */
@@ -627,6 +674,147 @@ function listFiles(dir) {
   const appSrc = stripJsComments(readFileSync(join(root, "src/routes/_app.tsx"), "utf8"));
   if ((appSrc.match(/clientHomeFor\(/g) ?? []).length < 2) {
     failures.push("src/routes/_app.tsx: el guard no manda al usuario cliente a su panel/portal");
+  }
+}
+
+/* ───────────── Panel del cliente (Fase 2): parámetro preview y RPC client_* ───────────── */
+
+{
+  // parsePanelSearch: solo deja pasar `preview` con forma de UUID.
+  const { build } = await import("esbuild");
+  const { mkdtempSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { pathToFileURL } = await import("node:url");
+  const outDir = mkdtempSync(join(tmpdir(), "panel-search-"));
+  const outfile = join(outDir, "panelSearch.mjs");
+  await build({
+    entryPoints: [join(root, "src/lib/auth/panelSearch.ts")],
+    bundle: true,
+    format: "esm",
+    platform: "node",
+    outfile,
+    logLevel: "error",
+  });
+  const { parsePanelSearch } = await import(pathToFileURL(outfile).href);
+  rmSync(outDir, { recursive: true, force: true });
+  const U = "11111111-1111-4111-8111-111111111111";
+  try {
+    assert.deepEqual(parsePanelSearch({ preview: U, clientId: U, x: "1" }), { preview: U });
+    assert.deepEqual(parsePanelSearch({ preview: "abc" }), {});
+    assert.deepEqual(parsePanelSearch({ preview: [U] }), {});
+    assert.deepEqual(parsePanelSearch({ preview: `${U}/../x` }), {});
+    assert.deepEqual(parsePanelSearch({}), {});
+  } catch (e) {
+    failures.push(`parsePanelSearch: ${e.message}`);
+  }
+
+  // Servidor: con `preview`, getClientOrgRole antes de cualquier lectura.
+  const serverSrc = stripJsComments(
+    readFileSync(join(root, "src/lib/client-panel/panel.server.ts"), "utf8"),
+  );
+  if (!/getClientOrgRole\(userId,\s*preview\)/.test(serverSrc)) {
+    failures.push("panel.server.ts: la vista previa no se valida con getClientOrgRole");
+  }
+  if (
+    !/export async function loadPreviewBrand[\s\S]*?\{\s*await assertPreviewAccess\(/.test(
+      serverSrc,
+    )
+  ) {
+    failures.push("panel.server.ts: loadPreviewBrand no valida la vista previa primero");
+  }
+  // panel.server.ts (Plan, Archivos, Legal) y channels.server.ts (Leads, WhatsApp,
+  // Instagram): cada db.rpc va justo después de validar la vista previa, y nunca
+  // con service_role.
+  for (const name of ["panel.server.ts", "channels.server.ts"]) {
+    const src = stripJsComments(readFileSync(join(root, "src/lib/client-panel", name), "utf8"));
+    const rpcCalls = src.match(/\.rpc\(/g)?.length ?? 0;
+    const guarded =
+      src.match(
+        /if \(preview\) await assertPreviewAccess\(userId, preview\);\s*const \{ data, error \} = await db\.rpc\(/g,
+      )?.length ?? 0;
+    if (rpcCalls === 0 || guarded !== rpcCalls) {
+      failures.push(`${name}: las RPC del panel no validan la vista previa antes de leer`);
+    }
+    if (/supabaseAdmin[\s\S]{0,80}\.rpc\(/.test(src)) {
+      failures.push(`${name}: llama RPC con service_role (deben ir con la sesión)`);
+    }
+  }
+
+  // BD: las RPC del panel fijan el cliente con client_panel_target y no son de anon.
+  const PANEL_RPCS = [
+    "client_plan_board",
+    "client_files_catalog",
+    "client_contracts_list",
+    "client_leads_page",
+    "client_whatsapp_status",
+    "client_whatsapp_conversations",
+    "client_whatsapp_messages",
+    "client_instagram_overview",
+  ];
+  const target = lastFunctionSql("client_panel_target");
+  if (
+    !target ||
+    !/user_client_id\(\)/i.test(target) ||
+    !/owns_client\(_preview\)/i.test(target) ||
+    !/IF\s+v_self\s+IS\s+NOT\s+NULL\s+THEN\s+RETURN\s+v_self/i.test(target)
+  ) {
+    failures.push(
+      "client_panel_target: debe priorizar user_client_id() y exigir owns_client(_preview)",
+    );
+  }
+  for (const fn of ["client_panel_target", ...PANEL_RPCS]) {
+    const info = state.functions.get(`public.${fn}`);
+    if (!info) {
+      failures.push(`${fn}: no se encontró en las migraciones`);
+      continue;
+    }
+    if (!info.secdef) failures.push(`${fn}: debe ser SECURITY DEFINER (con search_path fijo)`);
+    const exposed = ["public", "anon"].filter((r) => info.grants.has(r));
+    if (exposed.length > 0) failures.push(`${fn}: EXECUTE para ${exposed.join(", ")}`);
+  }
+  for (const fn of PANEL_RPCS) {
+    const def = lastFunctionSql(fn) ?? "";
+    if (!/client_panel_target\(_preview\)/i.test(def)) {
+      failures.push(`${fn}: no fija el cliente con client_panel_target`);
+    }
+    if (
+      /'(assignee|notes|description|mrr|onboarding_token|approval_note|metric_source)'/i.test(def)
+    ) {
+      failures.push(`${fn}: devuelve una columna interna`);
+    }
+  }
+  // Leads, WhatsApp e Instagram: nunca prompt del bot, secretos, notas internas
+  // ni borradores de Instagram; engagement solo de la cuenta propia.
+  for (const fn of PANEL_RPCS.slice(3)) {
+    const def = lastFunctionSql(fn) ?? "";
+    if (
+      /ai_system_prompt|ai_business_context|_secret_id|\bm\.notes\b|approval_note|metadata/i.test(
+        def,
+      )
+    ) {
+      failures.push(`${fn}: lee columnas internas (prompt, secretos, notas o metadatos)`);
+    }
+  }
+  const ig = lastFunctionSql("client_instagram_overview") ?? "";
+  if (!/AND\s+ip\.approval_status\s+IS\s+NOT\s+NULL/i.test(ig)) {
+    failures.push("client_instagram_overview: la propuesta debe excluir borradores");
+  }
+  if (!/e\.source\s*=\s*'own'/i.test(ig)) {
+    failures.push(
+      "client_instagram_overview: engagement solo de la cuenta propia (source = 'own')",
+    );
+  }
+
+  const contracts = lastFunctionSql("client_contracts_list") ?? "";
+  if (!/status\s+IN\s+\('sent',\s*'signed'\)/i.test(contracts)) {
+    failures.push("client_contracts_list: debe devolver solo contratos enviados o firmados");
+  }
+  if (/'agency',\s*c\.agency_snapshot\b/i.test(contracts)) {
+    failures.push("client_contracts_list: devuelve agency_snapshot completo");
+  }
+  const catalog = lastFunctionSql("client_files_catalog") ?? "";
+  if (!/sent_at\s+IS\s+NOT\s+NULL/i.test(catalog)) {
+    failures.push("client_files_catalog: los reportes deben estar enviados");
   }
 }
 

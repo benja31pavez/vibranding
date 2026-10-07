@@ -1,36 +1,8 @@
-import { supabase } from "@/integrations/supabase/client";
-
 /**
- * Lecturas del panel del cliente para Leads, WhatsApp e Instagram.
- *
- * Solo llaman RPC `client_*` (SECURITY DEFINER, migración 20261012002910):
- * el cliente lo fija la base con user_client_id(), así que NINGUNA función
- * recibe un clientId. Leads, conversaciones y mensajes se paginan en el
- * servidor. Las respuestas se validan aquí (nunca se confía en la forma).
+ * Leads, WhatsApp e Instagram del panel del cliente: tipos y validación de las
+ * respuestas de las RPC client_* (migración 20261012002910). Sin E/S: lo usan
+ * channels.server.ts (servidor) y las páginas del panel (solo tipos).
  */
-
-type RpcError = { message: string; code?: string };
-
-const LOAD_ERROR = "No pudimos cargar esta sección. Intenta de nuevo.";
-
-/** Los RPC aún no están en los tipos generados: se validan a mano. */
-async function callRpc(
-  fn:
-    | "client_leads_page"
-    | "client_whatsapp_status"
-    | "client_whatsapp_conversations"
-    | "client_whatsapp_messages"
-    | "client_instagram_overview",
-  args: Record<string, unknown>,
-  call: () => PromiseLike<{ data: unknown; error: RpcError | null }>,
-): Promise<unknown> {
-  const { data, error } = await call();
-  if (error) {
-    console.error(`[client-panel] ${fn} falló`, error.code, error.message, args);
-    throw new Error(LOAD_ERROR);
-  }
-  return data;
-}
 
 /* ───────────── Helpers de validación ───────────── */
 
@@ -84,11 +56,7 @@ const LEAD_STATUSES: readonly LeadStatus[] = ["new", "contacted", "won", "lost"]
 
 export const LEADS_PAGE_SIZE = 10;
 
-export async function fetchClientLeads(page: number): Promise<Page<ClientLead>> {
-  const args = { _limit: LEADS_PAGE_SIZE, _offset: page * LEADS_PAGE_SIZE };
-  const data = await callRpc("client_leads_page", args, () =>
-    supabase.rpc("client_leads_page" as never, args as never),
-  );
+export function parseLeadsPage(data: unknown): Page<ClientLead> {
   const list = rows(data);
   return {
     total: totalOf(list),
@@ -116,10 +84,7 @@ export interface WhatsAppLine {
 }
 
 /** null = el cliente no tiene WhatsApp configurado. */
-export async function fetchWhatsAppLine(): Promise<WhatsAppLine | null> {
-  const data = await callRpc("client_whatsapp_status", {}, () =>
-    supabase.rpc("client_whatsapp_status" as never),
-  );
+export function parseWhatsAppLine(data: unknown): WhatsAppLine | null {
   const row = rows(data)[0];
   if (!row) return null;
   return {
@@ -141,13 +106,7 @@ export interface WhatsAppConversation {
 
 export const CONVERSATIONS_PAGE_SIZE = 10;
 
-export async function fetchWhatsAppConversations(
-  page: number,
-): Promise<Page<WhatsAppConversation>> {
-  const args = { _limit: CONVERSATIONS_PAGE_SIZE, _offset: page * CONVERSATIONS_PAGE_SIZE };
-  const data = await callRpc("client_whatsapp_conversations", args, () =>
-    supabase.rpc("client_whatsapp_conversations" as never, args as never),
-  );
+export function parseConversations(data: unknown): Page<WhatsAppConversation> {
   const list = rows(data).filter((r) => str(r.id));
   return {
     total: totalOf(list),
@@ -178,15 +137,8 @@ export interface WhatsAppMessage {
 
 export const MESSAGES_PAGE_SIZE = 40;
 
-/** Mensajes más nuevos primero; `before` = fecha del más antiguo ya cargado. */
-export async function fetchWhatsAppMessages(
-  conversationId: string,
-  before: string | null,
-): Promise<WhatsAppMessage[]> {
-  const args = { _conversation_id: conversationId, _limit: MESSAGES_PAGE_SIZE, _before: before };
-  const data = await callRpc("client_whatsapp_messages", args, () =>
-    supabase.rpc("client_whatsapp_messages" as never, args as never),
-  );
+/** Mensajes más nuevos primero (cursor = fecha e id del más antiguo cargado). */
+export function parseMessages(data: unknown): WhatsAppMessage[] {
   return rows(data)
     .filter((r) => str(r.id))
     .map((r) => ({
@@ -243,9 +195,13 @@ export interface IgEngagementView {
   postsSampled: number | null;
 }
 
+/** Perfil: solo columnas current_* / proposed_* con valores simples. */
+export type IgProfileRow = Record<string, string | number | boolean | null>;
+
 export interface InstagramOverview {
-  /** Fila cruda del perfil (solo columnas current_* / proposed_*), o null. */
-  profile: Row | null;
+  /** Cliente de la respuesta (para firmar solo rutas de client-media suyas). */
+  brandId: string;
+  profile: IgProfileRow | null;
   currentVersion: { label: string; capturedAt: string | null } | null;
   posts: IgPostView[];
   highlights: IgHighlightView[];
@@ -256,6 +212,18 @@ const asSide = (v: unknown): IgSide => (v === "current" ? "current" : "proposed"
 const asFormat = (v: unknown): IgFormat => (v === "carousel" || v === "reel" ? v : "photo");
 const asObject = (v: unknown): Row | null =>
   typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Row) : null;
+
+function profileOf(v: unknown): IgProfileRow | null {
+  const o = asObject(v);
+  if (!o) return null;
+  const out: IgProfileRow = {};
+  for (const [k, val] of Object.entries(o)) {
+    if (!/^(current|proposed)_[a-z_]+$/.test(k)) continue;
+    out[k] =
+      typeof val === "string" || typeof val === "number" || typeof val === "boolean" ? val : null;
+  }
+  return out;
+}
 
 function parseEngagement(v: unknown): IgEngagementView | null {
   const e = asObject(v);
@@ -273,18 +241,19 @@ function parseEngagement(v: unknown): IgEngagementView | null {
   };
 }
 
-export async function fetchInstagramOverview(): Promise<InstagramOverview> {
-  const data = await callRpc("client_instagram_overview", {}, () =>
-    supabase.rpc("client_instagram_overview" as never),
-  );
+/** null = sin cliente legible. */
+export function parseInstagramOverview(data: unknown): InstagramOverview | null {
   const root = asObject(data);
-  const version = asObject(root?.current_version);
+  const brandId = str(root?.client_id);
+  if (!root || !brandId) return null;
+  const version = asObject(root.current_version);
   return {
-    profile: asObject(root?.profile),
+    brandId,
+    profile: profileOf(root.profile),
     currentVersion: version
       ? { label: str(version.label) ?? "Actual", capturedAt: str(version.captured_at) }
       : null,
-    posts: rows(root?.posts)
+    posts: rows(root.posts)
       .filter((p) => str(p.id))
       .map((p) => ({
         id: String(p.id),
@@ -304,7 +273,7 @@ export async function fetchInstagramOverview(): Promise<InstagramOverview> {
         location: str(p.location),
         approvalStatus: str(p.approval_status),
       })),
-    highlights: rows(root?.highlights)
+    highlights: rows(root.highlights)
       .filter((h) => str(h.id))
       .map((h) => ({
         id: String(h.id),
@@ -314,6 +283,6 @@ export async function fetchInstagramOverview(): Promise<InstagramOverview> {
         coverUrl: str(h.cover_url),
         mediaUrls: strList(h.media_urls),
       })),
-    engagement: parseEngagement(root?.engagement),
+    engagement: parseEngagement(root.engagement),
   };
 }

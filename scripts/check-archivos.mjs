@@ -213,7 +213,15 @@ const sqlOf = (f) =>
   readFileSync(join(migrationsDir, f), "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/--[^\n]*/g, "");
-const cfMigration = migrations.filter((f) => /client_files/i.test(sqlOf(f))).at(-1);
+// La última migración que DEFINE client_files (tabla, policies o grants); las que
+// solo la leen (p. ej. las RPC del panel del cliente) no cuentan.
+const cfMigration = migrations
+  .filter((f) =>
+    /(CREATE|ALTER)\s+TABLE[^;]*public\.client_files\b|\bON\s+public\.client_files\b/i.test(
+      sqlOf(f),
+    ),
+  )
+  .at(-1);
 
 /** Cuerpo ($$ … $$) de la última definición de una función en todas las migraciones. */
 function lastBody(fn, schema = "public") {

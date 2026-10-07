@@ -1,5 +1,4 @@
 import { useMemo, useState, type ComponentProps } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, CalendarClock, Instagram } from "lucide-react";
 import { IphonePreview } from "@/components/IphonePreview";
@@ -17,19 +16,21 @@ import {
 } from "@/components/app";
 import { POST_FORMAT_LABEL } from "@/lib/portal/model";
 import { cn } from "@/lib/utils";
-import {
-  fetchInstagramOverview,
-  type IgEngagementView,
-  type IgHighlightView,
-  type IgPostView,
-  type IgSide,
-} from "./clientData";
+import type {
+  IgEngagementView,
+  IgHighlightView,
+  IgPostView,
+  IgProfileRow,
+  IgSide,
+  InstagramOverview,
+} from "@/lib/client-panel/channelsModel";
 import { formatDay, formatInstant } from "./format";
+import { previewSearch, usePanelMode } from "./panelMode";
+import { PanelSectionState } from "./PanelSectionState";
 import { sectionHref } from "./sections";
-import { useActiveClientSelf } from "./useClientSelf";
+import { usePanelInstagram } from "./useChannelData";
 
 type PreviewProps = ComponentProps<typeof IphonePreview>;
-type Row = Record<string, unknown>;
 
 const VIEWS: readonly { key: IgSide; label: string }[] = [
   { key: "current", label: "Actual" },
@@ -37,8 +38,9 @@ const VIEWS: readonly { key: IgSide; label: string }[] = [
 ];
 
 const APPROVAL_META: Record<string, { label: string; tone: StatusTone }> = {
-  approved: { label: "Aprobado", tone: "success" },
-  changes_requested: { label: "Cambios", tone: "warning" },
+  aprobado: { label: "Aprobado", tone: "success" },
+  cambios: { label: "Cambios", tone: "warning" },
+  rechazado: { label: "Rechazado", tone: "danger" },
 };
 const PENDING_APPROVAL = { label: "Por aprobar", tone: "info" as StatusTone };
 
@@ -56,7 +58,7 @@ const flag = (v: unknown): boolean => v === true;
 const accountType = (v: unknown): "business" | "personal" =>
   v === "business" ? "business" : "personal";
 
-function toPreviewProfile(row: Row, selfId: string): PreviewProps["profile"] {
+function toPreviewProfile(row: IgProfileRow, selfId: string): PreviewProps["profile"] {
   const side = (s: IgSide) => ({
     username: text(row[`${s}_username`]),
     display_name: text(row[`${s}_display_name`]),
@@ -165,25 +167,11 @@ function toPreviewHighlight(
 
 /** Instagram del cliente en solo lectura: grilla Actual/Propuesta, próximas publicaciones y engagement. */
 export function InstagramPage() {
-  const self = useActiveClientSelf();
   const [view, setView] = useState<IgSide>("proposed");
-  const overview = useQuery({
-    queryKey: ["client-panel", self.id, "instagram"],
-    queryFn: fetchInstagramOverview,
-    staleTime: 5 * 60_000,
-  });
+  const query = usePanelInstagram();
+  const hasProfile = query.data?.status === "ok" && Boolean(query.data.data.profile);
 
-  const preview = useMemo(() => {
-    const data = overview.data;
-    if (!data?.profile) return null;
-    return {
-      profile: toPreviewProfile(data.profile, self.id),
-      posts: data.posts.map((p) => toPreviewPost(p, self.id)),
-      highlights: data.highlights.map((h) => toPreviewHighlight(h, self.id)),
-    };
-  }, [overview.data, self.id]);
-
-  const toggle = preview && (
+  const toggle = hasProfile && (
     <div
       role="group"
       aria-label="Vista de la grilla"
@@ -205,61 +193,58 @@ export function InstagramPage() {
       ))}
     </div>
   );
-  const header = <PageHeader size="compact" title="Instagram" actions={toggle || undefined} />;
-
-  if (overview.isPending) {
-    return (
-      <FitPage header={header}>
-        <Panel>
-          <ListSkeleton rows={4} label="Cargando Instagram…" />
-        </Panel>
-      </FitPage>
-    );
-  }
-  if (overview.isError) {
-    return (
-      <FitPage header={header}>
-        <ErrorState
-          message={overview.error.message}
-          onRetry={() => void overview.refetch()}
-          retrying={overview.isFetching}
-        />
-      </FitPage>
-    );
-  }
-  if (!preview) {
-    return (
-      <FitPage header={header}>
-        <div className="flex max-w-xl items-center gap-3 rounded-app-lg border border-border-subtle bg-surface px-5 py-4 shadow-app-xs">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-app-md bg-brand-soft text-brand-1">
-            <Instagram aria-hidden className="h-[18px] w-[18px]" />
-          </span>
-          <p className="text-sm text-muted-foreground">
-            Tu equipo VIBRANDING está preparando tu Instagram.
-          </p>
-        </div>
-      </FitPage>
-    );
-  }
-
-  const upcoming = upcomingPosts(overview.data.posts);
 
   return (
     <FitPage
-      header={header}
-      contentClassName="grid gap-6 md:grid-cols-[auto_minmax(0,1fr)] md:gap-8"
+      header={<PageHeader size="compact" title="Instagram" actions={toggle || undefined} />}
+      contentClassName="md:flex md:flex-col"
     >
+      <PanelSectionState query={query} title="No pudimos cargar tu Instagram">
+        {(overview) => <InstagramBody overview={overview} view={view} />}
+      </PanelSectionState>
+    </FitPage>
+  );
+}
+
+function InstagramBody({ overview, view }: { overview: InstagramOverview; view: IgSide }) {
+  const { preview } = usePanelMode();
+  const phone = useMemo(() => {
+    if (!overview.profile) return null;
+    const id = overview.brandId;
+    return {
+      profile: toPreviewProfile(overview.profile, id),
+      posts: overview.posts.map((p) => toPreviewPost(p, id)),
+      highlights: overview.highlights.map((h) => toPreviewHighlight(h, id)),
+    };
+  }, [overview]);
+
+  if (!phone) {
+    return (
+      <div className="flex max-w-xl items-center gap-3 rounded-app-lg border border-border-subtle bg-surface px-5 py-4 shadow-app-xs">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-app-md bg-brand-soft text-brand-1">
+          <Instagram aria-hidden className="h-[18px] w-[18px]" />
+        </span>
+        <p className="text-sm text-muted-foreground">
+          Tu equipo VIBRANDING está preparando tu Instagram.
+        </p>
+      </div>
+    );
+  }
+
+  const upcoming = upcomingPosts(overview.posts);
+  return (
+    <div className="grid gap-6 md:min-h-0 md:flex-1 md:grid-cols-[auto_minmax(0,1fr)] md:gap-8">
       <div className="md:min-h-0 md:overflow-y-auto">
         <IphonePreview
-          profile={preview.profile}
-          posts={preview.posts}
-          highlights={preview.highlights}
+          profile={phone.profile}
+          posts={phone.posts}
+          highlights={phone.highlights}
           comments={[]}
           view={view}
         />
       </div>
       <div className="flex min-w-0 flex-col gap-4 md:min-h-0">
-        {overview.data.engagement && <EngagementStrip engagement={overview.data.engagement} />}
+        {overview.engagement && <EngagementStrip engagement={overview.engagement} />}
         <Panel
           fill
           icon={CalendarClock}
@@ -267,6 +252,7 @@ export function InstagramPage() {
           actions={
             <Link
               to={sectionHref("calendario")}
+              search={previewSearch(preview)}
               className="inline-flex items-center gap-1 text-xs font-medium text-brand-1 hover:underline"
             >
               Calendario <ArrowRight aria-hidden className="h-3.5 w-3.5" />
@@ -287,7 +273,7 @@ export function InstagramPage() {
           )}
         </Panel>
       </div>
-    </FitPage>
+    </div>
   );
 }
 

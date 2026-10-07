@@ -8,6 +8,11 @@ const InviteInput = z.object({
   email: z.string().trim().email().max(200),
 });
 const RevokeInput = z.object({ id: z.string().uuid() });
+const PanelToggleInput = z.object({ id: z.string().uuid(), enabled: z.boolean() });
+
+/** Solo owner/admin de la org del cliente gestionan quién entra al panel nuevo. */
+const MANAGER_ROLES = ["owner", "admin"] as const;
+const NO_MANAGE = "Solo un administrador de la agencia puede cambiar el acceso al panel.";
 
 /**
  * Blocked invites (address already tied to another client's portal or to an
@@ -25,7 +30,7 @@ export const listClientUsers = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("client_users")
-      .select("id,user_id,email,created_at")
+      .select("id,user_id,email,created_at,panel_enabled")
       .eq("client_id", data.clientId)
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
@@ -127,4 +132,64 @@ export const revokeClientUser = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("client_users").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/** ¿Quien llama puede gestionar el acceso del cliente (owner/admin de su org)? */
+export const getClientAccessPermissions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { clientId: string }) => ClientIdInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { getClientOrgRole } = await import("@/lib/auth/clientAccess.server");
+    const role = await getClientOrgRole(context.userId, data.clientId);
+    return {
+      canManage: Boolean(role && (MANAGER_ROLES as readonly string[]).includes(role)),
+      canPreview: Boolean(role),
+    };
+  });
+
+/**
+ * Activa o apaga el panel nuevo (/mi) de un usuario cliente. Solo owner/admin
+ * de la org dueña del cliente: se verifica aquí (getClientOrgRole sobre el
+ * client_id de la fila) y la BD lo vuelve a exigir (policy "client_users
+ * update" con manages_client + trigger guard_client_users_update). El UPDATE
+ * va con la sesión del usuario, nunca con service_role.
+ */
+export const setClientPanelEnabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; enabled: boolean }) => PanelToggleInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row, error: readError } = await context.supabase
+      .from("client_users")
+      .select("id,client_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readError) {
+      console.error("[clientAccess] no se pudo leer client_users", readError.message);
+      throw new Error("No pudimos cambiar el acceso. Intenta de nuevo.");
+    }
+    if (!row) throw new Error(NO_MANAGE);
+
+    const { assertCanEditClient, ClientAccessError } =
+      await import("@/lib/auth/clientAccess.server");
+    try {
+      const role = await assertCanEditClient(context.userId, row.client_id);
+      if (!(MANAGER_ROLES as readonly string[]).includes(role)) throw new Error(NO_MANAGE);
+    } catch (e) {
+      if (e instanceof ClientAccessError) throw new Error(NO_MANAGE);
+      throw e;
+    }
+
+    const { data: updated, error } = await context.supabase
+      .from("client_users")
+      .update({ panel_enabled: data.enabled })
+      .eq("id", data.id)
+      .eq("client_id", row.client_id)
+      .select("id,panel_enabled");
+    if (error) {
+      console.error("[clientAccess] no se pudo cambiar panel_enabled", error.code, error.message);
+      if (error.code === "42501") throw new Error(NO_MANAGE);
+      throw new Error("No pudimos cambiar el acceso. Intenta de nuevo.");
+    }
+    if (!updated || updated.length === 0) throw new Error(NO_MANAGE);
+    return { ok: true, enabled: updated[0].panel_enabled };
   });

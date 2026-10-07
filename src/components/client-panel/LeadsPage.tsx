@@ -1,12 +1,9 @@
 import { useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Globe, Link2, Megaphone, MessageCircle, UserPlus } from "lucide-react";
 import {
   EmptyState,
-  ErrorState,
   FitPage,
   FitPager,
-  ListSkeleton,
   PageHeader,
   Panel,
   StatusBadge,
@@ -14,13 +11,14 @@ import {
 } from "@/components/app";
 import {
   LEADS_PAGE_SIZE,
-  fetchClientLeads,
   type ClientLead,
   type LeadSource,
   type LeadStatus,
-} from "./clientData";
+  type Page,
+} from "@/lib/client-panel/channelsModel";
 import { formatInstant } from "./format";
-import { useActiveClientSelf } from "./useClientSelf";
+import { PanelSectionState } from "./PanelSectionState";
+import { usePanelLeads } from "./useChannelData";
 
 const SOURCE_META: Record<LeadSource, { label: string; icon: typeof Globe }> = {
   whatsapp: { label: "WhatsApp", icon: MessageCircle },
@@ -38,51 +36,55 @@ const STATUS_META: Record<LeadStatus, { label: string; tone: StatusTone }> = {
 
 /** Leads del negocio del cliente (solo lectura). Paginado en el servidor. */
 export function LeadsPage() {
-  const self = useActiveClientSelf();
   const [page, setPage] = useState(0);
-  const leads = useQuery({
-    queryKey: ["client-panel", self.id, "leads", page],
-    queryFn: () => fetchClientLeads(page),
-    placeholderData: keepPreviousData,
-    staleTime: 60_000,
-  });
-  const total = leads.data?.total ?? 0;
-  const pageCount = Math.ceil(total / LEADS_PAGE_SIZE);
-
+  const query = usePanelLeads(page);
   return (
     <FitPage
       header={<PageHeader size="compact" title="Leads" />}
       contentClassName="md:flex md:flex-col"
     >
-      {leads.isPending ? (
-        <Panel>
-          <ListSkeleton rows={6} label="Cargando leads…" />
-        </Panel>
-      ) : leads.isError ? (
-        <ErrorState
-          message={leads.error.message}
-          onRetry={() => void leads.refetch()}
-          retrying={leads.isFetching}
-        />
-      ) : total === 0 ? (
-        <EmptyState icon={UserPlus} title="Aún no llegan leads" />
-      ) : (
-        <Panel
-          fill
-          title={`${total} ${total === 1 ? "lead" : "leads"}`}
-          actions={
-            <FitPager page={page} pageCount={pageCount} onPageChange={setPage} label="Leads" />
-          }
-          bodyClassName="md:min-h-0 md:flex-1 md:overflow-y-auto"
-        >
-          <ul className="divide-y divide-border-subtle" aria-busy={leads.isFetching}>
-            {leads.data.items.map((lead) => (
-              <LeadRow key={lead.key} lead={lead} />
-            ))}
-          </ul>
-        </Panel>
-      )}
+      <PanelSectionState query={query} title="No pudimos cargar tus leads">
+        {(leads) => (
+          <LeadsList leads={leads} page={page} onPage={setPage} busy={query.isFetching} />
+        )}
+      </PanelSectionState>
     </FitPage>
+  );
+}
+
+function LeadsList({
+  leads,
+  page,
+  onPage,
+  busy,
+}: {
+  leads: Page<ClientLead>;
+  page: number;
+  onPage: (page: number) => void;
+  busy: boolean;
+}) {
+  const { total } = leads;
+  if (total === 0) return <EmptyState icon={UserPlus} title="Aún no llegan leads" />;
+  return (
+    <Panel
+      fill
+      title={`${total} ${total === 1 ? "lead" : "leads"}`}
+      actions={
+        <FitPager
+          page={page}
+          pageCount={Math.ceil(total / LEADS_PAGE_SIZE)}
+          onPageChange={onPage}
+          label="Leads"
+        />
+      }
+      bodyClassName="md:min-h-0 md:flex-1 md:overflow-y-auto"
+    >
+      <ul className="divide-y divide-border-subtle" aria-busy={busy}>
+        {leads.items.map((lead) => (
+          <LeadRow key={lead.key} lead={lead} />
+        ))}
+      </ul>
+    </Panel>
   );
 }
 

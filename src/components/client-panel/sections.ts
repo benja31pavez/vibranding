@@ -55,9 +55,9 @@ export const CLIENT_PANEL_GROUPS: readonly {
     key: "operacion",
     label: "Operación",
     sections: [
-      { key: "plan", label: "Plan", icon: Flag, status: "soon" },
+      { key: "plan", label: "Plan", icon: Flag, status: "ready" },
       { key: "calendario", label: "Calendario", icon: CalendarDays, status: "ready" },
-      { key: "archivos", label: "Archivos", icon: Images, status: "soon" },
+      { key: "archivos", label: "Archivos", icon: Images, status: "ready" },
       { key: "sitio", label: "Sitio", icon: Globe, status: "soon" },
     ],
   },
@@ -77,7 +77,7 @@ export const CLIENT_PANEL_GROUPS: readonly {
     sections: [
       { key: "leads", label: "Leads", icon: UserPlus, status: "ready" },
       { key: "facturacion", label: "Facturación", icon: Receipt, status: "ready" },
-      { key: "legal", label: "Legal", icon: Scale, status: "soon" },
+      { key: "legal", label: "Legal", icon: Scale, status: "ready" },
     ],
   },
 ];

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   Bot,
   Check,
@@ -11,7 +10,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  EmptyState,
   ErrorState,
   FitPage,
   FitPager,
@@ -23,16 +21,13 @@ import {
 import { cn } from "@/lib/utils";
 import {
   CONVERSATIONS_PAGE_SIZE,
-  MESSAGES_PAGE_SIZE,
-  fetchWhatsAppConversations,
-  fetchWhatsAppLine,
-  fetchWhatsAppMessages,
   type WhatsAppConversation,
   type WhatsAppLine,
   type WhatsAppMessage,
-} from "./clientData";
+} from "@/lib/client-panel/channelsModel";
 import { chileDateKey, formatChatTime, formatDay, formatTime } from "./format";
-import { useActiveClientSelf } from "./useClientSelf";
+import { PanelSectionState } from "./PanelSectionState";
+import { usePanelMessages, usePanelWhatsApp } from "./useChannelData";
 
 const UNSUPPORTED = "Mensaje no compatible";
 
@@ -50,76 +45,60 @@ function messageText(body: string | null, type = "text"): string {
 
 /** Bandeja de WhatsApp del cliente: lectura de todas sus conversaciones. Responder = fase 3. */
 export function WhatsAppPage() {
-  const self = useActiveClientSelf();
   const [page, setPage] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const line = useQuery({
-    queryKey: ["client-panel", self.id, "whatsapp", "line"],
-    queryFn: fetchWhatsAppLine,
-    staleTime: 5 * 60_000,
-  });
-  const conversations = useQuery({
-    queryKey: ["client-panel", self.id, "whatsapp", "conversations", page],
-    queryFn: () => fetchWhatsAppConversations(page),
-    placeholderData: keepPreviousData,
-    staleTime: 30_000,
-  });
-
-  const items = conversations.data?.items ?? [];
-  const active = items.find((c) => c.id === selectedId) ?? items[0] ?? null;
-  const total = conversations.data?.total ?? 0;
-
+  const query = usePanelWhatsApp(page);
+  const line = query.data?.status === "ok" ? query.data.data.line : null;
   const header = (
     <PageHeader
       size="compact"
       title="WhatsApp"
-      actions={line.data ? <LineBadge line={line.data} /> : undefined}
+      actions={line ? <LineBadge line={line} /> : undefined}
     />
   );
-
-  if (line.isPending || conversations.isPending) {
-    return (
-      <FitPage header={header}>
-        <Panel>
-          <ListSkeleton rows={5} label="Cargando conversaciones…" />
-        </Panel>
-      </FitPage>
-    );
-  }
-  const failed = line.isError ? line : conversations.isError ? conversations : null;
-  if (failed) {
-    return (
-      <FitPage header={header}>
-        <ErrorState
-          message={failed.error?.message}
-          onRetry={() => {
-            void line.refetch();
-            void conversations.refetch();
-          }}
-        />
-      </FitPage>
-    );
-  }
-  if (total === 0) {
-    return (
-      <FitPage header={header}>
-        <OneLineState
-          text={
-            line.data?.connected
-              ? "Aún no hay conversaciones."
-              : "Tu WhatsApp aún no está conectado: tu equipo VIBRANDING lo está configurando."
-          }
-        />
-      </FitPage>
-    );
-  }
-
   return (
-    <FitPage
-      header={header}
-      contentClassName="grid gap-4 md:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]"
-    >
+    <FitPage header={header} contentClassName="md:flex md:flex-col">
+      <PanelSectionState query={query} title="No pudimos cargar tus conversaciones">
+        {({ line: current, conversations }) =>
+          conversations.total === 0 ? (
+            <OneLineState
+              text={
+                current?.connected
+                  ? "Aún no hay conversaciones."
+                  : "Tu WhatsApp aún no está conectado: tu equipo VIBRANDING lo está configurando."
+              }
+            />
+          ) : (
+            <Inbox
+              items={conversations.items}
+              total={conversations.total}
+              page={page}
+              onPage={setPage}
+              busy={query.isFetching}
+            />
+          )
+        }
+      </PanelSectionState>
+    </FitPage>
+  );
+}
+
+function Inbox({
+  items,
+  total,
+  page,
+  onPage,
+  busy,
+}: {
+  items: WhatsAppConversation[];
+  total: number;
+  page: number;
+  onPage: (page: number) => void;
+  busy: boolean;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const active = items.find((c) => c.id === selectedId) ?? items[0] ?? null;
+  return (
+    <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
       <Panel
         fill
         title={`${total} ${total === 1 ? "conversación" : "conversaciones"}`}
@@ -128,7 +107,7 @@ export function WhatsAppPage() {
             page={page}
             pageCount={Math.ceil(total / CONVERSATIONS_PAGE_SIZE)}
             onPageChange={(p) => {
-              setPage(p);
+              onPage(p);
               setSelectedId(null);
             }}
             label="Conversaciones"
@@ -136,7 +115,7 @@ export function WhatsAppPage() {
         }
         bodyClassName="px-2 pb-2 md:overflow-y-auto"
       >
-        <ul className="space-y-0.5" aria-busy={conversations.isFetching}>
+        <ul className="space-y-0.5" aria-busy={busy}>
           {items.map((c) => (
             <li key={c.id}>
               <ConversationButton
@@ -149,7 +128,7 @@ export function WhatsAppPage() {
         </ul>
       </Panel>
       {active && <Thread key={active.id} conversation={active} />}
-    </FitPage>
+    </div>
   );
 }
 
@@ -222,16 +201,8 @@ function ConversationButton({
 }
 
 function Thread({ conversation }: { conversation: WhatsAppConversation }) {
-  const self = useActiveClientSelf();
   const bottomRef = useRef<HTMLDivElement>(null);
-  const messages = useInfiniteQuery({
-    queryKey: ["client-panel", self.id, "whatsapp", "messages", conversation.id],
-    queryFn: ({ pageParam }) => fetchWhatsAppMessages(conversation.id, pageParam),
-    initialPageParam: null as string | null,
-    getNextPageParam: (last) =>
-      last.length === MESSAGES_PAGE_SIZE ? (last[last.length - 1]?.sentAt ?? null) : null,
-    staleTime: 30_000,
-  });
+  const messages = usePanelMessages(conversation.id);
   const firstLoaded = messages.isSuccess;
 
   useEffect(() => {
