@@ -42,7 +42,8 @@
     "check:aislamiento": "node scripts/check-aislamiento.mjs",
     "check:archivos": "node scripts/check-archivos.mjs",
     "check:membership": "node scripts/check-membership.mjs",
-    "check:site-editor": "node scripts/check-site-editor.mjs"
+    "check:site-editor": "node scripts/check-site-editor.mjs",
+    "check:panel-sitio-ads": "node scripts/check-panel-sitio-ads.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

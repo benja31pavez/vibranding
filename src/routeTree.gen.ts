@@ -50,10 +50,13 @@ import { Route as MiSeccionRouteImport } from './routes/mi/$seccion'
 import { Route as MiArchivosRouteImport } from './routes/mi/archivos'
 import { Route as MiCalendarioRouteImport } from './routes/mi/calendario'
 import { Route as MiFacturacionRouteImport } from './routes/mi/facturacion'
+import { Route as MiGoogleAdsRouteImport } from './routes/mi/google-ads'
 import { Route as MiInstagramRouteImport } from './routes/mi/instagram'
 import { Route as MiLeadsRouteImport } from './routes/mi/leads'
 import { Route as MiLegalRouteImport } from './routes/mi/legal'
+import { Route as MiMetaAdsRouteImport } from './routes/mi/meta-ads'
 import { Route as MiPlanRouteImport } from './routes/mi/plan'
+import { Route as MiSitioRouteImport } from './routes/mi/sitio'
 import { Route as MiWhatsappRouteImport } from './routes/mi/whatsapp'
 import { Route as OnboardingTokenRouteImport } from './routes/onboarding.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
@@ -328,6 +331,11 @@ const MiFacturacionRoute = MiFacturacionRouteImport.update({
   path: '/facturacion',
   getParentRoute: () => MiRoute,
 } as any)
+const MiGoogleAdsRoute = MiGoogleAdsRouteImport.update({
+  id: '/google-ads',
+  path: '/google-ads',
+  getParentRoute: () => MiRoute,
+} as any)
 const MiInstagramRoute = MiInstagramRouteImport.update({
   id: '/instagram',
   path: '/instagram',
@@ -343,9 +351,19 @@ const MiLegalRoute = MiLegalRouteImport.update({
   path: '/legal',
   getParentRoute: () => MiRoute,
 } as any)
+const MiMetaAdsRoute = MiMetaAdsRouteImport.update({
+  id: '/meta-ads',
+  path: '/meta-ads',
+  getParentRoute: () => MiRoute,
+} as any)
 const MiPlanRoute = MiPlanRouteImport.update({
   id: '/plan',
   path: '/plan',
+  getParentRoute: () => MiRoute,
+} as any)
+const MiSitioRoute = MiSitioRouteImport.update({
+  id: '/sitio',
+  path: '/sitio',
   getParentRoute: () => MiRoute,
 } as any)
 const MiWhatsappRoute = MiWhatsappRouteImport.update({
@@ -759,10 +777,13 @@ export interface FileRoutesByFullPath {
   '/mi/archivos': typeof MiArchivosRoute
   '/mi/calendario': typeof MiCalendarioRoute
   '/mi/facturacion': typeof MiFacturacionRoute
+  '/mi/google-ads': typeof MiGoogleAdsRoute
   '/mi/instagram': typeof MiInstagramRoute
   '/mi/leads': typeof MiLeadsRoute
   '/mi/legal': typeof MiLegalRoute
+  '/mi/meta-ads': typeof MiMetaAdsRoute
   '/mi/plan': typeof MiPlanRoute
+  '/mi/sitio': typeof MiSitioRoute
   '/mi/whatsapp': typeof MiWhatsappRoute
   '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
@@ -871,10 +892,13 @@ export interface FileRoutesByTo {
   '/mi/archivos': typeof MiArchivosRoute
   '/mi/calendario': typeof MiCalendarioRoute
   '/mi/facturacion': typeof MiFacturacionRoute
+  '/mi/google-ads': typeof MiGoogleAdsRoute
   '/mi/instagram': typeof MiInstagramRoute
   '/mi/leads': typeof MiLeadsRoute
   '/mi/legal': typeof MiLegalRoute
+  '/mi/meta-ads': typeof MiMetaAdsRoute
   '/mi/plan': typeof MiPlanRoute
+  '/mi/sitio': typeof MiSitioRoute
   '/mi/whatsapp': typeof MiWhatsappRoute
   '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
@@ -985,10 +1009,13 @@ export interface FileRoutesById {
   '/mi/archivos': typeof MiArchivosRoute
   '/mi/calendario': typeof MiCalendarioRoute
   '/mi/facturacion': typeof MiFacturacionRoute
+  '/mi/google-ads': typeof MiGoogleAdsRoute
   '/mi/instagram': typeof MiInstagramRoute
   '/mi/leads': typeof MiLeadsRoute
   '/mi/legal': typeof MiLegalRoute
+  '/mi/meta-ads': typeof MiMetaAdsRoute
   '/mi/plan': typeof MiPlanRoute
+  '/mi/sitio': typeof MiSitioRoute
   '/mi/whatsapp': typeof MiWhatsappRoute
   '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
@@ -1100,10 +1127,13 @@ export interface FileRouteTypes {
     | '/mi/archivos'
     | '/mi/calendario'
     | '/mi/facturacion'
+    | '/mi/google-ads'
     | '/mi/instagram'
     | '/mi/leads'
     | '/mi/legal'
+    | '/mi/meta-ads'
     | '/mi/plan'
+    | '/mi/sitio'
     | '/mi/whatsapp'
     | '/onboarding/$token'
     | '/p/$token'
@@ -1212,10 +1242,13 @@ export interface FileRouteTypes {
     | '/mi/archivos'
     | '/mi/calendario'
     | '/mi/facturacion'
+    | '/mi/google-ads'
     | '/mi/instagram'
     | '/mi/leads'
     | '/mi/legal'
+    | '/mi/meta-ads'
     | '/mi/plan'
+    | '/mi/sitio'
     | '/mi/whatsapp'
     | '/onboarding/$token'
     | '/p/$token'
@@ -1325,10 +1358,13 @@ export interface FileRouteTypes {
     | '/mi/archivos'
     | '/mi/calendario'
     | '/mi/facturacion'
+    | '/mi/google-ads'
     | '/mi/instagram'
     | '/mi/leads'
     | '/mi/legal'
+    | '/mi/meta-ads'
     | '/mi/plan'
+    | '/mi/sitio'
     | '/mi/whatsapp'
     | '/onboarding/$token'
     | '/p/$token'
@@ -1744,6 +1780,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MiFacturacionRouteImport
       parentRoute: typeof MiRoute
     }
+    '/mi/google-ads': {
+      id: '/mi/google-ads'
+      path: '/google-ads'
+      fullPath: '/mi/google-ads'
+      preLoaderRoute: typeof MiGoogleAdsRouteImport
+      parentRoute: typeof MiRoute
+    }
     '/mi/instagram': {
       id: '/mi/instagram'
       path: '/instagram'
@@ -1765,11 +1808,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MiLegalRouteImport
       parentRoute: typeof MiRoute
     }
+    '/mi/meta-ads': {
+      id: '/mi/meta-ads'
+      path: '/meta-ads'
+      fullPath: '/mi/meta-ads'
+      preLoaderRoute: typeof MiMetaAdsRouteImport
+      parentRoute: typeof MiRoute
+    }
     '/mi/plan': {
       id: '/mi/plan'
       path: '/plan'
       fullPath: '/mi/plan'
       preLoaderRoute: typeof MiPlanRouteImport
+      parentRoute: typeof MiRoute
+    }
+    '/mi/sitio': {
+      id: '/mi/sitio'
+      path: '/sitio'
+      fullPath: '/mi/sitio'
+      preLoaderRoute: typeof MiSitioRouteImport
       parentRoute: typeof MiRoute
     }
     '/mi/whatsapp': {
@@ -2373,10 +2430,13 @@ interface MiRouteChildren {
   MiArchivosRoute: typeof MiArchivosRoute
   MiCalendarioRoute: typeof MiCalendarioRoute
   MiFacturacionRoute: typeof MiFacturacionRoute
+  MiGoogleAdsRoute: typeof MiGoogleAdsRoute
   MiInstagramRoute: typeof MiInstagramRoute
   MiLeadsRoute: typeof MiLeadsRoute
   MiLegalRoute: typeof MiLegalRoute
+  MiMetaAdsRoute: typeof MiMetaAdsRoute
   MiPlanRoute: typeof MiPlanRoute
+  MiSitioRoute: typeof MiSitioRoute
   MiWhatsappRoute: typeof MiWhatsappRoute
   MiIndexRoute: typeof MiIndexRoute
 }
@@ -2386,10 +2446,13 @@ const MiRouteChildren: MiRouteChildren = {
   MiArchivosRoute: MiArchivosRoute,
   MiCalendarioRoute: MiCalendarioRoute,
   MiFacturacionRoute: MiFacturacionRoute,
+  MiGoogleAdsRoute: MiGoogleAdsRoute,
   MiInstagramRoute: MiInstagramRoute,
   MiLeadsRoute: MiLeadsRoute,
   MiLegalRoute: MiLegalRoute,
+  MiMetaAdsRoute: MiMetaAdsRoute,
   MiPlanRoute: MiPlanRoute,
+  MiSitioRoute: MiSitioRoute,
   MiWhatsappRoute: MiWhatsappRoute,
   MiIndexRoute: MiIndexRoute,
 }

@@ -9,8 +9,8 @@
 --   (o) psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/aislamiento.sql
 --
 -- Requiere las migraciones 20261012002300 … 20261012002340, 20261012002800 y
--- 20261012002900 (RPC client_* del panel: Plan, Archivos, Legal) y 20261012002910
--- (Leads, WhatsApp, Instagram) aplicadas.
+-- 20261012002900 (RPC client_* del panel: Plan, Archivos, Legal), 20261012002910
+-- (Leads, WhatsApp, Instagram) y 20261012002920 (panel: sitio y publicidad) aplicadas.
 -- Cada fallo lanza una excepción "FALLO …" y aborta (ON_ERROR_STOP).
 -- Los usuarios son UUID inventados: no hace falta crear cuentas en auth.users
 -- porque auth.uid() se lee de request.jwt.claims.
@@ -343,10 +343,145 @@ END $$;
 RESET ROLE;
 
 -- ---------------------------------------------------------------------
--- 5) Fase 2 · Leads, WhatsApp e Instagram del panel del cliente
+-- 5) Fase 2 · Sitio y publicidad (client_site_summary, client_meta_ads_summary,
+--    client_google_ads_summary): el cliente A solo ve lo suyo, sin ids de
+--    cuenta; extraño, agencia y anon no obtienen nada.
+-- ---------------------------------------------------------------------
+INSERT INTO public.multilinks (id, client_id, slug, title, published) VALUES
+  ('00000000-0000-4000-a000-0000000001a1', '00000000-0000-4000-a000-0000000000ca', 'test-ml-a', 'TEST ML A', true),
+  ('00000000-0000-4000-a000-0000000001b1', '00000000-0000-4000-a000-0000000000cb', 'test-ml-b', 'TEST ML B', true);
+INSERT INTO public.landing_events (event_name, source_type, source_id, client_id, user_agent) VALUES
+  ('page_view', 'multilink', '00000000-0000-4000-a000-0000000001a1', '00000000-0000-4000-a000-0000000000ca', 'Mozilla/5.0 (iPhone) Safari/604.1'),
+  ('link_click', 'multilink', '00000000-0000-4000-a000-0000000001a1', '00000000-0000-4000-a000-0000000000ca', 'Mozilla/5.0 (iPhone) Safari/604.1'),
+  ('page_view', 'multilink', '00000000-0000-4000-a000-0000000001a1', '00000000-0000-4000-a000-0000000000ca', 'Googlebot/2.1'),
+  ('page_view', 'multilink', '00000000-0000-4000-a000-0000000001b1', '00000000-0000-4000-a000-0000000000cb', 'Mozilla/5.0 (iPhone) Safari/604.1'),
+  ('page_view', 'multilink', '00000000-0000-4000-a000-0000000001b1', '00000000-0000-4000-a000-0000000000cb', 'Mozilla/5.0 (iPhone) Safari/604.1');
+INSERT INTO public.meta_accounts (client_id, ad_account_id, connected, currency) VALUES
+  ('00000000-0000-4000-a000-0000000000ca', 'act_111111111', true, 'CLP'),
+  ('00000000-0000-4000-a000-0000000000cb', '222222222', true, 'CLP');
+-- meta_billing_status guarda solo dígitos: debe calzar con 'act_111111111'.
+INSERT INTO public.meta_billing_status (client_id, ad_account_id, checked_at, account_status, has_funding, detail) VALUES
+  ('00000000-0000-4000-a000-0000000000ca', '111111111', now(), 1, true, '{}'::jsonb);
+INSERT INTO public.ad_insights_daily (client_id, date, level, entity_id, campaign_id, campaign_name, spend, impressions, reach, clicks, messaging_conversations_started) VALUES
+  ('00000000-0000-4000-a000-0000000000ca', (now() AT TIME ZONE 'America/Santiago')::date, 'ad', 'ad-a', 'cmp-a', 'TEST campaña A', 10000, 1000, 800, 50, 5),
+  ('00000000-0000-4000-a000-0000000000cb', (now() AT TIME ZONE 'America/Santiago')::date, 'ad', 'ad-b', 'cmp-b', 'TEST campaña B', 99999, 9999, 9999, 999, 99);
+INSERT INTO public.google_ads_insights_daily (client_id, customer_id, date, campaign_id, campaign_name, impressions, clicks, cost_clp, conversions) VALUES
+  ('00000000-0000-4000-a000-0000000000cb', '2222222222', (now() AT TIME ZONE 'America/Santiago')::date, 'g-b', 'TEST google B', 100, 10, 5000, 1);
+
+-- Cliente A
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-4000-a000-0000000000c1","role":"authenticated"}', true);
+DO $$
+DECLARE site jsonb; meta jsonb; g jsonb;
+BEGIN
+  site := public.client_site_summary(30);
+  IF site->'multilink'->>'slug' IS DISTINCT FROM 'test-ml-a' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): client_site_summary no devolvió su multienlace: %', site;
+  END IF;
+  -- 1 visita real (el bot no cuenta) y 1 clic; nada del multienlace de B.
+  IF (site->'multilink_metrics'->>'views')::int <> 1 OR (site->'multilink_metrics'->>'clicks')::int <> 1 THEN
+    RAISE EXCEPTION 'FALLO (cliente A): métricas del sitio incorrectas: %', site->'multilink_metrics';
+  END IF;
+  IF site::text ILIKE '%test-ml-b%' THEN RAISE EXCEPTION 'FALLO (cliente A): vio el sitio de B'; END IF;
+
+  meta := public.client_meta_ads_summary(30);
+  IF (meta->>'connected')::boolean IS NOT TRUE OR (meta->'totals'->>'spend')::numeric <> 10000
+     OR meta->>'billing_state' IS DISTINCT FROM 'verificado' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): resumen de Meta incorrecto: %', meta;
+  END IF;
+  IF meta::text ILIKE '%campaña B%' OR meta::text LIKE '%111111111%' OR meta::text LIKE '%222222222%'
+     OR meta::text ILIKE '%token%' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): el resumen de Meta expone datos de B o ids de cuenta: %', meta;
+  END IF;
+
+  -- _preview no le sirve al usuario cliente: siempre obtiene su propio cliente.
+  IF public.client_site_summary(30, '00000000-0000-4000-a000-0000000000cb')->'multilink'->>'slug'
+     IS DISTINCT FROM 'test-ml-a' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): _preview le mostró otro cliente';
+  END IF;
+
+  g := public.client_google_ads_summary(30);
+  IF (g->>'connected')::boolean IS NOT FALSE OR g::text ILIKE '%google B%' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): resumen de Google incorrecto: %', g;
+  END IF;
+
+END $$;
+DO $$
+DECLARE q text; n bigint;
+BEGIN
+  -- Sigue sin leer las tablas de ingesta ni de cuentas directamente.
+  FOREACH q IN ARRAY ARRAY[
+    'SELECT count(*) FROM public.ad_insights_daily',
+    'SELECT count(*) FROM public.landing_events',
+    'SELECT count(*) FROM public.google_ads_insights_daily',
+    'SELECT count(*) FROM public.google_ads_accounts',
+    'SELECT count(*) FROM public.meta_billing_status',
+    'SELECT count(*) FROM public.multilinks WHERE NOT published'
+  ] LOOP
+    BEGIN
+      EXECUTE q INTO n;
+    EXCEPTION WHEN insufficient_privilege THEN n := 0;
+    END;
+    IF n <> 0 THEN RAISE EXCEPTION 'FALLO (cliente A): % → % filas', q, n; END IF;
+  END LOOP;
+END $$;
+RESET ROLE;
+
+-- Extraño (owner de otra org) y owner de la agencia sin _preview: NULL. La agencia
+-- solo ve con _preview a SUS clientes.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-4000-a000-0000000000e1","role":"authenticated"}', true);
+DO $$
+BEGIN
+  IF public.client_site_summary(30) IS NOT NULL
+     OR public.client_meta_ads_summary(30) IS NOT NULL
+     OR public.client_google_ads_summary(30) IS NOT NULL
+     OR public.client_site_summary(30, '00000000-0000-4000-a000-0000000000ca') IS NOT NULL
+     OR public.client_meta_ads_summary(30, '00000000-0000-4000-a000-0000000000ca') IS NOT NULL
+     OR public.client_google_ads_summary(30, '00000000-0000-4000-a000-0000000000ca') IS NOT NULL THEN
+    RAISE EXCEPTION 'FALLO (extraño): un RPC del panel del cliente devolvió datos (también con _preview ajeno)';
+  END IF;
+END $$;
+SELECT set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-4000-a000-0000000000a1","role":"authenticated"}', true);
+DO $$
+BEGIN
+  IF public.client_site_summary(30) IS NOT NULL
+     OR public.client_meta_ads_summary(30) IS NOT NULL
+     OR public.client_google_ads_summary(30) IS NOT NULL THEN
+    RAISE EXCEPTION 'FALLO (agencia): un RPC del panel del cliente devolvió datos';
+  END IF;
+  -- Vista previa de SU cliente: sí (owns_client), y es la del cliente pedido.
+  IF public.client_site_summary(30, '00000000-0000-4000-a000-0000000000cb')->'multilink'->>'slug'
+     IS DISTINCT FROM 'test-ml-b' THEN
+    RAISE EXCEPTION 'FALLO (agencia): la vista previa de su cliente B no funcionó';
+  END IF;
+  IF public.client_site_summary(30, '00000000-0000-4000-a000-0000000000cc') IS NOT NULL THEN
+    RAISE EXCEPTION 'FALLO (agencia): vista previa de un cliente de otra org';
+  END IF;
+END $$;
+RESET ROLE;
+
+-- anon: sin EXECUTE.
+SET LOCAL ROLE anon;
+DO $$
+BEGIN
+  IF has_function_privilege('public.client_site_summary(integer, uuid)', 'EXECUTE')
+     OR has_function_privilege('public.client_meta_ads_summary(integer, uuid)', 'EXECUTE')
+     OR has_function_privilege('public.client_google_ads_summary(integer, uuid)', 'EXECUTE')
+     OR has_function_privilege('public.analytics_is_bot_ua(text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'FALLO (anon): puede ejecutar RPC del panel del cliente';
+  END IF;
+END $$;
+RESET ROLE;
+
+-- ---------------------------------------------------------------------
+-- 6) Fase 2 · Leads, WhatsApp e Instagram del panel del cliente
 --    (migración 20261012002910). RPC client_* fijan el cliente con
---    user_client_id(): A ve solo lo suyo, sin columnas internas; el extraño,
---    la agencia (no es cliente) y anon no ven nada.
+--    client_panel_target(_preview): A ve solo lo suyo, sin columnas internas;
+--    el extraño y anon no ven nada; la agencia solo con vista previa de SU cliente.
 -- ---------------------------------------------------------------------
 INSERT INTO public.whatsapp_accounts (id, client_id, connected, display_phone_number, ai_system_prompt) VALUES
   ('00000000-0000-4000-a000-0000000001a0', '00000000-0000-4000-a000-0000000000ca', true, '+56 9 1111 1111', 'PROMPT SECRETO A'),

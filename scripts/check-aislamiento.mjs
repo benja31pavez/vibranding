@@ -367,6 +367,15 @@ const PANEL_ALLOWED_IMPORTS = [
   /^@\/lib\/delivery\/(planStages|team)$/,
   // Fase 2: lecturas por server functions sobre RPC client_* (ver panel.server.ts).
   /^@\/lib\/client-panel\/(model|panel\.functions|channelsModel|channels\.functions)$/,
+  // Fase 2 · Sitio: vista previa con los MISMOS loaders y vistas de las páginas
+  // públicas (solo filas publicadas y columnas públicas) + QR y copiar link.
+  /^@\/lib\/site\/(publicLanding|publicMultilink|landingSeo)$/,
+  /^@\/lib\/(site|multilink)$/,
+  /^@\/components\/site\/(DevicePreview|copyLink|qr)$/,
+  /^@\/components\/multilink\/PublicMultilinkView$/,
+  /^@\/components\/landing\/PublicLandingView$/,
+  // Fase 2 · Publicidad: etiquetas puras del estado de pago de Meta.
+  /^@\/lib\/ads-billing\/metaStatus$/,
   /^\.\/[\w-]+$/,
 ];
 /** Prohibidos explícitos (leen tablas internas o son de la agencia): mensaje claro. */
@@ -741,15 +750,24 @@ function listFiles(dir) {
   }
 
   // BD: las RPC del panel fijan el cliente con client_panel_target y no son de anon.
-  const PANEL_RPCS = [
-    "client_plan_board",
-    "client_files_catalog",
-    "client_contracts_list",
+  const SITE_ADS_RPCS = [
+    "client_site_summary",
+    "client_meta_ads_summary",
+    "client_google_ads_summary",
+  ];
+  const CHANNEL_RPCS = [
     "client_leads_page",
     "client_whatsapp_status",
     "client_whatsapp_conversations",
     "client_whatsapp_messages",
     "client_instagram_overview",
+  ];
+  const PANEL_RPCS = [
+    "client_plan_board",
+    "client_files_catalog",
+    "client_contracts_list",
+    ...SITE_ADS_RPCS,
+    ...CHANNEL_RPCS,
   ];
   const target = lastFunctionSql("client_panel_target");
   if (
@@ -785,9 +803,20 @@ function listFiles(dir) {
       failures.push(`${fn}: devuelve una columna interna`);
     }
   }
+  // Sitio y publicidad: agregados sin ids de cuenta, MCC, tokens ni alertas.
+  for (const fn of SITE_ADS_RPCS) {
+    const def = lastFunctionSql(fn) ?? "";
+    if (/token|secret|manager_customer_id|last_sync_error|campaign_alerts/i.test(def)) {
+      failures.push(`${fn}: toca columnas o tablas internas (tokens, MCC, alertas)`);
+    }
+    if (/'(ad_account_id|customer_id)'\s*,/i.test(def)) {
+      failures.push(`${fn}: devuelve el id de la cuenta publicitaria`);
+    }
+  }
+
   // Leads, WhatsApp e Instagram: nunca prompt del bot, secretos, notas internas
   // ni borradores de Instagram; engagement solo de la cuenta propia.
-  for (const fn of PANEL_RPCS.slice(3)) {
+  for (const fn of CHANNEL_RPCS) {
     const def = lastFunctionSql(fn) ?? "";
     if (
       /ai_system_prompt|ai_business_context|_secret_id|\bm\.notes\b|approval_note|metadata/i.test(

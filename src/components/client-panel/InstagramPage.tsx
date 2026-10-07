@@ -26,6 +26,7 @@ import type {
 } from "@/lib/client-panel/channelsModel";
 import { formatDay, formatInstant } from "./format";
 import { previewSearch, usePanelMode } from "./panelMode";
+import { OneLineState } from "./OneLineState";
 import { PanelSectionState } from "./PanelSectionState";
 import { sectionHref } from "./sections";
 import { usePanelInstagram } from "./useChannelData";
@@ -220,14 +221,7 @@ function InstagramBody({ overview, view }: { overview: InstagramOverview; view: 
 
   if (!phone) {
     return (
-      <div className="flex max-w-xl items-center gap-3 rounded-app-lg border border-border-subtle bg-surface px-5 py-4 shadow-app-xs">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-app-md bg-brand-soft text-brand-1">
-          <Instagram aria-hidden className="h-[18px] w-[18px]" />
-        </span>
-        <p className="text-sm text-muted-foreground">
-          Tu equipo VIBRANDING está preparando tu Instagram.
-        </p>
-      </div>
+      <OneLineState icon={Instagram} text="Tu equipo VIBRANDING está preparando tu Instagram." />
     );
   }
 
