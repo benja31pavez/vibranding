@@ -14,7 +14,9 @@
  *    Panel del cliente (/mi, Fase 1): sus archivos no usan clientId ni
  *    parámetros de URL, solo importan módulos de una lista permitida, solo
  *    leen client_self/client_users, no enlazan a rutas de agencia, y todas sus
- *    rutas cuelgan del layout /mi con guard.
+ *    rutas cuelgan del layout /mi con guard. Fase 2: solo llaman los RPC
+ *    client_* de PANEL_ALLOWED_RPCS, y esos RPC fijan el cliente con
+ *    user_client_id(), no reciben un id de cliente ni son ejecutables por anon.
  *
  * 2) Base de datos (solo si hay DATABASE_URL y psql): ejecuta
  *    supabase/tests/aislamiento.sql (BEGIN … ROLLBACK). SOLO STAGING: se
@@ -36,6 +38,18 @@ const PROD_PROJECT_REF = "nigdjcocbwbphzzxayqg";
 const AUTHENTICATED_ALLOWED = new Set([
   "public.org_meta_set_secret",
   "public.org_meta_token_status",
+]);
+/**
+ * RPC que el panel puede llamar directo (Fase 2): SECURITY DEFINER que fijan el
+ * cliente con user_client_id(), sin parámetro de cliente y sin EXECUTE para anon
+ * (se verifica abajo contra las migraciones).
+ */
+export const PANEL_ALLOWED_RPCS = new Set([
+  "client_leads_page",
+  "client_whatsapp_status",
+  "client_whatsapp_conversations",
+  "client_whatsapp_messages",
+  "client_instagram_overview",
 ]);
 const EXPOSED_ROLES = ["public", "anon", "authenticated"];
 const DEFAULT_GRANTEES = ["public", "anon", "authenticated", "service_role"];
@@ -336,6 +350,35 @@ for (const [f, sql] of sqlByFile) {
   }
 }
 
+// Panel del cliente (Fase 2): cada RPC permitido al panel fija el cliente con
+// user_client_id(), es SECURITY DEFINER con search_path vacío, no recibe un id
+// de cliente y no es ejecutable por anon/PUBLIC.
+for (const name of PANEL_ALLOWED_RPCS) {
+  const def = lastFunctionSql(name);
+  const fn = state.functions.get(`public.${name}`);
+  if (!def || !fn) {
+    failures.push(`${name}: no se encontró en las migraciones`);
+    continue;
+  }
+  if (!/SECURITY\s+DEFINER/i.test(def) || !/SET\s+search_path\s*=\s*''/i.test(def)) {
+    failures.push(`${name}: debe ser SECURITY DEFINER con search_path = ''`);
+  }
+  if (!/public\.user_client_id\(\)/i.test(def)) {
+    failures.push(`${name}: no fija el cliente con user_client_id()`);
+  }
+  const params = /FUNCTION\s+(?:public\.)?\w+\s*\(([^)]*)\)/i.exec(def)?.[1] ?? "";
+  if (/client/i.test(params)) failures.push(`${name}: recibe un parámetro de cliente`);
+  if (
+    /ai_system_prompt|ai_business_context|_secret_id|lead_meta\.notes|m\.notes|approval_note\b/i.test(
+      def,
+    )
+  ) {
+    failures.push(`${name}: lee columnas internas (prompt, secretos o notas)`);
+  }
+  const exposed = ["public", "anon"].filter((r) => fn.grants.has(r));
+  if (exposed.length > 0) failures.push(`${name}: EXECUTE para ${exposed.join(", ")}`);
+}
+
 /* ───────────── Panel del cliente (/mi, Fase 1): estático ───────────── */
 
 /**
@@ -354,6 +397,8 @@ const PANEL_ALLOWED_IMPORTS = [
   /^@\/components\/client-panel\/[\w-]+$/,
   /^@\/components\/portal\/(CalendarSection|BillingSection|usePortal)$/,
   /^@\/components\/profile\/SecuritySection$/,
+  // Solo presentación (recibe datos por props; sus imports de InstagramEditor son de tipos).
+  /^@\/components\/IphonePreview$/,
   /^@\/hooks\/use-auth$/,
   /^@\/integrations\/supabase\/client$/,
   /^@\/lib\/auth\/(clientPanel|userKind)$/,
@@ -416,7 +461,13 @@ export function panelFileProblems(file, rawSrc) {
       problems.push(`${file}: ${m[1]} solo se puede leer con .select`);
     }
   }
-  if (/\.rpc\(/.test(src)) problems.push(`${file}: llama un RPC directo`);
+  for (const m of src.matchAll(/\.rpc\b/g)) {
+    const call = /^\(\s*["'`]([\w.]+)["'`]/.exec(src.slice(m.index + m[0].length));
+    if (!call) problems.push(`${file}: llama un RPC sin nombre literal`);
+    else if (!PANEL_ALLOWED_RPCS.has(call[1])) {
+      problems.push(`${file}: llama el RPC ${call[1]} (no está en la lista permitida del panel)`);
+    }
+  }
   if (/\.storage\b/.test(src)) problems.push(`${file}: usa supabase.storage`);
   if (/\.functions\.invoke\b|supabase\.functions\b/.test(src)) {
     problems.push(`${file}: usa supabase.functions`);
@@ -456,6 +507,10 @@ export function panelFileProblems(file, rawSrc) {
     1,
   );
   assert.equal(panelFileProblems("x.tsx", `supabase.storage.listBuckets()`).length, 1);
+  assert.deepEqual(panelFileProblems("x.tsx", `supabase.rpc("client_leads_page" as never)`), []);
+  assert.equal(panelFileProblems("x.tsx", `supabase.rpc("user_client_id")`).length, 1);
+  assert.equal(panelFileProblems("x.tsx", `const r = supabase.rpc.bind(supabase)`).length, 1);
+  assert.equal(panelFileProblems("x.tsx", `supabase.rpc(fn, args)`).length, 1);
   assert.equal(panelFileProblems("x.tsx", `supabase.functions.invoke("x")`).length, 1);
   assert.equal(panelFileProblems("x.tsx", `await fetch("/api/x")`).length, 1);
 }

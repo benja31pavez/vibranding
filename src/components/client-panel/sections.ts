@@ -21,7 +21,7 @@ type IconComponent = ComponentType<{ className?: string }>;
  * panel izquierdo de la agencia. Las rutas NO llevan clientId: el cliente sale
  * siempre de la sesión (user_client_id() vía client_self).
  *
- * "ready": la página ya muestra datos seguros para el cliente (los del portal).
+ * "ready": la página ya muestra datos seguros para el cliente (portal o RPC client_*).
  * "soon": la lectura se abre en la Fase 2; mientras, "Disponible pronto".
  */
 export type ClientPanelSectionKey =
@@ -65,8 +65,8 @@ export const CLIENT_PANEL_GROUPS: readonly {
     key: "conexiones",
     label: "Conexiones",
     sections: [
-      { key: "instagram", label: "Instagram", icon: Instagram, status: "soon" },
-      { key: "whatsapp", label: "WhatsApp", icon: MessageCircle, status: "soon" },
+      { key: "instagram", label: "Instagram", icon: Instagram, status: "ready" },
+      { key: "whatsapp", label: "WhatsApp", icon: MessageCircle, status: "ready" },
       { key: "meta-ads", label: "Meta Ads", icon: MetaIcon, status: "soon" },
       { key: "google-ads", label: "Google Ads", icon: Search, status: "soon" },
     ],
@@ -75,7 +75,7 @@ export const CLIENT_PANEL_GROUPS: readonly {
     key: "negocio",
     label: "Negocio",
     sections: [
-      { key: "leads", label: "Leads", icon: UserPlus, status: "soon" },
+      { key: "leads", label: "Leads", icon: UserPlus, status: "ready" },
       { key: "facturacion", label: "Facturación", icon: Receipt, status: "ready" },
       { key: "legal", label: "Legal", icon: Scale, status: "soon" },
     ],
