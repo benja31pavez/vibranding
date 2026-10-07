@@ -49,6 +49,9 @@ import { Route as MiIndexRouteImport } from './routes/mi/index'
 import { Route as MiSeccionRouteImport } from './routes/mi/$seccion'
 import { Route as MiCalendarioRouteImport } from './routes/mi/calendario'
 import { Route as MiFacturacionRouteImport } from './routes/mi/facturacion'
+import { Route as MiGoogleAdsRouteImport } from './routes/mi/google-ads'
+import { Route as MiMetaAdsRouteImport } from './routes/mi/meta-ads'
+import { Route as MiSitioRouteImport } from './routes/mi/sitio'
 import { Route as OnboardingTokenRouteImport } from './routes/onboarding.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PagoResultadoRouteImport } from './routes/pago.resultado'
@@ -315,6 +318,21 @@ const MiCalendarioRoute = MiCalendarioRouteImport.update({
 const MiFacturacionRoute = MiFacturacionRouteImport.update({
   id: '/facturacion',
   path: '/facturacion',
+  getParentRoute: () => MiRoute,
+} as any)
+const MiGoogleAdsRoute = MiGoogleAdsRouteImport.update({
+  id: '/google-ads',
+  path: '/google-ads',
+  getParentRoute: () => MiRoute,
+} as any)
+const MiMetaAdsRoute = MiMetaAdsRouteImport.update({
+  id: '/meta-ads',
+  path: '/meta-ads',
+  getParentRoute: () => MiRoute,
+} as any)
+const MiSitioRoute = MiSitioRouteImport.update({
+  id: '/sitio',
+  path: '/sitio',
   getParentRoute: () => MiRoute,
 } as any)
 const OnboardingTokenRoute = OnboardingTokenRouteImport.update({
@@ -722,6 +740,9 @@ export interface FileRoutesByFullPath {
   '/mi/$seccion': typeof MiSeccionRoute
   '/mi/calendario': typeof MiCalendarioRoute
   '/mi/facturacion': typeof MiFacturacionRoute
+  '/mi/google-ads': typeof MiGoogleAdsRoute
+  '/mi/meta-ads': typeof MiMetaAdsRoute
+  '/mi/sitio': typeof MiSitioRoute
   '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
@@ -828,6 +849,9 @@ export interface FileRoutesByTo {
   '/mi/$seccion': typeof MiSeccionRoute
   '/mi/calendario': typeof MiCalendarioRoute
   '/mi/facturacion': typeof MiFacturacionRoute
+  '/mi/google-ads': typeof MiGoogleAdsRoute
+  '/mi/meta-ads': typeof MiMetaAdsRoute
+  '/mi/sitio': typeof MiSitioRoute
   '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
@@ -936,6 +960,9 @@ export interface FileRoutesById {
   '/mi/$seccion': typeof MiSeccionRoute
   '/mi/calendario': typeof MiCalendarioRoute
   '/mi/facturacion': typeof MiFacturacionRoute
+  '/mi/google-ads': typeof MiGoogleAdsRoute
+  '/mi/meta-ads': typeof MiMetaAdsRoute
+  '/mi/sitio': typeof MiSitioRoute
   '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
@@ -1045,6 +1072,9 @@ export interface FileRouteTypes {
     | '/mi/$seccion'
     | '/mi/calendario'
     | '/mi/facturacion'
+    | '/mi/google-ads'
+    | '/mi/meta-ads'
+    | '/mi/sitio'
     | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
@@ -1151,6 +1181,9 @@ export interface FileRouteTypes {
     | '/mi/$seccion'
     | '/mi/calendario'
     | '/mi/facturacion'
+    | '/mi/google-ads'
+    | '/mi/meta-ads'
+    | '/mi/sitio'
     | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
@@ -1258,6 +1291,9 @@ export interface FileRouteTypes {
     | '/mi/$seccion'
     | '/mi/calendario'
     | '/mi/facturacion'
+    | '/mi/google-ads'
+    | '/mi/meta-ads'
+    | '/mi/sitio'
     | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
@@ -1663,6 +1699,27 @@ declare module '@tanstack/react-router' {
       path: '/facturacion'
       fullPath: '/mi/facturacion'
       preLoaderRoute: typeof MiFacturacionRouteImport
+      parentRoute: typeof MiRoute
+    }
+    '/mi/google-ads': {
+      id: '/mi/google-ads'
+      path: '/google-ads'
+      fullPath: '/mi/google-ads'
+      preLoaderRoute: typeof MiGoogleAdsRouteImport
+      parentRoute: typeof MiRoute
+    }
+    '/mi/meta-ads': {
+      id: '/mi/meta-ads'
+      path: '/meta-ads'
+      fullPath: '/mi/meta-ads'
+      preLoaderRoute: typeof MiMetaAdsRouteImport
+      parentRoute: typeof MiRoute
+    }
+    '/mi/sitio': {
+      id: '/mi/sitio'
+      path: '/sitio'
+      fullPath: '/mi/sitio'
+      preLoaderRoute: typeof MiSitioRouteImport
       parentRoute: typeof MiRoute
     }
     '/onboarding/$token': {
@@ -2258,6 +2315,9 @@ interface MiRouteChildren {
   MiSeccionRoute: typeof MiSeccionRoute
   MiCalendarioRoute: typeof MiCalendarioRoute
   MiFacturacionRoute: typeof MiFacturacionRoute
+  MiGoogleAdsRoute: typeof MiGoogleAdsRoute
+  MiMetaAdsRoute: typeof MiMetaAdsRoute
+  MiSitioRoute: typeof MiSitioRoute
   MiIndexRoute: typeof MiIndexRoute
 }
 
@@ -2265,6 +2325,9 @@ const MiRouteChildren: MiRouteChildren = {
   MiSeccionRoute: MiSeccionRoute,
   MiCalendarioRoute: MiCalendarioRoute,
   MiFacturacionRoute: MiFacturacionRoute,
+  MiGoogleAdsRoute: MiGoogleAdsRoute,
+  MiMetaAdsRoute: MiMetaAdsRoute,
+  MiSitioRoute: MiSitioRoute,
   MiIndexRoute: MiIndexRoute,
 }
 

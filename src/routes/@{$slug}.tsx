@@ -1,24 +1,13 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { trackEvent } from "@/lib/track";
 import { PublicLandingView } from "@/components/landing/PublicLandingView";
-import { LANDING_PUBLIC_COLUMNS } from "@/lib/site/publicColumns";
+import { loadPublicLanding } from "@/lib/site/publicLanding";
 import { safeImageSrc } from "@/lib/site/safeUrl";
 import { landingCanonicalUrl, landingSeoDescription, landingSeoTitle } from "@/lib/site/landingSeo";
 
 export const Route = createFileRoute("/@{$slug}")({
-  loader: async ({ params }) => {
-    const { data, error } = await supabase
-      .from("landing_pages")
-      .select(LANDING_PUBLIC_COLUMNS)
-      .eq("slug", params.slug)
-      .eq("published", true)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!data) throw notFound();
-    return { lp: data };
-  },
+  loader: ({ params }) => loadPublicLanding(params.slug),
   head: ({ loaderData }) => {
     const lp = loaderData?.lp;
     if (!lp)

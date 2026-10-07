@@ -13,8 +13,10 @@
  *    cruzar client_id, escrituras con owns_client, listado público del bucket).
  *    Panel del cliente (/mi, Fase 1): sus archivos no usan clientId ni
  *    parámetros de URL, solo importan módulos de una lista permitida, solo
- *    leen client_self/client_users, no enlazan a rutas de agencia, y todas sus
- *    rutas cuelgan del layout /mi con guard.
+ *    leen client_self/client_users y RPC client_* permitidos (Fase 2: SECURITY
+ *    DEFINER con user_client_id(), sin parámetro de cliente ni EXECUTE para
+ *    anon), no enlazan a rutas de agencia, y todas sus rutas cuelgan del
+ *    layout /mi con guard.
  *
  * 2) Base de datos (solo si hay DATABASE_URL y psql): ejecuta
  *    supabase/tests/aislamiento.sql (BEGIN … ROLLBACK). SOLO STAGING: se
@@ -336,6 +338,33 @@ for (const [f, sql] of sqlByFile) {
   }
 }
 
+// Panel del cliente (Fase 2): los RPC que llama el panel fijan el cliente en el servidor.
+for (const name of [
+  "client_site_summary",
+  "client_meta_ads_summary",
+  "client_google_ads_summary",
+]) {
+  const def = lastFunctionSql(name);
+  const fn = state.functions.get(`public.${name}`);
+  if (!def || !fn) {
+    failures.push(`${name}: no se encontró en las migraciones`);
+    continue;
+  }
+  const params = /\(([^)]*)\)/.exec(def)?.[1] ?? "";
+  if (!fn.secdef) failures.push(`${name}: debe ser SECURITY DEFINER`);
+  if (!/SET\s+search_path\s*=\s*''/i.test(def)) failures.push(`${name}: sin search_path fijo`);
+  if (!/:=\s*public\.user_client_id\(\)/i.test(def)) {
+    failures.push(`${name}: no fija el cliente con user_client_id()`);
+  }
+  if (/client_id|uuid/i.test(params)) failures.push(`${name}: recibe un id de cliente (IDOR)`);
+  if (/token|secret|manager_customer_id|last_sync_error|campaign_alerts/i.test(def)) {
+    failures.push(`${name}: toca columnas o tablas internas (tokens, MCC, alertas)`);
+  }
+  for (const role of ["public", "anon"]) {
+    if (fn.grants.has(role)) failures.push(`${name}: EXECUTE para ${role}`);
+  }
+}
+
 /* ───────────── Panel del cliente (/mi, Fase 1): estático ───────────── */
 
 /**
@@ -358,6 +387,15 @@ const PANEL_ALLOWED_IMPORTS = [
   /^@\/integrations\/supabase\/client$/,
   /^@\/lib\/auth\/(clientPanel|userKind)$/,
   /^@\/lib\/(portal\/model|billing\/dates|utils|site\/robots)$/,
+  // Fase 2 · Sitio: vista previa con los MISMOS loaders y vistas de las páginas
+  // públicas (solo filas publicadas y columnas públicas) + QR y copiar link.
+  /^@\/lib\/site\/(publicLanding|publicMultilink|landingSeo)$/,
+  /^@\/lib\/(site|multilink)$/,
+  /^@\/components\/site\/(DevicePreview|copyLink|qr)$/,
+  /^@\/components\/multilink\/PublicMultilinkView$/,
+  /^@\/components\/landing\/PublicLandingView$/,
+  // Fase 2 · Publicidad: solo las etiquetas puras del estado de pago de Meta.
+  /^@\/lib\/ads-billing\/metaStatus$/,
   /^\.\/[\w-]+$/,
 ];
 /** Prohibidos explícitos (leen tablas internas o son de la agencia): mensaje claro. */
@@ -370,6 +408,16 @@ const PANEL_FORBIDDEN_IMPORTS = [
   /^@\/integrations\/supabase\/client\.server/,
 ];
 const PANEL_ALLOWED_TABLES = new Set(["client_self", "client_users"]);
+/**
+ * RPC que el panel puede llamar (siempre con nombre literal). Cada uno debe ser
+ * SECURITY DEFINER, fijar el cliente con user_client_id(), no recibir un
+ * client_id y no ser ejecutable por anon/PUBLIC (se verifica en las migraciones).
+ */
+export const PANEL_ALLOWED_RPCS = new Set([
+  "client_site_summary",
+  "client_meta_ads_summary",
+  "client_google_ads_summary",
+]);
 const AGENCY_PATHS =
   /["'`]\/(clients|dashboard|settings|setup|admin|pipeline|billing|reports|approvals|profile)\b/;
 
@@ -416,7 +464,11 @@ export function panelFileProblems(file, rawSrc) {
       problems.push(`${file}: ${m[1]} solo se puede leer con .select`);
     }
   }
-  if (/\.rpc\(/.test(src)) problems.push(`${file}: llama un RPC directo`);
+  for (const m of src.matchAll(/\.rpc\(\s*(["'`])?([\w.]*)/g)) {
+    if (!m[1] || !PANEL_ALLOWED_RPCS.has(m[2])) {
+      problems.push(`${file}: llama un RPC no permitido (${m[2] || "nombre dinámico"})`);
+    }
+  }
   if (/\.storage\b/.test(src)) problems.push(`${file}: usa supabase.storage`);
   if (/\.functions\.invoke\b|supabase\.functions\b/.test(src)) {
     problems.push(`${file}: usa supabase.functions`);
@@ -456,6 +508,13 @@ export function panelFileProblems(file, rawSrc) {
     1,
   );
   assert.equal(panelFileProblems("x.tsx", `supabase.storage.listBuckets()`).length, 1);
+  assert.deepEqual(panelFileProblems("x.tsx", `supabase.rpc("client_site_summary", {})`), []);
+  assert.equal(panelFileProblems("x.tsx", `supabase.rpc("org_meta_get_secret", {})`).length, 1);
+  assert.equal(panelFileProblems("x.tsx", `supabase.rpc(RPC[platform], {})`).length, 1);
+  assert.equal(
+    panelFileProblems("x.tsx", `import x from "@/components/site/LinkListEditor";`).length,
+    1,
+  );
   assert.equal(panelFileProblems("x.tsx", `supabase.functions.invoke("x")`).length, 1);
   assert.equal(panelFileProblems("x.tsx", `await fetch("/api/x")`).length, 1);
 }

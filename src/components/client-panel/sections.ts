@@ -58,7 +58,7 @@ export const CLIENT_PANEL_GROUPS: readonly {
       { key: "plan", label: "Plan", icon: Flag, status: "soon" },
       { key: "calendario", label: "Calendario", icon: CalendarDays, status: "ready" },
       { key: "archivos", label: "Archivos", icon: Images, status: "soon" },
-      { key: "sitio", label: "Sitio", icon: Globe, status: "soon" },
+      { key: "sitio", label: "Sitio", icon: Globe, status: "ready" },
     ],
   },
   {
@@ -67,8 +67,8 @@ export const CLIENT_PANEL_GROUPS: readonly {
     sections: [
       { key: "instagram", label: "Instagram", icon: Instagram, status: "soon" },
       { key: "whatsapp", label: "WhatsApp", icon: MessageCircle, status: "soon" },
-      { key: "meta-ads", label: "Meta Ads", icon: MetaIcon, status: "soon" },
-      { key: "google-ads", label: "Google Ads", icon: Search, status: "soon" },
+      { key: "meta-ads", label: "Meta Ads", icon: MetaIcon, status: "ready" },
+      { key: "google-ads", label: "Google Ads", icon: Search, status: "ready" },
     ],
   },
   {
