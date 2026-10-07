@@ -111,6 +111,9 @@ function FilesBrowser({ files }: { files: PanelFiles }) {
           renderItem={(f) => <PanelDocumentRow file={f} onView={() => setViewing(f)} />}
         />
       )}
+      {files.truncated && (
+        <p className="shrink-0 text-xs text-muted-foreground">Se muestran los más recientes.</p>
+      )}
       <PanelFileViewer file={viewing} onClose={() => setViewing(null)} />
     </Panel>
   );

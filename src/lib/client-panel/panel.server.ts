@@ -149,6 +149,7 @@ interface RawPlan {
   stages: PanelPlan["stages"] | null;
   tasks: PanelPlan["tasks"] | null;
   objectives: PanelPlan["objectives"] | null;
+  truncated?: boolean | null;
 }
 
 export async function loadPanelPlan(
@@ -167,6 +168,7 @@ export async function loadPanelPlan(
       target_value: o.target_value == null ? null : Number(o.target_value),
       current_value: o.current_value == null ? null : Number(o.current_value),
     })),
+    truncated: r.truncated === true,
   }));
 }
 
@@ -182,13 +184,17 @@ interface RawStoredFile {
   created_at: string;
 }
 
+/** La BD ya omite los entregables ligados a un post listado (sin instagram_post_id). */
+type RawDeliverable = Omit<DeliverableFileRow, "instagram_post_id">;
+
 interface RawCatalog {
   client_id: string;
-  deliverables: DeliverableFileRow[] | null;
+  deliverables: RawDeliverable[] | null;
   posts: PostFileRow[] | null;
   ads: AdFileRow[] | null;
   reports: ReportFileRow[] | null;
   files: RawStoredFile[] | null;
+  truncated?: boolean | null;
 }
 
 async function signPaths(bucket: string, paths: string[]): Promise<Map<string, string>> {
@@ -274,10 +280,9 @@ export function buildPanelFiles(
     carousel_urls: (p.carousel_urls ?? []).flatMap((u) => keep(u) ?? []),
   }));
   const postFiles = posts.flatMap((p) => fromPost(p) ?? []);
-  const postIds = new Set(postFiles.map((f) => f.id.replace(/^post-/, "")));
+  // Deduplicado por instagram_post_id en la BD (client_files_catalog).
   const deliverableFiles = (catalog.deliverables ?? [])
-    .filter((d) => !d.instagram_post_id || !postIds.has(d.instagram_post_id))
-    .map((d) => ({ ...d, file_url: keep(d.file_url) }))
+    .map((d) => ({ ...d, instagram_post_id: null, file_url: keep(d.file_url) }))
     .flatMap((d) => fromDeliverable(d) ?? []);
   const adFiles = (catalog.ads ?? [])
     .map((a) => ({
@@ -307,6 +312,7 @@ export function buildPanelFiles(
       byDateDesc,
     ),
     mine: storedOf("client").sort(byDateDesc),
+    truncated: catalog.truncated === true,
   };
 }
 

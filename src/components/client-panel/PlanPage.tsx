@@ -126,6 +126,11 @@ function PlanBoard({ plan: data }: { plan: PanelPlan }) {
         <Panel
           title={activeStage ? `Tareas · ${activeStage.label}` : "Tareas"}
           icon={ListChecks}
+          actions={
+            data.truncated ? (
+              <span className="text-xs text-muted-foreground">Se muestran las más recientes</span>
+            ) : undefined
+          }
           fill
           bodyClassName="md:min-h-0 md:overflow-hidden"
         >

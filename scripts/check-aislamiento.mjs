@@ -776,7 +776,9 @@ function listFiles(dir) {
       failures.push(`${fn}: no fija el cliente con client_panel_target`);
     }
     if (
-      /'(assignee|notes|description|mrr|onboarding_token|approval_note|metric_source)'/i.test(def)
+      /'(assignee|notes|description|mrr|onboarding_token|approval_note|metric_source|instagram_post_id)'/i.test(
+        def,
+      )
     ) {
       failures.push(`${fn}: devuelve una columna interna`);
     }
@@ -797,6 +799,10 @@ function listFiles(dir) {
   }
   if (/'agency',\s*c\.agency_snapshot\b/i.test(contracts)) {
     failures.push("client_contracts_list: devuelve agency_snapshot completo");
+  }
+  const board = lastFunctionSql("client_plan_board") ?? "";
+  if (!/stage_key IS NOT NULL\s+OR ct\.description ~/i.test(board)) {
+    failures.push("client_plan_board: debe mostrar solo tareas del plan (stage_key o marcador)");
   }
   const catalog = lastFunctionSql("client_files_catalog") ?? "";
   if (!/sent_at\s+IS\s+NOT\s+NULL/i.test(catalog)) {
