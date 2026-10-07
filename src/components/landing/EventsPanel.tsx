@@ -181,8 +181,8 @@ export function EventsPanel({
                   type="monotone"
                   dataKey="views"
                   name="Visitas"
-                  stroke="hsl(var(--primary))"
-                  fill="hsl(var(--primary))"
+                  stroke="var(--primary)"
+                  fill="var(--primary)"
                   fillOpacity={0.18}
                 />
                 <Area
