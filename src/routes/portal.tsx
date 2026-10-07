@@ -1,8 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { PortalShell, PortalView, usePortalSnapshot, type PortalMode } from "@/components/portal";
 import { NOINDEX_META } from "@/lib/site/robots";
+import { resolveClientPanelEnabled } from "@/lib/auth/clientPanel";
+import { resolveUserKind } from "@/lib/auth/userKind";
 
 export const Route = createFileRoute("/portal")({
   ssr: false,
@@ -37,8 +39,41 @@ function ClientPortal() {
     if (!loading && !session) navigate({ to: "/login" });
   }, [loading, session, navigate]);
 
-  if (loading || !session) return <div className="min-h-screen bg-bg" />;
+  const userId = session?.user?.id;
+  const panelCheck = usePanelRedirect(userId);
+
+  if (loading || !session || panelCheck !== "portal") return <div className="min-h-screen bg-bg" />;
   return <AuthedPortal onSignOut={() => void signOut()} />;
+}
+
+/**
+ * Activación controlada del panel del cliente: si este usuario cliente tiene
+ * client_users.panel_enabled, va a /mi. Si no, o si la verificación falla, se
+ * queda en el portal (que también es solo del cliente).
+ */
+function usePanelRedirect(userId: string | undefined): "checking" | "portal" {
+  const navigate = useNavigate();
+  const [checkedUserId, setCheckedUserId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    const stay = () => {
+      if (!cancelled) setCheckedUserId(userId);
+    };
+    resolveUserKind(userId)
+      .then(async (kind) => {
+        if (kind !== "client") return stay();
+        const enabled = await resolveClientPanelEnabled(userId);
+        if (cancelled) return;
+        if (enabled) navigate({ to: "/mi", replace: true });
+        else stay();
+      })
+      .catch(stay);
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, navigate]);
+  return userId && checkedUserId === userId ? "portal" : "checking";
 }
 
 function AuthedPortal({ onSignOut }: { onSignOut: () => void }) {
