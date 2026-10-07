@@ -1,16 +1,11 @@
-import { AlertTriangle, Moon } from "lucide-react";
+import { AlertTriangle, Check, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Field, ImageUploadButton } from "@/components/site/fields";
-import {
-  HERO_ASPECT_LABEL,
-  landingPalette,
-  TEMPLATE_LABEL,
-  type HeroAspect,
-  type LandingTemplate,
-} from "@/lib/landingTheme";
+import { bestOn, landingPalette } from "@/lib/landingTheme";
+import { AspectPicker, HeroLayoutPicker } from "./LayoutThumb";
 import { isExampleText, type LandingDraft, type LandingErrors } from "@/lib/site/landingDraft";
 
 type Props = {
@@ -31,8 +26,6 @@ const SWATCHES = [
   "#b91c1c",
   "#0f172a",
 ];
-
-const selectClass = "h-9 w-full rounded-md border bg-background px-2 text-sm";
 
 export function StyleEditor({
   lp,
@@ -57,9 +50,13 @@ export function StyleEditor({
               aria-label={`Usar color ${c}${brandColors.includes(c) ? " (del cliente)" : ""}`}
               title={brandColors.includes(c) ? `${c} · color del cliente` : c}
               aria-pressed={lp.theme_color.toLowerCase() === c}
-              className={`h-8 w-8 rounded-full border-2 ${lp.theme_color.toLowerCase() === c ? "border-foreground" : "border-transparent"}`}
-              style={{ background: c }}
-            />
+              className={`grid h-8 w-8 place-items-center rounded-full border-2 transition motion-safe:hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${lp.theme_color.toLowerCase() === c ? "border-foreground" : "border-transparent"}`}
+              style={{ background: c, color: bestOn(c) }}
+            >
+              {lp.theme_color.toLowerCase() === c && (
+                <Check className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
           ))}
           <label className="inline-flex items-center gap-2 text-xs">
             <Input
@@ -73,40 +70,24 @@ export function StyleEditor({
           </label>
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="Diseño del encabezado">
-          {(a) => (
-            <select
-              {...a}
-              className={selectClass}
-              value={lp.template}
-              onChange={(e) => onChange({ ...lp, template: e.target.value as LandingTemplate })}
-            >
-              {Object.entries(TEMPLATE_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-        <Field label="Proporción de la foto">
-          {(a) => (
-            <select
-              {...a}
-              className={selectClass}
-              value={lp.hero_aspect}
-              onChange={(e) => onChange({ ...lp, hero_aspect: e.target.value as HeroAspect })}
-            >
-              {Object.entries(HERO_ASPECT_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-        <label className="flex items-center gap-2 self-end pb-2 text-sm">
+      <div className="space-y-1.5">
+        <span className="text-xs font-medium">Diseño de la portada</span>
+        <HeroLayoutPicker
+          value={lp.template}
+          color={lp.theme_color}
+          dark={lp.dark_mode}
+          onChange={(template) => onChange({ ...lp, template })}
+        />
+      </div>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-1.5">
+          <span className="block text-xs font-medium">Proporción de la foto</span>
+          <AspectPicker
+            value={lp.hero_aspect}
+            onChange={(hero_aspect) => onChange({ ...lp, hero_aspect })}
+          />
+        </div>
+        <label className="flex items-center gap-2 pb-1.5 text-sm">
           <Switch
             checked={lp.dark_mode}
             onCheckedChange={(v) => onChange({ ...lp, dark_mode: v })}

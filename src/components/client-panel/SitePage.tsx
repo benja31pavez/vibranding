@@ -243,6 +243,17 @@ function MetricsPanel({
           </div>
         ))}
       </dl>
+      {kind === "landing" && metrics.views > 0 && (
+        <p className="mt-3 rounded-app-md bg-surface-2 px-3 py-2 text-xs text-muted-foreground">
+          <span className="font-semibold tabular-nums text-foreground">
+            {new Intl.NumberFormat("es-CL", { maximumFractionDigits: 1 }).format(
+              (metrics.extra / metrics.views) * 100,
+            )}{" "}
+            %
+          </span>{" "}
+          de las visitas te dejó un mensaje de contacto.
+        </p>
+      )}
     </Panel>
   );
 }
