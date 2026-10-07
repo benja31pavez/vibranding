@@ -63,6 +63,8 @@ export interface PanelPlan {
   stages: PanelStageRow[];
   tasks: PanelTask[];
   objectives: PanelObjective[];
+  /** Alguna lista llegó a su tope: se muestran las más recientes. */
+  truncated: boolean;
 }
 
 /** Avance de un objetivo (0–100) o null si no tiene meta numérica. */
@@ -111,6 +113,8 @@ export interface PanelFiles {
   documents: PanelFile[];
   /** Lo que subió el propio cliente en la plataforma. */
   mine: PanelFile[];
+  /** Alguna lista llegó a su tope: se muestran los más recientes. */
+  truncated: boolean;
 }
 
 export const FILE_KIND_LABEL: Readonly<Record<PanelFileKind, string>> = {
@@ -165,6 +169,11 @@ export function clientMediaPath(url: string, client: string): string | null {
   const parts = path.split("/");
   if (parts.length < 3 || parts.some((p) => p === "" || p === "." || p === "..")) return null;
   return parts[1] === client ? path : null;
+}
+
+/** URL firmada de nuestro Storage (la única que se incrusta en un iframe). */
+export function isSignedStorageUrl(url: string): boolean {
+  return url.includes(STORAGE_SIGNED) && /[?&]token=/.test(url);
 }
 
 /** ¿Es una URL de Storage de Supabase (cualquier bucket)? */

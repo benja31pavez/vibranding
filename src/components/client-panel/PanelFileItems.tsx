@@ -23,6 +23,7 @@ import {
   FILE_KIND_LABEL,
   FILE_STATUS_LABEL,
   fileDownloadHref,
+  isSignedStorageUrl,
   type PanelFile,
   type PanelFileMedia,
   type PanelFileStatus,
@@ -214,13 +215,19 @@ function Stage({ file, url }: { file: PanelFile; url: string }) {
   const box = "max-h-[65vh] w-full rounded-app-md bg-surface-2 object-contain";
   if (file.media === "video") return <video src={url} controls playsInline className={box} />;
   if (file.media === "image") return <img src={url} alt={file.name} className={box} />;
-  if (file.media === "pdf") {
+  // Solo se incrustan PDF de NUESTRO Storage con URL firmada; lo externo se abre aparte.
+  if (file.media === "pdf" && isSignedStorageUrl(url)) {
     return <iframe src={url} title={file.name} className="h-[65vh] w-full rounded-app-md border" />;
   }
   const Icon = MEDIA_ICON[file.media];
   return (
-    <div className="grid h-48 place-items-center rounded-app-md bg-surface-2">
+    <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-app-md bg-surface-2">
       <Icon aria-hidden className="h-10 w-10 text-muted-foreground" />
+      <Button asChild size="sm" variant="outline">
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          <ExternalLink aria-hidden className="mr-1.5 h-4 w-4" /> Abrir en una pestaña nueva
+        </a>
+      </Button>
     </div>
   );
 }

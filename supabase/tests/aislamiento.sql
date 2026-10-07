@@ -42,6 +42,7 @@ INSERT INTO public.deliverables (id, client_id, title) VALUES
 -- Panel del cliente (Fase 2): datos con columnas internas que NUNCA deben salir.
 INSERT INTO public.client_tasks (client_id, title, assignee, description) VALUES
   ('00000000-0000-4000-a000-0000000000ca', 'TEST tarea A', 'benjamin', 'NOTA INTERNA TAREA [plantilla:diseno:post-1]'),
+  ('00000000-0000-4000-a000-0000000000ca', 'TEST tarea manual interna A', NULL, 'sin marcador'),
   ('00000000-0000-4000-a000-0000000000cb', 'TEST tarea B', 'antonia', NULL);
 INSERT INTO public.objectives (client_id, title, description, target_value, current_value) VALUES
   ('00000000-0000-4000-a000-0000000000ca', 'TEST objetivo A', 'NOTA INTERNA OBJ', 100, 40);
@@ -174,6 +175,9 @@ BEGIN
   IF t LIKE '%NOTA INTERNA%' OR t LIKE '%benjamin%' OR t LIKE '%assignee%' THEN
     RAISE EXCEPTION 'FALLO (cliente A): client_plan_board expone notas o responsable interno';
   END IF;
+  IF t LIKE '%tarea manual interna%' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): client_plan_board muestra tareas manuales internas';
+  END IF;
   IF t NOT LIKE '%[plantilla:diseno:post-1]%' THEN
     RAISE EXCEPTION 'FALLO (cliente A): client_plan_board no devuelve el marcador de etapa';
   END IF;
@@ -183,6 +187,9 @@ BEGIN
     RAISE EXCEPTION 'FALLO (cliente A): client_files_catalog devolvió otro cliente';
   END IF;
   t := j::text;
+  IF t LIKE '%instagram_post_id%' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): client_files_catalog expone instagram_post_id';
+  END IF;
   IF t LIKE '%0000000000cb/b.png%' THEN
     RAISE EXCEPTION 'FALLO (cliente A): client_files_catalog incluye archivos de B';
   END IF;
