@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { resolveUserKind } from "./userKind";
+import { forgetUserKind, resolveUserKind } from "./userKind";
 
 /**
  * Panel del cliente (/mi) — activación controlada (Fase 1 de plan-acceso-clientes.md).
@@ -54,6 +54,13 @@ export function resolveClientPanelEnabled(userId: string): Promise<boolean> {
 
 export function forgetClientPanel(userId: string): void {
   cache.delete(userId);
+}
+
+/** Al cerrar sesión: olvida el tipo de usuario y el interruptor del panel. */
+export function forgetClientAccess(userId: string | null | undefined): void {
+  if (!userId) return;
+  forgetUserKind(userId);
+  forgetClientPanel(userId);
 }
 
 /**

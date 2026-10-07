@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { PortalShell, PortalView, usePortalSnapshot, type PortalMode } from "@/components/portal";
 import { NOINDEX_META } from "@/lib/site/robots";
-import { resolveClientPanelEnabled } from "@/lib/auth/clientPanel";
+import { forgetClientAccess, resolveClientPanelEnabled } from "@/lib/auth/clientPanel";
 import { resolveUserKind } from "@/lib/auth/userKind";
 
 export const Route = createFileRoute("/portal")({
@@ -43,7 +43,14 @@ function ClientPortal() {
   const panelCheck = usePanelRedirect(userId);
 
   if (loading || !session || panelCheck !== "portal") return <div className="min-h-screen bg-bg" />;
-  return <AuthedPortal onSignOut={() => void signOut()} />;
+  return (
+    <AuthedPortal
+      onSignOut={() => {
+        forgetClientAccess(userId);
+        void signOut();
+      }}
+    />
+  );
 }
 
 /**

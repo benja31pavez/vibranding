@@ -12,8 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { EmptyState } from "@/components/app";
 import { useAuth } from "@/hooks/use-auth";
-import { forgetClientPanel, resolveClientShellAccess } from "@/lib/auth/clientPanel";
-import { forgetUserKind } from "@/lib/auth/userKind";
+import { forgetClientAccess, resolveClientShellAccess } from "@/lib/auth/clientPanel";
 import { ClientBrandCard, ClientPanelSidebar } from "./ClientPanelSidebar";
 import { ClientSelfProvider, useClientSelf, type ClientSelf } from "./useClientSelf";
 
@@ -51,8 +50,7 @@ function useClientShellGuard(userId: string | undefined) {
 
   const retry = () => {
     if (!userId) return;
-    forgetUserKind(userId);
-    forgetClientPanel(userId);
+    forgetClientAccess(userId);
     setAttempt((n) => n + 1);
   };
   return { allowed: Boolean(userId) && allowedUserId === userId, error, retry };
@@ -94,7 +92,10 @@ export function ClientPanelLayout() {
   const userId = session?.user?.id;
   const guard = useClientShellGuard(userId);
   const self = useClientSelf(guard.allowed ? userId : undefined);
-  const onSignOut = () => void signOut();
+  const onSignOut = () => {
+    forgetClientAccess(userId);
+    void signOut();
+  };
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });

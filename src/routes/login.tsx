@@ -10,6 +10,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { NOINDEX_META } from "@/lib/site/robots";
 import { authErrorMessage } from "@/lib/auth/authErrors";
+import { clientHomeFor } from "@/lib/auth/clientPanel";
 import { whatsappUrl } from "@/lib/site";
 
 const ACCESS_MESSAGE = "Hola, soy cliente de Vibranding y necesito acceso a mi portal.";
@@ -41,9 +42,11 @@ function LoginPage() {
 
   useEffect(() => {
     if (!session) return;
+    const userId = session.user.id;
     (async () => {
       const { data: cid } = await supabase.rpc("user_client_id");
-      navigate({ to: cid ? "/portal" : "/clients" });
+      // Cliente: directo a su panel (/mi) o al portal, sin pasar por /portal.
+      navigate({ to: cid ? await clientHomeFor(userId) : "/clients" });
     })();
   }, [session, navigate]);
 
