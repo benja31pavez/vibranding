@@ -70,8 +70,7 @@ export function PlanStatementCard({
         <div className="min-w-0">
           <p
             id="tu-plan"
-            className="text-xs font-semibold uppercase tracking-[0.12em]"
-            style={{ color: "var(--brand-2)" }}
+            className="eyebrow-brand text-xs font-semibold uppercase tracking-[0.12em]"
           >
             Tu plan
           </p>

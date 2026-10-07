@@ -1,5 +1,5 @@
 import { useState, type ComponentType, type ReactNode } from "react";
-import { BarePanelProvider, InfoHint } from "@/components/app";
+import { BarePanelProvider, InfoHint, brandTone } from "@/components/app";
 import { cn } from "@/lib/utils";
 
 export interface FichaCardProps {
@@ -38,7 +38,7 @@ export function FichaCard({
       )}
     >
       <div className="flex min-h-11 shrink-0 items-center gap-2 px-4 pt-3 pb-2">
-        <Icon aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <Icon aria-hidden className={cn("icon-chip h-4 w-4 shrink-0", brandTone(title))} />
         <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{title}</h2>
         {info && <InfoHint label={`Información sobre ${title}`}>{info}</InfoHint>}
         <div

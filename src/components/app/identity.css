@@ -7,22 +7,27 @@
  * (diálogos y sheets que se montan en un portal), para no tocar la home ni las páginas públicas.
  */
 
-/* Fondo con halo de marca muy sutil (no se mueve, no ocupa espacio). */
+/* Fondo con halos de marca en las esquinas superiores, como el hero (no se mueve, no ocupa espacio). */
 .app-brand {
   background-image:
     radial-gradient(
-      52rem 26rem at 88% -6%,
-      color-mix(in oklab, var(--brand-2) 7%, transparent),
-      transparent 70%
+      46rem 30rem at 100% 0%,
+      color-mix(in oklab, var(--brand-2) 13%, transparent),
+      transparent 68%
     ),
     radial-gradient(
-      44rem 24rem at 22% -10%,
-      color-mix(in oklab, var(--brand-1) 8%, transparent),
+      44rem 28rem at 12% -4%,
+      color-mix(in oklab, var(--brand-1) 14%, transparent),
+      transparent 68%
+    ),
+    radial-gradient(
+      36rem 22rem at 62% -12%,
+      color-mix(in oklab, var(--brand-3) 9%, transparent),
       transparent 70%
     ),
     radial-gradient(
       40rem 22rem at 100% 108%,
-      color-mix(in oklab, var(--brand-3) 6%, transparent),
+      color-mix(in oklab, var(--brand-3) 7%, transparent),
       transparent 70%
     );
 }
@@ -89,5 +94,99 @@ body:has(.app-brand) .btn-brand:not(:focus-visible) {
     transition:
       border-color 0.25s ease,
       box-shadow 0.25s ease;
+  }
+}
+
+/* Tono de marca por categoría. `--tone-ink` es la versión oscurecida para que el ícono
+   cumpla ≥3:1 sobre blanco (el ámbar puro no llega). */
+@utility brand-tone-1 {
+  --tone: var(--brand-1);
+  --tone-ink: color-mix(in oklab, var(--brand-1) 88%, black);
+}
+@utility brand-tone-2 {
+  --tone: var(--brand-2);
+  --tone-ink: color-mix(in oklab, var(--brand-2) 80%, black);
+}
+@utility brand-tone-3 {
+  --tone: var(--brand-3);
+  --tone-ink: color-mix(in oklab, var(--brand-3) 62%, black);
+}
+
+/* Ícono de encabezado dentro de un cuadrito con tinte suave. El cuadro se dibuja con
+   box-shadow, así no ocupa espacio ni cambia la altura del encabezado. */
+@utility icon-chip {
+  color: var(--tone-ink, var(--brand-1));
+  background-color: color-mix(in oklab, var(--tone, var(--brand-1)) 15%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--tone, var(--brand-1)) 15%, transparent);
+  border-radius: 3px;
+}
+
+/* Detalle superior de 2px con el degradado (tarjetas de estado). Es una capa de fondo:
+   no ocupa espacio y sigue el radio de la tarjeta. */
+@utility brand-top {
+  background-image: linear-gradient(90deg, var(--brand-1), var(--brand-2) 60%, var(--brand-3));
+  background-size: 100% 2px;
+  background-repeat: no-repeat;
+  background-position: top;
+}
+
+/* Etiquetas pequeñas en mayúsculas ("Cuenta", "Tu plan"): degradado de marca legible (AA). */
+@utility eyebrow-brand {
+  background-image: linear-gradient(
+    120deg,
+    oklch(0.48 0.2 262),
+    oklch(0.5 0.24 330) 60%,
+    oklch(0.52 0.19 35)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Enlaces y acentos `primary` de la plataforma: el azul violeta del inicio del degradado
+   (≈6:1 sobre blanco). Se define en body para alcanzar también diálogos y sheets. */
+body:has(.app-brand) {
+  --primary: oklch(0.5 0.2 268);
+  --ring: oklch(0.55 0.2 275);
+}
+
+/* Pestañas y segmentados activos (Radix Tabs y los role="tab" propios): texto en tono de
+   marca y subrayado degradado de 2px dibujado como capa de fondo (sin cambiar tamaños). */
+.app-brand [role="tab"][aria-selected="true"],
+body:has(.app-brand) [role="dialog"] [role="tab"][aria-selected="true"] {
+  color: var(--sidebar-accent-foreground);
+  background-image: linear-gradient(90deg, var(--brand-1), var(--brand-2));
+  background-size: calc(100% - 1.25rem) 2px;
+  background-position: center bottom 2px;
+  background-repeat: no-repeat;
+}
+
+/* Chips/filtros y toggles activos: tinte de marca. */
+.app-brand [aria-pressed="true"]:not(.btn-brand),
+.app-brand [data-state="on"] {
+  color: var(--sidebar-accent-foreground);
+  background-image: linear-gradient(
+    120deg,
+    color-mix(in oklab, var(--brand-1) 16%, transparent),
+    color-mix(in oklab, var(--brand-2) 12%, transparent)
+  );
+}
+.app-brand [data-state="on"] {
+  background-color: var(--surface);
+}
+
+/* Botones secundarios (outline, ghost, secondary): hover con tinte de marca. */
+@media (hover: hover) {
+  body:has(.app-brand) :is(.btn-outline, .btn-ghost, .btn-secondary):not(:disabled):hover {
+    color: var(--sidebar-accent-foreground);
+    background-color: var(--surface);
+    background-image: linear-gradient(
+      120deg,
+      color-mix(in oklab, var(--brand-1) 12%, transparent),
+      color-mix(in oklab, var(--brand-2) 9%, transparent)
+    );
+  }
+  body:has(.app-brand) .btn-outline:not(:disabled):hover {
+    border-color: color-mix(in oklab, var(--brand-1) 35%, var(--border-subtle));
   }
 }

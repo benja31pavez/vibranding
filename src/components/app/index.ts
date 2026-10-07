@@ -21,3 +21,4 @@ export { FitPager, type FitPagerProps } from "./FitPager";
 export { CompactStats, type CompactStat, type CompactStatsProps } from "./CompactStats";
 export { InfoHint, type InfoHintProps } from "./InfoHint";
 export { BarePanelProvider, useBarePanel, type BarePanelSlots } from "./bare-panel";
+export { brandTone, type BrandToneClass } from "./brandTone";

@@ -137,10 +137,7 @@ export function PlanCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p
-            className="text-[11px] font-semibold uppercase tracking-[0.12em]"
-            style={{ color: "var(--brand-2)" }}
-          >
+          <p className="eyebrow-brand text-[11px] font-semibold uppercase tracking-[0.12em]">
             Tu plan
           </p>
           <h2 className="truncate text-base font-semibold">{label ?? "Sin plan activo"}</h2>

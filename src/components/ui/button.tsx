@@ -38,15 +38,17 @@ const OWN_BACKGROUND = /(^|[\s:])bg-/;
 
 /**
  * Clases del botón. En la plataforma interna (bajo `.app-brand`) el primario sin color propio
- * lleva el degradado de marca del landing (`.btn-brand`, ver `components/app/identity.css`).
+ * lleva el degradado de marca del landing (`.btn-brand`, ver `components/app/identity.css`) y
+ * los secundarios un hover con tinte de marca.
  */
 function buttonVariants({
   className,
   ...props
 }: ButtonVariantProps & { className?: string } = {}): string {
-  const isPrimary = (props.variant ?? "default") === "default";
-  const brand = isPrimary && !OWN_BACKGROUND.test(className ?? "");
-  return cn(baseButtonVariants(props), brand && "btn-brand", className);
+  const variant = props.variant ?? "default";
+  const brand = variant === "default" && !OWN_BACKGROUND.test(className ?? "");
+  // `btn-<variante>`: gancho para el hover de marca de outline/ghost/secondary (identity.css).
+  return cn(baseButtonVariants(props), brand ? "btn-brand" : `btn-${variant}`, className);
 }
 
 export interface ButtonProps
