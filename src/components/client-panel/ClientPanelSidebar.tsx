@@ -73,7 +73,18 @@ export function ClientBrandCard({ client }: { client: ClientSelf }) {
   );
 }
 
-function SectionLink({ section, path }: { section: ClientPanelSection; path: string }) {
+/** Búsqueda que conservan los enlaces (solo `preview` en la vista previa de la agencia). */
+type PanelLinkSearch = { preview?: string };
+
+function SectionLink({
+  section,
+  path,
+  search,
+}: {
+  section: ClientPanelSection;
+  path: string;
+  search: PanelLinkSearch;
+}) {
   const href = sectionHref(section.key);
   const isActive = path === href || path.startsWith(`${href}/`);
   const Icon = section.icon;
@@ -81,6 +92,7 @@ function SectionLink({ section, path }: { section: ClientPanelSection; path: str
     <Link
       // Todas las secciones viven bajo /mi/<clave>: nunca enlaces a rutas de agencia.
       to={href as typeof SUMMARY_HREF}
+      search={search}
       aria-current={isActive ? "page" : undefined}
       className={itemClass(isActive)}
     >
@@ -93,7 +105,9 @@ interface ClientPanelSidebarProps {
   client: ClientSelf;
   path: string;
   email: string | null;
-  onSignOut: () => void;
+  /** Sin él (vista previa de la agencia) no se muestra el menú de la cuenta. */
+  onSignOut?: () => void;
+  search?: PanelLinkSearch;
   /** Dentro del Sheet móvil: deja espacio a la X de cerrar junto a la tarjeta. */
   inSheet?: boolean;
 }
@@ -104,6 +118,7 @@ export function ClientPanelSidebar({
   path,
   email,
   onSignOut,
+  search = {},
   inSheet = false,
 }: ClientPanelSidebarProps) {
   const onSummary = path === SUMMARY_HREF || path === `${SUMMARY_HREF}/`;
@@ -119,6 +134,7 @@ export function ClientPanelSidebar({
       >
         <Link
           to={SUMMARY_HREF}
+          search={search}
           aria-current={onSummary ? "page" : undefined}
           className={itemClass(onSummary)}
         >
@@ -138,7 +154,7 @@ export function ClientPanelSidebar({
               <ul className="space-y-0.5">
                 {group.sections.map((s) => (
                   <li key={s.key}>
-                    <SectionLink section={s} path={path} />
+                    <SectionLink section={s} path={path} search={search} />
                   </li>
                 ))}
               </ul>
@@ -146,9 +162,11 @@ export function ClientPanelSidebar({
           );
         })}
       </nav>
-      <div className="border-t px-3 py-3">
-        <ClientPanelUserMenu email={email} onSignOut={onSignOut} />
-      </div>
+      {onSignOut && (
+        <div className="border-t px-3 py-3">
+          <ClientPanelUserMenu email={email} onSignOut={onSignOut} />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,30 +1,32 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { useAuth } from "@/hooks/use-auth";
+import { getClientPanelSite } from "@/lib/client-panel/panel.functions";
 import { loadPublicLanding } from "@/lib/site/publicLanding";
 import { loadPublicMultilink } from "@/lib/site/publicMultilink";
+import { usePanelMode } from "./panelMode";
 import { SITE_METRICS_DAYS, parseSiteSummary } from "./siteModel";
-import { useActiveClientSelf } from "./useClientSelf";
 
 const STALE_MS = 5 * 60_000;
+const UNAVAILABLE = "Tu sitio aún no está disponible en el panel.";
 
 /**
- * Multienlace y landing del cliente de la sesión + visitas y clics agregados.
- * El RPC fija el cliente con user_client_id(): no recibe ningún id.
+ * Multienlace y landing del cliente + visitas y clics agregados. Server
+ * function sobre la RPC client_site_summary: el cliente lo fija la BD
+ * (user_client_id(), o la vista previa validada en servidor).
  */
 export function useClientSite() {
-  const self = useActiveClientSelf();
+  const { user } = useAuth();
+  const { preview } = usePanelMode();
+  const load = useServerFn(getClientPanelSite);
   return useQuery({
-    queryKey: ["client-panel", self.id, "site", SITE_METRICS_DAYS],
+    queryKey: ["client-panel", user?.id ?? "anon", preview ?? "self", "site", SITE_METRICS_DAYS],
+    enabled: Boolean(user?.id),
     staleTime: STALE_MS,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("client_site_summary", {
-        _days: SITE_METRICS_DAYS,
-      });
-      if (error) {
-        console.error("[client-panel] client_site_summary", error);
-        throw new Error("No pudimos cargar tu sitio.");
-      }
-      return parseSiteSummary(data);
+      const res = await load({ data: preview ? { preview } : {} });
+      if (res.status === "unavailable") throw new Error(UNAVAILABLE);
+      return res.status === "ok" ? parseSiteSummary(res.data) : null;
     },
   });
 }

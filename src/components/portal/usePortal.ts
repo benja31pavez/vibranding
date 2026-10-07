@@ -12,6 +12,11 @@ import type { PortalDecision, PortalItemKind } from "@/lib/portal/model";
 /** Modo del portal: el cliente real o la vista previa (solo lectura) del equipo. */
 export type PortalMode = { kind: "client" } | { kind: "preview"; clientId: string };
 
+/** Modo del portal para el panel del cliente (/mi): su cliente o la vista previa validada. */
+export function portalModeFor(preview: string | null): PortalMode {
+  return preview ? { kind: "preview", clientId: preview } : { kind: "client" };
+}
+
 const previewId = (mode: PortalMode) => (mode.kind === "preview" ? mode.clientId : undefined);
 
 export const portalKeys = {

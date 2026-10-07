@@ -10,7 +10,7 @@ import {
   Panel,
   type CompactStat,
 } from "@/components/app";
-import { usePortalSnapshot, type PortalMode } from "@/components/portal/usePortal";
+import { portalModeFor, usePortalSnapshot } from "@/components/portal/usePortal";
 import { periodLabel } from "@/lib/billing/dates";
 import {
   DELIVERABLE_TYPE_LABEL,
@@ -22,10 +22,9 @@ import {
   type PortalReport,
   type SectionResult,
 } from "@/lib/portal/model";
+import { usePanelMode } from "./panelMode";
 import { useActiveClientSelf } from "./useClientSelf";
 
-/** El cliente sale de la sesión (getPortalSnapshot usa user_client_id()), no de la URL. */
-const CLIENT_MODE: PortalMode = { kind: "client" };
 const PENDING_SHOWN = 5;
 const CAPTION_CHARS = 70;
 
@@ -174,7 +173,8 @@ function ReportSummary({ report }: { report: PortalReport | null }) {
 /** Resumen del cliente: lo que espera su OK, sus pagos y su último reporte (datos del portal). */
 export function SummaryPage() {
   const client = useActiveClientSelf();
-  const snapshot = usePortalSnapshot(CLIENT_MODE);
+  // El cliente sale de la sesión (user_client_id()) o de la vista previa validada en servidor.
+  const snapshot = usePortalSnapshot(portalModeFor(usePanelMode().preview));
   const failed = snapshot.isError || snapshot.data?.status === "no_client";
   const data = snapshot.data?.status === "ok" ? snapshot.data.snapshot : undefined;
   const loading = snapshot.isPending;

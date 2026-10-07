@@ -4394,9 +4394,9 @@ export type Database = {
         Returns: Json
       }
       client_analytics_guard: { Args: { _client_id: string }; Returns: boolean }
-      client_google_ads_summary: { Args: { _days?: number }; Returns: Json }
-      client_meta_ads_summary: { Args: { _days?: number }; Returns: Json }
-      client_site_summary: { Args: { _days?: number }; Returns: Json }
+      client_google_ads_summary: { Args: { _days?: number; _preview?: string }; Returns: Json }
+      client_meta_ads_summary: { Args: { _days?: number; _preview?: string }; Returns: Json }
+      client_site_summary: { Args: { _days?: number; _preview?: string }; Returns: Json }
       content_performance: {
         Args: { _client_id: string; _from: string; _to: string }
         Returns: Json

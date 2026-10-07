@@ -1,28 +1,37 @@
 -- =====================================================================
 -- Panel del cliente (/mi) · Fase 2 — Sitio, Meta Ads y Google Ads (lectura)
 -- =====================================================================
--- Tres RPC de solo lectura para el usuario cliente. Todas:
---   * son SECURITY DEFINER con search_path fijo y toman el cliente SOLO de
---     public.user_client_id() (no reciben client_id: no hay IDOR posible);
+-- Tres RPC de solo lectura del panel del cliente. Todas:
+--   * son SECURITY DEFINER con search_path fijo y fijan el cliente con
+--     public.client_panel_target(_preview) (migración 20261012002900): el
+--     usuario cliente SIEMPRE obtiene su user_client_id() (ignora _preview);
+--     _preview solo vale para la agencia dueña (owns_client), y la server
+--     function además exige getClientOrgRole antes de pasarlo;
 --   * devuelven agregados calculados en el servidor (nunca filas de
 --     landing_events, ad_insights_daily ni google_ads_insights_daily);
 --   * no devuelven ids de cuentas (ad_account_id, customer_id, MCC), tokens,
 --     errores de sincronización, alertas internas ni campos de configuración;
---   * devuelven NULL a quien no es usuario cliente (agencia, extraños);
+--   * devuelven NULL a quien no tiene cliente legible (agencia sin _preview,
+--     extraños, _preview de un cliente ajeno);
 --   * no son ejecutables por anon/PUBLIC (solo authenticated y service_role).
 --
--- 1. client_site_summary(_days)
+-- 1. client_site_summary(_days, _preview)
 --      { multilink: {slug, custom_domain, title} | null,
 --        landing:   {slug, title} | null,
 --        multilink_metrics: {views, clicks, whatsapp_clicks},
 --        landing_metrics:   {views, clicks, contacts},
 --        days }
 --    Solo páginas PUBLICADAS (lo que el cliente ve "tal como se publica"); un
---    borrador aparece como {published:false} sin slug. custom_domain solo si
---    está verificado. Las métricas excluyen bots con el mismo criterio que
---    src/lib/analytics/bots.ts (user-agent vacío/corto o patrón de bot).
+--    borrador aparece como {published:false} sin slug. Si hubiera varias
+--    (hoy hay como máximo una por cliente, sin restricción única), se elige
+--    la publicada actualizada más recientemente (desempate por id).
+--    custom_domain solo si está verificado. Métricas de ESA página, con la
+--    misma definición que Estadísticas de la agencia:
+--      multienlace: clics = link_click + whatsapp_click (MultilinkAnalytics);
+--      landing: clics = contact_click + whatsapp_click, contacts = contact_submit.
+--    Excluyen bots con el criterio de src/lib/analytics/bots.ts.
 --
--- 2. client_meta_ads_summary(_days)
+-- 2. client_meta_ads_summary(_days, _preview)
 --      { connected, last_synced_at, currency, billing_state, billing_reason,
 --        totals: {spend, impressions, reach, clicks, results, cost_per_result},
 --        campaigns: [{name, status, spend, impressions, reach, clicks,
@@ -34,7 +43,7 @@
 --    la plataforma) o 'sin_dato' cuando la campaña solo existe en métricas.
 --    Los borradores internos (DRAFT, sin fb_campaign_id) nunca se listan.
 --
--- 3. client_google_ads_summary(_days)
+-- 3. client_google_ads_summary(_days, _preview)
 --      { connected, last_synced_at, billing_state,
 --        totals: {spend, impressions, clicks, results, cost_per_result},
 --        campaigns: [{name, status, spend, impressions, clicks, results,
@@ -44,20 +53,25 @@
 --
 --    billing_state (ambas): 'verificado' | 'pendiente' | 'rechazado' |
 --    'sin_cuenta', con la misma regla que src/lib/ads-billing/combined.ts
---    (metaVerification / googleVerification, Google vigente 72 h).
+--    (metaVerification / googleVerification, Google vigente 72 h). En Meta,
+--    meta_billing_status.ad_account_id guarda solo dígitos y
+--    meta_accounts.ad_account_id puede traer "act_": se compara sin prefijo.
+--    meta_accounts y google_ads_accounts son UNIQUE(client_id): una cuenta.
 --
--- _days se acota a 1..365; el período termina hoy (hora de Chile).
+-- _days se acota a 1..90 (el panel ofrece 7/30/90); el período termina hoy
+-- (hora de Chile).
 -- No se abren policies nuevas ni se toca ninguna tabla. Re-ejecutable.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
--- Bots (espejo de src/lib/analytics/bots.ts). IMMUTABLE e interna.
+-- Bots (espejo de src/lib/analytics/bots.ts). IMMUTABLE, sin search_path
+-- (no toca tablas) para que el planner la pueda inlinear; interna.
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.analytics_is_bot_ua(_ua text)
 RETURNS boolean
 LANGUAGE sql
 IMMUTABLE
-SET search_path = ''
+PARALLEL SAFE
 AS $$
   SELECT length(btrim(coalesce(_ua, ''))) < 10
       OR _ua ~* (
@@ -79,7 +93,11 @@ GRANT EXECUTE ON FUNCTION public.analytics_is_bot_ua(text) TO service_role;
 -- ---------------------------------------------------------------------
 -- 1) Sitio
 -- ---------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.client_site_summary(_days integer DEFAULT 30)
+DROP FUNCTION IF EXISTS public.client_site_summary(integer);
+CREATE OR REPLACE FUNCTION public.client_site_summary(
+  _days integer DEFAULT 30,
+  _preview uuid DEFAULT NULL
+)
 RETURNS jsonb
 LANGUAGE plpgsql
 STABLE
@@ -87,8 +105,8 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  _client uuid := public.user_client_id();
-  _n integer := least(greatest(coalesce(_days, 30), 1), 365);
+  _client uuid := public.client_panel_target(_preview);
+  _n integer := least(greatest(coalesce(_days, 30), 1), 90);
   _since timestamptz;
   _ml record;
   _lp record;
@@ -107,20 +125,20 @@ BEGIN
     INTO _ml
     FROM public.multilinks m
    WHERE m.client_id = _client
-   ORDER BY m.published DESC, m.created_at
+   ORDER BY m.published DESC, m.updated_at DESC, m.id
    LIMIT 1;
 
   SELECT l.id, l.slug, l.hero_title, l.published
     INTO _lp
     FROM public.landing_pages l
    WHERE l.client_id = _client
-   ORDER BY l.published DESC, l.created_at
+   ORDER BY l.published DESC, l.updated_at DESC, l.id
    LIMIT 1;
 
   IF _ml.id IS NOT NULL THEN
     SELECT jsonb_build_object(
              'views', count(*) FILTER (WHERE e.event_name = 'page_view'),
-             'clicks', count(*) FILTER (WHERE e.event_name <> 'page_view'),
+             'clicks', count(*) FILTER (WHERE e.event_name IN ('link_click', 'whatsapp_click')),
              'whatsapp_clicks', count(*) FILTER (WHERE e.event_name = 'whatsapp_click'))
       INTO _mlm
       FROM public.landing_events e
@@ -128,13 +146,15 @@ BEGIN
        AND e.source_type = 'multilink'
        AND e.source_id = _ml.id
        AND e.created_at >= _since
+       -- Primero el filtro por evento (índice/columna) y recién después el regex.
+       AND e.event_name IN ('page_view', 'link_click', 'whatsapp_click')
        AND NOT public.analytics_is_bot_ua(e.user_agent);
   END IF;
 
   IF _lp.id IS NOT NULL THEN
     SELECT jsonb_build_object(
              'views', count(*) FILTER (WHERE e.event_name = 'page_view'),
-             'clicks', count(*) FILTER (WHERE e.event_name NOT IN ('page_view', 'contact_submit')),
+             'clicks', count(*) FILTER (WHERE e.event_name IN ('contact_click', 'whatsapp_click')),
              'contacts', count(*) FILTER (WHERE e.event_name = 'contact_submit'))
       INTO _lpm
       FROM public.landing_events e
@@ -142,6 +162,7 @@ BEGIN
        AND e.source_type = 'landing'
        AND e.source_id = _lp.id
        AND e.created_at >= _since
+       AND e.event_name IN ('page_view', 'contact_click', 'whatsapp_click', 'contact_submit')
        AND NOT public.analytics_is_bot_ua(e.user_agent);
   END IF;
 
@@ -164,16 +185,20 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public.client_site_summary(integer) IS
+COMMENT ON FUNCTION public.client_site_summary(integer, uuid) IS
   'Panel del cliente: multienlace y landing publicados del cliente de la sesión (user_client_id) y visitas/clics agregados sin bots.';
 
-REVOKE ALL ON FUNCTION public.client_site_summary(integer) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.client_site_summary(integer) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.client_site_summary(integer, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.client_site_summary(integer, uuid) TO authenticated, service_role;
 
 -- ---------------------------------------------------------------------
 -- 2) Meta Ads
 -- ---------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.client_meta_ads_summary(_days integer DEFAULT 30)
+DROP FUNCTION IF EXISTS public.client_meta_ads_summary(integer);
+CREATE OR REPLACE FUNCTION public.client_meta_ads_summary(
+  _days integer DEFAULT 30,
+  _preview uuid DEFAULT NULL
+)
 RETURNS jsonb
 LANGUAGE plpgsql
 STABLE
@@ -181,8 +206,8 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  _client uuid := public.user_client_id();
-  _n integer := least(greatest(coalesce(_days, 30), 1), 365);
+  _client uuid := public.client_panel_target(_preview);
+  _n integer := least(greatest(coalesce(_days, 30), 1), 90);
   _today date := (now() AT TIME ZONE 'America/Santiago')::date;
   _since date;
   _acc record;
@@ -211,7 +236,8 @@ BEGIN
     INTO _bill
     FROM public.meta_billing_status b
    WHERE b.client_id = _client
-     AND b.ad_account_id = _acc.ad_account_id
+     -- meta_billing_status guarda solo dígitos; meta_accounts puede traer "act_".
+     AND b.ad_account_id = regexp_replace(_acc.ad_account_id, '^act_', '')
    ORDER BY b.checked_at DESC NULLS LAST
    LIMIT 1;
 
@@ -309,16 +335,20 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public.client_meta_ads_summary(integer) IS
+COMMENT ON FUNCTION public.client_meta_ads_summary(integer, uuid) IS
   'Panel del cliente: resumen de Meta Ads (agregados por campaña y totales del período) y estado del pago de pauta, sin ids de cuenta ni tokens.';
 
-REVOKE ALL ON FUNCTION public.client_meta_ads_summary(integer) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.client_meta_ads_summary(integer) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.client_meta_ads_summary(integer, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.client_meta_ads_summary(integer, uuid) TO authenticated, service_role;
 
 -- ---------------------------------------------------------------------
 -- 3) Google Ads
 -- ---------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.client_google_ads_summary(_days integer DEFAULT 30)
+DROP FUNCTION IF EXISTS public.client_google_ads_summary(integer);
+CREATE OR REPLACE FUNCTION public.client_google_ads_summary(
+  _days integer DEFAULT 30,
+  _preview uuid DEFAULT NULL
+)
 RETURNS jsonb
 LANGUAGE plpgsql
 STABLE
@@ -326,8 +356,8 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  _client uuid := public.user_client_id();
-  _n integer := least(greatest(coalesce(_days, 30), 1), 365);
+  _client uuid := public.client_panel_target(_preview);
+  _n integer := least(greatest(coalesce(_days, 30), 1), 90);
   _today date := (now() AT TIME ZONE 'America/Santiago')::date;
   _since date;
   _acc record;
@@ -412,10 +442,10 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public.client_google_ads_summary(integer) IS
+COMMENT ON FUNCTION public.client_google_ads_summary(integer, uuid) IS
   'Panel del cliente: resumen de Google Ads (agregados por campaña y totales del período) y estado del pago de pauta, sin customer_id, MCC ni tokens.';
 
-REVOKE ALL ON FUNCTION public.client_google_ads_summary(integer) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.client_google_ads_summary(integer) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.client_google_ads_summary(integer, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.client_google_ads_summary(integer, uuid) TO authenticated, service_role;
 
 NOTIFY pgrst, 'reload schema';

@@ -9,7 +9,8 @@
 --   (o) psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/aislamiento.sql
 --
 -- Requiere las migraciones 20261012002300 … 20261012002340, 20261012002800 y
--- 20261012002920 (panel: sitio y publicidad) aplicadas.
+-- 20261012002900 (RPC client_* del panel: Plan, Archivos, Legal) y 20261012002920
+-- (panel: sitio y publicidad) aplicadas.
 -- Cada fallo lanza una excepción "FALLO …" y aborta (ON_ERROR_STOP).
 -- Los usuarios son UUID inventados: no hace falta crear cuentas en auth.users
 -- porque auth.uid() se lee de request.jwt.claims.
@@ -38,6 +39,24 @@ INSERT INTO public.client_users (user_id, client_id, email) VALUES
 INSERT INTO public.deliverables (id, client_id, title) VALUES
   ('00000000-0000-4000-a000-0000000000da', '00000000-0000-4000-a000-0000000000ca', 'TEST entregable A'),
   ('00000000-0000-4000-a000-0000000000db', '00000000-0000-4000-a000-0000000000cb', 'TEST entregable B');
+
+-- Panel del cliente (Fase 2): datos con columnas internas que NUNCA deben salir.
+INSERT INTO public.client_tasks (client_id, title, assignee, description) VALUES
+  ('00000000-0000-4000-a000-0000000000ca', 'TEST tarea A', 'benjamin', 'NOTA INTERNA TAREA [plantilla:diseno:post-1]'),
+  ('00000000-0000-4000-a000-0000000000cb', 'TEST tarea B', 'antonia', NULL);
+INSERT INTO public.objectives (client_id, title, description, target_value, current_value) VALUES
+  ('00000000-0000-4000-a000-0000000000ca', 'TEST objetivo A', 'NOTA INTERNA OBJ', 100, 40);
+INSERT INTO public.client_contracts (client_id, title, status, notes, agency_snapshot) VALUES
+  ('00000000-0000-4000-a000-0000000000ca', 'TEST contrato A firmado', 'signed', 'NOTA CONTRATO', '{"name":"Agencia","secreto":"NO"}'),
+  ('00000000-0000-4000-a000-0000000000ca', 'TEST contrato A borrador', 'draft', NULL, '{}'),
+  ('00000000-0000-4000-a000-0000000000cb', 'TEST contrato B firmado', 'signed', NULL, '{}');
+INSERT INTO public.monthly_reports (client_id, period, sent_at) VALUES
+  ('00000000-0000-4000-a000-0000000000ca', '2026-09-01', now()),
+  ('00000000-0000-4000-a000-0000000000ca', '2026-10-01', NULL);
+UPDATE public.deliverables SET file_url = 'https://x.invalid/storage/v1/object/public/client-media/u/00000000-0000-4000-a000-0000000000ca/a.png', status = 'done'
+ WHERE id = '00000000-0000-4000-a000-0000000000da';
+UPDATE public.deliverables SET file_url = 'https://x.invalid/storage/v1/object/public/client-media/u/00000000-0000-4000-a000-0000000000cb/b.png', status = 'done'
+ WHERE id = '00000000-0000-4000-a000-0000000000db';
 
 -- Integridad (como superusuario: los triggers corren igual)
 DO $$
@@ -137,6 +156,50 @@ BEGIN
    WHERE user_id = '00000000-0000-4000-a000-0000000000c1' AND panel_enabled;
   IF n <> 0 THEN RAISE EXCEPTION 'FALLO (cliente A): panel_enabled quedó en true'; END IF;
 END $$;
+
+-- Panel del cliente (Fase 2): las RPC client_* devuelven SOLO su cliente,
+-- aunque pida la vista previa de B, y nunca columnas internas.
+DO $$
+DECLARE j jsonb; t text;
+BEGIN
+  IF public.client_panel_target('00000000-0000-4000-a000-0000000000cb')
+     IS DISTINCT FROM '00000000-0000-4000-a000-0000000000ca' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): client_panel_target aceptó la vista previa de B';
+  END IF;
+  -- Plan
+  j := public.client_plan_board('00000000-0000-4000-a000-0000000000cb');
+  t := j::text;
+  IF t NOT LIKE '%TEST tarea A%' OR t LIKE '%TEST tarea B%' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): client_plan_board no es solo de A: %', t;
+  END IF;
+  IF t LIKE '%NOTA INTERNA%' OR t LIKE '%benjamin%' OR t LIKE '%assignee%' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): client_plan_board expone notas o responsable interno';
+  END IF;
+  IF t NOT LIKE '%[plantilla:diseno:post-1]%' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): client_plan_board no devuelve el marcador de etapa';
+  END IF;
+  -- Archivos
+  j := public.client_files_catalog('00000000-0000-4000-a000-0000000000cb');
+  IF j ->> 'client_id' <> '00000000-0000-4000-a000-0000000000ca' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): client_files_catalog devolvió otro cliente';
+  END IF;
+  t := j::text;
+  IF t LIKE '%0000000000cb/b.png%' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): client_files_catalog incluye archivos de B';
+  END IF;
+  IF jsonb_array_length(j -> 'reports') <> 1 THEN
+    RAISE EXCEPTION 'FALLO (cliente A): client_files_catalog devolvió reportes no enviados';
+  END IF;
+  -- Legal
+  j := public.client_contracts_list('00000000-0000-4000-a000-0000000000cb');
+  t := j::text;
+  IF jsonb_array_length(j) <> 1 OR t NOT LIKE '%TEST contrato A firmado%' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): client_contracts_list no es solo el firmado de A: %', t;
+  END IF;
+  IF t LIKE '%NOTA CONTRATO%' OR t LIKE '%secreto%' OR t LIKE '%borrador%' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): client_contracts_list expone notas, borradores o datos internos';
+  END IF;
+END $$;
 RESET ROLE;
 
 -- ---------------------------------------------------------------------
@@ -172,6 +235,14 @@ BEGIN
     RAISE EXCEPTION 'FALLO (extraño): creó un review link a un entregable ajeno';
   EXCEPTION WHEN insufficient_privilege OR check_violation THEN NULL;
   END;
+  -- Panel (Fase 2): la vista previa de un cliente de OTRA org no devuelve nada.
+  IF public.client_panel_target('00000000-0000-4000-a000-0000000000ca') IS NOT NULL
+     OR public.client_plan_board('00000000-0000-4000-a000-0000000000ca') IS NOT NULL
+     OR public.client_files_catalog('00000000-0000-4000-a000-0000000000ca') IS NOT NULL
+     OR public.client_contracts_list('00000000-0000-4000-a000-0000000000ca') IS NOT NULL
+     OR public.client_plan_board() IS NOT NULL THEN
+    RAISE EXCEPTION 'FALLO (extraño): leyó el panel de un cliente de la agencia A';
+  END IF;
   -- Comentario propio colgado de un entregable ajeno.
   BEGIN
     INSERT INTO public.deliverable_comments (deliverable_id, client_id, body)
@@ -215,6 +286,12 @@ BEGIN
      OR has_function_privilege('public.ensure_org()', 'EXECUTE') THEN
     RAISE EXCEPTION 'FALLO (anon): puede ejecutar funciones de org/vault';
   END IF;
+  IF has_function_privilege('public.client_panel_target(uuid)', 'EXECUTE')
+     OR has_function_privilege('public.client_plan_board(uuid)', 'EXECUTE')
+     OR has_function_privilege('public.client_files_catalog(uuid)', 'EXECUTE')
+     OR has_function_privilege('public.client_contracts_list(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'FALLO (anon): puede ejecutar las RPC del panel del cliente';
+  END IF;
 END $$;
 RESET ROLE;
 
@@ -237,6 +314,24 @@ BEGIN
    WHERE user_id = '00000000-0000-4000-a000-0000000000c1';
   GET DIAGNOSTICS n = ROW_COUNT;
   IF n <> 1 THEN RAISE EXCEPTION 'FALLO (agencia): no pudo activar el panel de su cliente'; END IF;
+  -- Vista previa ("Ver como cliente") de SU cliente: sí; sin preview: nada.
+  IF public.client_panel_target('00000000-0000-4000-a000-0000000000ca')
+     IS DISTINCT FROM '00000000-0000-4000-a000-0000000000ca' THEN
+    RAISE EXCEPTION 'FALLO (agencia): no puede previsualizar a su cliente';
+  END IF;
+  IF public.client_plan_board() IS NOT NULL THEN
+    RAISE EXCEPTION 'FALLO (agencia): client_plan_board sin preview devolvió datos';
+  END IF;
+  IF (public.client_plan_board('00000000-0000-4000-a000-0000000000ca'))::text NOT LIKE '%TEST tarea A%'
+     OR (public.client_plan_board('00000000-0000-4000-a000-0000000000ca'))::text LIKE '%TEST tarea B%' THEN
+    RAISE EXCEPTION 'FALLO (agencia): la vista previa de A no es solo de A';
+  END IF;
+  IF jsonb_array_length(public.client_contracts_list('00000000-0000-4000-a000-0000000000ca')) <> 1 THEN
+    RAISE EXCEPTION 'FALLO (agencia): la vista previa de Legal incluye borradores';
+  END IF;
+  IF public.client_panel_target('00000000-0000-4000-a000-0000000000cc') IS NOT NULL THEN
+    RAISE EXCEPTION 'FALLO (agencia): previsualiza un cliente de otra org';
+  END IF;
 END $$;
 RESET ROLE;
 
@@ -255,8 +350,11 @@ INSERT INTO public.landing_events (event_name, source_type, source_id, client_id
   ('page_view', 'multilink', '00000000-0000-4000-a000-0000000001b1', '00000000-0000-4000-a000-0000000000cb', 'Mozilla/5.0 (iPhone) Safari/604.1'),
   ('page_view', 'multilink', '00000000-0000-4000-a000-0000000001b1', '00000000-0000-4000-a000-0000000000cb', 'Mozilla/5.0 (iPhone) Safari/604.1');
 INSERT INTO public.meta_accounts (client_id, ad_account_id, connected, currency) VALUES
-  ('00000000-0000-4000-a000-0000000000ca', '111111111', true, 'CLP'),
+  ('00000000-0000-4000-a000-0000000000ca', 'act_111111111', true, 'CLP'),
   ('00000000-0000-4000-a000-0000000000cb', '222222222', true, 'CLP');
+-- meta_billing_status guarda solo dígitos: debe calzar con 'act_111111111'.
+INSERT INTO public.meta_billing_status (client_id, ad_account_id, checked_at, account_status, has_funding, detail) VALUES
+  ('00000000-0000-4000-a000-0000000000ca', '111111111', now(), 1, true, '{}'::jsonb);
 INSERT INTO public.ad_insights_daily (client_id, date, level, entity_id, campaign_id, campaign_name, spend, impressions, reach, clicks, messaging_conversations_started) VALUES
   ('00000000-0000-4000-a000-0000000000ca', (now() AT TIME ZONE 'America/Santiago')::date, 'ad', 'ad-a', 'cmp-a', 'TEST campaña A', 10000, 1000, 800, 50, 5),
   ('00000000-0000-4000-a000-0000000000cb', (now() AT TIME ZONE 'America/Santiago')::date, 'ad', 'ad-b', 'cmp-b', 'TEST campaña B', 99999, 9999, 9999, 999, 99);
@@ -281,12 +379,19 @@ BEGIN
   IF site::text ILIKE '%test-ml-b%' THEN RAISE EXCEPTION 'FALLO (cliente A): vio el sitio de B'; END IF;
 
   meta := public.client_meta_ads_summary(30);
-  IF (meta->>'connected')::boolean IS NOT TRUE OR (meta->'totals'->>'spend')::numeric <> 10000 THEN
+  IF (meta->>'connected')::boolean IS NOT TRUE OR (meta->'totals'->>'spend')::numeric <> 10000
+     OR meta->>'billing_state' IS DISTINCT FROM 'verificado' THEN
     RAISE EXCEPTION 'FALLO (cliente A): resumen de Meta incorrecto: %', meta;
   END IF;
   IF meta::text ILIKE '%campaña B%' OR meta::text LIKE '%111111111%' OR meta::text LIKE '%222222222%'
      OR meta::text ILIKE '%token%' THEN
     RAISE EXCEPTION 'FALLO (cliente A): el resumen de Meta expone datos de B o ids de cuenta: %', meta;
+  END IF;
+
+  -- _preview no le sirve al usuario cliente: siempre obtiene su propio cliente.
+  IF public.client_site_summary(30, '00000000-0000-4000-a000-0000000000cb')->'multilink'->>'slug'
+     IS DISTINCT FROM 'test-ml-a' THEN
+    RAISE EXCEPTION 'FALLO (cliente A): _preview le mostró otro cliente';
   END IF;
 
   g := public.client_google_ads_summary(30);
@@ -316,7 +421,8 @@ BEGIN
 END $$;
 RESET ROLE;
 
--- Extraño (owner de otra org) y owner de la agencia: los RPC devuelven NULL.
+-- Extraño (owner de otra org) y owner de la agencia sin _preview: NULL. La agencia
+-- solo ve con _preview a SUS clientes.
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims',
   '{"sub":"00000000-0000-4000-a000-0000000000e1","role":"authenticated"}', true);
@@ -324,8 +430,11 @@ DO $$
 BEGIN
   IF public.client_site_summary(30) IS NOT NULL
      OR public.client_meta_ads_summary(30) IS NOT NULL
-     OR public.client_google_ads_summary(30) IS NOT NULL THEN
-    RAISE EXCEPTION 'FALLO (extraño): un RPC del panel del cliente devolvió datos';
+     OR public.client_google_ads_summary(30) IS NOT NULL
+     OR public.client_site_summary(30, '00000000-0000-4000-a000-0000000000ca') IS NOT NULL
+     OR public.client_meta_ads_summary(30, '00000000-0000-4000-a000-0000000000ca') IS NOT NULL
+     OR public.client_google_ads_summary(30, '00000000-0000-4000-a000-0000000000ca') IS NOT NULL THEN
+    RAISE EXCEPTION 'FALLO (extraño): un RPC del panel del cliente devolvió datos (también con _preview ajeno)';
   END IF;
 END $$;
 SELECT set_config('request.jwt.claims',
@@ -337,6 +446,14 @@ BEGIN
      OR public.client_google_ads_summary(30) IS NOT NULL THEN
     RAISE EXCEPTION 'FALLO (agencia): un RPC del panel del cliente devolvió datos';
   END IF;
+  -- Vista previa de SU cliente: sí (owns_client), y es la del cliente pedido.
+  IF public.client_site_summary(30, '00000000-0000-4000-a000-0000000000cb')->'multilink'->>'slug'
+     IS DISTINCT FROM 'test-ml-b' THEN
+    RAISE EXCEPTION 'FALLO (agencia): la vista previa de su cliente B no funcionó';
+  END IF;
+  IF public.client_site_summary(30, '00000000-0000-4000-a000-0000000000cc') IS NOT NULL THEN
+    RAISE EXCEPTION 'FALLO (agencia): vista previa de un cliente de otra org';
+  END IF;
 END $$;
 RESET ROLE;
 
@@ -344,9 +461,9 @@ RESET ROLE;
 SET LOCAL ROLE anon;
 DO $$
 BEGIN
-  IF has_function_privilege('public.client_site_summary(integer)', 'EXECUTE')
-     OR has_function_privilege('public.client_meta_ads_summary(integer)', 'EXECUTE')
-     OR has_function_privilege('public.client_google_ads_summary(integer)', 'EXECUTE')
+  IF has_function_privilege('public.client_site_summary(integer, uuid)', 'EXECUTE')
+     OR has_function_privilege('public.client_meta_ads_summary(integer, uuid)', 'EXECUTE')
+     OR has_function_privilege('public.client_google_ads_summary(integer, uuid)', 'EXECUTE')
      OR has_function_privilege('public.analytics_is_bot_ua(text)', 'EXECUTE') THEN
     RAISE EXCEPTION 'FALLO (anon): puede ejecutar RPC del panel del cliente';
   END IF;

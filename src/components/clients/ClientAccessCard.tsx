@@ -1,16 +1,20 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Trash2, Users } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Eye, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { ErrorState, ListSkeleton, Panel } from "@/components/app";
 import { useUserKey } from "@/components/clients/ficha/fichaQueries";
 import {
+  getClientAccessPermissions,
   listClientUsers,
   inviteClientUser,
   revokeClientUser,
+  setClientPanelEnabled,
 } from "@/lib/clients/clientAccess.functions";
 
 export interface ClientAccessRow {
@@ -18,6 +22,8 @@ export interface ClientAccessRow {
   user_id: string;
   email: string | null;
   created_at: string;
+  /** Entra al panel nuevo (/mi) en vez del portal. */
+  panel_enabled?: boolean;
 }
 
 /** Ayuda del "i" de Acceso del cliente. */
@@ -47,6 +53,72 @@ export function useClientAccess(clientId: string) {
   });
 }
 
+/** Permisos de quien mira la ficha: gestionar accesos (owner/admin) y la vista previa. */
+function useClientAccessPermissions(clientId: string) {
+  const userKey = useUserKey();
+  const load = useServerFn(getClientAccessPermissions);
+  return useQuery({
+    queryKey: [...clientAccessKey(userKey, clientId), "permissions"] as const,
+    queryFn: () => load({ data: { clientId } }),
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** "Ver como cliente": abre el panel del cliente (/mi) en vista previa de solo lectura. */
+function PreviewAsClientButton({ clientId }: { clientId: string }) {
+  return (
+    <Button asChild size="sm" variant="outline">
+      <Link to="/mi" search={{ preview: clientId }}>
+        <Eye aria-hidden className="mr-1.5 h-4 w-4" /> Ver como cliente
+      </Link>
+    </Button>
+  );
+}
+
+/** Interruptor "Panel nuevo (beta)" de un usuario cliente (solo owner/admin lo cambian). */
+function PanelToggle({
+  row,
+  canManage,
+  onChanged,
+}: {
+  row: ClientAccessRow;
+  canManage: boolean;
+  onChanged: () => void;
+}) {
+  const toggle = useServerFn(setClientPanelEnabled);
+  const [busy, setBusy] = useState(false);
+  const enabled = row.panel_enabled === true;
+  const change = async (next: boolean) => {
+    setBusy(true);
+    try {
+      await toggle({ data: { id: row.id, enabled: next } });
+      toast.success(next ? "Panel nuevo activado" : "Volvió al portal");
+      onChanged();
+    } catch (err) {
+      toast.error(errorMessage(err, "No se pudo cambiar el acceso al panel"));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const id = `panel-${row.id}`;
+  return (
+    <label
+      htmlFor={id}
+      className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground"
+      title={canManage ? undefined : "Solo un administrador puede cambiarlo"}
+    >
+      Panel nuevo (beta)
+      <Switch
+        id={id}
+        checked={enabled}
+        disabled={!canManage || busy}
+        onCheckedChange={(v) => void change(v)}
+        aria-label={`Panel nuevo (beta) para ${row.email ?? "este usuario"}`}
+      />
+    </label>
+  );
+}
+
 /** Invitar y quitar personas del portal del cliente (va en el panel lateral de la ficha). */
 export function ClientAccessCard({ clientId }: { clientId: string }) {
   const userKey = useUserKey();
@@ -54,6 +126,8 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
   const invite = useServerFn(inviteClientUser);
   const revoke = useServerFn(revokeClientUser);
   const access = useClientAccess(clientId);
+  const permissions = useClientAccessPermissions(clientId);
+  const canManage = permissions.data?.canManage ?? false;
   const rows = access.data ?? [];
 
   const [email, setEmail] = useState("");
@@ -92,7 +166,11 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
   };
 
   return (
-    <Panel title="Acceso del cliente" icon={Users}>
+    <Panel
+      title="Acceso del cliente"
+      icon={Users}
+      actions={permissions.data?.canPreview ? <PreviewAsClientButton clientId={clientId} /> : null}
+    >
       <form onSubmit={send} className="mb-4 flex flex-wrap gap-2">
         <Input
           type="email"
@@ -122,7 +200,8 @@ export function ClientAccessCard({ clientId }: { clientId: string }) {
         <ul className="space-y-2">
           {rows.map((r) => (
             <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
-              <span className="truncate">{r.email ?? r.user_id}</span>
+              <span className="min-w-0 flex-1 truncate">{r.email ?? r.user_id}</span>
+              <PanelToggle row={r} canManage={canManage} onChanged={() => void reload()} />
               <Button
                 size="sm"
                 variant="ghost"
