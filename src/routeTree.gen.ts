@@ -21,6 +21,7 @@ import { Route as FaqRouteImport } from './routes/faq'
 import { Route as GoogleAdsPymesRouteImport } from './routes/google-ads-pymes'
 import { Route as LandingRouteImport } from './routes/landing'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MiRouteImport } from './routes/mi'
 import { Route as PaginaWebParaPymesRouteImport } from './routes/pagina-web-para-pymes'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
@@ -44,6 +45,10 @@ import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppStatsRouteImport } from './routes/_app/stats'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as LSlugRouteImport } from './routes/l.$slug'
+import { Route as MiIndexRouteImport } from './routes/mi/index'
+import { Route as MiSeccionRouteImport } from './routes/mi/$seccion'
+import { Route as MiCalendarioRouteImport } from './routes/mi/calendario'
+import { Route as MiFacturacionRouteImport } from './routes/mi/facturacion'
 import { Route as OnboardingTokenRouteImport } from './routes/onboarding.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PagoResultadoRouteImport } from './routes/pago.resultado'
@@ -171,6 +176,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MiRoute = MiRouteImport.update({
+  id: '/mi',
+  path: '/mi',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PaginaWebParaPymesRoute = PaginaWebParaPymesRouteImport.update({
   id: '/pagina-web-para-pymes',
   path: '/pagina-web-para-pymes',
@@ -286,6 +296,26 @@ const LSlugRoute = LSlugRouteImport.update({
   id: '/l/$slug',
   path: '/l/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const MiIndexRoute = MiIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MiRoute,
+} as any)
+const MiSeccionRoute = MiSeccionRouteImport.update({
+  id: '/$seccion',
+  path: '/$seccion',
+  getParentRoute: () => MiRoute,
+} as any)
+const MiCalendarioRoute = MiCalendarioRouteImport.update({
+  id: '/calendario',
+  path: '/calendario',
+  getParentRoute: () => MiRoute,
+} as any)
+const MiFacturacionRoute = MiFacturacionRouteImport.update({
+  id: '/facturacion',
+  path: '/facturacion',
+  getParentRoute: () => MiRoute,
 } as any)
 const OnboardingTokenRoute = OnboardingTokenRouteImport.update({
   id: '/onboarding/$token',
@@ -665,6 +695,7 @@ export interface FileRoutesByFullPath {
   '/google-ads-pymes': typeof GoogleAdsPymesRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/mi': typeof MiRouteWithChildren
   '/pagina-web-para-pymes': typeof PaginaWebParaPymesRoute
   '/portal': typeof PortalRoute
   '/privacidad': typeof PrivacidadRoute
@@ -688,11 +719,15 @@ export interface FileRoutesByFullPath {
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/mi/$seccion': typeof MiSeccionRoute
+  '/mi/calendario': typeof MiCalendarioRoute
+  '/mi/facturacion': typeof MiFacturacionRoute
   '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
   '/review/$token': typeof ReviewTokenRoute
+  '/mi/': typeof MiIndexRoute
   '/admin/automatizaciones': typeof AppAdminAutomatizacionesRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
@@ -790,11 +825,15 @@ export interface FileRoutesByTo {
   '/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/mi/$seccion': typeof MiSeccionRoute
+  '/mi/calendario': typeof MiCalendarioRoute
+  '/mi/facturacion': typeof MiFacturacionRoute
   '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
   '/review/$token': typeof ReviewTokenRoute
+  '/mi': typeof MiIndexRoute
   '/admin/automatizaciones': typeof AppAdminAutomatizacionesRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
@@ -870,6 +909,7 @@ export interface FileRoutesById {
   '/google-ads-pymes': typeof GoogleAdsPymesRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/mi': typeof MiRouteWithChildren
   '/pagina-web-para-pymes': typeof PaginaWebParaPymesRoute
   '/portal': typeof PortalRoute
   '/privacidad': typeof PrivacidadRoute
@@ -893,11 +933,15 @@ export interface FileRoutesById {
   '/_app/stats': typeof AppStatsRoute
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
+  '/mi/$seccion': typeof MiSeccionRoute
+  '/mi/calendario': typeof MiCalendarioRoute
+  '/mi/facturacion': typeof MiFacturacionRoute
   '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
   '/r/$token': typeof RTokenRoute
   '/review/$token': typeof ReviewTokenRoute
+  '/mi/': typeof MiIndexRoute
   '/_app/admin/automatizaciones': typeof AppAdminAutomatizacionesRoute
   '/_app/admin/health': typeof AppAdminHealthRoute
   '/_app/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
@@ -974,6 +1018,7 @@ export interface FileRouteTypes {
     | '/google-ads-pymes'
     | '/landing'
     | '/login'
+    | '/mi'
     | '/pagina-web-para-pymes'
     | '/portal'
     | '/privacidad'
@@ -997,11 +1042,15 @@ export interface FileRouteTypes {
     | '/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/mi/$seccion'
+    | '/mi/calendario'
+    | '/mi/facturacion'
     | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
     | '/r/$token'
     | '/review/$token'
+    | '/mi/'
     | '/admin/automatizaciones'
     | '/admin/health'
     | '/admin/meta-diagnostics'
@@ -1099,11 +1148,15 @@ export interface FileRouteTypes {
     | '/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/mi/$seccion'
+    | '/mi/calendario'
+    | '/mi/facturacion'
     | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
     | '/r/$token'
     | '/review/$token'
+    | '/mi'
     | '/admin/automatizaciones'
     | '/admin/health'
     | '/admin/meta-diagnostics'
@@ -1178,6 +1231,7 @@ export interface FileRouteTypes {
     | '/google-ads-pymes'
     | '/landing'
     | '/login'
+    | '/mi'
     | '/pagina-web-para-pymes'
     | '/portal'
     | '/privacidad'
@@ -1201,11 +1255,15 @@ export interface FileRouteTypes {
     | '/_app/stats'
     | '/book/$slug'
     | '/l/$slug'
+    | '/mi/$seccion'
+    | '/mi/calendario'
+    | '/mi/facturacion'
     | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
     | '/r/$token'
     | '/review/$token'
+    | '/mi/'
     | '/_app/admin/automatizaciones'
     | '/_app/admin/health'
     | '/_app/admin/meta-diagnostics'
@@ -1282,6 +1340,7 @@ export interface RootRouteChildren {
   GoogleAdsPymesRoute: typeof GoogleAdsPymesRoute
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
+  MiRoute: typeof MiRouteWithChildren
   PaginaWebParaPymesRoute: typeof PaginaWebParaPymesRoute
   PortalRoute: typeof PortalRoute
   PrivacidadRoute: typeof PrivacidadRoute
@@ -1408,6 +1467,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mi': {
+      id: '/mi'
+      path: '/mi'
+      fullPath: '/mi'
+      preLoaderRoute: typeof MiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pagina-web-para-pymes': {
@@ -1570,6 +1636,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/l/$slug'
       preLoaderRoute: typeof LSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/mi/': {
+      id: '/mi/'
+      path: '/'
+      fullPath: '/mi/'
+      preLoaderRoute: typeof MiIndexRouteImport
+      parentRoute: typeof MiRoute
+    }
+    '/mi/$seccion': {
+      id: '/mi/$seccion'
+      path: '/$seccion'
+      fullPath: '/mi/$seccion'
+      preLoaderRoute: typeof MiSeccionRouteImport
+      parentRoute: typeof MiRoute
+    }
+    '/mi/calendario': {
+      id: '/mi/calendario'
+      path: '/calendario'
+      fullPath: '/mi/calendario'
+      preLoaderRoute: typeof MiCalendarioRouteImport
+      parentRoute: typeof MiRoute
+    }
+    '/mi/facturacion': {
+      id: '/mi/facturacion'
+      path: '/facturacion'
+      fullPath: '/mi/facturacion'
+      preLoaderRoute: typeof MiFacturacionRouteImport
+      parentRoute: typeof MiRoute
     }
     '/onboarding/$token': {
       id: '/onboarding/$token'
@@ -2160,6 +2254,22 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface MiRouteChildren {
+  MiSeccionRoute: typeof MiSeccionRoute
+  MiCalendarioRoute: typeof MiCalendarioRoute
+  MiFacturacionRoute: typeof MiFacturacionRoute
+  MiIndexRoute: typeof MiIndexRoute
+}
+
+const MiRouteChildren: MiRouteChildren = {
+  MiSeccionRoute: MiSeccionRoute,
+  MiCalendarioRoute: MiCalendarioRoute,
+  MiFacturacionRoute: MiFacturacionRoute,
+  MiIndexRoute: MiIndexRoute,
+}
+
+const MiRouteWithChildren = MiRoute._addFileChildren(MiRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AtChar123slugChar125Route: AtChar123slugChar125RouteWithChildren,
@@ -2173,6 +2283,7 @@ const rootRouteChildren: RootRouteChildren = {
   GoogleAdsPymesRoute: GoogleAdsPymesRoute,
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
+  MiRoute: MiRouteWithChildren,
   PaginaWebParaPymesRoute: PaginaWebParaPymesRoute,
   PortalRoute: PortalRoute,
   PrivacidadRoute: PrivacidadRoute,

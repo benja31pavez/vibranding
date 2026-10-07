@@ -11,6 +11,10 @@
  *    CREATE OR REPLACE conserva los permisos que ya tenía.
  *    Además revisa que no vuelvan patrones ya corregidos (review links sin
  *    cruzar client_id, escrituras con owns_client, listado público del bucket).
+ *    Panel del cliente (/mi, Fase 1): sus archivos no usan clientId ni
+ *    parámetros de URL, solo importan módulos de una lista permitida, solo
+ *    leen client_self/client_users, no enlazan a rutas de agencia, y todas sus
+ *    rutas cuelgan del layout /mi con guard.
  *
  * 2) Base de datos (solo si hay DATABASE_URL y psql): ejecuta
  *    supabase/tests/aislamiento.sql (BEGIN … ROLLBACK). SOLO STAGING: se
@@ -19,8 +23,8 @@
  * Uso: node scripts/check-aislamiento.mjs
  *      DATABASE_URL=postgres://…staging… node scripts/check-aislamiento.mjs
  */
-import { readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
 
@@ -305,13 +309,279 @@ for (const [f, sql] of sqlByFile) {
   }
 }
 
+// Panel del cliente: el usuario nunca puede editar su propia fila de client_users
+// (panel_enabled, client_id). Ninguna policy UPDATE/ALL vigente usa auth.uid().
+{
+  const live = new Map();
+  for (const sql of sqlByFile.values()) {
+    const re =
+      /(CREATE|DROP)\s+POLICY\s+(?:IF\s+EXISTS\s+)?("[^"]+"|\w+)\s+ON\s+(?:public\.)?client_users\b([^;]*);/gi;
+    for (const m of sql.matchAll(re)) {
+      if (m[1].toUpperCase() === "DROP") live.delete(m[2]);
+      else live.set(m[2], m[3]);
+    }
+  }
+  for (const [name, body] of live) {
+    const cmd =
+      /\bFOR\s+(ALL|SELECT|INSERT|UPDATE|DELETE)\b/i.exec(body)?.[1]?.toUpperCase() ?? "ALL";
+    if ((cmd === "UPDATE" || cmd === "ALL") && /auth\.uid\(\)/i.test(body)) {
+      failures.push(
+        `client_users: la policy ${name} (${cmd}) deja al propio usuario editar su fila`,
+      );
+    }
+  }
+  const trigger = sqlByFile.get("20261012002800_client_users_panel_enabled.sql") ?? "";
+  if (!/CREATE\s+TRIGGER\s+t_client_users_guard_update/i.test(trigger)) {
+    failures.push("client_users: falta el trigger t_client_users_guard_update");
+  }
+}
+
+/* ───────────── Panel del cliente (/mi, Fase 1): estático ───────────── */
+
+/**
+ * El panel del cliente (src/routes/mi*, src/components/client-panel) nunca
+ * toma el cliente de la URL, solo importa piezas seguras para el cliente
+ * (lista permitida, falla cerrado) y solo lee client_self / client_users.
+ */
+const PANEL_ALLOWED_IMPORTS = [
+  /^react$/,
+  /^@tanstack\/react-(router|query)$/,
+  /^lucide-react$/,
+  /^sonner$/,
+  /^@\/components\/ui\/[\w-]+$/,
+  /^@\/components\/app$/,
+  /^@\/components\/icons\/[\w-]+$/,
+  /^@\/components\/client-panel\/[\w-]+$/,
+  /^@\/components\/portal\/(CalendarSection|BillingSection|usePortal)$/,
+  /^@\/components\/profile\/SecuritySection$/,
+  /^@\/hooks\/use-auth$/,
+  /^@\/integrations\/supabase\/client$/,
+  /^@\/lib\/auth\/(clientPanel|userKind)$/,
+  /^@\/lib\/(portal\/model|billing\/dates|utils|site\/robots)$/,
+  /^\.\/[\w-]+$/,
+];
+/** Prohibidos explícitos (leen tablas internas o son de la agencia): mensaje claro. */
+const PANEL_FORBIDDEN_IMPORTS = [
+  /^@\/contexts\/ActiveClientContext/,
+  /^@\/components\/(shell|clients|dashboard|plan|setup|analytics|ficha)\b/,
+  /^@\/hooks\/use-(client-capabilities|review-alerts|unmarked-outcomes)/,
+  /^@\/lib\/(dashboard|clients|meta|whatsapp|google-ads)\b/,
+  /fichaQueries|agencyQueries|adsBillingSources/,
+  /^@\/integrations\/supabase\/client\.server/,
+];
+const PANEL_ALLOWED_TABLES = new Set(["client_self", "client_users"]);
+const AGENCY_PATHS =
+  /["'`]\/(clients|dashboard|settings|setup|admin|pipeline|billing|reports|approvals|profile)\b/;
+
+function stripJsComments(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
+
+/** Problemas de un archivo del panel (ruta relativa + código fuente). */
+export function panelFileProblems(file, rawSrc) {
+  const src = stripJsComments(rawSrc);
+  const problems = [];
+  const imports = [
+    ...src.matchAll(/\bfrom\s+["']([^"']+)["']/g),
+    ...src.matchAll(/\bimport\(\s*["']([^"']+)["']\s*\)/g),
+  ].map((m) => m[1]);
+  for (const spec of imports) {
+    if (PANEL_FORBIDDEN_IMPORTS.some((re) => re.test(spec))) {
+      problems.push(`${file}: importa ${spec} (prohibido en el panel del cliente)`);
+    } else if (!PANEL_ALLOWED_IMPORTS.some((re) => re.test(spec))) {
+      problems.push(`${file}: importa ${spec} (no está en la lista permitida del panel)`);
+    }
+  }
+  if (/\$?clientId\b/.test(src)) {
+    problems.push(`${file}: usa clientId (el cliente sale de la sesión, nunca de la URL)`);
+  }
+  const isSectionParam = file.endsWith("routes/mi/$seccion.tsx");
+  if (/\buse(Params|Search)\b|\bvalidateSearch\b/.test(src) && !isSectionParam) {
+    problems.push(`${file}: lee parámetros de la URL`);
+  }
+  if (isSectionParam) {
+    for (const m of src.matchAll(/\bparams\.(\w+)|\{\s*(\w+)\s*\}\s*=\s*Route\.useParams/g)) {
+      const name = m[1] ?? m[2];
+      if (name !== "seccion") problems.push(`${file}: lee el parámetro ${name}`);
+    }
+  }
+  for (const m of src.matchAll(/\.from\(\s*["'`]([\w.]+)["'`]\s*\)/g)) {
+    if (!PANEL_ALLOWED_TABLES.has(m[1])) {
+      problems.push(`${file}: lee la tabla ${m[1]}`);
+      continue;
+    }
+    // Solo lectura: la sentencia sigue con .select( y no escribe.
+    const rest = src.slice(m.index + m[0].length).split(";")[0];
+    if (!/^\s*\.select\(/.test(rest) || /\.(update|insert|upsert|delete)\(/.test(rest)) {
+      problems.push(`${file}: ${m[1]} solo se puede leer con .select`);
+    }
+  }
+  if (/\.rpc\(/.test(src)) problems.push(`${file}: llama un RPC directo`);
+  if (/\.storage\b/.test(src)) problems.push(`${file}: usa supabase.storage`);
+  if (/\.functions\.invoke\b|supabase\.functions\b/.test(src)) {
+    problems.push(`${file}: usa supabase.functions`);
+  }
+  if (/(^|[^\w.])fetch\(/.test(src)) problems.push(`${file}: usa fetch(`);
+  if (AGENCY_PATHS.test(src)) problems.push(`${file}: enlaza a una ruta de agencia`);
+  return problems;
+}
+
+{
+  // Autotest de las reglas del panel.
+  assert.deepEqual(
+    panelFileProblems("ok.tsx", `import { Link } from "@tanstack/react-router";`),
+    [],
+  );
+  assert.equal(
+    panelFileProblems("x.tsx", `import { useActiveClient } from "@/contexts/ActiveClientContext";`)
+      .length,
+    1,
+  );
+  assert.equal(panelFileProblems("x.tsx", `import x from "@/lib/proposals/rut";`).length, 1);
+  assert.equal(panelFileProblems("x.tsx", `const { clientId } = Route.useParams();`).length, 2);
+  assert.equal(panelFileProblems("x.tsx", `supabase.from("payments").select("*")`).length, 1);
+  assert.equal(panelFileProblems("x.tsx", `<Link to="/clients/$id" />`).length, 1);
+  assert.deepEqual(
+    panelFileProblems("src/routes/mi/$seccion.tsx", `const { seccion } = Route.useParams();`),
+    [],
+  );
+  assert.deepEqual(panelFileProblems("x.tsx", `// clientId en un comentario\n`), []);
+  assert.deepEqual(
+    panelFileProblems("x.tsx", `supabase.from("client_users").select("panel_enabled").eq("a", 1);`),
+    [],
+  );
+  assert.equal(
+    panelFileProblems("x.tsx", `supabase.from("client_users").update({ panel_enabled: true });`)
+      .length,
+    1,
+  );
+  assert.equal(panelFileProblems("x.tsx", `supabase.storage.listBuckets()`).length, 1);
+  assert.equal(panelFileProblems("x.tsx", `supabase.functions.invoke("x")`).length, 1);
+  assert.equal(panelFileProblems("x.tsx", `await fetch("/api/x")`).length, 1);
+}
+
+/* Imports transitivos: los módulos permitidos tampoco pueden arrastrar código prohibido. */
+
+/** Imports con valor (sin `import type` / `export type`) de un archivo. */
+function valueImports(rawSrc) {
+  const src = stripJsComments(rawSrc);
+  const specs = [];
+  const re =
+    /\b(?:import|export)\s+(?!type\b)(?:[\w*{}\s,$]+?\s+from\s+)?["']([^"']+)["']|\bimport\(\s*["']([^"']+)["']\s*\)/g;
+  for (const m of src.matchAll(re)) specs.push(m[1] ?? m[2]);
+  return specs;
+}
+
+/** Ruta en disco de un import local ("@/…" o relativo), o null si es un paquete. */
+function resolveLocal(spec, fromFile) {
+  let base;
+  if (spec.startsWith("@/")) base = join(root, "src", spec.slice(2));
+  else if (spec.startsWith(".")) base = resolve(fromFile, "..", spec);
+  else return null;
+  const candidates = [
+    base,
+    `${base}.ts`,
+    `${base}.tsx`,
+    join(base, "index.ts"),
+    join(base, "index.tsx"),
+  ];
+  return candidates.find((c) => /\.(ts|tsx)$/.test(c) && existsSync(c)) ?? null;
+}
+
+/** Módulos de servidor: en el navegador solo llega el stub RPC (tienen su propio control). */
+const SERVER_BOUNDARY = /\.(functions|server)\.ts$/;
+
+export function transitiveForbidden(entryFiles) {
+  const problems = [];
+  const seen = new Set();
+  const queue = entryFiles.map((f) => ({ file: f, via: f }));
+  while (queue.length > 0) {
+    const { file, via } = queue.shift();
+    if (seen.has(file)) continue;
+    seen.add(file);
+    for (const spec of valueImports(readFileSync(file, "utf8"))) {
+      const alias = spec.startsWith(".")
+        ? `@/${relative(join(root, "src"), resolve(file, "..", spec))}`
+        : spec;
+      if (PANEL_FORBIDDEN_IMPORTS.some((re) => re.test(alias))) {
+        problems.push(
+          `${relative(root, file)}: importa ${alias} (prohibido; llega al panel vía ${relative(root, via)})`,
+        );
+        continue;
+      }
+      const next = resolveLocal(spec, file);
+      if (next && !SERVER_BOUNDARY.test(next)) queue.push({ file: next, via });
+    }
+  }
+  return problems;
+}
+
+function listFiles(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...listFiles(full));
+    else if (/\.(ts|tsx)$/.test(entry.name)) out.push(full);
+  }
+  return out;
+}
+
+{
+  const panelRoot = join(root, "src/components/client-panel");
+  const routesRoot = join(root, "src/routes/mi");
+  const layoutRoute = join(root, "src/routes/mi.tsx");
+  const panelFiles = [layoutRoute, ...listFiles(routesRoot), ...listFiles(panelRoot)];
+  for (const full of panelFiles) {
+    const rel = full.slice(root.length + 1);
+    for (const p of panelFileProblems(rel, readFileSync(full, "utf8"))) failures.push(p);
+  }
+  // Módulos fuera del panel que el panel importa (portal, perfil, app, lib…): su árbol
+  // de imports tampoco puede llegar a piezas de agencia que leen tablas internas.
+  const externalEntries = new Set();
+  for (const full of panelFiles) {
+    for (const spec of valueImports(readFileSync(full, "utf8"))) {
+      const target = resolveLocal(spec, full);
+      if (target && !target.startsWith(panelRoot) && !SERVER_BOUNDARY.test(target)) {
+        externalEntries.add(target);
+      }
+    }
+  }
+  for (const p of transitiveForbidden([...externalEntries])) failures.push(p);
+
+  // Guard: el layout /mi verifica el acceso y todas las rutas cuelgan de él.
+  const layoutSrc = stripJsComments(readFileSync(layoutRoute, "utf8"));
+  if (
+    !/createFileRoute\(\s*["']\/mi["']\s*\)/.test(layoutSrc) ||
+    !/beforeLoad[\s\S]*resolveClientShellAccess/.test(layoutSrc) ||
+    !/component:\s*ClientPanelLayout\b/.test(layoutSrc)
+  ) {
+    failures.push("src/routes/mi.tsx: falta el guard (beforeLoad + ClientPanelLayout)");
+  }
+  const layoutCmp = stripJsComments(readFileSync(join(panelRoot, "ClientPanelLayout.tsx"), "utf8"));
+  if (!/resolveClientShellAccess\(/.test(layoutCmp) || !/<Outlet\s*\/>/.test(layoutCmp)) {
+    failures.push("ClientPanelLayout: el contenido (<Outlet />) no está detrás del guard");
+  }
+  for (const full of listFiles(routesRoot)) {
+    const src = readFileSync(full, "utf8");
+    if (!/createFileRoute\(\s*["']\/mi\//.test(src)) {
+      failures.push(`${full.slice(root.length + 1)}: no es hija de /mi (sin guard)`);
+    }
+  }
+
+  // Guard de agencia: un usuario cliente nunca ve /_app (va a /mi o /portal).
+  const appSrc = stripJsComments(readFileSync(join(root, "src/routes/_app.tsx"), "utf8"));
+  if ((appSrc.match(/clientHomeFor\(/g) ?? []).length < 2) {
+    failures.push("src/routes/_app.tsx: el guard no manda al usuario cliente a su panel/portal");
+  }
+}
+
 if (failures.length > 0) {
   console.error("check-aislamiento: FALLÓ (estático)");
   for (const f of failures) console.error(`  ✗ ${f}`);
   process.exit(1);
 }
 console.log(
-  `check-aislamiento: estático OK (${files.length} migraciones, ${vaultFns.length} funciones de vault sin exponer)`,
+  `check-aislamiento: estático OK (${files.length} migraciones, ${vaultFns.length} funciones de vault sin exponer, panel del cliente aislado)`,
 );
 
 /* ───────────────────────── 2) Base de datos (opcional) ───────────────────────── */

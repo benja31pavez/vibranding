@@ -8,7 +8,7 @@
 -- Uso:  DATABASE_URL=postgres://… node scripts/check-aislamiento.mjs
 --   (o) psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/aislamiento.sql
 --
--- Requiere las migraciones 20261012002300 … 20261012002340 aplicadas.
+-- Requiere las migraciones 20261012002300 … 20261012002340 y 20261012002800 aplicadas.
 -- Cada fallo lanza una excepción "FALLO …" y aborta (ON_ERROR_STOP).
 -- Los usuarios son UUID inventados: no hace falta crear cuentas en auth.users
 -- porque auth.uid() se lee de request.jwt.claims.
@@ -117,6 +117,24 @@ BEGIN
   IF has_function_privilege('public.org_meta_get_secret(uuid)', 'EXECUTE') THEN
     RAISE EXCEPTION 'FALLO (cliente A): puede ejecutar org_meta_get_secret';
   END IF;
+  -- No puede activarse el panel (/mi) ni moverse de cliente: 0 filas o error.
+  BEGIN
+    UPDATE public.client_users SET panel_enabled = true
+     WHERE user_id = '00000000-0000-4000-a000-0000000000c1';
+    GET DIAGNOSTICS n = ROW_COUNT;
+    IF n <> 0 THEN RAISE EXCEPTION 'FALLO (cliente A): cambió su panel_enabled'; END IF;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    UPDATE public.client_users SET client_id = '00000000-0000-4000-a000-0000000000cb'
+     WHERE user_id = '00000000-0000-4000-a000-0000000000c1';
+    GET DIAGNOSTICS n = ROW_COUNT;
+    IF n <> 0 THEN RAISE EXCEPTION 'FALLO (cliente A): se movió a otro cliente'; END IF;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  SELECT count(*) INTO n FROM public.client_users
+   WHERE user_id = '00000000-0000-4000-a000-0000000000c1' AND panel_enabled;
+  IF n <> 0 THEN RAISE EXCEPTION 'FALLO (cliente A): panel_enabled quedó en true'; END IF;
 END $$;
 RESET ROLE;
 
@@ -213,6 +231,11 @@ BEGIN
   IF n <> 2 THEN RAISE EXCEPTION 'FALLO (agencia): ve % de sus 2 clientes', n; END IF;
   SELECT count(*) INTO n FROM public.clients WHERE id = '00000000-0000-4000-a000-0000000000cc';
   IF n <> 0 THEN RAISE EXCEPTION 'FALLO (agencia): ve el cliente de otra org'; END IF;
+  -- Activar el panel de su cliente sí puede (owner = manages_client).
+  UPDATE public.client_users SET panel_enabled = true
+   WHERE user_id = '00000000-0000-4000-a000-0000000000c1';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'FALLO (agencia): no pudo activar el panel de su cliente'; END IF;
 END $$;
 RESET ROLE;
 

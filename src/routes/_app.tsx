@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { forgetUserKind, resolveUserKind, UserKindError, type UserKind } from "@/lib/auth/userKind";
+import { clientHomeFor } from "@/lib/auth/clientPanel";
 import { useUnmarkedOutcomes } from "@/hooks/use-unmarked-outcomes";
 import { useSyncLanguagePref } from "@/hooks/use-user-prefs";
 import { AppHeader } from "@/components/shell/AppHeader";
@@ -26,7 +27,8 @@ export const Route = createFileRoute("/_app")({
   // Todo el panel autenticado queda fuera de buscadores; las rutas hijas heredan este meta
   // (si una hija define su propio robots, prevalece la más profunda, siempre con noindex).
   head: () => ({ meta: [NOINDEX_META] }),
-  // Guard de todas las rutas de agencia (hijas de /_app): un usuario cliente va a /portal.
+  // Guard de todas las rutas de agencia (hijas de /_app): un usuario cliente va a su panel
+  // (/mi si tiene client_users.panel_enabled; si no, /portal).
   // En SSR no hay sesión (vive en el navegador): ahí decide AppLayout al hidratar.
   // Solo redirige cuando CONFIRMA que es cliente. Si la verificación falla (red/RPC),
   // deja pasar a AppLayout, que falla cerrado (skeleton + Reintentar/Salir, nunca el shell).
@@ -42,7 +44,7 @@ export const Route = createFileRoute("/_app")({
       if (e instanceof UserKindError) return;
       throw e;
     }
-    if (kind === "client") throw redirect({ to: "/portal" });
+    if (kind === "client") throw redirect({ to: await clientHomeFor(userId) });
   },
   component: AppLayout,
 });
@@ -70,7 +72,7 @@ function AppLayout() {
     if (!loading && !session) navigate({ to: "/login" });
   }, [loading, session, navigate]);
 
-  // Invited client users only have the read-only portal: no mostrar el shell de agencia antes de saberlo.
+  // Un usuario cliente va a su portal o panel: no mostrar el shell de agencia antes de saberlo.
   const userId = session?.user?.id;
   useEffect(() => {
     if (!userId) return;
@@ -80,7 +82,9 @@ function AppLayout() {
       (kind) => {
         if (cancelled) return;
         if (kind === "client") {
-          navigate({ to: "/portal" });
+          void clientHomeFor(userId).then((to) => {
+            if (!cancelled) navigate({ to, replace: true });
+          });
           return;
         }
         setVerifiedUserId(userId);

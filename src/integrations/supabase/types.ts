@@ -770,6 +770,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          panel_enabled: boolean
           updated_at: string
           user_id: string
         }
@@ -778,6 +779,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          panel_enabled?: boolean
           updated_at?: string
           user_id: string
         }
@@ -786,6 +788,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          panel_enabled?: boolean
           updated_at?: string
           user_id?: string
         }
