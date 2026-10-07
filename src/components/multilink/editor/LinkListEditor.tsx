@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarClock, ChevronDown, Globe, Star, Trash2 } from "lucide-react";
+import { CalendarClock, ChevronDown, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,13 @@ import {
   useSortableRow,
 } from "@/components/site/SortableSections";
 import { LinkIcon } from "@/components/multilink/LinkIcon";
+import { LinkSuggestions } from "@/components/multilink/editor/LinkSuggestions";
+import {
+  linkSuggestions,
+  suggestionToItem,
+  type LinkSuggestion,
+} from "@/components/multilink/editor/suggestedLinks";
+import type { ClientSiteData } from "@/components/site/useClientSiteData";
 import { scheduleState, type Multilink, type MultilinkItem } from "@/lib/multilink";
 import { LINK_KIND_LABEL } from "@/lib/site/linkKind";
 import { formatChileMobile, normalizeChileMobile, normalizeUrl } from "@/lib/site/validation";
@@ -30,12 +37,28 @@ type Props = {
   onChange: (items: MultilinkItem[]) => void;
   errors: ItemErrors;
   clientId: string;
-  /** URL pública de la landing del cliente, si existe: se ofrece como botón rápido. */
+  /** URL pública de la landing del cliente, si está publicada: se ofrece como sugerencia. */
   landingUrl: string | null;
+  /** Datos ya entregados por el cliente: enlaces sugeridos en un clic. */
+  clientData: ClientSiteData;
 };
 
-export function LinkListEditor({ ml, items, onChange, errors, clientId, landingUrl }: Props) {
+export function LinkListEditor({
+  ml,
+  items,
+  onChange,
+  errors,
+  clientId,
+  landingUrl,
+  clientData,
+}: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const suggestions = linkSuggestions(clientData, landingUrl, items);
+  const addSuggestions = (list: LinkSuggestion[]) => {
+    const added = list.map((s, k) => suggestionToItem(ml, s, items.length + k));
+    onChange([...items, ...added]);
+    if (added.length === 1) setExpanded(added[0].id);
+  };
 
   const add = (quick: QuickAdd, url = "") => {
     const item = newItem(ml, quick, items.length, url);
@@ -51,29 +74,12 @@ export function LinkListEditor({ ml, items, onChange, errors, clientId, landingU
 
   return (
     <div className="space-y-4">
+      <LinkSuggestions suggestions={suggestions} onAdd={addSuggestions} />
       <div>
         <p className="mb-2 text-xs font-medium">Agregar enlace</p>
         <div className="flex flex-wrap gap-2">
-          {landingUrl && (
-            <Button
-              size="sm"
-              variant="default"
-              onClick={() =>
-                add(
-                  {
-                    kind: "website",
-                    label: "Landing",
-                    title: "Conoce nuestros servicios",
-                    placeholder: "",
-                  },
-                  landingUrl,
-                )
-              }
-            >
-              <Globe className="mr-1 h-4 w-4" aria-hidden="true" /> Landing del cliente
-            </Button>
-          )}
-          {QUICK_ADDS.map((q) => (
+          {/* Lo que ya se ofrece con datos del cliente no se repite en blanco. */}
+          {QUICK_ADDS.filter((q) => !suggestions.some((s) => s.kind === q.kind)).map((q) => (
             <Button key={q.kind} size="sm" variant="outline" onClick={() => add(q)}>
               <LinkIcon kind={q.kind === "video" ? "youtube" : q.kind} className="mr-1 h-4 w-4" />{" "}
               {q.label}
@@ -83,8 +89,8 @@ export function LinkListEditor({ ml, items, onChange, errors, clientId, landingU
       </div>
 
       {items.length === 0 ? (
-        <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Empieza por WhatsApp e Instagram: son los enlaces que más se usan.
+        <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
+          Sin enlaces aún: parte por WhatsApp e Instagram.
         </p>
       ) : (
         <SortableList

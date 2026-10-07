@@ -6,7 +6,7 @@ import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { Button } from "@/components/ui/button";
 import { Tabs } from "@/components/ui/tabs";
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/app";
-import { uniqueSlug, slugify } from "@/lib/slug";
+import { uniqueSlug } from "@/lib/slug";
 import { EventsPanel } from "@/components/landing/EventsPanel";
 import { MultilinkAnalytics } from "@/components/multilink/MultilinkAnalytics";
 import { QrCodeCard } from "@/components/multilink/QrCodeCard";
@@ -27,8 +27,12 @@ import {
 } from "@/components/site/SiteEditorLayout";
 import { SectionCard } from "@/components/site/SortableSections";
 import { useSaveState } from "@/components/site/useSaveState";
+import { copyPublicLink } from "@/components/site/copyLink";
+import { meaningfulBio } from "@/components/multilink/bio";
+import { slugSeed, useClientSiteData } from "@/components/site/useClientSiteData";
 import { type Multilink, type MultilinkItem as Item } from "@/lib/multilink";
 import {
+  displayUrl,
   landingPublicUrl,
   multilinkLinksStatus,
   multilinkPublicUrlFor,
@@ -56,6 +60,7 @@ export function MultilinkPage({
   readOnly?: boolean;
 }) {
   const { client } = useActiveClient();
+  const clientData = useClientSiteData(clientId);
   const [draft, setDraft] = useState<Snapshot | null>(null);
   const [saved, setSaved] = useState<Snapshot | null>(null);
   const [igProfile, setIgProfile] = useState<IGProfile | null>(null);
@@ -66,7 +71,8 @@ export function MultilinkPage({
   const [toggling, setToggling] = useState(false);
   const [previewMode, setPreviewMode] = useState<PreviewMode>("mobile");
   const [tab, setTab] = useState<TabKey>("editar");
-  const [open, setOpen] = useState<string | null>("enlaces");
+  /** Secciones abiertas (varias a la vez); null = automático según lo que falte. */
+  const [openSet, setOpenSet] = useState<ReadonlySet<string> | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   const dirty = !!draft && !!saved && JSON.stringify(draft) !== JSON.stringify(saved);
@@ -125,20 +131,24 @@ export function MultilinkPage({
     void load();
   }, [load]);
 
-  const avatarFallback = igProfile?.proposed_avatar_url ?? igProfile?.current_avatar_url ?? null;
+  // Foto por defecto: el logo del cliente; si no hay, la de Instagram.
+  const igAvatar = igProfile?.proposed_avatar_url ?? igProfile?.current_avatar_url ?? null;
+  const avatarFallback = clientData.logoUrl ?? igAvatar;
+  const avatarSource = clientData.logoUrl ? "logo" : igAvatar ? "instagram" : null;
 
   const create = async () => {
     if (!client) return;
     setCreating(true);
-    const slug = await uniqueSlug("multilinks", client.instagram_handle || slugify(client.name));
+    const slug = await uniqueSlug("multilinks", slugSeed(client.instagram_handle, client.name));
     const { data, error } = await supabase
       .from("multilinks")
       .insert({
         client_id: clientId,
         slug,
         title: client.name,
+        bio: clientData.description?.slice(0, 200) ?? null,
         avatar_url: avatarFallback,
-        theme_color: "#111827",
+        theme_color: clientData.brandColors[0] ?? "#111827",
       })
       .select("*")
       .single();
@@ -147,7 +157,7 @@ export function MultilinkPage({
     const snap = { ml: data as Multilink, items: [] };
     setDraft(snap);
     setSaved(snap);
-    toast.success("Multienlace creado. Agrega WhatsApp e Instagram para partir.");
+    toast.success("Multienlace creado");
   };
 
   const persist = useCallback(async (): Promise<boolean> => {
@@ -207,7 +217,12 @@ export function MultilinkPage({
     if (writeFailed(res, published ? "No se pudo publicar" : "No se pudo pasar a borrador")) return;
     setDraft((d) => (d ? { ...d, ml: { ...d.ml, published } } : d));
     setSaved((s) => (s ? { ...s, ml: { ...s.ml, published } } : s));
-    toast.success(published ? "Multienlace publicado" : "El multienlace quedó como borrador");
+    if (!published) return void toast.success("El multienlace quedó como borrador");
+    const url = multilinkPublicUrlFor(draft.ml);
+    toast.success("Multienlace publicado", {
+      description: displayUrl(url),
+      action: { label: "Copiar link", onClick: () => void copyPublicLink(url) },
+    });
   };
 
   const shell = (content: React.ReactNode) => (
@@ -258,7 +273,14 @@ export function MultilinkPage({
   const setItems = (next: Item[]) => setDraft({ ...draft, items: next });
   const profileHasError = !!(errors.title || errors.slug);
   const linksHaveError = errorCount - (errors.title ? 1 : 0) - (errors.slug ? 1 : 0) > 0;
-  const toggle = (key: string) => setOpen(open === key ? null : key);
+  const profileNeedsWork =
+    profileHasError || !meaningfulBio(ml.bio) || (!saved.ml.published && ml.slug.includes("."));
+  const open = openSet ?? new Set(["enlaces", ...(profileNeedsWork ? ["perfil"] : [])]);
+  const toggle = (key: string) => {
+    const next = new Set(open);
+    if (!next.delete(key)) next.add(key);
+    setOpenSet(next);
+  };
 
   const preview = (snap: Snapshot) => (
     <DevicePreview
@@ -281,6 +303,8 @@ export function MultilinkPage({
           nav={<SiteNav pageSwitcher={pageSwitcher} />}
           published={saved.ml.published}
           publicUrl={publicUrl}
+          pageLabel="el multienlace"
+          qrFileBase={`${saved.ml.slug}-multienlace`}
           readOnly
         />
         <ReadOnlyPreview>{preview(saved)}</ReadOnlyPreview>
@@ -307,10 +331,11 @@ export function MultilinkPage({
               errors={errors}
               clientId={clientId}
               landingUrl={landingUrl}
+              clientData={clientData}
             />
           ),
         }}
-        open={open === "enlaces"}
+        open={open.has("enlaces")}
         onToggleOpen={() => toggle("enlaces")}
       />
       <SectionCard
@@ -321,7 +346,13 @@ export function MultilinkPage({
           enabled: true,
           toggleable: false,
           hasError: profileHasError,
-          status: profileHasError ? "error" : ml.title.trim() ? "complete" : "missing",
+          status: profileHasError
+            ? "error"
+            : !ml.title.trim()
+              ? "missing"
+              : (ml.bio ?? "").trim() && !meaningfulBio(ml.bio)
+                ? "error"
+                : "complete",
           content: (
             <ProfileEditor
               ml={ml}
@@ -329,10 +360,13 @@ export function MultilinkPage({
               errors={errors}
               clientId={clientId}
               avatarFallback={avatarFallback}
+              avatarSource={avatarSource}
+              clientDescription={clientData.description}
+              published={saved.ml.published}
             />
           ),
         }}
-        open={open === "perfil"}
+        open={open.has("perfil")}
         onToggleOpen={() => toggle("perfil")}
       />
       <SectionCard
@@ -342,9 +376,9 @@ export function MultilinkPage({
           summary: ml.theme_mode === "dark" ? "Oscuro" : "Claro",
           enabled: true,
           toggleable: false,
-          content: <ThemeEditor ml={ml} onChange={setMl} />,
+          content: <ThemeEditor ml={ml} onChange={setMl} brandColors={clientData.brandColors} />,
         }}
-        open={open === "tema"}
+        open={open.has("tema")}
         onToggleOpen={() => toggle("tema")}
       />
     </div>
@@ -367,6 +401,8 @@ export function MultilinkPage({
           }
           published={ml.published}
           publicUrl={publicUrl}
+          pageLabel="el multienlace"
+          qrFileBase={`${saved.ml.slug}-multienlace`}
           onTogglePublished={() => void onTogglePublished()}
           toggling={toggling || save.saving}
         />

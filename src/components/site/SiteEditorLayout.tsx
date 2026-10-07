@@ -20,7 +20,7 @@ export function SiteNav({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex max-w-full flex-wrap items-center gap-1 rounded-lg bg-muted p-1">
+    <div className="flex w-fit max-w-full flex-wrap items-center gap-1 rounded-lg bg-muted p-1">
       {pageSwitcher}
       {pageSwitcher && children && (
         <span className="mx-1 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
@@ -109,7 +109,7 @@ export function EditorSplit({
         "grid gap-6 md:h-full md:min-h-0",
         widePreview
           ? "md:grid-cols-[minmax(440px,1fr)_minmax(0,1.2fr)]"
-          : "md:grid-cols-[minmax(0,1fr)_minmax(280px,420px)]",
+          : "md:grid-cols-[minmax(0,1fr)_minmax(260px,360px)]",
       )}
     >
       <ScrollColumn footer={footer}>{editor}</ScrollColumn>
