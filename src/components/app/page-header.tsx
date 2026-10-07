@@ -41,13 +41,34 @@ export function PageHeader({
               compact ? "text-2xl" : "text-2xl md:text-3xl",
             )}
           >
-            {title}
+            <TitleText title={title} />
           </h1>
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
     </header>
+  );
+}
+
+/**
+ * Acento de marca del landing ("Lo que *hacemos por ti*"): la última palabra del título va en
+ * Fraunces itálica con el degradado de marca. El texto y la jerarquía no cambian; los títulos
+ * que no son texto plano se muestran tal cual.
+ */
+function TitleText({ title }: { title: ReactNode }) {
+  if (typeof title !== "string") return <>{title}</>;
+  const text = title.trim();
+  const cut = text.lastIndexOf(" ") + 1;
+  const accent = text.slice(cut);
+  if (!accent) return <>{title}</>;
+  return (
+    <>
+      {text.slice(0, cut)}
+      <span className="font-brand text-gradient-brand-strong pe-[0.08em] leading-none dark:text-gradient-brand">
+        {accent}
+      </span>
+    </>
   );
 }
 

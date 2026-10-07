@@ -25,7 +25,7 @@ export interface PanelProps {
 }
 
 const toneCls = {
-  default: "border-border-subtle bg-surface",
+  default: "card-brand border-border-subtle bg-surface",
   warning: "border-warning/40 bg-warning-subtle",
 } as const;
 
@@ -77,7 +77,7 @@ export function Panel({
           <div className="min-w-0">
             {title && (
               <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                {Icon && <Icon aria-hidden className="h-4 w-4 text-muted-foreground" />}
+                {Icon && <Icon aria-hidden className="h-4 w-4 text-brand-1" />}
                 {title}
                 {info && <InfoHint>{info}</InfoHint>}
               </h2>

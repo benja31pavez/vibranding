@@ -8,7 +8,7 @@ const linkClass = (active: boolean) =>
     "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium 2xl:px-2.5 whitespace-nowrap transition-colors",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     active
-      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+      ? "bg-sidebar-accent bg-brand-soft text-sidebar-accent-foreground [&>svg]:text-brand-1"
       : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
   );
 

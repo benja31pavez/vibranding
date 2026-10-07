@@ -116,7 +116,7 @@ function FunnelBars({ stages }: { stages: readonly FunnelStage[] }) {
           </div>
           <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-muted" aria-hidden>
             <div
-              className="h-full rounded-full bg-primary"
+              className="h-full rounded-full bg-primary bg-gradient-brand"
               style={{ width: `${(s.count / top) * 100}%` }}
             />
           </div>

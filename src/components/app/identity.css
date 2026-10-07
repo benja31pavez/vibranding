@@ -1,0 +1,93 @@
+/*
+ * Identidad de marca de la plataforma interna (panel de agencia y portal del cliente).
+ * Lleva el key visual del landing (degradado azul → magenta → ámbar, halos suaves, bordes
+ * tintados) a las piezas base. Solo estilo: no cambia tamaños, paddings ni layout.
+ *
+ * Todo queda bajo `.app-brand` (raíz de AppShellFrame y PortalShell) o `body:has(.app-brand)`
+ * (diálogos y sheets que se montan en un portal), para no tocar la home ni las páginas públicas.
+ */
+
+/* Fondo con halo de marca muy sutil (no se mueve, no ocupa espacio). */
+.app-brand {
+  background-image:
+    radial-gradient(
+      52rem 26rem at 88% -6%,
+      color-mix(in oklab, var(--brand-2) 7%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      44rem 24rem at 22% -10%,
+      color-mix(in oklab, var(--brand-1) 8%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      40rem 22rem at 100% 108%,
+      color-mix(in oklab, var(--brand-3) 6%, transparent),
+      transparent 70%
+    );
+}
+
+/* Scrollbars finas, con un tinte de marca. */
+.app-brand,
+.app-brand * {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--brand-1) 26%, var(--border-strong)) transparent;
+}
+
+.app-brand ::selection {
+  background-color: color-mix(in oklab, var(--brand-2) 22%, transparent);
+}
+
+/* Botón primario (variante "default" sin color propio): degradado de marca como el CTA del landing.
+   Los extremos del degradado tienen L≈0.5, así el texto blanco mantiene contraste AA (≥4.5:1).
+   La sombra no se aplica con foco de teclado, para no tapar el anillo de foco (también es box-shadow). */
+body:has(.app-brand) .btn-brand {
+  background-image: linear-gradient(120deg, oklch(0.48 0.2 262), oklch(0.5 0.24 330));
+}
+body:has(.app-brand) .btn-brand:not(:focus-visible) {
+  box-shadow: 0 6px 16px -8px color-mix(in oklab, var(--brand-2) 55%, transparent);
+}
+@media (hover: hover) {
+  body:has(.app-brand) .btn-brand:not(:disabled):hover {
+    filter: brightness(1.06);
+  }
+}
+
+/* Fondo tintado de marca para estados activos (nav, página actual, íconos de estados vacíos). */
+@utility bg-brand-soft {
+  background-image: linear-gradient(
+    120deg,
+    color-mix(in oklab, var(--brand-1) 15%, transparent),
+    color-mix(in oklab, var(--brand-2) 11%, transparent)
+  );
+}
+
+/* Barra vertical de marca a la izquierda (ítem activo del panel lateral). */
+@utility brand-rail {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 22%;
+    bottom: 22%;
+    width: 3px;
+    border-radius: 9999px;
+    background-image: linear-gradient(180deg, var(--brand-1), var(--brand-2));
+  }
+}
+
+/* Tarjetas: al pasar el mouse, borde tintado de marca y sombra suave (sin moverse). */
+@utility card-brand {
+  @media (hover: hover) {
+    &:hover {
+      border-color: color-mix(in oklab, var(--brand-1) 30%, var(--border-subtle));
+      box-shadow: var(--app-shadow-md);
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      border-color 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+}

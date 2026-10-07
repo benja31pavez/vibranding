@@ -39,11 +39,15 @@ las sombras por defecto, para no alterar la home ni los componentes shadcn públ
 
 - **Superficies**: `bg-bg` (fondo de app), `bg-surface` (cards), `bg-surface-2` (zonas hundidas, encabezados de tabla).
 - **Bordes**: `border-border-subtle` (cards), `border-border-strong` (hover, punteados).
-- **Acento**: `primary` (único acento).
+- **Acento**: `primary`; marca con `text-brand-1|2|3` (íconos) y `bg-gradient-brand` (barras de avance).
+- **Identidad** (`identity.css`, solo bajo `.app-brand`: AppShellFrame y PortalShell): halo de marca en el
+  fondo, botón primario con degradado (`.btn-brand`, lo agrega `Button` si no trae `bg-…` propio),
+  `bg-brand-soft` (estados activos), `brand-rail` (barra del ítem activo), `card-brand` (hover de tarjetas).
+  El título de `PageHeader` lleva su última palabra en Fraunces itálica con el degradado.
 - **Estados**: `success`, `warning`, `danger`, `info` y `neutral`, cada uno con
   `-subtle` (fondo) y `-strong` (texto legible sobre el fondo subtle):
   `bg-success-subtle text-success-strong`.
-- **Radios**: `rounded-app-sm` 6px (controles), `rounded-app-md` 8px, `rounded-app-lg` 12px (cards).
+- **Radios**: `rounded-app-sm` 6px (controles), `rounded-app-md` 8px, `rounded-app-lg` 14px (cards).
 - **Sombras**: `shadow-app-xs` (cards en reposo), `shadow-app-md` (hover), `shadow-app-lg` (popovers).
 - **Tipografía**: 12 `text-xs` · 13 `text-ui` · 14 `text-sm` · 16 `text-base` · 20 `text-xl` · 24 `text-2xl` · 30 `text-3xl`.
   Mínimo 12px: no uses `text-[8px]`…`text-[11px]`. Cifras y montos con `tabular-nums`.
