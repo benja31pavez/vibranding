@@ -14,7 +14,11 @@ import { createServerFn } from "@tanstack/react-start";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 import type { PanelContract, PanelFiles, PanelPlan, PanelResult } from "./model";
+
+/** JSON de una RPC (se valida en el navegador con siteModel / adsModel). */
+type PanelJson = Json;
 
 const PreviewInput = z.object({ preview: z.string().uuid().optional() });
 const PreviewRequired = z.object({ preview: z.string().uuid() });
@@ -62,4 +66,40 @@ export const getClientPanelContracts = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<PanelResult<PanelContract[]>> => {
     const { loadPanelContracts } = await import("./panel.server");
     return loadPanelContracts(untyped(context.supabase), context.userId, data.preview);
+  });
+
+const AdsInput = z.object({
+  preview: z.string().uuid().optional(),
+  platform: z.enum(["meta", "google"]),
+  days: z.union([z.literal(7), z.literal(30), z.literal(90)]),
+});
+
+/** Sitio: multienlace y landing publicados + visitas/clics agregados (30 días). */
+export const getClientPanelSite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: PreviewData) => PreviewInput.parse(d ?? {}))
+  .handler(async ({ data, context }): Promise<PanelResult<PanelJson>> => {
+    const { loadPanelSite } = await import("./panel.server");
+    return (await loadPanelSite(
+      untyped(context.supabase),
+      context.userId,
+      data.preview,
+    )) as PanelResult<PanelJson>;
+  });
+
+/** Meta Ads / Google Ads: resumen del período, campañas y estado del pago de pauta. */
+export const getClientPanelAds = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { preview?: string; platform: "meta" | "google"; days: 7 | 30 | 90 }) =>
+    AdsInput.parse(d),
+  )
+  .handler(async ({ data, context }): Promise<PanelResult<PanelJson>> => {
+    const { loadPanelAds } = await import("./panel.server");
+    return (await loadPanelAds(
+      untyped(context.supabase),
+      context.userId,
+      data.platform,
+      data.days,
+      data.preview,
+    )) as PanelResult<PanelJson>;
   });

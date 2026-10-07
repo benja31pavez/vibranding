@@ -12,6 +12,7 @@
  * la RPC.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Json } from "@/integrations/supabase/types";
 import {
   fromAd,
   fromDeliverable,
@@ -105,6 +106,14 @@ export async function loadPreviewBrand(userId: string, preview: string) {
   };
 }
 
+type PanelRpc =
+  | "client_plan_board"
+  | "client_files_catalog"
+  | "client_contracts_list"
+  | "client_site_summary"
+  | "client_meta_ads_summary"
+  | "client_google_ads_summary";
+
 /**
  * Llama una RPC client_* con la sesión del usuario. `undefined` = la función
  * no existe (migración sin aplicar); `null` = sin cliente legible.
@@ -112,11 +121,12 @@ export async function loadPreviewBrand(userId: string, preview: string) {
 async function callPanelRpc<T>(
   db: Db,
   userId: string,
-  fn: "client_plan_board" | "client_files_catalog" | "client_contracts_list",
+  fn: PanelRpc,
   preview: string | undefined,
+  args: Record<string, number> = {},
 ): Promise<T | null | undefined> {
   if (preview) await assertPreviewAccess(userId, preview);
-  const { data, error } = await db.rpc(fn, preview ? { _preview: preview } : {});
+  const { data, error } = await db.rpc(fn, preview ? { ...args, _preview: preview } : args);
   if (error) {
     if (MISSING_FN_CODES.has(error.code ?? "")) return undefined;
     console.error(`[client-panel] ${fn} falló`, { userId, preview, code: error.code });
@@ -349,4 +359,36 @@ export async function loadPanelContracts(
         client: c.client && typeof c.client === "object" ? c.client : {},
       })),
   );
+}
+
+// ── Sitio y publicidad ──────────────────────────────────────────────────────
+// Agregados ya calculados en la BD (sin ids de cuenta, MCC ni tokens). El
+// navegador valida la forma con siteModel / adsModel.
+
+/** Período permitido (el panel ofrece 7/30/90 días; la RPC acota a 1..90). */
+export function panelDays(days: number | undefined): number {
+  return days === 7 || days === 90 ? days : 30;
+}
+
+export async function loadPanelSite(
+  db: Db,
+  userId: string,
+  preview: string | undefined,
+): Promise<PanelResult<Json>> {
+  const raw = await callPanelRpc<Json>(db, userId, "client_site_summary", preview, {
+    _days: 30,
+  });
+  return toResult(raw, (v) => v);
+}
+
+export async function loadPanelAds(
+  db: Db,
+  userId: string,
+  platform: "meta" | "google",
+  days: number | undefined,
+  preview: string | undefined,
+): Promise<PanelResult<Json>> {
+  const fn = platform === "meta" ? "client_meta_ads_summary" : "client_google_ads_summary";
+  const raw = await callPanelRpc<Json>(db, userId, fn, preview, { _days: panelDays(days) });
+  return toResult(raw, (v) => v);
 }
