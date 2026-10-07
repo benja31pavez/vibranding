@@ -1,14 +1,14 @@
 import { CalendarSection } from "@/components/portal/CalendarSection";
-import type { PortalMode } from "@/components/portal/usePortal";
+import { portalModeFor } from "@/components/portal/usePortal";
+import { usePanelMode } from "./panelMode";
 import { PortalSectionPage } from "./PortalSectionPage";
 
-/** El cliente sale de la sesión (getPortalCalendar usa user_client_id()), no de la URL. */
-const CLIENT_MODE: PortalMode = { kind: "client" };
-
+/** El cliente sale de la sesión (getPortalCalendar usa user_client_id()) o de la vista previa validada. */
 export function CalendarPage() {
+  const mode = portalModeFor(usePanelMode().preview);
   return (
     <PortalSectionPage title="Calendario">
-      <CalendarSection mode={CLIENT_MODE} enabled />
+      <CalendarSection mode={mode} enabled />
     </PortalSectionPage>
   );
 }

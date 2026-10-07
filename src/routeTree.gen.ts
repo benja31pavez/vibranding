@@ -47,8 +47,11 @@ import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as MiIndexRouteImport } from './routes/mi/index'
 import { Route as MiSeccionRouteImport } from './routes/mi/$seccion'
+import { Route as MiArchivosRouteImport } from './routes/mi/archivos'
 import { Route as MiCalendarioRouteImport } from './routes/mi/calendario'
 import { Route as MiFacturacionRouteImport } from './routes/mi/facturacion'
+import { Route as MiLegalRouteImport } from './routes/mi/legal'
+import { Route as MiPlanRouteImport } from './routes/mi/plan'
 import { Route as OnboardingTokenRouteImport } from './routes/onboarding.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PagoResultadoRouteImport } from './routes/pago.resultado'
@@ -307,6 +310,11 @@ const MiSeccionRoute = MiSeccionRouteImport.update({
   path: '/$seccion',
   getParentRoute: () => MiRoute,
 } as any)
+const MiArchivosRoute = MiArchivosRouteImport.update({
+  id: '/archivos',
+  path: '/archivos',
+  getParentRoute: () => MiRoute,
+} as any)
 const MiCalendarioRoute = MiCalendarioRouteImport.update({
   id: '/calendario',
   path: '/calendario',
@@ -315,6 +323,16 @@ const MiCalendarioRoute = MiCalendarioRouteImport.update({
 const MiFacturacionRoute = MiFacturacionRouteImport.update({
   id: '/facturacion',
   path: '/facturacion',
+  getParentRoute: () => MiRoute,
+} as any)
+const MiLegalRoute = MiLegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
+  getParentRoute: () => MiRoute,
+} as any)
+const MiPlanRoute = MiPlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
   getParentRoute: () => MiRoute,
 } as any)
 const OnboardingTokenRoute = OnboardingTokenRouteImport.update({
@@ -720,8 +738,11 @@ export interface FileRoutesByFullPath {
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
   '/mi/$seccion': typeof MiSeccionRoute
+  '/mi/archivos': typeof MiArchivosRoute
   '/mi/calendario': typeof MiCalendarioRoute
   '/mi/facturacion': typeof MiFacturacionRoute
+  '/mi/legal': typeof MiLegalRoute
+  '/mi/plan': typeof MiPlanRoute
   '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
@@ -826,8 +847,11 @@ export interface FileRoutesByTo {
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
   '/mi/$seccion': typeof MiSeccionRoute
+  '/mi/archivos': typeof MiArchivosRoute
   '/mi/calendario': typeof MiCalendarioRoute
   '/mi/facturacion': typeof MiFacturacionRoute
+  '/mi/legal': typeof MiLegalRoute
+  '/mi/plan': typeof MiPlanRoute
   '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
@@ -934,8 +958,11 @@ export interface FileRoutesById {
   '/book/$slug': typeof BookSlugRoute
   '/l/$slug': typeof LSlugRoute
   '/mi/$seccion': typeof MiSeccionRoute
+  '/mi/archivos': typeof MiArchivosRoute
   '/mi/calendario': typeof MiCalendarioRoute
   '/mi/facturacion': typeof MiFacturacionRoute
+  '/mi/legal': typeof MiLegalRoute
+  '/mi/plan': typeof MiPlanRoute
   '/onboarding/$token': typeof OnboardingTokenRoute
   '/p/$token': typeof PTokenRoute
   '/pago/resultado': typeof PagoResultadoRoute
@@ -1043,8 +1070,11 @@ export interface FileRouteTypes {
     | '/book/$slug'
     | '/l/$slug'
     | '/mi/$seccion'
+    | '/mi/archivos'
     | '/mi/calendario'
     | '/mi/facturacion'
+    | '/mi/legal'
+    | '/mi/plan'
     | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
@@ -1149,8 +1179,11 @@ export interface FileRouteTypes {
     | '/book/$slug'
     | '/l/$slug'
     | '/mi/$seccion'
+    | '/mi/archivos'
     | '/mi/calendario'
     | '/mi/facturacion'
+    | '/mi/legal'
+    | '/mi/plan'
     | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
@@ -1256,8 +1289,11 @@ export interface FileRouteTypes {
     | '/book/$slug'
     | '/l/$slug'
     | '/mi/$seccion'
+    | '/mi/archivos'
     | '/mi/calendario'
     | '/mi/facturacion'
+    | '/mi/legal'
+    | '/mi/plan'
     | '/onboarding/$token'
     | '/p/$token'
     | '/pago/resultado'
@@ -1651,6 +1687,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MiSeccionRouteImport
       parentRoute: typeof MiRoute
     }
+    '/mi/archivos': {
+      id: '/mi/archivos'
+      path: '/archivos'
+      fullPath: '/mi/archivos'
+      preLoaderRoute: typeof MiArchivosRouteImport
+      parentRoute: typeof MiRoute
+    }
     '/mi/calendario': {
       id: '/mi/calendario'
       path: '/calendario'
@@ -1663,6 +1706,20 @@ declare module '@tanstack/react-router' {
       path: '/facturacion'
       fullPath: '/mi/facturacion'
       preLoaderRoute: typeof MiFacturacionRouteImport
+      parentRoute: typeof MiRoute
+    }
+    '/mi/legal': {
+      id: '/mi/legal'
+      path: '/legal'
+      fullPath: '/mi/legal'
+      preLoaderRoute: typeof MiLegalRouteImport
+      parentRoute: typeof MiRoute
+    }
+    '/mi/plan': {
+      id: '/mi/plan'
+      path: '/plan'
+      fullPath: '/mi/plan'
+      preLoaderRoute: typeof MiPlanRouteImport
       parentRoute: typeof MiRoute
     }
     '/onboarding/$token': {
@@ -2256,15 +2313,21 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface MiRouteChildren {
   MiSeccionRoute: typeof MiSeccionRoute
+  MiArchivosRoute: typeof MiArchivosRoute
   MiCalendarioRoute: typeof MiCalendarioRoute
   MiFacturacionRoute: typeof MiFacturacionRoute
+  MiLegalRoute: typeof MiLegalRoute
+  MiPlanRoute: typeof MiPlanRoute
   MiIndexRoute: typeof MiIndexRoute
 }
 
 const MiRouteChildren: MiRouteChildren = {
   MiSeccionRoute: MiSeccionRoute,
+  MiArchivosRoute: MiArchivosRoute,
   MiCalendarioRoute: MiCalendarioRoute,
   MiFacturacionRoute: MiFacturacionRoute,
+  MiLegalRoute: MiLegalRoute,
+  MiPlanRoute: MiPlanRoute,
   MiIndexRoute: MiIndexRoute,
 }
 
