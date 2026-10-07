@@ -4,15 +4,16 @@ import { Monitor, Smartphone } from "lucide-react";
 
 export type PreviewMode = "mobile" | "desktop";
 
+/** Móvil: proporción real de un teléfono actual (390 × 844, ~19,5:9). */
 const VIEWPORT: Record<PreviewMode, { width: number; height: number }> = {
-  mobile: { width: 375, height: 740 },
+  mobile: { width: 390, height: 844 },
   desktop: { width: 1280, height: 800 },
 };
 
 /** Ancho visible del teléfono cuando no hay alto fijo (móvil: la página hace scroll). */
 const PHONE_WIDTH = 300;
-/** Tope del teléfono en escritorio, aunque sobre alto (más grande se ve pixelado). */
-const PHONE_MAX_WIDTH = 400;
+/** Tope del teléfono en escritorio, aunque sobre alto: un teléfono más grande se ve vacío. */
+const PHONE_MAX_WIDTH = 330;
 /** Marco negro (p-2) + borde inferior para la leyenda. */
 const FRAME_PAD = 16;
 const CAPTION_SPACE = 28;
@@ -109,7 +110,11 @@ export function DevicePreview({
         </ModeButton>
       </div>
 
-      <div ref={wrapRef} className="w-full md:min-h-0 md:flex-1">
+      {/* Desde md el teléfono queda centrado en el alto disponible (no pegado arriba). */}
+      <div
+        ref={wrapRef}
+        className="w-full md:flex md:min-h-0 md:flex-1 md:flex-col md:justify-center"
+      >
         <div
           className={`mx-auto bg-black shadow-2xl ${mode === "mobile" ? "rounded-[2.6rem] p-2" : "rounded-xl p-2"}`}
           style={{ width: displayWidth + FRAME_PAD }}

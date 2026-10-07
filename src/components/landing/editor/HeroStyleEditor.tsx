@@ -34,19 +34,28 @@ const SWATCHES = [
 
 const selectClass = "h-9 w-full rounded-md border bg-background px-2 text-sm";
 
-export function StyleEditor({ lp, onChange }: Omit<Props, "errors" | "clientId">) {
+export function StyleEditor({
+  lp,
+  onChange,
+  brandColors = [],
+}: Omit<Props, "errors" | "clientId"> & {
+  /** Colores del onboarding del cliente: van primero. */
+  brandColors?: string[];
+}) {
   const palette = landingPalette(lp.theme_color, lp.dark_mode);
+  const swatches = [...new Set([...brandColors, ...SWATCHES])];
   return (
     <div className="space-y-4">
       <div>
         <span className="text-xs font-medium">Color de marca</span>
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          {SWATCHES.map((c) => (
+          {swatches.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => onChange({ ...lp, theme_color: c })}
-              aria-label={`Usar color ${c}`}
+              aria-label={`Usar color ${c}${brandColors.includes(c) ? " (del cliente)" : ""}`}
+              title={brandColors.includes(c) ? `${c} · color del cliente` : c}
               aria-pressed={lp.theme_color.toLowerCase() === c}
               className={`h-8 w-8 rounded-full border-2 ${lp.theme_color.toLowerCase() === c ? "border-foreground" : "border-transparent"}`}
               style={{ background: c }}

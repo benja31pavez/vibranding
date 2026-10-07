@@ -14,6 +14,7 @@ import {
 import { Tabs } from "@/components/ui/tabs";
 import { ConfirmDialog, EmptyState, ErrorState, InfoHint, ListSkeleton } from "@/components/app";
 import { uniqueSlug, slugify } from "@/lib/slug";
+import { formatChileMobile } from "@/lib/site/validation";
 import { writeError, writeFailed } from "@/lib/writeCheck";
 import { EventsPanel } from "@/components/landing/EventsPanel";
 import { LandingAnalytics } from "@/components/landing/LandingAnalytics";
@@ -32,6 +33,8 @@ import {
   SiteViewTab,
 } from "@/components/site/SiteEditorLayout";
 import { useSaveState } from "@/components/site/useSaveState";
+import { copyPublicLink } from "@/components/site/copyLink";
+import { slugSeed, useClientSiteData } from "@/components/site/useClientSiteData";
 import {
   moveBy,
   SectionCard,
@@ -69,7 +72,12 @@ import {
   type LandingDraft,
   type LandingErrors,
 } from "@/lib/site/landingDraft";
-import { heroStatus, landingPublicUrl, landingSectionStatus } from "@/lib/site/siteStatus";
+import {
+  displayUrl,
+  heroStatus,
+  landingPublicUrl,
+  landingSectionStatus,
+} from "@/lib/site/siteStatus";
 
 type TabKey = "editar" | "ajustes" | "mensajes" | "metricas";
 
@@ -94,6 +102,7 @@ export function LandingEditor({
   readOnly?: boolean;
 }) {
   const { client } = useActiveClient();
+  const clientData = useClientSiteData(clientId);
   const [lp, setLp] = useState<LandingDraft | null>(null);
   const [saved, setSaved] = useState<LandingDraft | null>(null);
   const [loading, setLoading] = useState(true);
@@ -145,7 +154,7 @@ export function LandingEditor({
     try {
       const slug = await uniqueSlug(
         "landing_pages",
-        client.instagram_handle || slugify(client.name),
+        slugSeed(client.instagram_handle, client.name),
       );
       const blank = normalizeLanding({
         id: "",
@@ -158,7 +167,18 @@ export function LandingEditor({
           ? { instagram: `https://instagram.com/${client.instagram_handle.replace(/^@/, "")}` }
           : {},
       });
-      const draft = rubro ? applyRubroTemplate(blank, rubroTemplate(rubro), client.name) : blank;
+      const templated = rubro
+        ? applyRubroTemplate(blank, rubroTemplate(rubro), client.name)
+        : blank;
+      // Datos que el cliente ya entregó: su color y su WhatsApp, en vez de los de la plantilla.
+      const brand = clientData.brandColors[0];
+      const draft: LandingDraft = {
+        ...templated,
+        ...(brand ? { theme_color: brand } : {}),
+        ...(clientData.whatsapp
+          ? { whatsapp_number: formatChileMobile(clientData.whatsapp), whatsapp_enabled: true }
+          : {}),
+      };
       const { data, error } = await supabase
         .from("landing_pages")
         .insert({ client_id: clientId, ...landingUpdatePayload(draft, slug) })
@@ -233,7 +253,15 @@ export function LandingEditor({
     if (writeFailed(res, published ? "No se pudo publicar" : "No se pudo pasar a borrador")) return;
     setLp((cur) => (cur ? { ...cur, published } : cur));
     setSaved((cur) => (cur ? { ...cur, published } : cur));
-    toast.success(published ? "Landing publicada" : "La landing quedó como borrador");
+    if (!published) return void toast.success("La landing quedó como borrador");
+    const url = landingPublicUrl(saved.slug);
+    toast.success("Landing publicada", {
+      description: displayUrl(url),
+      action: {
+        label: "Copiar link",
+        onClick: () => void copyPublicLink(url),
+      },
+    });
   };
 
   const onTogglePublished = async () => {
@@ -295,6 +323,11 @@ export function LandingEditor({
 
   if (!lp || !saved) {
     if (readOnly) return shell(<EmptyState icon={Globe} title="La landing aún no está lista" />);
+    // Lo que se trae del cliente al crearla (sin inventar nada).
+    const prefill = [
+      clientData.whatsapp && `su WhatsApp ${formatChileMobile(clientData.whatsapp)}`,
+      clientData.brandColors.length > 0 && "sus colores de marca",
+    ].filter((x): x is string => !!x);
     return shell(
       <section className="space-y-5 rounded-app-lg border border-border-subtle bg-surface p-6 shadow-app-xs md:p-8">
         <div className="flex items-center gap-2">
@@ -305,6 +338,9 @@ export function LandingEditor({
             textos de ejemplo quedan marcados para reemplazarlos.
           </InfoHint>
         </div>
+        {prefill.length > 0 && (
+          <p className="text-sm text-muted-foreground">Parte con {prefill.join(" y ")}.</p>
+        )}
         <TemplatePicker onPick={(k) => void create(k)} busy={creating} />
       </section>,
     );
@@ -332,6 +368,8 @@ export function LandingEditor({
           nav={<SiteNav pageSwitcher={pageSwitcher} />}
           published={saved.published}
           publicUrl={publicUrl}
+          pageLabel="la landing"
+          qrFileBase={`${saved.slug}-landing`}
           readOnly
         />
         <ReadOnlyPreview>{preview(saved)}</ReadOnlyPreview>
@@ -426,7 +464,7 @@ export function LandingEditor({
           summary: lp.dark_mode ? "Modo oscuro" : "Modo claro",
           enabled: true,
           toggleable: false,
-          content: <StyleEditor lp={lp} onChange={update} />,
+          content: <StyleEditor lp={lp} onChange={update} brandColors={clientData.brandColors} />,
         }}
         open={openSection === "estilo"}
         onToggleOpen={() => toggleOpen("estilo")}
@@ -501,6 +539,8 @@ export function LandingEditor({
           }
           published={lp.published}
           publicUrl={publicUrl}
+          pageLabel="la landing"
+          qrFileBase={`${saved.slug}-landing`}
           onTogglePublished={() => void onTogglePublished()}
           toggling={toggling || save.saving}
         />

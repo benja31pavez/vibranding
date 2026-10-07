@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +18,8 @@ import {
 import { MULTILINK_PRESETS, type MultilinkPreset } from "@/lib/site/multilinkPresets";
 import { slugify } from "@/lib/slug";
 import type { ItemErrors } from "@/lib/site/multilinkDraft";
+import { displayUrl, multilinkPublicUrlFor } from "@/lib/site/siteStatus";
+import { meaningfulBio } from "@/components/multilink/bio";
 
 type Props = {
   ml: Multilink;
@@ -25,12 +27,35 @@ type Props = {
   errors: ItemErrors;
   clientId: string;
   avatarFallback: string | null;
+  /** De dónde sale la foto por defecto (si no se sube una propia). */
+  avatarSource: "logo" | "instagram" | null;
+  /** Descripción del negocio en la ficha: se ofrece si la del multienlace está vacía. */
+  clientDescription: string | null;
+  /** Publicado: cambiar la dirección rompería el link y el QR ya compartidos. */
+  published: boolean;
 };
+
+const BIO_MAX = 200;
 
 const selectClass = "block h-9 w-full rounded-md border bg-background px-2 text-sm";
 
-export function ProfileEditor({ ml, onChange, errors, clientId, avatarFallback }: Props) {
+export function ProfileEditor({
+  ml,
+  onChange,
+  errors,
+  clientId,
+  avatarFallback,
+  avatarSource,
+  clientDescription,
+  published,
+}: Props) {
+  // "vibranding.pro" como dirección se lee como un dominio: vibranding.pro/l/vibranding.pro.
+  const dottedSlug = slugify(ml.slug).includes(".");
+  const cleanSlug = slugify(ml.slug).replace(/\./g, "-");
   const avatar = ml.avatar_url ?? avatarFallback;
+  const bio = ml.bio ?? "";
+  const bioIsJunk = bio.trim().length > 0 && !meaningfulBio(bio);
+  const offerDescription = !!clientDescription && (!bio.trim() || bioIsJunk);
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
@@ -52,8 +77,10 @@ export function ProfileEditor({ ml, onChange, errors, clientId, avatarFallback }
           label={avatar ? "Cambiar logo o foto" : "Subir logo o foto"}
           onUploaded={([url]) => onChange({ ...ml, avatar_url: url })}
         />
-        {!ml.avatar_url && avatarFallback && (
-          <span className="text-xs text-muted-foreground">Usando la foto de Instagram</span>
+        {!ml.avatar_url && avatarFallback && avatarSource && (
+          <span className="text-xs text-muted-foreground">
+            {avatarSource === "logo" ? "Logo del cliente" : "Foto de Instagram"}
+          </span>
         )}
       </div>
       <Field label="Nombre" error={errors.title}>
@@ -68,23 +95,35 @@ export function ProfileEditor({ ml, onChange, errors, clientId, avatarFallback }
       </Field>
       <Field
         label="Descripción corta"
-        hint={`${(ml.bio ?? "").length}/200 · Qué hace el negocio y dónde`}
+        error={bioIsJunk ? "Parece incompleta: no se mostrará" : undefined}
+        hint={`${bio.length}/${BIO_MAX} · Qué hace el negocio y dónde`}
       >
         {(a) => (
           <Textarea
             {...a}
             rows={2}
-            maxLength={200}
+            maxLength={BIO_MAX}
             placeholder="Paisajismo y mantención de jardines en Las Condes y Vitacura"
             value={ml.bio ?? ""}
             onChange={(e) => onChange({ ...ml, bio: e.target.value })}
           />
         )}
       </Field>
+      {offerDescription && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onChange({ ...ml, bio: clientDescription!.slice(0, BIO_MAX) })}
+          title={clientDescription!}
+        >
+          <Sparkles className="mr-1 h-3.5 w-3.5" aria-hidden="true" /> Usar la descripción de la
+          ficha
+        </Button>
+      )}
       <Field
         label="Dirección del multienlace"
         error={errors.slug}
-        hint={`/l/${slugify(ml.slug) || "…"}`}
+        hint={displayUrl(multilinkPublicUrlFor({ ...ml, slug: slugify(ml.slug) || "…" }))}
       >
         {(a) => (
           <Input
@@ -96,6 +135,11 @@ export function ProfileEditor({ ml, onChange, errors, clientId, avatarFallback }
           />
         )}
       </Field>
+      {dottedSlug && !published && (
+        <Button size="sm" variant="outline" onClick={() => onChange({ ...ml, slug: cleanSlug })}>
+          Usar /l/{cleanSlug} (sin puntos)
+        </Button>
+      )}
     </div>
   );
 }
@@ -134,7 +178,59 @@ function PresetSwatch({ preset }: { preset: MultilinkPreset }) {
   );
 }
 
-export function ThemeEditor({ ml, onChange }: Pick<Props, "ml" | "onChange">) {
+/** Gradiente de marca de Vibranding (azul → magenta), en hex para el multienlace. */
+const VIBRANDING_PRESET: MultilinkPreset = {
+  key: "vibranding",
+  label: "Vibranding",
+  theme_color: "#2f6fe4",
+  theme_mode: "light",
+  background: { type: "gradient", from: "#2f7bf2", to: "#d63fae", angle: 135 },
+  button_style: "solid",
+  button_shape: "pill",
+  font_family: "geometric",
+};
+
+const MAX_PRESETS = 6;
+
+/** Temas con los colores del cliente (onboarding) primero, luego Vibranding y los genéricos. */
+function themePresets(brandColors: string[]): MultilinkPreset[] {
+  const [main, second] = brandColors;
+  const client: MultilinkPreset[] = main
+    ? [
+        {
+          key: "cliente",
+          label: "Marca",
+          theme_color: main,
+          theme_mode: "light",
+          background: second
+            ? { type: "gradient", from: main, to: second, angle: 135 }
+            : { type: "flat" },
+          button_style: "solid",
+          button_shape: "pill",
+          font_family: "geometric",
+        },
+        {
+          key: "cliente-noche",
+          label: "Marca noche",
+          theme_color: second ?? main,
+          theme_mode: "dark",
+          background: { type: "gradient", from: "#0f172a", to: main, angle: 160 },
+          button_style: "glass",
+          button_shape: "pill",
+          font_family: "grotesque",
+        },
+      ]
+    : [];
+  const generic = MULTILINK_PRESETS.filter((p) => !(main && p.key === "marca"));
+  return [...client, VIBRANDING_PRESET, ...generic].slice(0, MAX_PRESETS);
+}
+
+export function ThemeEditor({
+  ml,
+  onChange,
+  brandColors = [],
+}: Pick<Props, "ml" | "onChange"> & { brandColors?: string[] }) {
+  const presets = themePresets(brandColors);
   const bg = parseBackground(ml.background);
   const setBg = (next: Background) => onChange({ ...ml, background: next });
   const applyPreset = (p: MultilinkPreset) =>
@@ -151,9 +247,9 @@ export function ThemeEditor({ ml, onChange }: Pick<Props, "ml" | "onChange">) {
   return (
     <div className="space-y-4">
       <div>
-        <p className="mb-2 text-xs font-medium">Temas listos (con contraste AA)</p>
+        <p className="mb-2 text-xs font-medium">Temas listos</p>
         <ul className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-          {MULTILINK_PRESETS.map((p) => {
+          {presets.map((p) => {
             const active = presetMatches(ml, p);
             return (
               <li key={p.key}>
@@ -181,13 +277,27 @@ export function ThemeEditor({ ml, onChange }: Pick<Props, "ml" | "onChange">) {
       <div className="flex flex-wrap items-end gap-3">
         <Field label="Color de marca">
           {(a) => (
-            <Input
-              {...a}
-              type="color"
-              value={ml.theme_color}
-              onChange={(e) => onChange({ ...ml, theme_color: e.target.value })}
-              className="h-9 w-16 p-1"
-            />
+            <div className="flex items-center gap-2">
+              {brandColors.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => onChange({ ...ml, theme_color: c })}
+                  aria-label={`Usar el color del cliente ${c}`}
+                  aria-pressed={ml.theme_color.toLowerCase() === c}
+                  title={c}
+                  className={`h-8 w-8 rounded-full border-2 ${ml.theme_color.toLowerCase() === c ? "border-foreground" : "border-border-subtle"}`}
+                  style={{ background: c }}
+                />
+              ))}
+              <Input
+                {...a}
+                type="color"
+                value={ml.theme_color}
+                onChange={(e) => onChange({ ...ml, theme_color: e.target.value })}
+                className="h-9 w-16 p-1"
+              />
+            </div>
           )}
         </Field>
         <Field label="Modo">

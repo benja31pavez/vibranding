@@ -7,6 +7,7 @@ import { jsonLd } from "@/lib/site/landingSeo";
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 import { itemLinkKind } from "@/lib/site/multilinkDraft";
 import { LinkIcon } from "@/components/multilink/LinkIcon";
+import { meaningfulBio } from "@/components/multilink/bio";
 import {
   itemHref,
   itemIsLive,
@@ -72,6 +73,7 @@ export function PublicMultilinkView({
     ...rawMl,
     theme_color: HEX_COLOR.test(rawMl.theme_color ?? "") ? rawMl.theme_color : "#111827",
     avatar_url: safeImageSrc(rawMl.avatar_url),
+    bio: meaningfulBio(rawMl.bio),
   };
   useEffect(() => {
     if (preview) return;
@@ -140,7 +142,7 @@ export function PublicMultilinkView({
 
   return (
     <div
-      className={`relative overflow-hidden ${preview ? "min-h-full" : "min-h-screen"}`}
+      className="relative min-h-screen overflow-hidden"
       style={{
         background: preview ? panelBackground : theme.isDark ? "#070709" : "#eef0f4",
         color: theme.color,
