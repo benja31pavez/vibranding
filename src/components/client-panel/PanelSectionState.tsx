@@ -19,14 +19,17 @@ interface PanelQueryLike<T> {
 export function PanelSectionState<T>({
   query,
   title,
+  skeleton,
   children,
 }: {
   query: PanelQueryLike<T>;
   /** "No pudimos cargar tu plan". */
   title: string;
+  /** Carga con la forma de la sección (por defecto, filas). */
+  skeleton?: ReactNode;
   children: (data: T) => ReactNode;
 }) {
-  if (query.isPending) return <ListSkeleton rows={4} label="Cargando" />;
+  if (query.isPending) return skeleton ?? <ListSkeleton rows={4} label="Cargando" />;
   if (query.isError || query.data?.status === "no_client") {
     return (
       <ErrorState

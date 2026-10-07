@@ -34,6 +34,8 @@ export interface ClientFile {
   /** Archivos que se ven en grande (varias láminas en un carrusel). */
   urls: string[];
   status: FileStatus | null;
+  /** Peso en bytes (solo archivos subidos en la plataforma). */
+  size?: number;
   /** Archivo subido en "Archivos" (client_files): el único que se puede eliminar aquí. */
   stored?: { id: string; canDelete: boolean };
 }
@@ -274,6 +276,7 @@ export function fromStoredFile(f: StoredClientFile): ClientFile | null {
     thumbUrl: media === "image" ? f.url : null,
     urls: [f.url],
     status: null,
+    size: f.size,
     stored: { id: f.id, canDelete: f.canDelete },
   };
 }
@@ -364,6 +367,18 @@ export function monthsOf(files: readonly ClientFile[]): string[] {
 export function monthOptionLabel(month: string): string {
   const name = monthName(month);
   return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${month.slice(0, 4)}`;
+}
+
+/** Cuántos archivos hay de cada tipo (para los chips de filtro). */
+export function kindCounts(files: readonly ClientFile[]): Partial<Record<FileKind, number>> {
+  const counts: Partial<Record<FileKind, number>> = {};
+  for (const f of files) counts[f.kind] = (counts[f.kind] ?? 0) + 1;
+  return counts;
+}
+
+/** Archivos que se pueden abrir en el visor (los reportes se abren en otra pestaña). */
+export function isViewable(file: ClientFile): boolean {
+  return file.media !== "page" && file.media !== "file" && file.urls.length > 0;
 }
 
 /** Tipos presentes en la galería, en el orden de los filtros. */

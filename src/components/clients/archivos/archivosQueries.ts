@@ -4,6 +4,7 @@
  * subidos en la plataforma (client_files, con autoría) y los que el cliente
  * subió en el onboarding (bucket privado, URL firmada a pedido).
  */
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -159,6 +160,13 @@ export function useUploadedFiles(clientId: string, canEdit: boolean) {
   };
 }
 
+/** Avance de una subida en curso: archivo actual (1…total) y su nombre. */
+export interface UploadProgress {
+  current: number;
+  total: number;
+  name: string;
+}
+
 export interface UploadOutcome {
   uploaded: number;
   errors: { name: string; message: string }[];
@@ -190,11 +198,14 @@ export function useUploadClientFiles(clientId: string) {
     await confirm({ data: { clientId, path: slot.path, name: file.name } });
   };
 
-  return useMutation({
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
+
+  const mutation = useMutation({
     mutationFn: async (files: readonly File[]): Promise<UploadOutcome> => {
       let uploaded = 0;
       const errors: UploadOutcome["errors"] = [];
-      for (const file of files) {
+      for (const [i, file] of files.entries()) {
+        setProgress({ current: i + 1, total: files.length, name: file.name });
         try {
           await uploadOne(file);
           uploaded += 1;
@@ -204,8 +215,12 @@ export function useUploadClientFiles(clientId: string) {
       }
       return { uploaded, errors };
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: storedKey(userKey, clientId) }),
+    onSettled: () => {
+      setProgress(null);
+      return qc.invalidateQueries({ queryKey: storedKey(userKey, clientId) });
+    },
   });
+  return { ...mutation, progress };
 }
 
 /** Elimina un archivo propio (el servidor y la BD verifican quién lo subió). */
