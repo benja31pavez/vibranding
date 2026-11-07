@@ -89,6 +89,13 @@ export type Database = {
             foreignKeyName: "ad_insights_daily_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_insights_daily_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -132,6 +139,13 @@ export type Database = {
           source_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "attributions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "attributions_client_id_fkey"
             columns: ["client_id"]
@@ -213,6 +227,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "booking_settings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "booking_settings_client_id_fkey"
             columns: ["client_id"]
@@ -299,6 +320,13 @@ export type Database = {
             foreignKeyName: "bookings_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -373,6 +401,13 @@ export type Database = {
             foreignKeyName: "bot_knowledge_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_knowledge_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -426,6 +461,13 @@ export type Database = {
             foreignKeyName: "campaign_alerts_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_alerts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -467,6 +509,13 @@ export type Database = {
             foreignKeyName: "client_addons_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_addons_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -475,6 +524,13 @@ export type Database = {
             columns: ["setup_payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_addons_setup_payment_id_fkey"
+            columns: ["setup_payment_id"]
+            isOneToOne: false
+            referencedRelation: "portal_payments"
             referencedColumns: ["id"]
           },
         ]
@@ -517,6 +573,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_billing_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_billing_client_id_fkey"
             columns: ["client_id"]
@@ -586,9 +649,62 @@ export type Database = {
         }
         Relationships: []
       }
+      client_files: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          mime: string
+          name: string
+          path: string
+          size: number
+          uploaded_by: string | null
+          uploader_kind: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          mime: string
+          name: string
+          path: string
+          size: number
+          uploaded_by?: string | null
+          uploader_kind: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          mime?: string
+          name?: string
+          path?: string
+          size?: number
+          uploaded_by?: string | null
+          uploader_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_files_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_files_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_intake: {
         Row: {
           accesos_pendientes: Json
+          ads_billing_self_reported: Json | null
+          ads_platforms: string[] | null
           archivos: string[]
           client_id: string
           colores: string[]
@@ -611,6 +727,8 @@ export type Database = {
         }
         Insert: {
           accesos_pendientes?: Json
+          ads_billing_self_reported?: Json | null
+          ads_platforms?: string[] | null
           archivos?: string[]
           client_id: string
           colores?: string[]
@@ -633,6 +751,8 @@ export type Database = {
         }
         Update: {
           accesos_pendientes?: Json
+          ads_billing_self_reported?: Json | null
+          ads_platforms?: string[] | null
           archivos?: string[]
           client_id?: string
           colores?: string[]
@@ -654,6 +774,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_intake_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_intake_client_id_fkey"
             columns: ["client_id"]
@@ -705,6 +832,13 @@ export type Database = {
             foreignKeyName: "client_leads_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_leads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -719,42 +853,58 @@ export type Database = {
       }
       client_tasks: {
         Row: {
+          approved_at: string | null
           assignee: string | null
           client_id: string
           created_at: string
+          delivered_at: string | null
           description: string | null
           due_date: string | null
           id: string
           sort_order: number
+          stage_key: string | null
           status: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at: string
         }
         Insert: {
+          approved_at?: string | null
           assignee?: string | null
           client_id: string
           created_at?: string
+          delivered_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
           sort_order?: number
+          stage_key?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at?: string
         }
         Update: {
+          approved_at?: string | null
           assignee?: string | null
           client_id?: string
           created_at?: string
+          delivered_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
           sort_order?: number
+          stage_key?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_tasks_client_id_fkey"
             columns: ["client_id"]
@@ -793,6 +943,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_users_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_users_client_id_fkey"
             columns: ["client_id"]
@@ -896,6 +1053,13 @@ export type Database = {
           value_clp?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "conversation_outcomes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversation_outcomes_client_id_fkey"
             columns: ["client_id"]
@@ -1028,6 +1192,13 @@ export type Database = {
             foreignKeyName: "deliverable_review_links_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliverable_review_links_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -1057,6 +1228,7 @@ export type Database = {
           instagram_post_id: string | null
           mime_type: string | null
           sort_order: number
+          stage_key: string | null
           status: Database["public"]["Enums"]["task_status"]
           title: string
           type: Database["public"]["Enums"]["deliverable_type"]
@@ -1078,6 +1250,7 @@ export type Database = {
           instagram_post_id?: string | null
           mime_type?: string | null
           sort_order?: number
+          stage_key?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title: string
           type?: Database["public"]["Enums"]["deliverable_type"]
@@ -1099,12 +1272,20 @@ export type Database = {
           instagram_post_id?: string | null
           mime_type?: string | null
           sort_order?: number
+          stage_key?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
           type?: Database["public"]["Enums"]["deliverable_type"]
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "deliverables_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "deliverables_client_id_fkey"
             columns: ["client_id"]
@@ -1120,6 +1301,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      diagnostico_rate: {
+        Row: {
+          bucket_hour: string
+          count: number
+        }
+        Insert: {
+          bucket_hour: string
+          count?: number
+        }
+        Update: {
+          bucket_hour?: string
+          count?: number
+        }
+        Relationships: []
       }
       google_ads_accounts: {
         Row: {
@@ -1165,6 +1361,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "google_ads_accounts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "google_ads_accounts_client_id_fkey"
             columns: ["client_id"]
@@ -1288,6 +1491,13 @@ export type Database = {
             foreignKeyName: "google_ads_billing_status_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: true
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_ads_billing_status_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -1337,6 +1547,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "google_ads_insights_daily_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "google_ads_insights_daily_client_id_fkey"
             columns: ["client_id"]
@@ -1399,6 +1616,13 @@ export type Database = {
           trigger_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ig_automation_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ig_automation_events_client_id_fkey"
             columns: ["client_id"]
@@ -1482,6 +1706,13 @@ export type Database = {
             foreignKeyName: "ig_comment_triggers_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ig_comment_triggers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -1544,6 +1775,73 @@ export type Database = {
             foreignKeyName: "ig_dm_triggers_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ig_dm_triggers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ig_engagement_snapshots: {
+        Row: {
+          avg_comments: number | null
+          avg_likes: number | null
+          client_id: string
+          engagement_rate: number | null
+          error: string | null
+          followers: number | null
+          id: string
+          measured_at: string
+          posts_per_week: number | null
+          posts_sampled: number | null
+          source: string
+          username: string | null
+        }
+        Insert: {
+          avg_comments?: number | null
+          avg_likes?: number | null
+          client_id: string
+          engagement_rate?: number | null
+          error?: string | null
+          followers?: number | null
+          id?: string
+          measured_at?: string
+          posts_per_week?: number | null
+          posts_sampled?: number | null
+          source: string
+          username?: string | null
+        }
+        Update: {
+          avg_comments?: number | null
+          avg_likes?: number | null
+          client_id?: string
+          engagement_rate?: number | null
+          error?: string | null
+          followers?: number | null
+          id?: string
+          measured_at?: string
+          posts_per_week?: number | null
+          posts_sampled?: number | null
+          source?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ig_engagement_snapshots_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ig_engagement_snapshots_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -1600,6 +1898,13 @@ export type Database = {
             foreignKeyName: "ig_sync_runs_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ig_sync_runs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -1650,6 +1955,13 @@ export type Database = {
             foreignKeyName: "instagram_audience_snapshots_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_audience_snapshots_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -1696,6 +2008,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "instagram_grid_versions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "instagram_grid_versions_client_id_fkey"
             columns: ["client_id"]
@@ -1781,6 +2100,9 @@ export type Database = {
       }
       instagram_posts: {
         Row: {
+          approval_note: string | null
+          approval_note_at: string | null
+          approval_note_read: boolean
           approval_status: string | null
           approved_at: string | null
           approved_by: string | null
@@ -1808,6 +2130,9 @@ export type Database = {
           version_id: string | null
         }
         Insert: {
+          approval_note?: string | null
+          approval_note_at?: string | null
+          approval_note_read?: boolean
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
@@ -1835,6 +2160,9 @@ export type Database = {
           version_id?: string | null
         }
         Update: {
+          approval_note?: string | null
+          approval_note_at?: string | null
+          approval_note_read?: boolean
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
@@ -1862,6 +2190,13 @@ export type Database = {
           version_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "instagram_posts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "instagram_posts_client_id_fkey"
             columns: ["client_id"]
@@ -2013,6 +2348,13 @@ export type Database = {
             foreignKeyName: "instagram_profiles_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: true
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -2108,52 +2450,83 @@ export type Database = {
         Row: {
           client_id: string | null
           created_at: string
+          cta: string | null
+          device_type: string | null
           event_name: string
+          has_fbclid: boolean | null
+          has_gclid: boolean | null
           id: string
           item_id: string | null
+          landing_path: string | null
           lang: string | null
           path: string | null
           referrer: string | null
+          referrer_domain: string | null
+          session_id: string | null
           source_id: string | null
           source_type: string
           user_agent: string | null
           utm_campaign: string | null
           utm_medium: string | null
           utm_source: string | null
+          visitor_hash: string | null
         }
         Insert: {
           client_id?: string | null
           created_at?: string
+          cta?: string | null
+          device_type?: string | null
           event_name: string
+          has_fbclid?: boolean | null
+          has_gclid?: boolean | null
           id?: string
           item_id?: string | null
+          landing_path?: string | null
           lang?: string | null
           path?: string | null
           referrer?: string | null
+          referrer_domain?: string | null
+          session_id?: string | null
           source_id?: string | null
           source_type: string
           user_agent?: string | null
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
+          visitor_hash?: string | null
         }
         Update: {
           client_id?: string | null
           created_at?: string
+          cta?: string | null
+          device_type?: string | null
           event_name?: string
+          has_fbclid?: boolean | null
+          has_gclid?: boolean | null
           id?: string
           item_id?: string | null
+          landing_path?: string | null
           lang?: string | null
           path?: string | null
           referrer?: string | null
+          referrer_domain?: string | null
+          session_id?: string | null
           source_id?: string | null
           source_type?: string
           user_agent?: string | null
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
+          visitor_hash?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "landing_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "landing_events_client_id_fkey"
             columns: ["client_id"]
@@ -2310,6 +2683,13 @@ export type Database = {
             foreignKeyName: "lead_meta_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_meta_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -2392,6 +2772,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "meta_accounts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meta_accounts_client_id_fkey"
             columns: ["client_id"]
@@ -2718,6 +3105,69 @@ export type Database = {
           },
         ]
       }
+      meta_billing_status: {
+        Row: {
+          account_status: number | null
+          ad_account_id: string
+          amount_spent: number | null
+          checked_at: string
+          client_id: string
+          created_at: string
+          currency: string | null
+          detail: Json
+          disable_reason: number | null
+          has_funding: boolean | null
+          id: string
+          spend_cap: number | null
+          updated_at: string
+        }
+        Insert: {
+          account_status?: number | null
+          ad_account_id: string
+          amount_spent?: number | null
+          checked_at?: string
+          client_id: string
+          created_at?: string
+          currency?: string | null
+          detail?: Json
+          disable_reason?: number | null
+          has_funding?: boolean | null
+          id?: string
+          spend_cap?: number | null
+          updated_at?: string
+        }
+        Update: {
+          account_status?: number | null
+          ad_account_id?: string
+          amount_spent?: number | null
+          checked_at?: string
+          client_id?: string
+          created_at?: string
+          currency?: string | null
+          detail?: Json
+          disable_reason?: number | null
+          has_funding?: boolean | null
+          id?: string
+          spend_cap?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_billing_status_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_billing_status_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monthly_reports: {
         Row: {
           client_id: string
@@ -2753,6 +3203,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "monthly_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "monthly_reports_client_id_fkey"
             columns: ["client_id"]
@@ -2952,6 +3409,7 @@ export type Database = {
           sort_order: number
           status: Database["public"]["Enums"]["task_status"]
           target_value: number | null
+          template_key: string | null
           title: string
           unit: string | null
           updated_at: string
@@ -2970,6 +3428,7 @@ export type Database = {
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
           target_value?: number | null
+          template_key?: string | null
           title: string
           unit?: string | null
           updated_at?: string
@@ -2988,11 +3447,19 @@ export type Database = {
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
           target_value?: number | null
+          template_key?: string | null
           title?: string
           unit?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "objectives_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "objectives_client_id_fkey"
             columns: ["client_id"]
@@ -3028,6 +3495,13 @@ export type Database = {
           used?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "onboarding_upload_reservations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "onboarding_upload_reservations_client_id_fkey"
             columns: ["client_id"]
@@ -3227,9 +3701,8 @@ export type Database = {
       }
       payments: {
         Row: {
-          amount: number
           addon_key: string | null
-          items: Json | null
+          amount: number
           client_id: string
           created_at: string
           currency: string
@@ -3241,6 +3714,7 @@ export type Database = {
           flow_token: string | null
           followup_sent_at: string | null
           id: string
+          items: Json | null
           kind: string | null
           paid_at: string | null
           payment_url: string | null
@@ -3257,9 +3731,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          amount?: number
           addon_key?: string | null
-          items?: Json | null
+          amount?: number
           client_id: string
           created_at?: string
           currency?: string
@@ -3271,6 +3744,7 @@ export type Database = {
           flow_token?: string | null
           followup_sent_at?: string | null
           id?: string
+          items?: Json | null
           kind?: string | null
           paid_at?: string | null
           payment_url?: string | null
@@ -3287,9 +3761,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          amount?: number
           addon_key?: string | null
-          items?: Json | null
+          amount?: number
           client_id?: string
           created_at?: string
           currency?: string
@@ -3301,6 +3774,7 @@ export type Database = {
           flow_token?: string | null
           followup_sent_at?: string | null
           id?: string
+          items?: Json | null
           kind?: string | null
           paid_at?: string | null
           payment_url?: string | null
@@ -3321,6 +3795,13 @@ export type Database = {
             foreignKeyName: "payments_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -3336,6 +3817,39 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_template_seeds: {
+        Row: {
+          client_id: string
+          created_at: string
+          item_key: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          item_key: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          item_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_template_seeds_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_template_seeds_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -3480,6 +3994,13 @@ export type Database = {
             foreignKeyName: "post_insights_daily_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_insights_daily_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -3488,9 +4009,13 @@ export type Database = {
       pricing_settings: {
         Row: {
           agency_address: string | null
+          agency_business_activity: string | null
+          agency_business_hours: string | null
           agency_email: string | null
+          agency_instagram: string | null
           agency_legal_name: string | null
           agency_tax_id: string | null
+          agency_website: string | null
           carousel_price: number
           clause_esim: string | null
           clause_extra: string | null
@@ -3511,9 +4036,13 @@ export type Database = {
         }
         Insert: {
           agency_address?: string | null
+          agency_business_activity?: string | null
+          agency_business_hours?: string | null
           agency_email?: string | null
+          agency_instagram?: string | null
           agency_legal_name?: string | null
           agency_tax_id?: string | null
+          agency_website?: string | null
           carousel_price?: number
           clause_esim?: string | null
           clause_extra?: string | null
@@ -3534,9 +4063,13 @@ export type Database = {
         }
         Update: {
           agency_address?: string | null
+          agency_business_activity?: string | null
+          agency_business_hours?: string | null
           agency_email?: string | null
+          agency_instagram?: string | null
           agency_legal_name?: string | null
           agency_tax_id?: string | null
+          agency_website?: string | null
           carousel_price?: number
           clause_esim?: string | null
           clause_extra?: string | null
@@ -3632,6 +4165,13 @@ export type Database = {
             foreignKeyName: "proposals_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -3651,6 +4191,60 @@ export type Database = {
           },
         ]
       }
+      prospect_consents: {
+        Row: {
+          channel: string
+          consent_text: string
+          consent_version: string
+          consented_at: string
+          email_hash: string
+          id: string
+          ip_hash: string | null
+          org_id: string
+          prospect_id: string | null
+          purpose: string
+        }
+        Insert: {
+          channel?: string
+          consent_text: string
+          consent_version: string
+          consented_at?: string
+          email_hash: string
+          id?: string
+          ip_hash?: string | null
+          org_id: string
+          prospect_id?: string | null
+          purpose?: string
+        }
+        Update: {
+          channel?: string
+          consent_text?: string
+          consent_version?: string
+          consented_at?: string
+          email_hash?: string
+          id?: string
+          ip_hash?: string | null
+          org_id?: string
+          prospect_id?: string | null
+          purpose?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_consents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospect_consents_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prospects: {
         Row: {
           baja_revocada_at: string | null
@@ -3663,6 +4257,8 @@ export type Database = {
           fuente: string
           id: string
           instagram: string | null
+          marketing_opt_in: boolean
+          marketing_opt_in_at: string | null
           no_contactar_hasta: string | null
           nombre: string
           notas: string | null
@@ -3685,6 +4281,8 @@ export type Database = {
           fuente: string
           id?: string
           instagram?: string | null
+          marketing_opt_in?: boolean
+          marketing_opt_in_at?: string | null
           no_contactar_hasta?: string | null
           nombre: string
           notas?: string | null
@@ -3707,6 +4305,8 @@ export type Database = {
           fuente?: string
           id?: string
           instagram?: string | null
+          marketing_opt_in?: boolean
+          marketing_opt_in_at?: string | null
           no_contactar_hasta?: string | null
           nombre?: string
           notas?: string | null
@@ -3719,6 +4319,13 @@ export type Database = {
           web?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "prospects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prospects_client_id_fkey"
             columns: ["client_id"]
@@ -3825,6 +4432,13 @@ export type Database = {
             foreignKeyName: "subscriptions_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -3835,7 +4449,10 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           full_name: string | null
+          job_title: string | null
+          language: string
           phone: string | null
+          timezone: string
           updated_at: string
           user_id: string
         }
@@ -3843,7 +4460,10 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           full_name?: string | null
+          job_title?: string | null
+          language?: string
           phone?: string | null
+          timezone?: string
           updated_at?: string
           user_id: string
         }
@@ -3851,7 +4471,10 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           full_name?: string | null
+          job_title?: string | null
+          language?: string
           phone?: string | null
+          timezone?: string
           updated_at?: string
           user_id?: string
         }
@@ -3996,6 +4619,7 @@ export type Database = {
           contact_username: string | null
           contact_wa_id: string
           created_at: string
+          dispatch_attempts: number
           human_followup_at: string | null
           human_followup_reason: string | null
           id: string
@@ -4024,6 +4648,7 @@ export type Database = {
           contact_username?: string | null
           contact_wa_id: string
           created_at?: string
+          dispatch_attempts?: number
           human_followup_at?: string | null
           human_followup_reason?: string | null
           id?: string
@@ -4052,6 +4677,7 @@ export type Database = {
           contact_username?: string | null
           contact_wa_id?: string
           created_at?: string
+          dispatch_attempts?: number
           human_followup_at?: string | null
           human_followup_reason?: string | null
           id?: string
@@ -4141,6 +4767,13 @@ export type Database = {
           variables?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "whatsapp_flow_runs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "whatsapp_flow_runs_client_id_fkey"
             columns: ["client_id"]
@@ -4243,6 +4876,24 @@ export type Database = {
           name: string | null
           started_at: string | null
           status: string | null
+        }
+        Insert: {
+          business_description?: string | null
+          id?: string | null
+          instagram_handle?: string | null
+          logo_url?: string | null
+          name?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          business_description?: string | null
+          id?: string | null
+          instagram_handle?: string | null
+          logo_url?: string | null
+          name?: string | null
+          started_at?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -4372,6 +5023,9 @@ export type Database = {
         }
         Returns: Json
       }
+      addon_monthly_net_price: { Args: { _addon_key: string }; Returns: number }
+      addon_setup_net_price: { Args: { _addon_key: string }; Returns: number }
+      analytics_is_bot_ua: { Args: { _ua: string }; Returns: boolean }
       append_prospect_note: {
         Args: { _note: string; _prospect_id: string }
         Returns: boolean
@@ -4389,14 +5043,95 @@ export type Database = {
           reason: string
         }[]
       }
+      client_addons_mrr: { Args: { _client_id: string }; Returns: number }
       client_analytics: {
         Args: { _client_id: string; _from: string; _to: string }
         Returns: Json
       }
       client_analytics_guard: { Args: { _client_id: string }; Returns: boolean }
-      client_google_ads_summary: { Args: { _days?: number; _preview?: string }; Returns: Json }
-      client_meta_ads_summary: { Args: { _days?: number; _preview?: string }; Returns: Json }
-      client_site_summary: { Args: { _days?: number; _preview?: string }; Returns: Json }
+      client_contracts_list: { Args: { _preview?: string }; Returns: Json }
+      client_files_catalog: { Args: { _preview?: string }; Returns: Json }
+      client_files_usage: { Args: { _client_id: string }; Returns: Json }
+      client_google_ads_summary: {
+        Args: { _days?: number; _preview?: string }
+        Returns: Json
+      }
+      client_instagram_overview: { Args: { _preview?: string }; Returns: Json }
+      client_leads_page: {
+        Args: { _limit?: number; _offset?: number; _preview?: string }
+        Returns: {
+          contact: string
+          created_at: string
+          lead_id: string
+          message: string
+          name: string
+          source: string
+          status: string
+          total_count: number
+        }[]
+      }
+      client_membership: {
+        Args: { _client_id: string; _today?: string }
+        Returns: {
+          client_since: string
+          covered_until: string
+          onboarding: boolean
+          period_end: string
+          period_start: string
+          plan_key: string
+          state: string
+        }[]
+      }
+      client_meta_ads_summary: {
+        Args: { _days?: number; _preview?: string }
+        Returns: Json
+      }
+      client_panel_target: { Args: { _preview?: string }; Returns: string }
+      client_plan_board: { Args: { _preview?: string }; Returns: Json }
+      client_site_summary: {
+        Args: { _days?: number; _preview?: string }
+        Returns: Json
+      }
+      client_whatsapp_conversations: {
+        Args: { _limit?: number; _offset?: number; _preview?: string }
+        Returns: {
+          contact_name: string
+          contact_phone: string
+          id: string
+          is_lead: boolean
+          last_message_at: string
+          last_message_preview: string
+          status: string
+          total_count: number
+          unread_count: number
+        }[]
+      }
+      client_whatsapp_messages: {
+        Args: {
+          _before?: string
+          _before_id?: string
+          _conversation_id: string
+          _limit?: number
+          _preview?: string
+        }
+        Returns: {
+          body: string
+          direction: string
+          from_bot: boolean
+          id: string
+          sent_at: string
+          status: string
+          type: string
+        }[]
+      }
+      client_whatsapp_status: {
+        Args: { _preview?: string }
+        Returns: {
+          business_name: string
+          connected: boolean
+          display_phone_number: string
+        }[]
+      }
       content_performance: {
         Args: { _client_id: string; _from: string; _to: string }
         Returns: Json
@@ -4421,10 +5156,15 @@ export type Database = {
           booking_scheduled_at: string
         }[]
       }
+      delete_client_file: {
+        Args: { _client_id: string; _id: string }
+        Returns: Json
+      }
       delete_onboarding_reservations: {
         Args: { _paths: string[] }
         Returns: number
       }
+      diagnostico_rate_hit: { Args: { _limit: number }; Returns: boolean }
       ensure_org: { Args: never; Returns: string }
       gen_public_token: { Args: never; Returns: string }
       get_booking_settings_by_slug: {
@@ -4442,7 +5182,10 @@ export type Database = {
       get_monthly_report_by_token: { Args: { _token: string }; Returns: Json }
       get_onboarding_by_token: { Args: { _token: string }; Returns: Json }
       get_proposal_by_token: { Args: { _token: string }; Returns: Json }
-      google_ads_agency_get_secret: { Args: { _org_id: string }; Returns: string }
+      google_ads_agency_get_secret: {
+        Args: { _org_id: string }
+        Returns: string
+      }
       google_ads_agency_set_secret: {
         Args: { _org_id: string; _secret: string }
         Returns: string
@@ -4508,23 +5251,35 @@ export type Database = {
       }
       log_landing_event: {
         Args: {
+          _cta?: string
+          _device_type?: string
           _event_name: string
+          _has_fbclid?: boolean
+          _has_gclid?: boolean
           _item_id?: string
+          _landing_path?: string
           _lang?: string
           _path?: string
           _referrer?: string
+          _referrer_domain?: string
+          _session_id?: string
           _source_id?: string
           _source_type?: string
           _user_agent?: string
           _utm_campaign?: string
           _utm_medium?: string
           _utm_source?: string
+          _visitor_hash?: string
         }
         Returns: undefined
       }
       manages_client: { Args: { _client_id: string }; Returns: boolean }
       mark_overdue_payments: { Args: never; Returns: number }
       mark_proposal_viewed: { Args: { _token: string }; Returns: boolean }
+      membership_period_end: {
+        Args: { _anchor: number; _start: string }
+        Returns: string
+      }
       meta_get_secret: { Args: { _account_id: string }; Returns: string }
       meta_set_secret: {
         Args: { _account_id: string; _secret: string }
@@ -4543,11 +5298,18 @@ export type Database = {
       }
       org_meta_token_status: { Args: never; Returns: Json }
       owns_client: { Args: { _client_id: string }; Returns: boolean }
+      plan_is_monthly: { Args: { _plan_key: string }; Returns: boolean }
+      plan_net_price: { Args: { _plan_key: string }; Returns: number }
       prospect_name_key: {
         Args: { _comuna: string; _nombre: string }
         Returns: string
       }
       reconcile_job_runs: { Args: never; Returns: undefined }
+      refresh_client_memberships: { Args: never; Returns: number }
+      register_client_file: {
+        Args: { _client_id: string; _name: string; _path: string }
+        Returns: Json
+      }
       reserve_onboarding_upload: {
         Args: { _path_suffix: string; _token: string }
         Returns: Json
@@ -4574,6 +5336,10 @@ export type Database = {
         Returns: undefined
       }
       safe_jsonb: { Args: { _text: string }; Returns: Json }
+      save_multilink: {
+        Args: { _items: Json; _page_id: string; _profile: Json }
+        Returns: Json
+      }
       set_job_schedule: {
         Args: { _job_name: string; _schedule: string }
         Returns: boolean
@@ -4602,6 +5368,7 @@ export type Database = {
         Args: { _payload: Json; _token: string }
         Returns: Json
       }
+      sync_client_membership: { Args: { _client_id: string }; Returns: string }
       user_client_id: { Args: never; Returns: string }
       user_orgs: {
         Args: never
