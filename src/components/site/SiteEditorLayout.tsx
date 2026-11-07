@@ -39,7 +39,7 @@ export function SiteViewTab({ value, children }: { value: string; children: Reac
   return (
     <TabsTrigger
       value={value}
-      className="gap-1.5 px-2.5 text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:underline data-[state=active]:decoration-2 data-[state=active]:underline-offset-[6px]"
+      className="gap-1.5 px-2.5 text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
     >
       {children}
     </TabsTrigger>
