@@ -67,21 +67,6 @@ body:has(.app-brand) .btn-brand:not(:focus-visible) {
   );
 }
 
-/* Barra vertical de marca a la izquierda (ítem activo del panel lateral). */
-@utility brand-rail {
-  position: relative;
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 22%;
-    bottom: 22%;
-    width: 3px;
-    border-radius: 9999px;
-    background-image: linear-gradient(180deg, var(--brand-1), var(--brand-2));
-  }
-}
-
 /* Tarjetas: al pasar el mouse, borde tintado de marca y sombra suave (sin moverse). */
 @utility card-brand {
   @media (hover: hover) {

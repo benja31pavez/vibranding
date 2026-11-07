@@ -42,7 +42,7 @@ las sombras por defecto, para no alterar la home ni los componentes shadcn públ
 - **Acento**: `primary`; marca con `text-brand-1|2|3` (íconos) y `bg-gradient-brand` (barras de avance).
 - **Identidad** (`identity.css`, solo bajo `.app-brand`: AppShellFrame y PortalShell): halo de marca en el
   fondo, botón primario con degradado (`.btn-brand`, lo agrega `Button` si no trae `bg-…` propio),
-  `bg-brand-soft` (estados activos), `brand-rail` (barra del ítem activo), `card-brand` (hover de tarjetas).
+  `bg-brand-soft` (estados activos, sin barra lateral), `card-brand` (hover de tarjetas).
   El título de `PageHeader` lleva su última palabra en Fraunces itálica con el degradado.
 - **Estados**: `success`, `warning`, `danger`, `info` y `neutral`, cada uno con
   `-subtle` (fondo) y `-strong` (texto legible sobre el fondo subtle):
