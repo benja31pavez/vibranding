@@ -162,6 +162,23 @@ check("agencia → galería de Vibranding; cliente → su pestaña", () => {
   assert.equal(client[0].stored.canDelete, false);
 });
 
+check("galería: peso, conteo por tipo y qué abre el visor", () => {
+  const { agency } = model.splitStored([
+    stored("a1", "agency", "image/png", true),
+    stored("a2", "agency", "image/png", true),
+    stored("a3", "agency", "text/csv", true),
+  ]);
+  assert.equal(typeof agency[0].size, "number", "lo subido muestra su peso");
+  assert.deepEqual(model.kindCounts(agency), { upload: 2, document: 1 });
+  assert.equal(model.isViewable(agency[0]), true);
+  assert.equal(model.isViewable(agency[2]), false, "Office/CSV se descarga, no se previsualiza");
+  const report = model.fromReport(
+    { id: "r", period: "2026-09-01", token: "t", sent_at: "2026-10-01" },
+    "2026-10-07",
+  );
+  assert.equal(model.isViewable(report), false, "el reporte se abre en otra pestaña");
+});
+
 check("subidos por el cliente: plataforma + onboarding, más nuevo primero", () => {
   const { client } = model.splitStored([stored("c1", "client", "image/png", true)]);
   const onboarding = [model.fromOnboardingPath(`${A}/${F}-logo.png`, "2026-09-01T00:00:00Z")];

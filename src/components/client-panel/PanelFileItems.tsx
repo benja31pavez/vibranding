@@ -1,41 +1,21 @@
-import { useState, type ComponentType } from "react";
+import { Download, ExternalLink, Eye, Layers, Play } from "lucide-react";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  ExternalLink,
-  File,
-  FileText,
-  Globe,
-  ImageIcon,
-  Video,
-} from "lucide-react";
-import { StatusBadge, type StatusTone } from "@/components/app";
+  FileLightbox,
+  FilePreview,
+  FileTypeTile,
+  StatusBadge,
+  type StatusTone,
+} from "@/components/app";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   FILE_KIND_LABEL,
   FILE_STATUS_LABEL,
   fileDownloadHref,
   isSignedStorageUrl,
   type PanelFile,
-  type PanelFileMedia,
   type PanelFileStatus,
 } from "@/lib/client-panel/model";
-
-const MEDIA_ICON: Readonly<Record<PanelFileMedia, ComponentType<{ className?: string }>>> = {
-  image: ImageIcon,
-  video: Video,
-  pdf: FileText,
-  page: Globe,
-  file: File,
-};
+import { isPanelViewable } from "./panelFiles";
 
 const STATUS_TONE: Readonly<Record<PanelFileStatus, StatusTone>> = {
   pending: "warning",
@@ -69,54 +49,27 @@ function metaLine(file: PanelFile): string {
   return date ? `${FILE_KIND_LABEL[file.kind]} · ${date}` : FILE_KIND_LABEL[file.kind];
 }
 
-function FileStatus({ file }: { file: PanelFile }) {
+function FileStatus({ file, className }: { file: PanelFile; className?: string }) {
   if (!file.status) return null;
   return (
     <StatusBadge
       status={file.status}
       label={FILE_STATUS_LABEL[file.status]}
       tone={STATUS_TONE[file.status]}
-      className="px-1.5 py-px text-[11px] leading-4"
+      className={className}
     />
-  );
-}
-
-function FileThumb({ file }: { file: PanelFile }) {
-  if (file.thumbUrl) {
-    return (
-      <img
-        src={file.thumbUrl}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className="h-full w-full object-cover"
-      />
-    );
-  }
-  if (file.media === "video" && file.urls[0]) {
-    return (
-      <video
-        src={file.urls[0]}
-        muted
-        playsInline
-        preload="metadata"
-        aria-hidden
-        className="h-full w-full object-cover"
-      />
-    );
-  }
-  const Icon = MEDIA_ICON[file.media];
-  return (
-    <span className="grid h-full w-full place-items-center">
-      <Icon aria-hidden className="h-6 w-6 text-muted-foreground" />
-    </span>
   );
 }
 
 function DownloadLink({ file }: { file: PanelFile }) {
   if (file.media === "page" || !file.urls[0]) return null;
   return (
-    <Button asChild size="icon" variant="ghost" className="h-8 w-8 shrink-0">
+    <Button
+      asChild
+      size="icon"
+      variant="ghost"
+      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+    >
       <a
         href={fileDownloadHref(file.urls[0], file.name)}
         target="_blank"
@@ -131,194 +84,169 @@ function DownloadLink({ file }: { file: PanelFile }) {
   );
 }
 
-/** Tarjeta de la galería: miniatura (abre el visor), nombre, tipo y fecha. Solo lectura. */
+function CornerMark({ file }: { file: PanelFile }) {
+  if (file.urls.length > 1) {
+    return (
+      <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-xs font-medium text-white backdrop-blur">
+        <Layers aria-hidden className="h-3 w-3" />
+        {file.urls.length}
+        <span className="sr-only"> láminas</span>
+      </span>
+    );
+  }
+  if (file.media === "video") {
+    return (
+      <span className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-white backdrop-blur">
+        <Play aria-hidden className="ml-px h-3.5 w-3.5 fill-current" />
+        <span className="sr-only">Video</span>
+      </span>
+    );
+  }
+  return null;
+}
+
+/** Tarjeta de la galería: la pieza completa (sin recortes), estado, nombre, tipo y fecha. */
 export function PanelGalleryCard({ file, onView }: { file: PanelFile; onView: () => void }) {
   return (
-    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-app-md border border-border-subtle bg-surface shadow-app-xs">
+    <article className="card-brand group flex h-full min-w-0 flex-col overflow-hidden rounded-app-lg border border-border-subtle bg-surface shadow-app-xs">
       <button
         type="button"
         onClick={onView}
         aria-label={`Ver ${file.name}`}
         className="relative aspect-square w-full overflow-hidden bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
-        <FileThumb file={file} />
-        {file.status && (
-          <span className="absolute left-1.5 top-1.5">
-            <FileStatus file={file} />
+        <span className="block h-full w-full motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.03]">
+          <FilePreview
+            media={file.media}
+            name={file.name}
+            thumbUrl={file.thumbUrl}
+            videoUrl={file.urls[0]}
+          />
+        </span>
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 grid place-items-center bg-black/0 opacity-0 group-hover:bg-black/15 group-hover:opacity-100 group-focus-visible:opacity-100 motion-safe:transition-all"
+        >
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-white/90 text-neutral-900 shadow-app-md">
+            <Eye className="h-4 w-4" />
           </span>
-        )}
+        </span>
+        <FileStatus file={file} className="absolute left-2 top-2 shadow-app-xs" />
+        <CornerMark file={file} />
       </button>
-      <div className="flex items-center gap-1 px-2.5 py-2">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-medium" title={file.name}>
+      <div className="flex min-w-0 items-center gap-1 py-2 pl-3 pr-1.5">
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="truncate text-ui font-medium text-foreground" title={file.name}>
             {file.name}
           </p>
-          <p className="truncate text-[11px] text-muted-foreground">{metaLine(file)}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">{metaLine(file)}</p>
         </div>
         <DownloadLink file={file} />
       </div>
-    </div>
+    </article>
   );
 }
 
-/** Fila de documento: ícono, nombre, tipo y fecha; abrir y descargar. Solo lectura. */
-export function PanelDocumentRow({ file, onView }: { file: PanelFile; onView: () => void }) {
-  const Icon = MEDIA_ICON[file.media];
-  const isPage = file.media === "page";
-  return (
-    <div className="flex min-w-0 items-center gap-3 px-1 py-2">
-      <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-app-md bg-surface-2">
-        {file.thumbUrl ? <FileThumb file={file} /> : <Icon aria-hidden className="h-4 w-4" />}
+function RowThumb({ file }: { file: PanelFile }) {
+  if (file.thumbUrl) {
+    return (
+      <span className="h-10 w-10 shrink-0 overflow-hidden rounded-app-md border border-border-subtle bg-surface-2">
+        <img
+          src={file.thumbUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover"
+        />
       </span>
-      <div className="min-w-0 flex-1">
-        {isPage ? (
-          <a
-            href={file.urls[0]}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block truncate text-sm font-medium hover:underline"
-          >
-            {file.name}
-          </a>
-        ) : (
-          <button
-            type="button"
-            onClick={onView}
-            className="block max-w-full truncate text-left text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {file.name}
-          </button>
-        )}
-        <p className="truncate text-xs text-muted-foreground">{metaLine(file)}</p>
-      </div>
-      <FileStatus file={file} />
-      {isPage ? (
-        <Button asChild size="icon" variant="ghost" className="h-8 w-8 shrink-0">
-          <a
-            href={file.urls[0]}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Abrir ${file.name}`}
-            title="Abrir"
-          >
-            <ExternalLink aria-hidden className="h-4 w-4" />
-          </a>
-        </Button>
-      ) : (
-        <DownloadLink file={file} />
-      )}
-    </div>
-  );
+    );
+  }
+  return <FileTypeTile media={file.media} name={file.name} url={file.urls[0]} />;
 }
 
-function Stage({ file, url }: { file: PanelFile; url: string }) {
-  const box = "max-h-[65vh] w-full rounded-app-md bg-surface-2 object-contain";
-  if (file.media === "video") return <video src={url} controls playsInline className={box} />;
-  if (file.media === "image") return <img src={url} alt={file.name} className={box} />;
-  // Solo se incrustan PDF de NUESTRO Storage con URL firmada; lo externo se abre aparte.
-  if (file.media === "pdf" && isSignedStorageUrl(url)) {
-    return <iframe src={url} title={file.name} className="h-[65vh] w-full rounded-app-md border" />;
-  }
-  const Icon = MEDIA_ICON[file.media];
-  return (
-    <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-app-md bg-surface-2">
-      <Icon aria-hidden className="h-10 w-10 text-muted-foreground" />
-      <Button asChild size="sm" variant="outline">
-        <a href={url} target="_blank" rel="noopener noreferrer">
-          <ExternalLink aria-hidden className="mr-1.5 h-4 w-4" /> Abrir en una pestaña nueva
+function RowAction({ file, onView }: { file: PanelFile; onView: () => void }) {
+  if (file.media === "page") {
+    return (
+      <Button asChild size="sm" variant="outline" className="h-8 shrink-0 px-2.5 text-xs">
+        <a href={file.urls[0]} target="_blank" rel="noopener noreferrer">
+          Abrir <ExternalLink aria-hidden className="ml-1 h-3.5 w-3.5" />
+          <span className="sr-only"> {file.name} (se abre en otra pestaña)</span>
         </a>
       </Button>
+    );
+  }
+  if (!isPanelViewable(file)) return null;
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      className="h-8 shrink-0 px-2.5 text-xs"
+      onClick={onView}
+    >
+      <Eye aria-hidden className="mr-1 h-3.5 w-3.5" />
+      Ver<span className="sr-only"> {file.name}</span>
+    </Button>
+  );
+}
+
+/** Fila de documento: ícono por tipo, nombre, tipo y fecha; ver o abrir y descargar. */
+export function PanelDocumentRow({
+  file,
+  onView,
+  compact = false,
+}: {
+  file: PanelFile;
+  onView: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-3 rounded-app-md px-2 py-2 hover:bg-surface-2/70 motion-safe:transition-colors">
+      <RowThumb file={file} />
+      <div className="min-w-0 flex-1 leading-tight">
+        <p className="truncate text-sm font-medium text-foreground" title={file.name}>
+          {file.name}
+        </p>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">{metaLine(file)}</p>
+      </div>
+      {!compact && <FileStatus file={file} className="hidden sm:inline-flex" />}
+      {/* Columnas fijas: las acciones quedan alineadas entre filas. */}
+      <span className="flex shrink-0 items-center justify-end sm:w-[76px]">
+        <RowAction file={file} onView={onView} />
+      </span>
+      <span className="flex w-8 shrink-0 justify-center empty:hidden sm:empty:block">
+        <DownloadLink file={file} />
+      </span>
     </div>
   );
 }
 
-/** Visor: imagen, video o PDF en grande (láminas de carrusel con flechas), abrir y descargar. */
+/** Visor del panel: solo incrusta PDF de NUESTRO Storage con URL firmada; lo externo se abre aparte. */
 export function PanelFileViewer({
-  file,
+  files,
+  index,
+  onIndexChange,
   onClose,
 }: {
-  file: PanelFile | null;
+  files: readonly PanelFile[];
+  index: number | null;
+  onIndexChange: (index: number) => void;
   onClose: () => void;
 }) {
-  const [index, setIndex] = useState(0);
-  const slides = file?.urls.length ?? 0;
-  const current = file ? (file.urls[index] ?? file.urls[0] ?? "") : "";
-  const name = file && slides > 1 ? `${file.name} (${index + 1})` : (file?.name ?? "");
-  const step = (delta: number) => setIndex((i) => (i + delta + slides) % slides);
-
   return (
-    <Dialog
-      open={file !== null}
-      onOpenChange={(open) => {
-        if (open) return;
-        setIndex(0);
-        onClose();
-      }}
-    >
-      <DialogContent className="max-w-4xl gap-3">
-        {file && (
-          <>
-            <DialogHeader className="space-y-1 pr-8 text-left">
-              <DialogTitle className="truncate">{file.name}</DialogTitle>
-              <DialogDescription className="flex flex-wrap items-center gap-2">
-                <span>{metaLine(file)}</span>
-                <FileStatus file={file} />
-              </DialogDescription>
-            </DialogHeader>
-            <div className="relative">
-              {current && <Stage file={file} url={current} />}
-              {slides > 1 && (
-                <>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="secondary"
-                    className="absolute left-2 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full shadow-app-xs"
-                    onClick={() => step(-1)}
-                    aria-label="Lámina anterior"
-                  >
-                    <ChevronLeft aria-hidden className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="secondary"
-                    className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full shadow-app-xs"
-                    onClick={() => step(1)}
-                    aria-label="Lámina siguiente"
-                  >
-                    <ChevronRight aria-hidden className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs tabular-nums text-muted-foreground" aria-live="polite">
-                {slides > 1 ? `Lámina ${index + 1} de ${slides}` : ""}
-              </p>
-              {current && (
-                <div className="flex items-center gap-2">
-                  <Button asChild size="sm" variant="ghost">
-                    <a href={current} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink aria-hidden className="mr-1.5 h-4 w-4" /> Abrir
-                    </a>
-                  </Button>
-                  <Button asChild size="sm">
-                    <a
-                      href={fileDownloadHref(current, name)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download
-                    >
-                      <Download aria-hidden className="mr-1.5 h-4 w-4" /> Descargar
-                    </a>
-                  </Button>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+    <FileLightbox
+      items={files}
+      index={index}
+      onIndexChange={onIndexChange}
+      onClose={onClose}
+      renderMeta={(f) => (
+        <>
+          <span className="text-muted-foreground">{metaLine(f)}</span>
+          <FileStatus file={f} />
+        </>
+      )}
+      downloadHref={fileDownloadHref}
+      canEmbedPdf={isSignedStorageUrl}
+    />
   );
 }
