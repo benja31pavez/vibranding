@@ -18,7 +18,7 @@ const itemClass = (isActive: boolean) =>
     "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     isActive
-      ? "brand-rail bg-sidebar-accent bg-brand-soft text-sidebar-accent-foreground [&>svg]:text-brand-1"
+      ? "bg-sidebar-accent bg-brand-soft text-sidebar-accent-foreground [&>svg]:text-brand-1"
       : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
   );
 
