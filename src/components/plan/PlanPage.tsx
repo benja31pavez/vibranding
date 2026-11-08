@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ListChecks, Plus } from "lucide-react";
@@ -34,6 +34,8 @@ export interface PlanPageProps {
   clientId: string;
   stage: StageKey | null;
   onStageChange: (stage: StageKey | null) => void;
+  /** Barra de subsecciones de "Proyectos" (la pone ProyectosPage). */
+  tabs?: ReactNode;
 }
 
 /**
@@ -43,7 +45,7 @@ export interface PlanPageProps {
  * lleva su propio botón de crear; un objetivo se edita con un clic y la fecha de
  * una etapa desde el "⋯" de su tarjeta.
  */
-export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
+export function PlanPage({ clientId, stage, onStageChange, tabs }: PlanPageProps) {
   const userKey = useUserKey();
   const today = chileToday();
   const overview = useFichaOverview(clientId);
@@ -80,13 +82,16 @@ export function PlanPage({ clientId, stage, onStageChange }: PlanPageProps) {
   return (
     <FitPage
       header={
-        <PageHeader
-          size="compact"
-          title="Plan"
-          description={`${plan.label} · ${
-            plan.planKey ? "etapas según el plan contratado" : "se muestran todas las etapas"
-          }`}
-        />
+        <div className="flex flex-col gap-3">
+          <PageHeader
+            size="compact"
+            title="Proyectos"
+            description={`${plan.label} · ${
+              plan.planKey ? "etapas según el plan contratado" : "se muestran todas las etapas"
+            }`}
+          />
+          {tabs}
+        </div>
       }
       contentClassName="flex flex-col gap-3"
     >

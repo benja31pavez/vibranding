@@ -38,7 +38,7 @@ export function UserMenu({ user, profile, onSignOut }: UserMenuProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-full"
+          className="hdr-ctl h-9 w-9 rounded-full"
           aria-label={`Cuenta y configuración (${name})`}
         >
           {profile?.avatar_url ? (

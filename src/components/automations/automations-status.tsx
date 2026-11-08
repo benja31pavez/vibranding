@@ -115,6 +115,40 @@ export function AutomationsStatusBadge() {
   );
 }
 
+/**
+ * Versión compacta para el pie del menú lateral: punto de color + texto corto.
+ * Mientras carga no dice "Comprobando…" (no aporta): se omite hasta tener respuesta.
+ */
+export function AutomationsStatusFooter() {
+  const admin = useIsPlatformAdmin();
+  const isAdmin = admin.data === true;
+  const query = useAutomationsStatus(isAdmin);
+  if (!isAdmin) return null;
+  const data = query.data;
+  if (!data && !query.isError) return null;
+  const tone: StatusTone = query.isError
+    ? "danger"
+    : data?.available
+      ? OVERALL_TONE[data.overall]
+      : "neutral";
+  const text = query.isError
+    ? "Automatizaciones: sin comprobar"
+    : !data?.available
+      ? "Automatizaciones: sin información"
+      : data.attention.length > 0
+        ? `Automatizaciones: revisar ${data.attention.length}`
+        : "Automatizaciones al día";
+  return (
+    <Link
+      to="/admin/automatizaciones"
+      className="sb-muted flex items-center gap-2 rounded-lg px-3 py-2 text-xs hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8fb2ff]"
+    >
+      <span aria-hidden className={cn("h-2 w-2 shrink-0 rounded-full", DOT_TONE[tone])} />
+      <span className="truncate">{text}</span>
+    </Link>
+  );
+}
+
 function GroupRow({ group }: { group: GroupReport }) {
   return (
     <li className="space-y-2 py-4 first:pt-0 last:pb-0">

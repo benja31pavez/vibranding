@@ -32,7 +32,7 @@ export function AppShellFrame({ header, sidebar, overlays, children }: AppShellF
       <div className="flex min-h-0 flex-1">
         <aside
           aria-label="Panel del cliente"
-          className="hidden w-60 shrink-0 flex-col border-r bg-sidebar md:flex"
+          className="shell-sidebar-indigo hidden w-60 shrink-0 flex-col md:flex"
         >
           {sidebar}
         </aside>

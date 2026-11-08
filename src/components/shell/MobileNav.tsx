@@ -27,7 +27,7 @@ export function MobileNav({ path, open, onOpenChange }: MobileNavProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 md:hidden"
+          className="hdr-ctl h-9 w-9 md:hidden"
           aria-label="Abrir menú principal"
         >
           <Menu className="h-5 w-5" />

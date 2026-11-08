@@ -1,5 +1,4 @@
 import { FitPage, PageHeader } from "@/components/app";
-import { AutomationsStatusBadge } from "@/components/automations/automations-status";
 import { FollowupsToday } from "./followups-today";
 import { KpiStrip } from "./kpi-strip";
 import { UpcomingTabs } from "./upcoming-tabs";
@@ -32,14 +31,7 @@ const COL = "flex min-w-0 flex-col md:min-h-0";
 export function DashboardHoy() {
   return (
     <FitPage
-      header={
-        <PageHeader
-          size="compact"
-          title="Hoy"
-          description={todayLabel()}
-          actions={<AutomationsStatusBadge />}
-        />
-      }
+      header={<PageHeader size="compact" title="Hoy" description={todayLabel()} />}
       contentClassName={GRID}
     >
       <div className={`${COL} md:col-start-1 md:row-start-2 lg:row-start-1`}>

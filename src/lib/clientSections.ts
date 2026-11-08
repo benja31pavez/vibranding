@@ -41,7 +41,7 @@ export const HIDDEN_SECTIONS: ReadonlySet<SectionKey> = new Set<SectionKey>([
 
 /** Todas las secciones definidas, incluidas las ocultas. */
 export const ALL_CLIENT_SECTIONS: SectionDef[] = [
-  { key: "plan", label: "Plan", lockedReason: () => null },
+  { key: "plan", label: "Proyectos", lockedReason: () => null },
   { key: "calendario", label: "Calendario", lockedReason: () => null },
   { key: "archivos", label: "Archivos", lockedReason: () => null },
   {

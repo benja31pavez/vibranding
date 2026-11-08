@@ -32,10 +32,10 @@ type GroupKey = "operacion" | "conexiones" | "negocio";
 
 /** Grupos del menú y el orden de sus secciones. */
 const GROUPS: readonly { key: GroupKey; label: string; sections: readonly string[] }[] = [
-  { key: "operacion", label: "Operación", sections: ["plan", "calendario", "archivos", "sitio"] },
+  { key: "operacion", label: "Principal", sections: ["plan", "calendario", "archivos", "sitio"] },
   {
     key: "conexiones",
-    label: "Conexiones",
+    label: "Marketing",
     sections: ["instagram", "bandeja", "meta-ads", "google-ads"],
   },
   { key: "negocio", label: "Negocio", sections: ["leads", "facturacion", "legal", "analytics"] },
@@ -77,13 +77,12 @@ const ICONS: Partial<Record<string, IconComponent>> = {
   analytics: BarChart3,
 };
 
+/* Los colores los pone .shell-sidebar-indigo (identity.css) según sb-item / sb-active / sb-locked. */
 const itemClass = (isActive: boolean) =>
   cn(
-    "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-    isActive
-      ? "bg-sidebar-accent bg-brand-soft text-sidebar-accent-foreground [&>svg]:text-brand-1"
-      : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+    "sb-item flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+    "focus-visible:outline-none",
+    isActive && "sb-active",
   );
 
 interface SectionLinkProps {
@@ -107,11 +106,16 @@ function SectionLink({ section, clientId, path, lockedReason, badge }: SectionLi
             to="/clients/$clientId/setup"
             params={{ clientId }}
             search={{ conexion: UNLOCKED_BY[section.key] }}
-            className={cn(itemClass(false), "text-muted-foreground/60")}
+            className={cn(itemClass(false), "sb-locked")}
           >
             <Icon className="h-4 w-4 shrink-0" /> {section.label}
             <span className="sr-only">(bloqueada: {lockedReason})</span>
-            <Lock className="ml-auto h-3 w-3 shrink-0" aria-hidden="true" />
+            <span
+              aria-hidden="true"
+              className="ml-auto flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"
+            >
+              Conectar <Lock className="h-3 w-3 shrink-0" />
+            </span>
           </Link>
         </TooltipTrigger>
         <TooltipContent side="right">{lockedReason}</TooltipContent>
@@ -181,7 +185,7 @@ export function ClientSidebarNav({
         className={itemClass(onSummary)}
       >
         <LayoutDashboard className="h-4 w-4 shrink-0" />
-        <span className="min-w-0 flex-1 leading-tight">Resumen</span>
+        <span className="min-w-0 flex-1 leading-tight">Panel</span>
       </Link>
       {GROUPS.map((group) => {
         const sections = sectionsOf(group);
@@ -191,7 +195,7 @@ export function ClientSidebarNav({
           <div key={group.key} role="group" aria-labelledby={headingId}>
             <div
               id={headingId}
-              className="px-3 pb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              className="sb-group px-3 pb-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em]"
             >
               {group.label}
             </div>

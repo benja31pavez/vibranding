@@ -134,7 +134,7 @@ export function HeaderSearchView({
             aria-haspopup="listbox"
             tabIndex={open && !isMobile ? -1 : undefined}
             className={cn(
-              "h-9 w-full gap-2 px-0 text-muted-foreground sm:px-3",
+              "hdr-ctl h-9 w-full gap-2 px-0 sm:px-3",
               showCommand && !isMobile && "opacity-0",
             )}
           >

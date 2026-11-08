@@ -22,3 +22,4 @@ export { CompactStats, type CompactStat, type CompactStatsProps } from "./Compac
 export { InfoHint, type InfoHintProps } from "./InfoHint";
 export { BarePanelProvider, useBarePanel, type BarePanelSlots } from "./bare-panel";
 export { brandTone, type BrandToneClass } from "./brandTone";
+export { SectionTabs, type SectionTab, type SectionTabsProps } from "./section-tabs";
