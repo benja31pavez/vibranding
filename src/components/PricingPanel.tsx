@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CLAUSE_DEFAULTS } from "@/lib/contracts/clauseDefaults";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
@@ -441,28 +442,28 @@ export function PricingPanel() {
         <ClauseField
           label="eSIM / teléfono dedicado"
           value={p.clause_esim}
-          fallback="El cliente asume el costo del número WhatsApp (eSIM o línea dedicada) destinado al chatbot. El servicio queda condicionado a que dicho número esté activo y al día."
+          fallback={CLAUSE_DEFAULTS.clause_esim}
           onChange={(v) => setP_({ clause_esim: v })}
           onSave={(v) => saveP({ clause_esim: v })}
         />
         <ClauseField
           label="Uso responsable Meta API / WhatsApp"
           value={p.clause_meta_api}
-          fallback="El cliente se compromete a no enviar spam, contenido engañoso ni cualquier material que vulnere las políticas de Meta. Cualquier sanción derivada de un uso indebido será de su exclusiva responsabilidad y podrá suponer la suspensión inmediata del servicio."
+          fallback={CLAUSE_DEFAULTS.clause_meta_api}
           onChange={(v) => setP_({ clause_meta_api: v })}
           onSave={(v) => saveP({ clause_meta_api: v })}
         />
         <ClauseField
           label="Mora / suspensión por impago"
           value={p.clause_late_payment}
-          fallback="Si el pago no se realiza dentro del plazo acordado, la agencia podrá suspender todos los servicios activos sin previo aviso y hasta la regularización del monto pendiente, sin que ello exima al cliente del pago."
+          fallback={CLAUSE_DEFAULTS.clause_late_payment}
           onChange={(v) => setP_({ clause_late_payment: v })}
           onSave={(v) => saveP({ clause_late_payment: v })}
         />
         <ClauseField
           label="Cláusulas adicionales (opcional)"
           value={p.clause_extra}
-          fallback=""
+          fallback={CLAUSE_DEFAULTS.clause_extra}
           onChange={(v) => setP_({ clause_extra: v })}
           onSave={(v) => saveP({ clause_extra: v })}
         />

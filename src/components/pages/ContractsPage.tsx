@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { buildContractClauses } from "@/lib/contracts/clauseDefaults";
 import { chileToday } from "@/lib/dates/chile";
 import { ErrorState, ListSkeleton } from "@/components/app";
 import { supabase } from "@/integrations/supabase/client";
@@ -160,16 +161,7 @@ export function ContractsPage({ clientId }: { clientId: string }) {
     setSelected(s);
   };
 
-  const buildClauses = (p: PricingSettings) => {
-    const list: { title: string; body: string }[] = [];
-    if (p.clause_esim) list.push({ title: "eSIM / teléfono dedicado", body: p.clause_esim });
-    if (p.clause_meta_api)
-      list.push({ title: "Uso responsable Meta API / WhatsApp", body: p.clause_meta_api });
-    if (p.clause_late_payment)
-      list.push({ title: "Mora / suspensión por impago", body: p.clause_late_payment });
-    if (p.clause_extra) list.push({ title: "Cláusulas adicionales", body: p.clause_extra });
-    return list;
-  };
+  const buildClauses = (p: PricingSettings) => buildContractClauses(p);
 
   const createContract = async () => {
     if (!pricing || !services || !client) return;

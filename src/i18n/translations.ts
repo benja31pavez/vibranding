@@ -2,9 +2,7 @@ import type { PublicPlanKey } from "@/lib/pricing/plans";
 export type Lang = "es" | "en";
 
 type LegalBlock =
-  | { type: "p"; html: string }
-  | { type: "h2"; text: string }
-  | { type: "ul"; items: string[] };
+  { type: "p"; html: string } | { type: "h2"; text: string } | { type: "ul"; items: string[] };
 
 export type LegalContent = {
   title: string;
@@ -318,7 +316,7 @@ const es: Dict = {
   },
   terms: {
     title: "Términos de Servicio",
-    updated: "6 de octubre de 2026",
+    updated: "9 de noviembre de 2026",
     intro:
       "Estos términos regulan los servicios que presta VIBRANDING SpA, RUT 78.505.344-3, con domicilio en Santiago de Chile (en adelante, “Vibranding”). Al contratar nuestros servicios o usar esta plataforma aceptas lo siguiente.",
     blocks: [
@@ -357,22 +355,31 @@ const es: Dict = {
         type: "p",
         html: "Tratamos toda la información compartida como confidencial y no la revelamos a terceros sin autorización.",
       },
-      { type: "h2", text: "8. Limitación de responsabilidad" },
+      { type: "h2", text: "8. Datos personales y uso de inteligencia artificial" },
+      {
+        type: "p",
+        html: "Cuando el servicio incluye chatbot de WhatsApp, bandeja de mensajes o campañas, Vibranding trata datos personales de los clientes finales del cliente (por ejemplo, nombre, número de WhatsApp y contenido de los mensajes) por cuenta y encargo del cliente, quien es el responsable de esos datos. Vibranding actúa como encargado del tratamiento: los usa solo para prestar el servicio, siguiendo las instrucciones del cliente, con medidas de seguridad y confidencialidad, y los elimina o devuelve al término del servicio salvo obligación legal de conservarlos.",
+      },
+      {
+        type: "p",
+        html: "Las respuestas automáticas del chatbot se generan con herramientas de inteligencia artificial de proveedores externos. El cliente autoriza ese tratamiento y se compromete a informar a sus propios clientes de que conversan con un asistente automatizado y de que pueden pedir atención humana en cualquier momento. Las decisiones con efectos legales o significativos (por ejemplo, aceptar o rechazar un cobro) no se toman de forma únicamente automatizada.",
+      },
+      { type: "h2", text: "9. Limitación de responsabilidad" },
       {
         type: "p",
         html: "La responsabilidad máxima de Vibranding ante cualquier reclamo se limita al monto pagado por el cliente en los 3 meses anteriores al hecho que motiva el reclamo, en la medida que la ley lo permita.",
       },
-      { type: "h2", text: "9. Modificaciones" },
+      { type: "h2", text: "10. Modificaciones" },
       {
         type: "p",
         html: "Podemos actualizar estos términos. Las modificaciones aplican desde su publicación en este sitio.",
       },
-      { type: "h2", text: "10. Ley aplicable y jurisdicción" },
+      { type: "h2", text: "11. Ley aplicable y jurisdicción" },
       {
         type: "p",
         html: "Estos términos se rigen por las leyes de la República de Chile. Cualquier controversia se someterá a los tribunales ordinarios de justicia de la ciudad de Santiago.",
       },
-      { type: "h2", text: "11. Contacto" },
+      { type: "h2", text: "12. Contacto" },
       {
         type: "p",
         html: 'VIBRANDING SpA · RUT 78.505.344-3 · Santiago, Chile. Para dudas o reclamos escríbenos por WhatsApp al +56 9 8929 4014 o a <a href="mailto:privacidad@vibranding.pro">privacidad@vibranding.pro</a>.',
@@ -381,100 +388,126 @@ const es: Dict = {
   },
   privacy: {
     title: "Política de Privacidad",
-    updated: "5 de octubre de 2026",
+    updated: "9 de noviembre de 2026",
     intro:
-      "En Vibranding respetamos tu privacidad. El responsable del tratamiento de tus datos es VIBRANDING SpA, RUT 78.505.344-3, con domicilio en Santiago de Chile. Esta política explica qué datos recopilamos y cómo los usamos, conforme a la legislación chilena de protección de datos personales.",
+      "El responsable del tratamiento de tus datos personales es VIBRANDING SpA, RUT 78.505.344-3, con domicilio en Santiago de Chile (“Vibranding”). Puedes escribirnos por cualquier tema de privacidad a privacidad@vibranding.pro. Tratamos tus datos conforme a la Ley 19.628 sobre protección de la vida privada, a la Ley 21.719 que la modifica y a esta política.",
     blocks: [
-      { type: "h2", text: "1. Datos que recopilamos" },
+      { type: "h2", text: "1. Qué datos tratamos y para qué" },
       {
         type: "ul",
         items: [
-          "Datos de contacto: nombre, email, teléfono, marca o empresa.",
-          "Datos de cuenta: credenciales de acceso a la plataforma.",
-          "Datos operativos: información de tus campañas y cuentas que tú nos compartes para ejecutar el servicio.",
-          "Datos de uso: páginas visitadas, eventos, tipo de dispositivo.",
+          "<strong>Diagnóstico y contacto</strong> (nombre del negocio, rubro, comuna, correo, WhatsApp y lo que nos cuentes): para responder tu solicitud y prepararte una propuesta. Base de licitud: medidas precontractuales a petición tuya.",
+          "<strong>Cuenta y portal</strong> (correo, nombre, credenciales, preferencias): para que entres a la plataforma y veas tu proyecto. Base: ejecución del contrato.",
+          "<strong>Facturación</strong> (razón social, RUT, giro, dirección, correo de documentos, pagos): para cobrar, emitir factura o boleta y cumplir obligaciones tributarias. Base: ejecución del contrato y obligación legal.",
+          "<strong>Operación del servicio</strong> (accesos a tus cuentas de Meta, Instagram, Google Ads y WhatsApp, métricas, contenidos y archivos que nos compartes): para ejecutar lo contratado. Base: ejecución del contrato.",
+          "<strong>Mensajes de tus clientes</strong> por WhatsApp o Instagram cuando contratas chatbot o bandeja: los tratamos por tu encargo y siguiendo tus instrucciones; tú eres el responsable de esos datos.",
+          "<strong>Uso del sitio</strong> (páginas vistas, origen de la visita, tipo de dispositivo e identificador diario anonimizado): para medir y mejorar el sitio. Base: interés legítimo; no te identificamos ni usamos cookies de terceros.",
+          "<strong>Novedades y consejos por correo</strong>: solo si marcas la casilla opcional, que viene desmarcada. Base: tu consentimiento, que puedes retirar cuando quieras respondiendo a cualquier correo.",
         ],
       },
-      { type: "h2", text: "2. Para qué los usamos" },
+      { type: "h2", text: "2. Decisiones automatizadas e inteligencia artificial" },
+      {
+        type: "p",
+        html: "Si contratas el chatbot de WhatsApp, las respuestas automáticas a tus clientes se generan con herramientas de inteligencia artificial de proveedores externos, a partir del contenido de la conversación y de la información de tu negocio que nos entregas. Siempre existe la opción de pedir atención humana y ninguna decisión con efectos legales o significativos se toma de forma únicamente automatizada. No elaboramos perfiles con fines distintos a prestar el servicio.",
+      },
+      { type: "h2", text: "3. Con quién compartimos tus datos" },
+      {
+        type: "p",
+        html: "No vendemos tus datos ni los cedemos a terceros para su propia publicidad. Los tratan por nuestro encargo los proveedores que necesitamos para operar, bajo contrato y con medidas de seguridad:",
+      },
       {
         type: "ul",
         items: [
-          "Prestar y mejorar nuestros servicios.",
-          "Comunicarnos contigo sobre tu proyecto.",
-          "Cumplir obligaciones legales y contables.",
+          "<strong>Supabase</strong> (base de datos y autenticación) y <strong>Cloudflare</strong> (alojamiento, red y protección), con servidores en Estados Unidos y la Unión Europea.",
+          "<strong>Meta</strong> (Facebook, Instagram y WhatsApp) y <strong>Google</strong> (Google Ads y Google Business), según las cuentas que conectes; cada una con sus propias políticas.",
+          "<strong>Resend</strong> (envío de correos transaccionales) y <strong>Flow</strong> (pagos en línea en Chile).",
+          "<strong>Lovable</strong> (infraestructura de la aplicación y pasarela de inteligencia artificial del chatbot).",
+          "Organismos públicos cuando la ley lo exige (por ejemplo, el Servicio de Impuestos Internos).",
         ],
       },
       {
         type: "p",
-        html: "Correos de novedades y consejos: solo te los enviamos si lo aceptas expresamente (por ejemplo, marcando la casilla opcional del formulario de diagnóstico, que viene desmarcada). Es voluntario y no afecta el diagnóstico ni ningún servicio. Puedes darte de baja cuando quieras, respondiendo a cualquiera de esos correos o escribiéndonos, y dejaremos de enviártelos. No compartimos tus datos con terceros para que te envíen su propia publicidad.",
+        html: "Algunos de estos proveedores están fuera de Chile. Cuando transferimos datos al extranjero lo hacemos a proveedores que ofrecen un nivel adecuado de protección o con garantías contractuales equivalentes.",
       },
-      { type: "h2", text: "3. Compartir con terceros" },
+      { type: "h2", text: "4. Cuánto tiempo los conservamos" },
       {
-        type: "p",
-        html: "No vendemos tus datos. Solo los compartimos con proveedores que nos ayudan a operar (hosting, analítica, plataformas de publicidad), bajo acuerdos de confidencialidad.",
-      },
-      { type: "h2", text: "4. Seguridad" },
-      {
-        type: "p",
-        html: "Aplicamos medidas técnicas y organizativas razonables para proteger tu información, incluyendo cifrado en tránsito y control de accesos.",
+        type: "ul",
+        items: [
+          "Solicitudes de diagnóstico sin contratación: hasta 12 meses desde el último contacto.",
+          "Datos de cuenta y operación del servicio: mientras dure la relación y hasta 12 meses después, salvo que pidas antes su eliminación.",
+          "Conversaciones de WhatsApp e Instagram tratadas por tu encargo: mientras dure el servicio; al terminar se eliminan o se te devuelven.",
+          "Documentos tributarios y de pago: 6 años, por obligación legal.",
+          "Registros de uso del sitio: 13 meses, de forma anonimizada.",
+        ],
       },
       { type: "h2", text: "5. Tus derechos" },
       {
         type: "p",
-        html: "Puedes acceder, corregir o eliminar tus datos en cualquier momento contactándonos por los canales indicados en el sitio.",
+        html: "Puedes pedir acceso a tus datos, rectificarlos, suprimirlos, oponerte a su tratamiento, limitarlo o bloquearlo, solicitar su portabilidad y retirar tu consentimiento cuando este sea la base del tratamiento. También puedes pedir que una persona revise cualquier decisión automatizada que te afecte. Para ejercerlos escríbenos a privacidad@vibranding.pro desde el correo asociado a tu cuenta; respondemos en un plazo máximo de 30 días. Si no quedas conforme, puedes reclamar ante la Agencia de Protección de Datos Personales.",
       },
-      { type: "h2", text: "6. Conservación" },
+      { type: "h2", text: "6. Seguridad" },
       {
         type: "p",
-        html: "Conservamos tus datos mientras dure la relación comercial y por el tiempo que la ley nos exija después.",
+        html: "Ciframos la información en tránsito, guardamos las credenciales de tus cuentas conectadas en un almacén cifrado separado de la base de datos, restringimos el acceso por rol, verificamos la firma de todos los webhooks que recibimos y no guardamos tu dirección IP en claro. Ningún sistema es infalible: si ocurre una brecha que te afecte, te avisaremos sin demora.",
       },
-      { type: "h2", text: "7. Cambios" },
+      { type: "h2", text: "7. Menores de edad" },
       {
         type: "p",
-        html: "Podemos actualizar esta política. Publicaremos los cambios en esta misma página.",
+        html: "Nuestros servicios están dirigidos a empresas y profesionales. No recopilamos a sabiendas datos de menores de 14 años.",
+      },
+      { type: "h2", text: "8. Cambios" },
+      {
+        type: "p",
+        html: "Si cambiamos esta política, publicaremos la nueva versión en esta página con su fecha. Si el cambio es relevante para ti, te avisaremos por correo.",
+      },
+      { type: "h2", text: "9. Contacto" },
+      {
+        type: "p",
+        html: 'VIBRANDING SpA · RUT 78.505.344-3 · Santiago, Chile · <a href="mailto:privacidad@vibranding.pro">privacidad@vibranding.pro</a> · WhatsApp +56 9 8929 4014.',
       },
     ],
   },
   cookies: {
     title: "Política de Cookies",
-    updated: "13 de mayo de 2026",
+    updated: "9 de noviembre de 2026",
     intro:
-      "Este sitio usa cookies y tecnologías similares para que la plataforma funcione y para entender cómo se utiliza.",
+      "Este sitio usa solo las cookies y el almacenamiento local necesarios para que funcione. No usamos cookies de publicidad ni de analítica de terceros; por eso no verás un aviso de cookies.",
     blocks: [
       { type: "h2", text: "¿Qué es una cookie?" },
       {
         type: "p",
-        html: "Es un pequeño archivo que un sitio guarda en tu navegador para recordar información, como tu sesión o tus preferencias.",
+        html: "Es un pequeño archivo que un sitio guarda en tu navegador para recordar información, como tu sesión. El almacenamiento local (localStorage y sessionStorage) cumple una función parecida, pero no se envía al servidor en cada petición.",
       },
-      { type: "h2", text: "Tipos de cookies que usamos" },
+      { type: "h2", text: "Lo que usamos" },
       {
         type: "ul",
         items: [
-          "<strong>Esenciales:</strong> necesarias para iniciar sesión y mantener tu sesión activa.",
-          "<strong>De preferencias:</strong> recuerdan opciones como cliente activo o vista preferida.",
-          "<strong>De analítica:</strong> nos ayudan a medir el uso y mejorar la experiencia.",
+          "<strong>Sesión</strong> (<code>sb-*-auth-token</code>): mantiene tu sesión iniciada en la plataforma. Esencial. Dura mientras la sesión esté activa.",
+          "<strong>Conexión de cuentas</strong> (<code>vb_oauth_*</code>): protege el proceso de conectar Meta o Google con un código de un solo uso. Esencial. Dura 10 minutos.",
+          "<strong>Preferencias</strong> (<code>vibranding:*</code> en localStorage): recuerda el cliente activo y la vista preferida dentro del panel.",
+          "<strong>Medición propia</strong> (<code>vb:analytics:*</code> en localStorage y sessionStorage): un identificador que cambia cada día y no permite reconocerte entre un día y otro; sirve para contar visitas y saber qué secciones se usan. No se comparte con terceros.",
         ],
       },
-      { type: "h2", text: "Cookies de terceros" },
+      { type: "h2", text: "Servicios de terceros" },
       {
         type: "p",
-        html: "Si interactúas con elementos integrados de Meta o Google, esas plataformas pueden colocar sus propias cookies. Te recomendamos revisar sus políticas.",
+        html: "Si conectas tus cuentas de Meta o Google desde el panel, esas plataformas pueden usar sus propias cookies durante el proceso de autorización, según sus políticas. En el sitio público no cargamos píxeles ni scripts de terceros.",
       },
       { type: "h2", text: "Cómo controlarlas" },
       {
         type: "p",
-        html: "Puedes borrar o bloquear las cookies desde la configuración de tu navegador. Ten en cuenta que algunas funciones pueden dejar de operar correctamente si las desactivas.",
+        html: "Puedes borrar o bloquear cookies y almacenamiento desde la configuración de tu navegador. Si bloqueas las esenciales, no podrás iniciar sesión en la plataforma.",
       },
       { type: "h2", text: "Contacto" },
       {
         type: "p",
-        html: "Para dudas sobre esta política, contáctanos por los canales indicados en el sitio.",
+        html: 'Dudas sobre esta política: <a href="mailto:privacidad@vibranding.pro">privacidad@vibranding.pro</a>.',
       },
     ],
   },
   dataDeletion: {
     title: "Instrucciones para la eliminación de datos",
-    updated: "17 de mayo de 2026",
+    updated: "9 de noviembre de 2026",
     intro:
       "En Vibranding respetamos tu derecho a controlar tus datos personales. Si deseas que eliminemos toda la información asociada a tu cuenta —incluidos los datos obtenidos a través de la integración con Meta (Facebook e Instagram)— puedes solicitarlo siguiendo las instrucciones de esta página.",
     blocks: [
@@ -489,13 +522,9 @@ const es: Dict = {
         ],
       },
       { type: "h2", text: "2. Cómo solicitar la eliminación" },
-      { type: "p", html: "Tienes dos opciones:" },
       {
-        type: "ul",
-        items: [
-          "<strong>Desde la app:</strong> inicia sesión, ve a los ajustes de tu cuenta y pulsa “Eliminar cuenta”. La eliminación se procesa de forma automática.",
-          '<strong>Por email:</strong> envía un correo a <a href="mailto:privacidad@vibranding.pro">privacidad@vibranding.pro</a> desde la dirección asociada a tu cuenta, indicando “Solicitud de eliminación de datos” en el asunto.',
-        ],
+        type: "p",
+        html: 'Envía un correo a <a href="mailto:privacidad@vibranding.pro">privacidad@vibranding.pro</a> desde la dirección asociada a tu cuenta, con el asunto “Solicitud de eliminación de datos”. Si prefieres, también puedes pedirlo por WhatsApp al +56 9 8929 4014 indicando el correo de tu cuenta. Te confirmaremos la recepción el mismo día hábil.',
       },
       { type: "h2", text: "3. Plazo" },
       {
@@ -547,283 +576,9 @@ const es: Dict = {
   },
 };
 
-const en: Dict = {
-  langSwitcher: { label: "Language", es: "ES", en: "EN" },
-  // TODO: translate the home copy; the public site is Spanish-only for now.
-  home: homeEs,
-  footer: {
-    tagline: "We grow your brand on Instagram and Meta Ads with strategy, design and data.",
-    columns: { product: "Product", resources: "Resources", legal: "Legal" },
-    links: {
-      services: "Services",
-      how: "How it works",
-      clients: "Clients",
-      contact: "Contact",
-      plans: "Plans & pricing",
-      clientAccess: "Client access",
-      faq: "FAQ",
-      terms: "Terms of Service",
-      privacy: "Privacy Policy",
-      cookies: "Cookies",
-    },
-    rights: "All rights reserved.",
-    location: "Santiago, Chile",
-  },
-  legal: { back: "Back to home", updatedLabel: "Last updated:" },
-  faq: {
-    title: "Frequently Asked Questions",
-    updated: "May 13, 2026",
-    items: [
-      {
-        q: "What does a Vibranding proposal include?",
-        a: "An audit of your current Instagram, a visual proposal for feed, bio and highlights, a content plan and, if applicable, a Meta Ads strategy with creative and suggested budget.",
-      },
-      {
-        q: "Do you work with small brands?",
-        a: "Yes. We adapt the scope to the size of your brand. Plans range from a single campaign to full monthly management.",
-      },
-      {
-        q: "How long until I see results?",
-        a: "Visual changes are immediate. Organic growth shows from the first month and paid campaigns deliver data in days.",
-      },
-      {
-        q: "Do I need to share access to my accounts?",
-        a: "For Meta Ads yes, through Business Manager. For organic Instagram we can work with proposals you approve and publish, or manage the account for you.",
-      },
-      {
-        q: "How does payment work?",
-        a: "We work with a deposit at the start and the balance on delivery or monthly depending on the plan. We accept bank transfer or payment link, in Chilean pesos (CLP), with an invoice from VIBRANDING SpA. Prices are net: 19% VAT (IVA) is added.",
-      },
-      {
-        q: "Do we sign a contract?",
-        a: "Yes, always. It includes scope, deadlines, payment terms and cancellation conditions.",
-      },
-      {
-        q: "Can I cancel at any time?",
-        a: "Monthly plans can be cancelled with 30 days notice. One-off projects are non-refundable once started.",
-      },
-      {
-        q: "What if I don't like a proposal?",
-        a: "We include up to two rounds of changes at no cost. Major changes are quoted separately.",
-      },
-    ],
-  },
-  terms: {
-    title: "Terms of Service",
-    updated: "May 13, 2026",
-    intro:
-      "Welcome to Vibranding. By hiring our services or using this platform you accept the following terms.",
-    blocks: [
-      { type: "h2", text: "1. Services" },
-      {
-        type: "p",
-        html: "Vibranding offers digital marketing services focused on Instagram and Meta Ads, including strategy, design, content management and paid campaigns. The specific scope is agreed in writing in each proposal.",
-      },
-      { type: "h2", text: "2. Payments" },
-      {
-        type: "p",
-        html: "Fees and timelines are defined in the signed proposal. Unless otherwise agreed, a deposit is charged at the start. Late payments over 15 days may cause service suspension.",
-      },
-      { type: "h2", text: "3. Intellectual property" },
-      {
-        type: "p",
-        html: "All delivered material becomes the client's property once fully paid. Vibranding keeps the right to showcase the work in its portfolio unless expressly requested otherwise.",
-      },
-      { type: "h2", text: "4. Results" },
-      {
-        type: "p",
-        html: "We apply industry best practices, but we don't guarantee specific results in reach, followers or sales, since they depend on variables outside our control.",
-      },
-      { type: "h2", text: "5. Cancellation" },
-      {
-        type: "p",
-        html: "Monthly plans can be cancelled with 30 days notice. One-off projects are non-refundable once started.",
-      },
-      { type: "h2", text: "6. Confidentiality" },
-      {
-        type: "p",
-        html: "We treat all shared information as confidential and don't disclose it to third parties without authorization.",
-      },
-      { type: "h2", text: "7. Limitation of liability" },
-      {
-        type: "p",
-        html: "Vibranding's maximum liability for any claim is limited to the amount paid by the client in the 3 months prior to the event giving rise to the claim.",
-      },
-      { type: "h2", text: "8. Modifications" },
-      {
-        type: "p",
-        html: "We may update these terms. Changes apply from the moment they are published on this site.",
-      },
-      { type: "h2", text: "9. Contact" },
-      {
-        type: "p",
-        html: "For questions or claims, contact us through the channels indicated on the site.",
-      },
-    ],
-  },
-  privacy: {
-    title: "Privacy Policy",
-    updated: "October 5, 2026",
-    intro:
-      "At Vibranding we respect your privacy. This policy explains what data we collect and how we use it.",
-    blocks: [
-      { type: "h2", text: "1. Data we collect" },
-      {
-        type: "ul",
-        items: [
-          "Contact data: name, email, phone, brand or company.",
-          "Account data: platform access credentials.",
-          "Operational data: information about your campaigns and accounts that you share with us to deliver the service.",
-          "Usage data: pages visited, events, device type.",
-        ],
-      },
-      { type: "h2", text: "2. What we use it for" },
-      {
-        type: "ul",
-        items: [
-          "Provide and improve our services.",
-          "Communicate with you about your project.",
-          "Comply with legal and accounting obligations.",
-        ],
-      },
-      {
-        type: "p",
-        html: "News and tips emails: we only send them if you expressly agree (for example, by ticking the optional, unticked box on the diagnosis form). It is voluntary and does not affect the diagnosis or any service. You can unsubscribe at any time by replying to any of those emails or writing to us, and we will stop sending them. We do not share your data with third parties for their own marketing.",
-      },
-      { type: "h2", text: "3. Sharing with third parties" },
-      {
-        type: "p",
-        html: "We don't sell your data. We only share it with providers that help us operate (hosting, analytics, advertising platforms), under confidentiality agreements.",
-      },
-      { type: "h2", text: "4. Security" },
-      {
-        type: "p",
-        html: "We apply reasonable technical and organizational measures to protect your information, including encryption in transit and access control.",
-      },
-      { type: "h2", text: "5. Your rights" },
-      {
-        type: "p",
-        html: "You can access, correct or delete your data at any time by contacting us through the channels indicated on the site.",
-      },
-      { type: "h2", text: "6. Retention" },
-      {
-        type: "p",
-        html: "We keep your data while the commercial relationship lasts and for as long as the law requires us to afterward.",
-      },
-      { type: "h2", text: "7. Changes" },
-      { type: "p", html: "We may update this policy. We will publish changes on this same page." },
-    ],
-  },
-  cookies: {
-    title: "Cookie Policy",
-    updated: "May 13, 2026",
-    intro:
-      "This site uses cookies and similar technologies so the platform works and to understand how it is used.",
-    blocks: [
-      { type: "h2", text: "What is a cookie?" },
-      {
-        type: "p",
-        html: "It's a small file a site stores in your browser to remember information, such as your session or your preferences.",
-      },
-      { type: "h2", text: "Types of cookies we use" },
-      {
-        type: "ul",
-        items: [
-          "<strong>Essential:</strong> required to sign in and keep your session active.",
-          "<strong>Preferences:</strong> remember options like the active client or preferred view.",
-          "<strong>Analytics:</strong> help us measure usage and improve the experience.",
-        ],
-      },
-      { type: "h2", text: "Third-party cookies" },
-      {
-        type: "p",
-        html: "If you interact with embedded Meta or Google elements, those platforms may set their own cookies. We recommend reviewing their policies.",
-      },
-      { type: "h2", text: "How to control them" },
-      {
-        type: "p",
-        html: "You can delete or block cookies from your browser settings. Note that some features may stop working properly if you disable them.",
-      },
-      { type: "h2", text: "Contact" },
-      {
-        type: "p",
-        html: "For questions about this policy, contact us through the channels indicated on the site.",
-      },
-    ],
-  },
-  dataDeletion: {
-    title: "Data deletion instructions",
-    updated: "May 17, 2026",
-    intro:
-      "At Vibranding we respect your right to control your personal data. If you'd like us to delete all the information associated with your account —including data obtained through the Meta (Facebook and Instagram) integration— you can request it by following the instructions on this page.",
-    blocks: [
-      { type: "h2", text: "1. What will be deleted" },
-      {
-        type: "ul",
-        items: [
-          "Your user account and access credentials.",
-          "Your profile data and the clients you've created.",
-          "Access tokens, identifiers and metrics obtained from Meta (Facebook/Instagram).",
-          "Any content, goals or configuration stored on the platform.",
-        ],
-      },
-      { type: "h2", text: "2. How to request deletion" },
-      { type: "p", html: "You have two options:" },
-      {
-        type: "ul",
-        items: [
-          "<strong>From the app:</strong> sign in, go to your account settings and tap “Delete account”. The deletion is processed automatically.",
-          '<strong>By email:</strong> send a message to <a href="mailto:privacidad@vibranding.pro">privacidad@vibranding.pro</a> from the address linked to your account, with “Data deletion request” as the subject.',
-        ],
-      },
-      { type: "h2", text: "3. Timeline" },
-      {
-        type: "p",
-        html: "We will process your request within a maximum of 30 days. Once completed, you will receive an email confirmation. Some data may be retained due to legal obligations (billing, fraud prevention) for the strictly necessary time.",
-      },
-      { type: "h2", text: "4. Revoke Meta permissions" },
-      {
-        type: "p",
-        html: 'You can also revoke Vibranding\'s access to your Facebook or Instagram account from your Meta account settings, in <a href="https://www.facebook.com/settings?tab=business_tools" target="_blank" rel="noopener noreferrer">Settings → Business Apps and Websites</a>. This stops the app\'s access to your data but does not delete information already stored at Vibranding: for that you must follow the steps above.',
-      },
-      { type: "h2", text: "5. Contact" },
-      {
-        type: "p",
-        html: 'For any questions about how we handle your data, write to <a href="mailto:privacidad@vibranding.pro">privacidad@vibranding.pro</a>.',
-      },
-    ],
-  },
-  notFound: { title: "404", subtitle: "This page does not exist.", cta: "Back to home" },
-  error: { title: "Something went wrong", cta: "Retry" },
-  seo: {
-    home: {
-      title: "Vibranding — Grow on Instagram and Meta Ads with clear proposals",
-      description:
-        "Vibranding helps you plan, present and execute Instagram strategies and Meta Ads campaigns for your clients, all in one place.",
-    },
-    faq: {
-      title: "FAQ — Vibranding",
-      description:
-        "Answers to the most common questions about our Instagram and Meta Ads services.",
-    },
-    terms: {
-      title: "Terms of Service — Vibranding",
-      description: "Terms and conditions that govern the use of Vibranding's services.",
-    },
-    privacy: {
-      title: "Privacy Policy — Vibranding",
-      description: "How Vibranding collects, uses and protects your personal data.",
-    },
-    cookies: {
-      title: "Cookie Policy — Vibranding",
-      description: "Which cookies Vibranding uses and how you can control them.",
-    },
-    dataDeletion: {
-      title: "Data deletion — Vibranding",
-      description: "How to request deletion of your personal data at Vibranding.",
-    },
-  },
-};
+// La versión en inglés se retiró: tenía términos y preguntas frecuentes antiguos que
+// contradecían la versión vigente en español. El sitio es solo en español (Chile).
+const en: Dict = es;
 
 export const translations: Record<Lang, Dict> = { es, en };
 export type { Dict };
