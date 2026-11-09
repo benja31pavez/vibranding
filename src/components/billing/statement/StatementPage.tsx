@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock,
   FileText,
+  Percent,
   Receipt,
   Wallet,
 } from "lucide-react";
@@ -24,6 +25,7 @@ import {
   StatusBadge,
   type SectionTab,
 } from "@/components/app";
+import { BankAccountPanel } from "@/components/billing/BankAccountPanel";
 import { PaymentsPanel } from "@/components/PaymentsPanel";
 import { ReportsPanel } from "@/components/clients/ficha/ReportsPanel";
 import { invalidateClientHealth } from "@/components/clients/health/healthKeys";
@@ -34,11 +36,15 @@ import { useFlowConfigured } from "@/lib/flow/config.functions";
 import { membershipMrr, type Membership } from "@/lib/billing/membership";
 import { useMembership } from "@/lib/billing/membership.functions";
 import { paymentDocumentLabel } from "@/lib/billing/paymentDocuments";
+import { groupByF29Period, type F29Payment } from "@/lib/finance/f29";
 import { findPlan } from "@/lib/pricing/plans";
 import { AddonsCard } from "./AddonsCard";
+import { BillingInfoCard } from "./BillingInfoCard";
+import { F29Panel } from "./F29Panel";
 import { fmtDay, fmtMonth } from "./format";
 import { PlanStatementCard } from "./PlanStatementCard";
 import { DocumentButton, type FlowState } from "./PaymentActions";
+import { SiiConnectCard } from "./SiiConnectCard";
 import {
   displayStatus,
   sortForStatement,
@@ -177,6 +183,7 @@ export function StatementView({
   const rows = useMemo(() => sortForStatement(payments.data ?? []), [payments.data]);
   const summary = useMemo(() => summarize(rows, today), [rows, today]);
   const documents = useMemo(() => rows.filter((p) => p.document_path), [rows]);
+  const ivaThisMonth = useMemo(() => currentMonthIva(rows, today), [rows, today]);
 
   const tabs: readonly SectionTab<FacturacionTab>[] = TABS.map((t) =>
     t.key === "cobros" ? { ...t, badge: summary.overdueCount } : t,
@@ -231,12 +238,19 @@ export function StatementView({
           />
           <ReportsPanel clientId={clientId} clientName={clientName} canEdit={access.canEdit} />
         </div>
+        <F29Panel
+          clientId={clientId}
+          payments={rows}
+          loading={payments.loading}
+          canEdit={access.canEdit}
+        />
+        <SiiConnectCard />
       </FitPage>
     );
   }
 
   return (
-    <FitPage header={header} contentClassName="flex flex-col gap-4">
+    <FitPage header={header} scroll contentClassName="flex flex-col gap-4">
       <CompactStats
         label="Resumen de pagos"
         className="shrink-0 grid-flow-row grid-cols-2 md:grid-flow-col md:auto-cols-fr"
@@ -266,6 +280,14 @@ export function StatementView({
             hint: `${summary.overdueCount} ${summary.overdueCount === 1 ? "cobro vencido" : "cobros vencidos"}`,
           },
           {
+            key: "iva",
+            label: `IVA de ${fmtMonth(today)}`,
+            icon: Percent,
+            loading: payments.loading,
+            value: <Money amount={ivaThisMonth} />,
+            hint: "Débito del mes; ver F29 en Documentos",
+          },
+          {
             key: "mrr",
             label: "MRR neto",
             icon: Wallet,
@@ -275,7 +297,7 @@ export function StatementView({
           },
         ]}
       />
-      <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] md:items-start xl:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
+      <div className="grid gap-4 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] md:items-start xl:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
         <PlanStatementCard
           clientId={clientId}
           membership={membership.data}
@@ -285,7 +307,7 @@ export function StatementView({
           flow={flow}
           canPay={access.canEdit}
         />
-        <div className="flex min-w-0 flex-col gap-4 md:h-full md:min-h-0">
+        <div className="flex min-w-0 flex-col gap-4">
           <AccountSummaryCard
             clientId={clientId}
             membership={membership}
@@ -304,8 +326,36 @@ export function StatementView({
           )}
         </div>
       </div>
+      {access.canEdit && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <BillingInfoCard clientId={clientId} canEdit={access.canEdit} />
+          <BankAccountPanel />
+        </div>
+      )}
     </FitPage>
   );
+}
+
+/**
+ * IVA débito fiscal del mes en curso (en CLP): suma del IVA de los pagos
+ * (`paid_at` o `due_date`) que caen en el mes de `today`. Derivado con
+ * `breakdownFromTotal`, igual que el F29.
+ */
+function currentMonthIva(payments: readonly StatementPayment[], today: string): number {
+  const period = today.slice(0, 7);
+  const bucket = groupByF29Period(
+    payments.map<F29Payment>((p) => ({
+      id: p.id,
+      date: p.paid_at ?? p.due_date,
+      description: p.description,
+      amount: p.amount,
+      currency: p.currency,
+      status: p.status,
+      document_type: p.document_type,
+      folio: null,
+    })),
+  ).find((b) => b.period === period);
+  return bucket?.debit ?? 0;
 }
 
 // ------------------------------------------------------------- Resumen extra

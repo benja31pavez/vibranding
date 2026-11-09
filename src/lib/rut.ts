@@ -3,6 +3,12 @@
  *
  * Acepta con o sin puntos y con o sin guion. El dígito verificador puede ser
  * un dígito del 0 al 9 o la letra K (mayúscula o minúscula).
+ *
+ * La misma lógica vive en `@/lib/proposals/rut` con nombres en inglés
+ * (`cleanRut`, `isValidRut`, `formatRut`). Este archivo es la referencia
+ * para los campos nuevos (cuenta bancaria, facturación, factura
+ * electrónica); los alias en inglés al final mantienen compatibilidad con
+ * el resto del código.
  */
 
 /** Deja solo dígitos y la K (en mayúscula). */
@@ -44,3 +50,9 @@ export function formatearRut(valor: string): string {
   const cuerpo = limpio.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   return `${cuerpo}-${limpio.slice(-1)}`;
 }
+
+/** Alias en inglés para consumidores que ya los usan (`BillingInfoCard`, `BankAccountPanel`). */
+export const isValidRut = validarRutChileno;
+export const formatRut = formatearRut;
+export const cleanRut = limpiarRut;
+export const rutCheckDigit = digitoVerificadorRut;
