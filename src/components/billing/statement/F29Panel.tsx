@@ -78,9 +78,9 @@ export function F29Panel({ clientId, payments, loading, canEdit }: F29PanelProps
       description="Apoyo para transcribir al F29 en sii.cl; la declaración oficial se hace allá."
       actions={
         <InfoHint label="Cómo se calcula el IVA">
-          Los montos de los cobros se guardan con IVA incluido. El neto y el IVA se derivan
-          dividiendo por 1,19. Si quieres el valor exacto, revísalo contra tu boleta o factura
-          emitida.
+          Los montos de los cobros se guardan como total con IVA (precio neto × 1,19). El neto y el
+          IVA se derivan dividiendo por 1,19; para el valor exacto, revísalo contra tu boleta o
+          factura emitida.
         </InfoHint>
       }
     >
