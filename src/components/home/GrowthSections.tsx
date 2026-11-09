@@ -163,9 +163,16 @@ export function WorkWithUsSection() {
       className="scroll-mt-20 mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24"
     >
       <SectionHeading id="como-title" title="Cómo es trabajar" accent="con nosotros" />
-      <ol data-reveal-stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <ol
+        data-reveal-stagger
+        aria-label="Pasos para trabajar con nosotros"
+        className="row-scroll lg:grid-cols-4 lg:gap-5"
+      >
         {PROCESS.map((step, i) => (
-          <li key={step.title} className="card-fx rounded-3xl border bg-card p-6">
+          <li
+            key={step.title}
+            className="card-fx w-[76vw] max-w-[320px] rounded-3xl border bg-card p-6"
+          >
             <span
               className="font-brand text-4xl leading-none text-gradient-brand-strong"
               aria-hidden
@@ -177,6 +184,9 @@ export function WorkWithUsSection() {
           </li>
         ))}
       </ol>
+      <p className="row-scroll-hint" aria-hidden="true">
+        Desliza para ver los 4 pasos →
+      </p>
       <ProcessPanel />
       <p data-reveal className="mx-auto mt-8 max-w-3xl text-center text-sm text-muted-foreground">
         En los planes mensuales te enviamos el calendario de contenido durante la primera semana y

@@ -8,8 +8,8 @@ export function SiteFooter() {
   const { t, lang } = useLang();
   return (
     <footer className="border-t bg-background">
-      <div className="max-w-7xl mx-auto px-4 md:px-10 py-14 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10">
-        <div className="col-span-2 md:col-span-3 lg:col-span-1">
+      <div className="max-w-7xl mx-auto px-4 md:px-10 py-14 flex flex-col gap-10 lg:grid lg:grid-cols-5">
+        <div className="lg:col-span-1">
           <Link to="/" className="flex items-center gap-2">
             <span className="font-brand text-3xl tracking-tight">Vibranding</span>
           </Link>
@@ -29,42 +29,43 @@ export function SiteFooter() {
           </p>
         </div>
 
-        <nav aria-label="Servicios" className="col-span-2 md:col-span-1">
-          {/* Spanish-only on purpose: these pages target searches in Chile. */}
-          <h4 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">
-            Servicios
-          </h4>
-          <ul className="space-y-3">
-            {SERVICE_LIST.map((s) => (
-              <FooterLink key={s.slug} to={s.path}>
-                {s.navLabel}
-              </FooterLink>
-            ))}
-          </ul>
-        </nav>
+        {/* Las cuatro columnas van siempre en una misma fila, también en teléfono. */}
+        <div className="grid grid-cols-4 gap-3 sm:gap-6 lg:col-span-4 lg:gap-10">
+          <nav aria-label="Servicios" className="min-w-0">
+            {/* Spanish-only on purpose: these pages target searches in Chile. */}
+            <h4 className="footer-col-title">Servicios</h4>
+            <ul className="space-y-2.5 sm:space-y-3">
+              {SERVICE_LIST.map((s) => (
+                <FooterLink key={s.slug} to={s.path}>
+                  {s.navLabel}
+                </FooterLink>
+              ))}
+            </ul>
+          </nav>
 
-        <FooterCol title={t.footer.columns.product}>
-          <FooterLink href="/#servicios">{t.footer.links.services}</FooterLink>
-          <FooterLink href="/#planes">{t.footer.links.plans}</FooterLink>
-          <FooterLink href="/#como">{t.footer.links.how}</FooterLink>
-          <FooterLink
-            href="/#contacto"
-            onClick={() => trackLandingEvent("contact_click", lang, "contacto:footer")}
-          >
-            {t.footer.links.contact}
-          </FooterLink>
-        </FooterCol>
+          <FooterCol title={t.footer.columns.product}>
+            <FooterLink href="/#servicios">{t.footer.links.services}</FooterLink>
+            <FooterLink href="/#planes">{t.footer.links.plans}</FooterLink>
+            <FooterLink href="/#como">{t.footer.links.how}</FooterLink>
+            <FooterLink
+              href="/#contacto"
+              onClick={() => trackLandingEvent("contact_click", lang, "contacto:footer")}
+            >
+              {t.footer.links.contact}
+            </FooterLink>
+          </FooterCol>
 
-        <FooterCol title={t.footer.columns.resources}>
-          <FooterLink to="/faq">{t.footer.links.faq}</FooterLink>
-          <FooterLink to="/login">{t.footer.links.clientAccess}</FooterLink>
-        </FooterCol>
+          <FooterCol title={t.footer.columns.resources}>
+            <FooterLink to="/faq">{t.footer.links.faq}</FooterLink>
+            <FooterLink to="/login">{t.footer.links.clientAccess}</FooterLink>
+          </FooterCol>
 
-        <FooterCol title={t.footer.columns.legal}>
-          <FooterLink to="/terms">{t.footer.links.terms}</FooterLink>
-          <FooterLink to="/privacy">{t.footer.links.privacy}</FooterLink>
-          <FooterLink to="/cookies">{t.footer.links.cookies}</FooterLink>
-        </FooterCol>
+          <FooterCol title={t.footer.columns.legal}>
+            <FooterLink to="/terms">{t.footer.links.terms}</FooterLink>
+            <FooterLink to="/privacy">{t.footer.links.privacy}</FooterLink>
+            <FooterLink to="/cookies">{t.footer.links.cookies}</FooterLink>
+          </FooterCol>
+        </div>
       </div>
       <div className="border-t">
         {/* Extra bottom padding on mobile so the floating WhatsApp button never covers the legal line. */}
@@ -78,9 +79,9 @@ export function SiteFooter() {
 
 function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div>
-      <h4 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">{title}</h4>
-      <ul className="space-y-3">{children}</ul>
+    <div className="min-w-0">
+      <h4 className="footer-col-title">{title}</h4>
+      <ul className="space-y-2.5 sm:space-y-3">{children}</ul>
     </div>
   );
 }
@@ -99,11 +100,7 @@ function FooterLink({
   if (to) {
     return (
       <li>
-        <Link
-          to={to}
-          onClick={onClick}
-          className="text-sm text-foreground/80 hover:text-foreground"
-        >
+        <Link to={to} onClick={onClick} className="footer-link">
           {children}
         </Link>
       </li>
@@ -126,11 +123,7 @@ function FooterLink({
   };
   return (
     <li>
-      <a
-        href={href}
-        onClick={handleClick}
-        className="text-sm text-foreground/80 hover:text-foreground"
-      >
+      <a href={href} onClick={handleClick} className="footer-link">
         {children}
       </a>
     </li>
