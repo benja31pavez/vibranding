@@ -65,14 +65,23 @@ function fmtTime(iso: string | null) {
   return d.toLocaleString("es", { dateStyle: "short", timeStyle: "short" });
 }
 
-export function ConversationsTab({ clientId }: { clientId: string }) {
+type Channel = "all" | "whatsapp" | "instagram";
+
+export function ConversationsTab({
+  clientId,
+  initialChannel = "all",
+}: {
+  clientId: string;
+  /** Canal preseleccionado (p. ej. "instagram" desde la sección Instagram › Mensajes). */
+  initialChannel?: Channel;
+}) {
   const [convs, setConvs] = useState<Conv[]>([]);
   const [active, setActive] = useState<Conv | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [search, setSearch] = useState("");
   const [filterLead, setFilterLead] = useState(false);
   const [filterFollowup, setFilterFollowup] = useState(false);
-  const [filterChannel, setFilterChannel] = useState<"all" | "whatsapp" | "instagram">("all");
+  const [filterChannel, setFilterChannel] = useState<Channel>(initialChannel);
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
   const [attributions, setAttributions] = useState<

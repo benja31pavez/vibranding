@@ -5,9 +5,9 @@ export const Route = createFileRoute("/_app/clients/$clientId/content")({
   head: () => ({ meta: [{ title: "Contenido del cliente | Vibranding" }] }),
   beforeLoad: ({ params }) => {
     throw redirect({
-      to: "/clients/$clientId/instagram",
+      to: "/clients/$clientId/calendario",
       params,
-      search: { tab: "calendario" } as any,
+      search: {},
     });
   },
 });

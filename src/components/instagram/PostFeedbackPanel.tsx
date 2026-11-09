@@ -86,6 +86,7 @@ export function PostFeedbackPanel({
                 <Link
                   to="/clients/$clientId/instagram"
                   params={{ clientId: item.clientId }}
+                  search={{ tab: "publicaciones" }}
                   className="font-medium hover:underline"
                 >
                   {clientId ? "Post" : item.clientName}

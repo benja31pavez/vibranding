@@ -149,6 +149,7 @@ export function PostsTab() {
                 <Link
                   to="/clients/$clientId/instagram"
                   params={{ clientId: p.client_id }}
+                  search={{ tab: "publicaciones" }}
                   className="min-w-0 hover:underline"
                 >
                   <span className="block truncate font-medium">{nameOf(p.client_id)}</span>

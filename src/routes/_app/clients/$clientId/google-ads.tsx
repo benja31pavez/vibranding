@@ -1,38 +1,52 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageHeader } from "@/components/app";
-import { GoogleAdsConnectCard } from "@/components/google-ads/GoogleAdsConnectCard";
 import {
-  useGoogleAdsHasHistory,
-  useGoogleAdsOverview,
-} from "@/components/google-ads/googleAdsOverviewQueries";
-import { GoogleAdsCampaignsTable } from "@/components/google-ads/GoogleAdsCampaignsTable";
-import { GoogleAdsBillingPanel } from "@/components/google-ads/GoogleAdsBillingPanel";
+  GoogleAdsSectionPage,
+  isGoogleAdsTab,
+  type GoogleAdsTab,
+} from "@/components/google-ads/GoogleAdsSectionPage";
+
+interface GoogleAdsSearch {
+  /** Subsección: resumen (por defecto), campanas, palabras-clave o anuncios. */
+  tab?: GoogleAdsTab;
+  /** Avisos que deja el callback de OAuth de Google en la URL. */
+  gads?: string;
+  gads_error?: string;
+}
 
 export const Route = createFileRoute("/_app/clients/$clientId/google-ads")({
-  head: () => ({ meta: [{ title: "Google Ads del cliente | Vibranding" }] }),
-  component: GoogleAdsPage,
+  validateSearch: (s: Record<string, unknown>): GoogleAdsSearch => ({
+    tab: isGoogleAdsTab(s.tab) ? s.tab : undefined,
+    gads: typeof s.gads === "string" ? s.gads : undefined,
+    gads_error: typeof s.gads_error === "string" ? s.gads_error : undefined,
+  }),
+  head: () => ({
+    meta: [
+      { title: "Google Ads del cliente | Vibranding" },
+      {
+        name: "description",
+        content: "Resumen, campañas, palabras clave y anuncios de Google Ads del cliente.",
+      },
+    ],
+  }),
+  component: GoogleAdsRoute,
 });
 
-function GoogleAdsPage() {
+function GoogleAdsRoute() {
   const { clientId } = Route.useParams();
-  const overview = useGoogleAdsOverview(clientId);
-  const history = useGoogleAdsHasHistory(clientId);
-  // Campañas y Pago solo se ocultan cuando de verdad no hay nada: overview leído sin conexión
-  // y sin métricas guardadas. Si el overview falla, o el token venció, se siguen mostrando.
-  const noAccount = overview.isSuccess && !overview.data.connection;
-  const noHistory = history.isSuccess && !history.data;
-  const showData = !(noAccount && noHistory) && !overview.isLoading;
+  const { tab } = Route.useSearch();
+  const navigate = Route.useNavigate();
   return (
-    <div className="space-y-4">
-      {/* El layout del cliente ya aplica ancho máximo y padding. */}
-      <PageHeader size="compact" title="Google Ads" />
-      <GoogleAdsConnectCard clientId={clientId} />
-      {showData && (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-          <GoogleAdsCampaignsTable clientId={clientId} />
-          <GoogleAdsBillingPanel clientId={clientId} />
-        </div>
-      )}
-    </div>
+    <GoogleAdsSectionPage
+      clientId={clientId}
+      tab={tab ?? "resumen"}
+      onTabChange={(next) =>
+        navigate({
+          // Al cambiar de pestaña se limpian los avisos del callback de OAuth.
+          search: () => ({ tab: next === "resumen" ? undefined : next }),
+          replace: true,
+          resetScroll: false,
+        })
+      }
+    />
   );
 }
