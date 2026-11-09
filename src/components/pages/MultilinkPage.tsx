@@ -28,6 +28,11 @@ import {
 import { SectionCard } from "@/components/site/SortableSections";
 import { useSaveState } from "@/components/site/useSaveState";
 import { copyPublicLink } from "@/components/site/copyLink";
+import {
+  MULTILINK_VIEW_OF_SECTION,
+  type MultilinkViewTab,
+  type SiteSection,
+} from "@/components/site/siteSections";
 import { meaningfulBio } from "@/components/multilink/bio";
 import { slugSeed, useClientSiteData } from "@/components/site/useClientSiteData";
 import { type Multilink, type MultilinkItem as Item } from "@/lib/multilink";
@@ -42,7 +47,7 @@ import { fetchMultilinkSnapshot, saveMultilink } from "@/lib/site/multilinkSave"
 import { writeFailed } from "@/lib/writeCheck";
 import type { IGProfile } from "@/components/InstagramEditor";
 
-type TabKey = "editar" | "compartir" | "metricas";
+type TabKey = MultilinkViewTab;
 
 type Snapshot = { ml: Multilink; items: Item[] };
 
@@ -51,6 +56,7 @@ export function MultilinkPage({
   onDirtyChange,
   pageSwitcher,
   readOnly = false,
+  section,
 }: {
   clientId: string;
   onDirtyChange?: (dirty: boolean) => void;
@@ -58,6 +64,12 @@ export function MultilinkPage({
   pageSwitcher?: React.ReactNode;
   /** Solo lectura (futuro panel del cliente): vista previa grande + link, sin edición. */
   readOnly?: boolean;
+  /**
+   * Controlado desde la pantalla "Sitio": la subsección activa fija la vista interna
+   * (Secciones = editar, Dominio y conexiones = compartir y QR, Analítica = métricas) y
+   * la barra interna de vistas no se dibuja.
+   */
+  section?: SiteSection;
 }) {
   const { client } = useActiveClient();
   const clientData = useClientSiteData(clientId);
@@ -70,7 +82,9 @@ export function MultilinkPage({
   const [creating, setCreating] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [previewMode, setPreviewMode] = useState<PreviewMode>("mobile");
-  const [tab, setTab] = useState<TabKey>("editar");
+  const [localTab, setLocalTab] = useState<TabKey>("editar");
+  const controlled = section !== undefined;
+  const tab: TabKey = controlled ? MULTILINK_VIEW_OF_SECTION[section] : localTab;
   /** Secciones abiertas (varias a la vez); null = automático según lo que falte. */
   const [openSet, setOpenSet] = useState<ReadonlySet<string> | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -388,15 +402,19 @@ export function MultilinkPage({
     <div ref={rootRef} className="md:h-full md:min-h-0">
       <Tabs
         value={tab}
-        onValueChange={(v) => setTab(v as TabKey)}
+        onValueChange={(v) => !controlled && setLocalTab(v as TabKey)}
         className="flex flex-col gap-4 md:h-full md:min-h-0"
       >
         <PublishBar
           nav={
             <SiteNav pageSwitcher={pageSwitcher}>
-              <SiteViewTab value="editar">Editar</SiteViewTab>
-              <SiteViewTab value="compartir">Compartir y QR</SiteViewTab>
-              <SiteViewTab value="metricas">Métricas</SiteViewTab>
+              {!controlled && (
+                <>
+                  <SiteViewTab value="editar">Editar</SiteViewTab>
+                  <SiteViewTab value="compartir">Compartir y QR</SiteViewTab>
+                  <SiteViewTab value="metricas">Métricas</SiteViewTab>
+                </>
+              )}
             </SiteNav>
           }
           published={ml.published}

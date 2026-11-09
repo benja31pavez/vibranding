@@ -34,6 +34,12 @@ import {
 } from "@/components/site/SiteEditorLayout";
 import { useSaveState } from "@/components/site/useSaveState";
 import { copyPublicLink } from "@/components/site/copyLink";
+import {
+  LANDING_VIEW_OF_SECTION,
+  SECTION_OF_LANDING_VIEW,
+  type LandingViewTab,
+  type SiteSection,
+} from "@/components/site/siteSections";
 import { slugSeed, useClientSiteData } from "@/components/site/useClientSiteData";
 import {
   moveBy,
@@ -79,7 +85,7 @@ import {
   landingSectionStatus,
 } from "@/lib/site/siteStatus";
 
-type TabKey = "editar" | "ajustes" | "mensajes" | "metricas";
+type TabKey = LandingViewTab;
 
 /** Campos con error que pertenecen a cada sección (para abrirla y marcarla). */
 const SECTION_ERROR_KEYS: Partial<Record<LandingSectionKey | "hero", string[]>> = {
@@ -93,6 +99,8 @@ export function LandingEditor({
   onDirtyChange,
   pageSwitcher,
   readOnly = false,
+  section,
+  onSectionChange,
 }: {
   clientId: string;
   onDirtyChange?: (dirty: boolean) => void;
@@ -100,6 +108,13 @@ export function LandingEditor({
   pageSwitcher?: React.ReactNode;
   /** Solo lectura (futuro panel del cliente): vista previa grande + link, sin edición. */
   readOnly?: boolean;
+  /**
+   * Controlado desde la pantalla "Sitio": la subsección activa fija la vista interna
+   * (Secciones = editar, Dominio y conexiones = ajustes, Analítica = métricas y
+   * mensajes) y la barra interna de vistas no se dibuja.
+   */
+  section?: SiteSection;
+  onSectionChange?: (section: SiteSection) => void;
 }) {
   const { client } = useActiveClient();
   const clientData = useClientSiteData(clientId);
@@ -108,7 +123,13 @@ export function LandingEditor({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [creating, setCreating] = useState<RubroKey | "blank" | null>(null);
-  const [tab, setTab] = useState<TabKey>("editar");
+  const [localTab, setLocalTab] = useState<TabKey>("editar");
+  const controlled = section !== undefined;
+  const tab: TabKey = controlled ? LANDING_VIEW_OF_SECTION[section] : localTab;
+  const setTab = (next: TabKey) => {
+    if (controlled) onSectionChange?.(SECTION_OF_LANDING_VIEW[next]);
+    else setLocalTab(next);
+  };
   const [openSection, setOpenSection] = useState<string | null>("hero");
   const [previewMode, setPreviewMode] = useState<PreviewMode>("mobile");
   const [toggling, setToggling] = useState(false);
@@ -523,18 +544,25 @@ export function LandingEditor({
         <PublishBar
           nav={
             <SiteNav pageSwitcher={pageSwitcher}>
-              <SiteViewTab value="editar">Editar</SiteViewTab>
-              <SiteViewTab value="ajustes">
-                Ajustes y SEO
-                {settingsHaveError && (
-                  <span className="h-2 w-2 rounded-full bg-destructive" aria-label="con errores" />
-                )}
-              </SiteViewTab>
-              <SiteViewTab value="mensajes">
-                Mensajes
-                {inboxCount > 0 && <span className="tabular-nums">{inboxCount}</span>}
-              </SiteViewTab>
-              <SiteViewTab value="metricas">Métricas</SiteViewTab>
+              {!controlled && (
+                <>
+                  <SiteViewTab value="editar">Editar</SiteViewTab>
+                  <SiteViewTab value="ajustes">
+                    Ajustes y SEO
+                    {settingsHaveError && (
+                      <span
+                        className="h-2 w-2 rounded-full bg-destructive"
+                        aria-label="con errores"
+                      />
+                    )}
+                  </SiteViewTab>
+                  <SiteViewTab value="mensajes">
+                    Mensajes
+                    {inboxCount > 0 && <span className="tabular-nums">{inboxCount}</span>}
+                  </SiteViewTab>
+                  <SiteViewTab value="metricas">Métricas</SiteViewTab>
+                </>
+              )}
             </SiteNav>
           }
           published={lp.published}
@@ -560,13 +588,16 @@ export function LandingEditor({
           </ScrollColumn>
         </SitePane>
 
-        <SitePane value="mensajes" forceMount>
-          <ScrollColumn className="max-w-4xl">
-            <ContactInbox clientId={clientId} onCount={setInboxCount} />
-          </ScrollColumn>
-        </SitePane>
+        {/* La bandeja queda montada siempre: cuenta los mensajes para la sección Contacto. */}
+        {!controlled && (
+          <SitePane value="mensajes" forceMount>
+            <ScrollColumn className="max-w-4xl">
+              <ContactInbox clientId={clientId} onCount={setInboxCount} />
+            </ScrollColumn>
+          </SitePane>
+        )}
 
-        <SitePane value="metricas">
+        <SitePane value="metricas" forceMount={controlled}>
           <ScrollColumn>
             {!lp.published ? (
               <EmptyState
@@ -578,6 +609,19 @@ export function LandingEditor({
                 <LandingAnalytics clientId={clientId} landingId={lp.id} />
                 <EventsPanel clientId={clientId} sourceType="landing" sourceId={lp.id} />
               </>
+            )}
+            {controlled && (
+              <section aria-labelledby="landing-inbox-title" className="space-y-3">
+                <h2 id="landing-inbox-title" className="text-sm font-semibold">
+                  Mensajes del formulario de contacto
+                  {inboxCount > 0 && (
+                    <span className="ml-2 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-normal tabular-nums text-muted-foreground">
+                      {inboxCount}
+                    </span>
+                  )}
+                </h2>
+                <ContactInbox clientId={clientId} onCount={setInboxCount} />
+              </section>
             )}
           </ScrollColumn>
         </SitePane>

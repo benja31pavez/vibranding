@@ -1,18 +1,30 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Globe, Link2 } from "lucide-react";
-import { useState } from "react";
-import { MultilinkPage } from "@/components/pages/MultilinkPage";
-import { LandingEditor } from "@/components/pages/LandingEditor";
-import { UnsavedChangesGuard } from "@/components/site/SaveStatus";
-import { FitPage, PageHeader } from "@/components/app";
-import { cn } from "@/lib/utils";
+import { createFileRoute } from "@tanstack/react-router";
+import { SitioPage } from "@/components/site/SitioPage";
+import {
+  isSitioPagina,
+  isSitioTab,
+  type SitioPagina,
+  type SitioTab,
+} from "@/components/site/siteSections";
 
-type SitioTab = "multienlace" | "landing";
+export interface SitioSearch {
+  /** Subsección: resumen (por defecto), secciones, dominio o analitica. */
+  tab?: SitioTab;
+  /** Página que se edita en las subsecciones con editor: landing (por defecto) o multienlace. */
+  pagina?: SitioPagina;
+}
+
+/** Enlaces del diseño anterior (`?tab=landing|multienlace`) abren el editor de esa página. */
+function parseSearch(s: Record<string, unknown>): SitioSearch {
+  if (isSitioTab(s.tab)) {
+    return { tab: s.tab, pagina: isSitioPagina(s.pagina) ? s.pagina : undefined };
+  }
+  if (isSitioPagina(s.tab)) return { tab: "secciones", pagina: s.tab };
+  return { tab: undefined, pagina: isSitioPagina(s.pagina) ? s.pagina : undefined };
+}
 
 export const Route = createFileRoute("/_app/clients/$clientId/sitio")({
-  validateSearch: (s: Record<string, unknown>): { tab?: SitioTab } => ({
-    tab: s.tab === "landing" ? "landing" : s.tab === "multienlace" ? "multienlace" : undefined,
-  }),
+  validateSearch: parseSearch,
   head: () => ({
     meta: [
       { title: "Sitio del cliente | Vibranding" },
@@ -26,81 +38,32 @@ export const Route = createFileRoute("/_app/clients/$clientId/sitio")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: SitioPage,
+  component: SitioRoute,
 });
 
-/**
- * Solo lectura: el cliente verá su sitio sin editarlo (vista previa grande + link
- * público). Aún no se activa para nadie: hoy los clientes solo entran a /portal.
- * Cuando esta pantalla se abra al cliente, actívalo con el tipo de usuario
- * (`resolveUserKind` en src/lib/auth/userKind.ts → `kind === "client"`).
- */
-const READ_ONLY = false;
-
-const PAGES: { value: SitioTab; label: string; icon: typeof Globe }[] = [
-  { value: "multienlace", label: "Multienlace", icon: Link2 },
-  { value: "landing", label: "Landing page", icon: Globe },
-];
-
-function SitioPage() {
+function SitioRoute() {
   const { clientId } = Route.useParams();
-  const { tab = "multienlace" } = Route.useSearch();
-  const [dirtyMultilink, setDirtyMultilink] = useState(false);
-  const [dirtyLanding, setDirtyLanding] = useState(false);
-  const dirty: Record<SitioTab, boolean> = { multienlace: dirtyMultilink, landing: dirtyLanding };
-
-  const switcher = (
-    <nav aria-label="Páginas del sitio" className="flex items-center gap-1">
-      {PAGES.map(({ value, label, icon: Icon }) => {
-        const active = tab === value;
-        return (
-          <Link
-            key={value}
-            to="/clients/$clientId/sitio"
-            params={{ clientId }}
-            search={{ tab: value }}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              active
-                ? "bg-background text-foreground shadow"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Icon className="h-4 w-4" aria-hidden="true" />
-            {label}
-            {dirty[value] && (
-              <span
-                className="h-2 w-2 rounded-full bg-warning"
-                aria-label="con cambios sin guardar"
-              />
-            )}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-
+  const { tab, pagina } = Route.useSearch();
+  const navigate = Route.useNavigate();
   return (
-    <FitPage header={<PageHeader size="compact" title="Sitio" />}>
-      <UnsavedChangesGuard dirty={dirtyMultilink || dirtyLanding} />
-      {/* Ambos editores quedan montados: cambiar de página no pierde cambios sin guardar. */}
-      <div className={cn("md:h-full md:min-h-0", tab !== "multienlace" && "hidden")}>
-        <MultilinkPage
-          clientId={clientId}
-          onDirtyChange={setDirtyMultilink}
-          pageSwitcher={switcher}
-          readOnly={READ_ONLY}
-        />
-      </div>
-      <div className={cn("md:h-full md:min-h-0", tab !== "landing" && "hidden")}>
-        <LandingEditor
-          clientId={clientId}
-          onDirtyChange={setDirtyLanding}
-          pageSwitcher={switcher}
-          readOnly={READ_ONLY}
-        />
-      </div>
-    </FitPage>
+    <SitioPage
+      clientId={clientId}
+      tab={tab ?? "resumen"}
+      onTabChange={(next) =>
+        navigate({
+          search: (prev) => ({ ...prev, tab: next === "resumen" ? undefined : next }),
+          replace: true,
+          resetScroll: false,
+        })
+      }
+      pagina={pagina ?? "landing"}
+      onPaginaChange={(next) =>
+        navigate({
+          search: (prev) => ({ ...prev, pagina: next === "landing" ? undefined : next }),
+          replace: true,
+          resetScroll: false,
+        })
+      }
+    />
   );
 }

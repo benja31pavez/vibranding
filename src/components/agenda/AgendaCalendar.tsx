@@ -38,6 +38,10 @@ export interface AgendaCalendarProps {
   today: string;
   itemsByDay: ReadonlyMap<string, readonly AgendaItem[]>;
   onSelectDay: (day: string) => void;
+  /** Vista Lista: título del estado vacío (por defecto, "Sin eventos este mes"). */
+  emptyTitle?: string;
+  /** Vista Lista: texto bajo el título del estado vacío. */
+  emptyDescription?: string;
 }
 
 /** Atajos de teclado del calendario (patrón de grilla de fechas de WAI-ARIA). */
@@ -312,15 +316,21 @@ function WeekView({ range, selected, today, itemsByDay, onSelectDay }: AgendaCal
 
 // ─── Lista (pensada para móvil) ─────────────────────────────────────────────
 
-function ListView({ range, today, itemsByDay }: AgendaCalendarProps) {
+function ListView({
+  range,
+  today,
+  itemsByDay,
+  emptyTitle = "Sin eventos este mes",
+  emptyDescription = "Prueba otro mes o quita filtros.",
+}: AgendaCalendarProps) {
   const days = daysInRange(range).filter((d) => (itemsByDay.get(d) ?? []).length > 0);
   if (days.length === 0) {
     return (
       <EmptyState
         size="compact"
         icon={CalendarX2}
-        title="Sin eventos este mes"
-        description="Prueba otro mes o quita filtros."
+        title={emptyTitle}
+        description={emptyDescription}
       />
     );
   }
