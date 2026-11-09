@@ -23,11 +23,18 @@ export function PlansSection() {
           accent={p.titleAccent}
           subtitle={p.subtitle}
         />
-        <ul data-reveal-stagger className="grid items-stretch gap-6 lg:grid-cols-3">
+        <ul
+          data-reveal-stagger
+          aria-label="Planes y precios"
+          className="row-scroll items-stretch lg:grid-cols-3 lg:gap-6"
+        >
           {p.items.map((plan) => (
             <PlanCard key={plan.id} plan={plan} popularLabel={p.popular} ctaLabel={p.cta} />
           ))}
         </ul>
+        <p className="row-scroll-hint" aria-hidden="true">
+          Desliza para ver los 3 planes →
+        </p>
       </div>
     </section>
   );
@@ -45,7 +52,7 @@ function PlanCard({
   return (
     <li
       className={cn(
-        "card-fx relative flex flex-col rounded-3xl p-6 md:p-8",
+        "card-fx relative flex w-[86vw] max-w-[380px] flex-col rounded-3xl p-6 md:p-8",
         plan.highlighted
           ? "plan-glow shadow-xl shadow-[color:var(--brand-2)]/20"
           : "border bg-card",
