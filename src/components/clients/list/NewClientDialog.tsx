@@ -23,10 +23,12 @@ import { invalidateClientsList } from "./clientsListData";
 interface NewClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Sin botón propio: el que abre el diálogo vive fuera (p. ej. el pop-up de cliente). */
+  hideTrigger?: boolean;
 }
 
 /** Botón "Nuevo cliente" + diálogo de creación. */
-export function NewClientDialog({ open, onOpenChange }: NewClientDialogProps) {
+export function NewClientDialog({ open, onOpenChange, hideTrigger = false }: NewClientDialogProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
@@ -64,11 +66,13 @@ export function NewClientDialog({ open, onOpenChange }: NewClientDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo cliente
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button>
+            <Plus aria-hidden className="mr-1 h-4 w-4" /> Nuevo cliente
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Nuevo cliente</DialogTitle>
