@@ -35,12 +35,12 @@ export const Route = createFileRoute("/_app/clients/$clientId/facturacion")({
   },
   head: () => ({
     meta: [
-      { title: "Facturación del cliente | Vibranding" },
+      { title: "Finanzas del cliente | Vibranding" },
       {
         name: "description",
         content: "Estado de cuenta: plan, cobros, propuestas y boletas del cliente.",
       },
-      { property: "og:title", content: "Facturación del cliente | Vibranding" },
+      { property: "og:title", content: "Finanzas del cliente | Vibranding" },
       {
         property: "og:description",
         content: "Estado de cuenta: plan, cobros, propuestas y boletas del cliente.",

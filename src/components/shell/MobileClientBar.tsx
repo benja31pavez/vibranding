@@ -34,6 +34,8 @@ export function MobileClientBar({ path, activeClient }: MobileClientBarProps) {
         aria-label="Secciones del cliente"
         className="flex gap-2 overflow-x-auto px-3 pb-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
+        {/* Orden lineal de los chips: Panel abre el grupo PRINCIPAL; el resto sigue el orden
+            declarado en CLIENT_SECTIONS (PRINCIPAL → DIFUSIÓN → NEGOCIO). */}
         <Chip to="/clients/$clientId" params={{ clientId }} active={onPanel}>
           Panel
         </Chip>

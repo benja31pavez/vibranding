@@ -1,14 +1,10 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import {
-  InstagramSectionPage,
-  isInstagramTab,
-  type InstagramTab,
-} from "@/components/instagram/InstagramSectionPage";
+import { isInstagramTab, type InstagramTab } from "@/components/instagram/InstagramSectionPage";
 
 interface InstagramSearch {
-  /** Subsección: resumen (por defecto), publicaciones, audiencia o mensajes. */
+  /** Compatibilidad con enlaces antiguos: subpestaña de Instagram. */
   tab?: InstagramTab;
-  /** Pestañas antiguas que se redirigen en `beforeLoad`. */
+  /** Pestañas del diseño aún más antiguo. */
   legacy?: "calendario" | "automatizacion";
 }
 
@@ -18,6 +14,11 @@ const LEGACY_TABS: Record<string, InstagramTab> = {
   engagement: "audiencia",
 };
 
+/**
+ * Ruta antigua: Instagram ahora es una subpestaña dentro de Canales (`/canales?tab=instagram`).
+ * Se preservan los enlaces viejos redirigiendo al nuevo destino, con la subpestaña interna
+ * trasladada al search param `igsub`.
+ */
 export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
   validateSearch: (s: Record<string, unknown>): InstagramSearch => ({
     tab: isInstagramTab(s.tab)
@@ -44,41 +45,11 @@ export const Route = createFileRoute("/_app/clients/$clientId/instagram")({
     if (search.legacy === "calendario") {
       throw redirect({ to: "/clients/$clientId/calendario", params, search: {} });
     }
+    // Redirección permanente a Canales con Instagram seleccionado.
+    throw redirect({
+      to: "/clients/$clientId/canales",
+      params,
+      search: { tab: "instagram", igsub: search.tab },
+    });
   },
-  head: () => ({
-    meta: [
-      { title: "Instagram del cliente | Vibranding" },
-      {
-        name: "description",
-        content: "Resumen, publicaciones, audiencia y mensajes de Instagram del cliente.",
-      },
-      { property: "og:title", content: "Instagram del cliente | Vibranding" },
-      {
-        property: "og:description",
-        content: "Resumen, publicaciones, audiencia y mensajes de Instagram del cliente.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
-  component: InstagramRoute,
 });
-
-function InstagramRoute() {
-  const { clientId } = Route.useParams();
-  const { tab } = Route.useSearch();
-  const navigate = Route.useNavigate();
-  return (
-    <InstagramSectionPage
-      clientId={clientId}
-      tab={tab ?? "resumen"}
-      onTabChange={(next) =>
-        navigate({
-          search: () => ({ tab: next === "resumen" ? undefined : next }),
-          replace: true,
-          resetScroll: false,
-        })
-      }
-    />
-  );
-}

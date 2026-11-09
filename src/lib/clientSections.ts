@@ -4,14 +4,22 @@ export type SectionKey =
   | "plan"
   | "calendario"
   | "archivos"
+  // Mantenido como SectionKey para no romper tipos en componentes/hooks; se oculta del menú
+  // y la ruta antigua redirige a /canales?tab=instagram.
   | "instagram"
+  // Mantenido como SectionKey; se oculta del menú y la ruta antigua redirige a /anuncios?tab=meta.
   | "meta-ads"
+  // Mantenido como SectionKey; se oculta del menú y la ruta antigua redirige a /anuncios?tab=google.
   | "google-ads"
   | "automatizacion"
   | "sitio"
+  // Mantenido como SectionKey; se oculta del menú y la ruta antigua redirige a /canales?tab=whatsapp.
   | "bandeja"
+  | "canales"
+  | "anuncios"
   | "leads"
   | "facturacion"
+  | "personal"
   | "legal"
   | "analytics";
 
@@ -25,16 +33,20 @@ export interface SectionDef {
 /**
  * Secciones ocultas del menú del cliente (feature flag).
  *
- * Se ocultan porque no forman parte de los planes que vende VIBRANDING
- * (Marca + Web, Plan Contenido, Plan Crecimiento) y solo agregan ruido:
- *  - "automatizacion": automatización avanzada de Instagram.
- *  - "analytics": embudo/CAC/ROAS basado en outcomes y backfill de conversaciones.
+ * Instagram, WhatsApp (bandeja), Meta Ads y Google Ads ahora viven como subpestañas
+ * dentro de Canales y Anuncios respectivamente; sus rutas antiguas siguen funcionando
+ * (redirigen con `beforeLoad`), pero desaparecen del menú.
  *
- * Las rutas siguen existiendo (se puede entrar por URL); solo desaparecen del menú.
+ * Automatización y Analítica se mantienen ocultas por no formar parte de los planes
+ * vendidos hoy.
  *
  * Para reactivar una sección: quítala de este Set. Para mostrar todas: `new Set()`.
  */
 export const HIDDEN_SECTIONS: ReadonlySet<SectionKey> = new Set<SectionKey>([
+  "instagram",
+  "meta-ads",
+  "google-ads",
+  "bandeja",
   "automatizacion",
   "analytics",
 ]);
@@ -44,6 +56,14 @@ export const ALL_CLIENT_SECTIONS: SectionDef[] = [
   { key: "plan", label: "Proyectos", lockedReason: () => null },
   { key: "calendario", label: "Calendario", lockedReason: () => null },
   { key: "archivos", label: "Archivos", lockedReason: () => null },
+  { key: "sitio", label: "Sitio", lockedReason: () => null },
+  { key: "canales", label: "Canales", lockedReason: () => null },
+  { key: "anuncios", label: "Anuncios", lockedReason: () => null },
+  { key: "leads", label: "Leads", lockedReason: () => null },
+  { key: "facturacion", label: "Finanzas", lockedReason: () => null },
+  { key: "legal", label: "Legal", lockedReason: () => null },
+  { key: "personal", label: "Personal", lockedReason: () => null },
+  // Secciones ocultas (mantenidas para que las rutas y tipos sigan funcionando).
   {
     key: "instagram",
     label: "Instagram",
@@ -55,7 +75,6 @@ export const ALL_CLIENT_SECTIONS: SectionDef[] = [
     label: "Meta Ads",
     lockedReason: (c) => (c.has_ad_account ? null : "Falta asignar una cuenta publicitaria"),
   },
-  // Siempre abierta: la pantalla explica qué falta (variables o conexión).
   { key: "google-ads", label: "Google Ads", lockedReason: () => null },
   {
     key: "automatizacion",
@@ -63,15 +82,11 @@ export const ALL_CLIENT_SECTIONS: SectionDef[] = [
     lockedReason: (c) =>
       c.has_instagram ? null : "Falta vincular una cuenta de Instagram en Meta",
   },
-  { key: "sitio", label: "Sitio", lockedReason: () => null },
   {
     key: "bandeja",
     label: "WhatsApp",
     lockedReason: (c) => (c.has_whatsapp ? null : "Falta conectar WhatsApp"),
   },
-  { key: "leads", label: "Leads", lockedReason: () => null },
-  { key: "facturacion", label: "Facturación", lockedReason: () => null },
-  { key: "legal", label: "Legal", lockedReason: () => null },
   {
     key: "analytics",
     label: "Analítica",

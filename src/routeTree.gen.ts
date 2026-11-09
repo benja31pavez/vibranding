@@ -82,11 +82,13 @@ import { Route as ApiMetaAdsSyncRouteImport } from './routes/api/meta-ads/sync'
 import { Route as ApiMetaAdsUpdateRouteImport } from './routes/api/meta-ads/update'
 import { Route as AppClientsClientIdIndexRouteImport } from './routes/_app/clients/$clientId/index'
 import { Route as AppClientsClientIdAnalyticsRouteImport } from './routes/_app/clients/$clientId/analytics'
+import { Route as AppClientsClientIdAnunciosRouteImport } from './routes/_app/clients/$clientId/anuncios'
 import { Route as AppClientsClientIdArchivosRouteImport } from './routes/_app/clients/$clientId/archivos'
 import { Route as AppClientsClientIdAutomatizacionRouteImport } from './routes/_app/clients/$clientId/automatizacion'
 import { Route as AppClientsClientIdBackfillRouteImport } from './routes/_app/clients/$clientId/backfill'
 import { Route as AppClientsClientIdBandejaRouteImport } from './routes/_app/clients/$clientId/bandeja'
 import { Route as AppClientsClientIdCalendarioRouteImport } from './routes/_app/clients/$clientId/calendario'
+import { Route as AppClientsClientIdCanalesRouteImport } from './routes/_app/clients/$clientId/canales'
 import { Route as AppClientsClientIdChatbotRouteImport } from './routes/_app/clients/$clientId/chatbot'
 import { Route as AppClientsClientIdContentRouteImport } from './routes/_app/clients/$clientId/content'
 import { Route as AppClientsClientIdContractsRouteImport } from './routes/_app/clients/$clientId/contracts'
@@ -102,6 +104,7 @@ import { Route as AppClientsClientIdMetaAdsRouteImport } from './routes/_app/cli
 import { Route as AppClientsClientIdMultilinkRouteImport } from './routes/_app/clients/$clientId/multilink'
 import { Route as AppClientsClientIdObjectivesRouteImport } from './routes/_app/clients/$clientId/objectives'
 import { Route as AppClientsClientIdPaymentsRouteImport } from './routes/_app/clients/$clientId/payments'
+import { Route as AppClientsClientIdPersonalRouteImport } from './routes/_app/clients/$clientId/personal'
 import { Route as AppClientsClientIdPlanRouteImport } from './routes/_app/clients/$clientId/plan'
 import { Route as AppClientsClientIdPortalPreviewRouteImport } from './routes/_app/clients/$clientId/portal-preview'
 import { Route as AppClientsClientIdSetupRouteImport } from './routes/_app/clients/$clientId/setup'
@@ -494,6 +497,12 @@ const AppClientsClientIdAnalyticsRoute =
     path: '/analytics',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
+const AppClientsClientIdAnunciosRoute =
+  AppClientsClientIdAnunciosRouteImport.update({
+    id: '/anuncios',
+    path: '/anuncios',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
 const AppClientsClientIdArchivosRoute =
   AppClientsClientIdArchivosRouteImport.update({
     id: '/archivos',
@@ -522,6 +531,12 @@ const AppClientsClientIdCalendarioRoute =
   AppClientsClientIdCalendarioRouteImport.update({
     id: '/calendario',
     path: '/calendario',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdCanalesRoute =
+  AppClientsClientIdCanalesRouteImport.update({
+    id: '/canales',
+    path: '/canales',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
 const AppClientsClientIdChatbotRoute =
@@ -609,6 +624,12 @@ const AppClientsClientIdPaymentsRoute =
   AppClientsClientIdPaymentsRouteImport.update({
     id: '/payments',
     path: '/payments',
+    getParentRoute: () => AppClientsClientIdRoute,
+  } as any)
+const AppClientsClientIdPersonalRoute =
+  AppClientsClientIdPersonalRouteImport.update({
+    id: '/personal',
+    path: '/personal',
     getParentRoute: () => AppClientsClientIdRoute,
   } as any)
 const AppClientsClientIdPlanRoute = AppClientsClientIdPlanRouteImport.update({
@@ -809,11 +830,13 @@ export interface FileRoutesByFullPath {
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients/': typeof AppClientsIndexRoute
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
+  '/clients/$clientId/anuncios': typeof AppClientsClientIdAnunciosRoute
   '/clients/$clientId/archivos': typeof AppClientsClientIdArchivosRoute
   '/clients/$clientId/automatizacion': typeof AppClientsClientIdAutomatizacionRoute
   '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/clients/$clientId/bandeja': typeof AppClientsClientIdBandejaRoute
   '/clients/$clientId/calendario': typeof AppClientsClientIdCalendarioRoute
+  '/clients/$clientId/canales': typeof AppClientsClientIdCanalesRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
@@ -829,6 +852,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
+  '/clients/$clientId/personal': typeof AppClientsClientIdPersonalRoute
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
   '/clients/$clientId/portal-preview': typeof AppClientsClientIdPortalPreviewRoute
   '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
@@ -923,11 +947,13 @@ export interface FileRoutesByTo {
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients': typeof AppClientsIndexRoute
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
+  '/clients/$clientId/anuncios': typeof AppClientsClientIdAnunciosRoute
   '/clients/$clientId/archivos': typeof AppClientsClientIdArchivosRoute
   '/clients/$clientId/automatizacion': typeof AppClientsClientIdAutomatizacionRoute
   '/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/clients/$clientId/bandeja': typeof AppClientsClientIdBandejaRoute
   '/clients/$clientId/calendario': typeof AppClientsClientIdCalendarioRoute
+  '/clients/$clientId/canales': typeof AppClientsClientIdCanalesRoute
   '/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
@@ -943,6 +969,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
+  '/clients/$clientId/personal': typeof AppClientsClientIdPersonalRoute
   '/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
   '/clients/$clientId/portal-preview': typeof AppClientsClientIdPortalPreviewRoute
   '/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
@@ -1041,11 +1068,13 @@ export interface FileRoutesById {
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
+  '/_app/clients/$clientId/anuncios': typeof AppClientsClientIdAnunciosRoute
   '/_app/clients/$clientId/archivos': typeof AppClientsClientIdArchivosRoute
   '/_app/clients/$clientId/automatizacion': typeof AppClientsClientIdAutomatizacionRoute
   '/_app/clients/$clientId/backfill': typeof AppClientsClientIdBackfillRoute
   '/_app/clients/$clientId/bandeja': typeof AppClientsClientIdBandejaRoute
   '/_app/clients/$clientId/calendario': typeof AppClientsClientIdCalendarioRoute
+  '/_app/clients/$clientId/canales': typeof AppClientsClientIdCanalesRoute
   '/_app/clients/$clientId/chatbot': typeof AppClientsClientIdChatbotRoute
   '/_app/clients/$clientId/content': typeof AppClientsClientIdContentRoute
   '/_app/clients/$clientId/contracts': typeof AppClientsClientIdContractsRoute
@@ -1061,6 +1090,7 @@ export interface FileRoutesById {
   '/_app/clients/$clientId/multilink': typeof AppClientsClientIdMultilinkRoute
   '/_app/clients/$clientId/objectives': typeof AppClientsClientIdObjectivesRoute
   '/_app/clients/$clientId/payments': typeof AppClientsClientIdPaymentsRoute
+  '/_app/clients/$clientId/personal': typeof AppClientsClientIdPersonalRoute
   '/_app/clients/$clientId/plan': typeof AppClientsClientIdPlanRoute
   '/_app/clients/$clientId/portal-preview': typeof AppClientsClientIdPortalPreviewRoute
   '/_app/clients/$clientId/setup': typeof AppClientsClientIdSetupRoute
@@ -1159,11 +1189,13 @@ export interface FileRouteTypes {
     | '/api/meta-ads/update'
     | '/clients/'
     | '/clients/$clientId/analytics'
+    | '/clients/$clientId/anuncios'
     | '/clients/$clientId/archivos'
     | '/clients/$clientId/automatizacion'
     | '/clients/$clientId/backfill'
     | '/clients/$clientId/bandeja'
     | '/clients/$clientId/calendario'
+    | '/clients/$clientId/canales'
     | '/clients/$clientId/chatbot'
     | '/clients/$clientId/content'
     | '/clients/$clientId/contracts'
@@ -1179,6 +1211,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/multilink'
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
+    | '/clients/$clientId/personal'
     | '/clients/$clientId/plan'
     | '/clients/$clientId/portal-preview'
     | '/clients/$clientId/setup'
@@ -1273,11 +1306,13 @@ export interface FileRouteTypes {
     | '/api/meta-ads/update'
     | '/clients'
     | '/clients/$clientId/analytics'
+    | '/clients/$clientId/anuncios'
     | '/clients/$clientId/archivos'
     | '/clients/$clientId/automatizacion'
     | '/clients/$clientId/backfill'
     | '/clients/$clientId/bandeja'
     | '/clients/$clientId/calendario'
+    | '/clients/$clientId/canales'
     | '/clients/$clientId/chatbot'
     | '/clients/$clientId/content'
     | '/clients/$clientId/contracts'
@@ -1293,6 +1328,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/multilink'
     | '/clients/$clientId/objectives'
     | '/clients/$clientId/payments'
+    | '/clients/$clientId/personal'
     | '/clients/$clientId/plan'
     | '/clients/$clientId/portal-preview'
     | '/clients/$clientId/setup'
@@ -1390,11 +1426,13 @@ export interface FileRouteTypes {
     | '/api/meta-ads/update'
     | '/_app/clients/'
     | '/_app/clients/$clientId/analytics'
+    | '/_app/clients/$clientId/anuncios'
     | '/_app/clients/$clientId/archivos'
     | '/_app/clients/$clientId/automatizacion'
     | '/_app/clients/$clientId/backfill'
     | '/_app/clients/$clientId/bandeja'
     | '/_app/clients/$clientId/calendario'
+    | '/_app/clients/$clientId/canales'
     | '/_app/clients/$clientId/chatbot'
     | '/_app/clients/$clientId/content'
     | '/_app/clients/$clientId/contracts'
@@ -1410,6 +1448,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$clientId/multilink'
     | '/_app/clients/$clientId/objectives'
     | '/_app/clients/$clientId/payments'
+    | '/_app/clients/$clientId/personal'
     | '/_app/clients/$clientId/plan'
     | '/_app/clients/$clientId/portal-preview'
     | '/_app/clients/$clientId/setup'
@@ -2004,6 +2043,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsClientIdAnalyticsRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
+    '/_app/clients/$clientId/anuncios': {
+      id: '/_app/clients/$clientId/anuncios'
+      path: '/anuncios'
+      fullPath: '/clients/$clientId/anuncios'
+      preLoaderRoute: typeof AppClientsClientIdAnunciosRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
     '/_app/clients/$clientId/archivos': {
       id: '/_app/clients/$clientId/archivos'
       path: '/archivos'
@@ -2037,6 +2083,13 @@ declare module '@tanstack/react-router' {
       path: '/calendario'
       fullPath: '/clients/$clientId/calendario'
       preLoaderRoute: typeof AppClientsClientIdCalendarioRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/canales': {
+      id: '/_app/clients/$clientId/canales'
+      path: '/canales'
+      fullPath: '/clients/$clientId/canales'
+      preLoaderRoute: typeof AppClientsClientIdCanalesRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
     '/_app/clients/$clientId/chatbot': {
@@ -2142,6 +2195,13 @@ declare module '@tanstack/react-router' {
       path: '/payments'
       fullPath: '/clients/$clientId/payments'
       preLoaderRoute: typeof AppClientsClientIdPaymentsRouteImport
+      parentRoute: typeof AppClientsClientIdRoute
+    }
+    '/_app/clients/$clientId/personal': {
+      id: '/_app/clients/$clientId/personal'
+      path: '/personal'
+      fullPath: '/clients/$clientId/personal'
+      preLoaderRoute: typeof AppClientsClientIdPersonalRouteImport
       parentRoute: typeof AppClientsClientIdRoute
     }
     '/_app/clients/$clientId/plan': {
@@ -2314,11 +2374,13 @@ const AtChar123slugChar125RouteWithChildren =
 
 interface AppClientsClientIdRouteChildren {
   AppClientsClientIdAnalyticsRoute: typeof AppClientsClientIdAnalyticsRoute
+  AppClientsClientIdAnunciosRoute: typeof AppClientsClientIdAnunciosRoute
   AppClientsClientIdArchivosRoute: typeof AppClientsClientIdArchivosRoute
   AppClientsClientIdAutomatizacionRoute: typeof AppClientsClientIdAutomatizacionRoute
   AppClientsClientIdBackfillRoute: typeof AppClientsClientIdBackfillRoute
   AppClientsClientIdBandejaRoute: typeof AppClientsClientIdBandejaRoute
   AppClientsClientIdCalendarioRoute: typeof AppClientsClientIdCalendarioRoute
+  AppClientsClientIdCanalesRoute: typeof AppClientsClientIdCanalesRoute
   AppClientsClientIdChatbotRoute: typeof AppClientsClientIdChatbotRoute
   AppClientsClientIdContentRoute: typeof AppClientsClientIdContentRoute
   AppClientsClientIdContractsRoute: typeof AppClientsClientIdContractsRoute
@@ -2334,6 +2396,7 @@ interface AppClientsClientIdRouteChildren {
   AppClientsClientIdMultilinkRoute: typeof AppClientsClientIdMultilinkRoute
   AppClientsClientIdObjectivesRoute: typeof AppClientsClientIdObjectivesRoute
   AppClientsClientIdPaymentsRoute: typeof AppClientsClientIdPaymentsRoute
+  AppClientsClientIdPersonalRoute: typeof AppClientsClientIdPersonalRoute
   AppClientsClientIdPlanRoute: typeof AppClientsClientIdPlanRoute
   AppClientsClientIdPortalPreviewRoute: typeof AppClientsClientIdPortalPreviewRoute
   AppClientsClientIdSetupRoute: typeof AppClientsClientIdSetupRoute
@@ -2343,11 +2406,13 @@ interface AppClientsClientIdRouteChildren {
 
 const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdAnalyticsRoute: AppClientsClientIdAnalyticsRoute,
+  AppClientsClientIdAnunciosRoute: AppClientsClientIdAnunciosRoute,
   AppClientsClientIdArchivosRoute: AppClientsClientIdArchivosRoute,
   AppClientsClientIdAutomatizacionRoute: AppClientsClientIdAutomatizacionRoute,
   AppClientsClientIdBackfillRoute: AppClientsClientIdBackfillRoute,
   AppClientsClientIdBandejaRoute: AppClientsClientIdBandejaRoute,
   AppClientsClientIdCalendarioRoute: AppClientsClientIdCalendarioRoute,
+  AppClientsClientIdCanalesRoute: AppClientsClientIdCanalesRoute,
   AppClientsClientIdChatbotRoute: AppClientsClientIdChatbotRoute,
   AppClientsClientIdContentRoute: AppClientsClientIdContentRoute,
   AppClientsClientIdContractsRoute: AppClientsClientIdContractsRoute,
@@ -2363,6 +2428,7 @@ const AppClientsClientIdRouteChildren: AppClientsClientIdRouteChildren = {
   AppClientsClientIdMultilinkRoute: AppClientsClientIdMultilinkRoute,
   AppClientsClientIdObjectivesRoute: AppClientsClientIdObjectivesRoute,
   AppClientsClientIdPaymentsRoute: AppClientsClientIdPaymentsRoute,
+  AppClientsClientIdPersonalRoute: AppClientsClientIdPersonalRoute,
   AppClientsClientIdPlanRoute: AppClientsClientIdPlanRoute,
   AppClientsClientIdPortalPreviewRoute: AppClientsClientIdPortalPreviewRoute,
   AppClientsClientIdSetupRoute: AppClientsClientIdSetupRoute,
