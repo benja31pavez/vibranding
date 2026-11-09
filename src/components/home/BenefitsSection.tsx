@@ -26,8 +26,9 @@ export function BenefitsSection() {
       className="mx-auto max-w-7xl px-4 py-16 md:px-10 md:py-24"
     >
       <SectionHeading id="beneficios-title" title={b.title} accent={b.titleAccent} />
-      <div className="relative mx-auto max-w-xl lg:max-w-none">
-        <ol className="bx-grid relative z-10 grid gap-10 lg:grid-cols-3 lg:gap-6">
+      <div className="relative mx-auto">
+        {/* Siempre tres columnas en una fila; en teléfono las maquetas se ocultan y la letra baja. */}
+        <ol className="bx-grid relative z-10 grid grid-cols-3 gap-2 sm:gap-4 lg:gap-6">
           {b.items.map((item, i) => {
             const Icon = BENEFIT_ICONS[i] ?? Sparkles;
             const Mockup = BENEFIT_MOCKUPS[i];
@@ -35,23 +36,29 @@ export function BenefitsSection() {
               <li key={item.title} data-reveal className="bx-card flex flex-col">
                 <span
                   aria-hidden
-                  className="bx-pop mx-auto grid h-11 w-11 place-items-center rounded-full bg-gradient-brand-strong text-sm font-bold text-white shadow-lg ring-4 ring-background"
+                  className="bx-pop mx-auto grid h-8 w-8 place-items-center rounded-full bg-gradient-brand-strong text-xs font-bold text-white shadow-lg ring-4 ring-background sm:h-11 sm:w-11 sm:text-sm"
                 >
                   {i + 1}
                 </span>
                 <div
                   {...tilt}
-                  className="svc bx-glow relative mt-4 flex flex-1 flex-col rounded-3xl border bg-card p-5 md:p-6"
+                  className="svc bx-glow relative mt-3 flex flex-1 flex-col rounded-2xl border bg-card p-3 sm:mt-4 sm:rounded-3xl sm:p-5 md:p-6"
                 >
-                  <h3 className="flex items-center gap-2.5 text-xl font-semibold">
-                    <Icon aria-hidden className="h-5 w-5" style={{ color: TONES[i] }} />
+                  <h3 className="flex flex-col items-start gap-1.5 text-sm font-semibold leading-tight sm:flex-row sm:items-center sm:gap-2.5 sm:text-xl">
+                    <Icon
+                      aria-hidden
+                      className="h-4 w-4 shrink-0 sm:h-5 sm:w-5"
+                      style={{ color: TONES[i] }}
+                    />
                     {item.title}
                   </h3>
-                  <p className="mt-3 text-muted-foreground leading-relaxed">{item.desc}</p>
+                  <p className="mt-2 text-[11px] leading-snug text-muted-foreground sm:mt-3 sm:text-base sm:leading-relaxed">
+                    {item.desc}
+                  </p>
                   {Mockup && (
                     <div
                       aria-hidden
-                      className="svc-mock mt-6 flex flex-1 items-center justify-center"
+                      className="svc-mock mt-6 hidden flex-1 items-center justify-center lg:flex"
                     >
                       <Mockup />
                     </div>
