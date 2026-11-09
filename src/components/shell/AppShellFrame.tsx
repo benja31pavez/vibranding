@@ -7,6 +7,10 @@ interface AppShellFrameProps {
   sidebar: ReactNode;
   /** Overlays fuera del flujo (paleta de comandos, etc.). */
   overlays?: ReactNode;
+  /** Franja del cliente en teléfono (selector + chips), bajo la cabecera. */
+  mobileBar?: ReactNode;
+  /** Barra inferior fija en teléfono. */
+  dock?: ReactNode;
   children: ReactNode;
 }
 
@@ -17,7 +21,14 @@ interface AppShellFrameProps {
  * las aún no adaptadas hacen scroll dentro de `<main>` (fase 2).
  * En móvil todo fluye con el scroll normal del documento.
  */
-export function AppShellFrame({ header, sidebar, overlays, children }: AppShellFrameProps) {
+export function AppShellFrame({
+  header,
+  sidebar,
+  overlays,
+  mobileBar,
+  dock,
+  children,
+}: AppShellFrameProps) {
   return (
     <div className="app-brand flex min-h-screen flex-col bg-background md:h-dvh md:min-h-0 md:overflow-hidden">
       <a
@@ -36,14 +47,18 @@ export function AppShellFrame({ header, sidebar, overlays, children }: AppShellF
         >
           {sidebar}
         </aside>
-        <main
-          id="main"
-          tabIndex={-1}
-          className="min-w-0 flex-1 focus:outline-none md:min-h-0 md:overflow-y-auto"
-        >
-          {children}
-        </main>
+        <div className="flex min-w-0 flex-1 flex-col md:min-h-0">
+          {mobileBar}
+          <main
+            id="main"
+            tabIndex={-1}
+            className="min-w-0 flex-1 pb-20 focus:outline-none md:min-h-0 md:overflow-y-auto md:pb-0"
+          >
+            {children}
+          </main>
+        </div>
       </div>
+      {dock}
     </div>
   );
 }
