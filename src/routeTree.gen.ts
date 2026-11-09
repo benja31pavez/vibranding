@@ -69,6 +69,10 @@ import { Route as AppAdminMetaDiagnosticsRouteImport } from './routes/_app/admin
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients/index'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients/$clientId'
 import { Route as AppClientsConnectRouteImport } from './routes/_app/clients/connect'
+import { Route as AppMiAgenciaIndexRouteImport } from './routes/_app/mi-agencia/index'
+import { Route as AppMiAgenciaEmpresaRouteImport } from './routes/_app/mi-agencia/empresa'
+import { Route as AppMiAgenciaEquipoRouteImport } from './routes/_app/mi-agencia/equipo'
+import { Route as AppMiAgenciaFinanzasRouteImport } from './routes/_app/mi-agencia/finanzas'
 import { Route as AppProposalsProposalIdRouteImport } from './routes/_app/proposals/$proposalId'
 import { Route as AppProposalsNewRouteImport } from './routes/_app/proposals/new'
 import { Route as AppSettingsGoogleAdsRouteImport } from './routes/_app/settings/google-ads'
@@ -428,6 +432,26 @@ const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
 const AppClientsConnectRoute = AppClientsConnectRouteImport.update({
   id: '/clients/connect',
   path: '/clients/connect',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMiAgenciaIndexRoute = AppMiAgenciaIndexRouteImport.update({
+  id: '/mi-agencia/',
+  path: '/mi-agencia/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMiAgenciaEmpresaRoute = AppMiAgenciaEmpresaRouteImport.update({
+  id: '/mi-agencia/empresa',
+  path: '/mi-agencia/empresa',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMiAgenciaEquipoRoute = AppMiAgenciaEquipoRouteImport.update({
+  id: '/mi-agencia/equipo',
+  path: '/mi-agencia/equipo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMiAgenciaFinanzasRoute = AppMiAgenciaFinanzasRouteImport.update({
+  id: '/mi-agencia/finanzas',
+  path: '/mi-agencia/finanzas',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProposalsProposalIdRoute = AppProposalsProposalIdRouteImport.update({
@@ -817,6 +841,9 @@ export interface FileRoutesByFullPath {
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/clients/connect': typeof AppClientsConnectRoute
+  '/mi-agencia/empresa': typeof AppMiAgenciaEmpresaRoute
+  '/mi-agencia/equipo': typeof AppMiAgenciaEquipoRoute
+  '/mi-agencia/finanzas': typeof AppMiAgenciaFinanzasRoute
   '/proposals/$proposalId': typeof AppProposalsProposalIdRoute
   '/proposals/new': typeof AppProposalsNewRoute
   '/settings/google-ads': typeof AppSettingsGoogleAdsRoute
@@ -829,6 +856,7 @@ export interface FileRoutesByFullPath {
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients/': typeof AppClientsIndexRoute
+  '/mi-agencia/': typeof AppMiAgenciaIndexRoute
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/clients/$clientId/anuncios': typeof AppClientsClientIdAnunciosRoute
   '/clients/$clientId/archivos': typeof AppClientsClientIdArchivosRoute
@@ -934,6 +962,9 @@ export interface FileRoutesByTo {
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/clients/connect': typeof AppClientsConnectRoute
+  '/mi-agencia/empresa': typeof AppMiAgenciaEmpresaRoute
+  '/mi-agencia/equipo': typeof AppMiAgenciaEquipoRoute
+  '/mi-agencia/finanzas': typeof AppMiAgenciaFinanzasRoute
   '/proposals/$proposalId': typeof AppProposalsProposalIdRoute
   '/proposals/new': typeof AppProposalsNewRoute
   '/settings/google-ads': typeof AppSettingsGoogleAdsRoute
@@ -946,6 +977,7 @@ export interface FileRoutesByTo {
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/clients': typeof AppClientsIndexRoute
+  '/mi-agencia': typeof AppMiAgenciaIndexRoute
   '/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/clients/$clientId/anuncios': typeof AppClientsClientIdAnunciosRoute
   '/clients/$clientId/archivos': typeof AppClientsClientIdArchivosRoute
@@ -1055,6 +1087,9 @@ export interface FileRoutesById {
   '/_app/admin/meta-diagnostics': typeof AppAdminMetaDiagnosticsRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRouteWithChildren
   '/_app/clients/connect': typeof AppClientsConnectRoute
+  '/_app/mi-agencia/empresa': typeof AppMiAgenciaEmpresaRoute
+  '/_app/mi-agencia/equipo': typeof AppMiAgenciaEquipoRoute
+  '/_app/mi-agencia/finanzas': typeof AppMiAgenciaFinanzasRoute
   '/_app/proposals/$proposalId': typeof AppProposalsProposalIdRoute
   '/_app/proposals/new': typeof AppProposalsNewRoute
   '/_app/settings/google-ads': typeof AppSettingsGoogleAdsRoute
@@ -1067,6 +1102,7 @@ export interface FileRoutesById {
   '/api/meta-ads/sync': typeof ApiMetaAdsSyncRoute
   '/api/meta-ads/update': typeof ApiMetaAdsUpdateRoute
   '/_app/clients/': typeof AppClientsIndexRoute
+  '/_app/mi-agencia/': typeof AppMiAgenciaIndexRoute
   '/_app/clients/$clientId/analytics': typeof AppClientsClientIdAnalyticsRoute
   '/_app/clients/$clientId/anuncios': typeof AppClientsClientIdAnunciosRoute
   '/_app/clients/$clientId/archivos': typeof AppClientsClientIdArchivosRoute
@@ -1176,6 +1212,9 @@ export interface FileRouteTypes {
     | '/admin/meta-diagnostics'
     | '/clients/$clientId'
     | '/clients/connect'
+    | '/mi-agencia/empresa'
+    | '/mi-agencia/equipo'
+    | '/mi-agencia/finanzas'
     | '/proposals/$proposalId'
     | '/proposals/new'
     | '/settings/google-ads'
@@ -1188,6 +1227,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/sync'
     | '/api/meta-ads/update'
     | '/clients/'
+    | '/mi-agencia/'
     | '/clients/$clientId/analytics'
     | '/clients/$clientId/anuncios'
     | '/clients/$clientId/archivos'
@@ -1293,6 +1333,9 @@ export interface FileRouteTypes {
     | '/admin/health'
     | '/admin/meta-diagnostics'
     | '/clients/connect'
+    | '/mi-agencia/empresa'
+    | '/mi-agencia/equipo'
+    | '/mi-agencia/finanzas'
     | '/proposals/$proposalId'
     | '/proposals/new'
     | '/settings/google-ads'
@@ -1305,6 +1348,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/sync'
     | '/api/meta-ads/update'
     | '/clients'
+    | '/mi-agencia'
     | '/clients/$clientId/analytics'
     | '/clients/$clientId/anuncios'
     | '/clients/$clientId/archivos'
@@ -1413,6 +1457,9 @@ export interface FileRouteTypes {
     | '/_app/admin/meta-diagnostics'
     | '/_app/clients/$clientId'
     | '/_app/clients/connect'
+    | '/_app/mi-agencia/empresa'
+    | '/_app/mi-agencia/equipo'
+    | '/_app/mi-agencia/finanzas'
     | '/_app/proposals/$proposalId'
     | '/_app/proposals/new'
     | '/_app/settings/google-ads'
@@ -1425,6 +1472,7 @@ export interface FileRouteTypes {
     | '/api/meta-ads/sync'
     | '/api/meta-ads/update'
     | '/_app/clients/'
+    | '/_app/mi-agencia/'
     | '/_app/clients/$clientId/analytics'
     | '/_app/clients/$clientId/anuncios'
     | '/_app/clients/$clientId/archivos'
@@ -1952,6 +2000,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsConnectRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/mi-agencia/': {
+      id: '/_app/mi-agencia/'
+      path: '/mi-agencia'
+      fullPath: '/mi-agencia/'
+      preLoaderRoute: typeof AppMiAgenciaIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/mi-agencia/empresa': {
+      id: '/_app/mi-agencia/empresa'
+      path: '/mi-agencia/empresa'
+      fullPath: '/mi-agencia/empresa'
+      preLoaderRoute: typeof AppMiAgenciaEmpresaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/mi-agencia/equipo': {
+      id: '/_app/mi-agencia/equipo'
+      path: '/mi-agencia/equipo'
+      fullPath: '/mi-agencia/equipo'
+      preLoaderRoute: typeof AppMiAgenciaEquipoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/mi-agencia/finanzas': {
+      id: '/_app/mi-agencia/finanzas'
+      path: '/mi-agencia/finanzas'
+      fullPath: '/mi-agencia/finanzas'
+      preLoaderRoute: typeof AppMiAgenciaFinanzasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/proposals/$proposalId': {
       id: '/_app/proposals/$proposalId'
       path: '/proposals/$proposalId'
@@ -2456,12 +2532,16 @@ interface AppRouteChildren {
   AppAdminMetaDiagnosticsRoute: typeof AppAdminMetaDiagnosticsRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRouteWithChildren
   AppClientsConnectRoute: typeof AppClientsConnectRoute
+  AppMiAgenciaEmpresaRoute: typeof AppMiAgenciaEmpresaRoute
+  AppMiAgenciaEquipoRoute: typeof AppMiAgenciaEquipoRoute
+  AppMiAgenciaFinanzasRoute: typeof AppMiAgenciaFinanzasRoute
   AppProposalsProposalIdRoute: typeof AppProposalsProposalIdRoute
   AppProposalsNewRoute: typeof AppProposalsNewRoute
   AppSettingsGoogleAdsRoute: typeof AppSettingsGoogleAdsRoute
   AppSettingsMetaRoute: typeof AppSettingsMetaRoute
   AppSettingsPricingRoute: typeof AppSettingsPricingRoute
   AppClientsIndexRoute: typeof AppClientsIndexRoute
+  AppMiAgenciaIndexRoute: typeof AppMiAgenciaIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -2481,12 +2561,16 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminMetaDiagnosticsRoute: AppAdminMetaDiagnosticsRoute,
   AppClientsClientIdRoute: AppClientsClientIdRouteWithChildren,
   AppClientsConnectRoute: AppClientsConnectRoute,
+  AppMiAgenciaEmpresaRoute: AppMiAgenciaEmpresaRoute,
+  AppMiAgenciaEquipoRoute: AppMiAgenciaEquipoRoute,
+  AppMiAgenciaFinanzasRoute: AppMiAgenciaFinanzasRoute,
   AppProposalsProposalIdRoute: AppProposalsProposalIdRoute,
   AppProposalsNewRoute: AppProposalsNewRoute,
   AppSettingsGoogleAdsRoute: AppSettingsGoogleAdsRoute,
   AppSettingsMetaRoute: AppSettingsMetaRoute,
   AppSettingsPricingRoute: AppSettingsPricingRoute,
   AppClientsIndexRoute: AppClientsIndexRoute,
+  AppMiAgenciaIndexRoute: AppMiAgenciaIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
