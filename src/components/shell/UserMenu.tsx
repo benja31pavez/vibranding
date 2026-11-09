@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { User } from "@supabase/supabase-js";
-import { ExternalLink, LogOut, UserCircle2, UserCog } from "lucide-react";
+import { Building2, ExternalLink, LogOut, UserCircle2, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ORG_MANAGER_ROLES, useCurrentOrg, type OrgRole } from "@/lib/agency/queries";
 import { useSettingsNav } from "./useSettingsNav";
 import type { UserProfile } from "./useUserProfile";
 
@@ -32,6 +33,11 @@ function displayNameOf(user: User | null, profile: UserProfile | null): string {
 export function UserMenu({ user, profile, onSignOut }: UserMenuProps) {
   const name = displayNameOf(user, profile);
   const settingsNav = useSettingsNav();
+  const org = useCurrentOrg();
+  const canSeeMiAgencia =
+    org.data !== null &&
+    org.data !== undefined &&
+    (ORG_MANAGER_ROLES as readonly OrgRole[]).includes(org.data.role);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -54,6 +60,13 @@ export function UserMenu({ user, profile, onSignOut }: UserMenuProps) {
           <div className="mt-0.5 truncate text-sm font-medium">{name}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {canSeeMiAgencia && (
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link to="/mi-agencia">
+              <Building2 className="mr-2 h-4 w-4" /> Mi agencia
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild className="cursor-pointer">
           <Link to="/profile">
             <UserCog className="mr-2 h-4 w-4" /> Editar perfil
