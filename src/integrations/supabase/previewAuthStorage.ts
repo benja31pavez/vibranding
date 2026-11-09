@@ -8,7 +8,9 @@ export interface PreviewAuthStorage {
 }
 
 type BrokerRequestType =
-  "lovable-preview-auth:get" | "lovable-preview-auth:set" | "lovable-preview-auth:remove";
+  | "lovable-preview-auth:get"
+  | "lovable-preview-auth:set"
+  | "lovable-preview-auth:remove";
 
 interface BrokerRequest {
   type: BrokerRequestType;

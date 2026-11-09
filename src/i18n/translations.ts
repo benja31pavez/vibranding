@@ -2,7 +2,9 @@ import type { PublicPlanKey } from "@/lib/pricing/plans";
 export type Lang = "es" | "en";
 
 type LegalBlock =
-  { type: "p"; html: string } | { type: "h2"; text: string } | { type: "ul"; items: string[] };
+  | { type: "p"; html: string }
+  | { type: "h2"; text: string }
+  | { type: "ul"; items: string[] };
 
 export type LegalContent = {
   title: string;
