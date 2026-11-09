@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,160 +29,59 @@ import { Label } from "@/components/ui/label";
 import { DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { ErrorState } from "@/components/app";
+import { ErrorState, ListSkeleton } from "@/components/app";
 import { chileToday } from "@/lib/dates/chile";
+import {
+  LEAD_STATUS_COLOR,
+  LEAD_STATUS_LABEL,
+  useClientLeads,
+  useUpsertLeadMeta,
+  type Lead,
+  type LeadSource as Source,
+  type LeadStatus as Status,
+} from "@/components/leads/leadsData";
 
-type Source = "whatsapp" | "landing" | "meta_ads" | "multilink";
-type Status = "new" | "contacted" | "won" | "lost";
+const STATUS_LABEL = LEAD_STATUS_LABEL;
+const STATUS_COLOR = LEAD_STATUS_COLOR;
 
-type Lead = {
-  source: Source;
-  source_id: string;
-  name: string;
-  contact: string; // phone or email
-  message: string | null;
-  created_at: string;
-  status: Status;
-  notes: string | null;
-  tags: string[];
-};
+export interface LeadsPageProps {
+  clientId: string;
+  /**
+   * "embedded": dentro de la pantalla con subsecciones (sin h1 ni tarjetas de
+   * conteo, que ya muestran Resumen y Embudo). Por defecto, la página completa.
+   */
+  variant?: "full" | "embedded";
+}
 
-const STATUS_LABEL: Record<Status, string> = {
-  new: "Nuevo",
-  contacted: "Contactado",
-  won: "Ganado",
-  lost: "Perdido",
-};
-const STATUS_COLOR: Record<Status, string> = {
-  new: "bg-blue-500/15 text-blue-600 border-blue-500/30",
-  contacted: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  won: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-  lost: "bg-rose-500/15 text-rose-600 border-rose-500/30",
-};
-
-export function LeadsPage({ clientId }: { clientId: string }) {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
+export function LeadsPage({ clientId, variant = "full" }: LeadsPageProps) {
+  const query = useClientLeads(clientId);
+  const leads = useMemo(() => query.data ?? [], [query.data]);
+  const loading = query.isPending;
+  const loadError = query.error?.message ?? null;
+  const load = () => void query.refetch();
   const [search, setSearch] = useState("");
   const [filterSource, setFilterSource] = useState<"all" | Source>("all");
   const [filterStatus, setFilterStatus] = useState<"all" | Status>("all");
   const [editing, setEditing] = useState<Lead | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  const load = async () => {
-    setLoading(true);
-    setLoadError(null);
-    const [waRes, lpRes, extraRes, metaRes] = await Promise.all([
-      supabase
-        .from("whatsapp_conversations")
-        .select(
-          "id,contact_name,contact_wa_id,last_message_preview,last_message_at,created_at,is_lead,needs_human_followup",
-        )
-        .eq("client_id", clientId)
-        .or("is_lead.eq.true,needs_human_followup.eq.true")
-        .order("last_message_at", { ascending: false, nullsFirst: false }),
-      supabase
-        .from("landing_contact_submissions")
-        .select("id,name,email,phone,message,created_at")
-        .eq("client_id", clientId)
-        .order("created_at", { ascending: false }),
-      (supabase.from("client_leads" as any) as any)
-        .select("id,source,name,contact,message,created_at")
-        .eq("client_id", clientId)
-        .order("created_at", { ascending: false }),
-      (supabase.from("lead_meta" as any) as any)
-        .select("source,source_id,status,notes,tags")
-        .eq("client_id", clientId),
-    ]);
-
-    const failed = [waRes, lpRes, extraRes, metaRes].find((r: any) => r.error) as any;
-    if (failed) {
-      setLoadError(failed.error.message);
-      setLoading(false);
-      return;
-    }
-
-    const meta = new Map<string, { status: Status; notes: string | null; tags: string[] }>();
-    for (const m of (metaRes.data ?? []) as any[]) {
-      meta.set(`${m.source}:${m.source_id}`, {
-        status: m.status,
-        notes: m.notes,
-        tags: m.tags ?? [],
-      });
-    }
-    const get = (s: Source, id: string) =>
-      meta.get(`${s}:${id}`) ?? { status: "new" as Status, notes: null, tags: [] };
-
-    const all: Lead[] = [
-      ...((waRes.data ?? []) as any[]).map((c) => ({
-        source: "whatsapp" as Source,
-        source_id: c.id,
-        name: c.contact_name || c.contact_wa_id,
-        contact: c.contact_wa_id,
-        message: c.last_message_preview,
-        created_at: c.last_message_at || c.created_at,
-        ...get("whatsapp", c.id),
-      })),
-      ...((lpRes.data ?? []) as any[]).map((s) => ({
-        source: "landing" as Source,
-        source_id: s.id,
-        name: s.name,
-        contact: [s.email, s.phone].filter(Boolean).join(" · "),
-        message: s.message,
-        created_at: s.created_at,
-        ...get("landing", s.id),
-      })),
-      ...((extraRes.data ?? []) as any[]).map((s) => ({
-        source: s.source as Source,
-        source_id: s.id,
-        name: s.name,
-        contact: s.contact ?? "",
-        message: s.message,
-        created_at: s.created_at,
-        ...get(s.source as Source, s.id),
-      })),
-    ];
-    all.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
-    setLeads(all);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    load();
-  }, [clientId]);
+  const saveMeta = useUpsertLeadMeta(clientId);
 
   const upsertMeta = async (
     lead: Lead,
     patch: Partial<Pick<Lead, "status" | "notes" | "tags">>,
   ) => {
-    const next = { ...lead, ...patch };
     const same = (l: Lead) => l.source === lead.source && l.source_id === lead.source_id;
-    const applyPatch = (l: Lead) => ({ ...l, ...patch });
-    setLeads((ls) => ls.map((l) => (same(l) ? applyPatch(l) : l)));
-    setEditing((cur) => (cur && same(cur) ? applyPatch(cur) : cur));
-    const { error } = await (supabase.from("lead_meta" as any) as any).upsert(
-      {
-        client_id: clientId,
-        source: lead.source,
-        source_id: lead.source_id,
-        status: next.status,
-        notes: next.notes,
-        tags: next.tags,
-      },
-      { onConflict: "client_id,source,source_id" },
-    );
+    setEditing((cur) => (cur && same(cur) ? { ...cur, ...patch } : cur));
+    const error = await saveMeta(lead, patch);
     if (error) {
-      // Revertir solo los campos de este patch, y solo si nadie los cambió después.
-      const revert = (l: Lead): Lead => {
-        const restored = { ...l };
-        for (const key of Object.keys(patch) as (keyof typeof patch)[]) {
-          if (l[key] === patch[key]) (restored as any)[key] = lead[key];
-        }
+      setEditing((cur) => {
+        if (!cur || !same(cur)) return cur;
+        const restored = { ...cur };
+        if ("status" in patch && cur.status === patch.status) restored.status = lead.status;
+        if ("notes" in patch && cur.notes === patch.notes) restored.notes = lead.notes;
+        if ("tags" in patch && cur.tags === patch.tags) restored.tags = lead.tags;
         return restored;
-      };
-      setLeads((ls) => ls.map((l) => (same(l) ? revert(l) : l)));
-      setEditing((cur) => (cur && same(cur) ? revert(cur) : cur));
-      toast.error(`No se pudo guardar el lead: ${error.message}`);
+      });
+      toast.error(`No se pudo guardar el lead: ${error}`);
     }
   };
 
@@ -235,13 +134,20 @@ export function LeadsPage({ clientId }: { clientId: string }) {
   return (
     <div className="space-y-5">
       <header className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
+        {variant === "full" ? (
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
+            <p className="text-sm text-muted-foreground">
+              Todos los leads del cliente: Meta Ads, Multienlace, Landing Page y WhatsApp en un solo
+              lugar.
+            </p>
+          </div>
+        ) : (
           <p className="text-sm text-muted-foreground">
-            Todos los leads del cliente: Meta Ads, Multienlace, Landing Page y WhatsApp en un solo
-            lugar.
+            {leads.length} {leads.length === 1 ? "lead" : "leads"} en total; filtra por origen o
+            estado y toca uno para editarlo.
           </p>
-        </div>
+        )}
         <div className="flex gap-2">
           <AddLeadDialog clientId={clientId} onCreated={load} />
           <Button variant="outline" onClick={exportCsv}>
@@ -250,16 +156,18 @@ export function LeadsPage({ clientId }: { clientId: string }) {
         </div>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {(Object.keys(counts) as Status[]).map((s) => (
-          <Card key={s}>
-            <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">{STATUS_LABEL[s]}</div>
-              <div className="text-2xl font-semibold mt-1">{counts[s]}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {variant === "full" && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {(Object.keys(counts) as Status[]).map((s) => (
+            <Card key={s}>
+              <CardContent className="p-4">
+                <div className="text-xs text-muted-foreground">{STATUS_LABEL[s]}</div>
+                <div className="text-2xl font-semibold mt-1">{counts[s]}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[200px]">
@@ -302,11 +210,11 @@ export function LeadsPage({ clientId }: { clientId: string }) {
         <ErrorState
           title="No pudimos cargar los leads"
           message={loadError}
-          onRetry={() => void load()}
-          retrying={loading}
+          onRetry={load}
+          retrying={query.isFetching}
         />
       ) : loading ? (
-        <div className="p-10 text-center text-muted-foreground">Cargando…</div>
+        <ListSkeleton rows={5} label="Cargando leads" />
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="p-10 text-center text-sm text-muted-foreground">
@@ -319,6 +227,7 @@ export function LeadsPage({ clientId }: { clientId: string }) {
             {filtered.map((lead) => (
               <button
                 key={`${lead.source}-${lead.source_id}`}
+                type="button"
                 onClick={() => setEditing(lead)}
                 className="w-full text-left p-4 hover:bg-muted/40 transition-colors flex items-center gap-3"
               >
@@ -444,8 +353,12 @@ function TagEditor({ value, onChange }: { value: string[]; onChange: (v: string[
         {value.map((t) => (
           <Badge key={t} variant="secondary" className="gap-1">
             {t}
-            <button onClick={() => onChange(value.filter((x) => x !== t))}>
-              <X className="w-3 h-3" />
+            <button
+              type="button"
+              aria-label={`Quitar etiqueta ${t}`}
+              onClick={() => onChange(value.filter((x) => x !== t))}
+            >
+              <X aria-hidden className="w-3 h-3" />
             </button>
           </Badge>
         ))}
@@ -474,7 +387,7 @@ function AddLeadDialog({ clientId, onCreated }: { clientId: string; onCreated: (
     e.preventDefault();
     if (!user || !name.trim()) return;
     setSaving(true);
-    const { error } = await (supabase.from("client_leads" as any) as any).insert({
+    const { error } = await supabase.from("client_leads").insert({
       client_id: clientId,
       source,
       name: name.trim(),

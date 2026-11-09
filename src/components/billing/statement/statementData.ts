@@ -30,12 +30,14 @@ export interface StatementPayment {
   payment_url: string | null;
   document_path: string | null;
   document_type: string | null;
+  /** "flow" cuando se pagó por la plataforma; null en registros manuales/antiguos. */
+  provider: string | null;
   created_at: string;
 }
 
 /** Sin flow_token ni provider_ref: no hacen falta en pantalla. */
 const PAYMENT_COLUMNS =
-  "id,client_id,description,amount,currency,status,due_date,paid_at,period,plan_key,period_start,period_end,payment_url,document_path,document_type,created_at";
+  "id,client_id,description,amount,currency,status,due_date,paid_at,period,plan_key,period_start,period_end,payment_url,document_path,document_type,provider,created_at";
 
 export const statementKeys = {
   all: (userId: string, clientId: string) => ["statement", userId, clientId] as const,
