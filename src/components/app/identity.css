@@ -256,9 +256,14 @@ body:has(.app-brand) [role="dialog"] [role="tab"][aria-selected="true"] {
 }
 
 /* Barra de 4 subsecciones con flecha (la activa “apunta” a la siguiente). */
-.section-tab-active {
+.section-tab-active,
+.app-brand .section-tab-active,
+.section-tab-active:hover {
   background-color: #2f6bff;
-  color: #fff;
+  color: #fff !important;
   border-color: #2f6bff;
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+}
+.section-tab-active > * {
+  color: inherit;
 }

@@ -60,7 +60,7 @@ export function SectionTabs<K extends string>({
               "relative flex h-9 flex-1 items-center justify-center gap-2 px-3 text-sm font-semibold transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               active
-                ? "section-tab-active z-10 -mr-3 pr-6"
+                ? "section-tab-active z-10 -mr-3 pr-6 text-white"
                 : "bg-surface text-muted-foreground hover:bg-surface-2 hover:text-foreground",
               i > 0 && !active && "border-l border-border-subtle",
             )}
