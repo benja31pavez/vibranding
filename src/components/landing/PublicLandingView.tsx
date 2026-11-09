@@ -1,25 +1,12 @@
-import {
-  MessageCircle,
-  Mail,
-  Phone,
-  MapPin,
-  Instagram,
-  Facebook,
-  ChevronDown,
-  X,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { Fragment, useCallback, useEffect, useId, useState } from "react";
+import { ArrowRight, Facebook, Instagram, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Fragment, useState } from "react";
 import {
   landingPalette,
   templateKey,
   heroAspectKey,
   HERO_ASPECT_CSS,
-  serviceIcon,
   asArray,
   asObject,
-  WEEKDAYS,
   withAlpha,
   resolveSectionOrder,
   resolveHiddenSections,
@@ -27,7 +14,6 @@ import {
   type FaqItem,
   type LandingLocation,
   type LandingFooter,
-  type OpeningHour,
   type LandingSectionKey,
   type LandingPalette,
   type GalleryItem,
@@ -45,10 +31,24 @@ import {
 } from "@/lib/site/safeUrl";
 import { LandingContactForm } from "@/components/landing/LandingContactForm";
 import { WhatsappFab } from "@/components/landing/WhatsappFab";
+import { ContactSection } from "@/components/landing/public/ContactSection";
+import {
+  FaqRow,
+  GalleryLightbox,
+  SectionHeading,
+  SocialLink,
+} from "@/components/landing/public/parts";
+import {
+  Avatar,
+  GallerySection,
+  LocationSection,
+  ServicesSection,
+  TestimonialsSection,
+  WhatsappBand,
+  type ServiceItem,
+} from "@/components/landing/public/sections";
 
 export type LandingLike = Record<string, any>;
-
-type ServiceItem = { title: string; description: string; icon?: string };
 
 /** Dimensiones intrínsecas declaradas para evitar saltos de diseño (CLS). */
 const HERO_DIMENSIONS: Record<HeroAspect, { width: number; height: number }> = {
@@ -57,11 +57,18 @@ const HERO_DIMENSIONS: Record<HeroAspect, { width: number; height: number }> = {
   landscape: { width: 1600, height: 900 },
 };
 
-const PAD = "px-4 sm:px-6 py-16 md:py-24";
-const PAD_TIGHT = "px-4 sm:px-6 py-14 md:py-20";
+const PAD = "px-4 sm:px-6 py-16 md:py-24 scroll-mt-16";
 const H1 =
-  "text-[2.1rem] leading-[1.1] sm:text-5xl md:text-6xl font-bold tracking-tight [overflow-wrap:anywhere]";
-const H2 = "text-2xl sm:text-3xl md:text-4xl";
+  "text-[2.35rem] leading-[1.05] sm:text-5xl md:text-6xl lg:text-[4.25rem] font-bold tracking-[-0.025em] [overflow-wrap:anywhere] [text-wrap:balance]";
+
+/** Enlaces del encabezado (solo escritorio) hacia las secciones visibles. */
+const NAV_LABEL: Partial<Record<LandingSectionKey, string>> = {
+  servicios: "Servicios",
+  galeria: "Trabajos",
+  testimonios: "Opiniones",
+  ubicacion: "Cobertura",
+  faq: "Preguntas",
+};
 
 type Props = {
   lp: LandingLike;
@@ -101,9 +108,8 @@ export function PublicLandingView({
     ...t,
     photo_url: safeImageSrc(t?.photo_url),
   }));
-  const testimonials = preview
-    ? allTestimonials
-    : allTestimonials.filter((t) => t?.quote?.trim() && t?.name?.trim());
+  const realTestimonials = allTestimonials.filter((t) => t?.quote?.trim() && t?.name?.trim());
+  const testimonials = preview ? allTestimonials : realTestimonials;
   const faq = asArray<FaqItem>(lp.faq);
   const location = asObject<LandingLocation>(lp.location);
   const footer = asObject<LandingFooter>(lp.footer);
@@ -128,6 +134,7 @@ export function PublicLandingView({
   const rawPhone = landingPhone(lp);
   const phone = rawPhone ? formatChileMobile(rawPhone) : null;
   const telHref = phone ? safeHref(`tel:${phone.replace(/[^\d+]/g, "")}`) : null;
+  const place = footer.address || [location.comuna, location.region].filter(Boolean).join(", ");
 
   const [lightbox, setLightbox] = useState<number | null>(null);
 
@@ -141,18 +148,28 @@ export function PublicLandingView({
     safeHref(lp.cta_url) || (lp.contact_enabled ? "#contacto" : waUrl) || null;
   const ctaExternal = isExternalHref(ctaHref);
   const onImage = template === "fullbleed" && !!heroSrc;
+  const showTestimonials = !!lp.testimonials_enabled && testimonials.length > 0;
 
   const renderCta = (center: boolean) =>
     lp.cta_text && ctaHref ? (
-      <div className={`mt-8 flex flex-wrap gap-3 ${center ? "justify-center" : ""}`}>
+      <div className={`mt-9 flex flex-wrap gap-3 ${center ? "justify-center" : ""}`}>
         <a
           href={ctaHref}
           onClick={onCtaClick}
-          className="inline-flex items-center justify-center rounded-full px-7 py-3.5 font-semibold transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2"
-          style={{ background: p.brand, color: p.onBrand, outlineColor: p.brand }}
+          className="group inline-flex items-center justify-center gap-2 rounded-full px-7 py-4 text-base font-semibold transition hover:brightness-110 motion-safe:hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
+          style={{
+            background: p.brand,
+            color: p.onBrand,
+            outlineColor: onImage ? "#ffffff" : p.brand,
+            boxShadow: `0 12px 28px -10px ${withAlpha(p.brand, 0.7)}`,
+          }}
           {...(ctaExternal ? { target: "_blank", rel: "noreferrer" } : {})}
         >
           {lp.cta_text}
+          <ArrowRight
+            className="w-4 h-4 motion-safe:transition-transform motion-safe:group-hover:translate-x-0.5"
+            aria-hidden="true"
+          />
         </a>
         {waUrl && ctaHref !== waUrl && (
           <a
@@ -160,13 +177,16 @@ export function PublicLandingView({
             target="_blank"
             rel="noreferrer"
             onClick={onWhatsappClick}
-            className="inline-flex items-center justify-center gap-2 rounded-full border-2 px-6 py-3 font-semibold transition hover:opacity-90"
+            className="inline-flex items-center justify-center gap-2 rounded-full border px-6 py-4 text-base font-semibold transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2"
             style={{
-              borderColor: onImage ? "#ffffff" : p.brandText,
-              color: onImage ? "#ffffff" : p.brandText,
+              borderColor: onImage ? "rgba(255,255,255,0.7)" : withAlpha(p.brandText, 0.4),
+              color: onImage ? "#ffffff" : p.text,
+              background: onImage ? "rgba(255,255,255,0.08)" : p.surface,
+              outlineColor: onImage ? "#ffffff" : p.brand,
             }}
           >
-            <MessageCircle className="w-5 h-5" aria-hidden="true" /> WhatsApp
+            <MessageCircle className="w-5 h-5" style={{ color: "#25D366" }} aria-hidden="true" />
+            WhatsApp
           </a>
         )}
       </div>
@@ -174,301 +194,136 @@ export function PublicLandingView({
 
   const coverage =
     comunas.length > 0 && lp.location_enabled ? (
-      <p
-        className="mt-4 text-sm inline-flex items-start gap-1.5"
-        style={{ color: onImage ? "rgba(255,255,255,0.9)" : p.muted }}
+      <span
+        className="inline-flex items-center gap-1.5 rounded-xl sm:rounded-full px-3.5 py-1.5 text-sm font-medium text-left"
+        style={
+          onImage
+            ? { background: "rgba(255,255,255,0.14)", color: "#ffffff" }
+            : { background: p.tint, color: p.brandText }
+        }
       >
-        <MapPin className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+        <MapPin className="w-4 h-4 shrink-0" aria-hidden="true" />
         <span>
           Atendemos en {comunas.slice(0, 3).join(", ")}
           {comunas.length > 3 ? ` y ${comunas.length - 3} comunas más` : ""}
         </span>
+      </span>
+    ) : null;
+
+  /* Prueba social real: solo testimonios completos y la sección activa. */
+  const proofPeople = realTestimonials.slice(0, 3);
+  const socialProof =
+    lp.testimonials_enabled && proofPeople.length > 0 ? (
+      <a
+        href="#testimonios"
+        className="mt-8 inline-flex items-center gap-3 rounded-full text-sm font-medium hover:underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4"
+        style={{ color: onImage ? "rgba(255,255,255,0.92)" : p.muted, outlineColor: p.brand }}
+      >
+        <span className="flex -space-x-2.5" aria-hidden="true">
+          {proofPeople.map((t, i) => (
+            <Avatar key={i} name={t.name} photo={t.photo_url} palette={p} size={34} ring />
+          ))}
+        </span>
+        <span>
+          {realTestimonials.length === 1
+            ? "Lee lo que dice un cliente"
+            : `Lee lo que dicen ${realTestimonials.length} clientes`}
+        </span>
+      </a>
+    ) : null;
+
+  const subtitle = (light: boolean) =>
+    lp.hero_subtitle ? (
+      <p
+        className="mt-6 text-lg md:text-xl leading-relaxed whitespace-pre-line [text-wrap:pretty]"
+        style={{ color: light ? "rgba(255,255,255,0.9)" : p.muted }}
+      >
+        {lp.hero_subtitle}
       </p>
     ) : null;
 
   const heroText = (center: boolean) => (
-    <div className="min-w-0">
-      {displayTitle && (
-        <h1 className={H1} style={{ color: p.brandText }}>
-          {displayTitle}
-        </h1>
-      )}
-      {lp.hero_subtitle && (
-        <p className="mt-5 text-lg md:text-xl whitespace-pre-line" style={{ color: p.muted }}>
-          {lp.hero_subtitle}
-        </p>
-      )}
-      {coverage}
+    <div className={`min-w-0 ${center ? "mx-auto" : ""}`}>
+      {coverage && <div className="mb-6">{coverage}</div>}
+      {displayTitle && <h1 className={H1}>{displayTitle}</h1>}
+      <div className={center ? "max-w-2xl mx-auto" : "max-w-xl"}>{subtitle(false)}</div>
       {renderCta(center)}
+      {socialProof}
     </div>
   );
 
-  const heading = (eyebrow: string, title: string, tight?: boolean) => (
-    <SectionHeading eyebrow={eyebrow} title={title} palette={p} tight={tight} />
-  );
+  const heroImage = (rounded: string) =>
+    heroSrc ? (
+      <img
+        src={heroSrc}
+        alt=""
+        width={heroDims.width}
+        height={heroDims.height}
+        fetchPriority="high"
+        decoding="async"
+        className={`relative w-full h-auto object-cover ${rounded}`}
+        style={{
+          aspectRatio: aspect,
+          background: p.tint,
+          boxShadow: `0 30px 60px -25px ${withAlpha(p.isDark ? "#000000" : p.brand, 0.45)}`,
+        }}
+      />
+    ) : null;
+
+  const ctaForServices = waUrl
+    ? { href: waUrl, label: "Escríbenos por WhatsApp", external: true, onClick: onWhatsappClick }
+    : lp.contact_enabled
+      ? {
+          href: "#contacto",
+          label: "Cuéntanos qué necesitas",
+          external: false,
+          onClick: onCtaClick,
+        }
+      : null;
 
   const sectionNodes: Record<LandingSectionKey, React.ReactNode> = {
     servicios:
       services.length > 0 ? (
-        <section data-section="servicios" className={PAD} style={{ background: p.tint }}>
-          <div className="max-w-6xl mx-auto">
-            {heading("Lo que hacemos", "Servicios")}
-            <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {services.map((s, i) => {
-                const Icon = serviceIcon(s.icon);
-                return (
-                  <li
-                    key={i}
-                    className="rounded-2xl p-6 md:p-7 border"
-                    style={{ background: p.surface, borderColor: p.border }}
-                  >
-                    <div
-                      className="grid place-items-center w-11 h-11 rounded-xl mb-4"
-                      style={{
-                        background: withAlpha(p.brand, p.isDark ? 0.25 : 0.14),
-                        color: p.brandText,
-                      }}
-                      aria-hidden="true"
-                    >
-                      {Icon ? (
-                        <Icon className="w-5 h-5" />
-                      ) : (
-                        <span className="font-semibold text-sm">{i + 1}</span>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-lg" style={{ color: p.brandText }}>
-                      {s.title}
-                    </h3>
-                    {s.description && (
-                      <p
-                        className="mt-2 text-[0.95rem] whitespace-pre-line"
-                        style={{ color: p.muted }}
-                      >
-                        {s.description}
-                      </p>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </section>
+        <ServicesSection services={services} palette={p} cta={ctaForServices} />
       ) : null,
-
     galeria:
       gallery.length > 0 ? (
-        <section data-section="galeria" className={PAD}>
-          <div className="max-w-6xl mx-auto">
-            {heading("Nuestro trabajo", "Galería")}
-            <ul className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {gallery.map((g, i) =>
-                g.before_url ? (
-                  <li key={i} className="col-span-2 md:col-span-3 w-full max-w-4xl mx-auto">
-                    <BeforeAfter item={g} palette={p} />
-                  </li>
-                ) : (
-                  <li key={i}>
-                    <button
-                      type="button"
-                      onClick={() => !preview && setLightbox(i)}
-                      className="block w-full rounded-xl overflow-hidden transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2"
-                      style={{ outlineColor: p.brand }}
-                    >
-                      <img
-                        src={g.url}
-                        alt={g.alt || g.caption || `Trabajo ${i + 1}`}
-                        width={600}
-                        height={600}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full aspect-square object-cover"
-                      />
-                      <span className="sr-only">Ampliar imagen</span>
-                    </button>
-                    {g.caption && (
-                      <p className="mt-1.5 text-sm" style={{ color: p.muted }}>
-                        {g.caption}
-                      </p>
-                    )}
-                  </li>
-                ),
-              )}
-            </ul>
-          </div>
-        </section>
+        <GallerySection gallery={gallery} palette={p} onOpen={(i) => !preview && setLightbox(i)} />
       ) : null,
-
     whatsapp:
       waUrl || (preview && lp.whatsapp_enabled) ? (
-        <section
-          data-section="whatsapp"
-          className={PAD_TIGHT}
-          style={{ background: p.band, color: p.onBand }}
-        >
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className={`${H2} font-bold`}>
-              {lp.whatsapp_cta_text || "Escríbenos por WhatsApp"}
-            </h2>
-            <p className="mt-3 text-base" style={{ opacity: 0.92 }}>
-              Te respondemos rápido. El mensaje ya va escrito, sólo tienes que enviarlo.
-            </p>
-            <a
-              href={waUrl ?? undefined}
-              target="_blank"
-              rel="noreferrer"
-              onClick={onWhatsappClick}
-              className="mt-7 inline-flex items-center gap-2 rounded-full px-7 py-3.5 font-semibold transition hover:opacity-90"
-              style={{ background: "#25D366", color: "#0a0a0a" }}
-            >
-              <MessageCircle className="w-5 h-5" aria-hidden="true" />
-              Abrir WhatsApp
-            </a>
-          </div>
-        </section>
+        <WhatsappBand
+          palette={p}
+          title={lp.whatsapp_cta_text || "Escríbenos por WhatsApp"}
+          href={waUrl}
+          onClick={onWhatsappClick}
+        />
       ) : null,
-
-    testimonios:
-      lp.testimonials_enabled && testimonials.length > 0 ? (
-        <section data-section="testimonios" className={PAD_TIGHT} style={{ background: p.tint }}>
-          <div className="max-w-5xl mx-auto">
-            {heading("Testimonios", "Lo que dicen nuestros clientes")}
-            <div className="grid md:grid-cols-3 gap-5">
-              {testimonials.map((t, i) => (
-                <figure
-                  key={i}
-                  className={`rounded-2xl p-6 border ${t.quote?.trim() ? "" : "border-dashed"}`}
-                  style={{ background: p.surface, borderColor: p.border }}
-                >
-                  <blockquote
-                    className="text-base leading-relaxed"
-                    style={{ color: t.quote?.trim() ? p.text : p.muted }}
-                  >
-                    {t.quote?.trim() ? `“${t.quote}”` : "Escribe aquí un testimonio real"}
-                  </blockquote>
-                  <figcaption className="mt-4 flex items-center gap-3">
-                    {t.photo_url ? (
-                      <img
-                        src={t.photo_url}
-                        alt=""
-                        width={40}
-                        height={40}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div
-                        className="w-10 h-10 text-sm rounded-full grid place-items-center font-semibold"
-                        style={{ background: withAlpha(p.brand, 0.18), color: p.brandText }}
-                        aria-hidden="true"
-                      >
-                        {(t.name || "?").slice(0, 1).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="text-sm">
-                      <div className="font-medium">
-                        {t.name || (preview ? "Nombre del cliente" : "")}
-                      </div>
-                      {t.role && <div style={{ color: p.muted }}>{t.role}</div>}
-                    </div>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null,
-
+    testimonios: showTestimonials ? (
+      <TestimonialsSection testimonials={testimonials} palette={p} preview={preview} />
+    ) : null,
     ubicacion:
       lp.location_enabled &&
       (location.address || mapSrc || comunas.length > 0 || (location.hours ?? []).length > 0) ? (
-        <section data-section="ubicacion" className={PAD_TIGHT}>
-          <div className="max-w-5xl mx-auto">
-            {heading(
-              "Dónde estamos",
-              comunas.length > 0 ? "Cobertura y horarios" : "Ubicación y horarios",
-            )}
-            <div className="grid md:grid-cols-2 gap-6 items-start">
-              <div
-                className="rounded-2xl p-6 border space-y-5"
-                style={{ background: p.surface, borderColor: p.border }}
-              >
-                {(location.address || location.comuna) && (
-                  <p className="text-base flex items-start gap-2">
-                    <MapPin
-                      className="w-5 h-5 shrink-0 mt-0.5"
-                      style={{ color: p.brandText }}
-                      aria-hidden="true"
-                    />
-                    <span>
-                      {[location.address, location.comuna, location.region]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </span>
-                  </p>
-                )}
-                {comunas.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold">Comunas donde atendemos</h3>
-                    <ul className="mt-2 flex flex-wrap gap-2">
-                      {comunas.map((c) => (
-                        <li
-                          key={c}
-                          className="text-sm rounded-full px-3 py-1 border"
-                          style={{ borderColor: p.border, background: p.tint }}
-                        >
-                          {c}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {(location.hours ?? []).length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold">Horario de atención</h3>
-                    <ul className="mt-2 text-sm space-y-1">
-                      {(location.hours ?? []).map((h: OpeningHour) => (
-                        <li key={h.day} className="flex justify-between gap-3">
-                          <span>{WEEKDAYS[h.day] ?? ""}</span>
-                          <span style={{ color: p.muted }}>
-                            {h.closed ? "Cerrado" : `${h.from ?? "—"} – ${h.to ?? "—"}`}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-              {mapSrc &&
-                (preview ? (
-                  <div
-                    className="w-full rounded-2xl border grid place-items-center text-sm"
-                    style={{ borderColor: p.border, aspectRatio: "4 / 3", color: p.muted }}
-                  >
-                    Mapa de Google
-                  </div>
-                ) : (
-                  <iframe
-                    src={mapSrc}
-                    title={`Mapa de ${realTitle || "la ubicación"}`}
-                    className="w-full rounded-2xl border"
-                    style={{ borderColor: p.border, aspectRatio: "4 / 3" }}
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                    sandbox="allow-scripts allow-same-origin allow-popups"
-                  />
-                ))}
-            </div>
-          </div>
-        </section>
+        <LocationSection
+          palette={p}
+          location={location}
+          comunas={comunas}
+          mapSrc={mapSrc}
+          preview={preview}
+          mapTitle={`Mapa de ${realTitle || "la ubicación"}`}
+        />
       ) : null,
-
     faq:
       lp.faq_enabled && faq.length > 0 ? (
-        <section data-section="faq" className={PAD_TIGHT} style={{ background: p.tint }}>
+        <section id="faq" data-section="faq" className={PAD} style={{ background: p.tint }}>
           <div className="max-w-3xl mx-auto">
-            {heading("Resolvemos tus dudas", "Preguntas frecuentes")}
-            <div className="space-y-2">
+            <SectionHeading
+              eyebrow="Resolvemos tus dudas"
+              title="Preguntas frecuentes"
+              palette={p}
+            />
+            <div className="space-y-3">
               {faq.map((f, i) => (
                 <FaqRow key={i} item={f} palette={p} />
               ))}
@@ -476,29 +331,43 @@ export function PublicLandingView({
           </div>
         </section>
       ) : null,
-
     contacto: lp.contact_enabled ? (
       <section id="contacto" data-section="contacto" className={PAD}>
-        <div className="max-w-xl mx-auto">
-          {heading("Hablemos", "Contáctanos", true)}
-          <p className="text-center text-base mb-8" style={{ color: p.muted }}>
-            Déjanos tus datos y te respondemos a la brevedad.
-          </p>
-          {contactForm ?? (
-            <LandingContactForm
-              landingId={lp.id}
-              palette={p}
-              preview={preview}
-              whatsappUrl={waUrl}
-            />
-          )}
-        </div>
+        <ContactSection
+          palette={p}
+          whatsappUrl={waUrl}
+          onWhatsappClick={onWhatsappClick}
+          phone={phone}
+          telHref={telHref}
+          email={footer.email}
+          emailHref={emailHref}
+          place={place || undefined}
+          form={
+            contactForm ?? (
+              <LandingContactForm
+                landingId={lp.id}
+                palette={p}
+                preview={preview}
+                whatsappUrl={waUrl}
+              />
+            )
+          }
+        />
       </section>
     ) : null,
   };
 
+  const order = resolveSectionOrder(lp.section_order);
+  const navItems = order
+    .filter((k) => sectionNodes[k] && NAV_LABEL[k])
+    .slice(0, 4)
+    .map((k) => ({ key: k, label: NAV_LABEL[k] as string }));
+
   return (
-    <div style={{ background: p.background, color: p.text }} className="min-h-full overflow-x-clip">
+    <div
+      style={{ background: p.background, color: p.text }}
+      className="min-h-full overflow-x-clip antialiased"
+    >
       {structuredData.map((node, i) => (
         <script
           key={i}
@@ -508,33 +377,59 @@ export function PublicLandingView({
       ))}
 
       {displayTitle && (
-        <header className="border-b" style={{ borderColor: p.border }}>
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-            <span className="font-bold tracking-tight truncate" style={{ color: p.brandText }}>
+        <header
+          className="sticky top-0 z-30 border-b backdrop-blur-md"
+          style={{ borderColor: p.border, background: withAlpha(p.background, 0.86) }}
+        >
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+            <a
+              href="#inicio"
+              className="font-bold text-lg tracking-tight truncate rounded focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{ color: p.text, outlineColor: p.brand }}
+            >
               {displayTitle}
-            </span>
-            {(waUrl || lp.contact_enabled) && (
-              <a
-                href={waUrl ?? "#contacto"}
-                onClick={waUrl ? onWhatsappClick : onCtaClick}
-                {...(waUrl ? { target: "_blank", rel: "noreferrer" } : {})}
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2"
-                style={{ background: p.brand, color: p.onBrand, outlineColor: p.brand }}
-              >
-                {waUrl && <MessageCircle className="w-4 h-4" aria-hidden="true" />}
-                {waUrl ? "Escríbenos" : "Contacto"}
-              </a>
-            )}
+            </a>
+            <div className="flex items-center gap-6 shrink-0">
+              {navItems.length > 1 && (
+                <nav aria-label="Secciones" className="hidden lg:block">
+                  <ul className="flex items-center gap-6 text-sm font-medium">
+                    {navItems.map((n) => (
+                      <li key={n.key}>
+                        <a
+                          href={`#${n.key}`}
+                          className="transition hover:opacity-100 opacity-75 rounded focus-visible:outline-2 focus-visible:outline-offset-2"
+                          style={{ outlineColor: p.brand }}
+                        >
+                          {n.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              )}
+              {(waUrl || lp.contact_enabled) && (
+                <a
+                  href={waUrl ?? "#contacto"}
+                  onClick={waUrl ? onWhatsappClick : onCtaClick}
+                  {...(waUrl ? { target: "_blank", rel: "noreferrer" } : {})}
+                  className="inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2"
+                  style={{ background: p.brand, color: p.onBrand, outlineColor: p.brand }}
+                >
+                  {waUrl && <MessageCircle className="w-4 h-4" aria-hidden="true" />}
+                  {waUrl ? "Escríbenos" : "Contacto"}
+                </a>
+              )}
+            </div>
           </div>
         </header>
       )}
 
-      <main>
+      <main id="inicio">
         {onImage ? (
           <section
             data-section="hero"
-            className="relative overflow-hidden"
-            style={{ color: "#ffffff" }}
+            className="relative overflow-hidden grid place-items-center min-h-[560px] md:min-h-[680px]"
+            style={{ color: "#ffffff", background: "#111111" }}
           >
             <img
               src={heroSrc ?? undefined}
@@ -545,140 +440,68 @@ export function PublicLandingView({
               decoding="async"
               className="absolute inset-0 w-full h-full object-cover"
             />
-            <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.58)" }} />
-            <div className="relative max-w-4xl mx-auto text-center px-4 sm:px-6 py-24 md:py-36">
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.78) 100%)",
+              }}
+            />
+            <div className="relative max-w-4xl mx-auto text-center px-4 sm:px-6 py-24 md:py-32">
+              {coverage && <div className="mb-6">{coverage}</div>}
               {displayTitle && <h1 className={H1}>{displayTitle}</h1>}
-              {lp.hero_subtitle && (
-                <p
-                  className="mt-5 text-lg md:text-xl whitespace-pre-line"
-                  style={{ color: "rgba(255,255,255,0.9)" }}
-                >
-                  {lp.hero_subtitle}
-                </p>
-              )}
-              {coverage}
+              <div className="max-w-2xl mx-auto">{subtitle(true)}</div>
               {renderCta(true)}
+              {socialProof}
             </div>
           </section>
         ) : template === "centered" ? (
-          <section data-section="hero" className={`${PAD} max-w-3xl mx-auto text-center`}>
-            {heroText(true)}
-            {heroSrc && (
-              <img
-                src={heroSrc}
-                alt=""
-                width={heroDims.width}
-                height={heroDims.height}
-                fetchPriority="high"
-                decoding="async"
-                className="w-full h-auto object-cover mt-10 rounded-3xl shadow-2xl"
-                style={{ aspectRatio: aspect }}
-              />
-            )}
+          <section data-section="hero" className="relative overflow-hidden">
+            <HeroGlow palette={p} />
+            <div className={`relative ${PAD} max-w-4xl mx-auto text-center`}>
+              {heroText(true)}
+              {heroSrc && <div className="mt-14 md:mt-16">{heroImage("rounded-[2rem]")}</div>}
+            </div>
           </section>
         ) : (
-          <section
-            data-section="hero"
-            className={`${PAD} max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center`}
-          >
-            {heroText(false)}
-            {heroSrc && (
-              <img
-                src={heroSrc}
-                alt=""
-                width={heroDims.width}
-                height={heroDims.height}
-                fetchPriority="high"
-                decoding="async"
-                className="w-full h-auto object-cover rounded-3xl shadow-2xl"
-                style={{ aspectRatio: aspect }}
-              />
-            )}
+          <section data-section="hero" className="relative overflow-hidden">
+            <HeroGlow palette={p} />
+            <div
+              className={`relative ${PAD} md:py-28 max-w-6xl mx-auto grid ${heroSrc ? "md:grid-cols-[1.1fr_1fr]" : ""} gap-12 lg:gap-16 items-center`}
+            >
+              {heroText(false)}
+              {heroSrc && (
+                <div className="relative">
+                  <div
+                    className="absolute -inset-2 md:-inset-4 rounded-[2.5rem] md:rotate-2"
+                    style={{ background: withAlpha(p.brand, p.isDark ? 0.22 : 0.14) }}
+                    aria-hidden="true"
+                  />
+                  {heroImage("rounded-[2rem]")}
+                </div>
+              )}
+            </div>
           </section>
         )}
 
-        {resolveSectionOrder(lp.section_order).map((key) => (
+        {order.map((key) => (
           <Fragment key={key}>{sectionNodes[key]}</Fragment>
         ))}
       </main>
 
-      <footer className="border-t" style={{ borderColor: p.border }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid gap-6 md:grid-cols-3">
-          <div className="min-w-0">
-            <div className="font-semibold" style={{ color: p.brandText }}>
-              {displayTitle}
-            </div>
-            {(footer.address || location.comuna) && (
-              <p className="mt-1 text-sm" style={{ color: p.muted }}>
-                {footer.address || [location.comuna, location.region].filter(Boolean).join(", ")}
-              </p>
-            )}
-          </div>
-          <ul className="text-sm space-y-2 min-w-0" style={{ color: p.muted }}>
-            {emailHref && (
-              <li>
-                <a
-                  className="inline-flex items-center gap-1.5 hover:underline break-all"
-                  href={emailHref}
-                >
-                  <Mail className="w-4 h-4 shrink-0" aria-hidden="true" /> {footer.email}
-                </a>
-              </li>
-            )}
-            {phone && telHref && (
-              <li>
-                <a className="inline-flex items-center gap-1.5 hover:underline" href={telHref}>
-                  <Phone className="w-4 h-4 shrink-0" aria-hidden="true" /> {phone}
-                </a>
-              </li>
-            )}
-            {footerWa && !waUrl && (
-              <li>
-                <a
-                  className="inline-flex items-center gap-1.5 hover:underline"
-                  href={`https://wa.me/${footerWa.slice(1)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <MessageCircle className="w-4 h-4 shrink-0" aria-hidden="true" /> WhatsApp
-                </a>
-              </li>
-            )}
-          </ul>
-          <div className="text-sm space-y-3" style={{ color: p.muted }}>
-            <div className="flex items-center gap-2">
-              {socials.map(([label, href]) => (
-                <SocialLink key={label} href={href} label={label}>
-                  {label === "Instagram" ? (
-                    <Instagram className="w-5 h-5" aria-hidden="true" />
-                  ) : label === "Facebook" ? (
-                    <Facebook className="w-5 h-5" aria-hidden="true" />
-                  ) : (
-                    <span className="font-semibold text-xs">TikTok</span>
-                  )}
-                </SocialLink>
-              ))}
-            </div>
-            {legal.length > 0 && (
-              <ul className="space-y-1">
-                {legal.map((l, i) => (
-                  <li key={i}>
-                    <a href={l.url} className="hover:underline" target="_blank" rel="noreferrer">
-                      {l.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-        <div
-          className={`text-center text-xs px-4 ${waUrl || lp.whatsapp_enabled ? "pb-24" : "pb-6"}`}
-          style={{ color: p.muted }}
-        >
-          © {new Date().getFullYear()} {displayTitle}
-        </div>
-      </footer>
+      <LandingFooterBlock
+        palette={p}
+        title={displayTitle}
+        place={place}
+        email={footer.email}
+        emailHref={emailHref}
+        phone={phone}
+        telHref={telHref}
+        footerWa={footerWa && !waUrl ? footerWa : null}
+        socials={socials}
+        legal={legal}
+        roomForFab={!!(waUrl || lp.whatsapp_enabled)}
+      />
 
       {waUrl || (preview && lp.whatsapp_enabled) ? (
         <WhatsappFab
@@ -700,225 +523,151 @@ export function PublicLandingView({
   );
 }
 
-function SocialLink({
-  href,
-  label,
-  children,
-}: {
-  href: string;
-  label: string;
-  children: React.ReactNode;
-}) {
+/** Halo de marca detrás de la portada: da profundidad sin imagen extra. */
+function HeroGlow({ palette: p }: { palette: LandingPalette }) {
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      aria-label={label}
-      className="grid place-items-center min-w-11 h-11 px-1 rounded-full hover:opacity-80"
-    >
-      {children}
-    </a>
+    <div
+      className="pointer-events-none absolute inset-0"
+      style={{
+        background: `radial-gradient(60% 55% at 85% 0%, ${withAlpha(p.brand, p.isDark ? 0.28 : 0.16)}, transparent 70%), radial-gradient(45% 45% at 0% 100%, ${withAlpha(p.brand, p.isDark ? 0.14 : 0.08)}, transparent 70%)`,
+      }}
+      aria-hidden="true"
+    />
   );
 }
 
-function SectionHeading({
-  eyebrow,
+function LandingFooterBlock({
+  palette: p,
   title,
-  palette,
-  tight,
+  place,
+  email,
+  emailHref,
+  phone,
+  telHref,
+  footerWa,
+  socials,
+  legal,
+  roomForFab,
 }: {
-  eyebrow: string;
-  title: string;
   palette: LandingPalette;
-  tight?: boolean;
+  title: string;
+  place: string;
+  email?: string;
+  emailHref: string | null;
+  phone: string | null;
+  telHref: string | null;
+  footerWa: string | null;
+  socials: [string, string][];
+  legal: { label: string; url: string }[];
+  roomForFab: boolean;
 }) {
+  const linkCls =
+    "inline-flex items-center gap-2 hover:underline underline-offset-4 rounded focus-visible:outline-2 focus-visible:outline-offset-2";
   return (
-    <div className={`text-center ${tight ? "mb-4" : "mb-10 md:mb-14"}`}>
-      <div
-        className="text-xs font-semibold uppercase tracking-[0.18em]"
-        style={{ color: palette.brandText }}
-      >
-        {eyebrow}
-      </div>
-      <h2 className={`${H2} font-bold tracking-tight mt-3`}>{title}</h2>
-      <div
-        className="mx-auto rounded-full mt-5 h-1 w-12"
-        style={{ background: palette.brand }}
-        aria-hidden="true"
-      />
-    </div>
-  );
-}
-
-function BeforeAfter({ item, palette: p }: { item: GalleryItem; palette: LandingPalette }) {
-  const tag = (text: string) => (
-    <span
-      className="absolute left-3 top-3 rounded-full px-3 py-1 text-xs font-semibold"
-      style={{ background: "rgba(0,0,0,0.75)", color: "#ffffff" }}
-    >
-      {text}
-    </span>
-  );
-  const photo = (src: string, label: string) => (
-    <div className="relative rounded-xl overflow-hidden">
-      <img
-        src={src}
-        alt={`${label}${item.caption ? `: ${item.caption}` : ""}`}
-        width={800}
-        height={600}
-        loading="lazy"
-        decoding="async"
-        className="w-full aspect-[4/3] object-cover"
-      />
-      {tag(label)}
-    </div>
-  );
-  return (
-    <figure>
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        {photo(item.before_url ?? "", "Antes")}
-        {photo(item.url, "Después")}
-      </div>
-      {item.caption && (
-        <figcaption className="mt-2 text-sm text-center" style={{ color: p.muted }}>
-          {item.caption}
-        </figcaption>
-      )}
-    </figure>
-  );
-}
-
-function GalleryLightbox({
-  items,
-  index,
-  onClose,
-  onIndex,
-}: {
-  items: GalleryItem[];
-  index: number;
-  onClose: () => void;
-  onIndex: (i: number) => void;
-}) {
-  const total = items.length;
-  const go = useCallback(
-    (delta: number) => onIndex((index + delta + total) % total),
-    [index, total, onIndex],
-  );
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowRight") go(1);
-      else if (e.key === "ArrowLeft") go(-1);
-    };
-    document.addEventListener("keydown", onKey);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previous;
-    };
-  }, [go, onClose]);
-
-  const current = items[index];
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Galería de imágenes"
-      className="fixed inset-0 z-50 grid place-items-center p-4"
-      style={{ background: "rgba(0,0,0,0.9)" }}
-      onClick={onClose}
-    >
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Cerrar galería"
-        autoFocus
-        className="absolute top-4 right-4 rounded-full p-2 text-white/80 hover:text-white"
-      >
-        <X className="w-6 h-6" />
-      </button>
-      {total > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              go(-1);
-            }}
-            aria-label="Imagen anterior"
-            className="absolute left-2 md:left-6 rounded-full p-2 text-white/80 hover:text-white"
-          >
-            <ChevronLeft className="w-8 h-8" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              go(1);
-            }}
-            aria-label="Imagen siguiente"
-            className="absolute right-2 md:right-6 rounded-full p-2 text-white/80 hover:text-white"
-          >
-            <ChevronRight className="w-8 h-8" />
-          </button>
-        </>
-      )}
-      <img
-        src={current.url}
-        alt={current.alt || current.caption || `Imagen ${index + 1} de ${total}`}
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[85vh] max-w-full object-contain rounded-lg"
-      />
-      {total > 1 && (
-        <div className="absolute bottom-5 text-xs text-white/80">
-          {index + 1} / {total}
+    <footer className="border-t" style={{ borderColor: p.border, background: p.tint }}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 md:py-14 grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
+        <div className="min-w-0">
+          <div className="font-bold text-lg tracking-tight">{title}</div>
+          {place && (
+            <p className="mt-2 text-sm inline-flex items-start gap-1.5" style={{ color: p.muted }}>
+              <MapPin className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+              {place}
+            </p>
+          )}
         </div>
-      )}
-    </div>
-  );
-}
-
-function FaqRow({ item, palette }: { item: FaqItem; palette: LandingPalette }) {
-  const [open, setOpen] = useState(false);
-  const uid = useId();
-  const buttonId = `faq-btn-${uid}`;
-  const panelId = `faq-panel-${uid}`;
-  return (
-    <div
-      className="rounded-xl border overflow-hidden"
-      style={{ background: palette.surface, borderColor: palette.border }}
-    >
-      <h3>
-        <button
-          type="button"
-          id={buttonId}
-          aria-expanded={open}
-          aria-controls={panelId}
-          onClick={() => setOpen(!open)}
-          className="w-full flex items-center justify-between gap-3 text-left px-4 py-4 font-medium text-base"
-        >
-          {item.question}
-          <ChevronDown
-            className={`w-5 h-5 shrink-0 transition ${open ? "rotate-180" : ""}`}
-            aria-hidden="true"
-          />
-        </button>
-      </h3>
-      {/* Se mantiene en el DOM para que la respuesta sea rastreable. */}
-      <div
-        id={panelId}
-        role="region"
-        aria-labelledby={buttonId}
-        hidden={!open}
-        className="px-4 pb-4 text-base whitespace-pre-line"
-        style={{ color: palette.muted }}
-      >
-        {item.answer}
+        {(emailHref || (phone && telHref) || footerWa) && (
+          <div className="min-w-0">
+            <h2
+              className="text-xs font-semibold uppercase tracking-[0.16em]"
+              style={{ color: p.muted }}
+            >
+              Contacto
+            </h2>
+            <ul className="mt-3 text-sm space-y-2.5 min-w-0">
+              {emailHref && (
+                <li>
+                  <a
+                    className={`${linkCls} break-all`}
+                    href={emailHref}
+                    style={{ outlineColor: p.brand }}
+                  >
+                    <Mail className="w-4 h-4 shrink-0" aria-hidden="true" /> {email}
+                  </a>
+                </li>
+              )}
+              {phone && telHref && (
+                <li>
+                  <a className={linkCls} href={telHref} style={{ outlineColor: p.brand }}>
+                    <Phone className="w-4 h-4 shrink-0" aria-hidden="true" /> {phone}
+                  </a>
+                </li>
+              )}
+              {footerWa && (
+                <li>
+                  <a
+                    className={linkCls}
+                    href={`https://wa.me/${footerWa.slice(1)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ outlineColor: p.brand }}
+                  >
+                    <MessageCircle className="w-4 h-4 shrink-0" aria-hidden="true" /> WhatsApp
+                  </a>
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+        {(socials.length > 0 || legal.length > 0) && (
+          <div className="text-sm space-y-4 min-w-0">
+            {socials.length > 0 && (
+              <div>
+                <h2
+                  className="text-xs font-semibold uppercase tracking-[0.16em]"
+                  style={{ color: p.muted }}
+                >
+                  Síguenos
+                </h2>
+                <div className="mt-3 flex items-center gap-2">
+                  {socials.map(([label, href]) => (
+                    <SocialLink key={label} href={href} label={label} palette={p}>
+                      {label === "Instagram" ? (
+                        <Instagram className="w-5 h-5" aria-hidden="true" />
+                      ) : label === "Facebook" ? (
+                        <Facebook className="w-5 h-5" aria-hidden="true" />
+                      ) : (
+                        <span className="font-semibold text-xs">TikTok</span>
+                      )}
+                    </SocialLink>
+                  ))}
+                </div>
+              </div>
+            )}
+            {legal.length > 0 && (
+              <ul className="space-y-1.5" style={{ color: p.muted }}>
+                {legal.map((l, i) => (
+                  <li key={i}>
+                    <a
+                      href={l.url}
+                      className="hover:underline underline-offset-4"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
-    </div>
+      <div
+        className={`border-t text-center text-xs px-4 pt-5 ${roomForFab ? "pb-24 sm:pb-6" : "pb-6"}`}
+        style={{ color: p.muted, borderColor: p.border }}
+      >
+        © {new Date().getFullYear()} {title}
+      </div>
+    </footer>
   );
 }

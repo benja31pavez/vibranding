@@ -20,15 +20,16 @@ export function WhatsappFab({
       rel="noreferrer"
       onClick={onClick}
       aria-label={label}
-      className="fixed z-40 bottom-4 right-4 sm:bottom-6 sm:right-6 inline-flex items-center gap-2 rounded-full shadow-xl px-4 h-14 font-semibold transition hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2"
+      className="group fixed z-40 bottom-4 right-4 sm:bottom-6 sm:right-6 inline-flex items-center justify-center gap-2 rounded-full w-14 sm:w-auto sm:pl-4 sm:pr-5 h-14 font-semibold transition motion-safe:hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-500"
       style={{
         background: "#25D366",
         color: "#0a0a0a",
         outlineColor: "#128C7E",
         marginBottom: "env(safe-area-inset-bottom)",
+        boxShadow: "0 14px 30px -10px rgba(18,140,126,0.65), 0 2px 6px rgba(0,0,0,0.15)",
       }}
     >
-      <MessageCircle className="w-6 h-6" aria-hidden="true" />
+      <MessageCircle className="w-6 h-6 shrink-0" aria-hidden="true" />
       <span className="hidden sm:inline">WhatsApp</span>
     </a>
   );

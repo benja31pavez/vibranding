@@ -16,7 +16,6 @@ import { ConfirmDialog, EmptyState, ErrorState, InfoHint, ListSkeleton } from "@
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { formatChileMobile } from "@/lib/site/validation";
 import { writeError, writeFailed } from "@/lib/writeCheck";
-import { EventsPanel } from "@/components/landing/EventsPanel";
 import { LandingAnalytics } from "@/components/landing/LandingAnalytics";
 import { PublicLandingView } from "@/components/landing/PublicLandingView";
 import { DevicePreview, type PreviewMode } from "@/components/site/DevicePreview";
@@ -567,19 +566,17 @@ export function LandingEditor({
         </SitePane>
 
         <SitePane value="metricas">
-          <ScrollColumn>
-            {!lp.published ? (
-              <EmptyState
-                icon={Activity}
-                title="Las visitas y clics se miden desde que publicas la landing."
-              />
-            ) : (
-              <>
-                <LandingAnalytics clientId={clientId} landingId={lp.id} />
-                <EventsPanel clientId={clientId} sourceType="landing" sourceId={lp.id} />
-              </>
-            )}
-          </ScrollColumn>
+          {!lp.published ? (
+            <EmptyState
+              icon={Activity}
+              title="Las visitas y clics se miden desde que publicas la landing."
+              description="Publica la landing y comparte su link: aquí verás visitas, clics, contactos y de dónde llegan."
+            />
+          ) : (
+            <div className="md:h-full md:min-h-0">
+              <LandingAnalytics clientId={clientId} landingId={lp.id} />
+            </div>
+          )}
         </SitePane>
       </Tabs>
 
