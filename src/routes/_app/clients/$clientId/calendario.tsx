@@ -1,5 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ClientCalendar, type ClientCalendarSearch } from "@/components/agenda/ClientCalendar";
+import {
+  ClientCalendar,
+  isCalendarTab,
+  type CalendarTab,
+  type ClientCalendarSearch,
+} from "@/components/agenda/ClientCalendar";
 import { useActiveClient } from "@/contexts/ActiveClientContext";
 import { isDayKey } from "@/lib/agenda/dates";
 import { AGENDA_KINDS } from "@/lib/agenda/types";
@@ -10,9 +15,17 @@ function parseKinds(raw: unknown): string | undefined {
   return kinds.length > 0 && kinds.length < AGENDA_KINDS.length ? kinds.join(",") : undefined;
 }
 
+/** Enlaces del diseño anterior (`?vista=semana|lista`) siguen funcionando. */
+function parseTab(s: Record<string, unknown>): CalendarTab | undefined {
+  if (isCalendarTab(s.tab)) return s.tab;
+  if (s.vista === "semana" || s.vista === "lista") return s.vista;
+  if (s.vista === "mes") return "mes";
+  return undefined;
+}
+
 export const Route = createFileRoute("/_app/clients/$clientId/calendario")({
   validateSearch: (s: Record<string, unknown>): ClientCalendarSearch => ({
-    vista: s.vista === "semana" || s.vista === "lista" ? s.vista : undefined,
+    tab: parseTab(s),
     fecha: isDayKey(s.fecha) ? s.fecha : undefined,
     tipos: parseKinds(s.tipos),
   }),
@@ -38,7 +51,13 @@ function ClientCalendarPage() {
       clientId={clientId}
       clientName={client?.name ?? ""}
       search={search}
-      setSearch={(patch) => navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })}
+      setSearch={(patch) =>
+        navigate({
+          search: (prev) => ({ ...prev, ...patch }),
+          replace: true,
+          resetScroll: false,
+        })
+      }
     />
   );
 }

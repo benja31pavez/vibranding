@@ -9,6 +9,8 @@ import {
   FitPage,
   ListSkeleton,
   PageHeader,
+  SectionTabs,
+  type SectionTab,
 } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,8 +44,38 @@ import {
   useUploadedFiles,
   type UploadOutcome,
 } from "./archivosQueries";
+import { ArchivosCompartidos } from "./ArchivosCompartidos";
+import { ArchivosRecientes } from "./ArchivosRecientes";
+import { ArchivosResumen, type ArchivosFolder } from "./ArchivosResumen";
 import { DocumentRow, GalleryCard, UploadRow } from "./FileItems";
 import { FileViewer } from "./FileViewer";
+
+export type ArchivosTab = "resumen" | "carpetas" | "recientes" | "compartidos";
+export const ARCHIVOS_TABS: readonly ArchivosTab[] = [
+  "resumen",
+  "carpetas",
+  "recientes",
+  "compartidos",
+];
+export function isArchivosTab(v: unknown): v is ArchivosTab {
+  return typeof v === "string" && (ARCHIVOS_TABS as readonly string[]).includes(v);
+}
+
+const TABS: readonly SectionTab<ArchivosTab>[] = [
+  { key: "resumen", label: "Resumen" },
+  { key: "carpetas", label: "Carpetas" },
+  { key: "recientes", label: "Recientes" },
+  {
+    key: "compartidos",
+    // En teléfono el nombre completo no cabe en la barra de cuatro pestañas.
+    label: (
+      <>
+        <span className="md:hidden">Compartidos</span>
+        <span className="hidden md:inline">Compartidos con el cliente</span>
+      </>
+    ),
+  },
+];
 
 type Origin = "vibranding" | "cliente";
 type View = "gallery" | "documents";
@@ -232,9 +264,18 @@ function Toolbar({
 /** Pide confirmación para eliminar un archivo propio. */
 type RequestDelete = (file: ClientFile) => void;
 
-function GeneratedView({ clientId, onDelete }: { clientId: string; onDelete: RequestDelete }) {
+function GeneratedView({
+  clientId,
+  view,
+  onView,
+  onDelete,
+}: {
+  clientId: string;
+  view: View;
+  onView: (view: View) => void;
+  onDelete: RequestDelete;
+}) {
   const { files, isLoading, error, refetch } = useGeneratedFiles(clientId);
-  const [view, setView] = useState<View>("gallery");
   const [filters, setFilters] = useState<FileFilters>(EMPTY_FILTERS);
   const [viewing, setViewing] = useState<ClientFile | null>(null);
 
@@ -248,7 +289,7 @@ function GeneratedView({ clientId, onDelete }: { clientId: string; onDelete: Req
   const filtered = filters.kind !== "all" || filters.month !== "all" || filters.query.trim();
 
   const changeView = (next: View) => {
-    setView(next);
+    onView(next);
     setFilters({ ...EMPTY_FILTERS, query: filters.query });
   };
 
@@ -429,12 +470,22 @@ function UploadButton({
   );
 }
 
+interface ArchivosPageProps {
+  clientId: string;
+  tab?: ArchivosTab;
+  onTabChange?: (tab: ArchivosTab) => void;
+}
+
 /**
- * "Archivos" del cliente: piezas gráficas y documentos que generó (o subió)
- * Vibranding, y aparte lo que subió el cliente (en la plataforma y en el
- * onboarding). Cada usuario solo puede eliminar lo que subió su lado.
+ * "Archivos" del cliente, con cuatro subsecciones:
+ * - Resumen: espacio usado, contadores por carpeta y últimos archivos.
+ * - Carpetas: piezas gráficas y documentos que generó (o subió) Vibranding, y aparte lo
+ *   que subió el cliente (en la plataforma y en el onboarding). Cada usuario solo puede
+ *   eliminar lo que subió su lado.
+ * - Recientes: todo en una lista, del más nuevo al más antiguo.
+ * - Compartidos con el cliente: enlaces de revisión de entregables y link de onboarding.
  */
-export function ArchivosPage({ clientId }: { clientId: string }) {
+export function ArchivosPage({ clientId, tab = "resumen", onTabChange }: ArchivosPageProps) {
   const overview = useFichaOverview(clientId);
   const canEdit = Boolean(overview.data?.canEdit);
   const stored = useStoredFiles(clientId);
@@ -442,10 +493,22 @@ export function ArchivosPage({ clientId }: { clientId: string }) {
   const uploaded = useUploadedFiles(clientId, canEdit);
   const remove = useDeleteClientFile(clientId);
   const [origin, setOrigin] = useState<Origin>("vibranding");
+  const [view, setView] = useState<View>("gallery");
   const [deleting, setDeleting] = useState<ClientFile | null>(null);
   // El usuario cliente también ve la pestaña con lo que subió.
   const showOrigins = canEdit || actor?.kind === "client";
   const active: Origin = showOrigins ? origin : "vibranding";
+  const setTab = (next: ArchivosTab) => onTabChange?.(next);
+
+  const openFolder = (folder: ArchivosFolder) => {
+    if (folder === "cliente") {
+      setOrigin("cliente");
+    } else {
+      setOrigin("vibranding");
+      setView(folder === "galeria" ? "gallery" : "documents");
+    }
+    setTab("carpetas");
+  };
 
   const requestDelete: RequestDelete = (file) => {
     if (file.stored?.canDelete) setDeleting(file);
@@ -460,50 +523,80 @@ export function ArchivosPage({ clientId }: { clientId: string }) {
     });
   };
 
+  const header = (
+    <div className="flex flex-col gap-3">
+      <PageHeader
+        size="compact"
+        title="Archivos"
+        actions={
+          <>
+            {actor?.canUpload && stored.data && (
+              <UploadButton
+                clientId={clientId}
+                usage={stored.data.usage}
+                onUploaded={() => setOrigin(actor.kind === "client" ? "cliente" : "vibranding")}
+              />
+            )}
+            {tab === "carpetas" && showOrigins && (
+              <Segmented
+                label="Origen de los archivos"
+                value={active}
+                onChange={setOrigin}
+                options={[
+                  { value: "vibranding", label: "Generados por Vibranding" },
+                  {
+                    value: "cliente",
+                    label: "Subidos por el cliente",
+                    count: uploaded.files.length,
+                  },
+                ]}
+              />
+            )}
+          </>
+        }
+      />
+      <SectionTabs tabs={TABS} value={tab} onChange={setTab} label="Vistas de Archivos" />
+    </div>
+  );
+
   return (
-    <FitPage
-      header={
-        <PageHeader
-          size="compact"
-          title="Archivos"
-          actions={
-            <>
-              {actor?.canUpload && stored.data && (
-                <UploadButton
-                  clientId={clientId}
-                  usage={stored.data.usage}
-                  onUploaded={() => setOrigin(actor.kind === "client" ? "cliente" : "vibranding")}
-                />
-              )}
-              {showOrigins && (
-                <Segmented
-                  label="Origen de los archivos"
-                  value={active}
-                  onChange={setOrigin}
-                  options={[
-                    { value: "vibranding", label: "Generados por Vibranding" },
-                    {
-                      value: "cliente",
-                      label: "Subidos por el cliente",
-                      count: uploaded.files.length,
-                    },
-                  ]}
-                />
-              )}
-            </>
-          }
+    <FitPage header={header} contentClassName="flex flex-col gap-3">
+      {tab === "resumen" && (
+        <ArchivosResumen
+          clientId={clientId}
+          canEdit={canEdit}
+          showClientFolder={Boolean(showOrigins)}
+          onDelete={requestDelete}
+          onOpenFolder={openFolder}
+          onOpenRecent={() => setTab("recientes")}
+          onOpenShared={() => setTab("compartidos")}
         />
-      }
-      contentClassName="flex flex-col gap-3"
-    >
-      {active === "vibranding" ? (
-        <GeneratedView clientId={clientId} onDelete={requestDelete} />
-      ) : uploaded.isLoading ? (
-        <ListSkeleton rows={3} label="Cargando archivos del cliente" />
-      ) : uploaded.error ? (
-        <ErrorState message={uploaded.error.message} onRetry={uploaded.refetch} />
-      ) : (
-        <UploadedView clientId={clientId} files={uploaded.files} onDelete={requestDelete} />
+      )}
+      {tab === "carpetas" &&
+        (active === "vibranding" ? (
+          <GeneratedView
+            clientId={clientId}
+            view={view}
+            onView={setView}
+            onDelete={requestDelete}
+          />
+        ) : uploaded.isLoading ? (
+          <ListSkeleton rows={3} label="Cargando archivos del cliente" />
+        ) : uploaded.error ? (
+          <ErrorState message={uploaded.error.message} onRetry={uploaded.refetch} />
+        ) : (
+          <UploadedView clientId={clientId} files={uploaded.files} onDelete={requestDelete} />
+        ))}
+      {tab === "recientes" && (
+        <ArchivosRecientes
+          clientId={clientId}
+          canEdit={canEdit}
+          onDelete={requestDelete}
+          onOpenFolders={() => setTab("carpetas")}
+        />
+      )}
+      {tab === "compartidos" && (
+        <ArchivosCompartidos clientId={clientId} overview={overview.data} />
       )}
       <ConfirmDialog
         open={deleting !== null}

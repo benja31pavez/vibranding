@@ -1,9 +1,14 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo } from "react";
-import { ErrorState, FitPage, PageHeader, Panel } from "@/components/app";
+import { useMemo, type ReactNode } from "react";
+import {
+  ErrorState,
+  FitPage,
+  PageHeader,
+  Panel,
+  SectionTabs,
+  type SectionTab,
+} from "@/components/app";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   useClientAgendaData,
   usePrefetchClientAgendaRange,
@@ -24,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { AgendaCalendar, AgendaCalendarSkeleton } from "./AgendaCalendar";
 import { AgendaFilters } from "./AgendaFilters";
 import { AgendaLegend } from "./AgendaLegend";
+import { ClientCalendarResumen } from "./ClientCalendarResumen";
 import { DayPanel } from "./DayPanel";
 import { PartialErrorNotice } from "./PartialErrorNotice";
 import { TASK_LATE_STATUS } from "./agendaStyles";
@@ -39,8 +45,24 @@ function withLateTasks(items: readonly AgendaItem[], today: string): AgendaItem[
   );
 }
 
+/** Vistas del calendario propiamente tal (las tres pestañas después de Resumen). */
+export type CalendarViewTab = AgendaView;
+export type CalendarTab = "resumen" | CalendarViewTab;
+export const CALENDAR_TABS: readonly CalendarTab[] = ["resumen", "mes", "semana", "lista"];
+export function isCalendarTab(v: unknown): v is CalendarTab {
+  return typeof v === "string" && (CALENDAR_TABS as readonly string[]).includes(v);
+}
+
+const TABS: readonly SectionTab<CalendarTab>[] = [
+  { key: "resumen", label: "Resumen" },
+  { key: "mes", label: "Mes" },
+  { key: "semana", label: "Semana" },
+  { key: "lista", label: "Lista" },
+];
+
 export interface ClientCalendarSearch {
-  vista?: "semana" | "lista";
+  /** Subsección: resumen (por defecto), mes, semana o lista. */
+  tab?: CalendarTab;
   fecha?: string;
   /** Tipos separados por coma; ausente = todos. */
   tipos?: string;
@@ -54,14 +76,66 @@ interface ClientCalendarProps {
 }
 
 /**
- * Calendario de UN cliente (panel del cliente): misma grilla, filtros y panel del día
- * que la Agenda, sin selector de cliente y solo con lo que el cliente puede ver.
+ * Calendario de UN cliente (panel del cliente), con cuatro subsecciones: Resumen
+ * (próximos 7 días con contadores), Mes, Semana y Lista. Las vistas usan la misma
+ * grilla, filtros y panel del día que la Agenda, sin selector de cliente y solo con lo
+ * que el cliente puede ver.
  */
 export function ClientCalendar({ clientId, clientName, search, setSearch }: ClientCalendarProps) {
   const today = useChileToday();
-  const isMobile = useIsMobile();
-  // La vista Lista es solo para móvil; en escritorio cae a Mes.
-  const view: AgendaView = search.vista === "lista" && !isMobile ? "mes" : (search.vista ?? "mes");
+  const tab: CalendarTab = search.tab ?? "resumen";
+  const header = (
+    <div className="flex flex-col gap-3">
+      <PageHeader size="compact" title="Calendario" />
+      <SectionTabs
+        tabs={TABS}
+        value={tab}
+        onChange={(next) => setSearch({ tab: next === "resumen" ? undefined : next })}
+        label="Vistas del calendario"
+      />
+    </div>
+  );
+  if (tab === "resumen") {
+    return (
+      <FitPage header={header} contentClassName="flex flex-col gap-4">
+        <ClientCalendarResumen
+          clientId={clientId}
+          clientName={clientName}
+          today={today}
+          onOpenView={(next) => setSearch({ tab: next })}
+        />
+      </FitPage>
+    );
+  }
+  return (
+    <ClientCalendarView
+      clientId={clientId}
+      clientName={clientName}
+      view={tab}
+      search={search}
+      setSearch={setSearch}
+      today={today}
+      header={header}
+    />
+  );
+}
+
+interface ClientCalendarViewProps extends ClientCalendarProps {
+  view: AgendaView;
+  today: string;
+  header: ReactNode;
+}
+
+/** Vistas Mes, Semana y Lista: grilla + filtros + panel del día (no en Lista). */
+function ClientCalendarView({
+  clientId,
+  clientName,
+  view,
+  search,
+  setSearch,
+  today,
+  header,
+}: ClientCalendarViewProps) {
   const selected = search.fecha ?? today;
   const range = useMemo(() => queryRange(view, selected), [view, selected]);
   const nextRange = useMemo(() => queryRange(view, step(view, selected, 1)), [view, selected]);
@@ -86,17 +160,9 @@ export function ClientCalendar({ clientId, clientName, search, setSearch }: Clie
   const itemsByDay = useMemo(() => groupByDay(visible), [visible]);
 
   const selectDay = (day: string) => setSearch({ fecha: day === today ? undefined : day });
-  const setView = (v: string) => {
-    if (v === "mes" || v === "semana" || v === "lista") {
-      setSearch({ vista: v === "mes" ? undefined : v });
-    }
-  };
 
   return (
-    <FitPage
-      header={<PageHeader size="compact" title="Calendario" />}
-      contentClassName="flex flex-col gap-4"
-    >
+    <FitPage header={header} contentClassName="flex flex-col gap-4">
       <AgendaFilters
         kinds={kinds}
         counts={counts}
@@ -112,7 +178,14 @@ export function ClientCalendar({ clientId, clientName, search, setSearch }: Clie
         />
       )}
 
-      <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-rows-[minmax(0,1fr)_minmax(0,12rem)] lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)]">
+      <div
+        className={cn(
+          "grid gap-4 md:min-h-0 md:flex-1",
+          view === "lista"
+            ? "md:grid-rows-[minmax(0,1fr)]"
+            : "md:grid-rows-[minmax(0,1fr)_minmax(0,12rem)] lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)]",
+        )}
+      >
         <Panel
           fill
           bodyClassName="px-2 pb-3 sm:px-4 sm:pb-4"
@@ -148,26 +221,6 @@ export function ClientCalendar({ clientId, clientName, search, setSearch }: Clie
             </div>
           }
         >
-          <ToggleGroup
-            type="single"
-            size="sm"
-            variant="outline"
-            value={view}
-            onValueChange={setView}
-            aria-label="Vista del calendario"
-            className="mb-3 shrink-0 justify-start"
-          >
-            <ToggleGroupItem value="mes" className="h-8 px-3 text-xs">
-              Mes
-            </ToggleGroupItem>
-            <ToggleGroupItem value="semana" className="h-8 px-3 text-xs">
-              Semana
-            </ToggleGroupItem>
-            <ToggleGroupItem value="lista" className="h-8 px-3 text-xs md:hidden">
-              Lista
-            </ToggleGroupItem>
-          </ToggleGroup>
-
           <p role="status" aria-live="polite" className="sr-only">
             {agenda.isRefreshing ? "Actualizando calendario…" : ""}
           </p>
