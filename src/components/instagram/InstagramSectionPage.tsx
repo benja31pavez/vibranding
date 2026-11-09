@@ -211,12 +211,12 @@ function InstagramResumen({
               "Aún no se sincroniza el perfil"
             ) : (
               <Link
-                to="/clients/$clientId/meta-ads"
+                to="/clients/$clientId/anuncios"
                 params={{ clientId }}
-                search={{ tab: "configuracion" }}
+                search={{ tab: "meta" }}
                 className="font-medium text-[color:var(--brand-1)] hover:underline"
               >
-                Vincular en Meta Ads › Configuración
+                Vincular en Anuncios › Meta Ads
               </Link>
             )
           }

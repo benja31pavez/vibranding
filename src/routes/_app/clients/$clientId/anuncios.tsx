@@ -1,21 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  AnunciosPage,
-  isAnunciosTab,
-  isGoogleAdsTab,
-  isMetaAdsTab,
-  type AnunciosTab,
-} from "@/components/anuncios/AnunciosPage";
-import type { MetaAdsTab } from "@/components/meta-ads/MetaAdsSectionPage";
-import type { GoogleAdsTab } from "@/components/google-ads/GoogleAdsSectionPage";
+import { AnunciosPage, isAnunciosTab, type AnunciosTab } from "@/components/anuncios/AnunciosPage";
 
 interface AnunciosSearch {
   /** Subsección de Anuncios: resumen (por defecto), meta, google o configuracion. */
   tab?: AnunciosTab;
-  /** Subpestaña dentro de Meta Ads (resumen/campanas/anuncios/configuracion). */
-  metasub?: MetaAdsTab;
-  /** Subpestaña dentro de Google Ads (resumen/campanas/palabras-clave/anuncios). */
-  gadssub?: GoogleAdsTab;
   /** Avisos que dejan los callbacks de OAuth de Meta y Google en la URL. */
   meta?: string;
   meta_error?: string;
@@ -26,8 +14,6 @@ interface AnunciosSearch {
 export const Route = createFileRoute("/_app/clients/$clientId/anuncios")({
   validateSearch: (s: Record<string, unknown>): AnunciosSearch => ({
     tab: isAnunciosTab(s.tab) ? s.tab : undefined,
-    metasub: isMetaAdsTab(s.metasub) ? s.metasub : undefined,
-    gadssub: isGoogleAdsTab(s.gadssub) ? s.gadssub : undefined,
     meta: typeof s.meta === "string" ? s.meta : undefined,
     meta_error: typeof s.meta_error === "string" ? s.meta_error : undefined,
     gads: typeof s.gads === "string" ? s.gads : undefined,
@@ -54,7 +40,7 @@ export const Route = createFileRoute("/_app/clients/$clientId/anuncios")({
 
 function AnunciosRoute() {
   const { clientId } = Route.useParams();
-  const { tab, metasub, gadssub } = Route.useSearch();
+  const { tab } = Route.useSearch();
   const navigate = Route.useNavigate();
   return (
     <AnunciosPage
@@ -65,28 +51,6 @@ function AnunciosRoute() {
           search: (prev) => ({
             ...prev,
             tab: next === "resumen" ? undefined : next,
-          }),
-          replace: true,
-          resetScroll: false,
-        })
-      }
-      metaSub={metasub ?? "resumen"}
-      onMetaSubChange={(next) =>
-        navigate({
-          search: (prev) => ({
-            ...prev,
-            metasub: next === "resumen" ? undefined : next,
-          }),
-          replace: true,
-          resetScroll: false,
-        })
-      }
-      googleSub={gadssub ?? "resumen"}
-      onGoogleSubChange={(next) =>
-        navigate({
-          search: (prev) => ({
-            ...prev,
-            gadssub: next === "resumen" ? undefined : next,
           }),
           replace: true,
           resetScroll: false,

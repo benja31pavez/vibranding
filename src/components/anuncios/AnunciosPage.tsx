@@ -24,22 +24,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { MetaIcon } from "@/components/icons/MetaIcon";
 import { MetaConnectCard } from "@/components/meta-ads/MetaConnectCard";
-import {
-  isMetaAdsTab,
-  MetaAdsSectionPage,
-  type MetaAdsTab,
-} from "@/components/meta-ads/MetaAdsSectionPage";
+import { MetaAdsSectionPage } from "@/components/meta-ads/MetaAdsSectionPage";
 import { GoogleAdsConnectCard } from "@/components/google-ads/GoogleAdsConnectCard";
 import {
   GOOGLE_ADS_WINDOW_DAYS,
   useGoogleAdsCampaigns,
 } from "@/components/google-ads/GoogleAdsCampaignsTable";
 import { useGoogleAdsOverview } from "@/components/google-ads/googleAdsOverviewQueries";
-import {
-  isGoogleAdsTab,
-  GoogleAdsSectionPage,
-  type GoogleAdsTab,
-} from "@/components/google-ads/GoogleAdsSectionPage";
+import { GoogleAdsSectionPage } from "@/components/google-ads/GoogleAdsSectionPage";
 import { useUserKey } from "@/components/clients/ficha/fichaQueries";
 import { chileToday } from "@/lib/dates/chile";
 
@@ -60,40 +52,25 @@ const TABS: readonly SectionTab<AnunciosTab>[] = [
 
 const DESCRIPTION: Readonly<Record<AnunciosTab, string>> = {
   resumen: "Inversión consolidada del mes, clics, conversiones y estado de las conexiones",
-  meta: "Resumen, campañas, anuncios y configuración de Meta Ads",
-  google: "Resumen, campañas, palabras clave y anuncios de Google Ads",
+  meta: "Conexión, inversión, alertas, campañas y anuncios de Meta Ads en una sola pantalla",
+  google: "Conexión, inversión, campañas y anuncios de Google Ads en una sola pantalla",
   configuracion: "Conexiones, cuenta publicitaria Meta, cuenta de Google Ads y presupuestos",
 };
 
 const nf = new Intl.NumberFormat("es-CL");
 
-export { isMetaAdsTab, isGoogleAdsTab };
-
 interface AnunciosPageProps {
   clientId: string;
   tab: AnunciosTab;
   onTabChange: (tab: AnunciosTab) => void;
-  metaSub: MetaAdsTab;
-  onMetaSubChange: (sub: MetaAdsTab) => void;
-  googleSub: GoogleAdsTab;
-  onGoogleSubChange: (sub: GoogleAdsTab) => void;
 }
 
 /**
  * Sección "Anuncios" del cliente: Meta Ads, Google Ads y configuración común en una
- * sola pantalla con cuatro subsecciones. Las subpestañas internas de Meta y Google se
- * guardan como search params aparte (`metasub` y `gadssub`) para no chocar con el `tab`
- * de la pantalla.
+ * sola pantalla con cuatro subsecciones. Meta Ads y Google Ads ya no tienen pestañas
+ * internas, es una sola vista continua por plataforma.
  */
-export function AnunciosPage({
-  clientId,
-  tab,
-  onTabChange,
-  metaSub,
-  onMetaSubChange,
-  googleSub,
-  onGoogleSubChange,
-}: AnunciosPageProps) {
+export function AnunciosPage({ clientId, tab, onTabChange }: AnunciosPageProps) {
   const header = (
     <div className="flex flex-col gap-3">
       <PageHeader size="compact" title="Anuncios" description={DESCRIPTION[tab]} />
@@ -105,12 +82,8 @@ export function AnunciosPage({
     <div className="flex flex-col gap-4">
       {header}
       {tab === "resumen" && <AnunciosResumen clientId={clientId} onTabChange={onTabChange} />}
-      {tab === "meta" && (
-        <MetaAdsSectionPage clientId={clientId} tab={metaSub} onTabChange={onMetaSubChange} />
-      )}
-      {tab === "google" && (
-        <GoogleAdsSectionPage clientId={clientId} tab={googleSub} onTabChange={onGoogleSubChange} />
-      )}
+      {tab === "meta" && <MetaAdsSectionPage clientId={clientId} />}
+      {tab === "google" && <GoogleAdsSectionPage clientId={clientId} />}
       {tab === "configuracion" && <AnunciosConfiguracion clientId={clientId} />}
     </div>
   );
@@ -340,13 +313,13 @@ function AnunciosResumen({
           <AccessItem
             icon={MetaIcon}
             title="Meta Ads"
-            text="Campañas, anuncios y configuración de Meta."
+            text="Métricas, campañas y anuncios de Meta en una sola vista."
             onClick={() => onTabChange("meta")}
           />
           <AccessItem
             icon={BarChart3}
             title="Google Ads"
-            text="Campañas, palabras clave y anuncios de Google."
+            text="Métricas, campañas y pago de pauta de Google."
             onClick={() => onTabChange("google")}
           />
           <AccessItem
