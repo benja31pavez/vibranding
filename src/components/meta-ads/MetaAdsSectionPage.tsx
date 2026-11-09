@@ -1,9 +1,7 @@
-import type { ComponentType, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BellRing,
   Image as ImageIcon,
-  Megaphone,
   MessageCircle,
   MousePointerClick,
   Plug,
@@ -16,14 +14,11 @@ import {
   ErrorState,
   PageHeader,
   Panel,
-  SectionTabs,
   StatCard,
   StatusBadge,
   TableSkeleton,
-  type SectionTab,
   type StatusTone,
 } from "@/components/app";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -39,34 +34,31 @@ import {
   useUserKey,
 } from "@/components/clients/ficha/fichaQueries";
 import { MetaAdsPanel } from "@/components/MetaAdsPanel";
-import { useClientCapabilities } from "@/hooks/use-client-capabilities";
 import { chileToday } from "@/lib/dates/chile";
 import { MetaConnectCard } from "./MetaConnectCard";
 
-export type MetaAdsTab = "resumen" | "campanas" | "anuncios" | "configuracion";
-export const META_ADS_TABS: readonly MetaAdsTab[] = [
-  "resumen",
-  "campanas",
-  "anuncios",
-  "configuracion",
-];
-export function isMetaAdsTab(v: unknown): v is MetaAdsTab {
-  return typeof v === "string" && (META_ADS_TABS as readonly string[]).includes(v);
+interface MetaAdsSectionPageProps {
+  clientId: string;
 }
 
-const TABS: readonly SectionTab<MetaAdsTab>[] = [
-  { key: "resumen", label: "Resumen" },
-  { key: "campanas", label: "Campañas" },
-  { key: "anuncios", label: "Anuncios" },
-  { key: "configuracion", label: "Configuración" },
-];
+/**
+ * Sección Meta Ads del cliente en una sola pantalla continua: estado de conexión,
+ * métricas del mes, alertas, campañas y anuncios guardados, sin pestañas internas.
+ */
+export function MetaAdsSectionPage({ clientId }: MetaAdsSectionPageProps) {
+  return (
+    <div className="flex flex-col gap-4">
+      <PageHeader
+        size="compact"
+        title="Meta Ads"
+        description="Conexión, inversión del mes, alertas, campañas y anuncios en una sola pantalla"
+      />
+      <MetaAdsUnificada clientId={clientId} />
+    </div>
+  );
+}
 
-const DESCRIPTION: Readonly<Record<MetaAdsTab, string>> = {
-  resumen: "Inversión del mes, resultados, estado de la cuenta y alertas",
-  campanas: "Campañas, conjuntos de anuncios y métricas sincronizadas desde Meta",
-  anuncios: "Todos los anuncios del cliente, con su campaña y estado",
-  configuracion: "Conexión con Meta, cuenta publicitaria, página e Instagram vinculados",
-};
+/* ----------------------------- Métricas del mes ----------------------------- */
 
 const nf = new Intl.NumberFormat("es-CL");
 
@@ -82,97 +74,6 @@ function formatMoney(amount: number, currency: string): string {
     return `${nf.format(Math.round(amount))} ${currency}`;
   }
 }
-
-interface MetaAdsSectionPageProps {
-  clientId: string;
-  tab: MetaAdsTab;
-  onTabChange: (tab: MetaAdsTab) => void;
-}
-
-/**
- * Sección Meta Ads del cliente con cuatro subsecciones: Resumen (inversión del mes,
- * mensajes, estado de cuenta y alertas), Campañas (panel actual), Anuncios (lista plana
- * de anuncios guardados) y Configuración (conexión y activos vinculados).
- */
-export function MetaAdsSectionPage({ clientId, tab, onTabChange }: MetaAdsSectionPageProps) {
-  const header = (
-    <div className="flex flex-col gap-3">
-      <PageHeader size="compact" title="Meta Ads" description={DESCRIPTION[tab]} />
-      <SectionTabs tabs={TABS} value={tab} onChange={onTabChange} label="Vistas de Meta Ads" />
-    </div>
-  );
-
-  return (
-    <div className="flex flex-col gap-4">
-      {header}
-      {tab === "resumen" && <MetaAdsResumen clientId={clientId} onTabChange={onTabChange} />}
-      {tab === "campanas" && (
-        <NeedsConnection clientId={clientId} onTabChange={onTabChange} what="Las campañas">
-          <MetaAdsPanel clientId={clientId} section="campanas" />
-        </NeedsConnection>
-      )}
-      {tab === "anuncios" && (
-        <NeedsConnection clientId={clientId} onTabChange={onTabChange} what="Los anuncios">
-          <MetaAdsAnuncios clientId={clientId} onTabChange={onTabChange} />
-        </NeedsConnection>
-      )}
-      {tab === "configuracion" && (
-        <>
-          <MetaConnectCard clientId={clientId} />
-          <MetaAdsPanel clientId={clientId} section="configuracion" />
-          <Panel
-            title="Píxel y presupuesto por defecto"
-            icon={Settings2}
-            description="Todavía no se guardan en la plataforma"
-          >
-            <EmptyState
-              size="compact"
-              icon={Settings2}
-              title="Sin píxel ni presupuesto por defecto guardados"
-              description="Cuando se agreguen estos campos a la cuenta de Meta del cliente aparecerán aquí. Por ahora el presupuesto se define en cada campaña y el píxel se administra en el Administrador de eventos de Meta."
-              action={
-                <Button size="sm" variant="outline" onClick={() => onTabChange("campanas")}>
-                  Ir a Campañas
-                </Button>
-              }
-            />
-          </Panel>
-        </>
-      )}
-    </div>
-  );
-}
-
-/**
- * Sin cuenta publicitaria vinculada, el panel de campañas no dibuja nada a propósito;
- * aquí explicamos qué falta y llevamos a Configuración.
- */
-function NeedsConnection({
-  clientId,
-  onTabChange,
-  what,
-  children,
-}: {
-  clientId: string;
-  onTabChange: (tab: MetaAdsTab) => void;
-  what: string;
-  children: ReactNode;
-}) {
-  const { caps, loading, error } = useClientCapabilities(clientId);
-  if (!loading && !error && !caps.meta_connected && !caps.has_ad_account) {
-    return (
-      <EmptyState
-        icon={Plug}
-        title="Meta Ads no está conectado"
-        description={`${what} aparecen cuando el cliente tenga una cuenta de Meta conectada y una cuenta publicitaria vinculada.`}
-        action={<Button onClick={() => onTabChange("configuracion")}>Ir a Configuración</Button>}
-      />
-    );
-  }
-  return <>{children}</>;
-}
-
-/* ----------------------------- Resumen ----------------------------- */
 
 interface MonthTotals {
   spend: number;
@@ -255,13 +156,7 @@ function accountBadge(acc: MetaAccountStatus | null | undefined): {
   return { label: "Activa", tone: "success" };
 }
 
-function MetaAdsResumen({
-  clientId,
-  onTabChange,
-}: {
-  clientId: string;
-  onTabChange: (tab: MetaAdsTab) => void;
-}) {
+function MetaAdsUnificada({ clientId }: { clientId: string }) {
   const totals = useMetaMonthTotals(clientId);
   const account = useMetaAccountStatus(clientId);
   const health = useFichaHealth(clientId);
@@ -315,7 +210,7 @@ function MetaAdsResumen({
           hint={
             account.data?.ad_account_id
               ? `${account.data.business_name ? `${account.data.business_name} · ` : ""}${account.data.ad_account_id}`
-              : "Vincúlala en Configuración"
+              : "Vincúlala más abajo"
           }
         />
       </div>
@@ -349,56 +244,22 @@ function MetaAdsResumen({
         </Panel>
       )}
 
-      <Panel title="Accesos" icon={Megaphone} description="Lo que puedes hacer en esta sección">
-        <ul className="grid grid-cols-1 gap-2 md:grid-cols-3">
-          <AccessItem
-            icon={Megaphone}
-            title="Campañas"
-            text="Crear, publicar y editar campañas, conjuntos y anuncios."
-            onClick={() => onTabChange("campanas")}
-          />
-          <AccessItem
-            icon={ImageIcon}
-            title="Anuncios"
-            text="Lista de todos los anuncios con su estado."
-            onClick={() => onTabChange("anuncios")}
-          />
-          <AccessItem
-            icon={Settings2}
-            title="Configuración"
-            text="Conexión, cuenta publicitaria, página e Instagram."
-            onClick={() => onTabChange("configuracion")}
-          />
-        </ul>
+      <MetaAdsPanel clientId={clientId} />
+      <MetaAdsAnuncios clientId={clientId} />
+
+      <Panel
+        title="Píxel y presupuesto por defecto"
+        icon={Settings2}
+        description="Todavía no se guardan en la plataforma"
+      >
+        <EmptyState
+          size="compact"
+          icon={Settings2}
+          title="Sin píxel ni presupuesto por defecto guardados"
+          description="Cuando se agreguen estos campos a la cuenta de Meta del cliente aparecerán aquí. Por ahora el presupuesto se define en cada campaña y el píxel se administra en el Administrador de eventos de Meta."
+        />
       </Panel>
     </>
-  );
-}
-
-function AccessItem({
-  icon: Icon,
-  title,
-  text,
-  onClick,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  title: string;
-  text: string;
-  onClick: () => void;
-}) {
-  return (
-    <li>
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex h-full w-full flex-col gap-1 rounded-app-md border border-border-subtle bg-surface-2 p-3 text-left transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <span className="flex items-center gap-1.5 text-sm font-semibold">
-          <Icon aria-hidden className="h-4 w-4 text-brand-1" /> {title}
-        </span>
-        <span className="text-xs text-muted-foreground">{text}</span>
-      </button>
-    </li>
   );
 }
 
@@ -439,13 +300,7 @@ const PLACEMENT_LABEL: Readonly<Record<string, string>> = {
   audience_network: "Audience Network",
 };
 
-function MetaAdsAnuncios({
-  clientId,
-  onTabChange,
-}: {
-  clientId: string;
-  onTabChange: (tab: MetaAdsTab) => void;
-}) {
+function MetaAdsAnuncios({ clientId }: { clientId: string }) {
   const userKey = useUserKey();
   const query = useQuery({
     queryKey: ["meta-ads-ads-list", userKey, clientId] as const,
@@ -478,14 +333,9 @@ function MetaAdsAnuncios({
 
   return (
     <Panel
-      title="Anuncios"
+      title="Anuncios guardados"
       icon={ImageIcon}
-      description="Anuncios guardados en la plataforma, agrupados por conjunto y campaña"
-      actions={
-        <Button size="sm" variant="outline" onClick={() => onTabChange("campanas")}>
-          Editar en Campañas
-        </Button>
-      }
+      description="Anuncios del cliente, con su conjunto y campaña"
     >
       {query.isLoading ? (
         <TableSkeleton rows={4} columns={6} label="Cargando anuncios" />
@@ -500,12 +350,7 @@ function MetaAdsAnuncios({
           size="compact"
           icon={ImageIcon}
           title="Aún no hay anuncios"
-          description="Los anuncios se crean dentro de cada conjunto en Campañas (o con el asistente «Crear campaña en Meta»)."
-          action={
-            <Button size="sm" onClick={() => onTabChange("campanas")}>
-              Ir a Campañas
-            </Button>
-          }
+          description="Los anuncios se crean dentro de cada conjunto en la sección de Campañas de arriba (o con el asistente «Crear campaña en Meta»)."
         />
       ) : (
         <div className="overflow-x-auto">
