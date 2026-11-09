@@ -313,6 +313,7 @@ export function ClientSwitcherDialog({ open, onOpenChange, activeClient }: Dialo
         </DialogContent>
       </Dialog>
       <NewClientDialog
+        hideTrigger
         open={creating}
         onOpenChange={(o) => {
           setCreating(o);
