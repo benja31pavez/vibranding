@@ -235,7 +235,22 @@ function safeHostname(url: string): string | null {
   }
 }
 
-export function MetaAdsPanel({ clientId }: { clientId: string }) {
+export type MetaAdsPanelSection = "campanas" | "configuracion";
+
+/**
+ * Panel de Meta Ads: cuenta vinculada y campañas (con conjuntos y anuncios). `section`
+ * limita lo que se dibuja para repartirlo entre las subsecciones «Campañas» y
+ * «Configuración»; sin `section` se muestra todo.
+ */
+export function MetaAdsPanel({
+  clientId,
+  section,
+}: {
+  clientId: string;
+  section?: MetaAdsPanelSection;
+}) {
+  const showConfig = section === undefined || section === "configuracion";
+  const showCampaigns = section === undefined || section === "campanas";
   const saveAssets = useServerFn(updateMetaAccountAssets);
   const {
     caps,
@@ -591,617 +606,638 @@ export function MetaAdsPanel({ clientId }: { clientId: string }) {
   return (
     <div className="space-y-6">
       {/* Account config */}
-      <div className="space-y-4 rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Megaphone className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold">Cuenta de Meta Ads</h3>
+      {showConfig && (
+        <div className="space-y-4 rounded-app-lg border border-border-subtle bg-surface p-5 shadow-app-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Megaphone className="w-4 h-4 text-primary" />
+              <h3 className="font-semibold">Cuenta de Meta Ads</h3>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={openDiscover}>
+                <Sparkles className="w-4 h-4 mr-1" /> Autodetectar
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={sync}
+                disabled={syncing || !account?.ad_account_id}
+              >
+                <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "Sincronizando…" : "Sincronizar con Meta"}
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={openDiscover}>
-              <Sparkles className="w-4 h-4 mr-1" /> Autodetectar
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={sync}
-              disabled={syncing || !account?.ad_account_id}
-            >
-              <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "Sincronizando…" : "Sincronizar con Meta"}
-            </Button>
+          <div className="grid md:grid-cols-2 gap-3">
+            <Field label="ID de cuenta publicitaria">
+              <AccountInput
+                placeholder="act_1234567890"
+                value={account?.ad_account_id ?? null}
+                disabled={!account}
+                onCommit={(v) => updateAccountField("ad_account_id", v)}
+              />
+            </Field>
+            <Field label="Nombre del negocio">
+              <AccountInput
+                placeholder="Mi marca"
+                value={account?.business_name ?? null}
+                disabled={!account}
+                onCommit={(v) => updateAccountField("business_name", v)}
+              />
+            </Field>
+            <Field label="ID de página de Facebook">
+              <AccountInput
+                placeholder="123456789"
+                value={account?.page_id ?? null}
+                disabled={!account}
+                onCommit={(v) => updateAccountField("page_id", v)}
+              />
+            </Field>
+            <Field label="ID de cuenta de Instagram">
+              <AccountInput
+                placeholder="178414..."
+                value={account?.ig_account_id ?? null}
+                disabled={!account}
+                onCommit={(v) => updateAccountField("ig_account_id", v)}
+              />
+            </Field>
           </div>
+          {account?.last_synced_at && (
+            <p className="text-xs text-muted-foreground">
+              Última sincronización: {new Date(account.last_synced_at).toLocaleString("es-CL")}
+            </p>
+          )}
         </div>
-        <div className="grid md:grid-cols-2 gap-3">
-          <Field label="ID de cuenta publicitaria">
-            <AccountInput
-              placeholder="act_1234567890"
-              value={account?.ad_account_id ?? null}
-              disabled={!account}
-              onCommit={(v) => updateAccountField("ad_account_id", v)}
-            />
-          </Field>
-          <Field label="Nombre del negocio">
-            <AccountInput
-              placeholder="Mi marca"
-              value={account?.business_name ?? null}
-              disabled={!account}
-              onCommit={(v) => updateAccountField("business_name", v)}
-            />
-          </Field>
-          <Field label="ID de página de Facebook">
-            <AccountInput
-              placeholder="123456789"
-              value={account?.page_id ?? null}
-              disabled={!account}
-              onCommit={(v) => updateAccountField("page_id", v)}
-            />
-          </Field>
-          <Field label="ID de cuenta de Instagram">
-            <AccountInput
-              placeholder="178414..."
-              value={account?.ig_account_id ?? null}
-              disabled={!account}
-              onCommit={(v) => updateAccountField("ig_account_id", v)}
-            />
-          </Field>
-        </div>
-        {account?.last_synced_at && (
-          <p className="text-xs text-muted-foreground">
-            Última sincronización: {new Date(account.last_synced_at).toLocaleString("es-CL")}
-          </p>
-        )}
-      </div>
+      )}
 
       {/* Campaigns */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Campañas ({campaigns.length})</h3>
-          <Button size="sm" onClick={() => setWizardOpen(true)} disabled={!account?.ad_account_id}>
-            <Sparkles className="w-4 h-4 mr-1" /> Crear campaña en Meta
-          </Button>
-        </div>
-        {metaCurrency && metaCurrency !== DEFAULT_CURRENCY && (
-          <div
-            role="status"
-            className="rounded-xl border border-warning/40 bg-warning-subtle p-3 text-xs text-warning-strong"
-          >
-            La cuenta publicitaria de este cliente está en <strong>{metaCurrency}</strong> en Meta.
-            La plataforma trabaja en CLP, pero Meta interpreta los presupuestos en la moneda de la
-            cuenta ({metaCurrency}). Para evitar errores, cambia la moneda de la cuenta a CLP en
-            Meta o revisa cada presupuesto.
+      {showCampaigns && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">Campañas ({campaigns.length})</h3>
+            <Button
+              size="sm"
+              onClick={() => setWizardOpen(true)}
+              disabled={!account?.ad_account_id}
+            >
+              <Sparkles className="w-4 h-4 mr-1" /> Crear campaña en Meta
+            </Button>
           </div>
-        )}
-        {campaigns.length === 0 ? (
-          <EmptyState icon={Megaphone} title="Aún no hay campañas" className="py-8" />
-        ) : (
-          <Accordion type="multiple" className="space-y-2">
-            {campaigns.map((c) => {
-              const myAdsets = adsets.filter((a) => a.campaign_id === c.id);
-              const myInsights = c.fb_campaign_id
-                ? insights.filter((i) => i.campaign_id === c.fb_campaign_id)
-                : [];
-              return (
-                <AccordionItem
-                  key={c.id}
-                  value={c.id}
-                  className="border rounded-xl bg-surface px-4"
-                >
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="flex items-center gap-3 text-left flex-1">
-                      <span
-                        className={`w-2 h-2 rounded-full ${c.status === "ACTIVE" ? "bg-green-500" : c.status === "PAUSED" ? "bg-yellow-500" : "bg-zinc-400"}`}
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium flex items-center gap-2">
-                          {c.name}
-                          {c.fb_campaign_id && (
-                            <CheckCircle2
-                              className="w-3.5 h-3.5 text-green-600"
-                              aria-label="Publicada en Meta"
-                            />
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {OBJECTIVES[c.objective]} · {STATUS_LABELS[c.status] ?? c.status}
-                          {c.fb_campaign_id ? ` · ${c.fb_campaign_id}` : " · Solo local"}
+          {metaCurrency && metaCurrency !== DEFAULT_CURRENCY && (
+            <div
+              role="status"
+              className="rounded-xl border border-warning/40 bg-warning-subtle p-3 text-xs text-warning-strong"
+            >
+              La cuenta publicitaria de este cliente está en <strong>{metaCurrency}</strong> en
+              Meta. La plataforma trabaja en CLP, pero Meta interpreta los presupuestos en la moneda
+              de la cuenta ({metaCurrency}). Para evitar errores, cambia la moneda de la cuenta a
+              CLP en Meta o revisa cada presupuesto.
+            </div>
+          )}
+          {campaigns.length === 0 ? (
+            <EmptyState icon={Megaphone} title="Aún no hay campañas" className="py-8" />
+          ) : (
+            <Accordion type="multiple" className="space-y-2">
+              {campaigns.map((c) => {
+                const myAdsets = adsets.filter((a) => a.campaign_id === c.id);
+                const myInsights = c.fb_campaign_id
+                  ? insights.filter((i) => i.campaign_id === c.fb_campaign_id)
+                  : [];
+                return (
+                  <AccordionItem
+                    key={c.id}
+                    value={c.id}
+                    className="border rounded-xl bg-surface px-4"
+                  >
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3 text-left flex-1">
+                        <span
+                          className={`w-2 h-2 rounded-full ${c.status === "ACTIVE" ? "bg-green-500" : c.status === "PAUSED" ? "bg-yellow-500" : "bg-zinc-400"}`}
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium flex items-center gap-2">
+                            {c.name}
+                            {c.fb_campaign_id && (
+                              <CheckCircle2
+                                className="w-3.5 h-3.5 text-green-600"
+                                aria-label="Publicada en Meta"
+                              />
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {OBJECTIVES[c.objective]} · {STATUS_LABELS[c.status] ?? c.status}
+                            {c.fb_campaign_id ? ` · ${c.fb_campaign_id}` : " · Solo local"}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-2 space-y-5">
-                    <div className="grid md:grid-cols-2 gap-3">
-                      <Field label="Nombre">
-                        <Input
-                          defaultValue={c.name}
-                          onBlur={(e) => updateCampaign(c.id, { name: e.target.value })}
-                        />
-                      </Field>
-                      <Field label="Objetivo">
-                        <Select
-                          value={c.objective}
-                          onValueChange={(v) =>
-                            updateCampaign(c.id, { objective: v as MetaObjective })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(OBJECTIVES).map(([k, l]) => (
-                              <SelectItem key={k} value={k}>
-                                {l}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                      <Field label="Estado">
-                        <Select
-                          value={c.status}
-                          onValueChange={(v) => updateCampaign(c.id, { status: v as MetaStatus })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STATUSES.map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {STATUS_LABELS[s]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                      <Field label="Presupuesto diario (CLP)">
-                        <Input
-                          type="number"
-                          defaultValue={c.daily_budget ?? ""}
-                          onBlur={(e) =>
-                            updateCampaign(c.id, {
-                              daily_budget: e.target.value ? Number(e.target.value) : null,
-                            })
-                          }
-                        />
-                      </Field>
-                      <Field label="Presupuesto total (CLP)">
-                        <Input
-                          type="number"
-                          defaultValue={c.lifetime_budget ?? ""}
-                          onBlur={(e) =>
-                            updateCampaign(c.id, {
-                              lifetime_budget: e.target.value ? Number(e.target.value) : null,
-                            })
-                          }
-                        />
-                      </Field>
-                      <Field label="Inicio">
-                        <Input
-                          type="date"
-                          defaultValue={c.start_time ?? ""}
-                          onBlur={(e) =>
-                            updateCampaign(c.id, { start_time: e.target.value || null })
-                          }
-                        />
-                      </Field>
-                      <Field label="Fin">
-                        <Input
-                          type="date"
-                          defaultValue={c.stop_time ?? ""}
-                          onBlur={(e) =>
-                            updateCampaign(c.id, { stop_time: e.target.value || null })
-                          }
-                        />
-                      </Field>
-                    </div>
-                    <Field label="Notas">
-                      <Textarea
-                        defaultValue={c.notes ?? ""}
-                        onBlur={(e) => updateCampaign(c.id, { notes: e.target.value || null })}
-                      />
-                    </Field>
-
-                    {/* Ad sets */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm font-semibold">
-                          <Layers className="w-4 h-4" /> Conjuntos de anuncios ({myAdsets.length})
-                        </div>
-                        <span />
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2 space-y-5">
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <Field label="Nombre">
+                          <Input
+                            defaultValue={c.name}
+                            onBlur={(e) => updateCampaign(c.id, { name: e.target.value })}
+                          />
+                        </Field>
+                        <Field label="Objetivo">
+                          <Select
+                            value={c.objective}
+                            onValueChange={(v) =>
+                              updateCampaign(c.id, { objective: v as MetaObjective })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(OBJECTIVES).map(([k, l]) => (
+                                <SelectItem key={k} value={k}>
+                                  {l}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field label="Estado">
+                          <Select
+                            value={c.status}
+                            onValueChange={(v) => updateCampaign(c.id, { status: v as MetaStatus })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUSES.map((s) => (
+                                <SelectItem key={s} value={s}>
+                                  {STATUS_LABELS[s]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field label="Presupuesto diario (CLP)">
+                          <Input
+                            type="number"
+                            defaultValue={c.daily_budget ?? ""}
+                            onBlur={(e) =>
+                              updateCampaign(c.id, {
+                                daily_budget: e.target.value ? Number(e.target.value) : null,
+                              })
+                            }
+                          />
+                        </Field>
+                        <Field label="Presupuesto total (CLP)">
+                          <Input
+                            type="number"
+                            defaultValue={c.lifetime_budget ?? ""}
+                            onBlur={(e) =>
+                              updateCampaign(c.id, {
+                                lifetime_budget: e.target.value ? Number(e.target.value) : null,
+                              })
+                            }
+                          />
+                        </Field>
+                        <Field label="Inicio">
+                          <Input
+                            type="date"
+                            defaultValue={c.start_time ?? ""}
+                            onBlur={(e) =>
+                              updateCampaign(c.id, { start_time: e.target.value || null })
+                            }
+                          />
+                        </Field>
+                        <Field label="Fin">
+                          <Input
+                            type="date"
+                            defaultValue={c.stop_time ?? ""}
+                            onBlur={(e) =>
+                              updateCampaign(c.id, { stop_time: e.target.value || null })
+                            }
+                          />
+                        </Field>
                       </div>
-                      {myAdsets.map((a) => {
-                        const myAds = ads.filter((x) => x.adset_id === a.id);
-                        return (
-                          <div key={a.id} className="rounded-xl border p-4 space-y-3 bg-background">
-                            <div className="flex items-start justify-between gap-2">
-                              <Input
-                                className="font-medium"
-                                defaultValue={a.name}
-                                onBlur={(e) => updateAdSet(a.id, { name: e.target.value })}
-                              />
-                              <Button size="icon" variant="ghost" onClick={() => removeAdSet(a.id)}>
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                            <div className="grid md:grid-cols-3 gap-2">
-                              <Field label="Estado">
-                                <Select
-                                  value={a.status}
-                                  onValueChange={(v) =>
-                                    updateAdSet(a.id, { status: v as MetaStatus })
-                                  }
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {STATUSES.map((s) => (
-                                      <SelectItem key={s} value={s}>
-                                        {STATUS_LABELS[s]}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </Field>
-                              <Field label="Presupuesto diario (CLP)">
-                                <Input
-                                  type="number"
-                                  defaultValue={a.daily_budget ?? ""}
-                                  onBlur={(e) =>
-                                    updateAdSet(a.id, {
-                                      daily_budget: e.target.value ? Number(e.target.value) : null,
-                                    })
-                                  }
-                                />
-                              </Field>
-                              <Field label="Optimización">
-                                <Input
-                                  placeholder="LINK_CLICKS, REACH…"
-                                  defaultValue={a.optimization_goal ?? ""}
-                                  onBlur={(e) =>
-                                    updateAdSet(a.id, { optimization_goal: e.target.value || null })
-                                  }
-                                />
-                              </Field>
-                              <Field label="Edad mín.">
-                                <Input
-                                  type="number"
-                                  defaultValue={a.age_min ?? ""}
-                                  onBlur={(e) =>
-                                    updateAdSet(a.id, {
-                                      age_min: e.target.value ? Number(e.target.value) : null,
-                                    })
-                                  }
-                                />
-                              </Field>
-                              <Field label="Edad máx.">
-                                <Input
-                                  type="number"
-                                  defaultValue={a.age_max ?? ""}
-                                  onBlur={(e) =>
-                                    updateAdSet(a.id, {
-                                      age_max: e.target.value ? Number(e.target.value) : null,
-                                    })
-                                  }
-                                />
-                              </Field>
-                              <Field label="Géneros">
-                                <Select
-                                  value={a.genders ?? "all"}
-                                  onValueChange={(v) =>
-                                    updateAdSet(a.id, { genders: v === "all" ? null : v })
-                                  }
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="all">Todos</SelectItem>
-                                    <SelectItem value="female">Mujeres</SelectItem>
-                                    <SelectItem value="male">Hombres</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </Field>
-                            </div>
-                            <Field label="Países (códigos ISO separados por coma)">
-                              <Input
-                                placeholder="CL, MX, AR, ES…"
-                                defaultValue={a.countries ?? ""}
-                                onBlur={(e) =>
-                                  updateAdSet(a.id, { countries: e.target.value || null })
-                                }
-                              />
-                            </Field>
-                            <Field label="Intereses (separados por coma)">
-                              <Input
-                                placeholder="moda, deporte, tecnología…"
-                                defaultValue={a.interests ?? ""}
-                                onBlur={(e) =>
-                                  updateAdSet(a.id, { interests: e.target.value || null })
-                                }
-                              />
-                            </Field>
-                            <Field label="Ubicaciones (publisher platforms)">
-                              <div className="flex flex-wrap gap-3 pt-1">
-                                {(
-                                  [
-                                    "facebook",
-                                    "instagram",
-                                    "audience_network",
-                                    "messenger",
-                                  ] as const
-                                ).map((p) => {
-                                  const checked = (a.placements ?? []).includes(p);
-                                  return (
-                                    <label
-                                      key={p}
-                                      className="flex items-center gap-1.5 text-xs cursor-pointer"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={checked}
-                                        onChange={(e) => {
-                                          const cur = new Set(a.placements ?? []);
-                                          if (e.target.checked) cur.add(p);
-                                          else cur.delete(p);
-                                          updateAdSet(a.id, { placements: Array.from(cur) });
-                                        }}
-                                      />
-                                      {p === "audience_network"
-                                        ? "Audience Network"
-                                        : p === "facebook"
-                                          ? "Facebook"
-                                          : p === "instagram"
-                                            ? "Instagram"
-                                            : "Messenger"}
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            </Field>
-                            <Field label="Resumen de audiencia">
-                              <Textarea
-                                rows={2}
-                                defaultValue={a.audience_summary ?? ""}
-                                onBlur={(e) =>
-                                  updateAdSet(a.id, { audience_summary: e.target.value || null })
-                                }
-                              />
-                            </Field>
+                      <Field label="Notas">
+                        <Textarea
+                          defaultValue={c.notes ?? ""}
+                          onBlur={(e) => updateCampaign(c.id, { notes: e.target.value || null })}
+                        />
+                      </Field>
 
-                            {/* Ads */}
-                            <div className="space-y-2 pt-2 border-t">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-xs font-semibold">
-                                  <ImageIcon className="w-3 h-3" /> Anuncios ({myAds.length})
-                                </div>
-                                <span />
-                              </div>
-                              {myAds.map((ad) => (
-                                <div
-                                  key={ad.id}
-                                  className="rounded-lg border p-3 space-y-2 bg-surface"
+                      {/* Ad sets */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm font-semibold">
+                            <Layers className="w-4 h-4" /> Conjuntos de anuncios ({myAdsets.length})
+                          </div>
+                          <span />
+                        </div>
+                        {myAdsets.map((a) => {
+                          const myAds = ads.filter((x) => x.adset_id === a.id);
+                          return (
+                            <div
+                              key={a.id}
+                              className="rounded-xl border p-4 space-y-3 bg-background"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <Input
+                                  className="font-medium"
+                                  defaultValue={a.name}
+                                  onBlur={(e) => updateAdSet(a.id, { name: e.target.value })}
+                                />
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => removeAdSet(a.id)}
                                 >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <Input
-                                      className="font-medium"
-                                      defaultValue={ad.name}
-                                      onBlur={(e) => updateAd(ad.id, { name: e.target.value })}
-                                    />
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      onClick={() => removeAd(ad.id)}
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                  <div className="grid md:grid-cols-3 gap-2">
-                                    <Field label="Formato">
-                                      <Select
-                                        value={ad.format}
-                                        onValueChange={(v) => updateAd(ad.id, { format: v })}
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                              <div className="grid md:grid-cols-3 gap-2">
+                                <Field label="Estado">
+                                  <Select
+                                    value={a.status}
+                                    onValueChange={(v) =>
+                                      updateAdSet(a.id, { status: v as MetaStatus })
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {STATUSES.map((s) => (
+                                        <SelectItem key={s} value={s}>
+                                          {STATUS_LABELS[s]}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </Field>
+                                <Field label="Presupuesto diario (CLP)">
+                                  <Input
+                                    type="number"
+                                    defaultValue={a.daily_budget ?? ""}
+                                    onBlur={(e) =>
+                                      updateAdSet(a.id, {
+                                        daily_budget: e.target.value
+                                          ? Number(e.target.value)
+                                          : null,
+                                      })
+                                    }
+                                  />
+                                </Field>
+                                <Field label="Optimización">
+                                  <Input
+                                    placeholder="LINK_CLICKS, REACH…"
+                                    defaultValue={a.optimization_goal ?? ""}
+                                    onBlur={(e) =>
+                                      updateAdSet(a.id, {
+                                        optimization_goal: e.target.value || null,
+                                      })
+                                    }
+                                  />
+                                </Field>
+                                <Field label="Edad mín.">
+                                  <Input
+                                    type="number"
+                                    defaultValue={a.age_min ?? ""}
+                                    onBlur={(e) =>
+                                      updateAdSet(a.id, {
+                                        age_min: e.target.value ? Number(e.target.value) : null,
+                                      })
+                                    }
+                                  />
+                                </Field>
+                                <Field label="Edad máx.">
+                                  <Input
+                                    type="number"
+                                    defaultValue={a.age_max ?? ""}
+                                    onBlur={(e) =>
+                                      updateAdSet(a.id, {
+                                        age_max: e.target.value ? Number(e.target.value) : null,
+                                      })
+                                    }
+                                  />
+                                </Field>
+                                <Field label="Géneros">
+                                  <Select
+                                    value={a.genders ?? "all"}
+                                    onValueChange={(v) =>
+                                      updateAdSet(a.id, { genders: v === "all" ? null : v })
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="all">Todos</SelectItem>
+                                      <SelectItem value="female">Mujeres</SelectItem>
+                                      <SelectItem value="male">Hombres</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </Field>
+                              </div>
+                              <Field label="Países (códigos ISO separados por coma)">
+                                <Input
+                                  placeholder="CL, MX, AR, ES…"
+                                  defaultValue={a.countries ?? ""}
+                                  onBlur={(e) =>
+                                    updateAdSet(a.id, { countries: e.target.value || null })
+                                  }
+                                />
+                              </Field>
+                              <Field label="Intereses (separados por coma)">
+                                <Input
+                                  placeholder="moda, deporte, tecnología…"
+                                  defaultValue={a.interests ?? ""}
+                                  onBlur={(e) =>
+                                    updateAdSet(a.id, { interests: e.target.value || null })
+                                  }
+                                />
+                              </Field>
+                              <Field label="Ubicaciones (publisher platforms)">
+                                <div className="flex flex-wrap gap-3 pt-1">
+                                  {(
+                                    [
+                                      "facebook",
+                                      "instagram",
+                                      "audience_network",
+                                      "messenger",
+                                    ] as const
+                                  ).map((p) => {
+                                    const checked = (a.placements ?? []).includes(p);
+                                    return (
+                                      <label
+                                        key={p}
+                                        className="flex items-center gap-1.5 text-xs cursor-pointer"
                                       >
-                                        <SelectTrigger>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="image">Imagen</SelectItem>
-                                          <SelectItem value="video">Video</SelectItem>
-                                          <SelectItem value="carousel">Carrusel</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </Field>
-                                    <Field label="Ubicación">
-                                      <Select
-                                        value={ad.placement}
-                                        onValueChange={(v) =>
-                                          updateAd(ad.id, { placement: v as MetaPlacement })
-                                        }
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {PLACEMENTS.map((p) => (
-                                            <SelectItem key={p} value={p}>
-                                              {PLACEMENT_LABELS[p]}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </Field>
-                                    <Field label="CTA">
-                                      <Select
-                                        value={ad.cta ?? "LEARN_MORE"}
-                                        onValueChange={(v) =>
-                                          updateAd(ad.id, { cta: v as MetaCTA })
-                                        }
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {CTAS.map((cta) => (
-                                            <SelectItem key={cta} value={cta}>
-                                              {CTA_LABELS[cta]}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </Field>
-                                  </div>
-                                  {ad.format === "video" ? (
-                                    <>
-                                      <Field label="Video (URL o subir)">
-                                        <MediaUpload
-                                          clientId={clientId}
-                                          value={ad.video_url}
-                                          onChange={(url) => updateAd(ad.id, { video_url: url })}
-                                          placeholder="URL del video o sube archivo"
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={(e) => {
+                                            const cur = new Set(a.placements ?? []);
+                                            if (e.target.checked) cur.add(p);
+                                            else cur.delete(p);
+                                            updateAdSet(a.id, { placements: Array.from(cur) });
+                                          }}
                                         />
+                                        {p === "audience_network"
+                                          ? "Audience Network"
+                                          : p === "facebook"
+                                            ? "Facebook"
+                                            : p === "instagram"
+                                              ? "Instagram"
+                                              : "Messenger"}
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </Field>
+                              <Field label="Resumen de audiencia">
+                                <Textarea
+                                  rows={2}
+                                  defaultValue={a.audience_summary ?? ""}
+                                  onBlur={(e) =>
+                                    updateAdSet(a.id, { audience_summary: e.target.value || null })
+                                  }
+                                />
+                              </Field>
+
+                              {/* Ads */}
+                              <div className="space-y-2 pt-2 border-t">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2 text-xs font-semibold">
+                                    <ImageIcon className="w-3 h-3" /> Anuncios ({myAds.length})
+                                  </div>
+                                  <span />
+                                </div>
+                                {myAds.map((ad) => (
+                                  <div
+                                    key={ad.id}
+                                    className="rounded-lg border p-3 space-y-2 bg-surface"
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <Input
+                                        className="font-medium"
+                                        defaultValue={ad.name}
+                                        onBlur={(e) => updateAd(ad.id, { name: e.target.value })}
+                                      />
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        onClick={() => removeAd(ad.id)}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                    <div className="grid md:grid-cols-3 gap-2">
+                                      <Field label="Formato">
+                                        <Select
+                                          value={ad.format}
+                                          onValueChange={(v) => updateAd(ad.id, { format: v })}
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="image">Imagen</SelectItem>
+                                            <SelectItem value="video">Video</SelectItem>
+                                            <SelectItem value="carousel">Carrusel</SelectItem>
+                                          </SelectContent>
+                                        </Select>
                                       </Field>
-                                      <Field label="Miniatura / cover">
+                                      <Field label="Ubicación">
+                                        <Select
+                                          value={ad.placement}
+                                          onValueChange={(v) =>
+                                            updateAd(ad.id, { placement: v as MetaPlacement })
+                                          }
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {PLACEMENTS.map((p) => (
+                                              <SelectItem key={p} value={p}>
+                                                {PLACEMENT_LABELS[p]}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </Field>
+                                      <Field label="CTA">
+                                        <Select
+                                          value={ad.cta ?? "LEARN_MORE"}
+                                          onValueChange={(v) =>
+                                            updateAd(ad.id, { cta: v as MetaCTA })
+                                          }
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {CTAS.map((cta) => (
+                                              <SelectItem key={cta} value={cta}>
+                                                {CTA_LABELS[cta]}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </Field>
+                                    </div>
+                                    {ad.format === "video" ? (
+                                      <>
+                                        <Field label="Video (URL o subir)">
+                                          <MediaUpload
+                                            clientId={clientId}
+                                            value={ad.video_url}
+                                            onChange={(url) => updateAd(ad.id, { video_url: url })}
+                                            placeholder="URL del video o sube archivo"
+                                          />
+                                        </Field>
+                                        <Field label="Miniatura / cover">
+                                          <MediaUpload
+                                            clientId={clientId}
+                                            value={ad.image_url}
+                                            onChange={(url) => updateAd(ad.id, { image_url: url })}
+                                          />
+                                        </Field>
+                                      </>
+                                    ) : (
+                                      <Field label="Imagen">
                                         <MediaUpload
                                           clientId={clientId}
                                           value={ad.image_url}
                                           onChange={(url) => updateAd(ad.id, { image_url: url })}
                                         />
                                       </Field>
-                                    </>
-                                  ) : (
-                                    <Field label="Imagen">
-                                      <MediaUpload
-                                        clientId={clientId}
-                                        value={ad.image_url}
-                                        onChange={(url) => updateAd(ad.id, { image_url: url })}
-                                      />
-                                    </Field>
-                                  )}
-                                  <div className="grid md:grid-cols-2 gap-2">
-                                    <Field label="Titular">
-                                      <Input
-                                        defaultValue={ad.headline ?? ""}
+                                    )}
+                                    <div className="grid md:grid-cols-2 gap-2">
+                                      <Field label="Titular">
+                                        <Input
+                                          defaultValue={ad.headline ?? ""}
+                                          onBlur={(e) =>
+                                            updateAd(ad.id, { headline: e.target.value || null })
+                                          }
+                                        />
+                                      </Field>
+                                      <Field label="URL de destino">
+                                        <Input
+                                          placeholder="https://tusitio.com/landing"
+                                          defaultValue={ad.link_url ?? ""}
+                                          onBlur={(e) =>
+                                            updateAd(ad.id, { link_url: e.target.value || null })
+                                          }
+                                        />
+                                      </Field>
+                                    </div>
+                                    <Field label="Texto principal">
+                                      <Textarea
+                                        rows={2}
+                                        defaultValue={ad.primary_text ?? ""}
                                         onBlur={(e) =>
-                                          updateAd(ad.id, { headline: e.target.value || null })
+                                          updateAd(ad.id, { primary_text: e.target.value || null })
                                         }
                                       />
                                     </Field>
-                                    <Field label="URL de destino">
+                                    <Field label="Descripción">
                                       <Input
-                                        placeholder="https://tusitio.com/landing"
-                                        defaultValue={ad.link_url ?? ""}
+                                        defaultValue={ad.description ?? ""}
                                         onBlur={(e) =>
-                                          updateAd(ad.id, { link_url: e.target.value || null })
+                                          updateAd(ad.id, { description: e.target.value || null })
                                         }
                                       />
                                     </Field>
+                                    <AdPreview
+                                      ad={ad}
+                                      accountName={account?.business_name ?? "Tu marca"}
+                                    />
                                   </div>
-                                  <Field label="Texto principal">
-                                    <Textarea
-                                      rows={2}
-                                      defaultValue={ad.primary_text ?? ""}
-                                      onBlur={(e) =>
-                                        updateAd(ad.id, { primary_text: e.target.value || null })
-                                      }
-                                    />
-                                  </Field>
-                                  <Field label="Descripción">
-                                    <Input
-                                      defaultValue={ad.description ?? ""}
-                                      onBlur={(e) =>
-                                        updateAd(ad.id, { description: e.target.value || null })
-                                      }
-                                    />
-                                  </Field>
-                                  <AdPreview
-                                    ad={ad}
-                                    accountName={account?.business_name ?? "Tu marca"}
-                                  />
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Insights */}
-                    <div className="space-y-2 pt-3 border-t">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-semibold">Resultados / métricas</h4>
-                        <span />
+                          );
+                        })}
                       </div>
-                      {myInsights.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">
-                          Aún no hay métricas registradas.
-                        </p>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs">
-                            <thead className="text-muted-foreground">
-                              <tr className="text-left border-b">
-                                <th className="py-1 pr-2">Fecha</th>
-                                <th className="py-1 pr-2">Impr.</th>
-                                <th
-                                  className="py-1 pr-2"
-                                  title="Suma del alcance de cada anuncio: puede contar personas repetidas"
-                                >
-                                  Alcance
-                                </th>
-                                <th className="py-1 pr-2">Clics</th>
-                                <th className="py-1 pr-2">CTR %</th>
-                                <th className="py-1 pr-2">Gasto</th>
-                                <th className="py-1 pr-2">CPM</th>
-                                <th className="py-1 pr-2">Conversaciones</th>
-                                <th></th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {myInsights.map((i) => (
-                                <tr key={i.id} className="border-b">
-                                  <td className="py-1 pr-2">{i.date}</td>
-                                  <td className="py-1 pr-2">{i.impressions}</td>
-                                  <td className="py-1 pr-2">{i.reach}</td>
-                                  <td className="py-1 pr-2">{i.clicks}</td>
-                                  <td className="py-1 pr-2">{i.ctr ?? "—"}</td>
-                                  <td className="py-1 pr-2">{i.spend}</td>
-                                  <td className="py-1 pr-2">{i.cpm ?? "—"}</td>
-                                  <td className="py-1 pr-2">{i.messaging_conversations_started}</td>
-                                  <td></td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
 
-                    <div className="pt-3 border-t flex justify-between items-center gap-2">
-                      {c.fb_campaign_id ? (
-                        <span className="text-xs text-green-600 flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Sincronizada con Meta ·{" "}
-                          {c.fb_campaign_id}
-                        </span>
-                      ) : (
-                        <span />
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeCampaign(c.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" /> Eliminar campaña
-                      </Button>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
-        )}
-      </div>
+                      {/* Insights */}
+                      <div className="space-y-2 pt-3 border-t">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold">Resultados / métricas</h4>
+                          <span />
+                        </div>
+                        {myInsights.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">
+                            Aún no hay métricas registradas.
+                          </p>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                              <thead className="text-muted-foreground">
+                                <tr className="text-left border-b">
+                                  <th className="py-1 pr-2">Fecha</th>
+                                  <th className="py-1 pr-2">Impr.</th>
+                                  <th
+                                    className="py-1 pr-2"
+                                    title="Suma del alcance de cada anuncio: puede contar personas repetidas"
+                                  >
+                                    Alcance
+                                  </th>
+                                  <th className="py-1 pr-2">Clics</th>
+                                  <th className="py-1 pr-2">CTR %</th>
+                                  <th className="py-1 pr-2">Gasto</th>
+                                  <th className="py-1 pr-2">CPM</th>
+                                  <th className="py-1 pr-2">Conversaciones</th>
+                                  <th></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {myInsights.map((i) => (
+                                  <tr key={i.id} className="border-b">
+                                    <td className="py-1 pr-2">{i.date}</td>
+                                    <td className="py-1 pr-2">{i.impressions}</td>
+                                    <td className="py-1 pr-2">{i.reach}</td>
+                                    <td className="py-1 pr-2">{i.clicks}</td>
+                                    <td className="py-1 pr-2">{i.ctr ?? "—"}</td>
+                                    <td className="py-1 pr-2">{i.spend}</td>
+                                    <td className="py-1 pr-2">{i.cpm ?? "—"}</td>
+                                    <td className="py-1 pr-2">
+                                      {i.messaging_conversations_started}
+                                    </td>
+                                    <td></td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-3 border-t flex justify-between items-center gap-2">
+                        {c.fb_campaign_id ? (
+                          <span className="text-xs text-green-600 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Sincronizada con Meta ·{" "}
+                            {c.fb_campaign_id}
+                          </span>
+                        ) : (
+                          <span />
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeCampaign(c.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" /> Eliminar campaña
+                        </Button>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          )}
+        </div>
+      )}
 
       {account?.ad_account_id && (
         <CampaignWizard

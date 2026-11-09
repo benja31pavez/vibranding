@@ -14,7 +14,8 @@ import { useUserKey } from "@/components/clients/ficha/fichaQueries";
 import { addDaysYmd, chileToday } from "@/lib/dates/chile";
 import { summarizeCampaigns, type InsightRow } from "@/lib/google-ads/campaigns";
 
-const WINDOW_DAYS = 30;
+export const GOOGLE_ADS_WINDOW_DAYS = 30;
+const WINDOW_DAYS = GOOGLE_ADS_WINDOW_DAYS;
 /** 30 días × muchas campañas cabe holgado; evita traer tablas enormes. */
 const MAX_ROWS = 5000;
 
@@ -24,12 +25,12 @@ const DEC = new Intl.NumberFormat("es-CL", { maximumFractionDigits: 2 });
 const googleAdsCampaignsKey = (userKey: string, clientId: string) =>
   ["google-ads-campaigns", userKey, clientId] as const;
 
-/** Gasto, clics y conversiones por campaña de los últimos 30 días (datos ya guardados). */
-export function GoogleAdsCampaignsTable({ clientId }: { clientId: string }) {
+/** Resumen por campaña de los últimos 30 días (hasta ayer), compartido por la tabla y el resumen. */
+export function useGoogleAdsCampaigns(clientId: string) {
   const userKey = useUserKey();
   const to = addDaysYmd(chileToday(), -1);
   const from = addDaysYmd(to, -(WINDOW_DAYS - 1));
-  const query = useQuery({
+  return useQuery({
     queryKey: [...googleAdsCampaignsKey(userKey, clientId), from],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -43,6 +44,11 @@ export function GoogleAdsCampaignsTable({ clientId }: { clientId: string }) {
       return summarizeCampaigns((data ?? []) as InsightRow[]);
     },
   });
+}
+
+/** Gasto, clics y conversiones por campaña de los últimos 30 días (datos ya guardados). */
+export function GoogleAdsCampaignsTable({ clientId }: { clientId: string }) {
+  const query = useGoogleAdsCampaigns(clientId);
 
   const totals = (query.data ?? []).reduce(
     (acc, c) => ({

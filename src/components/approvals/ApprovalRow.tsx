@@ -229,6 +229,7 @@ function OpenLink({ item }: { item: ApprovalItem }) {
       <Link
         to="/clients/$clientId/instagram"
         params={{ clientId: item.clientId }}
+        search={{ tab: "publicaciones" }}
         aria-label={label}
       >
         <ExternalLink aria-hidden className="h-3.5 w-3.5" />
