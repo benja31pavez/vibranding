@@ -17,7 +17,8 @@ import { AppHeader } from "@/components/shell/AppHeader";
 import { AppShellFrame } from "@/components/shell/AppShellFrame";
 import { ClientSidebar } from "@/components/shell/ClientSidebar";
 import { HeaderSearch } from "@/components/shell/HeaderSearch";
-import { MobileClientSheet } from "@/components/shell/MobileClientSheet";
+import { MobileClientBar } from "@/components/shell/MobileClientBar";
+import { MobileDock } from "@/components/shell/MobileDock";
 import { NOINDEX_META } from "@/lib/site/robots";
 import { ShellSkeleton } from "@/components/shell/ShellSkeleton";
 import { useShellActiveClient } from "@/components/shell/useShellActiveClient";
@@ -60,7 +61,6 @@ function AppLayout() {
   const { stale: unmarkedStale } = useUnmarkedOutcomes(activeClient?.id ?? null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [clientSheetOpen, setClientSheetOpen] = useState(false);
   // Usuario verificado como agencia (no cliente invitado); hasta entonces se muestra el skeleton.
   const [verifiedUserId, setVerifiedUserId] = useState<string | null>(null);
   // Falla cerrado: si no se pudo verificar, no se muestra el shell de agencia.
@@ -102,7 +102,6 @@ function AppLayout() {
   // Al navegar, cerrar los paneles móviles.
   useEffect(() => {
     setMobileNavOpen(false);
-    setClientSheetOpen(false);
   }, [path]);
 
   if (kindError && userId && verifiedUserId !== userId) {
@@ -149,16 +148,12 @@ function AppLayout() {
           }
           mobileNavOpen={mobileNavOpen}
           onMobileNavOpenChange={setMobileNavOpen}
-          clientTrigger={
-            <MobileClientSheet
-              {...sidebarProps}
-              open={clientSheetOpen}
-              onOpenChange={setClientSheetOpen}
-            />
-          }
+          clientTrigger={null}
         />
       }
       sidebar={<ClientSidebar {...sidebarProps} />}
+      mobileBar={<MobileClientBar path={path} activeClient={activeClient} />}
+      dock={<MobileDock path={path} activeClient={activeClient} />}
     >
       <Outlet />
     </AppShellFrame>
