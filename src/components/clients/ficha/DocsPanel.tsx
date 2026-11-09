@@ -231,25 +231,40 @@ function useDocItems(clientId: string, overview: FichaOverview | undefined): Doc
 }
 
 /** "Documentos y accesos": una fila por documento o acceso, con su estado y una acción. */
+export const DOC_GROUPS = {
+  /** Contrato, propuestas, reportes y reseñas: lo que se entrega o se firma. */
+  documentos: ["contract", "proposals", "reports", "reviews"],
+  /** Acceso al portal, onboarding y descripción del negocio: configuración del cliente. */
+  configuracion: ["access", "onboardingLink", "onboarding", "about"],
+} as const;
+
 export function DocsPanel({
   clientId,
   overview,
+  group,
+  title = "Documentos y accesos",
 }: {
   clientId: string;
   overview: FichaOverview | undefined;
+  /** Si se indica, muestra solo ese grupo de ítems. */
+  group?: keyof typeof DOC_GROUPS;
+  title?: string;
 }) {
-  const items = useDocItems(clientId, overview);
+  const allItems = useDocItems(clientId, overview);
+  const items = group
+    ? allItems.filter((i) => (DOC_GROUPS[group] as readonly string[]).includes(i.id))
+    : allItems;
   // El id se conserva al cerrar para que el panel no quede vacío durante la animación.
   const [openId, setOpenId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const open = items.find((i) => i.id === openId);
 
   return (
-    <FichaCard title="Documentos y accesos" icon={FolderOpen} fill>
+    <FichaCard title={title} icon={FolderOpen} fill>
       <FitList
         items={items}
         getKey={(i) => i.id}
-        label="Documentos y accesos"
+        label={title}
         defaultPageSize={MOBILE_PAGE_SIZE}
         mobileShowAll
         renderItem={(i) => (

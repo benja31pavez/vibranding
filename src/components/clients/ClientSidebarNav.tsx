@@ -158,9 +158,10 @@ export function ClientSidebarNav({
     loading: capsLoading,
   } = useClientCapabilities(clientId);
   const { count: reviewCount } = useReviewAlerts(clientId);
-  // "Resumen" vive en /clients/<id>/ficha; la gestión de la agencia (/clients/<id>) no marca nada aquí.
-  const summaryHref = `/clients/${clientId}/ficha`;
-  const onSummary = path === summaryHref || path === `${summaryHref}/`;
+  // "Panel" es la gestión del cliente (/clients/<id>, con sus pestañas); la vista del
+  // cliente (/clients/<id>/ficha) también lo marca activo.
+  const base = `/clients/${clientId}`;
+  const onSummary = [base, `${base}/`, `${base}/ficha`, `${base}/ficha/`].includes(path);
 
   const badgeFor = (key: string) => {
     if (key === "plan") return reviewCount;
@@ -179,7 +180,7 @@ export function ClientSidebarNav({
         />
       )}
       <Link
-        to="/clients/$clientId/ficha"
+        to="/clients/$clientId"
         params={{ clientId }}
         aria-current={onSummary ? "page" : undefined}
         className={itemClass(onSummary)}
