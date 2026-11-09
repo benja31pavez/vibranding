@@ -7,6 +7,8 @@ export interface ClientSummary {
   id: string;
   name: string;
   instagram_handle: string | null;
+  /** Etapa del cliente (prospecto, onboarding, activo, pausado, terminado). */
+  status?: string | null;
 }
 
 /**
@@ -24,7 +26,7 @@ export function useClientList(enabled: boolean) {
     queryFn: async (): Promise<ClientSummary[]> => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id,name,instagram_handle")
+        .select("id,name,instagram_handle,status")
         .order("updated_at", { ascending: false });
       if (error) throw new Error(error.message);
       return data ?? [];

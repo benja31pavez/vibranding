@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { SiteFooter } from "./SiteFooter";
-import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useLang } from "@/i18n/LanguageContext";
 import type { LegalContent } from "@/i18n/translations";
 
@@ -21,7 +20,6 @@ export function LegalPage({
           <span className="font-brand text-3xl tracking-tight">Vibranding</span>
         </Link>
         <div className="flex items-center gap-3">
-          <LanguageSwitcher />
           <Link
             to="/"
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"

@@ -29,7 +29,7 @@ export function MobileClientSheet({ open, onOpenChange, ...sidebar }: MobileClie
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 md:hidden"
+          className="hdr-ctl h-9 w-9 md:hidden"
           aria-label={
             activeClient ? `Abrir panel de ${activeClient.name}` : "Abrir panel del cliente"
           }
@@ -45,7 +45,10 @@ export function MobileClientSheet({ open, onOpenChange, ...sidebar }: MobileClie
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="flex w-[280px] max-w-[85vw] flex-col p-0">
+      <SheetContent
+        side="left"
+        className="shell-sidebar-indigo flex w-[280px] max-w-[85vw] flex-col border-0 p-0 text-white [&>button]:text-white"
+      >
         <SheetHeader className="border-b px-4 py-3 pr-12 text-left">
           <SheetTitle className="text-base">Cliente</SheetTitle>
           <SheetDescription className="sr-only">Secciones del cliente activo</SheetDescription>

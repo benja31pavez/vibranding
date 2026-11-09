@@ -12,17 +12,27 @@ const linkClass = (active: boolean) =>
       : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
   );
 
+/** Variante para la cabecera con degradado: iconos blancos, activo con fondo translúcido. */
+const headerLinkClass = (active: boolean) =>
+  cn(
+    "relative flex h-9 w-9 items-center justify-center rounded-md transition-colors",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+    active
+      ? "bg-white/22 text-white shadow-inner"
+      : "text-white/85 hover:bg-white/15 hover:text-white",
+  );
+
 function HeaderNavItem({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <Link
       to={item.to}
       aria-current={active ? "page" : undefined}
       title={item.label}
-      className={linkClass(active)}
+      className={headerLinkClass(active)}
     >
-      <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-      {/* Bajo 1280px solo ícono, para que el buscador expandido no tape la navegación. */}
-      <span className="sr-only xl:not-sr-only">{item.label}</span>
+      <item.icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+      {/* Solo ícono (como en Nexus): el nombre va en el tooltip nativo y para lectores de pantalla. */}
+      <span className="sr-only">{item.label}</span>
       <NavBadge to={item.to} />
     </Link>
   );
@@ -32,7 +42,7 @@ function HeaderNavItem({ item, active }: { item: NavItem; active: boolean }) {
 export function HeaderNav({ path }: { path: string }) {
   return (
     <nav aria-label="Navegación principal" className="hidden min-w-0 md:block">
-      <ul className="flex items-center gap-0.5">
+      <ul className="flex items-center gap-0.5 rounded-lg">
         {PRIMARY_NAV.map((item) => (
           <li key={item.to}>
             <HeaderNavItem item={item} active={isPrimaryNavActive(path, item.to)} />
@@ -63,7 +73,7 @@ export function VerticalNavList({
               <Link
                 to={item.to}
                 aria-current={active ? "page" : undefined}
-                className={cn(linkClass(active), "w-full px-3 py-2")}
+                className={cn(linkClass(active), "relative w-full px-3 py-2")}
               >
                 <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>{item.label}</span>

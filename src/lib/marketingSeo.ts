@@ -5,11 +5,16 @@
  */
 import { LEGAL_NAME, ORGANIZATION_ID, SITE_URL, WHATSAPP_E164 } from "@/lib/site";
 
-const OG_IMAGE =
-  "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2930eeea-27b9-495c-932b-005c7b79e815/id-preview-f7ff2cc0--e7caaa14-14c5-42d8-b5b5-4cde48ca5360.lovable.app-1779051473659.png";
+const OG_IMAGE = `${SITE_URL}/og-image.png`;
 
 export const MARKETING_META = [
   { property: "og:image", content: OG_IMAGE },
+  { property: "og:image:width", content: "1200" },
+  { property: "og:image:height", content: "630" },
+  {
+    property: "og:image:alt",
+    content: "Vibranding: marketing digital para pymes chilenas que quieren más clientes",
+  },
   { name: "twitter:image", content: OG_IMAGE },
   { name: "twitter:card", content: "summary_large_image" },
   { property: "og:type", content: "website" },
@@ -27,8 +32,7 @@ export const MARKETING_ORG_SCRIPT = {
         name: "Vibranding",
         legalName: LEGAL_NAME,
         url: SITE_URL,
-        // TODO: reemplazar por un logo PNG cuadrado de al menos 112x112 px (p. ej. public/logo.png).
-        logo: `${SITE_URL}/favicon.ico`,
+        logo: `${SITE_URL}/logo.png`,
         telephone: WHATSAPP_E164,
         address: { "@type": "PostalAddress", addressLocality: "Santiago", addressCountry: "CL" },
       },

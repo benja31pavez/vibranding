@@ -171,3 +171,94 @@ body:has(.app-brand) [role="dialog"] [role="tab"][aria-selected="true"] {
     border-color: color-mix(in oklab, var(--brand-1) 35%, var(--border-subtle));
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Carcasa del panel (estructura tipo Nexus): cabecera con degradado suave que se
+ * desplaza lentamente y menú lateral índigo. Solo bajo .app-brand.
+ * ------------------------------------------------------------------------- */
+.shell-header-brand {
+  color: #fff;
+  background-image: linear-gradient(100deg, #2f55c9 0%, #6a4bc0 35%, #b84a92 70%, #d7865a 100%);
+  background-size: 220% 100%;
+  animation: shell-header-shift 18s ease-in-out infinite alternate;
+}
+@keyframes shell-header-shift {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 100% 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shell-header-brand {
+    animation: none;
+  }
+}
+/* Controles del header: siempre blancos sobre el degradado. */
+.shell-header-brand .hdr-ctl {
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.28);
+  background-color: transparent;
+}
+@media (hover: hover) {
+  .shell-header-brand .hdr-ctl:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.16);
+  }
+}
+.shell-header-brand .hdr-ctl:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.shell-sidebar-indigo {
+  background-color: #141737;
+  color: #c9cbe0;
+}
+.shell-sidebar-indigo .sb-group {
+  color: #7e82a6;
+}
+.shell-sidebar-indigo .sb-item {
+  color: #c9cbe0;
+}
+@media (hover: hover) {
+  .shell-sidebar-indigo .sb-item:hover {
+    background-color: #1c1f47;
+    color: #fff;
+  }
+}
+.shell-sidebar-indigo .sb-item[aria-current="page"],
+.shell-sidebar-indigo .sb-item.sb-active {
+  background-color: #2f6bff;
+  color: #fff;
+}
+.shell-sidebar-indigo .sb-item.sb-locked {
+  color: #7e82a6;
+}
+.shell-sidebar-indigo .sb-item:focus-visible {
+  outline: 2px solid #8fb2ff;
+  outline-offset: 2px;
+}
+.shell-sidebar-indigo .sb-switcher {
+  background-color: #1c1f47;
+  border-color: #2a2e5c;
+  color: #fff;
+}
+@media (hover: hover) {
+  .shell-sidebar-indigo .sb-switcher:hover {
+    background-color: #23275a;
+  }
+}
+.shell-sidebar-indigo .sb-muted {
+  color: #9a9ec2;
+}
+
+/* Barra de 4 subsecciones con flecha (la activa “apunta” a la siguiente). */
+.section-tab-active {
+  background-color: #2f6bff;
+  color: #fff;
+  border-color: #2f6bff;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+}

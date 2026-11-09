@@ -210,7 +210,7 @@ function OpenLink({ item }: { item: ApprovalItem }) {
         <Link
           to="/clients/$clientId/plan"
           params={{ clientId: item.clientId }}
-          search={{ tab: "etapas" }}
+          search={{ tab: "resumen" }}
           aria-label={label}
         >
           <ExternalLink aria-hidden className="h-3.5 w-3.5" />

@@ -5,7 +5,7 @@ import { ClientFichaPage } from "@/components/clients/ficha/cliente/ClientFichaP
 export const Route = createFileRoute("/_app/clients/$clientId/ficha")({
   head: () => ({
     meta: [
-      { title: "Resumen del cliente | Vibranding" },
+      { title: "Panel del cliente | Vibranding" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

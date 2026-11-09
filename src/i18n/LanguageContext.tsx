@@ -13,22 +13,9 @@ const STORAGE_KEY = "vibranding:lang";
 /** BCP-47 tag for the <html lang> attribute. The site targets Chile only. */
 export const HTML_LANG: Record<Lang, string> = { es: "es-CL", en: "en" };
 
-/**
- * Spanish (Chile) is the default for everyone. We only switch when the visitor
- * made an explicit choice (?lang= or a previously saved selection) — never from
- * navigator.language, so the public site and its SSR HTML stay in Spanish.
- */
 function detectInitial(): Lang {
-  if (typeof window === "undefined") return "es";
-  try {
-    const url = new URL(window.location.href);
-    const q = url.searchParams.get("lang");
-    if (q === "en" || q === "es") return q;
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "en" || stored === "es") return stored;
-  } catch {
-    // Storage can be unavailable (private mode); fall back to Spanish.
-  }
+  // El sitio es solo en español (Chile). La versión en inglés se retiró porque sus
+  // textos legales estaban desactualizados; se ignoran ?lang= y la selección guardada.
   return "es";
 }
 
