@@ -109,32 +109,36 @@ export function ForWhomSection() {
         end="?"
         subtitle="Pymes y emprendimientos de cualquier rubro. Algunos ejemplos:"
       />
-      <ul data-reveal-stagger className="grid gap-4 sm:grid-cols-3">
+      {/* Siempre una misma fila de 3, también en teléfono (tarjetas más altas y texto más chico). */}
+      <ul data-reveal-stagger className="niche-grid grid grid-cols-3 gap-2 sm:gap-4">
         {niches.items.map((n, i) => {
           const Icon = NICHE_ICONS[i] ?? HomeIcon;
           return (
             <li
               key={n.title}
-              className="card-fx group relative overflow-hidden rounded-3xl border bg-card"
+              className="card-fx group relative overflow-hidden rounded-2xl border bg-card sm:rounded-3xl"
             >
               <PhotoSlot
                 images={NICHE_PHOTOS[i]}
                 tone={NICHE_TONES[i]}
-                sizes="(min-width: 640px) 33vw, 100vw"
+                sizes="33vw"
                 imageClassName="object-[center_30%]"
-                className="aspect-[4/3] sm:aspect-[4/5]"
+                className="aspect-[3/5] sm:aspect-[4/5]"
               >
                 <div
                   aria-hidden
                   className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent"
                 />
               </PhotoSlot>
-              <div className="absolute inset-x-0 bottom-0 p-6 text-white">
-                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/15 backdrop-blur">
-                  <Icon aria-hidden className="h-5 w-5" />
+              <div className="absolute inset-x-0 bottom-0 p-2.5 text-white sm:p-6">
+                <span className="grid h-8 w-8 place-items-center rounded-xl bg-white/15 backdrop-blur sm:h-11 sm:w-11 sm:rounded-2xl">
+                  <Icon aria-hidden className="h-4 w-4 sm:h-5 sm:w-5" />
                 </span>
-                <h3 className="mt-4 text-lg font-semibold">{n.title}</h3>
-                <p className="mt-1 text-sm text-white/85">{n.desc}</p>
+                <h3 className="mt-2 text-[13px] font-semibold leading-tight [overflow-wrap:anywhere] sm:mt-4 sm:text-lg">
+                  {n.title}
+                </h3>
+                <p className="mt-1 hidden text-sm text-white/85 sm:block">{n.desc}</p>
+                <p className="mt-1 text-[11px] leading-snug text-white/85 sm:hidden">{n.desc}</p>
               </div>
             </li>
           );
