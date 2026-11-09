@@ -24,9 +24,12 @@ const DESCRIPTION: Readonly<Record<PersonalTab, string>> = {
   historial: "Ingresos y salidas del equipo del cliente",
 };
 
-/** WhatsApp del creador del panel para pedir los datos del equipo del cliente. */
-const WHATSAPP_URL =
-  "https://wa.me/56935313139?text=Hola%20Benja%2C%20te%20paso%20los%20datos%20del%20equipo%20de%20mi%20cliente%20para%20cargarlos%20en%20Personal.";
+import { whatsappUrl } from "@/lib/site";
+
+/** WhatsApp de Vibranding para pedir los datos del equipo del cliente. */
+const WHATSAPP_URL = whatsappUrl(
+  "Hola, quiero cargar en Personal los datos del equipo del cliente. Les envío por aquí la lista.",
+);
 
 interface PersonalPageProps {
   /** Se mantiene por paridad con las otras secciones; se usará cuando exista la tabla de empleados. */
