@@ -35,7 +35,7 @@ export function ServicesSection() {
           accent={s.titleAccent}
           subtitle={s.subtitle}
         />
-        <ul data-reveal-stagger className="svc-grid grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul data-reveal-stagger className="svc-grid grid grid-cols-3 gap-2 sm:gap-4 lg:gap-5">
           {s.items.map((item, i) => {
             const Icon = SERVICE_ICONS[i] ?? Sparkles;
             const Mockup = SERVICE_TILE_MOCKUPS[i];
@@ -47,7 +47,7 @@ export function ServicesSection() {
               >
                 <div
                   aria-hidden
-                  className="relative grid h-40 place-items-center overflow-hidden rounded-t-3xl border-b px-5"
+                  className="svc-art relative grid h-40 place-items-center overflow-hidden rounded-t-3xl border-b px-5"
                   style={{
                     background: `radial-gradient(80% 90% at 20% 0%, color-mix(in oklab, ${TONES[i]} 18%, transparent), transparent 70%), var(--secondary)`,
                   }}
@@ -58,12 +58,14 @@ export function ServicesSection() {
                     </div>
                   )}
                 </div>
-                <div className="p-6">
-                  <h3 className="flex items-center gap-2.5 text-lg font-semibold">
-                    <Icon aria-hidden className="h-5 w-5" style={{ color: TONES[i] }} />
+                <div className="svc-body p-6">
+                  <h3 className="svc-title flex items-center gap-2.5 text-lg font-semibold">
+                    <Icon aria-hidden className="h-5 w-5 shrink-0" style={{ color: TONES[i] }} />
                     {item.title}
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                  <p className="svc-desc mt-2 text-sm text-muted-foreground leading-relaxed">
+                    {item.desc}
+                  </p>
                 </div>
               </li>
             );
