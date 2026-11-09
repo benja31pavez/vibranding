@@ -183,8 +183,8 @@ export function StatementView({
   );
   const header = (
     <div className="flex flex-col gap-3">
-      <PageHeader size="compact" title="Facturación" description={DESCRIPTION[tab]} />
-      <SectionTabs tabs={tabs} value={tab} onChange={onTabChange} label="Vistas de Facturación" />
+      <PageHeader size="compact" title="Finanzas" description={DESCRIPTION[tab]} />
+      <SectionTabs tabs={tabs} value={tab} onChange={onTabChange} label="Vistas de Finanzas" />
     </div>
   );
 

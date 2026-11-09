@@ -10,10 +10,13 @@ import {
   LayoutDashboard,
   Instagram,
   Lock,
+  Megaphone,
   MessageCircle,
+  MessagesSquare,
   Receipt,
   Search,
   UserPlus,
+  Users,
   Zap,
 } from "lucide-react";
 import type { ComponentType } from "react";
@@ -28,17 +31,17 @@ import { CLIENT_SECTIONS, type SectionDef, type SectionKey } from "@/lib/clientS
 import type { ConnectionKey } from "@/components/setup/connectionModel";
 
 type IconComponent = ComponentType<{ className?: string }>;
-type GroupKey = "operacion" | "conexiones" | "negocio";
+type GroupKey = "principal" | "difusion" | "negocio";
 
 /** Grupos del menú y el orden de sus secciones. */
 const GROUPS: readonly { key: GroupKey; label: string; sections: readonly string[] }[] = [
-  { key: "operacion", label: "Principal", sections: ["plan", "calendario", "archivos", "sitio"] },
+  { key: "principal", label: "Principal", sections: ["plan", "calendario", "archivos"] },
+  { key: "difusion", label: "Difusión", sections: ["sitio", "canales", "anuncios"] },
   {
-    key: "conexiones",
-    label: "Marketing",
-    sections: ["instagram", "bandeja", "meta-ads", "google-ads"],
+    key: "negocio",
+    label: "Negocio",
+    sections: ["leads", "facturacion", "legal", "personal"],
   },
-  { key: "negocio", label: "Negocio", sections: ["leads", "facturacion", "legal", "analytics"] },
 ];
 
 /** Conexión que desbloquea cada sección con candado (abre directo esa conexión en Conexiones). */
@@ -53,14 +56,14 @@ const UNLOCKED_BY: Partial<Record<SectionKey, ConnectionKey>> = {
 
 const GROUPED = new Set(GROUPS.flatMap((g) => g.sections));
 
-/** Secciones visibles de un grupo, en su orden; las sin grupo caen al final de "Operación". */
+/** Secciones visibles de un grupo, en su orden; las sin grupo caen al final de "Principal". */
 function sectionsOf(group: (typeof GROUPS)[number]): SectionDef[] {
   const listed = group.sections.flatMap((key) => CLIENT_SECTIONS.filter((s) => s.key === key));
-  if (group.key !== "operacion") return listed;
+  if (group.key !== "principal") return listed;
   return [...listed, ...CLIENT_SECTIONS.filter((s) => !GROUPED.has(s.key))];
 }
 
-/** Un icono distinto por sección (Facturación ≠ Analítica). */
+/** Un icono distinto por sección. */
 const ICONS: Partial<Record<string, IconComponent>> = {
   plan: Flag,
   calendario: CalendarDays,
@@ -71,8 +74,11 @@ const ICONS: Partial<Record<string, IconComponent>> = {
   automatizacion: Zap,
   sitio: Globe,
   bandeja: MessageCircle,
+  canales: MessagesSquare,
+  anuncios: Megaphone,
   leads: UserPlus,
   facturacion: Receipt,
+  personal: Users,
   legal: Scale,
   analytics: BarChart3,
 };
@@ -165,7 +171,7 @@ export function ClientSidebarNav({
 
   const badgeFor = (key: string) => {
     if (key === "plan") return reviewCount;
-    if (key === "bandeja") return staleOutcomes;
+    if (key === "canales") return staleOutcomes;
     return 0;
   };
 
@@ -179,18 +185,9 @@ export function ClientSidebarNav({
           retrying={capsLoading}
         />
       )}
-      <Link
-        to="/clients/$clientId"
-        params={{ clientId }}
-        aria-current={onSummary ? "page" : undefined}
-        className={itemClass(onSummary)}
-      >
-        <LayoutDashboard className="h-4 w-4 shrink-0" />
-        <span className="min-w-0 flex-1 leading-tight">Panel</span>
-      </Link>
       {GROUPS.map((group) => {
         const sections = sectionsOf(group);
-        if (sections.length === 0) return null;
+        if (sections.length === 0 && group.key !== "principal") return null;
         const headingId = `client-nav-${group.key}`;
         return (
           <div key={group.key} role="group" aria-labelledby={headingId}>
@@ -201,6 +198,19 @@ export function ClientSidebarNav({
               {group.label}
             </div>
             <ul className="space-y-0.5">
+              {group.key === "principal" && (
+                <li>
+                  <Link
+                    to="/clients/$clientId"
+                    params={{ clientId }}
+                    aria-current={onSummary ? "page" : undefined}
+                    className={itemClass(onSummary)}
+                  >
+                    <LayoutDashboard className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 flex-1 leading-tight">Panel</span>
+                  </Link>
+                </li>
+              )}
               {sections.map((s) => (
                 <li key={s.key}>
                   <SectionLink

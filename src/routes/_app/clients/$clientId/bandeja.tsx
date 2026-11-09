@@ -1,12 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import {
-  WhatsAppSectionPage,
-  isWhatsAppTab,
-  type WhatsAppTab,
-} from "@/components/chatbot/WhatsAppSectionPage";
+import { isWhatsAppTab, type WhatsAppTab } from "@/components/chatbot/WhatsAppSectionPage";
 
 interface BandejaSearch {
-  /** Subsección: resumen (por defecto), chatbot, bandeja o plantillas. */
+  /** Compatibilidad con enlaces antiguos: subpestaña de WhatsApp. */
   tab?: WhatsAppTab;
   /** Enlace antiguo `?tab=leads`: se redirige a la sección Leads. */
   legacy?: "leads";
@@ -22,6 +18,11 @@ const LEGACY_TABS: Record<string, WhatsAppTab> = {
   metrics: "resumen",
 };
 
+/**
+ * Ruta antigua: WhatsApp ahora es una subpestaña dentro de Canales (`/canales?tab=whatsapp`).
+ * Se preservan los enlaces viejos redirigiendo al nuevo destino, con la subpestaña interna
+ * trasladada al search param `wasub`.
+ */
 export const Route = createFileRoute("/_app/clients/$clientId/bandeja")({
   validateSearch: (s: Record<string, unknown>): BandejaSearch => ({
     tab: isWhatsAppTab(s.tab)
@@ -35,41 +36,10 @@ export const Route = createFileRoute("/_app/clients/$clientId/bandeja")({
     if (search.legacy === "leads") {
       throw redirect({ to: "/clients/$clientId/leads", params });
     }
+    throw redirect({
+      to: "/clients/$clientId/canales",
+      params,
+      search: { tab: "whatsapp", wasub: search.tab },
+    });
   },
-  head: () => ({
-    meta: [
-      { title: "WhatsApp del cliente | Vibranding" },
-      {
-        name: "description",
-        content: "Resumen, chatbot, bandeja de mensajes y plantillas de WhatsApp del cliente.",
-      },
-      { property: "og:title", content: "WhatsApp del cliente | Vibranding" },
-      {
-        property: "og:description",
-        content: "Resumen, chatbot, bandeja de mensajes y plantillas de WhatsApp del cliente.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
-  component: BandejaRoute,
 });
-
-function BandejaRoute() {
-  const { clientId } = Route.useParams();
-  const { tab } = Route.useSearch();
-  const navigate = Route.useNavigate();
-  return (
-    <WhatsAppSectionPage
-      clientId={clientId}
-      tab={tab ?? "resumen"}
-      onTabChange={(next) =>
-        navigate({
-          search: () => ({ tab: next === "resumen" ? undefined : next }),
-          replace: true,
-          resetScroll: false,
-        })
-      }
-    />
-  );
-}

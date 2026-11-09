@@ -1,13 +1,12 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-/** Ruta antigua: el chatbot ahora es una subsección de WhatsApp (`/bandeja?tab=chatbot`). */
+/** Ruta antigua: el chatbot ahora es una subpestaña de WhatsApp dentro de Canales. */
 export const Route = createFileRoute("/_app/clients/$clientId/chatbot")({
-  head: () => ({ meta: [{ title: "Chatbot de WhatsApp | Vibranding" }] }),
   beforeLoad: ({ params }) => {
     throw redirect({
-      to: "/clients/$clientId/bandeja",
+      to: "/clients/$clientId/canales",
       params,
-      search: { tab: "chatbot" },
+      search: { tab: "whatsapp", wasub: "chatbot" },
     });
   },
 });
