@@ -23,7 +23,6 @@ export interface PageHeaderProps {
 /** Encabezado estándar de una pantalla de la plataforma. */
 export function PageHeader({
   title,
-  description,
   actions,
   breadcrumb,
   className,
@@ -43,7 +42,6 @@ export function PageHeader({
           >
             <TitleText title={title} />
           </h1>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
