@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarClock, ChevronDown, Star, Trash2 } from "lucide-react";
+import { CalendarClock, ChevronDown, Link2, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import {
   SortableList,
   useSortableRow,
 } from "@/components/site/SortableSections";
-import { LinkIcon } from "@/components/multilink/LinkIcon";
+import { BrandTile } from "@/components/multilink/editor/BrandTile";
 import { LinkSuggestions } from "@/components/multilink/editor/LinkSuggestions";
 import {
   linkSuggestions,
@@ -80,8 +80,14 @@ export function LinkListEditor({
         <div className="flex flex-wrap gap-2">
           {/* Lo que ya se ofrece con datos del cliente no se repite en blanco. */}
           {QUICK_ADDS.filter((q) => !suggestions.some((s) => s.kind === q.kind)).map((q) => (
-            <Button key={q.kind} size="sm" variant="outline" onClick={() => add(q)}>
-              <LinkIcon kind={q.kind === "video" ? "youtube" : q.kind} className="mr-1 h-4 w-4" />{" "}
+            <Button
+              key={q.kind}
+              size="sm"
+              variant="outline"
+              className="bg-surface transition hover:-translate-y-px hover:border-border-strong motion-reduce:hover:translate-y-0"
+              onClick={() => add(q)}
+            >
+              <BrandTile kind={q.kind === "video" ? "youtube" : q.kind} size="sm" />
               {q.label}
             </Button>
           ))}
@@ -89,9 +95,15 @@ export function LinkListEditor({
       </div>
 
       {items.length === 0 ? (
-        <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
-          Sin enlaces aún: parte por WhatsApp e Instagram.
-        </p>
+        <div className="flex flex-col items-center gap-2 rounded-app-lg border border-dashed border-border-strong bg-surface-2/50 px-4 py-6 text-center">
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-brand-soft text-brand-1">
+            <Link2 className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <p className="text-sm font-medium">Sin enlaces aún</p>
+          <p className="max-w-xs text-xs text-muted-foreground">
+            Parte por WhatsApp e Instagram: son los que más clics reciben desde la bio.
+          </p>
+        </div>
       ) : (
         <SortableList
           ids={items.map((i) => i.id)}
@@ -174,22 +186,19 @@ function LinkRow({
     <li
       ref={setNodeRef}
       style={style}
-      className={`rounded-xl border bg-background ${isDragging ? "shadow-xl" : ""} ${hasError ? "border-destructive/60" : ""}`}
+      className={`rounded-app-lg border bg-surface transition-[border-color,box-shadow] duration-200 ${isDragging ? "shadow-app-lg" : "shadow-app-xs hover:border-border-strong"} ${hasError ? "border-destructive/60" : open ? "border-border-strong" : "border-border-subtle"}`}
     >
       <div className="flex items-center gap-2 px-3 py-2.5">
         {handle}
-        <span
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-secondary"
-          title={LINK_KIND_LABEL[kind]}
-        >
-          <LinkIcon kind={kind} className="h-4 w-4" />
+        <span className={i.is_active ? undefined : "opacity-45 grayscale"}>
+          <BrandTile kind={kind} />
         </span>
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={open}
           aria-controls={panelId}
-          className="min-w-0 flex-1 text-left"
+          className={`min-w-0 flex-1 rounded-app-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${i.is_active ? "" : "opacity-60"}`}
         >
           <span className="flex items-center gap-2">
             <span className="truncate text-sm font-medium">{i.title.trim() || "Sin título"}</span>
@@ -201,7 +210,7 @@ function LinkRow({
             )}
             {badge && (
               <span
-                className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] ${badge.className}`}
+                className={`shrink-0 rounded-full border px-2 py-0.5 text-xs leading-none ${badge.className}`}
               >
                 {badge.label}
               </span>
@@ -230,13 +239,16 @@ function LinkRow({
           <Trash2 className="h-4 w-4" />
         </Button>
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-muted-foreground transition ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`}
           aria-hidden="true"
         />
       </div>
 
       {open && (
-        <div id={panelId} className="space-y-3 border-t px-3 pb-3 pt-3">
+        <div
+          id={panelId}
+          className="space-y-3 border-t border-border-subtle bg-surface-2/40 px-3 pb-3 pt-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1"
+        >
           <Field label="Texto del botón" error={errors[`${i.id}.title`]}>
             {(a) => (
               <Input

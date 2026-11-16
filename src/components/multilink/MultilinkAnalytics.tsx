@@ -1,52 +1,35 @@
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { withoutBots } from "@/lib/analytics/bots";
-import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { Activity, MessageCircle, MousePointerClick, Users } from "lucide-react";
+import { Activity, Eye, MessageCircle, MousePointerClick } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { withoutBots } from "@/lib/analytics/bots";
+import { EmptyState, ErrorState } from "@/components/app";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import type { MultilinkItem } from "@/lib/multilink";
+import {
+  clicksPerItem,
+  dailySeries,
+  formatCount,
+  formatPct,
+  isClick,
+  visitSources,
+  type DayPoint,
+  type EventRow,
+} from "@/components/multilink/analyticsModel";
+import { TopLinks } from "@/components/multilink/AnalyticsTopLinks";
+import { Sparkline } from "@/components/multilink/Sparkline";
 
-type EventRow = {
-  user_agent?: string | null;
-  event_name: string;
-  item_id: string | null;
-  referrer: string | null;
-  utm_source: string | null;
-  utm_medium: string | null;
-  utm_campaign: string | null;
-  created_at: string;
-};
-
-const RANGES = [7, 30, 90];
-
-function sourceLabel(r: EventRow): string {
-  if (r.utm_source) {
-    return [r.utm_source, r.utm_medium].filter(Boolean).join(" / ");
-  }
-  const ref = (r.referrer ?? "").trim();
-  if (!ref) return "Directo / app";
-  try {
-    const host = new URL(ref).hostname.replace(/^www\./, "");
-    if (/instagram/.test(host)) return "Instagram";
-    if (/facebook|fb\./.test(host)) return "Facebook";
-    if (/whatsapp|wa\.me/.test(host)) return "WhatsApp";
-    if (/t\.co|twitter|x\.com/.test(host)) return "X / Twitter";
-    if (/tiktok/.test(host)) return "TikTok";
-    if (/google/.test(host)) return "Google";
-    return host;
-  } catch {
-    return "Otro";
-  }
-}
+const RANGES = [7, 30, 90] as const;
+const DAY_MS = 86_400_000;
 
 /**
  * Per-link analytics computed from landing_events: clicks over time,
@@ -64,11 +47,14 @@ export function MultilinkAnalytics({
   const [rows, setRows] = useState<EventRow[]>([]);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    const from = new Date(Date.now() - (days - 1) * 86400000);
+    setError(null);
+    const from = new Date(Date.now() - (days - 1) * DAY_MS);
     from.setHours(0, 0, 0, 0);
     supabase
       .from("landing_events")
@@ -80,185 +66,146 @@ export function MultilinkAnalytics({
       .eq("source_id", multilinkId)
       .gte("created_at", from.toISOString())
       .order("created_at", { ascending: true })
-      .then(({ data }) => {
+      .then(({ data, error: err }) => {
         if (cancelled) return;
+        if (err) setError(err.message);
         setRows(withoutBots((data ?? []) as EventRow[]));
         setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [clientId, multilinkId, days]);
-
-  const views = rows.filter((r) => r.event_name === "page_view").length;
-  const clickRows = useMemo(
-    () => rows.filter((r) => r.event_name === "link_click" || r.event_name === "whatsapp_click"),
-    [rows],
-  );
-
-  const series = useMemo(() => {
-    const b = new Map<string, { date: string; visitas: number; clics: number }>();
-    for (let i = days - 1; i >= 0; i--) {
-      const k = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
-      b.set(k, { date: k, visitas: 0, clics: 0 });
-    }
-    for (const r of rows) {
-      const day = b.get(r.created_at.slice(0, 10));
-      if (!day) continue;
-      if (r.event_name === "page_view") day.visitas++;
-      else day.clics++;
-    }
-    return Array.from(b.values());
-  }, [rows, days]);
-
-  const perItem = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const r of clickRows) {
-      if (!r.item_id) continue;
-      counts.set(r.item_id, (counts.get(r.item_id) ?? 0) + 1);
-    }
-    return items
-      .map((i) => ({ item: i, clicks: counts.get(i.id) ?? 0 }))
-      .sort((a, b) => b.clicks - a.clicks);
-  }, [clickRows, items]);
-
-  const sources = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of rows.filter((r) => r.event_name === "page_view")) {
-      const k = sourceLabel(r);
-      m.set(k, (m.get(k) ?? 0) + 1);
-    }
-    return Array.from(m.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
-  }, [rows]);
-
-  const totalCtr = views > 0 ? (clickRows.length / views) * 100 : null;
-  const waClicks = clickRows.filter((r) => r.event_name === "whatsapp_click").length;
-  const maxClicks = Math.max(1, ...perItem.map((p) => p.clicks));
+  }, [clientId, multilinkId, days, attempt]);
 
   return (
-    <section className="rounded-2xl border bg-surface p-5 space-y-5">
+    <MultilinkAnalyticsView
+      rows={rows}
+      items={items}
+      days={days}
+      onDaysChange={setDays}
+      loading={loading}
+      error={error}
+      onRetry={() => setAttempt((n) => n + 1)}
+    />
+  );
+}
+
+export function MultilinkAnalyticsView({
+  rows,
+  items,
+  days,
+  onDaysChange,
+  loading,
+  error = null,
+  onRetry,
+}: {
+  rows: EventRow[];
+  items: MultilinkItem[];
+  days: number;
+  onDaysChange: (d: number) => void;
+  loading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+}) {
+  const series = useMemo(() => dailySeries(rows, days), [rows, days]);
+  const perItem = useMemo(() => clicksPerItem(rows, items), [rows, items]);
+  const sources = useMemo(() => visitSources(rows), [rows]);
+  const views = rows.filter((r) => r.event_name === "page_view").length;
+  const clicks = rows.filter(isClick).length;
+  const waClicks = rows.filter((r) => r.event_name === "whatsapp_click").length;
+  const ctr = views > 0 ? (clicks / views) * 100 : null;
+
+  return (
+    <section aria-labelledby="ml-analytics-title" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-medium flex items-center gap-2">
-          <Activity className="w-4 h-4" /> Analítica del multienlace
-        </h3>
-        <div className="flex gap-1">
-          {RANGES.map((d) => (
-            <Button
-              key={d}
-              size="sm"
-              variant={days === d ? "default" : "outline"}
-              onClick={() => setDays(d)}
-            >
-              {d} días
-            </Button>
-          ))}
-        </div>
+        <h2 id="ml-analytics-title" className="flex items-center gap-2 text-base font-semibold">
+          <Activity className="h-4 w-4 text-brand-1" aria-hidden="true" /> Analítica del multienlace
+        </h2>
+        <RangePicker days={days} onChange={onDaysChange} />
       </div>
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Cargando…</p>
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Sin visitas en este período.</p>
+      {error ? (
+        <ErrorState title="No pudimos cargar las métricas" message={error} onRetry={onRetry} />
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Kpi icon={Users} label="Visitas" value={views} />
-            <Kpi icon={MousePointerClick} label="Clics en enlaces" value={clickRows.length} />
-            <Kpi icon={MessageCircle} label="Clics a WhatsApp" value={waClicks} />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Kpi icon={Eye} label="Visitas" value={formatCount(views)} loading={loading}>
+              <Sparkline values={series.map((d) => d.visitas)} tone="var(--chart-1)" />
+            </Kpi>
+            <Kpi
+              icon={MousePointerClick}
+              label="Clics en enlaces"
+              value={formatCount(clicks)}
+              loading={loading}
+            >
+              <Sparkline values={series.map((d) => d.clics)} tone="var(--brand-2)" />
+            </Kpi>
+            <Kpi
+              icon={MessageCircle}
+              label="Clics a WhatsApp"
+              value={formatCount(waClicks)}
+              loading={loading}
+            >
+              <Sparkline values={series.map((d) => d.whatsapp)} tone="#16a34a" />
+            </Kpi>
             <Kpi
               icon={Activity}
               label="Visitas que hacen clic"
-              value={totalCtr === null ? "—" : `${totalCtr.toFixed(1)}%`}
+              value={formatPct(ctr)}
+              loading={loading}
+              hint={ctr === null ? "Sin visitas aún" : "de cada 100 visitas"}
             />
           </div>
 
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={series} margin={{ left: -20, right: 8, top: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(v: string) => `${v.slice(8, 10)}/${v.slice(5, 7)}`}
-                  fontSize={11}
-                  tickLine={false}
-                />
-                <YAxis allowDecimals={false} fontSize={11} tickLine={false} />
-                <Tooltip
-                  labelFormatter={(v) => new Date(`${v}T12:00:00`).toLocaleDateString("es-CL")}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line
-                  type="monotone"
-                  name="Visitas"
-                  dataKey="visitas"
-                  stroke="#2563eb"
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  name="Clics"
-                  dataKey="clics"
-                  stroke="#16a34a"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <div className="text-xs text-muted-foreground mb-2">
-                Clics por enlace (y % de visitas que lo tocaron)
+          {loading ? (
+            <div className="grid gap-3 lg:grid-cols-3">
+              <Skeleton className="h-64 rounded-app-lg lg:col-span-2" />
+              <Skeleton className="h-64 rounded-app-lg" />
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="rounded-app-lg border border-border-subtle bg-surface p-6 shadow-app-xs">
+              <EmptyState
+                size="compact"
+                icon={Activity}
+                title="Sin visitas en este período"
+                description="Comparte el link o el QR en la bio y aquí verás visitas, clics y de dónde llegan."
+              />
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-3 lg:grid-cols-3">
+                <TrendCard series={series} />
+                <TopLinks perItem={perItem} views={views} />
               </div>
-              {perItem.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aún no hay enlaces.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {perItem.map(({ item, clicks }) => {
-                    const ctr = views > 0 ? (clicks / views) * 100 : null;
-                    const width = (clicks / maxClicks) * 100;
-                    return (
-                      <li key={item.id} className="space-y-1">
-                        <div className="flex justify-between gap-3 text-sm">
-                          <span className="truncate">{item.title}</span>
-                          <span className="text-muted-foreground shrink-0">
-                            <span className="font-medium text-foreground">{clicks}</span> clic
-                            {clicks === 1 ? "" : "s"} · {ctr === null ? "—" : `${ctr.toFixed(1)}%`}
-                          </span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-                          <div className="h-full bg-primary" style={{ width: `${width}%` }} />
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-
-            <div>
-              <div className="text-xs text-muted-foreground mb-2">De dónde llegan las visitas</div>
-              {sources.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sin visitas registradas.</p>
-              ) : (
-                <ul className="text-sm space-y-1">
-                  {sources.map(([k, n]) => (
-                    <li key={k} className="flex justify-between gap-3 border-b py-1 last:border-0">
-                      <span className="truncate">{k}</span>
-                      <span className="font-medium">{n}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
+              <SourcesCard sources={sources} total={views} />
+            </>
+          )}
         </>
       )}
     </section>
+  );
+}
+
+function RangePicker({ days, onChange }: { days: number; onChange: (d: number) => void }) {
+  return (
+    <div role="group" aria-label="Período" className="flex gap-1 rounded-app-md bg-muted p-1">
+      {RANGES.map((d) => (
+        <button
+          key={d}
+          type="button"
+          aria-pressed={days === d}
+          onClick={() => onChange(d)}
+          className={cn(
+            "rounded-app-sm px-3 py-1 text-sm font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            days === d
+              ? "bg-background text-foreground shadow-app-xs"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {d} días
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -266,17 +213,170 @@ function Kpi({
   icon: Icon,
   label,
   value,
+  loading,
+  hint,
+  children,
 }: {
-  icon: typeof Users;
+  icon: ComponentType<{ className?: string }>;
   label: string;
-  value: number | string;
+  value: string;
+  loading: boolean;
+  hint?: string;
+  children?: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border bg-background p-3">
-      <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-        <Icon className="w-3.5 h-3.5" /> {label}
+    <div
+      className="card-brand flex flex-col justify-between gap-2 rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs"
+      aria-busy={loading || undefined}
+    >
+      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Icon className="h-3.5 w-3.5 text-brand-1" aria-hidden="true" />
+        {label}
       </div>
-      <div className="text-xl font-semibold mt-1">{value}</div>
+      <div className="flex items-end justify-between gap-3">
+        {loading ? (
+          <Skeleton className="h-8 w-20" />
+        ) : (
+          <span className="text-2xl font-semibold tracking-tight tabular-nums md:text-3xl">
+            {value}
+          </span>
+        )}
+        {!loading && children}
+      </div>
+      {hint && !loading && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
+const shortDate = (v: string) => `${v.slice(8, 10)}/${v.slice(5, 7)}`;
+
+function TrendCard({ series }: { series: DayPoint[] }) {
+  return (
+    <div className="flex flex-col rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs lg:col-span-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Visitas y clics por día</h3>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <Legend color="var(--chart-1)" label="Visitas" />
+          <Legend color="var(--brand-2)" label="Clics" />
+        </div>
+      </div>
+      <div
+        className="h-52 lg:h-auto lg:min-h-52 lg:flex-1"
+        role="img"
+        aria-label="Gráfico de visitas y clics por día"
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={series} margin={{ left: -18, right: 6, top: 6, bottom: 0 }}>
+            <defs>
+              <linearGradient id="ml-views" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.28} />
+                <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="ml-clicks" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--brand-2)" stopOpacity={0.22} />
+                <stop offset="100%" stopColor="var(--brand-2)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 4" />
+            <XAxis
+              dataKey="date"
+              tickFormatter={shortDate}
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              minTickGap={24}
+              stroke="var(--muted-foreground)"
+            />
+            <YAxis
+              allowDecimals={false}
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              stroke="var(--muted-foreground)"
+            />
+            <Tooltip
+              cursor={{ stroke: "var(--border)" }}
+              contentStyle={{
+                background: "var(--popover)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                fontSize: 12,
+                color: "var(--popover-foreground)",
+              }}
+              labelFormatter={(v) =>
+                new Date(`${v}T12:00:00`).toLocaleDateString("es-CL", {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                })
+              }
+            />
+            <Area
+              type="monotone"
+              name="Visitas"
+              dataKey="visitas"
+              stroke="var(--chart-1)"
+              strokeWidth={2}
+              fill="url(#ml-views)"
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+            <Area
+              type="monotone"
+              name="Clics"
+              dataKey="clics"
+              stroke="var(--brand-2)"
+              strokeWidth={2}
+              fill="url(#ml-clicks)"
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="h-2 w-2 rounded-full" style={{ background: color }} aria-hidden="true" />
+      {label}
+    </span>
+  );
+}
+
+function SourcesCard({ sources, total }: { sources: [string, number][]; total: number }) {
+  return (
+    <div className="rounded-app-lg border border-border-subtle bg-surface p-4 shadow-app-xs">
+      <h3 className="mb-3 text-sm font-semibold">De dónde llegan las visitas</h3>
+      {sources.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Sin visitas registradas.</p>
+      ) : (
+        <ul className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2 xl:grid-cols-3">
+          {sources.slice(0, 6).map(([label, n]) => {
+            const pct = total > 0 ? (n / total) * 100 : 0;
+            return (
+              <li key={label} className="space-y-1">
+                <div className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="truncate">{label}</span>
+                  <span className="shrink-0 tabular-nums text-muted-foreground">
+                    <span className="font-medium text-foreground">{formatCount(n)}</span> ·{" "}
+                    {formatPct(pct)}
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+                  <div
+                    className="h-full rounded-full bg-gradient-brand"
+                    style={{ width: `${Math.max(pct, 2)}%` }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

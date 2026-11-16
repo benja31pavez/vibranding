@@ -1,6 +1,6 @@
 import { Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LinkIcon } from "@/components/multilink/LinkIcon";
+import { BrandTile } from "@/components/multilink/editor/BrandTile";
 import type { LinkSuggestion } from "@/components/multilink/editor/suggestedLinks";
 import { formatChileMobile } from "@/lib/site/validation";
 
@@ -37,7 +37,7 @@ export function LinkSuggestions({
             title={s.wa ? formatChileMobile(s.wa) : s.url}
           >
             <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-            <LinkIcon kind={s.kind} className="h-4 w-4" />
+            <BrandTile kind={s.kind} size="sm" />
             {s.label}
           </Button>
         ))}

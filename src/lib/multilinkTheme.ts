@@ -166,6 +166,10 @@ export type ItemVisual = {
   style: React.CSSProperties;
 };
 
+/** Elevación al pasar el mouse (sin movimiento si el sistema pide menos animación). */
+const LIFT =
+  "transition duration-300 motion-safe:hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99]";
+
 /** One coherent look for every non-featured item. */
 export function itemVisual(
   style: ButtonStyle,
@@ -180,7 +184,7 @@ export function itemVisual(
   switch (style) {
     case "outline":
       return {
-        className: "transition hover:scale-[1.02]",
+        className: LIFT,
         style: {
           borderRadius: radius,
           border: `2px solid ${accent}`,
@@ -190,7 +194,7 @@ export function itemVisual(
       };
     case "soft":
       return {
-        className: "transition hover:scale-[1.02]",
+        className: LIFT,
         style: {
           borderRadius: radius,
           background: withAlpha(accent, theme.isDark ? 0.22 : 0.14),
@@ -199,18 +203,20 @@ export function itemVisual(
       };
     case "hard-shadow":
       return {
-        className: "transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none",
+        className:
+          "shadow-[5px_5px_0_0_var(--ml-ink)] transition duration-200 hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[2px_2px_0_0_var(--ml-ink)] active:translate-x-[5px] active:translate-y-[5px] active:shadow-none",
+        // La sombra va en la clase (vía variable) para que el hover pueda cambiarla.
         style: {
           borderRadius: radius,
           background: accent,
           color: onAccent,
           border: `2px solid ${ink}`,
-          boxShadow: `5px 5px 0 0 ${ink}`,
+          ["--ml-ink" as string]: ink,
         },
       };
     case "glass":
       return {
-        className: "backdrop-blur-md transition hover:scale-[1.02]",
+        className: `backdrop-blur-md ${LIFT}`,
         style: {
           borderRadius: radius,
           background: theme.isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.55)",
@@ -220,7 +226,7 @@ export function itemVisual(
       };
     default:
       return {
-        className: "transition hover:scale-[1.02]",
+        className: `shadow-sm ${LIFT}`,
         style: { borderRadius: radius, background: accent, color: onAccent },
       };
   }

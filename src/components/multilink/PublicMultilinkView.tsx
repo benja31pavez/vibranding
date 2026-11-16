@@ -1,23 +1,11 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, type CSSProperties } from "react";
 import { trackEvent } from "@/lib/track";
-import { bestOn } from "@/lib/landingTheme";
 import { safeImageSrc } from "@/lib/site/safeUrl";
 import { jsonLd } from "@/lib/site/landingSeo";
-
-const HEX_COLOR = /^#[0-9a-f]{6}$/i;
-import { itemLinkKind } from "@/lib/site/multilinkDraft";
-import { LinkIcon } from "@/components/multilink/LinkIcon";
 import { meaningfulBio } from "@/components/multilink/bio";
-import {
-  itemHref,
-  itemIsLive,
-  socialNetwork,
-  videoEmbedUrl,
-  SOCIAL_LABEL,
-  type Multilink,
-  type MultilinkItem,
-  type SocialNetwork,
-} from "@/lib/multilink";
+import { PublicItem, SocialIcon } from "@/components/multilink/PublicLinkItem";
+import { ShareButton } from "@/components/multilink/ShareButton";
+import { itemHref, itemIsLive, type Multilink, type MultilinkItem } from "@/lib/multilink";
 import {
   avatarFallbackStyle,
   buttonShapeKey,
@@ -25,38 +13,21 @@ import {
   fontHref,
   fontKey,
   FONTS,
-  itemVisual,
   parseBackground,
-  SHAPE_RADIUS,
   surfaceTheme,
   withAlpha,
   type SurfaceTheme,
 } from "@/lib/multilinkTheme";
-import {
-  Facebook,
-  ArrowUpRight,
-  Instagram,
-  Linkedin,
-  Mail,
-  MessageCircle,
-  Music2,
-  Phone,
-  Play,
-  Twitter,
-  Youtube,
-} from "lucide-react";
 
-const SOCIAL_ICON: Record<SocialNetwork, typeof Instagram> = {
-  instagram: Instagram,
-  tiktok: Music2,
-  youtube: Youtube,
-  spotify: Music2,
-  facebook: Facebook,
-  x: Twitter,
-  linkedin: Linkedin,
-  email: Mail,
-  phone: Phone,
-};
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+const RISE = "motion-safe:animate-[rise-in_0.6s_var(--ease-out-expo)_backwards]";
+
+/** Iniciales para el avatar sin foto ("Proyecta Exteriores" → "PE"). */
+function initials(title: string): string {
+  const words = title.trim().split(/\s+/).filter(Boolean);
+  const letters = words.length > 1 ? words[0][0] + words[1][0] : (words[0] ?? "?").slice(0, 2);
+  return letters.toUpperCase();
+}
 
 export function PublicMultilinkView({
   ml: rawMl,
@@ -82,8 +53,10 @@ export function PublicMultilinkView({
 
   const font = fontKey(ml.font_family);
   useEffect(() => {
+    // La página pública ya trae la fuente en el <head> (sin salto al hidratar); la
+    // vista previa del editor la agrega aquí cuando cambia la tipografía.
     const href = fontHref(font);
-    if (document.querySelector(`link[data-ml-font="${font}"]`)) return;
+    if (document.querySelector(`link[data-ml-font="${font}"], link[href="${href}"]`)) return;
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = href;
@@ -106,19 +79,21 @@ export function PublicMultilinkView({
   const rest = visible.filter((i) => i.kind !== "social");
 
   const bg = parseBackground(ml.background);
-  const theme = surfaceTheme(ml.theme_mode, bg);
+  // La portada usa el fondo elegido; el panel (texto y botones) sigue el modo claro/oscuro.
+  const theme = surfaceTheme(ml.theme_mode, { type: "flat" });
   const style = buttonStyleKey(ml.button_style);
   const shape = buttonShapeKey(ml.button_shape);
-  const panelBackground = theme.isDark ? "rgba(13,13,15,0.96)" : "rgba(250,248,245,0.98)";
-  const subtleBorder = theme.isDark ? "rgba(255,255,255,0.1)" : "rgba(10,10,10,0.09)";
-  const coverBackground =
-    bg.type === "image" && safeImageSrc(bg.url)
-      ? `url("${safeImageSrc(bg.url)}") center / cover`
-      : bg.type === "gradient"
-        ? `linear-gradient(${bg.angle}deg, ${bg.from}, ${bg.to})`
-        : bg.type === "solid"
-          ? `linear-gradient(135deg, ${bg.color}, ${withAlpha(ml.theme_color, 0.72)})`
-          : `linear-gradient(135deg, ${withAlpha(ml.theme_color, 0.92)}, ${withAlpha(ml.theme_color, 0.3)})`;
+  const accent = ml.theme_color;
+  const panelBackground = theme.isDark ? "#0e0e11" : "#fbfaf8";
+  const subtleBorder = theme.isDark ? "rgba(255,255,255,0.1)" : "rgba(10,10,10,0.08)";
+  const coverImage = bg.type === "image" ? safeImageSrc(bg.url) : null;
+  const coverBackground = coverImage
+    ? `url("${coverImage}") center / cover`
+    : bg.type === "gradient"
+      ? `linear-gradient(${bg.angle}deg, ${bg.from}, ${bg.to})`
+      : bg.type === "solid"
+        ? `linear-gradient(135deg, ${bg.color}, ${withAlpha(accent, 0.72)})`
+        : `linear-gradient(135deg, ${withAlpha(accent, 0.95)}, ${withAlpha(accent, 0.35)})`;
 
   // A link-in-bio page is a profile: declare it so search engines can connect
   // the account to its social presence.
@@ -144,17 +119,12 @@ export function PublicMultilinkView({
     <div
       className="relative min-h-screen overflow-hidden"
       style={{
-        background: preview ? panelBackground : theme.isDark ? "#070709" : "#eef0f4",
+        background: preview ? panelBackground : theme.isDark ? "#060608" : "#eceef2",
         color: theme.color,
         fontFamily: FONTS[font].family,
       }}
     >
-      {!preview && (
-        <div
-          className="absolute inset-0 pointer-events-none opacity-35 blur-3xl scale-110"
-          style={{ background: coverBackground }}
-        />
-      )}
+      {!preview && <Backdrop cover={coverBackground} isDark={theme.isDark} />}
 
       {structuredData && (
         <script
@@ -165,105 +135,98 @@ export function PublicMultilinkView({
         />
       )}
 
-      <div className={`relative ${preview ? "" : "sm:px-5 sm:py-10"}`}>
+      <div className={`relative ${preview ? "" : "sm:px-5 sm:py-12"}`}>
         {/* Móvil: panel a pantalla completa (sin marco); desde sm: tarjeta flotante. */}
         <main
-          className={`mx-auto overflow-hidden text-center ${preview ? "w-full" : "min-h-screen max-w-[440px] sm:min-h-0 sm:rounded-[2rem] sm:border sm:shadow-2xl"}`}
-          style={
-            preview
-              ? { background: panelBackground }
-              : { background: panelBackground, borderColor: subtleBorder }
-          }
+          className={`mx-auto overflow-hidden text-center ${preview ? "w-full" : "min-h-screen max-w-[460px] sm:min-h-0 sm:rounded-[2.25rem] sm:border"}`}
+          style={{
+            background: panelBackground,
+            borderColor: subtleBorder,
+            boxShadow: preview
+              ? undefined
+              : `0 40px 90px -40px ${theme.isDark ? "rgba(0,0,0,0.85)" : withAlpha(accent, 0.5)}`,
+          }}
         >
           <div
-            className="relative h-40 sm:h-44 overflow-hidden"
+            className="relative h-40 overflow-hidden sm:h-44"
             style={{ background: coverBackground }}
           >
-            {bg.type === "image" && (
+            {coverImage && bg.type === "image" && (
               <div
                 className="absolute inset-0"
-                style={{ background: theme.overlay ?? "transparent" }}
+                style={{ background: `rgba(0,0,0,${bg.overlay})` }}
               />
             )}
-            <div
-              className="absolute inset-x-0 bottom-0 h-24"
-              style={{ background: `linear-gradient(to top, ${panelBackground}, transparent)` }}
-            />
+            {!preview && (
+              <div className="absolute right-3 top-3">
+                <ShareButton title={ml.title} />
+              </div>
+            )}
           </div>
 
-          <div className="relative -mt-14 px-5 sm:px-7 pb-9">
-            <div
-              className="inline-grid rounded-full p-1.5 shadow-xl"
-              style={{ background: panelBackground }}
-            >
-              <div
-                className="w-24 h-24 rounded-full overflow-hidden grid place-items-center text-3xl font-semibold"
-                style={
-                  ml.avatar_url
-                    ? { border: `2px solid ${subtleBorder}` }
-                    : avatarFallbackStyle(theme, ml.theme_color)
-                }
-              >
-                {ml.avatar_url ? (
-                  <img
-                    src={ml.avatar_url}
-                    width={96}
-                    height={96}
-                    fetchPriority="high"
-                    alt={`Foto de ${ml.title}`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  ml.title[0] || "?"
-                )}
-              </div>
+          {/* Hoja que sube sobre la portada: borde limpio en vez de un degradado turbio. */}
+          <div
+            className="relative -mt-7 rounded-t-[1.75rem] px-5 pb-10 sm:px-8"
+            style={{ background: panelBackground }}
+          >
+            <div className="-mt-14">
+              <Avatar ml={ml} panel={panelBackground} accent={accent} theme={theme} />
             </div>
-            <h1 className="mt-4 text-[1.35rem] sm:text-[1.7rem] leading-tight font-bold tracking-tight">
+            <h1
+              className={`mt-4 text-balance text-2xl font-bold leading-tight tracking-tight sm:text-[1.75rem] ${RISE}`}
+              // La tipografía del tema también manda en el título (el global de h1 no).
+              style={{ animationDelay: "40ms", fontFamily: "inherit" }}
+            >
               {ml.title}
             </h1>
             {ml.bio && (
-              <p className="mt-2 mx-auto max-w-xs text-sm leading-relaxed opacity-70 whitespace-pre-line">
+              <p className="mx-auto mt-2 max-w-[20rem] whitespace-pre-line text-pretty text-[0.925rem] leading-relaxed opacity-75">
                 {ml.bio}
               </p>
             )}
 
             {socials.length > 0 && (
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
-                {socials.map((i) => (
+              <nav
+                aria-label="Redes sociales"
+                className="mt-5 flex flex-wrap items-center justify-center gap-2.5"
+              >
+                {socials.map((i, k) => (
                   <SocialIcon
                     key={i.id}
                     item={i}
                     theme={theme}
-                    accent={ml.theme_color}
+                    accent={accent}
+                    index={k}
                     onClick={onClick}
                   />
                 ))}
-              </div>
+              </nav>
             )}
 
             <div className="mt-7 space-y-3 text-left">
-              {rest.map((i) => (
+              {rest.map((i, k) => (
                 <PublicItem
                   key={i.id}
                   item={i}
-                  color={ml.theme_color}
+                  color={accent}
                   theme={theme}
                   style={style}
                   shape={shape}
+                  index={k + socials.length}
                   onClick={onClick}
                 />
               ))}
               {rest.length === 0 && socials.length === 0 && (
-                <p className="opacity-60 text-sm text-center py-5">Sin enlaces todavía.</p>
+                <EmptyLinks preview={preview} border={subtleBorder} />
               )}
             </div>
 
-            <div className="mt-9 flex items-center justify-center gap-2 opacity-60">
-              <span className="h-px w-6" style={{ background: theme.color }} />
-              <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">
+            <div className="mt-10 flex items-center justify-center gap-2 opacity-50">
+              <span className="h-px w-8" style={{ background: theme.color }} />
+              <span className="text-[0.7rem] font-semibold uppercase tracking-[0.2em]">
                 Multienlace
               </span>
-              <span className="h-px w-6" style={{ background: theme.color }} />
+              <span className="h-px w-8" style={{ background: theme.color }} />
             </div>
           </div>
         </main>
@@ -272,182 +235,85 @@ export function PublicMultilinkView({
   );
 }
 
-function SocialIcon({
-  item,
-  theme,
-  accent,
-  onClick,
-}: {
-  item: MultilinkItem;
-  theme: SurfaceTheme;
-  accent: string;
-  onClick: (i: MultilinkItem) => void;
-}) {
-  const net = socialNetwork(item);
-  const Icon = SOCIAL_ICON[net];
-  const href = itemHref(item);
-  // Nothing to link to: rendering "#" in a new tab just opened a blank copy.
-  if (!href) return null;
-  const external = href.startsWith("http");
+/** Fondo de la página (desde sm): la portada difuminada más una viñeta suave. */
+function Backdrop({ cover, isDark }: { cover: string; isDark: boolean }) {
   return (
-    <a
-      href={href}
-      target={external ? "_blank" : undefined}
-      rel={external ? "noreferrer noopener" : undefined}
-      aria-label={item.title || SOCIAL_LABEL[net]}
-      title={item.title || SOCIAL_LABEL[net]}
-      onClick={() => onClick(item)}
-      className="grid place-items-center w-10 h-10 rounded-full transition duration-300 hover:-translate-y-0.5 hover:scale-105"
-      style={{
-        background: theme.isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.045)",
-        border: `1px solid ${withAlpha(accent, 0.32)}`,
-        color: theme.color,
-      }}
-    >
-      <Icon className="w-[18px] h-[18px]" />
-    </a>
+    <>
+      <div
+        className="pointer-events-none absolute inset-0 scale-110 opacity-40 blur-3xl"
+        style={{ background: cover }}
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `radial-gradient(120% 80% at 50% 0%, transparent 40%, ${isDark ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.5)"})`,
+        }}
+        aria-hidden="true"
+      />
+    </>
   );
 }
 
-function PublicItem({
-  item,
-  color,
+function Avatar({
+  ml,
+  panel,
+  accent,
   theme,
-  style,
-  shape,
-  onClick,
 }: {
-  item: MultilinkItem;
-  color: string;
+  ml: Multilink;
+  panel: string;
+  accent: string;
   theme: SurfaceTheme;
-  style: ReturnType<typeof buttonStyleKey>;
-  shape: ReturnType<typeof buttonShapeKey>;
-  onClick: (i: MultilinkItem) => void;
 }) {
-  if (item.kind === "video") {
-    const embed = videoEmbedUrl(item.video_url ?? item.url);
-    return (
-      <div
-        className="overflow-hidden"
-        style={{
-          borderRadius: SHAPE_RADIUS[shape],
-          border: `1px solid ${withAlpha(color, 0.3)}`,
-          background: theme.isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.05)",
-        }}
-      >
-        {embed ? (
-          <div className="aspect-video">
-            {/\.(mp4|webm|mov)(\?|$)/i.test(embed) ? (
-              <video
-                src={embed}
-                controls
-                preload="metadata"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <iframe
-                src={embed}
-                title={item.title}
-                loading="lazy"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
-                allowFullScreen
-                className="w-full h-full"
-              />
-            )}
-          </div>
-        ) : (
-          <div className="aspect-video grid place-items-center opacity-60 text-sm">
-            <Play className="w-6 h-6" />
-          </div>
-        )}
-        <div className="px-4 py-3">
-          <div className="font-medium">{item.title}</div>
-          {item.subtitle && <div className="text-sm opacity-70">{item.subtitle}</div>}
+  // Anillo con el color de marca: separa la foto de cualquier portada.
+  const ring: CSSProperties = {
+    background: `conic-gradient(from 210deg, ${accent}, ${withAlpha(accent, 0.25)}, ${accent})`,
+  };
+  return (
+    <div className={`inline-grid rounded-full p-[3px] shadow-xl ${RISE}`} style={ring}>
+      <div className="rounded-full p-1" style={{ background: panel }}>
+        <div
+          className="grid h-24 w-24 place-items-center overflow-hidden rounded-full text-3xl font-bold tracking-tight"
+          style={ml.avatar_url ? undefined : avatarFallbackStyle(theme, accent)}
+        >
+          {ml.avatar_url ? (
+            <img
+              src={ml.avatar_url}
+              width={96}
+              height={96}
+              fetchPriority="high"
+              decoding="async"
+              alt={`Logo de ${ml.title}`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span aria-hidden="true">{initials(ml.title)}</span>
+          )}
         </div>
       </div>
-    );
+    </div>
+  );
+}
+
+/** Sin enlaces: en la vista previa se muestran huecos de ejemplo para orientar al equipo. */
+function EmptyLinks({ preview, border }: { preview: boolean; border: string }) {
+  if (!preview) {
+    return <p className="py-5 text-center text-sm opacity-60">Sin enlaces todavía.</p>;
   }
-
-  const href = itemHref(item);
-  const thumb = safeImageSrc(item.thumbnail_url);
-  const isWa = item.kind === "whatsapp";
-  const accent = isWa ? "#25D366" : color;
-  // Only http(s) destinations belong in a new tab — mailto:/tel: used to leave an
-  // orphan blank tab. Without an href we render plain content instead of a dead link.
-  const external = !!href && href.startsWith("http");
-
-  if (item.featured) {
-    return (
-      <a
-        href={href ?? undefined}
-        target={external ? "_blank" : undefined}
-        rel={external ? "noreferrer noopener" : undefined}
-        onClick={href ? () => onClick(item) : undefined}
-        className="group block overflow-hidden shadow-xl transition duration-300 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4"
-        style={{
-          background: accent,
-          color: bestOn(accent),
-          borderRadius: SHAPE_RADIUS[shape],
-          outlineColor: accent,
-        }}
-      >
-        {thumb && (
-          <img
-            src={thumb}
-            alt=""
-            width={440}
-            height={160}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-40 object-cover"
-          />
-        )}
-        <div className="px-4 py-3.5 relative text-left">
-          <div className="text-[0.95rem] font-semibold tracking-tight flex items-center gap-2 pr-8">
-            <LinkIcon kind={itemLinkKind(item)} className="w-[18px] h-[18px] shrink-0" />
-            {item.title}
-          </div>
-          {item.subtitle && <div className="mt-0.5 text-xs opacity-90">{item.subtitle}</div>}
-          <ArrowUpRight className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-65 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />
-        </div>
-      </a>
-    );
-  }
-
-  const visual = itemVisual(style, shape, accent, theme);
-
-  // Editorial row: leading media/icon, left-aligned label, trailing arrow.
   return (
-    <a
-      href={href ?? undefined}
-      target={external ? "_blank" : undefined}
-      rel={external ? "noreferrer noopener" : undefined}
-      onClick={href ? () => onClick(item) : undefined}
-      className={`group relative flex min-h-14 items-center gap-3 py-3 pr-10 pl-3.5 text-left shadow-sm focus-visible:outline-2 focus-visible:outline-offset-4 ${visual.className}`}
-      style={{ ...visual.style, outlineColor: theme.color }}
-    >
-      {thumb ? (
-        <img
-          src={thumb}
-          alt=""
-          width={36}
-          height={36}
-          loading="lazy"
-          decoding="async"
-          className="shrink-0 w-9 h-9 rounded-lg object-cover"
+    <div className="space-y-3">
+      {[0.9, 0.65, 0.4].map((o) => (
+        <div
+          key={o}
+          aria-hidden="true"
+          className="h-14 rounded-2xl border-2 border-dashed"
+          style={{ borderColor: border, opacity: o }}
         />
-      ) : (
-        <LinkIcon kind={itemLinkKind(item)} className="shrink-0 w-5 h-5" />
-      )}
-      <span className="min-w-0 flex-1">
-        <span className="block text-[0.95rem] font-semibold leading-snug tracking-tight">
-          {item.title}
-        </span>
-        {item.subtitle && (
-          <span className="mt-0.5 block text-xs leading-snug opacity-75">{item.subtitle}</span>
-        )}
-      </span>
-      <ArrowUpRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-45 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-[60%]" />
-    </a>
+      ))}
+      <p className="pt-1 text-center text-xs opacity-60">
+        Aquí aparecerán los enlaces que agregues.
+      </p>
+    </div>
   );
 }

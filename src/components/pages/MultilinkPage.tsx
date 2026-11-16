@@ -9,7 +9,7 @@ import { EmptyState, ErrorState, ListSkeleton } from "@/components/app";
 import { uniqueSlug } from "@/lib/slug";
 import { EventsPanel } from "@/components/landing/EventsPanel";
 import { MultilinkAnalytics } from "@/components/multilink/MultilinkAnalytics";
-import { QrCodeCard } from "@/components/multilink/QrCodeCard";
+import { SharePanel } from "@/components/multilink/SharePanel";
 import { PublicMultilinkView } from "@/components/multilink/PublicMultilinkView";
 import { LinkListEditor } from "@/components/multilink/editor/LinkListEditor";
 import { ProfileEditor, ThemeEditor } from "@/components/multilink/editor/MultilinkDesign";
@@ -444,21 +444,14 @@ export function MultilinkPage({
         </SitePane>
 
         <SitePane value="compartir">
-          <ScrollColumn className="max-w-4xl">
-            <section className="space-y-2 rounded-app-lg border border-border-subtle bg-surface p-5 text-sm shadow-app-xs">
-              <h2 className="font-medium">Dónde usarlo</h2>
-              <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
-                <li>En la bio de Instagram y TikTok (Editar perfil → Enlaces).</li>
-                <li>En el estado y el perfil de empresa de WhatsApp Business.</li>
-                <li>El QR va en tarjetas, vitrina, packaging y vehículos.</li>
-              </ul>
-              {!ml.published && (
-                <p className="font-medium text-warning-strong">
-                  Aún es borrador: publícalo para que el link y el QR funcionen.
-                </p>
-              )}
-            </section>
-            <QrCodeCard url={publicUrl} fileBase={`${saved.ml.slug}-multienlace`} />
+          <ScrollColumn className="max-w-6xl">
+            <SharePanel
+              publicUrl={publicUrl}
+              published={ml.published}
+              fileBase={`${saved.ml.slug}-multienlace`}
+              accent={saved.ml.theme_color}
+              title={saved.ml.title}
+            />
           </ScrollColumn>
         </SitePane>
 
