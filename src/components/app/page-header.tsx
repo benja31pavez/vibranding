@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { Link, type LinkProps } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
+import type { LinkProps } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
 export interface BreadcrumbItem {
@@ -31,7 +30,6 @@ export function PageHeader({
   const compact = size === "compact";
   return (
     <header className={cn("flex flex-col", compact ? "gap-1.5" : "gap-3", className)}>
-      {breadcrumb && breadcrumb.length > 0 && <Breadcrumb items={breadcrumb} />}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className={cn("min-w-0", compact ? "space-y-0.5" : "space-y-1")}>
           <h1
