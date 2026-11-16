@@ -649,6 +649,75 @@ export type Database = {
         }
         Relationships: []
       }
+      client_employees: {
+        Row: {
+          client_id: string
+          created_at: string
+          department: string | null
+          email: string | null
+          ended_at: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          rank: string | null
+          role: string | null
+          rut: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          ended_at?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          rank?: string | null
+          role?: string | null
+          rut?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          ended_at?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          rank?: string | null
+          role?: string | null
+          rut?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_employees_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_self"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_employees_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_files: {
         Row: {
           client_id: string
