@@ -135,6 +135,7 @@ export function ClientPanelSidebar({
         <Link
           to={SUMMARY_HREF}
           search={search}
+          activeOptions={{ exact: true }}
           aria-current={onSummary ? "page" : undefined}
           className={itemClass(onSummary)}
         >
