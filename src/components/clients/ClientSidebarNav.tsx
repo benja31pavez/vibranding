@@ -203,6 +203,7 @@ export function ClientSidebarNav({
                   <Link
                     to="/clients/$clientId"
                     params={{ clientId }}
+                    activeOptions={{ exact: true }}
                     aria-current={onSummary ? "page" : undefined}
                     className={itemClass(onSummary)}
                   >
