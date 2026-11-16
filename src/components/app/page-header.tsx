@@ -23,7 +23,6 @@ export interface PageHeaderProps {
 export function PageHeader({
   title,
   actions,
-  breadcrumb,
   className,
   size = "default",
 }: PageHeaderProps) {
@@ -68,34 +67,3 @@ function TitleText({ title }: { title: ReactNode }) {
   );
 }
 
-function Breadcrumb({ items }: { items: readonly BreadcrumbItem[] }) {
-  return (
-    <nav aria-label="Ruta de navegación">
-      <ol className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-        {items.map((item, i) => {
-          const isLast = i === items.length - 1;
-          return (
-            <li key={`${item.label}-${i}`} className="flex items-center gap-1">
-              {item.to && !isLast ? (
-                <Link
-                  to={item.to}
-                  className="rounded-app-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {item.label}
-                </Link>
-              ) : (
-                <span
-                  aria-current={isLast ? "page" : undefined}
-                  className={isLast ? "text-foreground" : undefined}
-                >
-                  {item.label}
-                </span>
-              )}
-              {!isLast && <ChevronRight aria-hidden className="h-3 w-3" />}
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
-  );
-}
