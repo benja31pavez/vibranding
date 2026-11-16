@@ -23,7 +23,6 @@ export interface PageHeaderProps {
 /** Encabezado estándar de una pantalla de la plataforma. */
 export function PageHeader({
   title,
-  description,
   actions,
   breadcrumb,
   className,
