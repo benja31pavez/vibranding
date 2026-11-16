@@ -101,6 +101,251 @@ export type Database = {
           },
         ]
       }
+      agency_bank_accounts: {
+        Row: {
+          account_number: string
+          account_type: string
+          bank_code: string
+          created_at: string
+          holder_email: string
+          holder_name: string
+          holder_rut: string
+          id: string
+          is_primary: boolean
+          label: string
+          notes: string
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          account_type: string
+          bank_code: string
+          created_at?: string
+          holder_email?: string
+          holder_name?: string
+          holder_rut?: string
+          id?: string
+          is_primary?: boolean
+          label?: string
+          notes?: string
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          account_type?: string
+          bank_code?: string
+          created_at?: string
+          holder_email?: string
+          holder_name?: string
+          holder_rut?: string
+          id?: string
+          is_primary?: boolean
+          label?: string
+          notes?: string
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_bank_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_employees: {
+        Row: {
+          area: string
+          created_at: string
+          display_name: string
+          email: string
+          ended_at: string | null
+          id: string
+          notes: string
+          org_id: string
+          phone: string
+          started_at: string | null
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          area?: string
+          created_at?: string
+          display_name?: string
+          email?: string
+          ended_at?: string | null
+          id?: string
+          notes?: string
+          org_id: string
+          phone?: string
+          started_at?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          display_name?: string
+          email?: string
+          ended_at?: string | null
+          id?: string
+          notes?: string
+          org_id?: string
+          phone?: string
+          started_at?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_employees_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_expenses: {
+        Row: {
+          category: string
+          concept: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          document_number: string
+          document_type: string
+          expense_date: string
+          id: string
+          iva_amount: number
+          net_amount: number
+          notes: string
+          org_id: string
+          payment_method: string
+          supplier: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          concept: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          document_number?: string
+          document_type?: string
+          expense_date: string
+          id?: string
+          iva_amount?: number
+          net_amount?: number
+          notes?: string
+          org_id: string
+          payment_method?: string
+          supplier?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          concept?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          document_number?: string
+          document_type?: string
+          expense_date?: string
+          id?: string
+          iva_amount?: number
+          net_amount?: number
+          notes?: string
+          org_id?: string
+          payment_method?: string
+          supplier?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_expenses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_profile: {
+        Row: {
+          address: string
+          billing_notes: string
+          city: string
+          commune: string
+          contact_email: string
+          contact_phone: string
+          created_at: string
+          giro: string
+          id: string
+          legal_name: string
+          legal_representative: string
+          legal_representative_rut: string
+          org_id: string
+          rut: string
+          updated_at: string
+          website: string
+        }
+        Insert: {
+          address?: string
+          billing_notes?: string
+          city?: string
+          commune?: string
+          contact_email?: string
+          contact_phone?: string
+          created_at?: string
+          giro?: string
+          id?: string
+          legal_name?: string
+          legal_representative?: string
+          legal_representative_rut?: string
+          org_id: string
+          rut?: string
+          updated_at?: string
+          website?: string
+        }
+        Update: {
+          address?: string
+          billing_notes?: string
+          city?: string
+          commune?: string
+          contact_email?: string
+          contact_phone?: string
+          created_at?: string
+          giro?: string
+          id?: string
+          legal_name?: string
+          legal_representative?: string
+          legal_representative_rut?: string
+          org_id?: string
+          rut?: string
+          updated_at?: string
+          website?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_profile_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attributions: {
         Row: {
           ad_id: string | null
